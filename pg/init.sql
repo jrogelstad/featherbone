@@ -160,7 +160,7 @@ create or replace function fp.init() returns void as $$
         inheritSchema = (obj.inherits ? obj.inherits.ere() || "fp" : "fp").toSnakeCase(),
         inheritTable = (obj.inherits ? obj.inherits.hind() : 'object').toSnakeCase(),
         sql = "select * from pg_tables where schemaname = $1 and tablename = $2;",
-        args = [schema, table, inheritSchema, inheritTable, table + "_pkey", table + "_guid_key"];
+        args = [schema, table, table + "_pkey", table + "_guid_key", inheritSchema, inheritTable];
 
       if (!table || plv8.execute(sql, [schema, table]).length) { return false };
 
