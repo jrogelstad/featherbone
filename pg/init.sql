@@ -50,24 +50,124 @@ create or replace function fp.init() returns void as $$
     plv8.FP = FP = {};
 
     /**
-      Create a new table.
+      Alter a persistence class.
 
+      {
+         "nameSpace": "FP",
+         "className": "Contact",
+         "properties": [
+           {
+             "action": "add",
+             "name": "name",
+             "dataType": "String",
+             "isRequired": true,
+             "defaultValue": ""
+           },
+           {
+             "name": "birthDate",
+             "dataType": "Date"
+           },
+           {
+             "name": "married",
+             "dataType": "Boolean",
+             "isRequired": true
+           },
+           {
+             "name": "dependents",
+             "dataType": "Number",
+             "isRequired": true,
+             "defaultValue": 0
+           }
+         ]
+      }
+
+     * @param {Object} Specification to alter class.
+     * @return {String}
+    */
+    FP.alterClass = function (obj) {
+      obj = obj || {};
+
+      var schema = obj.nameSpace || 'fp',
+        table = obj.className ? obj.className.toSnakeCase() : false,
+        sql = 'select * from pg_tables where schemaname = $1 and tablename = $2;',
+        args = [schema, table],
+        result = true,
+        i;
+
+      if (!table || !obj.properties || !obj.properties.length ||
+        !plv8.execute(sql, [schema, table]).length) { 
+        return false 
+      };
+
+      sql = "";
+      for (i = 0; i < obj.properties.length; i++) {
+        var prop = obj.properties[i],
+          action = prop.action || "add",
+          dataType = prop.dataType,
+          name = prop.name ? prop.name.toSnakeCase() : false,
+          args = [schema, table, action],
+          actions = ["add", "drop"],
+          dataTypes = {
+            Object: "json", 
+            Array: "json", 
+            String: "text", 
+            Number: "numeric", 
+            Date: "timestamp with time zone",
+            Boolean: "boolean"
+          };
+
+        if (!name || actions.indexOf(action) === -1) {
+          result = false;
+          break;
+        }
+ 
+        sql += FP.formatSql("alter table %I.%I %I column ", args);
+
+        /** Add to this switch to add support for more alter actions in the future**/
+        switch (action)
+        {
+        case "add":
+          if (Object.keys(dataTypes).indexOf(dataType) === -1) {
+            result = false;
+          } else {
+            sql += FP.formatSql("%I " + dataTypes[dataType], [name]);
+            if (prop.isRequired) { sql += " not null" }
+            sql += ";";
+          }
+          break;
+        case "drop":
+          sql += FP.formatSql(" if exists %I;", [name]);
+          break;
+        }
+        if (!result) { break }
+      }
+
+      if (result) { plv8.execute(sql); }
+
+      return result;
+    };
+
+    /**
+      Create a new table.
      * @param {Object} Specification to create a table.
      * @return {String}
     */
     FP.createClass = function (obj) {
       obj = obj || {};
 
-      var schema = obj.namespace || 'fp',
-        table = obj.name ? obj.name.toSnakeCase() : false,
-        inheritSchema = (obj.inherits ? obj.inherits.ere || 'fp' : 'fp').toSnakeCase(),
-        inheritTable = (obj.inherits ? obj.inherits.hind : 'object').toSnakeCase(),
-        sql = 'select * from pg_tables where schemaname = $1 and tablename = $2;';
+      var schema = obj.nameSpace || 'fp',
+        table = obj.className ? obj.className.toSnakeCase() : false,
+        inheritSchema = (obj.inherits ? obj.inherits.ere() || "fp" : "fp").toSnakeCase(),
+        inheritTable = (obj.inherits ? obj.inherits.hind() : 'object').toSnakeCase(),
+        sql = "select * from pg_tables where schemaname = $1 and tablename = $2;",
+        args = [schema, table, inheritSchema, inheritTable, table + "_pkey", table + "_guid_key"];
 
       if (!table || plv8.execute(sql, [schema, table]).length) { return false };
 
-      sql = FP.formatSql('create table %I.%I() inherits (%I.%I)', [schema, table, inheritSchema, inheritTable]);
+      sql = FP.formatSql("create table %I.%I(constraint %I primary key (id), constraint %I unique (guid)) inherits (%I.%I)", args);
       plv8.execute(sql);
+
+      FP.alterClass(obj);
       
       return true;
     };
@@ -79,12 +179,12 @@ create or replace function fp.init() returns void as $$
       @return {String}
     */
     FP.createUuid = function () {
-      var d = new Date().getTime();
-      var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-        var r = (d + Math.random() * 16) % 16 | 0;
-        d = Math.floor(d / 16);
-        return (c === 'x' ? r : (r&0x7|0x8)).toString(16);
-      });
+      var d = new Date().getTime(),
+        uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+          var r = (d + Math.random() * 16) % 16 | 0;
+          d = Math.floor(d / 16);
+          return (c === 'x' ? r : (r&0x7|0x8)).toString(16);
+        });
 
       return uuid;
     };
@@ -98,13 +198,14 @@ create or replace function fp.init() returns void as $$
     FP.destroyClass = function (obj) {
       obj = obj || {};
 
-      var schema = (obj.namespace || 'fp').toSnakeCase(),
-        table = obj.name ? obj.name.toSnakeCase() : false,
-        sql = 'select * from pg_tables where schemaname = $1 and tablename = $2;';
+      var schema = (obj.nameSpace || 'fp').toSnakeCase(),
+        table = obj.className ? obj.className.toSnakeCase() : false,
+        sql = "select * from pg_tables where schemaname = $1 and tablename = $2;",
+        args = [schema, table];
 
-      if (!table || !plv8.execute(sql, [schema, table]).length) { return false };
+      if (!table || !plv8.execute(sql, args).length) { return false };
 
-      sql = FP.formatSql('drop table %I.%I', [schema, table]);
+      sql = FP.formatSql("drop table %I.%I", args);
       plv8.execute(sql);
       
       return true;
@@ -118,20 +219,17 @@ create or replace function fp.init() returns void as $$
      * @param {Array} Array of replacement strings.
      * @return {String} Escaped string.
     */
-    FP.formatSql = function (str, args) {
+    FP.formatSql = function (str, ary) {
       var params = [],
-        n = 1;
+        i;
 
-      args = args || [];
+      ary = ary || [];
+      ary.unshift(str);
+      for (i = 0; i < ary.length; i++) {
+        params.push("$" + (i + 1));
+      };
 
-      args.unshift(str);
-
-      args.forEach(function() {
-        params.push("$" + n);
-        n++;
-      });
-
-      return plv8.execute("select format(" + params.toString(",") + ")", args)[0].format;
+      return plv8.execute("select format(" + params.toString(",") + ")", ary)[0].format;
     }
 
     /**
@@ -141,7 +239,7 @@ create or replace function fp.init() returns void as $$
     */
     FP.getCurrentUser = function () {
 
-      return plv8.execute('select current_user as user')[0].user;
+      return plv8.execute("select current_user as user")[0].user;
     }
 
     plv8._init = true;

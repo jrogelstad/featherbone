@@ -7,10 +7,9 @@
        "guid text not null default fp.create_uuid() unique," +
        "created timestamp with time zone not null default now()," +
        "created_by text not null default fp.get_current_user()," +
-       "updated time with time zone not null default now()," +
+       "updated timestamp with time zone not null default now()," +
        "updated_by text not null default fp.get_current_user())";
+     plv8.elog(NOTICE, sql);
      plv8.execute(sql);
    };
-
 $$ language plv8;
-drop table fp.object
