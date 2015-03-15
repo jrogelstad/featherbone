@@ -62,7 +62,7 @@ create or replace function fp.init() returns void as $$
     /**
       Alter a persistence class.
 
-     * @param {Object} Specification to alter class.
+     * @param {Object} Specification payload to alter class.
      * @return {String}
     */
     FP.alterClass = function (obj) {
@@ -94,11 +94,11 @@ create or replace function fp.init() returns void as $$
       for (i = 0; i < obj.properties.length; i++) {
         var prop = obj.properties[i],
           action = prop.action || "add",
-          dataType = prop.dataType,
+          type = prop.type,
           name = prop.name ? prop.name.toSnakeCase() : false,
           args = [schema, table, action],
           actions = ["add", "drop"],
-          dataTypes = {
+          types = {
             Object: "json", 
             Array: "json", 
             String: "text", 
@@ -119,11 +119,11 @@ create or replace function fp.init() returns void as $$
         switch (action)
         {
         case "add":
-          if (Object.keys(dataTypes).indexOf(dataType) === -1) {
+          if (Object.keys(types).indexOf(type) === -1) {
             result = false;
           } else {
             if (!found) {
-              sql += FP.formatSql("alter table %I.%I %I column %I " + dataTypes[dataType], args);
+              sql += FP.formatSql("alter table %I.%I %I column %I " + types[type], args);
               sql += prop.isRequired ? " not null;" : ";";
             }
             if (prop.description) {
@@ -146,7 +146,7 @@ create or replace function fp.init() returns void as $$
     };
 
     /**
-      Create or update a persistence object. This function is idempotent.
+      Create or update a persistence class. This function is idempotent.
 
       Example payload:
           {
@@ -158,32 +158,32 @@ create or replace function fp.init() returns void as $$
                  "action": "add",
                  "name": "fullName",
                  "description": "Full name",
-                 "dataType": "String",
+                 "type": "String",
                  "isRequired": true,
                  "defaultValue": ""
                },
                {
                  "name": "birthDate",
                  "description": "Birth date",
-                 "dataType": "Date"
+                 "type": "Date"
                },
                {
-                 "name": "IsMarried",
+                 "name": "isMarried",
                  "description": "Marriage status",
-                 "dataType": "Boolean",
+                 "type": "Boolean",
                  "isRequired": true
                },
                {
                  "name": "dependents",
                  "description": "Number of dependents",
-                 "dataType": "Number",
+                 "type": "Number",
                  "isRequired": true,
                  "defaultValue": 0
                }
              ]
           }
  
-     * @param {Object} Object specification.
+     * @param {Object} Class specification payload.
      * @return {String}
     */
     FP.createClass = function (obj) {
@@ -231,9 +231,9 @@ create or replace function fp.init() returns void as $$
     };
 
     /**
-      Drop a table.
+      Remove a class from the database.
 
-      * @param {Object} Table to drop.
+      * @param {Object} Object describing object to remove.
       * @return {String}
     */
     FP.destroyClass = function (obj) {
@@ -271,16 +271,63 @@ create or replace function fp.init() returns void as $$
       };
 
       return plv8.execute("select format(" + params.toString(",") + ")", ary)[0].format;
-    }
+    };
 
     /**
-      Return a the current user.
+      Return the current user.
 
       @return {String}
     */
     FP.getCurrentUser = function () {
-      return plv8.execute("select current_user as user")[0].user;
-    }
+      return plv8.execute("select current_user as user;")[0].user;
+    };
+    
+    /**
+      Post.
+
+      Example payload:
+          {
+             "nameSpace": "FP",
+             "className": "Contact",
+             "value": {
+               "guid": "dc9d03f9-a539-4eca-f008-1178f19f56ad",
+               "created": "2015-04-26T12:57:57.896Z",
+               "createdBy": "admin",
+               "updated": "2015-04-26T12:57:57.896Z",
+               "updatedBy": "admin",
+               "fullName": "John Doe",
+               "birthDate": "1970-01-01T00:00:00.000Z",
+               "isMarried": true,
+               "dependentes": 2
+             }
+          }
+
+      @return {String}
+    */
+    FP.post = function (obj) {
+      var schema = (obj.nameSpace || 'fp').toSnakeCase(),
+        table = obj.className ? obj.className.toSnakeCase() : false,
+        keys = Object.keys(obj.value),
+        args = [schema, table],
+        tokens = [],
+        params = [],
+        values = [],
+        sql,
+        i;
+
+      for (i = 0; i < keys.length; i++) {
+        args.push(keys[i].toSnakeCase());
+        tokens.push("%I");
+        params.push("$" + (i + 1));
+        values.push(obj.value[keys[i]]);
+      }
+
+      sql = FP.formatSql("insert into %I.%I (" + tokens.toString(",") + ") values (" + params.toString(",") + ");", args);
+      plv8.elog(NOTICE, sql);
+      plv8.execute(sql, values);
+      
+      return true;
+    };   
 
     plv8._init = true;
 
