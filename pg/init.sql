@@ -1,4 +1,4 @@
-﻿﻿/**
+﻿/**
     Featherbonejs is a JavaScript based persistence framework for building object relational database applications
     
     Copyright (C) 2015  John Rogelstad
@@ -18,12 +18,8 @@ create or replace function fp.init() returns void as $$
   return (function () {
 
     // ..........................................................
-    // NATIVES
+    // NATIVE
     //
-
-    Object.prototype.isString = function () {
-      return toString.call(this) === "[object String]";
-    }
 
     /**
       Return the text after the first dot.
@@ -66,42 +62,13 @@ create or replace function fp.init() returns void as $$
     /**
       Alter a persistence class.
 
-      {
-         "nameSpace": "FP",
-         "className": "Contact",
-         "properties": [
-           {
-             "action": "add",
-             "name": "name",
-             "dataType": "String",
-             "isRequired": true,
-             "defaultValue": ""
-           },
-           {
-             "name": "birthDate",
-             "dataType": "Date"
-           },
-           {
-             "name": "married",
-             "dataType": "Boolean",
-             "isRequired": true
-           },
-           {
-             "name": "dependents",
-             "dataType": "Number",
-             "isRequired": true,
-             "defaultValue": 0
-           }
-         ]
-      }
-
      * @param {Object} Specification to alter class.
      * @return {String}
     */
     FP.alterClass = function (obj) {
       obj = obj || {};
 
-      var schema = obj.nameSpace || 'fp',
+      var schema = (obj.nameSpace || 'fp').toSnakeCase(),
         table = obj.className ? obj.className.toSnakeCase() : false,
         sql = 'select * from pg_tables where schemaname = $1 and tablename = $2;',
         sqlChk = "select * " +
@@ -179,14 +146,50 @@ create or replace function fp.init() returns void as $$
     };
 
     /**
-      Create a new table.
-     * @param {Object} Specification to create a table.
+      Create or update a persistence object. This function is idempotent.
+
+      Example payload:
+          {
+             "nameSpace": "FP",
+             "className": "Contact",
+             "description": "Contact data about a person",
+             "properties": [
+               {
+                 "action": "add",
+                 "name": "fullName",
+                 "description": "Full name",
+                 "dataType": "String",
+                 "isRequired": true,
+                 "defaultValue": ""
+               },
+               {
+                 "name": "birthDate",
+                 "description": "Birth date",
+                 "dataType": "Date"
+               },
+               {
+                 "name": "IsMarried",
+                 "description": "Marriage status",
+                 "dataType": "Boolean",
+                 "isRequired": true
+               },
+               {
+                 "name": "dependents",
+                 "description": "Number of dependents",
+                 "dataType": "Number",
+                 "isRequired": true,
+                 "defaultValue": 0
+               }
+             ]
+          }
+ 
+     * @param {Object} Object specification.
      * @return {String}
     */
     FP.createClass = function (obj) {
       obj = obj || {};
 
-      var schema = obj.nameSpace || 'fp',
+      var schema = (obj.nameSpace || 'fp').toSnakeCase(),
         table = obj.className ? obj.className.toSnakeCase() : false,
         inheritSchema = (obj.inherits ? obj.inherits.ere() || "fp" : "fp").toSnakeCase(),
         inheritTable = (obj.inherits ? obj.inherits.hind() : 'object').toSnakeCase(),
@@ -276,7 +279,6 @@ create or replace function fp.init() returns void as $$
       @return {String}
     */
     FP.getCurrentUser = function () {
-
       return plv8.execute("select current_user as user")[0].user;
     }
 
