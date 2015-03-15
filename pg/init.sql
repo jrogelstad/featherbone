@@ -145,6 +145,9 @@ create or replace function fp.init() returns void as $$
               sql += FP.formatSql("alter table %I.%I %I column %I " + dataTypes[dataType], args);
               sql += prop.isRequired ? " not null;" : ";";
             }
+            if (prop.description) {
+              sql += FP.formatSql("comment on column %I.%I.%I is %L;", [schema, table, name, prop.description]);
+            }
           }
           break;
         case "drop":
@@ -180,6 +183,11 @@ create or replace function fp.init() returns void as $$
 
       if (!plv8.execute(sql, [schema, table]).length) {
         sql = FP.formatSql("create table %I.%I(constraint %I primary key (id), constraint %I unique (guid)) inherits (%I.%I)", args);
+        plv8.execute(sql);
+      }
+
+      if (obj.description) { 
+        sql = FP.formatSql("comment on table %I.%I is %L;", [schema, table, obj.description]);
         plv8.execute(sql);
       }
 
