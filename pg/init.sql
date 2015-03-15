@@ -90,8 +90,18 @@ create or replace function fp.init() returns void as $$
       var schema = obj.nameSpace || 'fp',
         table = obj.className ? obj.className.toSnakeCase() : false,
         sql = 'select * from pg_tables where schemaname = $1 and tablename = $2;',
+        sqlChk = "select * " +
+          "from pg_class c, pg_namespace n, pg_attribute a, pg_type t " +
+          "where c.relname = $1 " +
+          " and n.nspname = $2 " +
+          " and a.attname = $3 " +
+          " and n.oid = c.relnamespace " +
+          " and a.attnum > 0 " +
+          " and a.attrelid = c.oid " +
+          " and a.atttypid = t.oid; ",
         args = [schema, table],
         result = true,
+        found,
         i;
 
       if (!table || !obj.properties || !obj.properties.length ||
@@ -120,8 +130,9 @@ create or replace function fp.init() returns void as $$
           result = false;
           break;
         }
- 
-        sql += FP.formatSql("alter table %I.%I %I column ", args);
+
+        args.push(name);
+        found = plv8.execute(sqlChk, [table, schema, name]).length;
 
         /** Add to this switch to add support for more alter actions in the future**/
         switch (action)
@@ -130,13 +141,16 @@ create or replace function fp.init() returns void as $$
           if (Object.keys(dataTypes).indexOf(dataType) === -1) {
             result = false;
           } else {
-            sql += FP.formatSql("%I " + dataTypes[dataType], [name]);
-            if (prop.isRequired) { sql += " not null" }
-            sql += ";";
+            if (!found) {
+              sql += FP.formatSql("alter table %I.%I %I column %I " + dataTypes[dataType], args);
+              sql += prop.isRequired ? " not null;" : ";";
+            }
           }
           break;
         case "drop":
-          sql += FP.formatSql(" if exists %I;", [name]);
+          if (found) {
+            sql += FP.formatSql("alter table %I.%I %I column if exists %I;", args);
+          }
           break;
         }
         if (!result) { break }
@@ -162,10 +176,12 @@ create or replace function fp.init() returns void as $$
         sql = "select * from pg_tables where schemaname = $1 and tablename = $2;",
         args = [schema, table, table + "_pkey", table + "_guid_key", inheritSchema, inheritTable];
 
-      if (!table || plv8.execute(sql, [schema, table]).length) { return false };
+      if (!table) { return false };
 
-      sql = FP.formatSql("create table %I.%I(constraint %I primary key (id), constraint %I unique (guid)) inherits (%I.%I)", args);
-      plv8.execute(sql);
+      if (!plv8.execute(sql, [schema, table]).length) {
+        sql = FP.formatSql("create table %I.%I(constraint %I primary key (id), constraint %I unique (guid)) inherits (%I.%I)", args);
+        plv8.execute(sql);
+      }
 
       FP.alterClass(obj);
       
