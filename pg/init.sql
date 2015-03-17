@@ -15,10 +15,12 @@
 **/
 
 create or replace function fp.init() returns void as $$
-
-  /** private **/
-  
   return (function () {
+
+    var _post,
+      _patch,
+      _delete,
+      _get;
 
     // ..........................................................
     // NATIVE
@@ -295,7 +297,7 @@ create or replace function fp.init() returns void as $$
         return false;
         break;
       case "DELETE":
-        return false;
+        return _delete(obj);
         break;
       case "GET":
         return false;
@@ -306,7 +308,8 @@ create or replace function fp.init() returns void as $$
     // ..........................................................
     // Private
     //
-    
+
+    /** private */
     _post = function (obj) {
       var schema = (obj.nameSpace || 'fp').toSnakeCase(),
         table = obj.className ? obj.className.toSnakeCase() : false,
@@ -325,8 +328,21 @@ create or replace function fp.init() returns void as $$
         values.push(obj.value[keys[i]]);
       }
 
-      sql = FP.formatSql("insert into %I.%I (" + tokens.toString(",") + ") values (" + params.toString(",") + ");", args);
-      plv8.execute(sql, values);
+      sql = FP.formatSql("insert into %I.%I (" + tokens.toString(",") + ") values (" + params.toString(",") + ") returning *;", args);
+      result = plv8.execute(sql, values)[0];
+      delete result.id;
+      
+      return result;
+    };
+
+    /** private */
+    _delete = function (obj) {
+      var schema = (obj.nameSpace || 'fp').toSnakeCase(),
+        table = obj.className ? obj.className.toSnakeCase() : false,
+        args = [schema, table],
+        sql = FP.formatSql("update %I.%I set is_deleted = true where guid=$1;", args);
+
+      plv8.execute(sql, [obj.guid]);
       
       return true;
     }
