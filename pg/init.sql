@@ -15,6 +15,9 @@
 **/
 
 create or replace function fp.init() returns void as $$
+
+  /** private **/
+  
   return (function () {
 
     // ..........................................................
@@ -60,92 +63,6 @@ create or replace function fp.init() returns void as $$
     plv8.FP = FP = {};
 
     /**
-      Alter a persistence class.
-
-     * @param {Object} Specification payload to alter class.
-     * @return {String}
-    */
-    FP.alterClass = function (obj) {
-      obj = obj || {};
-
-      var schema = (obj.nameSpace || 'fp').toSnakeCase(),
-        table = obj.className ? obj.className.toSnakeCase() : false,
-        sql = 'select * from pg_tables where schemaname = $1 and tablename = $2;',
-        sqlChk = "select * " +
-          "from pg_class c, pg_namespace n, pg_attribute a, pg_type t " +
-          "where c.relname = $1 " +
-          " and n.nspname = $2 " +
-          " and a.attname = $3 " +
-          " and n.oid = c.relnamespace " +
-          " and a.attnum > 0 " +
-          " and a.attrelid = c.oid " +
-          " and a.atttypid = t.oid; ",
-        args = [schema, table],
-        result = true,
-        found,
-        i;
-
-      if (!table || !obj.properties || !obj.properties.length ||
-        !plv8.execute(sql, [schema, table]).length) { 
-        return false 
-      };
-
-      sql = "";
-      for (i = 0; i < obj.properties.length; i++) {
-        var prop = obj.properties[i],
-          action = prop.action || "add",
-          type = prop.type,
-          name = prop.name ? prop.name.toSnakeCase() : false,
-          args = [schema, table, action],
-          actions = ["add", "drop"],
-          types = {
-            Object: "json", 
-            Array: "json", 
-            String: "text", 
-            Number: "numeric", 
-            Date: "timestamp with time zone",
-            Boolean: "boolean"
-          };
-
-        if (!name || actions.indexOf(action) === -1) {
-          result = false;
-          break;
-        }
-
-        args.push(name);
-        found = plv8.execute(sqlChk, [table, schema, name]).length;
-
-        /** Add to this switch to add support for more alter actions in the future**/
-        switch (action)
-        {
-        case "add":
-          if (Object.keys(types).indexOf(type) === -1) {
-            result = false;
-          } else {
-            if (!found) {
-              sql += FP.formatSql("alter table %I.%I %I column %I " + types[type], args);
-              sql += prop.isRequired ? " not null;" : ";";
-            }
-            if (prop.description) {
-              sql += FP.formatSql("comment on column %I.%I.%I is %L;", [schema, table, name, prop.description]);
-            }
-          }
-          break;
-        case "drop":
-          if (found) {
-            sql += FP.formatSql("alter table %I.%I %I column if exists %I;", args);
-          }
-          break;
-        }
-        if (!result) { break }
-      }
-
-      if (result) { plv8.execute(sql); }
-
-      return result;
-    };
-
-    /**
       Create or update a persistence class. This function is idempotent.
 
       Example payload:
@@ -186,7 +103,7 @@ create or replace function fp.init() returns void as $$
      * @param {Object} Class specification payload.
      * @return {String}
     */
-    FP.createClass = function (obj) {
+    FP.saveClass = function (obj) {
       obj = obj || {};
 
       var schema = (obj.nameSpace || 'fp').toSnakeCase(),
@@ -194,10 +111,32 @@ create or replace function fp.init() returns void as $$
         inheritSchema = (obj.inherits ? obj.inherits.ere() || "fp" : "fp").toSnakeCase(),
         inheritTable = (obj.inherits ? obj.inherits.hind() : 'object').toSnakeCase(),
         sql = "select * from pg_tables where schemaname = $1 and tablename = $2;",
-        args = [schema, table, table + "_pkey", table + "_guid_key", inheritSchema, inheritTable];
+        sqlChk = "select * " +
+         "from pg_class c, pg_namespace n, pg_attribute a, pg_type t " +
+         "where c.relname = $1 " +
+         " and n.nspname = $2 " +
+         " and a.attname = $3 " +
+         " and n.oid = c.relnamespace " +
+         " and a.attnum > 0 " +
+         " and a.attrelid = c.oid " +
+         " and a.atttypid = t.oid; ",
+        args = [schema, table, table + "_pkey", table + "_guid_key", inheritSchema, inheritTable],
+        actions = ["add", "drop"],
+        types = {
+          Object: "json", 
+          Array: "json", 
+          String: "text", 
+          Number: "numeric", 
+          Date: "timestamp with time zone",
+          Boolean: "boolean"
+        },
+        result = true,
+        found,
+        i;
 
       if (!table) { return false };
 
+      /** Edit table **/
       if (!plv8.execute(sql, [schema, table]).length) {
         sql = FP.formatSql("create table %I.%I(constraint %I primary key (id), constraint %I unique (guid)) inherits (%I.%I)", args);
         plv8.execute(sql);
@@ -208,8 +147,49 @@ create or replace function fp.init() returns void as $$
         plv8.execute(sql);
       }
 
-      FP.alterClass(obj);
-      
+      /** Edit columns **/
+       for (i = 0; i < obj.properties.length; i++) {
+        var prop = obj.properties[i],
+          action = prop.action || "add",
+          type = prop.type,
+          name = prop.name ? prop.name.toSnakeCase() : false,
+          args = [schema, table, action];
+
+        if (!name || actions.indexOf(action) === -1) {
+          result = false;
+          break;
+        }
+
+        args.push(name);
+        found = plv8.execute(sqlChk, [table, schema, name]).length;
+
+        /** Add to this switch to add support for more alter actions in the future**/
+        switch (action)
+        {
+        case "add":
+          if (Object.keys(types).indexOf(type) === -1) {
+            result = false;
+          } else {
+            if (!found) {
+              sql += FP.formatSql("alter table %I.%I %I column %I " + types[type], args);
+              sql += prop.isRequired ? " not null;" : ";";
+            }
+            if (prop.description) {
+              sql += FP.formatSql("comment on column %I.%I.%I is %L;", [schema, table, name, prop.description]);
+            }
+          }
+          break;
+        case "drop":
+          if (found) {
+            sql += FP.formatSql("alter table %I.%I %I column if exists %I;", args);
+          }
+          break;
+        }
+        if (!result) { break }
+      }
+
+      if (result) { plv8.execute(sql); }
+
       return true;
     };
 
@@ -236,7 +216,7 @@ create or replace function fp.init() returns void as $$
       * @param {Object} Object describing object to remove.
       * @return {String}
     */
-    FP.destroyClass = function (obj) {
+    FP.deleteClass = function (obj) {
       obj = obj || {};
 
       var schema = (obj.nameSpace || 'fp').toSnakeCase(),
@@ -289,6 +269,7 @@ create or replace function fp.init() returns void as $$
           {
              "nameSpace": "FP",
              "className": "Contact",
+             "action": "POST",
              "value": {
                "guid": "dc9d03f9-a539-4eca-f008-1178f19f56ad",
                "created": "2015-04-26T12:57:57.896Z",
@@ -304,7 +285,29 @@ create or replace function fp.init() returns void as $$
 
       @return {String}
     */
-    FP.post = function (obj) {
+    FP.persist = function (obj) {
+      switch (obj.action)
+      {
+      case "POST":
+        return _post(obj);
+        break;
+      case "PATCH":
+        return false;
+        break;
+      case "DELETE":
+        return false;
+        break;
+      case "GET":
+        return false;
+        break;
+      }
+    };
+
+    // ..........................................................
+    // Private
+    //
+    
+    _post = function (obj) {
       var schema = (obj.nameSpace || 'fp').toSnakeCase(),
         table = obj.className ? obj.className.toSnakeCase() : false,
         keys = Object.keys(obj.value),
@@ -323,11 +326,10 @@ create or replace function fp.init() returns void as $$
       }
 
       sql = FP.formatSql("insert into %I.%I (" + tokens.toString(",") + ") values (" + params.toString(",") + ");", args);
-      plv8.elog(NOTICE, sql);
       plv8.execute(sql, values);
       
       return true;
-    };   
+    }
 
     plv8._init = true;
 

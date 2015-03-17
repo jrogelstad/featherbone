@@ -24,15 +24,19 @@ create or replace function fp.create_uuid() returns text as $$
 $$ language plv8;
 
 create or replace function fp.get_current_user() returns text as $$
-
   return (function () {
-
     if (!plv8._init) { plv8.execute('select fb.init()'); }
 
     return FP.getCurrentUser();
-
   }());
+$$ language plv8;
 
+create or replace function fp.persist(obj json) returns text as $$
+  return (function () {
+    if (!plv8._init) { plv8.execute('select fb.init()'); }
+
+    return FP.persist(obj);
+  }());
 $$ language plv8;
 
 /** Create the base object table **/
@@ -47,7 +51,8 @@ do $$
        "created timestamp with time zone not null default now()," +
        "created_by text not null default fp.get_current_user()," +
        "updated timestamp with time zone not null default now()," +
-       "updated_by text not null default fp.get_current_user())";
+       "updated_by text not null default fp.get_current_user()," +
+       "is_deleted boolean not null default false)";
      plv8.execute(sql);
      plv8.execute("comment on table fp.object is 'Abstract object from which all objects will inherit.'");
      sql = "comment on column %I.%I.%I is %L";
