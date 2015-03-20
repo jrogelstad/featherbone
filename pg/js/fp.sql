@@ -15,8 +15,13 @@
 **/
 
 create or replace function fp.load_fp() returns void as $$
-
+  return (function () {
     plv8.FP = FP = {};
+
+    var _delete,
+      _get,
+      _insert,
+      _update;
 
     /**
       Return a universally unique identifier.
@@ -66,12 +71,13 @@ create or replace function fp.load_fp() returns void as $$
     */
     FP.formatSql = function (str, ary) {
       var params = [],
-        i;
+        i = 0;
 
       ary = ary || [];
       ary.unshift(str);
-      for (i = 0; i < ary.length; i++) {
-        params.push("$" + (i + 1));
+
+      while (i++ < ary.length) {
+        params.push("$" + (i));
       };
 
       return plv8.execute("select format(" + params.toString(",") + ")", ary)[0].format;
@@ -85,7 +91,7 @@ create or replace function fp.load_fp() returns void as $$
     FP.getCurrentUser = function () {
       return plv8.execute("select current_user as user;")[0].user;
     };
-    
+
     /**
       Post.
 
@@ -112,19 +118,20 @@ create or replace function fp.load_fp() returns void as $$
     FP.persist = function (obj) {
       switch (obj.action)
       {
+      case "GET":
+        return _get(obj);
+        break;
       case "POST":
-        return _add(obj);
+        return _insert(obj);
         break;
       case "PATCH":
-        return _apply(obj);
+        return _update(obj);
         break;
       case "DELETE":
-        return _remove(obj);
-        break;
-      case "GET":
-        return false;
+        return _delete(obj);
         break;
       }
+ 
     };
 
     /**
@@ -258,10 +265,20 @@ create or replace function fp.load_fp() returns void as $$
     // Private
     //
 
+    _get = function (obj) {
+      var table = [obj.className.toSnakeCase()],
+        cols = obj.properties || ['*'],
+        tokens = [];
+        sql;
+
+      
+      sql = 'select ' ;
+    };
+
     /** private */
-    _add = function (obj) {
+    _insert = function (obj) {
       var keys = Object.keys(obj.data),
-        args = [obj.className ? obj.className.toSnakeCase() : false],
+        args = [obj.className.toSnakeCase()],
         tokens = [],
         params = [],
         values = [],
@@ -283,21 +300,21 @@ create or replace function fp.load_fp() returns void as $$
     };
 
     /** private */
-    _apply = function (obj) {
-      var args = [obj.className ? obj.className.toSnakeCase() : false],
+    _update = function (obj) {
+      var args = [obj.className.toSnakeCase()],
        i;
 
       for (i = 0; i < obj.data.length; i++) {
         switch (obj.op)
         {
         case "add":
-          return _add(obj);
+          return _insert(obj);
           break;
         case "replace":
-          return _patch(obj);
+          return _update(obj);
           break;
         case "remove":
-          return _remove(obj);
+          return _delete(obj);
           break;
         default:
           return false;
@@ -306,7 +323,7 @@ create or replace function fp.load_fp() returns void as $$
     };
 
     /** private */
-    _remove = function (obj) {
+    _delete = function (obj) {
       plv8.execute("update fp.object set is_deleted = true where guid=$1;", [obj.guid]);
       
       return true;

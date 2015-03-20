@@ -17,15 +17,6 @@
 create or replace function fp.init() returns void as $$
   return (function () {
 
-    var _add,
-      _apply,
-      _get,
-      _remove;
-
-    // ..........................................................
-    // NATIVE
-    //
-
     /**
       Return the text after the first dot.
     */
