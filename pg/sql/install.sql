@@ -33,7 +33,9 @@ $$ language plv8;
 
 create or replace function fp.request(obj json) returns json as $$
   return (function () {
-    if (!plv8._init) { plv8.execute('select fp.init()'); }
+    //if (!plv8._init) { 
+    plv8.execute('select fp.init()'); 
+    //}
 
     return FP.request(obj);
   }());

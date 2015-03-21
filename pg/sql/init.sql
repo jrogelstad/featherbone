@@ -36,9 +36,9 @@ create or replace function fp.init() returns void as $$
        @returns {String}
     */
     String.prototype.toCamelCase = function () {
-      return this.replace (/(?:^|[-_])(\w)/g, function (_, c) {
-        return c ? c.toUpperCase() : '';
-      })
+      return this.replace(/_+(.)?/g, function(match, chr) {
+        return chr ? chr.toUpperCase() : '';
+      });
     }
 
     /**

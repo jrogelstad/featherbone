@@ -19,6 +19,8 @@ create or replace function fp.load_fp() returns void as $$
     plv8.FP = FP = {};
 
     var _delete,
+      _formatSql,
+      _getId,
       _insert,
       _select,
       _update;
@@ -55,32 +57,10 @@ create or replace function fp.load_fp() returns void as $$
 
       if (!table || !plv8.execute(sql, args).length) { return false };
 
-      sql = FP.formatSql("drop table fp.%I", args);
+      sql = _formatSql("drop table fp.%I", args);
       plv8.execute(sql);
       
       return true;
-    };
-
-    /**
-     * Escape strings to prevent sql injection
-       http://www.postgresql.org/docs/9.1/interactive/functions-string.html#FUNCTIONS-STRING-OTHER
-     *
-     * @param {String} A string with tokens to replace.
-     * @param {Array} Array of replacement strings.
-     * @return {String} Escaped string.
-    */
-    FP.formatSql = function (str, ary) {
-      var params = [],
-        i = 0;
-
-      ary = ary || [];
-      ary.unshift(str);
-
-      while (i++ < ary.length) {
-        params.push("$" + (i));
-      };
-
-      return plv8.execute("select format(" + params.toString(",") + ")", ary)[0].format;
     };
 
     /**
@@ -207,12 +187,12 @@ create or replace function fp.load_fp() returns void as $$
 
       /** Edit table **/
       if (!plv8.execute(sql, [table]).length) {
-        sql = FP.formatSql("create table fp.%I(constraint %I primary key (id), constraint %I unique (guid)) inherits (fp.%I)", args);
+        sql = _formatSql("create table fp.%I(constraint %I primary key (id), constraint %I unique (guid)) inherits (fp.%I)", args);
         plv8.execute(sql);
       }
 
       if (obj.description) { 
-        sql = FP.formatSql("comment on table fp.%I is %L;", [table, obj.description]);
+        sql = _formatSql("comment on table fp.%I is %L;", [table, obj.description]);
         plv8.execute(sql);
       }
 
@@ -240,17 +220,17 @@ create or replace function fp.load_fp() returns void as $$
             result = false;
           } else {
             if (!found) {
-              sql += FP.formatSql("alter table fp.%I %I column %I " + types[type], args);
+              sql += _formatSql("alter table fp.%I %I column %I " + types[type], args);
               sql += prop.isRequired ? " not null;" : ";";
             }
             if (prop.description) {
-              sql += FP.formatSql("comment on column fp.%I.%I is %L;", [table, name, prop.description]);
+              sql += _formatSql("comment on column fp.%I.%I is %L;", [table, name, prop.description]);
             }
           }
           break;
         case "drop":
           if (found) {
-            sql += FP.formatSql("alter table fp.%I %I column if exists %I;", args);
+            sql += _formatSql("alter table fp.%I %I column if exists %I;", args);
           }
           break;
         }
@@ -274,6 +254,28 @@ create or replace function fp.load_fp() returns void as $$
       return true;
     };
 
+    /** private
+     * Escape strings to prevent sql injection
+       http://www.postgresql.org/docs/9.1/interactive/functions-string.html#FUNCTIONS-STRING-OTHER
+     *
+     * @param {String} A string with tokens to replace.
+     * @param {Array} Array of replacement strings.
+     * @return {String} Escaped string.
+    */
+    _formatSql = function (str, ary) {
+      var params = [],
+        i = 0;
+
+      ary = ary || [];
+      ary.unshift(str);
+
+      while (i++ < ary.length) {
+        params.push("$" + (i));
+      };
+
+      return plv8.execute("select format(" + params.toString(",") + ")", ary)[0].format;
+    };
+
     /** private */
     _insert = function (obj) {
       var keys = Object.keys(obj.data),
@@ -292,8 +294,7 @@ create or replace function fp.load_fp() returns void as $$
         params.push("$" + (i));
       }
 
-      sql = FP.formatSql("insert into fp.%I (" + tokens.toString(",") + ") values (" + params.toString(",") + ") returning *;", args);
-      plv8.elog(NOTICE, sql);
+      sql = _formatSql("insert into fp.%I (" + tokens.toString(",") + ") values (" + params.toString(",") + ") returning *;", args);
       result = plv8.execute(sql, values)[0];
       delete result.id;
       
@@ -301,14 +302,45 @@ create or replace function fp.load_fp() returns void as $$
     };
 
     /** private */
-    _select = function (obj) {
-      var table = [obj.className.toSnakeCase()],
-        cols = obj.properties || ['*'],
-        tokens = [];
-        sql;
+    _getId = function (guid) {
+      return plv8.execute("select id from fp.object where guid = $1", [guid])[0].id;
+    };
 
+    /** private */
+    _select = function (obj) {
+      var table = obj.className.toSnakeCase(),
+        props = obj.properties || [],
+        id = _getId(obj.guid),
+        tokens = [],
+        i = props.length,
+        res = {},
+        prop,
+        cols,
+        sql,
+        rec,
+        i;
+
+      if (i) {
+        while (i--) {
+          tokens.push('%I');
+          props[i] = props[i].toSnakeCase();
+        }
+        cols = tokens.toString(',');
+      } else {
+        cols = "*";
+      }
+      props.push(table);
       
-      sql = 'select ' ;
+      sql = _formatSql("select " + cols + " from fp.%I where id = $1", props);
+      rec = plv8.execute(sql, [id])[0];
+      
+      for (prop in rec) {
+        if (rec.hasOwnProperty(prop)) {
+          res[prop.toCamelCase()] = rec[prop];
+        }
+      }
+
+      return res;
     };
 
     /** private */
