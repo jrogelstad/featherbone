@@ -19,8 +19,8 @@ create or replace function fp.load_fp() returns void as $$
     plv8.FP = FP = {};
 
     var _delete,
-      _get,
       _insert,
+      _select,
       _update;
 
     /**
@@ -115,11 +115,11 @@ create or replace function fp.load_fp() returns void as $$
 
       @return {String}
     */
-    FP.persist = function (obj) {
+    FP.request = function (obj) {
       switch (obj.action)
       {
       case "GET":
-        return _get(obj);
+        return _select(obj);
         break;
       case "POST":
         return _insert(obj);
@@ -267,14 +267,11 @@ create or replace function fp.load_fp() returns void as $$
     // Private
     //
 
-    _get = function (obj) {
-      var table = [obj.className.toSnakeCase()],
-        cols = obj.properties || ['*'],
-        tokens = [];
-        sql;
-
+    /** private */
+    _delete = function (obj) {
+      plv8.execute("update fp.object set is_deleted = true where guid=$1;", [obj.guid]);
       
-      sql = 'select ' ;
+      return true;
     };
 
     /** private */
@@ -304,12 +301,24 @@ create or replace function fp.load_fp() returns void as $$
     };
 
     /** private */
+    _select = function (obj) {
+      var table = [obj.className.toSnakeCase()],
+        cols = obj.properties || ['*'],
+        tokens = [];
+        sql;
+
+      
+      sql = 'select ' ;
+    };
+
+    /** private */
     _update = function (obj) {
       var args = [obj.className.toSnakeCase()],
-       i;
+       patch = obj.data,
+       i = 0;
 
-      for (i = 0; i < obj.data.length; i++) {
-        switch (obj.op)
+      while (patch[i]) {
+        switch (patch.op)
         {
         case "add":
           return _insert(obj);
@@ -323,14 +332,8 @@ create or replace function fp.load_fp() returns void as $$
         default:
           return false;
         }
+        i++;
       }
-    };
-
-    /** private */
-    _delete = function (obj) {
-      plv8.execute("update fp.object set is_deleted = true where guid=$1;", [obj.guid]);
-      
-      return true;
     };
 
   }());

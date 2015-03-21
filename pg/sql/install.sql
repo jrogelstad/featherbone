@@ -25,17 +25,17 @@ $$ language plv8;
 
 create or replace function fp.get_current_user() returns text as $$
   return (function () {
-    if (!plv8._init) { plv8.execute('select fb.init()'); }
+    if (!plv8._init) { plv8.execute('select fp.init()'); }
 
     return FP.getCurrentUser();
   }());
 $$ language plv8;
 
-create or replace function fp.persist(obj json) returns json as $$
+create or replace function fp.request(obj json) returns json as $$
   return (function () {
-    if (!plv8._init) { plv8.execute('select fb.init()'); }
+    if (!plv8._init) { plv8.execute('select fp.init()'); }
 
-    return FP.persist(obj);
+    return FP.request(obj);
   }());
 $$ language plv8;
 
