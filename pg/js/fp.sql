@@ -32,15 +32,10 @@ create or replace function fp.load_fp() returns void as $$
       From http://stackoverflow.com/a/8809472/251019
       @return {String}
     */
-    FP.createUuid = function () {
-      var d = new Date().getTime(),
-        uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-          var r = (d + Math.random() * 16) % 16 | 0;
-          d = Math.floor(d / 16);
-          return (c === 'x' ? r : (r&0x7|0x8)).toString(16);
-        });
-
-      return uuid;
+    FP.createId = function () {
+      var x = 2147483648;
+      return Math.floor(Math.random() * x).toString(36) +
+         Math.abs(Math.floor(Math.random() * x) ^ new Date()).toString(36);
     };
 
     /**
@@ -104,7 +99,7 @@ create or replace function fp.load_fp() returns void as $$
              "className": "Contact",
              "action": "POST",
              "data": {
-               "uuid": "dc9d03f9-a539-4eca-f008-1178f19f56ad",
+               "id": "dc9d03f9-a539-4eca-f008-1178f19f56ad",
                "created": "2015-04-26T12:57:57.896Z",
                "createdBy": "admin",
                "updated": "2015-04-26T12:57:57.896Z",
@@ -187,7 +182,7 @@ create or replace function fp.load_fp() returns void as $$
          " and a.attnum > 0 " +
          " and a.attrelid = c.oid " +
          " and a.atttypid = t.oid; ",
-        args = [table, table + "_pkey", table + "_uuid_key", inheritTable],
+        args = [table, table + "_pkey", table + "_pk_key", inheritTable],
         actions = ["add", "drop"],
         types = {
           Object: "json", 
@@ -206,7 +201,7 @@ create or replace function fp.load_fp() returns void as $$
 
       /** Edit table **/
       if (!plv8.execute(sql, [table]).length) {
-        sql = FP.format("create table fp.%I(constraint %I primary key (_id), constraint %I unique (uuid)) inherits (fp.%I)", args);
+        sql = FP.format("create table fp.%I(constraint %I primary key (_pk), constraint %I unique (id)) inherits (fp.%I)", args);
         plv8.execute(sql);
       }
 
@@ -285,7 +280,7 @@ create or replace function fp.load_fp() returns void as $$
 
     /** private */
     _delete = function (obj) {
-      plv8.execute("update fp.object set is_deleted = true where uuid=$1;", [obj.uuid]);
+      plv8.execute("update fp.object set is_deleted = true where id=$1;", [obj.id]);
       
       return true;
     };
@@ -314,13 +309,13 @@ create or replace function fp.load_fp() returns void as $$
     };
 
     /** private */
-    _getId = function (uuid) {
-      return plv8.execute("select id from fp.object where uuid = $1", [uuid])[0]._id;
+    _getKey = function (id) {
+      return plv8.execute("select _pk from fp.object where id = $1", [id])[0]._pk;
     };
 
     /** private */
     _sanitize = function (obj) {
-      delete obj._id;
+      delete obj._pk;
       obj = _camelize(obj);
       obj = JSON.parse(JSON.stringify(obj)); /** Clone to convert dates back to string */
       
@@ -331,7 +326,7 @@ create or replace function fp.load_fp() returns void as $$
     _select = function (obj) {
       var table = obj.className.toSnakeCase(),
         props = obj.properties || [],
-        id = _getId(obj.uuid),
+        id = _getId(obj.id),
         tokens = [],
         i = props.length,
         result,
@@ -351,11 +346,10 @@ create or replace function fp.load_fp() returns void as $$
       }
       props.push(table);
       
-      sql = FP.format("select " + cols + " from fp.%I where _id = $1", props);
-      result = plv8.execute(sql, [id])[0];
-      delete result._id;
+      sql = FP.format("select " + cols + " from fp.%I where _pk = $1", props);
+      result = _sanitize(plv8.execute(sql, [id])[0]);
 
-      return _camelize(result);
+      return result;
     };
 
     /** private */

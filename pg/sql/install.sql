@@ -15,11 +15,11 @@
 **/
 
 /** Expose certain js functions to the database for use as defaults **/
-create or replace function fp.create_uuid() returns text as $$
+create or replace function fp.create_id() returns text as $$
   return (function () {
     if (!plv8._init) { plv8.execute('select fp.init()'); }
 
-    return FP.createUuid();
+    return FP.createId();
   }());
 $$ language plv8;
 
@@ -48,8 +48,8 @@ do $$
    
    if (!plv8.execute(sql).length) {
      sql = "create table fp.object (" +
-       "_id bigserial primary key," +
-       "uuid text not null default fp.create_uuid() unique," +
+       "_pk bigserial primary key," +
+       "id text not null default fp.create_id() unique," +
        "created timestamp with time zone not null default now()," +
        "created_by text not null default fp.get_current_user()," +
        "updated timestamp with time zone not null default now()," +
@@ -58,8 +58,8 @@ do $$
      plv8.execute(sql);
      plv8.execute("comment on table fp.object is 'Abstract object from which all objects will inherit.'");
      sql = "comment on column %I.%I.%I is %L";
-     plv8.execute(FP.format(sql, ['fp','object','_id','Internal primary key']));
-     plv8.execute(FP.format(sql, ['fp','object','uuid','Surrogate key']));
+     plv8.execute(FP.format(sql, ['fp','object','_pk','Internal primary key']));
+     plv8.execute(FP.format(sql, ['fp','object','id','Surrogate key']));
      plv8.execute(FP.format(sql, ['fp','object','created','Create time of the record']));
      plv8.execute(FP.format(sql, ['fp','object','created_by','User who created the record']));
      plv8.execute(FP.format(sql, ['fp','object','updated','Last time the record was updated']));
