@@ -19,7 +19,7 @@ create or replace function fp.load_fp() returns void as $$
     plv8.FP = FP = {};
 
     var _camelize,
-      _getId,
+      _getKey,
       _sanitize,
       _insert,
       _select,
@@ -27,15 +27,21 @@ create or replace function fp.load_fp() returns void as $$
       _delete;
 
     /**
-      Return a globally unique identifier.
+      Return a unique identifier string.
 
-      From http://stackoverflow.com/a/8809472/251019
+      Moddified from https://github.com/google/closure-library/blob/555e0138c83ed54d25a3e1cd82a7e789e88335a7/closure/goog/string/string.js#L1177
+      @author arv@google.com (Erik Arvidsson)
+      http://www.apache.org/licenses/LICENSE-2.0
+      
       @return {String}
     */
-    FP.createId = function () {
-      var x = 2147483648;
-      return Math.floor(Math.random() * x).toString(36) +
-         Math.abs(Math.floor(Math.random() * x) ^ new Date()).toString(36);
+    FP.createId = function (test) {
+      var x = 2147483648,
+        d = new Date(),
+        result = Math.floor(Math.random() * x).toString(36) +
+          Math.abs(Math.floor(Math.random() * x) ^ d).toString(36);
+
+      return _getKey(result) ? FP.createId() : result;
     };
 
     /**
@@ -99,7 +105,7 @@ create or replace function fp.load_fp() returns void as $$
              "className": "Contact",
              "action": "POST",
              "data": {
-               "id": "dc9d03f9-a539-4eca-f008-1178f19f56ad",
+               "id": "1f8c8akkptfe",
                "created": "2015-04-26T12:57:57.896Z",
                "createdBy": "admin",
                "updated": "2015-04-26T12:57:57.896Z",
@@ -287,18 +293,25 @@ create or replace function fp.load_fp() returns void as $$
 
     /** private */
     _insert = function (obj) {
-      var keys = Object.keys(obj.data),
+      var data = JSON.parse(JSON.stringify(obj.data)),
         args = [obj.className.toSnakeCase()],
         tokens = [],
         params = [],
         values = [],
+        id = 
         i = 0,
-        sql;
+        keys,
+        sql,
+        id;
+
+      /** Check id for existence and uniqueness and regenerate if any problem */
+      data.id = data.id === undefined || _getKey(data.id) !== undefined ? FP.createId() : data.id;
+      keys = Object.keys(data);
 
       while (i < keys.length) {
         args.push(keys[i].toSnakeCase());
         tokens.push("%I");
-        values.push(obj.data[keys[i]]);
+        values.push(data[keys[i]]);
         i++;
         params.push("$" + (i));
       }
@@ -310,7 +323,8 @@ create or replace function fp.load_fp() returns void as $$
 
     /** private */
     _getKey = function (id) {
-      return plv8.execute("select _pk from fp.object where id = $1", [id])[0]._pk;
+      var result = plv8.execute("select _pk from fp.object where id = $1", [id])[0];
+      return result ? result._pk : undefined;
     };
 
     /** private */
@@ -326,7 +340,7 @@ create or replace function fp.load_fp() returns void as $$
     _select = function (obj) {
       var table = obj.className.toSnakeCase(),
         props = obj.properties || [],
-        id = _getId(obj.id),
+        pk = _getKey(obj.id),
         tokens = [],
         i = props.length,
         result,
@@ -347,7 +361,7 @@ create or replace function fp.load_fp() returns void as $$
       props.push(table);
       
       sql = FP.format("select " + cols + " from fp.%I where _pk = $1", props);
-      result = _sanitize(plv8.execute(sql, [id])[0]);
+      result = _sanitize(plv8.execute(sql, [pk])[0]);
 
       return result;
     };

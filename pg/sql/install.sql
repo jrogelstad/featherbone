@@ -15,14 +15,6 @@
 **/
 
 /** Expose certain js functions to the database for use as defaults **/
-create or replace function fp.create_id() returns text as $$
-  return (function () {
-    if (!plv8._init) { plv8.execute('select fp.init()'); }
-
-    return FP.createId();
-  }());
-$$ language plv8;
-
 create or replace function fp.get_current_user() returns text as $$
   return (function () {
     if (!plv8._init) { plv8.execute('select fp.init()'); }
@@ -49,7 +41,7 @@ do $$
    if (!plv8.execute(sql).length) {
      sql = "create table fp.object (" +
        "_pk bigserial primary key," +
-       "id text not null default fp.create_id() unique," +
+       "id text not null unique," +
        "created timestamp with time zone not null default now()," +
        "created_by text not null default fp.get_current_user()," +
        "updated timestamp with time zone not null default now()," +
