@@ -179,15 +179,6 @@ create or replace function fp.load_fp() returns void as $$
       var table = obj.className ? obj.className.toSnakeCase() : false,
         inheritTable = (obj.inherits ? obj.inherits.hind() : 'object').toSnakeCase(),
         sql = "select * from pg_tables where schemaname = 'fp' and tablename = $1;",
-        sqlChk = "select * " +
-         "from pg_class c, pg_namespace n, pg_attribute a, pg_type t " +
-         "where c.relname = $1 " +
-         " and n.nspname = 'fp' " +
-         " and a.attname = $2 " +
-         " and n.oid = c.relnamespace " +
-         " and a.attnum > 0 " +
-         " and a.attrelid = c.oid " +
-         " and a.atttypid = t.oid; ",
         args = [table, table + "_pkey", table + "_pk_key", inheritTable],
         actions = ["add", "drop"],
         types = {
@@ -201,60 +192,81 @@ create or replace function fp.load_fp() returns void as $$
         props = obj.properties,
         keys = Object.keys(props),
         result = true,
+        tokens = [],
+        params = [table],
+        cols = [],
+        inherits = [],
         found,
         i = 0;
 
       if (!table) { return false };
 
-      /** Edit table **/
+      /** Create table if applicable **/
       if (!plv8.execute(sql, [table]).length) {
-        sql = FP.format("create table fp.%I(constraint %I primary key (_pk), constraint %I unique (id)) inherits (fp.%I)", args);
+        sql = FP.format("create table fp.%I(constraint %I primary key (_pk), constraint %I unique (id)) inherits (fp.%I);", args);
         plv8.execute(sql);
+        sql = "";
+      } else {
+        sql = "select bt.relname as table_name " +
+              "from pg_class ct " +
+              "join pg_namespace cns on ct.relnamespace = cns.oid and cns.nspname = 'fp' " +
+              "join pg_inherits i on i.inhrelid = ct.oid and ct.relname = $1 " +
+              "join pg_class bt on i.inhparent = bt.oid " +
+              "join pg_namespace bns on bt.relnamespace = bns.oid;";
+        inherits = plv8.execute(sql, [table]).map(function (rec) {
+          return rec.table_name;
+        });
+ 
+        /** Find current non-inherited columns, if any */
+        while (inherits[i]) {
+          tokens.push("$" + 2);
+          params.push(inherits[i]);
+          i++;
+        }
+        sql = "select column_name from information_schema.columns " +
+          "where table_catalog = current_database() and table_schema = 'fp' and table_name = $1" +
+          " and not column_name in ("+
+          "  select column_name from information_schema.columns " +
+          "  where table_name in (" + tokens.toString(",") + "))";
+          
+        cols = plv8.execute(sql, params).map(function (rec) {
+          return rec.column_name;
+        });
+
+        /** Drop non-inherited columns not included in properties */
+        i = 0;
+        sql = "";
+        while (cols[i]) {
+          var col = cols[i].toCamelCase();
+          if (keys.indexOf(col) === -1) {
+            sql += FP.format("alter table fp.%I drop column %I;", [table, col]);
+          }
+          i++
+        }
       }
 
       if (obj.description) { 
-        sql = FP.format("comment on table fp.%I is %L;", [table, obj.description]);
-        plv8.execute(sql);
+        sql += FP.format("comment on table fp.%I is %L;", [table, obj.description]);
       }
 
-      /** Edit columns **/
-      /** TODO: Auto-drop not specified properties */
+      /** Add columns **/
+      i = 0;
       while (keys[i]) {
         var prop = props[keys[i]],
-          action = prop.action || "add",
           type = prop.type,
           name = keys[i].toSnakeCase(),
-          args = [table, action];
+          exists = cols.indexOf(name) > -1;
 
-        if (actions.indexOf(action) === -1) {
+        if (Object.keys(types).indexOf(type) === -1) {	
           result = false;
-          break;
-        }
-
-        args.push(name);
-        found = plv8.execute(sqlChk, [table, name]).length;
-
-        /** Add to this switch to add support for more alter actions in the future**/
-        switch (action)
-        {
-        case "add":
-          if (Object.keys(types).indexOf(type) === -1) {
-            result = false;
-          } else {
-            if (!found) {
-              sql += FP.format("alter table fp.%I %I column %I " + types[type], args);
-              sql += prop.isRequired ? " not null;" : ";";
-            }
-            if (prop.description) {
-              sql += FP.format("comment on column fp.%I.%I is %L;", [table, name, prop.description]);
-            }
+        } else {
+          if (!exists) {
+            sql += FP.format("alter table fp.%I add column %I " + types[type], [table, name]);
+            sql += prop.isRequired ? " not null;" : ";";
           }
-          break;
-        case "drop":
-          if (found) {
-            sql += FP.format("alter table fp.%I %I column if exists %I;", args);
+          if (prop.description) {
+            sql += FP.format("comment on column fp.%I.%I is %L;", [table, name, prop.description]);
           }
-          break;
         }
         if (!result) { break }
         i++;
