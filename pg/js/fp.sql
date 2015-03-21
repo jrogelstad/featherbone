@@ -199,6 +199,7 @@ create or replace function fp.load_fp() returns void as $$
           Boolean: "boolean"
         },
         props = obj.properties,
+        keys = Object.keys(props),
         result = true,
         found,
         i = 0;
@@ -218,14 +219,14 @@ create or replace function fp.load_fp() returns void as $$
 
       /** Edit columns **/
       /** TODO: Auto-drop not specified properties */
-      while (props[i]) {
-        var prop = props[i],
+      while (keys[i]) {
+        var prop = props[keys[i]],
           action = prop.action || "add",
           type = prop.type,
-          name = prop.name ? prop.name.toSnakeCase() : false,
+          name = keys[i].toSnakeCase(),
           args = [table, action];
 
-        if (!name || actions.indexOf(action) === -1) {
+        if (actions.indexOf(action) === -1) {
           result = false;
           break;
         }
@@ -298,11 +299,9 @@ create or replace function fp.load_fp() returns void as $$
         tokens = [],
         params = [],
         values = [],
-        id = 
         i = 0,
         keys,
-        sql,
-        id;
+        sql;
 
       /** Check id for existence and uniqueness and regenerate if any problem */
       data.id = data.id === undefined || _getKey(data.id) !== undefined ? FP.createId() : data.id;
