@@ -135,40 +135,35 @@ create or replace function fp.load_fp() returns void as $$
     };
 
     /**
-      Create or update a persistence class. This function is idempotent.
+      Create or update a persistence class. This function is idempotent. 
+      Subsequent saves will automatically drop properties no longer present.
 
       Example payload:
-          {
-             "nameSpace": "FP",
-             "className": "Contact",
-             "description": "Contact data about a person",
-             "properties": [
-               {
-                 "action": "add",
-                 "name": "fullName",
-                 "description": "Full name",
-                 "type": "String",
-                 "isRequired": true
-               },
-               {
-                 "name": "birthDate",
-                 "description": "Birth date",
-                 "type": "Date"
-               },
-               {
-                 "name": "isMarried",
-                 "description": "Marriage status",
-                 "type": "Boolean",
-                 "isRequired": true
-               },
-               {
-                 "name": "dependents",
-                 "description": "Number of dependents",
-                 "type": "Number",
-                 "isRequired": true
-               }
-             ]
+       {
+         "className": "Contact",
+         "description": "Contact data about a person",
+         "properties": {
+           "fullName": {
+             "description": "Full name",
+             "type": "String",
+             "isRequired": true
+          },
+          "birthDate": {
+            "description": "Birth date",
+            "type": "Date"
+          },
+          "isMarried": {
+            "description": "Marriage status",
+            "type": "Boolean",
+            "isRequired": true
+          },
+          "dependents": {
+            "description": "Number of dependents",
+            "type": "Number",
+            "isRequired": true
           }
+        }
+      }
  
      * @param {Object} Class specification payload.
      * @return {String}
