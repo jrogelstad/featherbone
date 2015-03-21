@@ -198,9 +198,10 @@ create or replace function fp.load_fp() returns void as $$
           Date: "timestamp with time zone",
           Boolean: "boolean"
         },
+        props = obj.properties,
         result = true,
         found,
-        i;
+        i = 0;
 
       if (!table) { return false };
 
@@ -216,8 +217,8 @@ create or replace function fp.load_fp() returns void as $$
       }
 
       /** Edit columns **/
-      for (i = 0; i < obj.properties.length; i++) {
-        var prop = obj.properties[i],
+      while (props[i]) {
+        var prop = props[i],
           action = prop.action || "add",
           type = prop.type,
           name = prop.name ? prop.name.toSnakeCase() : false,
@@ -254,6 +255,7 @@ create or replace function fp.load_fp() returns void as $$
           break;
         }
         if (!result) { break }
+        i++;
       }
 
       if (result) { plv8.execute(sql); }
@@ -283,16 +285,18 @@ create or replace function fp.load_fp() returns void as $$
         params = [],
         values = [],
         sql,
-        i;
+        i = 0;
 
-      for (i = 0; i < keys.length; i++) {
+      while (i < keys.length) {
         args.push(keys[i].toSnakeCase());
         tokens.push("%I");
-        params.push("$" + (i + 1));
         values.push(obj.data[keys[i]]);
+        i++;
+        params.push("$" + (i));
       }
 
       sql = FP.formatSql("insert into fp.%I (" + tokens.toString(",") + ") values (" + params.toString(",") + ") returning *;", args);
+      plv8.elog(NOTICE, sql);
       result = plv8.execute(sql, values)[0];
       delete result.id;
       
