@@ -92,7 +92,7 @@ create or replace function fp.load_fp() returns void as $$
 
       while (ary[i]) {
         i++;
-        params.push("$" + (i));
+        params.push("$" + i);
       };
 
       return plv8.execute("select format(" + params.toString(",") + ")", ary)[0].format;
