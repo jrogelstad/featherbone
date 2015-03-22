@@ -75,7 +75,7 @@ create or replace function fp.load_fp() returns void as $$
       return plv8.execute("select current_user as user;")[0].user;
     };
 
-    /** private
+    /**
      * Escape strings to prevent sql injection
        http://www.postgresql.org/docs/9.1/interactive/functions-string.html#FUNCTIONS-STRING-OTHER
      *
@@ -90,7 +90,8 @@ create or replace function fp.load_fp() returns void as $$
       ary = ary || [];
       ary.unshift(str);
 
-      while (i++ < ary.length) {
+      while (ary[i]) {
+        i++;
         params.push("$" + (i));
       };
 
