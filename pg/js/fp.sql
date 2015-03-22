@@ -21,6 +21,7 @@ create or replace function fp.load_fp() returns void as $$
     var _camelize,
       _curry,
       _getKey,
+      _getKeys,
       _sanitize,
       _insert,
       _select,
@@ -268,7 +269,7 @@ create or replace function fp.load_fp() returns void as $$
           exists = cols.indexOf(name) > -1;
 
         if (Object.keys(types).indexOf(type) === -1) {	
-          result = false;
+          plv8.elog(ERROR, 'Invalid type "' + type + '" for property "' + keys[i] + '" on class "' + obj.name + '"');
         } else {
           if (!exists) {
             sql += FP.format("alter table fp.%I add column %I " + types[type], [table, name]);
@@ -307,6 +308,7 @@ create or replace function fp.load_fp() returns void as $$
       return obj;
     };
 
+    /** private */
     _curry = function (fn, args) {
       return function () {
         return fn.apply(this, args.concat([].slice.call(arguments)));
@@ -359,12 +361,23 @@ create or replace function fp.load_fp() returns void as $$
     };
 
     /** private */
+    _getKeys = function (name, filter) {
+    };
+
+    /** private */
     _sanitize = function (obj) {
-      delete obj._pk;
-      obj = _camelize(obj);
-      obj = JSON.parse(JSON.stringify(obj)); /** Clone to convert dates back to string */
+      var isArray = Array.isArray(obj),
+        ary = isArray ? obj : [obj],
+        i = 0;
+
+      while (ary[i]) {
+        delete ary[i]._pk;
+        ary[i] = _camelize(ary[i]);
+        ary[i] = JSON.parse(JSON.stringify(ary[i])); /** Clone to convert dates back to string */
+        i++;
+      }
       
-      return obj;
+      return isArray ? obj : ary[0];
     };
 
     /** private */
@@ -391,8 +404,14 @@ create or replace function fp.load_fp() returns void as $$
       }
       props.push(table);
       
-      sql = FP.format("select " + cols + " from fp.%I where _pk = $1", props);
-      result = _sanitize(plv8.execute(sql, [pk])[0]);
+      sql = FP.format("select " + cols + " from fp.%I where true", props);
+      if (obj.id) {
+        if (pk === undefined) { return {} }
+        sql +=  " and _pk = $1";
+        result = _sanitize(plv8.execute(sql,[pk])[0]);
+      } else {
+        result = _sanitize(plv8.execute(sql));
+      }
 
       return result;
     };

@@ -33,12 +33,33 @@ create or replace function fp.request(obj json) returns json as $$
   }());
 $$ language plv8;
 
-/** Create the base object table **/
 do $$
    plv8.execute('select fp.init()');
-   var sql = "select * from pg_tables where schemaname = 'fp' and tablename = 'object';";
-   
-   if (!plv8.execute(sql).length) {
+   var sql = "select * from pg_tables where schemaname = 'fp' and tablename = $1;";
+
+   /** Create the base object table **/
+   if (!plv8.execute(sql,['object']).length) {
+     sql = "create table fp.object (" +
+       "_pk bigserial primary key," +
+       "id text not null unique," +
+       "created timestamp with time zone not null default now()," +
+       "created_by text not null default fp.get_current_user()," +
+       "updated timestamp with time zone not null default now()," +
+       "updated_by text not null default fp.get_current_user()," +
+       "is_deleted boolean not null default false)";
+     plv8.execute(sql);
+     plv8.execute("comment on table fp.object is 'Abstract object from which all objects will inherit.'");
+     sql = "comment on column %I.%I.%I is %L";
+     plv8.execute(FP.format(sql, ['fp','object','_pk','Internal primary key']));
+     plv8.execute(FP.format(sql, ['fp','object','id','Surrogate key']));
+     plv8.execute(FP.format(sql, ['fp','object','created','Create time of the record']));
+     plv8.execute(FP.format(sql, ['fp','object','created_by','User who created the record']));
+     plv8.execute(FP.format(sql, ['fp','object','updated','Last time the record was updated']));
+     plv8.execute(FP.format(sql, ['fp','object','updated_by','Last user who created the record']));
+   };
+
+/** Create the base log table **/
+   if (!plv8.execute(sql,['log']).length) {
      sql = "create table fp.object (" +
        "_pk bigserial primary key," +
        "id text not null unique," +
