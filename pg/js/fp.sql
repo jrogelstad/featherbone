@@ -15,10 +15,11 @@
 **/
 
 create or replace function fp.load_fp() returns void as $$
-  return (function () {
+  (function () {
     plv8.FP = FP = {};
 
     var _camelize,
+      _curry,
       _getKey,
       _sanitize,
       _insert,
@@ -53,7 +54,7 @@ create or replace function fp.load_fp() returns void as $$
     FP.deleteClass = function (obj) {
       obj = obj || {};
 
-      var table = obj.className ? obj.className.toSnakeCase() : false,
+      var table = obj.name ? obj.name.toSnakeCase() : false,
         sql = "select * from pg_tables where schemaname = 'fp' and tablename = $1;",
         args = [table];
 
@@ -102,7 +103,7 @@ create or replace function fp.load_fp() returns void as $$
       Example payload:
           {
              "nameSpace": "FP",
-             "className": "Contact",
+             "name": "Contact",
              "action": "POST",
              "data": {
                "id": "1f8c8akkptfe",
@@ -120,11 +121,24 @@ create or replace function fp.load_fp() returns void as $$
       @return {String}
     */
     FP.request = function (obj) {
+      var prop = obj.name,
+        result = {},
+        args,
+        fn;
+
       switch (obj.action)
       {
       case "GET":
         return _select(obj);
       case "POST":
+        /** Handle if posting a function call */ 
+        if (FP[prop] && typeof FP[prop] === "function") {
+          args = Array.isArray(obj.data) ? obj.data : [obj.data];
+          fn = _curry(FP[prop], args);
+          result.value = fn();
+          return result;
+        }
+
         return _insert(obj);
       case "PATCH":
         return _update(obj);
@@ -140,7 +154,7 @@ create or replace function fp.load_fp() returns void as $$
 
       Example payload:
        {
-         "className": "Contact",
+         "name": "Contact",
          "description": "Contact data about a person",
          "properties": {
            "fullName": {
@@ -171,7 +185,7 @@ create or replace function fp.load_fp() returns void as $$
     FP.saveClass = function (obj) {
       obj = obj || {};
 
-      var table = obj.className ? obj.className.toSnakeCase() : false,
+      var table = obj.name ? obj.name.toSnakeCase() : false,
         inheritTable = (obj.inherits ? obj.inherits.hind() : 'object').toSnakeCase(),
         sql = "select * from pg_tables where schemaname = 'fp' and tablename = $1;",
         args = [table, table + "_pkey", table + "_pk_key", inheritTable],
@@ -292,6 +306,12 @@ create or replace function fp.load_fp() returns void as $$
       return obj;
     };
 
+    _curry = function (fn, args) {
+      return function () {
+        return fn.apply(this, args.concat([].slice.call(arguments)));
+      }
+    };
+
     /** private */
     _delete = function (obj) {
       plv8.execute("update fp.object set is_deleted = true where id=$1;", [obj.id]);
@@ -302,7 +322,7 @@ create or replace function fp.load_fp() returns void as $$
     /** private */
     _insert = function (obj) {
       var data = JSON.parse(JSON.stringify(obj.data)),
-        args = [obj.className.toSnakeCase()],
+        args = [obj.name.toSnakeCase()],
         tokens = [],
         params = [],
         values = [],
@@ -328,8 +348,12 @@ create or replace function fp.load_fp() returns void as $$
     };
 
     /** private */
-    _getKey = function (id) {
-      var result = plv8.execute("select _pk from fp.object where id = $1", [id])[0];
+    _getKey = function (id, name) {
+      name = name ? name.toSnakeCase() : 'object';
+      
+      var sql = FP.format("select _pk from fp.%I where id = $1", [name]);
+        result = plv8.execute(sql, [id])[0];
+ 
       return result ? result._pk : undefined;
     };
 
@@ -344,9 +368,9 @@ create or replace function fp.load_fp() returns void as $$
 
     /** private */
     _select = function (obj) {
-      var table = obj.className.toSnakeCase(),
+      var table = obj.name.toSnakeCase(),
         props = obj.properties || [],
-        pk = _getKey(obj.id),
+        pk = _getKey(obj.id, obj.name),
         tokens = [],
         i = props.length,
         result,
@@ -374,7 +398,7 @@ create or replace function fp.load_fp() returns void as $$
 
     /** private */
     _update = function (obj) {
-      var args = [obj.className.toSnakeCase()],
+      var args = [obj.name.toSnakeCase()],
        patch = obj.data,
        i = 0;
 
