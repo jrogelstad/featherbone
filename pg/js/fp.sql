@@ -15,18 +15,20 @@
 **/
 
 create or replace function fp.load_fp() returns void as $$
-  (function () {
-    plv8.FP = FP = {};
+(function () {
 
-    var _camelize,
-      _curry,
-      _getKey,
-      _getKeys,
-      _sanitize,
-      _insert,
-      _select,
-      _update,
-      _delete;
+  var _camelize,
+    _curry,
+    _getKey,
+    _getKeys,
+    _format,
+    _sanitize,
+    _insert,
+    _select,
+    _update,
+    _delete;
+
+  featherbone = {
 
     /**
       Return a unique identifier string.
@@ -34,17 +36,17 @@ create or replace function fp.load_fp() returns void as $$
       Moddified from https://github.com/google/closure-library/blob/555e0138c83ed54d25a3e1cd82a7e789e88335a7/closure/goog/string/string.js#L1177
       @author arv@google.com (Erik Arvidsson)
       http://www.apache.org/licenses/LICENSE-2.0
-      
+
       @return {String}
     */
-    FP.createId = function (test) {
+    createId: function (test) {
       var x = 2147483648,
         d = new Date(),
         result = Math.floor(Math.random() * x).toString(36) +
           Math.abs(Math.floor(Math.random() * x) ^ d).toString(36);
 
-      return _getKey(result) ? FP.createId() : result;
-    };
+      return _getKey(result) ? featherbone.createId() : result;
+    },
 
     /**
       Remove a class from the database.
@@ -52,7 +54,7 @@ create or replace function fp.load_fp() returns void as $$
       * @param {Object} Object describing object to remove.
       * @return {String}
     */
-    FP.deleteClass = function (obj) {
+    deleteClass: function (obj) {
       obj = obj || {};
 
       var table = obj.name ? obj.name.toSnakeCase() : false,
@@ -61,50 +63,37 @@ create or replace function fp.load_fp() returns void as $$
 
       if (!table || !plv8.execute(sql, args).length) { return false };
 
-      sql = FP.format("drop table fp.%I", args);
+      sql = _format("drop table fp.%I", args);
       plv8.execute(sql);
       
       return true;
-    };
+    },
+    /** private
+      * Escape strings to prevent sql injection
+        http://www.postgresql.org/docs/9.1/interactive/functions-string.html#FUNCTIONS-STRING-OTHER
+      *
+      * @param {String} A string with tokens to replace.
+      * @param {Array} Array of replacement strings.
+      * @return {String} Escaped string.
+    */
+    format: function (str, ary) {
+      return _format(str, ary);
+    },
 
     /**
       Return the current user.
 
       @return {String}
     */
-    FP.getCurrentUser = function () {
+    getCurrentUser: function () {
       return plv8.execute("select current_user as user;")[0].user;
-    };
+    },
 
     /**
-     * Escape strings to prevent sql injection
-       http://www.postgresql.org/docs/9.1/interactive/functions-string.html#FUNCTIONS-STRING-OTHER
-     *
-     * @param {String} A string with tokens to replace.
-     * @param {Array} Array of replacement strings.
-     * @return {String} Escaped string.
-    */
-    FP.format = function (str, ary) {
-      var params = [],
-        i = 0;
-
-      ary = ary || [];
-      ary.unshift(str);
-
-      while (ary[i]) {
-        i++;
-        params.push("$" + i);
-      };
-
-      return plv8.execute("select format(" + params.toString(",") + ")", ary)[0].format;
-    };
-
-    /**
-      Post.
+      Request.
 
       Example payload:
           {
-             "nameSpace": "FP",
              "name": "Contact",
              "action": "POST",
              "data": {
@@ -122,7 +111,7 @@ create or replace function fp.load_fp() returns void as $$
 
       @return {String}
     */
-    FP.request = function (obj) {
+    request: function (obj) {
       var prop = obj.name,
         result = {},
         args,
@@ -134,9 +123,9 @@ create or replace function fp.load_fp() returns void as $$
         return _select(obj);
       case "POST":
         /* Handle if posting a function call */ 
-        if (FP[prop] && typeof FP[prop] === "function") {
+        if (featherbone[prop] && typeof featherbone[prop] === "function") {
           args = Array.isArray(obj.data) ? obj.data : [obj.data];
-          fn = _curry(FP[prop], args);
+          fn = _curry(featherbone[prop], args);
           result.value = fn();
           return result;
         }
@@ -147,8 +136,8 @@ create or replace function fp.load_fp() returns void as $$
       case "DELETE":
         return _delete(obj);
       }
- 
-    };
+
+    },
 
     /**
       Create or update a persistence class. This function is idempotent. 
@@ -180,17 +169,17 @@ create or replace function fp.load_fp() returns void as $$
           }
         }
       }
- 
+
      * @param {Object} Class specification payload.
      * @return {String}
     */
-    FP.saveClass = function (obj) {
+    saveClass: function (obj) {
       obj = obj || {};
 
       var table = obj.name ? obj.name.toSnakeCase() : false,
         inheritTable = (obj.inherits ? obj.inherits.hind() : 'object').toSnakeCase(),
         sql = "select * from pg_tables where schemaname = 'fp' and tablename = $1;",
-        args = [table, table + "_pkey", table + "_pk_key", inheritTable],
+        args = [table, table + "_pkey", table + "_id_key", inheritTable],
         actions = ["add", "drop"],
         types = {
           Object: "json", 
@@ -214,7 +203,7 @@ create or replace function fp.load_fp() returns void as $$
 
       /* Create table if applicable */
       if (!plv8.execute(sql, [table]).length) {
-        sql = FP.format("create table fp.%I(constraint %I primary key (_pk), constraint %I unique (id)) inherits (fp.%I);", args);
+        sql = _format("create table fp.%I(constraint %I primary key (_pk), constraint %I unique (id)) inherits (fp.%I);", args);
         plv8.execute(sql);
         sql = "";
       } else {
@@ -227,7 +216,7 @@ create or replace function fp.load_fp() returns void as $$
         inherits = plv8.execute(sql, [table]).map(function (rec) {
           return rec.table_name;
         });
- 
+
         /* Find current non-inherited columns, if any */
         while (inherits[i]) {
           tokens.push("$" + 2);
@@ -250,14 +239,14 @@ create or replace function fp.load_fp() returns void as $$
         while (cols[i]) {
           var col = cols[i].toCamelCase();
           if (keys.indexOf(col) === -1) {
-            sql += FP.format("alter table fp.%I drop column %I;", [table, col]);
+            sql += _format("alter table fp.%I drop column %I;", [table, col]);
           }
           i++
         }
       }
 
       if (obj.description) { 
-        sql += FP.format("comment on table fp.%I is %L;", [table, obj.description]);
+        sql += _format("comment on table fp.%I is %L;", [table, obj.description]);
       }
 
       /* Add columns */
@@ -272,11 +261,11 @@ create or replace function fp.load_fp() returns void as $$
           plv8.elog(ERROR, 'Invalid type "' + type + '" for property "' + keys[i] + '" on class "' + obj.name + '"');
         } else {
           if (!exists) {
-            sql += FP.format("alter table fp.%I add column %I " + types[type], [table, name]);
+            sql += _format("alter table fp.%I add column %I " + types[type], [table, name]);
             sql += prop.isRequired ? " not null;" : ";";
           }
           if (prop.description) {
-            sql += FP.format("comment on column fp.%I.%I is %L;", [table, name, prop.description]);
+            sql += _format("comment on column fp.%I.%I is %L;", [table, name, prop.description]);
           }
         }
         if (!result) { break }
@@ -286,215 +275,232 @@ create or replace function fp.load_fp() returns void as $$
       if (result) { plv8.execute(sql); }
 
       return true;
+    }
+  };
+
+  // ..........................................................
+  // Private
+  //
+
+  /** private */
+  _camelize = function (obj) {
+    var result = {},
+      prop;
+
+    for (prop in obj) {
+      if (obj.hasOwnProperty(prop)) {
+        result[prop.toCamelCase()] = obj[prop];
+      }
+    }
+
+    obj = result;
+
+    return obj;
+  };
+
+  /** private */
+  _curry = function (fn, args) {
+    return function () {
+      return fn.apply(this, args.concat([].slice.call(arguments)));
+    }
+  };
+
+  /** private */
+  _delete = function (obj) {
+    plv8.execute("update fp.object set is_deleted = true where id=$1;", [obj.id]);
+    
+    return true;
+  };
+
+  /** private */
+  _format = function (str, ary) {
+    var params = [],
+      i = 0;
+
+    ary = ary || [];
+    ary.unshift(str);
+
+    while (ary[i]) {
+      i++;
+      params.push("$" + i);
     };
 
-    // ..........................................................
-    // Private
-    //
+    return plv8.execute("select format(" + params.toString(",") + ")", ary)[0].format;
+  };
 
-    /** private */
-    _camelize = function (obj) {
-      var result = {},
-        prop;
+  /** private */
+  _insert = function (obj) {
+    var data = JSON.parse(JSON.stringify(obj.data)),
+      args = [obj.name.toSnakeCase()],
+      tokens = [],
+      params = [],
+      values = [],
+      i = 0,
+      keys,
+      sql;
 
-      for (prop in obj) {
-        if (obj.hasOwnProperty(prop)) {
-          result[prop.toCamelCase()] = obj[prop];
-        }
+    /* Check id for existence and uniqueness and regenerate if any problem */
+    data.id = data.id === undefined || _getKey(data.id) !== undefined ? featherbone.createId() : data.id;
+    keys = Object.keys(data);
+
+    while (keys[i]) {
+      args.push(keys[i].toSnakeCase());
+      tokens.push("%I");
+      values.push(data[keys[i]]);
+      i++;
+      params.push("$" + i);
+    }
+
+    sql = _format("insert into fp.%I (" + tokens.toString(",") + ") values (" + params.toString(",") + ") returning *;", args);
+    result = plv8.execute(sql, values)[0];
+    return jsonpatch.compare(obj.data, _sanitize(result));
+  };
+
+  /** private */
+  _getKey = function (id, name) {
+    name = name ? name.toSnakeCase() : 'object';
+    
+    var sql = _format("select _pk from fp.%I where id = $1", [name]),
+      result = plv8.execute(sql, [id])[0];
+
+    return result ? result._pk : undefined;
+  };
+
+  /** private */
+  _getKeys = function (name, filter) {
+    return [34,35,37];
+  };
+
+  /** private */
+  _parseFilter = function (str) {
+    var parts = str.split(" "),
+      params = [],
+      tokens = [],
+      i = 0,
+      p = 1;
+
+    while (parts[i]) {
+      var part,
+        param,
+        n = 0,
+        ary;
+
+      /* Replace if operator */
+      /* Replace strings with parameters */
+      ary = part.match(/'([^']+)'/g);
+      while (ary[i]) {
+        params.push(ary[i]);
+        part.replace(ary[i], "$" + p);
+        tokens.push("$" + p);
+        p++;
+        n++;
       }
 
-      obj = result;
-
-      return obj;
-    };
-
-    /** private */
-    _curry = function (fn, args) {
-      return function () {
-        return fn.apply(this, args.concat([].slice.call(arguments)));
-      }
-    };
-
-    /** private */
-    _delete = function (obj) {
-      plv8.execute("update fp.object set is_deleted = true where id=$1;", [obj.id]);
-      
-      return true;
-    };
-
-    /** private */
-    _insert = function (obj) {
-      var data = JSON.parse(JSON.stringify(obj.data)),
-        args = [obj.name.toSnakeCase()],
-        tokens = [],
-        params = [],
-        values = [],
-        i = 0,
-        keys,
-        sql;
-
-      /* Check id for existence and uniqueness and regenerate if any problem */
-      data.id = data.id === undefined || _getKey(data.id) !== undefined ? FP.createId() : data.id;
-      keys = Object.keys(data);
-
-      while (keys[i]) {
-        args.push(keys[i].toSnakeCase());
-        tokens.push("%I");
-        values.push(data[keys[i]]);
-        i++;
-        params.push("$" + i);
+      /* Replace numbers with parameters */
+      n = 0;
+      ary = part.match(/\d+/g);
+      while (ary[i]) {
+        params.push(ary[i]);
+        part.replace(ary[i], "$" + p);
+        p++;
+        n++;
       }
 
-      sql = FP.format("insert into fp.%I (" + tokens.toString(",") + ") values (" + params.toString(",") + ") returning *;", args);
-      result = plv8.execute(sql, values)[0];
-      return jsonpatch.compare(obj.data, _sanitize(result));
-    };
+      /* Replace columns (anything not an operator with tokens */
+    }
+  };
 
-    /** private */
-    _getKey = function (id, name) {
-      name = name ? name.toSnakeCase() : 'object';
-      
-      var sql = FP.format("select _pk from fp.%I where id = $1", [name]),
-        result = plv8.execute(sql, [id])[0];
- 
-      return result ? result._pk : undefined;
-    };
+  /** private */
+  _sanitize = function (obj) {
+    var isArray = Array.isArray(obj),
+      ary = isArray ? obj : [obj],
+      i = ary.length;
 
-    /** private */
-    _getKeys = function (name, filter) {
-      return [34,35,37];
-    };
+    while (i--) {
+      delete ary[i]._pk;
+      ary[i] = _camelize(ary[i]);
+      /* Copy to convert dates back to string for accurate comparisons */
+      ary[i] = JSON.parse(JSON.stringify(ary[i]));
+    }
+    
+    return isArray ? obj : ary[0];
+  };
 
-    /** private */
-    _parseFilter = function (str) {
-      var parts = str.split(" "),
-        params = [],
-        tokens = [],
-        i = 0,
-        p = 1;
+  /** private */
+  _select = function (obj) {
+    var table = obj.name.toSnakeCase(),
+      props = obj.properties || [],
+      i = props.length,
+      tokens = [],
+      result,
+      prop,
+      cols,
+      sql,
+      pk;
 
-      while (parts[i]) {
-        var part,
-          param,
-          n = 0,
-          ary;
-
-        /* Replace if operator */
-        /* Replace strings with parameters */
-        ary = part.match(/'([^']+)'/g);
-        while (ary[i]) {
-          params.push(ary[i]);
-          part.replace(ary[i], "$" + p);
-          tokens.push("$" + p);
-          p++;
-          n++;
-        }
-
-        /* Replace numbers with parameters */
-        n = 0;
-        ary = part.match(/\d+/g);
-        while (ary[i]) {
-          params.push(ary[i]);
-          part.replace(ary[i], "$" + p);
-          p++;
-          n++;
-        }
-
-        /* Replace columns (anything not an operator with tokens */
-      }
-    };
-
-    /** private */
-    _sanitize = function (obj) {
-      var isArray = Array.isArray(obj),
-        ary = isArray ? obj : [obj],
-        i = ary.length;
-
+    if (i) {
       while (i--) {
-        delete ary[i]._pk;
-        ary[i] = _camelize(ary[i]);
-        /* Copy to convert dates back to string for accurate comparisons */
-        ary[i] = JSON.parse(JSON.stringify(ary[i]));
+        tokens.push("%I");
+        props[i] = props[i].toSnakeCase();
       }
-      
-      return isArray ? obj : ary[0];
-    };
+      cols = tokens.toString(",");
+    } else {
+      cols = "*";
+    }
+    props.push(table);
+    
+    sql = _format("select " + cols + " from fp.%I where true ", props);
 
-    /** private */
-    _select = function (obj) {
-      var table = obj.name.toSnakeCase(),
-        props = obj.properties || [],
-        i = props.length,
-        tokens = [],
-        result,
-        prop,
-        cols,
-        sql,
-        pk;
+    /* Get one result by key */
+    if (obj.id) {
+      pk = _getKey(obj.id, obj.name);
+      if (pk === undefined) { return {} }
+      sql +=  "and _pk = $1";
+      result = plv8.execute(sql,[pk])[0];
 
-      if (i) {
-        while (i--) {
-          tokens.push("%I");
-          props[i] = props[i].toSnakeCase();
-        }
-        cols = tokens.toString(",");
-      } else {
-        cols = "*";
-      }
-      props.push(table);
-      
-      sql = FP.format("select " + cols + " from fp.%I where true ", props);
-
-      /* Get one result by key */
-      if (obj.id) {
-        pk = _getKey(obj.id, obj.name);
-        if (pk === undefined) { return {} }
-        sql +=  "and _pk = $1";
-        result = plv8.execute(sql,[pk])[0];
-
-      /* Get a filtered result */
-      } else if (obj.filter) {
-        pk = _getKeys(obj.name, obj.filter);
-        tokens = [];
-        i = 0;
-        while (pk[i]) {
-          i++;
-          tokens.push("$" + i);
-        }
-        sql += "and _pk in (" + tokens.toString(",") + ")";
-        result = plv8.execute(sql, pk);
-
-      /* Get all results */
-      } else {
-        result = plv8.execute(sql);
-      }
-
-      return _sanitize(result);
-    };
-
-    /** private */
-    /** TODO: Make this work */
-    _update = function (obj) {
-      var args = [obj.name.toSnakeCase()],
-       patch = obj.data,
-       i = 0;
-/*
-      while (patch[i]) {
-        switch (patch.op)
-        {
-        case "add":
-          return _insert(obj);
-        case "replace":
-          return _update(obj);
-        case "remove":
-          return _delete(obj);
-        default:
-          return false;
-        }
+    /* Get a filtered result */
+    } else if (obj.filter) {
+      pk = _getKeys(obj.name, obj.filter);
+      tokens = [];
+      i = 0;
+      while (pk[i]) {
         i++;
+        tokens.push("$" + i);
       }
-*/
-    };
+      sql += "and _pk in (" + tokens.toString(",") + ")";
+      result = plv8.execute(sql, pk);
 
-  }());
+    /* Get all results */
+    } else {
+      result = plv8.execute(sql);
+    }
+
+    return _sanitize(result);
+  };
+
+  /** private */
+  /** TODO: Make this work */
+  _update = function (obj) {
+    var args = [obj.name.toSnakeCase()],
+     patch = obj.data,
+     i = 0;
+/*
+    while (patch[i]) {
+      switch (patch.op)
+      {
+      case "add":
+        return _insert(obj);
+      case "replace":
+        return _update(obj);
+      case "remove":
+        return _delete(obj);
+      default:
+        return false;
+      }
+      i++;
+    }
+*/
+  };
+
+}());
 $$ language plv8;
