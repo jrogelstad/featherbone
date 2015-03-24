@@ -15,6 +15,8 @@
 **/
 
 create or replace function fp.load_fp() returns void as $$
+/*global plv8: true, jsonpatch: true, featherbone: true, ERROR: true */
+/*jslint nomen: true, plusplus: true, indent: 2, sloppy: true, todo: true*/
 (function () {
 
   var _camelize,
@@ -22,6 +24,7 @@ create or replace function fp.load_fp() returns void as $$
     _getKey,
     _getKeys,
     _format,
+    _parseFilter,
     _sanitize,
     _insert,
     _select,
@@ -39,7 +42,7 @@ create or replace function fp.load_fp() returns void as $$
 
       @return {String}
     */
-    createId: function (test) {
+    createId: function () {
       var x = 2147483648,
         d = new Date(),
         result = Math.floor(Math.random() * x).toString(36) +
@@ -61,11 +64,11 @@ create or replace function fp.load_fp() returns void as $$
         sql = "select * from pg_tables where schemaname = 'fp' and tablename = $1;",
         args = [table];
 
-      if (!table || !plv8.execute(sql, args).length) { return false };
+      if (!table || !plv8.execute(sql, args).length) { return false; }
 
       sql = _format("drop table fp.%I", args);
       plv8.execute(sql);
-      
+
       return true;
     },
     /** private
@@ -117,12 +120,11 @@ create or replace function fp.load_fp() returns void as $$
         args,
         fn;
 
-      switch (obj.action)
-      {
+      switch (obj.action) {
       case "GET":
         return _select(obj);
       case "POST":
-        /* Handle if posting a function call */ 
+        /* Handle if posting a function call */
         if (featherbone[prop] && typeof featherbone[prop] === "function") {
           args = Array.isArray(obj.data) ? obj.data : [obj.data];
           fn = _curry(featherbone[prop], args);
@@ -136,7 +138,6 @@ create or replace function fp.load_fp() returns void as $$
       case "DELETE":
         return _delete(obj);
       }
-
     },
 
     /**
@@ -180,12 +181,11 @@ create or replace function fp.load_fp() returns void as $$
         inheritTable = (obj.inherits ? obj.inherits.hind() : 'object').toSnakeCase(),
         sql = "select * from pg_tables where schemaname = 'fp' and tablename = $1;",
         args = [table, table + "_pkey", table + "_id_key", inheritTable],
-        actions = ["add", "drop"],
         types = {
-          Object: "json", 
-          Array: "json", 
-          String: "text", 
-          Number: "numeric", 
+          Object: "json",
+          Array: "json",
+          String: "text",
+          Number: "numeric",
           Date: "timestamp with time zone",
           Boolean: "boolean"
         },
@@ -196,10 +196,14 @@ create or replace function fp.load_fp() returns void as $$
         params = [table],
         cols = [],
         inherits = [],
-        found,
-        i = 0;
+        prop,
+        type,
+        name,
+        exists,
+        i = 0,
+        col;
 
-      if (!table) { return false };
+      if (!table) { return false; }
 
       /* Create table if applicable */
       if (!plv8.execute(sql, [table]).length) {
@@ -225,10 +229,10 @@ create or replace function fp.load_fp() returns void as $$
         }
         sql = "select column_name from information_schema.columns " +
           "where table_catalog = current_database() and table_schema = 'fp' and table_name = $1" +
-          " and not column_name in ("+
+          " and not column_name in (" +
           "  select column_name from information_schema.columns " +
           "  where table_name in (" + tokens.toString(",") + "))";
-          
+
         cols = plv8.execute(sql, params).map(function (rec) {
           return rec.column_name;
         });
@@ -237,27 +241,27 @@ create or replace function fp.load_fp() returns void as $$
         i = 0;
         sql = "";
         while (cols[i]) {
-          var col = cols[i].toCamelCase();
+          col = cols[i].toCamelCase();
           if (keys.indexOf(col) === -1) {
             sql += _format("alter table fp.%I drop column %I;", [table, col]);
           }
-          i++
+          i++;
         }
       }
 
-      if (obj.description) { 
+      if (obj.description) {
         sql += _format("comment on table fp.%I is %L;", [table, obj.description]);
       }
 
       /* Add columns */
       i = 0;
       while (keys[i]) {
-        var prop = props[keys[i]],
-          type = prop.type,
-          name = keys[i].toSnakeCase(),
-          exists = cols.indexOf(name) > -1;
+        prop = props[keys[i]];
+        type = prop.type;
+        name = keys[i].toSnakeCase();
+        exists = cols.indexOf(name) > -1;
 
-        if (Object.keys(types).indexOf(type) === -1) {	
+        if (Object.keys(types).indexOf(type) === -1) {
           plv8.elog(ERROR, 'Invalid type "' + type + '" for property "' + keys[i] + '" on class "' + obj.name + '"');
         } else {
           if (!exists) {
@@ -268,7 +272,7 @@ create or replace function fp.load_fp() returns void as $$
             sql += _format("comment on column fp.%I.%I is %L;", [table, name, prop.description]);
           }
         }
-        if (!result) { break }
+        if (!result) { break; }
         i++;
       }
 
@@ -302,13 +306,13 @@ create or replace function fp.load_fp() returns void as $$
   _curry = function (fn, args) {
     return function () {
       return fn.apply(this, args.concat([].slice.call(arguments)));
-    }
+    };
   };
 
   /** private */
   _delete = function (obj) {
     plv8.execute("update fp.object set is_deleted = true where id=$1;", [obj.id]);
-    
+
     return true;
   };
 
@@ -323,7 +327,7 @@ create or replace function fp.load_fp() returns void as $$
     while (ary[i]) {
       i++;
       params.push("$" + i);
-    };
+    }
 
     return plv8.execute("select format(" + params.toString(",") + ")", ary)[0].format;
   };
@@ -336,6 +340,7 @@ create or replace function fp.load_fp() returns void as $$
       params = [],
       values = [],
       i = 0,
+      result,
       keys,
       sql;
 
@@ -359,7 +364,7 @@ create or replace function fp.load_fp() returns void as $$
   /** private */
   _getKey = function (id, name) {
     name = name ? name.toSnakeCase() : 'object';
-    
+
     var sql = _format("select _pk from fp.%I where id = $1", [name]),
       result = plv8.execute(sql, [id])[0];
 
@@ -368,7 +373,7 @@ create or replace function fp.load_fp() returns void as $$
 
   /** private */
   _getKeys = function (name, filter) {
-    return [34,35,37];
+    return [34, 35, 37];
   };
 
   /** private */
@@ -376,14 +381,16 @@ create or replace function fp.load_fp() returns void as $$
     var parts = str.split(" "),
       params = [],
       tokens = [],
+      part,
+      param,
+      ary,
       i = 0,
-      p = 1;
+      p = 1,
+      n;
 
     while (parts[i]) {
-      var part,
-        param,
-        n = 0,
-        ary;
+      parts = part[i];
+      n = 0;
 
       /* Replace if operator */
       /* Replace strings with parameters */
@@ -422,7 +429,7 @@ create or replace function fp.load_fp() returns void as $$
       /* Copy to convert dates back to string for accurate comparisons */
       ary[i] = JSON.parse(JSON.stringify(ary[i]));
     }
-    
+
     return isArray ? obj : ary[0];
   };
 
@@ -433,7 +440,6 @@ create or replace function fp.load_fp() returns void as $$
       i = props.length,
       tokens = [],
       result,
-      prop,
       cols,
       sql,
       pk;
@@ -448,15 +454,15 @@ create or replace function fp.load_fp() returns void as $$
       cols = "*";
     }
     props.push(table);
-    
+
     sql = _format("select " + cols + " from fp.%I where true ", props);
 
     /* Get one result by key */
     if (obj.id) {
       pk = _getKey(obj.id, obj.name);
-      if (pk === undefined) { return {} }
+      if (pk === undefined) { return {}; }
       sql +=  "and _pk = $1";
-      result = plv8.execute(sql,[pk])[0];
+      result = plv8.execute(sql, [pk])[0];
 
     /* Get a filtered result */
     } else if (obj.filter) {
@@ -482,24 +488,7 @@ create or replace function fp.load_fp() returns void as $$
   /** TODO: Make this work */
   _update = function (obj) {
     var args = [obj.name.toSnakeCase()],
-     patch = obj.data,
-     i = 0;
-/*
-    while (patch[i]) {
-      switch (patch.op)
-      {
-      case "add":
-        return _insert(obj);
-      case "replace":
-        return _update(obj);
-      case "remove":
-        return _delete(obj);
-      default:
-        return false;
-      }
-      i++;
-    }
-*/
+      patch = obj.data;
   };
 
 }());
