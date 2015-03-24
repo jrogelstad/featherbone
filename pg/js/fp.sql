@@ -345,48 +345,23 @@ create or replace function fp.load_fp() returns void as $$
 
   /** private */
   _getKeys = function (name, filter) {
-    return [34, 35, 37];
+    var sql = ("select _pk from fp.%I ").format([name.toSnakeCase()]),
+      result;
+
+    if (filter) {
+      sql += _parseFilter(filter);
+    }
+
+    result = plv8.execute(sql).map(function (rec) {
+      return rec._pk;
+    });
+
+    return result || [];
   };
 
   /** private */
-  _parseFilter = function (str) {
-    var parts = str.split(" "),
-      params = [],
-      tokens = [],
-      part,
-      param,
-      ary,
-      i = 0,
-      p = 1,
-      n;
-
-    while (parts[i]) {
-      parts = part[i];
-      n = 0;
-
-      /* Replace if operator */
-      /* Replace strings with parameters */
-      ary = part.match(/'([^']+)'/g).replace(/'/g, "");
-      while (ary[i]) {
-        params.push(ary[i]);
-        part.replace(ary[i], "$" + p);
-        tokens.push("$" + p);
-        p++;
-        n++;
-      }
-
-      /* Replace numbers with parameters */
-      n = 0;
-      ary = part.match(/\d+/g);
-      while (ary[i]) {
-        params.push(ary[i]);
-        part.replace(ary[i], "$" + p);
-        p++;
-        n++;
-      }
-
-      /* Replace columns (anything not an operator with tokens */
-    }
+  _parseFilter = function (obj) {
+    return "where created_by = 'admin'";
   };
 
   /** private */
@@ -411,7 +386,7 @@ create or replace function fp.load_fp() returns void as $$
       props = obj.properties || [],
       i = props.length,
       tokens = [],
-      result,
+      result = {},
       cols,
       sql,
       pk;
@@ -439,14 +414,19 @@ create or replace function fp.load_fp() returns void as $$
     /* Get a filtered result */
     } else if (obj.filter) {
       pk = _getKeys(obj.name, obj.filter);
-      tokens = [];
-      i = 0;
-      while (pk[i]) {
-        i++;
-        tokens.push("$" + i);
+
+      if (pk.length) {
+        tokens = [];
+        i = 0;
+
+        while (pk[i]) {
+          i++;
+          tokens.push("$" + i);
+        }
+
+        sql += "and _pk in (" + tokens.toString(",") + ")";
+        result = plv8.execute(sql, pk);
       }
-      sql += "and _pk in (" + tokens.toString(",") + ")";
-      result = plv8.execute(sql, pk);
 
     /* Get all results */
     } else {

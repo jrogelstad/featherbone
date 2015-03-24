@@ -36,8 +36,7 @@ $$ language plv8;
 do $$
    plv8.execute('select fp.init()');
    var sqlChk = "select * from pg_tables where schemaname = 'fp' and tablename = $1;",
-     sql,
-     format = featherbone.format;
+     sql;
 
    /** Create the base object table **/
    if (!plv8.execute(sqlChk,['object']).length) {
