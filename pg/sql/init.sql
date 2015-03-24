@@ -22,14 +22,37 @@ create or replace function fp.init() returns void as $$
     */
     String.prototype.hind = function () {
       return this.replace(/\w+\./i, '');
-    }
+    };
 
     /**
       Return the text before the first dot.
     */
     String.prototype.ere = function () {
       return this.replace(/\.\w+/i, '');
-    }
+    };
+
+    /**
+      * Escape strings to prevent sql injection
+        http://www.postgresql.org/docs/9.1/interactive/functions-string.html#FUNCTIONS-STRING-OTHER
+      *
+      * @param {String} A string with tokens to replace.
+      * @param {Array} Array of replacement strings.
+      * @return {String} Escaped string.
+    */
+    String.prototype.format = function (ary) {
+      var params = [],
+        i = 0;
+
+      ary = ary || [];
+      ary.unshift(this);
+
+      while (ary[i]) {
+        i++;
+        params.push("$" + i);
+      }
+
+      return plv8.execute("select format(" + params.toString(",") + ")", ary)[0].format;
+    };
 
     /**
        Change sting with underscores '_' to camel case.
@@ -39,7 +62,7 @@ create or replace function fp.init() returns void as $$
       return this.replace(/_+(.)?/g, function(match, chr) {
         return chr ? chr.toUpperCase() : '';
       });
-    }
+    };
 
     /**
        Change a camel case string to snake case.
@@ -47,9 +70,9 @@ create or replace function fp.init() returns void as $$
     */
     String.prototype.toSnakeCase = function () {
       return this.replace((/([a-z])([A-Z])/g), '$1_$2').toLowerCase();
-    }
+    };
 
-    /** TODO: We want to load these from tables **/
+    /** TODO: We want to load these directly from js files **/
     plv8.execute("select fp.load_fp();");
     plv8.execute("select fp.load_jsonpatch();");
     plv8._init = true;

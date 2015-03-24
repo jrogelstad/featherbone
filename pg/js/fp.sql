@@ -23,7 +23,6 @@ create or replace function fp.load_fp() returns void as $$
     _curry,
     _getKey,
     _getKeys,
-    _format,
     _parseFilter,
     _sanitize,
     _insert,
@@ -66,21 +65,10 @@ create or replace function fp.load_fp() returns void as $$
 
       if (!table || !plv8.execute(sql, args).length) { return false; }
 
-      sql = _format("drop table fp.%I", args);
+      sql = ("drop table fp.%I").format(args);
       plv8.execute(sql);
 
       return true;
-    },
-    /** private
-      * Escape strings to prevent sql injection
-        http://www.postgresql.org/docs/9.1/interactive/functions-string.html#FUNCTIONS-STRING-OTHER
-      *
-      * @param {String} A string with tokens to replace.
-      * @param {Array} Array of replacement strings.
-      * @return {String} Escaped string.
-    */
-    format: function (str, ary) {
-      return _format(str, ary);
     },
 
     /**
@@ -207,7 +195,7 @@ create or replace function fp.load_fp() returns void as $$
 
       /* Create table if applicable */
       if (!plv8.execute(sql, [table]).length) {
-        sql = _format("create table fp.%I(constraint %I primary key (_pk), constraint %I unique (id)) inherits (fp.%I);", args);
+        sql = ("create table fp.%I(constraint %I primary key (_pk), constraint %I unique (id)) inherits (fp.%I);").format(args);
         plv8.execute(sql);
         sql = "";
       } else {
@@ -243,14 +231,14 @@ create or replace function fp.load_fp() returns void as $$
         while (cols[i]) {
           col = cols[i].toCamelCase();
           if (keys.indexOf(col) === -1) {
-            sql += _format("alter table fp.%I drop column %I;", [table, col]);
+            sql += ("alter table fp.%I drop column %I;").format([table, col]);
           }
           i++;
         }
       }
 
       if (obj.description) {
-        sql += _format("comment on table fp.%I is %L;", [table, obj.description]);
+        sql += ("comment on table fp.%I is %L;").format([table, obj.description]);
       }
 
       /* Add columns */
@@ -265,11 +253,11 @@ create or replace function fp.load_fp() returns void as $$
           plv8.elog(ERROR, 'Invalid type "' + type + '" for property "' + keys[i] + '" on class "' + obj.name + '"');
         } else {
           if (!exists) {
-            sql += _format("alter table fp.%I add column %I " + types[type], [table, name]);
+            sql += ("alter table fp.%I add column %I " + types[type]).format([table, name]);
             sql += prop.isRequired ? " not null;" : ";";
           }
           if (prop.description) {
-            sql += _format("comment on column fp.%I.%I is %L;", [table, name, prop.description]);
+            sql += ("comment on column fp.%I.%I is %L;").format([table, name, prop.description]);
           }
         }
         if (!result) { break; }
@@ -317,22 +305,6 @@ create or replace function fp.load_fp() returns void as $$
   };
 
   /** private */
-  _format = function (str, ary) {
-    var params = [],
-      i = 0;
-
-    ary = ary || [];
-    ary.unshift(str);
-
-    while (ary[i]) {
-      i++;
-      params.push("$" + i);
-    }
-
-    return plv8.execute("select format(" + params.toString(",") + ")", ary)[0].format;
-  };
-
-  /** private */
   _insert = function (obj) {
     var data = JSON.parse(JSON.stringify(obj.data)),
       args = [obj.name.toSnakeCase()],
@@ -356,7 +328,7 @@ create or replace function fp.load_fp() returns void as $$
       params.push("$" + i);
     }
 
-    sql = _format("insert into fp.%I (" + tokens.toString(",") + ") values (" + params.toString(",") + ") returning *;", args);
+    sql = ("insert into fp.%I (" + tokens.toString(",") + ") values (" + params.toString(",") + ") returning *;").format(args);
     result = plv8.execute(sql, values)[0];
     return jsonpatch.compare(obj.data, _sanitize(result));
   };
@@ -365,7 +337,7 @@ create or replace function fp.load_fp() returns void as $$
   _getKey = function (id, name) {
     name = name ? name.toSnakeCase() : 'object';
 
-    var sql = _format("select _pk from fp.%I where id = $1", [name]),
+    var sql = ("select _pk from fp.%I where id = $1").format([name]),
       result = plv8.execute(sql, [id])[0];
 
     return result ? result._pk : undefined;
@@ -394,7 +366,7 @@ create or replace function fp.load_fp() returns void as $$
 
       /* Replace if operator */
       /* Replace strings with parameters */
-      ary = part.match(/'([^']+)'/g);
+      ary = part.match(/'([^']+)'/g).replace(/'/g, "");
       while (ary[i]) {
         params.push(ary[i]);
         part.replace(ary[i], "$" + p);
@@ -455,7 +427,7 @@ create or replace function fp.load_fp() returns void as $$
     }
     props.push(table);
 
-    sql = _format("select " + cols + " from fp.%I where true ", props);
+    sql = ("select " + cols + " from fp.%I where true ").format(props);
 
     /* Get one result by key */
     if (obj.id) {

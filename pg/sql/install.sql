@@ -52,12 +52,12 @@ do $$
      plv8.execute(sql);
      plv8.execute("comment on table fp.object is 'Abstract object from which all objects will inherit.'");
      sql = "comment on column %I.%I.%I is %L";
-     plv8.execute(format(sql, ['fp','object','_pk','Internal primary key']));
-     plv8.execute(format(sql, ['fp','object','id','Surrogate key']));
-     plv8.execute(format(sql, ['fp','object','created','Create time of the record']));
-     plv8.execute(format(sql, ['fp','object','created_by','User who created the record']));
-     plv8.execute(format(sql, ['fp','object','updated','Last time the record was updated']));
-     plv8.execute(format(sql, ['fp','object','updated_by','Last user who created the record']));
+     plv8.execute(sql.format(['fp','object','_pk','Internal primary key']));
+     plv8.execute(sql.format(['fp','object','id','Surrogate key']));
+     plv8.execute(sql.format(['fp','object','created','Create time of the record']));
+     plv8.execute(sql.format(['fp','object','created_by','User who created the record']));
+     plv8.execute(sql.format(['fp','object','updated','Last time the record was updated']));
+     plv8.execute(sql.format(['fp','object','updated_by','Last user who created the record']));
    };
 
    /** Create the base log table **/
@@ -69,6 +69,6 @@ do $$
      plv8.execute(sql);
      plv8.execute("comment on table fp.object is 'Abstract object from which all objects will inherit.'");
      sql = "comment on column %I.%I.%I is %L";
-     plv8.execute(format(sql, ['fp','log','change','Patch formatted json indicating changes']));
+     plv8.execute(sql.format(['fp','log','change','Patch formatted json indicating changes']));
    };
 $$ language plv8;
