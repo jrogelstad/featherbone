@@ -348,20 +348,81 @@ create or replace function fp.load_fp() returns void as $$
     var sql = ("select _pk from fp.%I ").format([name.toSnakeCase()]),
       result;
 
+    /* Only return values if we have a filter */
     if (filter) {
       sql += _parseFilter(filter);
-    }
 
-    result = plv8.execute(sql).map(function (rec) {
-      return rec._pk;
-    });
+      result = plv8.execute(sql).map(function (rec) {
+        return rec._pk;
+      });
+    }
 
     return result || [];
   };
 
   /** private */
   _parseFilter = function (obj) {
-    return "where created_by = 'admin'";
+    var result  = "",
+      criteria = obj.criteria || [],
+      sort = obj.sort || [],
+      tokens = [],
+      params = [],
+      ops = ["=", "<", ">", "<>", "~", "*~", "!~", "!~*"],
+      parts = [],
+      part,
+      order,
+      i;
+
+    /* Process criteria */
+    i = criteria.length;
+    while (criteria[i]) {
+      part = "";
+      tokens.push(criteria[i].property);
+      part += "I%";
+
+      if (ops.indexOf(criteria[i].operator || "=") === -1) {
+        plv8.elog(ERROR, 'Unknown operator "' + criteria[i].operator + '"');
+      }
+      part += criteria[i].operator;
+
+      params.push(criteria[i].value);
+      i++;
+      part += "$" + i;
+      parts.push(part);
+    }
+
+    if (parts.length) {
+      result += " where " + parts.join(" and ");
+    }
+
+    /* Process sort */
+    i = sort.length;
+    parts = [];
+    while (sort[i]) {
+      order = (sort[i].order || "ASC").toUpperCase();
+      if (order !== "ASC" && order !== "DESC") {
+        plv8.elog(ERROR, 'Unknown operator "' + order + '"');
+      }
+      tokens.push(sort[i].property);
+      parts.push(" I% " + order);
+    }
+
+    if (parts.length) {
+      result += " order by " + parts.join(",");
+    }
+
+    /* Process offset and limit */
+    if (obj.offset) {
+      result += " offset %I";
+      tokens.push(obj.offset);
+    }
+
+    if (obj.limit) {
+      result += " limit %I";
+      tokens.push(obj.limit);
+    }
+
+    return result;
   };
 
   /** private */
