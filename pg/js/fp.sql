@@ -23,7 +23,6 @@ create or replace function fp.load_fp() returns void as $$
     _curry,
     _getKey,
     _getKeys,
-    _parseFilter,
     _sanitize,
     _insert,
     _select,
@@ -345,81 +344,77 @@ create or replace function fp.load_fp() returns void as $$
 
   /** private */
   _getKeys = function (name, filter) {
-    var sql = ("select _pk from fp.%I ").format([name.toSnakeCase()]),
-      result;
-
-    /* Only return values if we have a filter */
-    if (filter) {
-      sql += _parseFilter(filter);
-
-      result = plv8.execute(sql).map(function (rec) {
-        return rec._pk;
-      });
-    }
-
-    return result || [];
-  };
-
-  /** private */
-  _parseFilter = function (obj) {
-    var result  = "",
-      criteria = obj.criteria || [],
-      sort = obj.sort || [],
-      tokens = [],
+    var sql = "select _pk from fp.%I ",
+      tokens = [name.toSnakeCase()],
+      criteria = filter.criteria || [],
+      sort = filter.sort || [],
       params = [],
-      ops = ["=", "<", ">", "<>", "~", "*~", "!~", "!~*"],
+      ops = ["=", "!=", "<", ">", "<>", "~", "*~", "!~", "!~*"],
+      result  = [],
       parts = [],
       part,
       order,
-      i;
+      op,
+      i = 0,
+      p = 1;
 
-    /* Process criteria */
-    i = criteria.length;
-    while (criteria[i]) {
-      part = "";
-      tokens.push(criteria[i].property);
-      part += "I%";
+    /* Only return values if we have a filter */
+    if (filter) {
 
-      if (ops.indexOf(criteria[i].operator || "=") === -1) {
-        plv8.elog(ERROR, 'Unknown operator "' + criteria[i].operator + '"');
+      /* Process criteria */
+      while (criteria[i]) {
+        part = "";
+        op = criteria[i].operator || "=";
+        tokens.push(criteria[i].property.toSnakeCase());
+        part += "%I";
+
+        if (ops.indexOf(op) === -1) {
+          plv8.elog(ERROR, 'Unknown operator "' + criteria[i].operator + '"');
+        }
+        part += op;
+
+        params.push(criteria[i].value);
+        part += "$" + p++;
+        parts.push(part);
+        i++;
       }
-      part += criteria[i].operator;
 
-      params.push(criteria[i].value);
-      i++;
-      part += "$" + i;
-      parts.push(part);
-    }
-
-    if (parts.length) {
-      result += " where " + parts.join(" and ");
-    }
-
-    /* Process sort */
-    i = sort.length;
-    parts = [];
-    while (sort[i]) {
-      order = (sort[i].order || "ASC").toUpperCase();
-      if (order !== "ASC" && order !== "DESC") {
-        plv8.elog(ERROR, 'Unknown operator "' + order + '"');
+      if (parts.length) {
+        sql += " where " + parts.join(" and ");
       }
-      tokens.push(sort[i].property);
-      parts.push(" I% " + order);
-    }
 
-    if (parts.length) {
-      result += " order by " + parts.join(",");
-    }
+      /* Process sort */
+      i = 0;
+      parts = [];
+      while (sort[i]) {
+        order = (sort[i].order || "ASC").toUpperCase();
+        if (order !== "ASC" && order !== "DESC") {
+          plv8.elog(ERROR, 'Unknown operator "' + order + '"');
+        }
+        tokens.push(sort[i].property);
+        parts.push(" %I " + order);
+        i++;
+      }
 
-    /* Process offset and limit */
-    if (obj.offset) {
-      result += " offset %I";
-      tokens.push(obj.offset);
-    }
+      if (parts.length) {
+        sql += " order by " + parts.join(",");
+      }
 
-    if (obj.limit) {
-      result += " limit %I";
-      tokens.push(obj.limit);
+      /* Process offset and limit */
+      if (filter.offset) {
+        sql += " offset $" + p++;
+        params.push(filter.offset);
+      }
+
+      if (filter.limit) {
+        sql += " limit $" + p;
+        params.push(filter.limit);
+      }
+
+      sql = sql.format(tokens);
+      return plv8.execute(sql, params).map(function (rec) {
+        return rec._pk;
+      });
     }
 
     return result;
