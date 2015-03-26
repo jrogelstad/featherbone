@@ -356,25 +356,33 @@ create or replace function fp.load_fp() returns void as $$
       order,
       op,
       i = 0,
-      p = 1;
+      p = 1,
+      n;
 
     /* Only return values if we have a filter */
     if (filter) {
 
       /* Process criteria */
       while (criteria[i]) {
-        part = "";
         op = criteria[i].operator || "=";
         tokens.push(criteria[i].property.toSnakeCase());
-        part += "%I";
 
-        if (ops.indexOf(op) === -1) {
-          plv8.elog(ERROR, 'Unknown operator "' + criteria[i].operator + '"');
+        if (op === "IN") {
+          n = criteria[i].value.length;
+          part = [];
+          while (n--) {
+            params.push(criteria[i].value[n]);
+            part.push("$" + p++);
+          }
+          part = " %I IN (" + part.join(",") + ")";
+        } else {
+          if (ops.indexOf(op) === -1) {
+            plv8.elog(ERROR, 'Unknown operator "' + criteria[i].operator + '"');
+          }
+          params.push(criteria[i].value);
+          part = " %I" + op + "$" + p++;
+          i++;
         }
-        part += op;
-
-        params.push(criteria[i].value);
-        part += "$" + p++;
         parts.push(part);
         i++;
       }
@@ -410,8 +418,9 @@ create or replace function fp.load_fp() returns void as $$
         sql += " limit $" + p;
         params.push(filter.limit);
       }
-
+ 
       sql = sql.format(tokens);
+   plv8.elog(NOTICE, sql);
       return plv8.execute(sql, params).map(function (rec) {
         return rec._pk;
       });
