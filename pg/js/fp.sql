@@ -420,7 +420,6 @@ create or replace function fp.load_fp() returns void as $$
       }
  
       sql = sql.format(tokens);
-   plv8.elog(NOTICE, sql);
       return plv8.execute(sql, params).map(function (rec) {
         return rec._pk;
       });
