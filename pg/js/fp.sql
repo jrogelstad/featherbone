@@ -138,22 +138,19 @@ create or replace function fp.load_fp() returns void as $$
          "properties": {
            "fullName": {
              "description": "Full name",
-             "type": "String",
-             "isRequired": true
+             "type": "string"
           },
           "birthDate": {
             "description": "Birth date",
-            "type": "Date"
+            "type": "date"
           },
           "isMarried": {
             "description": "Marriage status",
-            "type": "Boolean",
-            "isRequired": true
+            "type": "boolean"
           },
           "dependents": {
             "description": "Number of dependents",
-            "type": "Number",
-            "isRequired": true
+            "type": "number"
           }
         }
       }
@@ -169,15 +166,16 @@ create or replace function fp.load_fp() returns void as $$
         sql = "select * from pg_tables where schemaname = 'fp' and tablename = $1;",
         args = [table, table + "_pkey", table + "_id_key", inheritTable],
         types = {
-          Object: "json",
-          Array: "json",
-          String: "text",
-          Number: "numeric",
-          Date: "timestamp with time zone",
-          Boolean: "boolean"
+          object: {type: "json", defaultValue: "'{}'"},
+          array: {type: "json", defaultValue: "'{}'"},
+          string: {type: "text", defaultValue: "''"},
+          number: {type: "numeric", defaultValue: "0"},
+          date: {type: "timestamp with time zone", defaultValue: "now()"},
+          boolean: {type: "boolean", defaultValue: "false"}
         },
         props = obj.properties,
         keys = Object.keys(props),
+        defaultValue,
         result = true,
         tokens = [],
         params = [table],
@@ -244,16 +242,15 @@ create or replace function fp.load_fp() returns void as $$
       i = 0;
       while (keys[i]) {
         prop = props[keys[i]];
-        type = prop.type;
+        type = types[prop.type];
         name = keys[i].toSnakeCase();
         exists = cols.indexOf(name) > -1;
 
-        if (Object.keys(types).indexOf(type) === -1) {
-          plv8.elog(ERROR, 'Invalid type "' + type + '" for property "' + keys[i] + '" on class "' + obj.name + '"');
+        if (!type) {
+          plv8.elog(ERROR, 'Invalid type "' + prop.type + '" for property "' + keys[i] + '" on class "' + obj.name + '"');
         } else {
           if (!exists) {
-            sql += ("alter table fp.%I add column %I " + types[type]).format([table, name]);
-            sql += prop.isRequired ? " not null;" : ";";
+            sql += ("alter table fp.%I add column %I " + type.type + " not null default " + type.defaultValue + ";").format([table, name]);
           }
           if (prop.description) {
             sql += ("comment on column fp.%I.%I is %L;").format([table, name, prop.description]);
@@ -466,13 +463,13 @@ create or replace function fp.load_fp() returns void as $$
     }
     props.push(table);
 
-    sql = ("select " + cols + " from fp.%I where true ").format(props);
+    sql = ("select " + cols + " from fp.%I").format(props);
 
     /* Get one result by key */
     if (obj.id) {
       pk = _getKey(obj.id, obj.name);
       if (pk === undefined) { return {}; }
-      sql +=  "and _pk = $1";
+      sql +=  "where _pk = $1";
       result = plv8.execute(sql, [pk])[0];
 
     /* Get a filtered result */
@@ -488,7 +485,7 @@ create or replace function fp.load_fp() returns void as $$
           tokens.push("$" + i);
         }
 
-        sql += "and _pk in (" + tokens.toString(",") + ")";
+        sql += "where _pk in (" + tokens.toString(",") + ")";
         result = plv8.execute(sql, pk);
       }
 
