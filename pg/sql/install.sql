@@ -36,38 +36,94 @@ $$ language plv8;
 do $$
    plv8.execute('select fp.init()');
    var sqlChk = "select * from pg_tables where schemaname = 'fp' and tablename = $1;",
-     sql;
+     sqlCmt = "comment on column %I.%I.%I is %L",
+     sql,
+     params;
 
    /** Create the base object table **/
    if (!plv8.execute(sqlChk,['object']).length) {
      sql = "create table fp.object (" +
        "_pk bigserial primary key," +
-       "id text not null unique," +
-       "created timestamp with time zone not null default now()," +
-       "created_by text not null default fp.get_current_user()," +
-       "updated timestamp with time zone not null default now()," +
-       "updated_by text not null default fp.get_current_user()," +
-       "is_deleted boolean not null default false)";
+       "id text unique," +
+       "created timestamp with time zone default now()," +
+       "created_by text default fp.get_current_user()," +
+       "updated timestamp with time zone default now()," +
+       "updated_by text default fp.get_current_user()," +
+       "is_deleted boolean default false)";
      plv8.execute(sql);
-     plv8.execute("comment on table fp.object is 'Abstract object from which all objects will inherit.'");
-     sql = "comment on column %I.%I.%I is %L";
-     plv8.execute(sql.format(['fp','object','_pk','Internal primary key']));
-     plv8.execute(sql.format(['fp','object','id','Surrogate key']));
-     plv8.execute(sql.format(['fp','object','created','Create time of the record']));
-     plv8.execute(sql.format(['fp','object','created_by','User who created the record']));
-     plv8.execute(sql.format(['fp','object','updated','Last time the record was updated']));
-     plv8.execute(sql.format(['fp','object','updated_by','Last user who created the record']));
+     plv8.execute("comment on table fp.object is 'Abstract object class from which all other classes will inherit'");
+     plv8.execute(sqlCmt.format(['fp','object','_pk','Internal primary key']));
+     plv8.execute(sqlCmt.format(['fp','object','id','Surrogate key']));
+     plv8.execute(sqlCmt.format(['fp','object','created','Create time of the record']));
+     plv8.execute(sqlCmt.format(['fp','object','created_by','User who created the record']));
+     plv8.execute(sqlCmt.format(['fp','object','updated','Last time the record was updated']));
+     plv8.execute(sqlCmt.format(['fp','object','updated_by','Last user who created the record']));
+     plv8.execute(sqlCmt.format(['fp','object','is_deleted','Indicates the record is no longer active']));
    };
 
    /** Create the base log table **/
    if (!plv8.execute(sqlChk,['log']).length) {
      sql = "create table fp.log (" +
+       "_parent bigint," +
        "change json," +
        "constraint log_pkey primary key (_pk), " +
        "constraint log_id_key unique (id)) inherits (fp.object)";
      plv8.execute(sql);
-     plv8.execute("comment on table fp.object is 'Abstract object from which all objects will inherit.'");
-     sql = "comment on column %I.%I.%I is %L";
-     plv8.execute(sql.format(['fp','log','change','Patch formatted json indicating changes']));
+     plv8.execute("comment on table fp.log is 'Class for logging all schema and data changes'");
+     plv8.execute(sqlCmt.format(['fp','log','_parent','Reference to parent table primary key']));
+     plv8.execute(sqlCmt.format(['fp','log','change','Patch formatted json indicating changes']));
+   };
+
+   /** Create the settings table **/
+   if (!plv8.execute(sqlChk,['_settings']).length) {
+     sql = "create table fp._settings (" +
+       "name text," +
+       "data json," +
+       "constraint settings_pkey primary key (_pk), " +
+       "constraint settings_id_key unique (id)) inherits (fp.object)";
+     plv8.execute(sql);
+     plv8.execute("comment on table fp._settings is 'Internal table for storing system settyngs'");
+     plv8.execute(sqlCmt.format(['fp','_settings','name','Name of settings']));
+     plv8.execute(sqlCmt.format(['fp','_settings','data','Object containing settings']));
+     sql = "insert into fp._settings (id, name, data) values ($1, $2, $3);";
+     params = [
+       featherbone.createId(),
+       'catalog',
+       {"Object": {
+         "description": "Abstract object class from which all other classes will inherit",
+         "properties": {
+             "id": {
+               "description": "Surrogate key",
+               "type": "string"},
+             "created": {
+               "description": "Create time of the record",
+               "type": "date"},
+             "createdBy": {
+               "description": "User who created the record",
+               "type": "string"},
+             "updated": {
+               "description": "Last time the record was updated",
+               "type": "date"},
+             "updatedBy": {
+               "description": "User who created the record",
+               "type": "string"},
+             "isDeleted": {
+               "description": "Indicates the record is no longer active",
+               "type": "boolean"}
+             }
+          },
+         "Log": {
+         "description": "Class for logging all schema and data changes",
+         "inherits": "Object",
+         "isChild": true,
+         "properties": {
+             "change": {
+               "description": "Patch formatted json indicating changes",
+               "type": "object"}
+             }
+          }
+       }
+     ]
+     plv8.execute(sql, params);
    };
 $$ language plv8;
