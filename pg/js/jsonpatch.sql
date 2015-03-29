@@ -23,7 +23,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 This file is modified from the following MIT licensed code:
 
 * https://github.com/Starcounter-Jack/JSON-Patch
-* json-patch-duplex.js 0.5.1
+* json-patch-duplex.js 0.5.2
 * (c) 2013 Joachim Wester
 * MIT license
 */
@@ -39,6 +39,7 @@ var __extends = this.__extends || function (d, b) {
 var OriginalError = Error;
 
 jsonpatch = {}; /** Making this global! */
+
 (function (jsonpatch) {
     /* Do nothing if module is already defined.
     Doesn't look nice, as we cannot simply put
@@ -580,13 +581,13 @@ jsonpatch = {}; /** Making this global! */
                 key = keys[t];
 
                 if (validate) {
-                    if (existingPathFragment == undefined) {
-                        if (obj[key] == undefined) {
+                    if (existingPathFragment === undefined) {
+                        if (obj[key] === undefined) {
                             existingPathFragment = keys.slice(0, t).join('/');
                         } else if (t == len - 1) {
                             existingPathFragment = patch.path;
                         }
-                        if (existingPathFragment != undefined) {
+                        if (existingPathFragment !== undefined) {
                             this.validator(patch, p - 1, tree, existingPathFragment);
                         }
                     }
