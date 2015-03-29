@@ -15,23 +15,6 @@
 **/
 
 /** Expose certain js functions to the database for use as defaults **/
-create or replace function fp.get_current_user() returns text as $$
-  return (function () {
-    if (!plv8._init) { plv8.execute('select fp.init()'); }
-
-    return featherbone.getCurrentUser();
-  }());
-$$ language plv8;
-
-create or replace function fp.create_id() returns text as $$
-  return (function () {
-    if (!plv8._init) { plv8.execute('select fp.init()'); }
-
-    return featherbone.createId();
-  }());
-$$ language plv8;
-
-
 create or replace function fp.request(obj json, init boolean default false) returns json as $$
   return (function () {
     if (init || !plv8._init) {
@@ -53,13 +36,13 @@ do $$
    if (!plv8.execute(sqlChk,['object']).length) {
      sql = "create table fp.object (" +
        "_pk bigserial primary key," +
-       "id text unique not null default fp.create_id()," +
-       "created timestamp with time zone not null default now()," +
-       "created_by text not null default fp.get_current_user()," +
-       "updated timestamp with time zone not null default now()," +
-       "updated_by text not null default fp.get_current_user()," +
-       "etag text not null default fp.create_id()," +
-       "is_deleted boolean not null default false)";
+       "id text unique not null," +
+       "created timestamp with time zone not null," +
+       "created_by text not null," +
+       "updated timestamp with time zone not null," +
+       "updated_by text not null," +
+       "etag text not null," +
+       "is_deleted boolean not null)";
      plv8.execute(sql);
      plv8.execute("comment on table fp.object is 'Abstract object class from which all other classes will inherit'");
      plv8.execute(sqlCmt.format(['fp','object','_pk','Internal primary key']));
@@ -93,8 +76,9 @@ do $$
      plv8.execute("comment on table fp._settings is 'Internal table for storing system settyngs'");
      plv8.execute(sqlCmt.format(['fp','_settings','name','Name of settings']));
      plv8.execute(sqlCmt.format(['fp','_settings','data','Object containing settings']));
-     sql = "insert into fp._settings (id, name, data) values ($1, $2, $3);";
+     sql = "insert into fp._settings values (nextval('fp.object__pk_seq'), $1, now(), current_user, now(), current_user, $2, false, $3, $4);";
      params = [
+       featherbone.createId(),
        featherbone.createId(),
        'catalog',
        {"Object": {
@@ -102,22 +86,31 @@ do $$
          "properties": {
              "id": {
                "description": "Surrogate key",
-               "type": "string"},
+               "type": "string",
+               "defaultValue": "createId()"},
              "created": {
                "description": "Create time of the record",
-               "type": "date"},
+               "type": "date",
+               "defaultValue": "now()"},
              "createdBy": {
                "description": "User who created the record",
-               "type": "string"},
+               "type": "string",
+               "defaultValue": "getCurrentUser()"},
              "updated": {
                "description": "Last time the record was updated",
-               "type": "date"},
+               "type": "date",
+               "defaultValue": "now()"},
              "updatedBy": {
                "description": "User who created the record",
-               "type": "string"},
+               "type": "string",
+               "defaultValue": "getCurrentUser()"},
              "isDeleted": {
                "description": "Indicates the record is no longer active",
-               "type": "boolean"}
+               "type": "boolean"},
+             "etag": {
+               "description": "Optimistic lock key",
+               "type": "string",
+               "defaultValue": "createId()"}
              }
           },
          "Log": {
