@@ -329,8 +329,7 @@ create or replace function fp.load_fp() returns void as $$
 
           if (type) {
             if (!klass || !klass.properties[prop]) {
-              sql += "alter table fp.%I add column %I " + type.type +
-                " not null;";
+              sql += "alter table fp.%I add column %I " + type.type + ";";
               tokens = tokens.concat([table, prop.toSnakeCase()]);
             }
           } else {

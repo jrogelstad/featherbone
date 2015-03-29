@@ -36,13 +36,13 @@ do $$
    if (!plv8.execute(sqlChk,['object']).length) {
      sql = "create table fp.object (" +
        "_pk bigserial primary key," +
-       "id text unique not null," +
-       "created timestamp with time zone not null," +
-       "created_by text not null," +
-       "updated timestamp with time zone not null," +
-       "updated_by text not null," +
-       "etag text not null," +
-       "is_deleted boolean not null)";
+       "id text unique," +
+       "created timestamp with time zone," +
+       "created_by text," +
+       "updated timestamp with time zone," +
+       "updated_by text," +
+       "etag text," +
+       "is_deleted boolean)";
      plv8.execute(sql);
      plv8.execute("comment on table fp.object is 'Abstract object class from which all other classes will inherit'");
      plv8.execute(sqlCmt.format(['fp','object','_pk','Internal primary key']));
@@ -57,7 +57,7 @@ do $$
    /** Create the base log table **/
    if (!plv8.execute(sqlChk,['log']).length) {
      sql = "create table fp.log (" +
-       "change json not null default '{}'," +
+       "change json default '{}'," +
        "constraint log_pkey primary key (_pk), " +
        "constraint log_id_key unique (id)) inherits (fp.object)";
      plv8.execute(sql);
@@ -68,8 +68,8 @@ do $$
    /** Create the settings table **/
    if (!plv8.execute(sqlChk,['_settings']).length) {
      sql = "create table fp._settings (" +
-       "name text not null default ''," +
-       "data json not null default '{}'," +
+       "name text default ''," +
+       "data json default '{}'," +
        "constraint settings_pkey primary key (_pk), " +
        "constraint settings_id_key unique (id)) inherits (fp.object)";
      plv8.execute(sql);
