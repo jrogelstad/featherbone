@@ -32,11 +32,11 @@ create or replace function fp.create_id() returns text as $$
 $$ language plv8;
 
 
-create or replace function fp.request(obj json) returns json as $$
+create or replace function fp.request(obj json, init boolean default false) returns json as $$
   return (function () {
-    /** if (!plv8._init) { */
-    plv8.execute('select fp.init()'); 
-    /**} */
+    if (init || !plv8._init) {
+      plv8.execute('select fp.init()'); 
+    }
 
     return featherbone.request(obj);
   }());
