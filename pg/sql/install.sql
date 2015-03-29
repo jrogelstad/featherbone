@@ -23,6 +23,15 @@ create or replace function fp.get_current_user() returns text as $$
   }());
 $$ language plv8;
 
+create or replace function fp.create_id() returns text as $$
+  return (function () {
+    if (!plv8._init) { plv8.execute('select fp.init()'); }
+
+    return featherbone.createId();
+  }());
+$$ language plv8;
+
+
 create or replace function fp.request(obj json) returns json as $$
   return (function () {
     /** if (!plv8._init) { */
@@ -44,11 +53,12 @@ do $$
    if (!plv8.execute(sqlChk,['object']).length) {
      sql = "create table fp.object (" +
        "_pk bigserial primary key," +
-       "id text unique not null," +
+       "id text unique not null default fp.create_id()," +
        "created timestamp with time zone not null default now()," +
        "created_by text not null default fp.get_current_user()," +
        "updated timestamp with time zone not null default now()," +
        "updated_by text not null default fp.get_current_user()," +
+       "etag text not null default fp.create_id()," +
        "is_deleted boolean not null default false)";
      plv8.execute(sql);
      plv8.execute("comment on table fp.object is 'Abstract object class from which all other classes will inherit'");
@@ -64,13 +74,11 @@ do $$
    /** Create the base log table **/
    if (!plv8.execute(sqlChk,['log']).length) {
      sql = "create table fp.log (" +
-       "_parent bigint," +
        "change json not null default '{}'," +
        "constraint log_pkey primary key (_pk), " +
        "constraint log_id_key unique (id)) inherits (fp.object)";
      plv8.execute(sql);
      plv8.execute("comment on table fp.log is 'Class for logging all schema and data changes'");
-     plv8.execute(sqlCmt.format(['fp','log','_parent','Reference to parent table primary key']));
      plv8.execute(sqlCmt.format(['fp','log','change','Patch formatted json indicating changes']));
    };
 
@@ -115,7 +123,6 @@ do $$
          "Log": {
          "description": "Class for logging all schema and data changes",
          "inherits": "Object",
-         "isChild": true,
          "properties": {
              "change": {
                "description": "Patch formatted json indicating changes",

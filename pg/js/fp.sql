@@ -19,7 +19,8 @@ create or replace function fp.load_fp() returns void as $$
 /*jslint nomen: true, plusplus: true, indent: 2, sloppy: true, todo: true*/
 (function () {
 
-  var _camelize,
+  var _settings = {},
+    _camelize,
     _curry,
     _getKey,
     _getKeys,
@@ -50,6 +51,21 @@ create or replace function fp.load_fp() returns void as $$
     },
 
     /**
+      Check to see if an etag is current.
+
+      * @param {String} Object id
+      * @param {String} Object etag
+      * @return {String}
+    */
+
+    checkEtag: function(id, etag) {
+      var sql = "select etag from fp.object where id = $1",
+        result = plv8.execute(sql, [id]);
+
+      return result.length ? _getEtag(id) === etag : false;
+    },
+
+    /**
       Remove a class from the database.
 
       * @param {Object} Object describing object to remove.
@@ -71,6 +87,68 @@ create or replace function fp.load_fp() returns void as $$
     },
 
     /**
+      Return a class definition, including inherited properties.
+
+      @param {String} Class name
+      @return {String}
+    */
+    getClass: function (name) {
+      var catalog = featherbone.getSettings('catalog'),
+        appendParent = function (child, parent) {
+          var klass = catalog[parent],
+            klassProps = klass.properties,
+            childProps = child.properties,
+            prop;
+
+          if (parent !== "Object") {
+            appendParent(child, klass.inherits || "Object");
+          }
+
+          for (prop in klassProps) {
+            if (klassProps.hasOwnProperty(prop)) {
+              if (childProps[prop] === undefined) {
+                childProps[prop] = klassProps[prop];
+              }
+            }
+          }
+
+          return child;
+        },
+        result = {name: name, inherits: "Object"},
+        resultProps,
+        klassProps,
+        prop;
+
+      if (!catalog[name]) { return false; }
+
+      /* Add other attributes after name */
+      for (prop in catalog[name]) {
+        if (catalog[name].hasOwnProperty(prop)) {
+          result[prop] = catalog[name][prop];
+        }
+      }
+
+      /* Want inherited properites before class properties */
+      if (name !== "Object") {
+        result.properties = {};
+        result = appendParent(result, result.inherits);
+      } else {
+        delete result.inherits;
+      }
+
+      /* Now add in local properties back in */
+      klassProps = catalog[name].properties;
+      resultProps = result.properties;
+      for (prop in klassProps) {
+        if (klassProps.hasOwnProperty(prop)) {
+          resultProps[prop] = klassProps[prop];
+        }
+      }
+
+      return result;
+    },
+
+    /**
       Return the current user.
 
       @return {String}
@@ -78,6 +156,36 @@ create or replace function fp.load_fp() returns void as $$
     getCurrentUser: function () {
       return plv8.execute("select current_user as user;")[0].user;
     },
+
+    /**
+      Return settings.
+
+      @param {String} Setting name
+      @return {Object}
+    */
+    getSettings: function (name) {
+      var sql = "select data from fp._settings where name = $1",
+        result,
+        rec;
+
+      if (_settings[name]) {
+        if (featherbone.checkEtag(_settings[name].id, _settings[name].etag)) {
+          return _settings[name];
+        }
+      }
+
+      result = plv8.execute(sql, [name]);
+      if (result.length) {
+        rec = result[0]
+        _settings[name] = {
+          id: rec.id,
+          etag: rec.etag,
+          data: rec.data
+        }
+      }
+
+      return _settings[name].data;
+    },   
 
     /**
       Request.
@@ -167,12 +275,13 @@ create or replace function fp.load_fp() returns void as $$
         args = [table, table + "_pkey", table + "_id_key", inheritTable],
         types = {
           object: {type: "json", defaultValue: "'{}'"},
-          array: {type: "json", defaultValue: "'{}'"},
+          array: {type: "json", defaultValue: "'[]'"},
           string: {type: "text", defaultValue: "''"},
           number: {type: "numeric", defaultValue: "0"},
           date: {type: "timestamp with time zone", defaultValue: "now()"},
           boolean: {type: "boolean", defaultValue: "false"}
         },
+        catalog = featherbone.getSettings('catalog'),
         props = obj.properties,
         keys = Object.keys(props),
         defaultValue,
@@ -262,6 +371,44 @@ create or replace function fp.load_fp() returns void as $$
 
       if (result) { plv8.execute(sql); }
 
+      catalog[obj.name] = obj;
+      delete obj.name;
+
+      featherbone.saveSettings("catalog", catalog);
+
+      return true;
+    },
+
+    /**
+      Create or upate settings.
+
+      @return {String}
+    */
+    saveSettings: function (name, settings) {
+      var sql = "select data from fp._settings where name = $1;",
+        params = [name, settings],
+        result,
+        rec;
+
+      result = plv8.execute(sql, [name]);
+
+      if (result.length) {
+        rec = result[0];
+
+        if (settings.etag !== rec.etag) {
+          plv8.elog(ERROR, 'Settings for "' + name + '" changed by another user. Save failed.');
+        }
+
+        sql = "update fp._settings set data = $2 where name = $1;";
+
+        plv8.execute(sql, params);
+      } else {
+        sql = "insert into fp.settings (name, data) values ($1, $2);"
+        plv8.execute(sql, params);
+      }
+
+      _settings[name] = settings;
+      
       return true;
     }
   };
