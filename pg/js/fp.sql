@@ -91,9 +91,10 @@ create or replace function fp.load_fp() returns void as $$
       Return a class definition, including inherited properties.
 
       @param {String} Class name
+      @param {Boolean} Include inherited or not. Defult = true.
       @return {String}
     */
-    getClass: function (name) {
+    getClass: function (name, includeInherited) {
       var catalog = featherbone.getSettings('catalog'),
         appendParent = function (child, parent) {
           var klass = catalog[parent],
@@ -130,7 +131,7 @@ create or replace function fp.load_fp() returns void as $$
       }
 
       /* Want inherited properites before class properties */
-      if (name !== "Object") {
+      if (includeInherited !== false && name !== "Object") {
         result.properties = {};
         result = appendParent(result, result.inherits);
       } else {
@@ -271,9 +272,8 @@ create or replace function fp.load_fp() returns void as $$
       obj = obj || {};
 
       var table = obj.name ? obj.name.toSnakeCase() : false,
-        inheritTable = (obj.inherits ? obj.inherits.hind() : 'object').toSnakeCase(),
-        sql = "select * from pg_tables where schemaname = 'fp' and tablename = $1;",
-        args = [table, table + "_pkey", table + "_id_key", inheritTable],
+        inherits = (obj.inherits || "Object").toSnakeCase(),
+        klass = featherbone.getClass(obj.name, false),
         types = {
           object: {type: "json", defaultValue: "'{}'"},
           array: {type: "json", defaultValue: "'[]'"},
@@ -283,97 +283,67 @@ create or replace function fp.load_fp() returns void as $$
           boolean: {type: "boolean", defaultValue: "false"}
         },
         catalog = featherbone.getSettings('catalog'),
-        props = obj.properties,
-        keys = Object.keys(props),
-        result = true,
+        sql = "",
         tokens = [],
-        params = [table],
-        cols = [],
-        inherits = [],
         prop,
         type,
-        name,
-        exists,
-        i = 0,
-        col;
+        err;
 
       if (!table) { return false; }
 
       /* Create table if applicable */
-      if (!plv8.execute(sql, [table]).length) {
-        sql = ("create table fp.%I(constraint %I primary key (_pk), constraint %I unique (id)) inherits (fp.%I);").format(args);
-        plv8.execute(sql);
-        sql = "";
+      if (!klass) {
+        sql = "create table fp.%I(constraint %I primary key (_pk), constraint %I unique (id)) inherits (fp.%I);";
+        tokens = tokens.concat([table, table + "_pkey", table + "_id_key", inherits]);
       } else {
-        sql = "select bt.relname as table_name " +
-              "from pg_class ct " +
-              "join pg_namespace cns on ct.relnamespace = cns.oid and cns.nspname = 'fp' " +
-              "join pg_inherits i on i.inhrelid = ct.oid and ct.relname = $1 " +
-              "join pg_class bt on i.inhparent = bt.oid " +
-              "join pg_namespace bns on bt.relnamespace = bns.oid;";
-        inherits = plv8.execute(sql, [table]).map(function (rec) {
-          return rec.table_name;
-        });
-
-        /* Find current non-inherited columns, if any */
-        while (inherits[i]) {
-          tokens.push("$" + 2);
-          params.push(inherits[i]);
-          i++;
-        }
-        sql = "select column_name from information_schema.columns " +
-          "where table_catalog = current_database() and table_schema = 'fp' and table_name = $1" +
-          " and not column_name in (" +
-          "  select column_name from information_schema.columns " +
-          "  where table_name in (" + tokens.toString(",") + "))";
-
-        cols = plv8.execute(sql, params).map(function (rec) {
-          return rec.column_name;
-        });
-
         /* Drop non-inherited columns not included in properties */
-        i = 0;
-        sql = "";
-        while (cols[i]) {
-          col = cols[i].toCamelCase();
-          if (keys.indexOf(col) === -1) {
-            sql += ("alter table fp.%I drop column %I;").format([table, col]);
+        for (prop in klass.properties) {
+          if (klass.properties.hasOwnProperty(prop)) {
+            if (!obj.properties[prop]) {
+              sql += "alter table fp.%I drop column %I;";
+              tokens = tokens.concat([table, prop.toSnakeCase()]);
+            }
           }
-          i++;
         }
       }
 
+      /* Add table description */
       if (obj.description) {
-        sql += ("comment on table fp.%I is %L;").format([table, obj.description]);
+        sql += "comment on table fp.%I is %L;";
+        tokens = tokens.concat([table, obj.description || ""]);
       }
 
       /* Add columns */
-      i = 0;
-      while (keys[i]) {
-        prop = props[keys[i]];
-        type = types[prop.type];
-        name = keys[i].toSnakeCase();
-        exists = cols.indexOf(name) > -1;
+      for (prop in obj.properties) {
+        if (obj.properties.hasOwnProperty(prop)) {
+          type = types[obj.properties[prop].type];
 
-        if (!type) {
-          plv8.elog(ERROR, 'Invalid type "' + prop.type + '" for property "' + keys[i] + '" on class "' + obj.name + '"');
-        } else {
-          if (!exists) {
-            sql += ("alter table fp.%I add column %I " + type.type + " not null default " + type.defaultValue + ";").format([table, name]);
+          if (type) {
+            if (!klass || !klass.properties[prop]) {
+              sql += "alter table fp.%I add column %I " + type.type +
+                " not null default " + type.defaultValue + ";";
+              tokens = tokens.concat([table, prop.toSnakeCase()]);
+            }
+          } else {
+            err = 'Invalid type "' + prop.type +
+              '" for property "' + prop + '" on class "' + obj.name + '"';
+            plv8.elog(ERROR, err);
           }
-          if (prop.description) {
-            sql += ("comment on column fp.%I.%I is %L;").format([table, name, prop.description]);
+
+          if (obj.properties[prop].description) {
+            sql += "comment on column fp.%I.%I is %L;";
+            tokens = tokens.concat([table, prop.toSnakeCase(), obj.properties[prop].description]);
           }
         }
-        if (!result) { break; }
-        i++;
       }
 
-      if (result) { plv8.execute(sql); }
+      /* Update schema */
+      sql = sql.format(tokens);
+      plv8.execute(sql);
 
+      /* Update catalog settings */
       catalog[obj.name] = obj;
       delete obj.name;
-
       featherbone.saveSettings("catalog", catalog);
 
       return true;
