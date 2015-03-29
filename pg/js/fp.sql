@@ -59,11 +59,11 @@ create or replace function fp.load_fp() returns void as $$
       * @return {String}
     */
 
-    checkEtag: function(id, etag) {
+    checkEtag: function (id, etag) {
       var sql = "select etag from fp.object where id = $1",
         result = plv8.execute(sql, [id]);
 
-      return result.length ? _getEtag(id) === etag : false;
+      return result.length ? result[0].etag === etag : false;
     },
 
     /**
@@ -177,16 +177,16 @@ create or replace function fp.load_fp() returns void as $$
 
       result = plv8.execute(sql, [name]);
       if (result.length) {
-        rec = result[0]
+        rec = result[0];
         _settings[name] = {
           id: rec.id,
           etag: rec.etag,
           data: rec.data
-        }
+        };
       }
 
       return _settings[name].data;
-    },   
+    },
 
     /**
       Request.
@@ -285,7 +285,6 @@ create or replace function fp.load_fp() returns void as $$
         catalog = featherbone.getSettings('catalog'),
         props = obj.properties,
         keys = Object.keys(props),
-        defaultValue,
         result = true,
         tokens = [],
         params = [table],
@@ -404,12 +403,12 @@ create or replace function fp.load_fp() returns void as $$
 
         plv8.execute(sql, params);
       } else {
-        sql = "insert into fp.settings (name, data) values ($1, $2);"
+        sql = "insert into fp.settings (name, data) values ($1, $2);";
         plv8.execute(sql, params);
       }
 
       _settings[name] = settings;
-      
+
       return true;
     }
   };
@@ -563,7 +562,7 @@ create or replace function fp.load_fp() returns void as $$
         sql += " limit $" + p;
         params.push(filter.limit);
       }
- 
+
       sql = sql.format(tokens);
       return plv8.execute(sql, params).map(function (rec) {
         return rec._pk;
@@ -580,7 +579,7 @@ create or replace function fp.load_fp() returns void as $$
       klass = featherbone.getClass(obj.name),
       newRec;
 
-    if (!Object.keys(oldRec).length) { return false };
+    if (!Object.keys(oldRec).length) { return false; }
     newRec = JSON.parse(JSON.stringify(oldRec));
     jsonpatch.apply(newRec, patches);
 
@@ -682,13 +681,13 @@ create or replace function fp.load_fp() returns void as $$
       for (prop in props) {
         if (props.hasOwnProperty(prop)) {
           if (typeof prop.type === "object") {
-            /* iterate through relation */
+            /* TODO: iterate through relation */
           } else if (updRec[prop] !== oldRec[prop]) {
             tokens.push(prop.toSnakeCase());
             ary.push("%I = $" + p);
             params.push(updRec[prop]);
             p++;
-          }          
+          }
         }
       }
 
