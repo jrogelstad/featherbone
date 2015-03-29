@@ -24,6 +24,7 @@ create or replace function fp.load_fp() returns void as $$
     _curry,
     _getKey,
     _getKeys,
+    _patch,
     _sanitize,
     _insert,
     _select,
@@ -229,7 +230,7 @@ create or replace function fp.load_fp() returns void as $$
 
         return _insert(obj);
       case "PATCH":
-        return _update(obj);
+        return _patch(obj);
       case "DELETE":
         return _delete(obj);
       }
@@ -573,6 +574,20 @@ create or replace function fp.load_fp() returns void as $$
   };
 
   /** private */
+  _patch = function (obj) {
+    var patches = obj.data,
+      oldRec = _select(obj),
+      klass = featherbone.getClass(obj.name),
+      newRec;
+
+    if (!Object.keys(oldRec).length) { return false };
+    newRec = JSON.parse(JSON.stringify(oldRec));
+    jsonpatch.apply(newRec, patches);
+
+    return _update(klass, obj.id, oldRec, newRec);
+  };
+
+  /** private */
   _sanitize = function (obj) {
     var isArray = Array.isArray(obj),
       ary = isArray ? obj : [obj],
@@ -616,7 +631,8 @@ create or replace function fp.load_fp() returns void as $$
     if (obj.id) {
       pk = _getKey(obj.id, obj.name);
       if (pk === undefined) { return {}; }
-      sql +=  "where _pk = $1";
+      sql +=  " where _pk = $1";
+
       result = plv8.execute(sql, [pk])[0];
 
     /* Get a filtered result */
@@ -632,7 +648,7 @@ create or replace function fp.load_fp() returns void as $$
           tokens.push("$" + i);
         }
 
-        sql += "where _pk in (" + tokens.toString(",") + ")";
+        sql += " where _pk in (" + tokens.toString(",") + ")";
         result = plv8.execute(sql, pk);
       }
 
@@ -644,11 +660,47 @@ create or replace function fp.load_fp() returns void as $$
     return _sanitize(result);
   };
 
-  /** private */
-  /** TODO: Make this work */
-  _update = function (obj) {
-    var args = [obj.name.toSnakeCase()],
-      patch = obj.data;
+  _update = function (klass, id, oldRec, newRec) {
+    var tokens = [klass.name.toSnakeCase()],
+      pk = _getKey(id),
+      params = [],
+      ary = [],
+      p = 1,
+      result,
+      updRec,
+      props,
+      prop,
+      sql;
+
+    if (jsonpatch.compare(oldRec, newRec).length) {
+      props = klass.properties;
+      updRec = JSON.parse(JSON.stringify(newRec));
+      updRec.updated = new Date().toJSON();
+      updRec.updatedBy = featherbone.getCurrentUser();
+      updRec.etag = featherbone.createId();
+
+      for (prop in props) {
+        if (props.hasOwnProperty(prop)) {
+          if (typeof prop.type === "object") {
+            /* iterate through relation */
+          } else if (updRec[prop] !== oldRec[prop]) {
+            tokens.push(prop.toSnakeCase());
+            ary.push("%I = $" + p);
+            params.push(updRec[prop]);
+            p++;
+          }          
+        }
+      }
+
+      sql = "update fp.%I set " + ary.join(",") + " where _pk = $" + p + " returning *;";
+      sql = sql.format(tokens);
+
+      params.push(pk);
+      result = _sanitize(plv8.execute(sql, params));
+      result = JSON.parse(JSON.stringify(result[0]));
+
+      return jsonpatch.compare(newRec, result);
+    }
   };
 
 }());
