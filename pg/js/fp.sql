@@ -31,10 +31,10 @@ create or replace function fp.load_fp() returns void as $$
     _update,
     _delete,
     _types = {
-      object: {type: "json", defaultValue: "'{}'"},
-      array: {type: "json", defaultValue: "'[]'"},
+      object: {type: "json", defaultValue: {}},
+      array: {type: "json", defaultValue: []},
       string: {type: "text", defaultValue: "''"},
-      number: {type: "numeric", defaultValue: "0"},
+      number: {type: "numeric", defaultValue: 0},
       date: {type: "timestamp with time zone", defaultValue: "now()"},
       boolean: {type: "boolean", defaultValue: "false"}
     };
@@ -294,9 +294,14 @@ create or replace function fp.load_fp() returns void as $$
         catalog = featherbone.getSettings('catalog'),
         sql = "",
         tokens = [],
+        adds = [],
+        defaultValue,
+        props,
         prop,
+        recs,
         type,
-        err;
+        err
+        i=0;
 
       if (!table) { return false; }
 
@@ -323,14 +328,16 @@ create or replace function fp.load_fp() returns void as $$
       }
 
       /* Add columns */
-      for (prop in obj.properties) {
-        if (obj.properties.hasOwnProperty(prop)) {
-          type = _types[obj.properties[prop].type];
+      props = obj.properties;
+      for (prop in props) {
+        if (props.hasOwnProperty(prop)) {
+          type = _types[props[prop].type];
 
           if (type) {
             if (!klass || !klass.properties[prop]) {
               sql += "alter table fp.%I add column %I " + type.type + ";";
               tokens = tokens.concat([table, prop.toSnakeCase()]);
+              adds.push(prop);
             }
           } else {
             err = 'Invalid type "' + prop.type +
@@ -340,7 +347,7 @@ create or replace function fp.load_fp() returns void as $$
 
           if (obj.properties[prop].description) {
             sql += "comment on column fp.%I.%I is %L;";
-            tokens = tokens.concat([table, prop.toSnakeCase(), obj.properties[prop].description]);
+            tokens = tokens.concat([table, prop.toSnakeCase(), props[prop].description]);
           }
         }
       }
@@ -348,6 +355,30 @@ create or replace function fp.load_fp() returns void as $$
       /* Update schema */
       sql = sql.format(tokens);
       plv8.execute(sql);
+
+      /* Populate defaults */
+      if (adds.length) {
+        values = [];
+        tokens = [];
+        args = [table];
+
+        while (i < adds.length) {
+          type = props[adds[i]].type;
+          defaultValue = props[adds[i]].defaultValue ||
+            _types[type].defaultValue;
+
+          values.push(defaultValue);
+          tokens.push(adds[i].toSnakeCase() + "=$" + (i + 1));
+          args.push(prop);
+          i++;
+          /* TODO: Handle defaultValue functions properly */
+        }
+
+        sql = "update fp.%I set {tokens};"
+          .replace("{tokens}", tokens.join(","))
+          .format(args);
+        plv8.execute(sql, values);
+      }
 
       /* Update catalog settings */
       catalog[obj.name] = obj;
@@ -423,73 +454,6 @@ create or replace function fp.load_fp() returns void as $$
     plv8.execute("update fp.object set is_deleted = true where id=$1;", [obj.id]);
 
     return true;
-  };
-
-  /** private */
-  _insert = function (obj) {
-    var data = JSON.parse(JSON.stringify(obj.data)),
-      klass = featherbone.getClass(obj.name),
-      args = [obj.name.toSnakeCase()],
-      tokens = [],
-      params = [],
-      values = [],
-      defaultValue,
-      p = 1,
-      props,
-      prop,
-      result,
-      value,
-      sql;
-
-    /* Check id for existence and uniqueness and regenerate if any problem */
-    data.id = data.id === undefined || _getKey(data.id) !== undefined ?
-        featherbone.createId() : data.id;
-
-    /* Set some system controlled values */
-    data.created = data.updated = featherbone.now();
-    data.createdBy = featherbone.getCurrentUser();
-    data.updatedBy = featherbone.getCurrentUser();
-    data.etag = featherbone.createId();
-
-    /* Build values */
-    props = klass.properties;
-    for (prop in props) {
-      if (props.hasOwnProperty(prop)) {
-        defaultValue = props[prop].defaultValue;
-
-        /* If the request had a value */
-        if (data[prop]) {
-          value = data[prop];
-        /* If we have a class specific default that calls a function */
-        } else if (defaultValue &&
-            typeof defaultValue === "string" &&
-            defaultValue.match(/\(\)$/)) {
-          value = featherbone[defaultValue.replace(/\(\)$/, "")]();
-        /* If we have a class specific default value */
-        } else if (defaultValue) {
-          value = defaultValue;
-        /* Use default for type */
-        } else {
-          value = _types[props[prop].type].defaultValue;
-        }
-
-        args.push(prop.toSnakeCase());
-        tokens.push("%I");
-        values.push(value);
-        params.push("$" + p);
-        p++;
-      }
-    }
-
-    sql = "insert into fp.%I ({columns}) values ({values}) returning *;"
-      .replace("{columns}", tokens.toString(","))
-      .replace("{values}", params.toString(","));
-    sql = sql.format(args);
-
-    /* Execute */
-    result = plv8.execute(sql, values)[0];
-
-    return jsonpatch.compare(obj.data, _sanitize(result));
   };
 
   /** private */
@@ -586,6 +550,73 @@ create or replace function fp.load_fp() returns void as $$
     }
 
     return result;
+  };
+
+  /** private */
+  _insert = function (obj) {
+    var data = JSON.parse(JSON.stringify(obj.data)),
+      klass = featherbone.getClass(obj.name),
+      args = [obj.name.toSnakeCase()],
+      tokens = [],
+      params = [],
+      values = [],
+      defaultValue,
+      p = 1,
+      props,
+      prop,
+      result,
+      value,
+      sql;
+
+    /* Check id for existence and uniqueness and regenerate if any problem */
+    data.id = data.id === undefined || _getKey(data.id) !== undefined ?
+        featherbone.createId() : data.id;
+
+    /* Set some system controlled values */
+    data.created = data.updated = featherbone.now();
+    data.createdBy = featherbone.getCurrentUser();
+    data.updatedBy = featherbone.getCurrentUser();
+    data.etag = featherbone.createId();
+
+    /* Build values */
+    props = klass.properties;
+    for (prop in props) {
+      if (props.hasOwnProperty(prop)) {
+        defaultValue = props[prop].defaultValue;
+
+        /* If the request had a value */
+        if (data[prop]) {
+          value = data[prop];
+        /* If we have a class specific default that calls a function */
+        } else if (defaultValue &&
+            typeof defaultValue === "string" &&
+            defaultValue.match(/\(\)$/)) {
+          value = featherbone[defaultValue.replace(/\(\)$/, "")]();
+        /* If we have a class specific default value */
+        } else if (defaultValue) {
+          value = defaultValue;
+        /* Use default for type */
+        } else {
+          value = _types[props[prop].type].defaultValue;
+        }
+
+        args.push(prop.toSnakeCase());
+        tokens.push("%I");
+        values.push(value);
+        params.push("$" + p);
+        p++;
+      }
+    }
+
+    sql = "insert into fp.%I ({columns}) values ({values}) returning *;"
+      .replace("{columns}", tokens.toString(","))
+      .replace("{values}", params.toString(","))
+      .format(args);
+
+    /* Execute */
+    result = plv8.execute(sql, values)[0];
+
+    return jsonpatch.compare(obj.data, _sanitize(result));
   };
 
   /** private */
