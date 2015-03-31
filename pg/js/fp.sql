@@ -293,15 +293,20 @@ create or replace function fp.load_fp() returns void as $$
         klass = featherbone.getClass(obj.name, false),
         catalog = featherbone.getSettings('catalog'),
         sql = "",
+        sqlUpd,
         tokens = [],
+        values = [],
         adds = [],
+        args = [],
+        fns = [],
         defaultValue,
         props,
         prop,
         recs,
         type,
-        err
-        i=0;
+        err,
+        i = 0,
+        n = 0;
 
       if (!table) { return false; }
 
@@ -367,17 +372,58 @@ create or replace function fp.load_fp() returns void as $$
           defaultValue = props[adds[i]].defaultValue ||
             _types[type].defaultValue;
 
-          values.push(defaultValue);
-          tokens.push(adds[i].toSnakeCase() + "=$" + (i + 1));
-          args.push(prop);
+          if (typeof defaultValue === "string" &&
+              defaultValue.match(/\(\)$/)) {
+            fns.push({
+              col: adds[i].toSnakeCase(),
+              defaultValue: defaultValue.replace(/\(\)$/, "")
+            });
+          } else {
+            values.push(defaultValue);
+            tokens.push("%I=$" + (i + 1));
+            args.push(adds[i].toSnakeCase());
+          }
           i++;
-          /* TODO: Handle defaultValue functions properly */
         }
 
-        sql = "update fp.%I set {tokens};"
-          .replace("{tokens}", tokens.join(","))
-          .format(args);
-        plv8.execute(sql, values);
+        if (values.length) {
+          sql = "update fp.%I set {tokens};"
+            .replace("{tokens}", tokens.join(","))
+            .format(args);
+          plv8.execute(sql, values);
+        }
+
+        /* Update function based defaults (one by one) */
+        if (fns.length) {
+          sql = "select _pk from fp.%I order by _pk offset $1 limit 1;".format([table]);
+          sqlUpd = "update fp.%I set {tokens} where _pk = $1";
+          recs = plv8.execute(sql, [n]);
+          tokens = [];
+          args = [table];
+          i = 0;
+
+          while (i < fns.length) {
+            tokens.push("%I=$" + (i + 2));
+            args.push(fns[i].col);
+            i++;
+          }
+
+          sqlUpd = sqlUpd.replace("{tokens}", tokens.join(",")).format(args);
+
+          while (recs.length) {
+            values = [recs[0]._pk];
+            i = 0;
+            n++;
+
+            while (i < fns.length) {
+              values.push(featherbone[fns[i].defaultValue]());
+              i++;
+            }
+
+            plv8.execute(sqlUpd, values);
+            recs = plv8.execute(sql, [n]);
+          }
+        }
       }
 
       /* Update catalog settings */
