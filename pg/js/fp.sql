@@ -85,12 +85,17 @@ create or replace function fp.load_fp() returns void as $$
 
       var table = obj.name ? obj.name.toSnakeCase() : false,
         sql = "select * from pg_tables where schemaname = 'fp' and tablename = $1;",
+        catalog = featherbone.getSettings('catalog'),
         args = [table];
 
       if (!table || !plv8.execute(sql, args).length) { return false; }
 
       sql = ("drop table fp.%I").format(args);
       plv8.execute(sql);
+
+      /* Update catalog settings */
+      delete catalog[obj.name];
+      featherbone.saveSettings("catalog", catalog);
 
       return true;
     },
@@ -294,6 +299,7 @@ create or replace function fp.load_fp() returns void as $$
         catalog = featherbone.getSettings('catalog'),
         sql = "",
         sqlUpd,
+        token,
         tokens = [],
         values = [],
         adds = [],
@@ -306,7 +312,8 @@ create or replace function fp.load_fp() returns void as $$
         type,
         err,
         i = 0,
-        n = 0;
+        n = 0,
+        p = 1;
 
       if (!table) { return false; }
 
@@ -336,23 +343,34 @@ create or replace function fp.load_fp() returns void as $$
       props = obj.properties;
       for (prop in props) {
         if (props.hasOwnProperty(prop)) {
-          type = _types[props[prop].type];
+          type = typeof props[prop].type === "string" ? _types[props[prop].type] : props[prop];
 
           if (type) {
             if (!klass || !klass.properties[prop]) {
-              sql += "alter table fp.%I add column %I " + type.type + ";";
-              tokens = tokens.concat([table, prop.toSnakeCase()]);
-              adds.push(prop);
+              sql += "alter table fp.%I add column %I ";
+
+              if (type.type.relation) {
+                sql += "integer;";
+                token = "_" + prop.toSnakeCase() + "_" + type.type.relation.toSnakeCase() + "_pk";
+              } else {
+                sql += type.type + ";";
+                token = prop.toSnakeCase();
+                adds.push(prop);
+              }
+
+              tokens = tokens.concat([table, token]);
+
+              if (props[prop].description) {
+                sql += "comment on column fp.%I.%I is %L;";
+                tokens = tokens.concat([table, token, props[prop].description || ""]);
+              }
             }
           } else {
-            err = 'Invalid type "' + prop.type +
-              '" for property "' + prop + '" on class "' + obj.name + '"';
+            err = 'Invalid type "{type}" for property "{prop}" on class "{name}"'
+              .replace("{type}", prop.type)
+              .replace("{prop}", prop)
+              .replace("{name}", name);
             plv8.elog(ERROR, err);
-          }
-
-          if (obj.properties[prop].description) {
-            sql += "comment on column fp.%I.%I is %L;";
-            tokens = tokens.concat([table, prop.toSnakeCase(), props[prop].description]);
           }
         }
       }
@@ -380,8 +398,9 @@ create or replace function fp.load_fp() returns void as $$
             });
           } else {
             values.push(defaultValue);
-            tokens.push("%I=$" + (i + 1));
+            tokens.push("%I=$" + p);
             args.push(adds[i].toSnakeCase());
+            p++;
           }
           i++;
         }
