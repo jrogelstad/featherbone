@@ -35,7 +35,7 @@ create or replace function fp.load_fp() returns void as $$
       array: {type: "json", defaultValue: []},
       string: {type: "text", defaultValue: "''"},
       number: {type: "numeric", defaultValue: 0},
-      date: {type: "timestamp with time zone", defaultValue: "now()"},
+      date: {type: "timestamp with time zone", defaultValue: "minDate()"},
       boolean: {type: "boolean", defaultValue: "false"}
     };
 
@@ -171,6 +171,25 @@ create or replace function fp.load_fp() returns void as $$
     getCurrentUser: function () {
       return plv8.execute("select current_user as user;")[0].user;
     },
+
+    /**
+      Return a date that is the lowest system date.
+
+      @return {Date}
+    */
+    minDate: function () {
+      return new Date(0);
+    },
+
+    /**
+      Return a date that is the highest system date.
+
+      @return {Date}
+    */
+    maxDate: function () {
+      return new Date("2100-01-01T00:00:00.000Z");
+    },
+
 
     /**
       Return a date that is the current time.
