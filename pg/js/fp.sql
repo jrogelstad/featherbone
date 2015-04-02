@@ -370,7 +370,9 @@ create or replace function fp.load_fp() returns void as $$
 
               if (type.type.relation) {
                 sql += "integer;";
-                token = "_" + prop.toSnakeCase() + "_" + type.type.relation.toSnakeCase() + "_pk";
+                token = "_{key}_{table}_pkey"
+                  .replace("{key}", prop.toSnakeCase())
+                  .replace("{table}", type.type.relation.toSnakeCase());
               } else {
                 sql += type.type + ";";
                 token = prop.toSnakeCase();
@@ -646,6 +648,8 @@ create or replace function fp.load_fp() returns void as $$
       values = [],
       defaultValue,
       p = 1,
+      key,
+      col,
       props,
       prop,
       result,
@@ -664,27 +668,40 @@ create or replace function fp.load_fp() returns void as $$
 
     /* Build values */
     props = klass.properties;
-    for (prop in props) {
-      if (props.hasOwnProperty(prop)) {
-        defaultValue = props[prop].defaultValue;
+    for (key in props) {
+      if (props.hasOwnProperty(key)) {
+        prop = props[key];
 
-        /* If the request had a value */
-        if (data[prop]) {
-          value = data[prop];
-        /* If we have a class specific default that calls a function */
-        } else if (defaultValue &&
+        /* Handle relations */
+        if (typeof prop.type === "object") {
+          value = data[key] !== undefined ? _getKey(data[key].id) : -1;
+          col = "_{key}_{table}_pk"
+            .replace("{key}", key.toSnakeCase())
+            .replace("{table}", prop.type.relation.toSnakeCase());
+
+        /* Handle regular tyes */
+        } else {
+          defaultValue = prop.defaultValue;
+          col = key.toSnakeCase();
+
+          /* If the request had a value */
+          if (data[key]) {
+            value = data[key];
+          /* If we have a class specific default that calls a function */
+          } else if (defaultValue &&
             typeof defaultValue === "string" &&
             defaultValue.match(/\(\)$/)) {
-          value = featherbone[defaultValue.replace(/\(\)$/, "")]();
-        /* If we have a class specific default value */
-        } else if (defaultValue) {
-          value = defaultValue;
-        /* Use default for type */
-        } else {
-          value = _types[props[prop].type].defaultValue;
+            value = featherbone[defaultValue.replace(/\(\)$/, "")]();
+          /* If we have a class specific default value */
+          } else if (defaultValue !== undefined) {
+            value = defaultValue;
+          /* Use default for type */
+          } else {
+            value = _types[prop.type].defaultValue;
+          }
         }
 
-        args.push(prop.toSnakeCase());
+        args.push(col);
         tokens.push("%I");
         values.push(value);
         params.push("$" + p);
