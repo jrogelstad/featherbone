@@ -16,7 +16,7 @@
 
 create or replace function fp.load_fp() returns void as $$
 /*global plv8: true, jsonpatch: true, featherbone: true, ERROR: true */
-/*jslint nomen: true, plusplus: true, indent: 2, sloppy: true, todo: true*/
+/*jslint nomen: true, plusplus: true, indent: 2, sloppy: true, todo: true, maxlen: 80*/
 (function () {
 
   var _settings = {},
@@ -44,7 +44,7 @@ create or replace function fp.load_fp() returns void as $$
     /**
       Return a unique identifier string.
 
-      Moddified from https://github.com/google/closure-library/blob/555e0138c83ed54d25a3e1cd82a7e789e88335a7/closure/goog/string/string.js#L1177
+      Moddified from https://github.com/google/closure-library
       @author arv@google.com (Erik Arvidsson)
       http://www.apache.org/licenses/LICENSE-2.0
 
@@ -84,7 +84,9 @@ create or replace function fp.load_fp() returns void as $$
       obj = obj || {};
 
       var table = obj.name ? obj.name.toSnakeCase() : false,
-        sql = "select * from pg_tables where schemaname = 'fp' and tablename = $1;",
+        sql = "select * from pg_tables " +
+          "where schemaname = 'fp' " +
+          "  and tablename = $1;",
         catalog = featherbone.getSettings('catalog'),
         args = [table];
 
@@ -338,8 +340,16 @@ create or replace function fp.load_fp() returns void as $$
 
       /* Create table if applicable */
       if (!klass) {
-        sql = "create table fp.%I(constraint %I primary key (_pk), constraint %I unique (id)) inherits (fp.%I);";
-        tokens = tokens.concat([table, table + "_pkey", table + "_id_key", inherits]);
+        sql = "create table fp.%I( " +
+          "constraint %I primary key (_pk), " +
+          "constraint %I unique (id)) " +
+          "inherits (fp.%I);";
+        tokens = tokens.concat([
+          table,
+          table + "_pkey",
+          table + "_id_key",
+          inherits
+        ]);
       } else {
         /* Drop non-inherited columns not included in properties */
         for (key in klass.properties) {
@@ -435,7 +445,8 @@ create or replace function fp.load_fp() returns void as $$
 
         /* Update function based defaults (one by one) */
         if (fns.length) {
-          sql = "select _pk from fp.%I order by _pk offset $1 limit 1;".format([table]);
+          sql = "select _pk from fp.%I order by _pk offset $1 limit 1;"
+            .format([table]);
           sqlUpd = "update fp.%I set {tokens} where _pk = $1";
           recs = plv8.execute(sql, [n]);
           tokens = [];
@@ -847,8 +858,10 @@ create or replace function fp.load_fp() returns void as $$
         }
       }
 
-      sql = "update fp.%I set " + ary.join(",") + " where _pk = $" + p + " returning *;";
-      sql = sql.format(tokens);
+      sql = "update fp.%I set {cols} where _pk = ${num} returning *;"
+        .replace("{cols}", ary.join(","))
+        .replace("{num}", p)
+        .format(tokens);
 
       params.push(pk);
       result = _sanitize(plv8.execute(sql, params));
