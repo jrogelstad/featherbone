@@ -372,7 +372,8 @@ create or replace function fp.load_fp() returns void as $$
       props = obj.properties;
       for (key in props) {
         if (props.hasOwnProperty(key)) {
-          type = typeof props[key].type === "string" ? _types[props[key].type] : props[key];
+          type = typeof props[key].type === "string" ?
+              _types[props[key].type] : props[key];
 
           if (type) {
             if (!klass || !klass.properties[key]) {
@@ -393,7 +394,11 @@ create or replace function fp.load_fp() returns void as $$
 
               if (props[key].description) {
                 sql += "comment on column fp.%I.%I is %L;";
-                tokens = tokens.concat([table, token, props[key].description || ""]);
+                tokens = tokens.concat([
+                  table,
+                  token,
+                  props[key].description || ""
+                ]);
               }
             }
           } else {
@@ -494,7 +499,8 @@ create or replace function fp.load_fp() returns void as $$
       var sql = "select data from fp._settings where name = $1;",
         params = [name, settings],
         result,
-        rec;
+        rec,
+        err;
 
       result = plv8.execute(sql, [name]);
 
@@ -502,7 +508,9 @@ create or replace function fp.load_fp() returns void as $$
         rec = result[0];
 
         if (settings.etag !== rec.etag) {
-          plv8.elog(ERROR, 'Settings for "' + name + '" changed by another user. Save failed.');
+          err = 'Settings for "{name}" changed by another user. Save failed.'
+            .replace("{name}", name);
+          plv8.elog(ERROR, err);
         }
 
         sql = "update fp._settings set data = $2 where name = $1;";
@@ -548,7 +556,9 @@ create or replace function fp.load_fp() returns void as $$
 
   /** private */
   _delete = function (obj) {
-    plv8.execute("update fp.object set is_deleted = true where id=$1;", [obj.id]);
+    var sql = "update fp.object set is_deleted = true where id=$1;";
+
+    plv8.execute(sql, [obj.id]);
 
     return true;
   };
@@ -691,8 +701,8 @@ create or replace function fp.load_fp() returns void as $$
             .replace("{table}", prop.type.relation.toSnakeCase());
           value = data[key] !== undefined ? _getKey(data[key].id) : -1;
           if (value === undefined) {
-            err = 'Relation not found in "{relation}" for "{key}" with id "{id}"'
-              .replace("{relation}", prop.type.relation)
+            err = 'Relation not found in "{rel}" for "{key}" with id "{id}"'
+              .replace("{rel}", prop.type.relation)
               .replace("{key}", key)
               .replace("{id}", data[key].id);
             plv8.elog(ERROR, err);
