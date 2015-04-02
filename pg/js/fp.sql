@@ -113,16 +113,16 @@ create or replace function fp.load_fp() returns void as $$
           var klass = catalog[parent],
             klassProps = klass.properties,
             childProps = child.properties,
-            prop;
+            key;
 
           if (parent !== "Object") {
             appendParent(child, klass.inherits || "Object");
           }
 
-          for (prop in klassProps) {
-            if (klassProps.hasOwnProperty(prop)) {
-              if (childProps[prop] === undefined) {
-                childProps[prop] = klassProps[prop];
+          for (key in klassProps) {
+            if (klassProps.hasOwnProperty(key)) {
+              if (childProps[key] === undefined) {
+                childProps[key] = klassProps[key];
               }
             }
           }
@@ -132,14 +132,14 @@ create or replace function fp.load_fp() returns void as $$
         result = {name: name, inherits: "Object"},
         resultProps,
         klassProps,
-        prop;
+        key;
 
       if (!catalog[name]) { return false; }
 
       /* Add other attributes after name */
-      for (prop in catalog[name]) {
-        if (catalog[name].hasOwnProperty(prop)) {
-          result[prop] = catalog[name][prop];
+      for (key in catalog[name]) {
+        if (catalog[name].hasOwnProperty(key)) {
+          result[key] = catalog[name][key];
         }
       }
 
@@ -154,9 +154,9 @@ create or replace function fp.load_fp() returns void as $$
       /* Now add in local properties back in */
       klassProps = catalog[name].properties;
       resultProps = result.properties;
-      for (prop in klassProps) {
-        if (klassProps.hasOwnProperty(prop)) {
-          resultProps[prop] = klassProps[prop];
+      for (key in klassProps) {
+        if (klassProps.hasOwnProperty(key)) {
+          resultProps[key] = klassProps[key];
         }
       }
 
@@ -326,7 +326,7 @@ create or replace function fp.load_fp() returns void as $$
         fns = [],
         defaultValue,
         props,
-        prop,
+        key,
         recs,
         type,
         err,
@@ -342,11 +342,11 @@ create or replace function fp.load_fp() returns void as $$
         tokens = tokens.concat([table, table + "_pkey", table + "_id_key", inherits]);
       } else {
         /* Drop non-inherited columns not included in properties */
-        for (prop in klass.properties) {
-          if (klass.properties.hasOwnProperty(prop)) {
-            if (!obj.properties[prop]) {
+        for (key in klass.properties) {
+          if (klass.properties.hasOwnProperty(key)) {
+            if (!obj.properties[key]) {
               sql += "alter table fp.%I drop column %I;";
-              tokens = tokens.concat([table, prop.toSnakeCase()]);
+              tokens = tokens.concat([table, key.toSnakeCase()]);
             }
           }
         }
@@ -360,37 +360,37 @@ create or replace function fp.load_fp() returns void as $$
 
       /* Add columns */
       props = obj.properties;
-      for (prop in props) {
-        if (props.hasOwnProperty(prop)) {
-          type = typeof props[prop].type === "string" ? _types[props[prop].type] : props[prop];
+      for (key in props) {
+        if (props.hasOwnProperty(key)) {
+          type = typeof props[key].type === "string" ? _types[props[key].type] : props[key];
 
           if (type) {
-            if (!klass || !klass.properties[prop]) {
+            if (!klass || !klass.properties[key]) {
               sql += "alter table fp.%I add column %I ";
 
               if (type.type.relation) {
                 sql += "integer;";
-                token = "_{key}_{table}_pkey"
-                  .replace("{key}", prop.toSnakeCase())
+                token = "_{key}_{table}_pk"
+                  .replace("{key}", key.toSnakeCase())
                   .replace("{table}", type.type.relation.toSnakeCase());
               } else {
                 sql += type.type + ";";
-                token = prop.toSnakeCase();
-                adds.push(prop);
+                token = key.toSnakeCase();
+                adds.push(key);
               }
 
               tokens = tokens.concat([table, token]);
 
-              if (props[prop].description) {
+              if (props[key].description) {
                 sql += "comment on column fp.%I.%I is %L;";
-                tokens = tokens.concat([table, token, props[prop].description || ""]);
+                tokens = tokens.concat([table, token, props[key].description || ""]);
               }
             }
           } else {
-            err = 'Invalid type "{type}" for property "{prop}" on class "{name}"'
-              .replace("{type}", prop.type)
-              .replace("{prop}", prop)
-              .replace("{name}", name);
+            err = 'Invalid type "{type}" for property "{key}" on class "{name}"'
+              .replace("{type}", props[key].type)
+              .replace("{key}", key)
+              .replace("{name}", obj.name);
             plv8.elog(ERROR, err);
           }
         }
@@ -515,11 +515,11 @@ create or replace function fp.load_fp() returns void as $$
   /** private */
   _camelize = function (obj) {
     var result = {},
-      prop;
+      key;
 
-    for (prop in obj) {
-      if (obj.hasOwnProperty(prop)) {
-        result[prop.toCamelCase()] = obj[prop];
+    for (key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        result[key.toCamelCase()] = obj[key];
       }
     }
 
@@ -654,7 +654,8 @@ create or replace function fp.load_fp() returns void as $$
       prop,
       result,
       value,
-      sql;
+      sql,
+      err;
 
     /* Check id for existence and uniqueness and regenerate if any problem */
     data.id = data.id === undefined || _getKey(data.id) !== undefined ?
@@ -674,10 +675,17 @@ create or replace function fp.load_fp() returns void as $$
 
         /* Handle relations */
         if (typeof prop.type === "object") {
-          value = data[key] !== undefined ? _getKey(data[key].id) : -1;
           col = "_{key}_{table}_pk"
             .replace("{key}", key.toSnakeCase())
             .replace("{table}", prop.type.relation.toSnakeCase());
+          value = data[key] !== undefined ? _getKey(data[key].id) : -1;
+          if (value === undefined) {
+            err = 'Relation not found in "{relation}" for "{key}" with id "{id}"'
+              .replace("{relation}", prop.type.relation)
+              .replace("{key}", key)
+              .replace("{id}", data[key].id);
+            plv8.elog(ERROR, err);
+          }
 
         /* Handle regular tyes */
         } else {
@@ -689,8 +697,8 @@ create or replace function fp.load_fp() returns void as $$
             value = data[key];
           /* If we have a class specific default that calls a function */
           } else if (defaultValue &&
-            typeof defaultValue === "string" &&
-            defaultValue.match(/\(\)$/)) {
+              typeof defaultValue === "string" &&
+              defaultValue.match(/\(\)$/)) {
             value = featherbone[defaultValue.replace(/\(\)$/, "")]();
           /* If we have a class specific default value */
           } else if (defaultValue !== undefined) {
@@ -816,7 +824,7 @@ create or replace function fp.load_fp() returns void as $$
       result,
       updRec,
       props,
-      prop,
+      key,
       sql;
 
     if (jsonpatch.compare(oldRec, newRec).length) {
@@ -826,14 +834,14 @@ create or replace function fp.load_fp() returns void as $$
       updRec.updatedBy = featherbone.getCurrentUser();
       updRec.etag = featherbone.createId();
 
-      for (prop in props) {
-        if (props.hasOwnProperty(prop)) {
-          if (typeof prop.type === "object") {
+      for (key in props) {
+        if (props.hasOwnProperty(key)) {
+          if (typeof key.type === "object") {
             /* TODO: iterate through relation */
-          } else if (updRec[prop] !== oldRec[prop]) {
-            tokens.push(prop.toSnakeCase());
+          } else if (updRec[key] !== oldRec[key]) {
+            tokens.push(key.toSnakeCase());
             ary.push("%I = $" + p);
-            params.push(updRec[prop]);
+            params.push(updRec[key]);
             p++;
           }
         }
