@@ -25,6 +25,7 @@ create or replace function fp.load_fp() returns void as $$
     _getKey,
     _getKeys,
     _patch,
+    _relationColumn,
     _sanitize,
     _insert,
     _select,
@@ -84,15 +85,11 @@ create or replace function fp.load_fp() returns void as $$
       obj = obj || {};
 
       var table = obj.name ? obj.name.toSnakeCase() : false,
-        sql = "select * from pg_tables " +
-          "where schemaname = 'fp' " +
-          "  and tablename = $1;",
         catalog = featherbone.getSettings('catalog'),
-        args = [table];
+        sql = "DROP TABLE fp.%I".format([table]);
 
-      if (!table || !plv8.execute(sql, args).length) { return false; }
+      if (!table || !catalog[obj.name]) { return false; }
 
-      sql = ("drop table fp.%I").format(args);
       plv8.execute(sql);
 
       /* Update catalog settings */
@@ -326,12 +323,14 @@ create or replace function fp.load_fp() returns void as $$
         adds = [],
         args = [],
         fns = [],
+        cols = [],
         defaultValue,
         props,
         key,
         recs,
         type,
         err,
+        name,
         i = 0,
         n = 0,
         p = 1;
@@ -340,10 +339,10 @@ create or replace function fp.load_fp() returns void as $$
 
       /* Create table if applicable */
       if (!klass) {
-        sql = "create table fp.%I( " +
-          "constraint %I primary key (_pk), " +
-          "constraint %I unique (id)) " +
-          "inherits (fp.%I);";
+        sql = "CREATE TABLE fp.%I( " +
+          "CONSTRAINT %I PRIMARY KEY (_pk), " +
+          "CONSTRAINT %I UNIQUE (id)) " +
+          "INHERITS (fp.%I);";
         tokens = tokens.concat([
           table,
           table + "_pkey",
@@ -355,7 +354,7 @@ create or replace function fp.load_fp() returns void as $$
         for (key in klass.properties) {
           if (klass.properties.hasOwnProperty(key)) {
             if (!obj.properties[key]) {
-              sql += "alter table fp.%I drop column %I;";
+              sql += "ALTER TABLE fp.%I DROP COLUMN %I;";
               tokens = tokens.concat([table, key.toSnakeCase()]);
             }
           }
@@ -364,7 +363,7 @@ create or replace function fp.load_fp() returns void as $$
 
       /* Add table description */
       if (obj.description) {
-        sql += "comment on table fp.%I is %L;";
+        sql += "COMMENT ON TABLE fp.%I IS %L;";
         tokens = tokens.concat([table, obj.description || ""]);
       }
 
@@ -373,17 +372,38 @@ create or replace function fp.load_fp() returns void as $$
       for (key in props) {
         if (props.hasOwnProperty(key)) {
           type = typeof props[key].type === "string" ?
-              _types[props[key].type] : props[key];
+              _types[props[key].type] : props[key].type;
 
           if (type) {
             if (!klass || !klass.properties[key]) {
-              sql += "alter table fp.%I add column %I ";
+              sql += "ALTER TABLE fp.%I ADD COLUMN %I ";
 
-              if (type.type.relation) {
+              /* Handle composite types */
+              if (type.relation) {
                 sql += "integer;";
-                token = "_{key}_{table}_pk"
-                  .replace("{key}", key.toSnakeCase())
-                  .replace("{table}", type.type.relation.toSnakeCase());
+                token = _relationColumn(key, type.relation);
+
+                /* Create a view for the subquery */
+                if (type.properties) {
+                  name = "_{table}_{column}"
+                    .replace("{table}", table)
+                    .replace("{column}", key.toSnakeCase());
+                  args = [name];
+
+                  while (i < type.properties.length) {
+                    cols.push("%I");
+                    args.push(type.properties[i].toSnakeCase());
+                    i++;
+                  }
+
+                  args.push(type.relation.toSnakeCase());
+
+                  sql += "CREATE VIEW fp.%I AS SELECT {cols} FROM fp.%I;"
+                    .replace("{cols}", cols.join(","))
+                    .format(args);
+                }
+
+              /* Handle standard types */
               } else {
                 sql += type.type + ";";
                 token = key.toSnakeCase();
@@ -393,7 +413,7 @@ create or replace function fp.load_fp() returns void as $$
               tokens = tokens.concat([table, token]);
 
               if (props[key].description) {
-                sql += "comment on column fp.%I.%I is %L;";
+                sql += "COMMENT ON COLUMN fp.%I.%I IS %L;";
                 tokens = tokens.concat([
                   table,
                   token,
@@ -420,6 +440,7 @@ create or replace function fp.load_fp() returns void as $$
         values = [];
         tokens = [];
         args = [table];
+        i = 0;
 
         while (i < adds.length) {
           type = props[adds[i]].type;
@@ -442,7 +463,7 @@ create or replace function fp.load_fp() returns void as $$
         }
 
         if (values.length) {
-          sql = "update fp.%I set {tokens};"
+          sql = "UPDATE fp.%I SET {tokens};"
             .replace("{tokens}", tokens.join(","))
             .format(args);
           plv8.execute(sql, values);
@@ -450,9 +471,9 @@ create or replace function fp.load_fp() returns void as $$
 
         /* Update function based defaults (one by one) */
         if (fns.length) {
-          sql = "select _pk from fp.%I order by _pk offset $1 limit 1;"
+          sql = "SELECT _pk FROM fp.%I ORDER BY _pk OFFSET $1 LIMIT 1;"
             .format([table]);
-          sqlUpd = "update fp.%I set {tokens} where _pk = $1";
+          sqlUpd = "UPDATE fp.%I SET {tokens} WHERE _pk = $1";
           recs = plv8.execute(sql, [n]);
           tokens = [];
           args = [table];
@@ -496,7 +517,7 @@ create or replace function fp.load_fp() returns void as $$
       @return {String}
     */
     saveSettings: function (name, settings) {
-      var sql = "select data from fp._settings where name = $1;",
+      var sql = "SELECT data FROM fp._settings WHERE name = $1;",
         params = [name, settings],
         result,
         rec,
@@ -586,6 +607,7 @@ create or replace function fp.load_fp() returns void as $$
       part,
       order,
       op,
+      err,
       i = 0,
       p = 1,
       n;
@@ -608,7 +630,9 @@ create or replace function fp.load_fp() returns void as $$
           part = " %I IN (" + part.join(",") + ")";
         } else {
           if (ops.indexOf(op) === -1) {
-            plv8.elog(ERROR, 'Unknown operator "' + criteria[i].operator + '"');
+            err = 'Unknown operator "{op}"'
+              .replace("{op}", criteria[i].operator);
+            plv8.elog(ERROR, err);
           }
           params.push(criteria[i].value);
           part = " %I" + op + "$" + p++;
@@ -696,9 +720,7 @@ create or replace function fp.load_fp() returns void as $$
 
         /* Handle relations */
         if (typeof prop.type === "object") {
-          col = "_{key}_{table}_pk"
-            .replace("{key}", key.toSnakeCase())
-            .replace("{table}", prop.type.relation.toSnakeCase());
+          col = _relationColumn(key, prop.type.relation);
           value = data[key] !== undefined ? _getKey(data[key].id) : -1;
           if (value === undefined) {
             err = 'Relation not found in "{rel}" for "{key}" with id "{id}"'
@@ -764,6 +786,13 @@ create or replace function fp.load_fp() returns void as $$
   };
 
   /** private */
+  _relationColumn = function (key, relation) {
+    return "_{key}_{table}_pk"
+      .replace("{key}", key.toSnakeCase())
+      .replace("{table}", relation.toSnakeCase());
+  };
+
+  /** private */
   _sanitize = function (obj) {
     var isArray = Array.isArray(obj),
       ary = isArray ? obj : [obj],
@@ -782,26 +811,33 @@ create or replace function fp.load_fp() returns void as $$
   /** private */
   _select = function (obj) {
     var table = obj.name.toSnakeCase(),
-      props = obj.properties || [],
-      i = props.length,
+      klass = featherbone.getClass(obj.name),
+      keys = obj.properties || Object.keys(klass.properties),
       tokens = [],
       result = {},
       cols,
+      key,
       sql,
-      pk;
+      pk,
+      i = 0;
 
-    if (i) {
-      while (i--) {
-        tokens.push("%I");
-        props[i] = props[i].toSnakeCase();
+    while (i < keys.length) {
+      key = keys[i];
+      if (typeof klass.propreties[key].type === "object") {
+        /* TODO: Lotta work here */
+        keys[i] = _relationColumn(key, klass.propreties[key].type.relation);
+      } else {
+        keys[i] = key.toSnakeCase();
       }
-      cols = tokens.toString(",");
-    } else {
-      cols = "*";
+      tokens.push("%I");
+      i++;
     }
-    props.push(table);
+    cols = tokens.toString(",");
+    keys.push(table);
 
-    sql = ("select " + cols + " from fp.%I").format(props);
+    sql = 'select {cols} from fp.%I'
+      .replace("{cols}", cols)
+      .format(keys);
 
     /* Get one result by key */
     if (obj.id) {
@@ -845,8 +881,10 @@ create or replace function fp.load_fp() returns void as $$
       result,
       updRec,
       props,
+      value,
       key,
-      sql;
+      sql,
+      err;
 
     if (jsonpatch.compare(oldRec, newRec).length) {
       props = klass.properties;
@@ -858,7 +896,24 @@ create or replace function fp.load_fp() returns void as $$
       for (key in props) {
         if (props.hasOwnProperty(key)) {
           if (typeof key.type === "object") {
-            /* TODO: iterate through relation */
+            if (Array.isArray(updRec[key])) {
+              /* TODO: iterate through relation */
+            } else if (updRec[key].id !== oldRec[key].id) {
+              value = updRec[key].id ? _getKey(updRec[key].id) : -1;
+
+              if (value === undefined) {
+                err = 'Relation not found in "{rel}" for "{key}" with id "{id}"'
+                  .replace("{rel}", props[key].type.relation)
+                  .replace("{key}", key)
+                  .replace("{id}", updRec[key].id);
+                plv8.elog(ERROR, err);
+              }
+
+              tokens.push(_relationColumn(key, props[key].type.relation));
+              ary.push("%I = $" + p);
+              params.push(value);
+              p++;
+            }
           } else if (updRec[key] !== oldRec[key]) {
             tokens.push(key.toSnakeCase());
             ary.push("%I = $" + p);
