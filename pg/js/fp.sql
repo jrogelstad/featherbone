@@ -104,7 +104,7 @@ create or replace function fp.load_fp() returns void as $$
             props[key].type.properties) {
           view = "_{table}_{column}"
             .replace("{table}", obj.name.toSnakeCase())
-            .replace("{column}", key.toSnakeCase())
+            .replace("{column}", key.toSnakeCase());
           sql = "DROP VIEW fp.%I;"
             .format([view]);
 
@@ -405,10 +405,11 @@ create or replace function fp.load_fp() returns void as $$
 
                 /* Create a view for the subquery */
                 if (type.properties) {
+                  cols = ["%I"];
                   name = "_{table}_{column}"
                     .replace("{table}", table)
                     .replace("{column}", key.toSnakeCase());
-                  args = [name];
+                  args = [name, "_pk"];
 
                   while (i < type.properties.length) {
                     cols.push("%I");
@@ -816,13 +817,22 @@ create or replace function fp.load_fp() returns void as $$
   _sanitize = function (obj) {
     var isArray = Array.isArray(obj),
       ary = isArray ? obj : [obj],
-      i = ary.length;
+      i = ary.length,
+      key;
 
     while (i--) {
       delete ary[i]._pk;
       ary[i] = _camelize(ary[i]);
+
       /* Copy to convert dates back to string for accurate comparisons */
       ary[i] = JSON.parse(JSON.stringify(ary[i]));
+
+      for (key in ary[i]) {
+        if (ary[i].hasOwnProperty(key) &&
+            typeof ary[i][key] === "object") {
+          ary[i][key] = ary[i][key] ? _sanitize(ary[i][key]) : {};
+        }
+      }
     }
 
     return isArray ? obj : ary[0];
@@ -830,40 +840,48 @@ create or replace function fp.load_fp() returns void as $$
 
   /** private */
   _select = function (obj) {
-    var table = obj.name.toSnakeCase(),
-      klass = featherbone.getClass(obj.name),
+    var klass = featherbone.getClass(obj.name),
+      table = klass.name.toSnakeCase(),
       keys = obj.properties || Object.keys(klass.properties),
       tokens = [],
       result = {},
-      cols,
+      cols = [],
+      view,
       key,
       sql,
+      rel,
       pk,
       i = 0;
 
     while (i < keys.length) {
       key = keys[i];
-      if (typeof klass.propreties[key].type === "object") {
-        /* TODO: Lotta work here */
-        keys[i] = _relationColumn(key, klass.propreties[key].type.relation);
+
+      if (typeof klass.properties[key].type === "object") {
+        tokens.push("(SELECT %I FROM fp.%I WHERE %I._pk = %I) AS %I");
+        if (klass.properties[key].type.properties) {
+          view = "_" + table + "_" + key.toSnakeCase();
+        } else {
+          view = klass.properties[key].type.relation.toSnakeCase();
+        }
+        rel =  _relationColumn(key, klass.properties[key].type.relation);
+        cols = cols.concat([view, view, view, rel, key.toSnakeCase()]);
       } else {
-        keys[i] = key.toSnakeCase();
+        tokens.push("%I");
+        cols.push(key.toSnakeCase());
       }
-      tokens.push("%I");
       i++;
     }
-    cols = tokens.toString(",");
-    keys.push(table);
 
-    sql = 'select {cols} from fp.%I'
-      .replace("{cols}", cols)
-      .format(keys);
+    cols.push(table);
+    sql = 'SELECT {cols} FROM fp.%I'
+      .replace("{cols}",  tokens.toString(","))
+      .format(cols);
 
     /* Get one result by key */
     if (obj.id) {
       pk = _getKey(obj.id, obj.name);
       if (pk === undefined) { return {}; }
-      sql +=  " where _pk = $1";
+      sql +=  " WHERE _pk = $1";
 
       result = plv8.execute(sql, [pk])[0];
 
@@ -880,7 +898,8 @@ create or replace function fp.load_fp() returns void as $$
           tokens.push("$" + i);
         }
 
-        sql += " where _pk in (" + tokens.toString(",") + ")";
+        sql += " WHERE _pk IN ({keys})"
+          .replace("{keys}", tokens.toString(","));
         result = plv8.execute(sql, pk);
       }
 
