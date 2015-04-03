@@ -86,11 +86,27 @@ create or replace function fp.load_fp() returns void as $$
 
       var table = obj.name ? obj.name.toSnakeCase() : false,
         catalog = featherbone.getSettings('catalog'),
-        sql = "DROP TABLE fp.%I".format([table]);
+        sql = "DROP TABLE fp.%I".format([table]),
+        props,
+        view,
+        key;
 
       if (!table || !catalog[obj.name]) { return false; }
 
       plv8.execute(sql);
+
+      props = catalog[obj.name].properties;
+      for (key in props) {
+        if (props.hasOwnProperty(key) &&
+          view = "_{table}_{column}"
+            .replace("{table}", obj.name.toSnakeCase())
+            .replace("{column}", key.toSnakeCase())
+          sql = "DROP VIEW fp.%I;"
+            .format([view]);
+
+          plv8.execute(sql);
+        }
+      }
 
       /* Update catalog settings */
       delete catalog[obj.name];
