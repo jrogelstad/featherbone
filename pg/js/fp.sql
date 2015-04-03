@@ -93,11 +93,15 @@ create or replace function fp.load_fp() returns void as $$
 
       if (!table || !catalog[obj.name]) { return false; }
 
+      /* Drop table */
       plv8.execute(sql);
 
+      /* Drop views for composite types */
       props = catalog[obj.name].properties;
       for (key in props) {
         if (props.hasOwnProperty(key) &&
+            typeof props[key].type === "object" &&
+            props[key].type.properties) {
           view = "_{table}_{column}"
             .replace("{table}", obj.name.toSnakeCase())
             .replace("{column}", key.toSnakeCase())
