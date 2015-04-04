@@ -27,15 +27,15 @@ $$ language plv8;
 
 do $$
    plv8.execute('select init()');
-   var sqlChk = "select * from pg_tables where schemaname = 'fp' and tablename = $1;",
-     sqlCmt = "comment on column %I.%I is %L",
+   var sqlChk = "SELECT * FROM pg_tables WHERE schemaname = 'public' AND tablename = $1;",
+     sqlCmt = "COMMENT ON COLUMN %I.%I IS %L",
      sql,
      params;
 
    /** Create the base object table **/
    if (!plv8.execute(sqlChk,['object']).length) {
-     sql = "create table object (" +
-       "_pk bigserial primary key," +
+     sql = "CREATE TABLE object (" +
+       "_pk bigserial PRIMARY KEY," +
        "id text unique," +
        "created timestamp with time zone," +
        "created_by text," +
@@ -44,7 +44,7 @@ do $$
        "etag text," +
        "is_deleted boolean)";
      plv8.execute(sql);
-     plv8.execute("comment on table object is 'Abstract object class from which all other classes will inherit'");
+     plv8.execute("COMMENT ON TABLE object IS 'Abstract object class from which all other classes will inherit'");
      plv8.execute(sqlCmt.format(['object','_pk','Internal primary key']));
      plv8.execute(sqlCmt.format(['object','id','Surrogate key']));
      plv8.execute(sqlCmt.format(['object','created','Create time of the record']));
@@ -56,27 +56,27 @@ do $$
 
    /** Create the base log table **/
    if (!plv8.execute(sqlChk,['log']).length) {
-     sql = "create table log (" +
+     sql = "CREATE TABLE log (" +
        "change json default '{}'," +
        "constraint log_pkey primary key (_pk), " +
        "constraint log_id_key unique (id)) inherits (object)";
      plv8.execute(sql);
-     plv8.execute("comment on table log is 'Class for logging all schema and data changes'");
+     plv8.execute("COMMENT ON TABLE log IS 'Class for logging all schema and data changes'");
      plv8.execute(sqlCmt.format(['log','change','Patch formatted json indicating changes']));
    };
 
    /** Create the settings table **/
    if (!plv8.execute(sqlChk,['_settings']).length) {
-     sql = "create table _settings (" +
+     sql = "CREATE TABLE _settings (" +
        "name text default ''," +
        "data json default '{}'," +
-       "constraint settings_pkey primary key (_pk), " +
-       "constraint settings_id_key unique (id)) inherits (object)";
+       "CONSTRAINT settings_pkey PRIMARY KEY (_pk), " +
+       "CONSTRAINT settings_id_key UNIQUE (id)) INHERITS (object)";
      plv8.execute(sql);
      plv8.execute("comment on table _settings is 'Internal table for storing system settyngs'");
      plv8.execute(sqlCmt.format(['_settings','name','Name of settings']));
      plv8.execute(sqlCmt.format(['_settings','data','Object containing settings']));
-     sql = "insert into _settings values (nextval('object__pk_seq'), $1, now(), current_user, now(), current_user, $2, false, $3, $4);";
+     sql = "INSERT INTO _settings VALUES (nextval('object__pk_seq'), $1, now(), CURRENT_USER, now(), CURRENT_USER, $2, false, $3, $4);";
      params = [
        featherbone.createId(),
        featherbone.createId(),

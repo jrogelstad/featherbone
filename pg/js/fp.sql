@@ -69,7 +69,7 @@ create or replace function load_fp() returns void as $$
     */
 
     checkEtag: function (id, etag) {
-      var sql = "select etag from object where id = $1",
+      var sql = "SELECT etag FROM object WHERE id = $1",
         result = plv8.execute(sql, [id]);
 
       return result.length ? result[0].etag === etag : false;
@@ -188,7 +188,7 @@ create or replace function load_fp() returns void as $$
       @return {String}
     */
     getCurrentUser: function () {
-      return plv8.execute("select current_user as user;")[0].user;
+      return plv8.execute("SELECT CURRENT_USER AS user;")[0].user;
     },
 
     /**
@@ -226,7 +226,7 @@ create or replace function load_fp() returns void as $$
       @return {Object}
     */
     getSettings: function (name) {
-      var sql = "select data from _settings where name = $1",
+      var sql = "SELECT data FROM _settings WHERE name = $1",
         result,
         rec;
 
@@ -555,11 +555,11 @@ create or replace function load_fp() returns void as $$
           plv8.elog(ERROR, err);
         }
 
-        sql = "update _settings set data = $2 where name = $1;";
+        sql = "UPDATE _settings SET data = $2 WHERE name = $1;";
 
         plv8.execute(sql, params);
       } else {
-        sql = "insert into settings (name, data) values ($1, $2);";
+        sql = "INSERT INTO settings (name, data) VALUES ($1, $2);";
         plv8.execute(sql, params);
       }
 
@@ -598,7 +598,7 @@ create or replace function load_fp() returns void as $$
 
   /** private */
   _delete = function (obj) {
-    var sql = "update object set is_deleted = true where id=$1;";
+    var sql = "UPDATE object SET is_deleted = true WHERE id=$1;";
 
     plv8.execute(sql, [obj.id]);
 
@@ -609,7 +609,7 @@ create or replace function load_fp() returns void as $$
   _getKey = function (id, name) {
     name = name ? name.toSnakeCase() : 'object';
 
-    var sql = ("select _pk from %I where id = $1").format([name]),
+    var sql = ("SELECT _pk FROM %I WHERE id = $1").format([name]),
       result = plv8.execute(sql, [id])[0];
 
     return result ? result._pk : undefined;
@@ -617,7 +617,7 @@ create or replace function load_fp() returns void as $$
 
   /** private */
   _getKeys = function (name, filter) {
-    var sql = "select _pk from %I ",
+    var sql = "SELECT _pk FROM %I ",
       tokens = [name.toSnakeCase()],
       criteria = filter.criteria || [],
       sort = filter.sort || [],
@@ -664,7 +664,7 @@ create or replace function load_fp() returns void as $$
       }
 
       if (parts.length) {
-        sql += " where " + parts.join(" and ");
+        sql += " WHERE " + parts.join(" AND ");
       }
 
       /* Process sort */
@@ -686,12 +686,12 @@ create or replace function load_fp() returns void as $$
 
       /* Process offset and limit */
       if (filter.offset) {
-        sql += " offset $" + p++;
+        sql += " OFFSET $" + p++;
         params.push(filter.offset);
       }
 
       if (filter.limit) {
-        sql += " limit $" + p;
+        sql += " LIMIT $" + p;
         params.push(filter.limit);
       }
 
@@ -781,7 +781,7 @@ create or replace function load_fp() returns void as $$
       }
     }
 
-    sql = "insert into %I ({columns}) values ({values}) returning *;"
+    sql = "INSERT INTO %I ({columns}) VALUES ({values}) RETURNING *;"
       .replace("{columns}", tokens.toString(","))
       .replace("{values}", params.toString(","))
       .format(args);
@@ -962,7 +962,7 @@ create or replace function load_fp() returns void as $$
         }
       }
 
-      sql = "update %I set {cols} where _pk = ${num} returning *;"
+      sql = "UPDATE %I SET {cols} WHERE _pk = ${num} RETURNING *;"
         .replace("{cols}", ary.join(","))
         .replace("{num}", p)
         .format(tokens);
