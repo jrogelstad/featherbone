@@ -802,10 +802,10 @@ create or replace function load_fp() returns void as $$
   _sanitize = function (obj) {
     var isArray = Array.isArray(obj),
       ary = isArray ? obj : [obj],
-      i = ary.length,
+      i = 0,
       key;
 
-    while (i--) {
+    while (i < ary.length) {
       delete ary[i]._pk;
       ary[i] = _camelize(ary[i]);
 
@@ -818,6 +818,7 @@ create or replace function load_fp() returns void as $$
           ary[i][key] = ary[i][key] ? _sanitize(ary[i][key]) : {};
         }
       }
+      i++;
     }
 
     return isArray ? obj : ary[0];
