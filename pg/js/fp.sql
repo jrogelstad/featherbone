@@ -102,9 +102,7 @@ create or replace function load_fp() returns void as $$
         if (props.hasOwnProperty(key) &&
             typeof props[key].type === "object" &&
             props[key].type.properties) {
-          view = "_{table}_{column}"
-            .replace("{table}", obj.name.toSnakeCase())
-            .replace("{column}", key.toSnakeCase());
+          view = "_" + obj.name.toSnakeCase() + "_" + key.toSnakeCase();
           sql = "DROP VIEW %I;"
             .format([view]);
 
@@ -406,9 +404,7 @@ create or replace function load_fp() returns void as $$
                 /* Create a view for the subquery */
                 if (type.properties) {
                   cols = ["%I"];
-                  name = "_{table}_{column}"
-                    .replace("{table}", table)
-                    .replace("{column}", key.toSnakeCase());
+                  name = "_" + table + "_" + key.toSnakeCase();
                   args = [name, "_pk"];
 
                   while (i < type.properties.length) {
@@ -419,9 +415,8 @@ create or replace function load_fp() returns void as $$
 
                   args.push(type.relation.toSnakeCase());
 
-                  sql += "CREATE VIEW %I AS SELECT {cols} FROM %I;"
-                    .replace("{cols}", cols.join(","))
-                    .format(args);
+                  sql += ("CREATE VIEW %I AS SELECT " + cols.join(",") +
+                    " FROM %I;").format(args);
                 }
 
               /* Handle standard types */
@@ -443,10 +438,8 @@ create or replace function load_fp() returns void as $$
               }
             }
           } else {
-            err = 'Invalid type "{type}" for property "{key}" on class "{name}"'
-              .replace("{type}", props[key].type)
-              .replace("{key}", key)
-              .replace("{name}", obj.name);
+            err = 'Invalid type "' + props[key].type + '" for property "' +
+              key +'" on class "' + obj.name + '"'
             plv8.elog(ERROR, err);
           }
         }
@@ -484,9 +477,7 @@ create or replace function load_fp() returns void as $$
         }
 
         if (values.length) {
-          sql = "UPDATE %I SET {tokens};"
-            .replace("{tokens}", tokens.join(","))
-            .format(args);
+          sql = ("UPDATE %I SET " + tokens.join(",") + ";").format(args);
           plv8.execute(sql, values);
         }
 
@@ -494,7 +485,6 @@ create or replace function load_fp() returns void as $$
         if (fns.length) {
           sql = "SELECT _pk FROM %I ORDER BY _pk OFFSET $1 LIMIT 1;"
             .format([table]);
-          sqlUpd = "UPDATE %I SET {tokens} WHERE _pk = $1";
           recs = plv8.execute(sql, [n]);
           tokens = [];
           args = [table];
@@ -506,7 +496,8 @@ create or replace function load_fp() returns void as $$
             i++;
           }
 
-          sqlUpd = sqlUpd.replace("{tokens}", tokens.join(",")).format(args);
+          sqlUpd = ("UPDATE %I SET " + tokens.join(",") + " WHERE _pk = $1")
+            .format(args);
 
           while (recs.length) {
             values = [recs[0]._pk];
@@ -550,8 +541,7 @@ create or replace function load_fp() returns void as $$
         rec = result[0];
 
         if (settings.etag !== rec.etag) {
-          err = 'Settings for "{name}" changed by another user. Save failed.'
-            .replace("{name}", name);
+          err = 'Settings for "' + name + '" changed by another user. Save failed.'
           plv8.elog(ERROR, err);
         }
 
@@ -651,8 +641,7 @@ create or replace function load_fp() returns void as $$
           part = " %I IN (" + part.join(",") + ")";
         } else {
           if (ops.indexOf(op) === -1) {
-            err = 'Unknown operator "{op}"'
-              .replace("{op}", criteria[i].operator);
+            err = 'Unknown operator "' + criteria[i].operator + '"';
             plv8.elog(ERROR, err);
           }
           params.push(criteria[i].value);
@@ -781,10 +770,8 @@ create or replace function load_fp() returns void as $$
       }
     }
 
-    sql = "INSERT INTO %I ({columns}) VALUES ({values}) RETURNING *;"
-      .replace("{columns}", tokens.toString(","))
-      .replace("{values}", params.toString(","))
-      .format(args);
+    sql = ("INSERT INTO %I (" + tokens.toString(",") + ") VALUES (" +
+      params.toString(",") + ") RETURNING *;").format(args);
 
     /* Execute */
     result = plv8.execute(sql, values)[0];
@@ -808,9 +795,7 @@ create or replace function load_fp() returns void as $$
 
   /** private */
   _relationColumn = function (key, relation) {
-    return "_{key}_{table}_pk"
-      .replace("{key}", key.toSnakeCase())
-      .replace("{table}", relation.toSnakeCase());
+    return "_" + key.toSnakeCase() + "_" + relation.toSnakeCase() + "_pk";
   };
 
   /** private */
@@ -873,9 +858,7 @@ create or replace function load_fp() returns void as $$
     }
 
     cols.push(table);
-    sql = 'SELECT {cols} FROM %I'
-      .replace("{cols}",  tokens.toString(","))
-      .format(cols);
+    sql = ('SELECT ' +  tokens.toString(",") + ' FROM %I').format(cols);
 
     /* Get one result by key */
     if (obj.id) {
@@ -898,8 +881,7 @@ create or replace function load_fp() returns void as $$
           tokens.push("$" + i);
         }
 
-        sql += " WHERE _pk IN ({keys})"
-          .replace("{keys}", tokens.toString(","));
+        sql += " WHERE _pk IN (" + tokens.toString(",") + ")";
         result = plv8.execute(sql, pk);
       }
 
@@ -962,10 +944,8 @@ create or replace function load_fp() returns void as $$
         }
       }
 
-      sql = "UPDATE %I SET {cols} WHERE _pk = ${num} RETURNING *;"
-        .replace("{cols}", ary.join(","))
-        .replace("{num}", p)
-        .format(tokens);
+      sql = ("UPDATE %I SET " + ary.join(",") + " WHERE _pk = $" + p +
+        " RETURNING *;").format(tokens);
 
       params.push(pk);
       result = _sanitize(plv8.execute(sql, params));
