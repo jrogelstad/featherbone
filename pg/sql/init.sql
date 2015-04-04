@@ -14,7 +14,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-create or replace function fp.init() returns void as $$
+create or replace function init() returns void as $$
   return (function () {
 
     /**
@@ -73,8 +73,8 @@ create or replace function fp.init() returns void as $$
     };
 
     /** TODO: We want to load these directly from js files **/
-    plv8.execute("select fp.load_fp();");
-    plv8.execute("select fp.load_jsonpatch();");
+    plv8.execute("select load_fp();");
+    plv8.execute("select load_jsonpatch();");
     plv8._init = true;
 
   }());

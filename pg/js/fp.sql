@@ -14,7 +14,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-create or replace function fp.load_fp() returns void as $$
+create or replace function load_fp() returns void as $$
 /*global plv8: true, jsonpatch: true, featherbone: true, ERROR: true */
 /*jslint nomen: true, plusplus: true, indent: 2, sloppy: true, todo: true, maxlen: 80*/
 (function () {
@@ -69,7 +69,7 @@ create or replace function fp.load_fp() returns void as $$
     */
 
     checkEtag: function (id, etag) {
-      var sql = "select etag from fp.object where id = $1",
+      var sql = "select etag from object where id = $1",
         result = plv8.execute(sql, [id]);
 
       return result.length ? result[0].etag === etag : false;
@@ -86,7 +86,7 @@ create or replace function fp.load_fp() returns void as $$
 
       var table = obj.name ? obj.name.toSnakeCase() : false,
         catalog = featherbone.getSettings('catalog'),
-        sql = "DROP TABLE fp.%I".format([table]),
+        sql = "DROP TABLE %I".format([table]),
         props,
         view,
         key;
@@ -105,7 +105,7 @@ create or replace function fp.load_fp() returns void as $$
           view = "_{table}_{column}"
             .replace("{table}", obj.name.toSnakeCase())
             .replace("{column}", key.toSnakeCase());
-          sql = "DROP VIEW fp.%I;"
+          sql = "DROP VIEW %I;"
             .format([view]);
 
           plv8.execute(sql);
@@ -226,7 +226,7 @@ create or replace function fp.load_fp() returns void as $$
       @return {Object}
     */
     getSettings: function (name) {
-      var sql = "select data from fp._settings where name = $1",
+      var sql = "select data from _settings where name = $1",
         result,
         rec;
 
@@ -359,10 +359,10 @@ create or replace function fp.load_fp() returns void as $$
 
       /* Create table if applicable */
       if (!klass) {
-        sql = "CREATE TABLE fp.%I( " +
+        sql = "CREATE TABLE %I( " +
           "CONSTRAINT %I PRIMARY KEY (_pk), " +
           "CONSTRAINT %I UNIQUE (id)) " +
-          "INHERITS (fp.%I);";
+          "INHERITS (%I);";
         tokens = tokens.concat([
           table,
           table + "_pkey",
@@ -374,7 +374,7 @@ create or replace function fp.load_fp() returns void as $$
         for (key in klass.properties) {
           if (klass.properties.hasOwnProperty(key)) {
             if (!obj.properties[key]) {
-              sql += "ALTER TABLE fp.%I DROP COLUMN %I;";
+              sql += "ALTER TABLE %I DROP COLUMN %I;";
               tokens = tokens.concat([table, key.toSnakeCase()]);
             }
           }
@@ -383,7 +383,7 @@ create or replace function fp.load_fp() returns void as $$
 
       /* Add table description */
       if (obj.description) {
-        sql += "COMMENT ON TABLE fp.%I IS %L;";
+        sql += "COMMENT ON TABLE %I IS %L;";
         tokens = tokens.concat([table, obj.description || ""]);
       }
 
@@ -396,7 +396,7 @@ create or replace function fp.load_fp() returns void as $$
 
           if (type) {
             if (!klass || !klass.properties[key]) {
-              sql += "ALTER TABLE fp.%I ADD COLUMN %I ";
+              sql += "ALTER TABLE %I ADD COLUMN %I ";
 
               /* Handle composite types */
               if (type.relation) {
@@ -419,7 +419,7 @@ create or replace function fp.load_fp() returns void as $$
 
                   args.push(type.relation.toSnakeCase());
 
-                  sql += "CREATE VIEW fp.%I AS SELECT {cols} FROM fp.%I;"
+                  sql += "CREATE VIEW %I AS SELECT {cols} FROM %I;"
                     .replace("{cols}", cols.join(","))
                     .format(args);
                 }
@@ -434,7 +434,7 @@ create or replace function fp.load_fp() returns void as $$
               tokens = tokens.concat([table, token]);
 
               if (props[key].description) {
-                sql += "COMMENT ON COLUMN fp.%I.%I IS %L;";
+                sql += "COMMENT ON COLUMN %I.%I IS %L;";
                 tokens = tokens.concat([
                   table,
                   token,
@@ -484,7 +484,7 @@ create or replace function fp.load_fp() returns void as $$
         }
 
         if (values.length) {
-          sql = "UPDATE fp.%I SET {tokens};"
+          sql = "UPDATE %I SET {tokens};"
             .replace("{tokens}", tokens.join(","))
             .format(args);
           plv8.execute(sql, values);
@@ -492,9 +492,9 @@ create or replace function fp.load_fp() returns void as $$
 
         /* Update function based defaults (one by one) */
         if (fns.length) {
-          sql = "SELECT _pk FROM fp.%I ORDER BY _pk OFFSET $1 LIMIT 1;"
+          sql = "SELECT _pk FROM %I ORDER BY _pk OFFSET $1 LIMIT 1;"
             .format([table]);
-          sqlUpd = "UPDATE fp.%I SET {tokens} WHERE _pk = $1";
+          sqlUpd = "UPDATE %I SET {tokens} WHERE _pk = $1";
           recs = plv8.execute(sql, [n]);
           tokens = [];
           args = [table];
@@ -538,7 +538,7 @@ create or replace function fp.load_fp() returns void as $$
       @return {String}
     */
     saveSettings: function (name, settings) {
-      var sql = "SELECT data FROM fp._settings WHERE name = $1;",
+      var sql = "SELECT data FROM _settings WHERE name = $1;",
         params = [name, settings],
         result,
         rec,
@@ -555,11 +555,11 @@ create or replace function fp.load_fp() returns void as $$
           plv8.elog(ERROR, err);
         }
 
-        sql = "update fp._settings set data = $2 where name = $1;";
+        sql = "update _settings set data = $2 where name = $1;";
 
         plv8.execute(sql, params);
       } else {
-        sql = "insert into fp.settings (name, data) values ($1, $2);";
+        sql = "insert into settings (name, data) values ($1, $2);";
         plv8.execute(sql, params);
       }
 
@@ -598,7 +598,7 @@ create or replace function fp.load_fp() returns void as $$
 
   /** private */
   _delete = function (obj) {
-    var sql = "update fp.object set is_deleted = true where id=$1;";
+    var sql = "update object set is_deleted = true where id=$1;";
 
     plv8.execute(sql, [obj.id]);
 
@@ -609,7 +609,7 @@ create or replace function fp.load_fp() returns void as $$
   _getKey = function (id, name) {
     name = name ? name.toSnakeCase() : 'object';
 
-    var sql = ("select _pk from fp.%I where id = $1").format([name]),
+    var sql = ("select _pk from %I where id = $1").format([name]),
       result = plv8.execute(sql, [id])[0];
 
     return result ? result._pk : undefined;
@@ -617,7 +617,7 @@ create or replace function fp.load_fp() returns void as $$
 
   /** private */
   _getKeys = function (name, filter) {
-    var sql = "select _pk from fp.%I ",
+    var sql = "select _pk from %I ",
       tokens = [name.toSnakeCase()],
       criteria = filter.criteria || [],
       sort = filter.sort || [],
@@ -781,7 +781,7 @@ create or replace function fp.load_fp() returns void as $$
       }
     }
 
-    sql = "insert into fp.%I ({columns}) values ({values}) returning *;"
+    sql = "insert into %I ({columns}) values ({values}) returning *;"
       .replace("{columns}", tokens.toString(","))
       .replace("{values}", params.toString(","))
       .format(args);
@@ -857,7 +857,7 @@ create or replace function fp.load_fp() returns void as $$
       key = keys[i];
 
       if (typeof klass.properties[key].type === "object") {
-        tokens.push("(SELECT %I FROM fp.%I WHERE %I._pk = %I) AS %I");
+        tokens.push("(SELECT %I FROM %I WHERE %I._pk = %I) AS %I");
         if (klass.properties[key].type.properties) {
           view = "_" + table + "_" + key.toSnakeCase();
         } else {
@@ -873,7 +873,7 @@ create or replace function fp.load_fp() returns void as $$
     }
 
     cols.push(table);
-    sql = 'SELECT {cols} FROM fp.%I'
+    sql = 'SELECT {cols} FROM %I'
       .replace("{cols}",  tokens.toString(","))
       .format(cols);
 
@@ -962,7 +962,7 @@ create or replace function fp.load_fp() returns void as $$
         }
       }
 
-      sql = "update fp.%I set {cols} where _pk = ${num} returning *;"
+      sql = "update %I set {cols} where _pk = ${num} returning *;"
         .replace("{cols}", ary.join(","))
         .replace("{num}", p)
         .format(tokens);

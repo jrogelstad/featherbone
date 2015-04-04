@@ -28,7 +28,7 @@ This file is modified from the following MIT licensed code:
 * MIT license
 */
 
-create or replace function fp.load_jsonpatch() returns void as $$
+create or replace function load_jsonpatch() returns void as $$
 var __extends = this.__extends || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
