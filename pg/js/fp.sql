@@ -852,6 +852,7 @@ create or replace function load_fp() returns void as $$
     for (key in children) {
       if (children.hasOwnProperty(key)) {
         while (i < data[key].length) {
+          data[key][i][children[key].type.parentOf] = {id: data.id};
           child = {
             name: children[key].type.relation,
             data: data[key][i]
