@@ -758,11 +758,14 @@ create or replace function load_fp() returns void as $$
     var data = JSON.parse(JSON.stringify(obj.data)),
       klass = featherbone.getClass(obj.name),
       args = [obj.name.toSnakeCase()],
+      children = {},
       tokens = [],
       params = [],
       values = [],
       defaultValue,
+      i = 0,
       p = 1,
+      child,
       key,
       col,
       props,
@@ -786,59 +789,81 @@ create or replace function load_fp() returns void as $$
     props = klass.properties;
     for (key in props) {
       if (props.hasOwnProperty(key)) {
+        child = false;
         prop = props[key];
 
         /* Handle relations */
         if (typeof prop.type === "object") {
-          col = _relationColumn(key, prop.type.relation);
-          value = data[key] !== undefined ? _getKey(data[key].id) : -1;
-          if (value === undefined) {
-            err = 'Relation not found in "{rel}" for "{key}" with id "{id}"'
-              .replace("{rel}", prop.type.relation)
-              .replace("{key}", key)
-              .replace("{id}", data[key].id);
-          } else if (!isChild && prop.type.childOf) {
-            err = "Child records may only be created from the parent.";
-          }
-          if (err) {
-            plv8.elog(ERROR, err);
+          if (prop.type.parentOf) {
+          /* To many */
+            child = true;
+            children[key] = prop;
+
+          /* To one */
+          } else {
+            col = _relationColumn(key, prop.type.relation);
+            value = data[key] !== undefined ? _getKey(data[key].id) : -1;
+            if (value === undefined) {
+              err = 'Relation not found in "{rel}" for "{key}" with id "{id}"'
+                .replace("{rel}", prop.type.relation)
+                .replace("{key}", key)
+                .replace("{id}", data[key].id);
+            } else if (!isChild && prop.type.childOf) {
+              err = "Child records may only be created from the parent.";
+            }
+            if (err) {
+              plv8.elog(ERROR, err);
+            }
           }
 
         /* Handle regular types */
         } else {
-          defaultValue = prop.defaultValue;
+          value = data[key];
           col = key.toSnakeCase();
 
-          /* If the request had a value */
-          if (data[key]) {
-            value = data[key];
-          /* If we have a class specific default that calls a function */
-          } else if (defaultValue &&
-              typeof defaultValue === "string" &&
-              defaultValue.match(/\(\)$/)) {
-            value = featherbone[defaultValue.replace(/\(\)$/, "")]();
-          /* If we have a class specific default value */
-          } else if (defaultValue !== undefined) {
-            value = defaultValue;
-          /* Use default for type */
-          } else {
-            value = _types[prop.type].defaultValue;
+          if (value === undefined) {
+            value = prop.defaultValue === undefined ?
+              _types[prop.type].defaultValue : prop.defaultValue;
+
+            /* If we have a class specific default that calls a function */
+            if (value && typeof value === "string" && value.match(/\(\)$/)) {
+              value = featherbone[value.replace(/\(\)$/, "")]();
+            }
           }
         }
 
-        args.push(col);
-        tokens.push("%I");
-        values.push(value);
-        params.push("$" + p);
-        p++;
+        if (!child) {
+          args.push(col);
+          tokens.push("%I");
+          values.push(value);
+          params.push("$" + p);
+          p++;
+        }
       }
     }
 
     sql = ("INSERT INTO %I (" + tokens.toString(",") + ") VALUES (" +
-      params.toString(",") + ") RETURNING *;").format(args);
+      params.toString(",") + ");").format(args);
 
     /* Execute */
-    result = plv8.execute(sql, values)[0];
+    plv8.execute(sql, values);
+
+    /* Iterate through children */
+    for (key in children) {
+      if (children.hasOwnProperty(key)) {
+        while (i < data[key].length) {
+          child = {
+            name: children[key].type.relation,
+            data: data[key][i]
+          }
+          _insert(child, true);
+          i++;
+        }
+      }
+    }
+
+    
+    result = _select({name: obj.name, id: data.id});
 
     return jsonpatch.compare(obj.data, _sanitize(result));
   };
@@ -896,6 +921,7 @@ create or replace function load_fp() returns void as $$
       tokens = [],
       result = {},
       cols = [],
+      type,
       view,
       key,
       sql,
@@ -905,16 +931,19 @@ create or replace function load_fp() returns void as $$
 
     while (i < keys.length) {
       key = keys[i];
+      type = klass.properties[key].type;
 
-      if (typeof klass.properties[key].type === "object") {
-        tokens.push("(SELECT %I FROM %I WHERE %I._pk = %I) AS %I");
-        if (klass.properties[key].type.properties) {
-          view = "_" + table + "_" + key.toSnakeCase();
-        } else {
-          view = klass.properties[key].type.relation.toSnakeCase();
+      if (typeof type === "object") {
+        if (!type.parentOf) {
+          tokens.push("(SELECT %I FROM %I WHERE %I._pk = %I) AS %I");
+          if (type.properties) {
+            view = "_" + table + "_" + key.toSnakeCase();
+          } else {
+            view = type.relation.toSnakeCase();
+          }
+          rel =  _relationColumn(key, type.relation);
+          cols = cols.concat([view, view, view, rel, key.toSnakeCase()]);
         }
-        rel =  _relationColumn(key, klass.properties[key].type.relation);
-        cols = cols.concat([view, view, view, rel, key.toSnakeCase()]);
       } else {
         tokens.push("%I");
         cols.push(key.toSnakeCase());
