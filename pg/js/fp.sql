@@ -754,7 +754,7 @@ create or replace function load_fp() returns void as $$
   };
 
   /** private */
-  _insert = function (obj) {
+  _insert = function (obj, isChild) {
     var data = JSON.parse(JSON.stringify(obj.data)),
       klass = featherbone.getClass(obj.name),
       args = [obj.name.toSnakeCase()],
@@ -797,10 +797,14 @@ create or replace function load_fp() returns void as $$
               .replace("{rel}", prop.type.relation)
               .replace("{key}", key)
               .replace("{id}", data[key].id);
+          } else if (!isChild && prop.type.childOf) {
+            err = "Child records may only be created from the parent.";
+          }
+          if (err) {
             plv8.elog(ERROR, err);
           }
 
-        /* Handle regular tyes */
+        /* Handle regular types */
         } else {
           defaultValue = prop.defaultValue;
           col = key.toSnakeCase();
