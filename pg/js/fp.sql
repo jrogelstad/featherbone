@@ -973,9 +973,8 @@ create or replace function load_fp() returns void as $$
 
       sql = ("UPDATE %I SET " + ary.join(",") + " WHERE _pk = $" + p +
         " RETURNING *;").format(tokens);
-
       params.push(pk);
-  plv8.elog(NOTICE, sql);
+
       result = _sanitize(plv8.execute(sql, params));
       result = JSON.parse(JSON.stringify(result[0]));
 
