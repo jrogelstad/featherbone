@@ -420,6 +420,11 @@ create or replace function load_fp() returns void as $$
                   name = "_" + table + "_" + key.toSnakeCase();
                   args = [name, "_pk"];
 
+                  /* Always include "id" whether specified or not */
+                  if (type.properties.indexOf("id") === -1) {
+                    type.properties.unshift("id");
+                  }
+
                   while (i < type.properties.length) {
                     cols.push("%I");
                     args.push(type.properties[i].toSnakeCase());
