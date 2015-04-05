@@ -369,11 +369,24 @@ create or replace function load_fp() returns void as $$
         ]);
       } else {
         /* Drop non-inherited columns not included in properties */
-        for (key in klass.properties) {
-          if (klass.properties.hasOwnProperty(key)) {
+        props = klass.properties;
+        for (key in props) {
+          if (props.hasOwnProperty(key)) {
             if (!obj.properties[key]) {
+              /* Drop associated view if applicable */
+              if (typeof props[key].type === "object" &&
+                  props[key].type.properties) {
+                sql += "DROP VIEW %I;"
+                tokens = tokens.concat([
+                  "_" + table + "_" + key.toSnakeCase(),
+                  table,
+                  _relationColumn(key, props[key].type.relation)
+                ]);
+              } else {
+                tokens = tokens.concat([table, key.toSnakeCase()]);
+              }
+
               sql += "ALTER TABLE %I DROP COLUMN %I;";
-              tokens = tokens.concat([table, key.toSnakeCase()]);
             }
           }
         }
@@ -423,8 +436,8 @@ create or replace function load_fp() returns void as $$
               } else {
                 sql += type.type + ";";
                 token = key.toSnakeCase();
-                adds.push(key);
               }
+              adds.push(key);
 
               tokens = tokens.concat([table, token]);
 
@@ -458,8 +471,12 @@ create or replace function load_fp() returns void as $$
 
         while (i < adds.length) {
           type = props[adds[i]].type;
-          defaultValue = props[adds[i]].defaultValue ||
-            _types[type].defaultValue;
+          if (typeof type === "object") {
+            defaultValue = -1;
+          } else {
+            defaultValue = props[adds[i]].defaultValue ||
+              _types[type].defaultValue;
+          }
 
           if (typeof defaultValue === "string" &&
               defaultValue.match(/\(\)$/)) {
@@ -470,7 +487,11 @@ create or replace function load_fp() returns void as $$
           } else {
             values.push(defaultValue);
             tokens.push("%I=$" + p);
-            args.push(adds[i].toSnakeCase());
+            if (typeof type === "object") {
+              args.push(_relationColumn(adds[i], type.relation));
+            } else {
+              args.push(adds[i].toSnakeCase());
+            }
             p++;
           }
           i++;
@@ -917,7 +938,7 @@ create or replace function load_fp() returns void as $$
 
       for (key in props) {
         if (props.hasOwnProperty(key)) {
-          if (typeof key.type === "object") {
+          if (typeof props[key].type === "object") {
             if (Array.isArray(updRec[key])) {
               /* TODO: iterate through relation */
             } else if (updRec[key].id !== oldRec[key].id) {
@@ -949,6 +970,7 @@ create or replace function load_fp() returns void as $$
         " RETURNING *;").format(tokens);
 
       params.push(pk);
+  plv8.elog(NOTICE, sql);
       result = _sanitize(plv8.execute(sql, params));
       result = JSON.parse(JSON.stringify(result[0]));
 
