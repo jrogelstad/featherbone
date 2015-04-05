@@ -349,6 +349,7 @@ create or replace function load_fp() returns void as $$
         type,
         err,
         name,
+        parent,
         i = 0,
         n = 0,
         p = 1;
@@ -373,20 +374,30 @@ create or replace function load_fp() returns void as $$
         for (key in props) {
           if (props.hasOwnProperty(key)) {
             if (!obj.properties[key]) {
-              /* Drop associated view if applicable */
-              if (typeof props[key].type === "object" &&
-                  props[key].type.properties) {
-                sql += "DROP VIEW %I;"
-                tokens = tokens.concat([
-                  "_" + table + "_" + key.toSnakeCase(),
-                  table,
-                  _relationColumn(key, props[key].type.relation)
-                ]);
-              } else {
-                tokens = tokens.concat([table, key.toSnakeCase()]);
+              /* Handle relations */
+              type = props[key].type;
+
+              if (typeof type === "object") {
+                /* Drop associated view if applicable */
+                if (type.properties) {
+                  sql += "DROP VIEW %I;"
+                  tokens = tokens.concat([
+                    "_" + table + "_" + key.toSnakeCase(),
+                    table,
+                    _relationColumn(key, type.relation)
+                  ]);
+                } else {
+                  tokens = tokens.concat([table, key.toSnakeCase()]);
+                }
+
+                sql += "ALTER TABLE %I DROP COLUMN %I;";
               }
 
-              sql += "ALTER TABLE %I DROP COLUMN %I;";
+              /* Unrelate parent if applicable */
+              if (type.childOf) {
+                parent = catalog[type.relation];
+                delete parent.properties[type.childOf];
+              }
             }
           }
         }
@@ -435,6 +446,29 @@ create or replace function load_fp() returns void as $$
 
                   sql += ("CREATE VIEW %I AS SELECT " + cols.join(",") +
                     " FROM %I;").format(args);
+
+                  /* Update parent class for children */
+                  if (type.childOf) {
+                    parent = catalog[type.relation];
+                    if (!parent.properties[type.childOf]) {
+                      parent.properties[type.childOf] = {
+                        description: 'Parent of "' + key + '" on "' +
+                          obj.name + '"',
+                        type: {
+                          relation: obj.name,
+                          parentOf: key
+                        }
+                      }
+                    } else {
+                      err = 'Property "' + type.childOf + '" already exists on "' +
+                        type.relation + '"';
+                      plv8.elog(ERROR, err);
+                    }
+                    
+                  } else if (type.parentOf) {
+                    err = 'Can not set parent directly for "' + key + '"';
+                    plv8.elog(ERROR, err);
+                  }
                 }
 
               /* Handle standard types */
