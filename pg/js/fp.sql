@@ -89,6 +89,8 @@ create or replace function load_fp() returns void as $$
         catalog = featherbone.getSettings('catalog'),
         sql = "DROP VIEW %I; DROP TABLE %I;"
           .format(["_" + table, table]),
+        rels = [],
+        i = 0,
         props,
         view,
         type,
@@ -114,7 +116,7 @@ create or replace function load_fp() returns void as $$
 
           if (type.childOf) {
             delete catalog[type.relation].properties[type.childOf];
-            _createView(type.relation, catalog);
+            rels.push(type.relation)
           }
         }
       }
@@ -122,6 +124,12 @@ create or replace function load_fp() returns void as $$
       /* Update catalog settings */
       delete catalog[obj.name];
       featherbone.saveSettings("catalog", catalog);
+
+      /* Update views */
+      while (i < rels.length) {
+        _createView(rels[i]);
+        i++;
+      }
 
       return true;
     },
@@ -345,6 +353,7 @@ create or replace function load_fp() returns void as $$
         sql = "",
         sqlUpd,
         token,
+        parents = [],
         tokens = [],
         values = [],
         adds = [],
@@ -468,6 +477,8 @@ create or replace function load_fp() returns void as $$
                           parentOf: key
                         }
                       }
+
+                      parents.push(type.relation);
                     } else {
                       err = 'Property "' + type.childOf + '" already exists on "' +
                         type.relation + '"';
@@ -591,8 +602,12 @@ create or replace function load_fp() returns void as $$
       featherbone.saveSettings("catalog", catalog);
 
       
-      /* Create or replace view */
-      _createView(name, catalog);
+      /* Create or replace views */
+      _createView(name);
+      i = 0;
+      while (i < parents.length) {
+        _createView(parents[i]);
+      }
 
       return true;
     },
@@ -654,33 +669,34 @@ create or replace function load_fp() returns void as $$
   };
 
   /** private */
-  _createView = function (name, catalog) {
-    var klass = catalog[name],
+  _createView = function (name) {
+    var klass = featherbone.getClass(name),
       table = name.toSnakeCase(),
       args= ["_" + table, "_pk"],
       props = klass.properties,
       cols = ["%I"],
+      sub = "",
+      view,
       col,
-      view;
+      sql;
 
     for (key in props) {
       if (props.hasOwnProperty(key)) {
         if (typeof props[key].type === "object") {
-          if (props[key].type.parentOf) {
+          col = "_" + key.toSnakeCase() + "_" +
+            props[key].type.relation.toSnakeCase() + "_pk";
+          sub = props[key].type.parentOf ? "ARRAY" : "";
+          sub += "(SELECT %I FROM %I WHERE %I._pk = %I) AS %I";
+          cols.push(sub);
+
+          if (props[key].type.properties) {
+            view = "_" + name.toSnakeCase() + "$" +
+              key.toSnakeCase();
           } else {
-            col = "_" + key.toSnakeCase() + "_" +
-              props[key].type.relation.toSnakeCase() + "_pk";
-            cols.push("(SELECT %I FROM %I WHERE %I._pk = %I) AS %I");
-
-            if (props[key].type.properties) {
-              view = "_" + name.toSnakeCase() + "$" +
-                key.toSnakeCase();
-            } else {
-              view = "_" + props[key].type.relation.toSnakeCase();
-            }
-
-            args = args.concat([view, view, view, col, key.toSnakeCase()]);
+            view = "_" + props[key].type.relation.toSnakeCase();
           }
+
+          args = args.concat([view, view, view, col, key.toSnakeCase()]);
         } else {
           cols.push("%I");
           args.push(key.toSnakeCase());
@@ -689,7 +705,6 @@ create or replace function load_fp() returns void as $$
     }
 
     args.push(table);
- 
     sql = ("CREATE OR REPLACE VIEW %I AS SELECT " + cols.join(",") +
       " FROM %I;").format(args);
 
