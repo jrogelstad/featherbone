@@ -443,8 +443,31 @@ create or replace function load_fp() returns void as $$
                 sql += "integer;";
                 token = _relationColumn(key, type.relation);
 
-                /* Create a view for the subquery */
-                if (type.properties) {
+                /* Update parent class for children */
+                if (type.childOf) {
+                  parent = catalog[type.relation];
+                  if (!parent.properties[type.childOf]) {
+                    parent.properties[type.childOf] = {
+                      description: 'Parent of "' + key + '" on "' +
+                        obj.name + '"',
+                      type: {
+                        relation: obj.name,
+                        parentOf: key
+                      }
+                    }
+
+                    parents.push(type.relation);
+                  } else {
+                    err = 'Property "' + type.childOf + '" already exists on "' +
+                      type.relation + '"';
+                    plv8.elog(ERROR, err);
+                  }
+                    
+                } else if (type.parentOf) {
+                  err = 'Can not set parent directly for "' + key + '"';
+                  plv8.elog(ERROR, err);
+ 
+                } else if (type.properties) {
                   cols = ["%I"];
                   name = "_" + table + "$" + key.toSnakeCase();
                   args = [name, "_pk"];
@@ -454,41 +477,15 @@ create or replace function load_fp() returns void as $$
                     type.properties.unshift("id");
                   }
 
-                  while (i < type.properties.length) {
+                   while (i < type.properties.length) {
                     cols.push("%I");
                     args.push(type.properties[i].toSnakeCase());
                     i++;
                   }
 
                   args.push(type.relation.toSnakeCase());
-
                   sql += ("CREATE VIEW %I AS SELECT " + cols.join(",") +
                     " FROM %I;").format(args);
-
-                  /* Update parent class for children */
-                  if (type.childOf) {
-                    parent = catalog[type.relation];
-                    if (!parent.properties[type.childOf]) {
-                      parent.properties[type.childOf] = {
-                        description: 'Parent of "' + key + '" on "' +
-                          obj.name + '"',
-                        type: {
-                          relation: obj.name,
-                          parentOf: key
-                        }
-                      }
-
-                      parents.push(type.relation);
-                    } else {
-                      err = 'Property "' + type.childOf + '" already exists on "' +
-                        type.relation + '"';
-                      plv8.elog(ERROR, err);
-                    }
-                    
-                  } else if (type.parentOf) {
-                    err = 'Can not set parent directly for "' + key + '"';
-                    plv8.elog(ERROR, err);
-                  }
                 }
 
               /* Handle standard types */
@@ -607,6 +604,7 @@ create or replace function load_fp() returns void as $$
       i = 0;
       while (i < parents.length) {
         _createView(parents[i]);
+        i++;
       }
 
       return true;
@@ -675,31 +673,54 @@ create or replace function load_fp() returns void as $$
       args= ["_" + table, "_pk"],
       props = klass.properties,
       cols = ["%I"],
-      sub = "",
+      alias,
+      type,
       view,
+      sub,
       col,
       sql;
 
     for (key in props) {
       if (props.hasOwnProperty(key)) {
-        if (typeof props[key].type === "object") {
-          col = "_" + key.toSnakeCase() + "_" +
-            props[key].type.relation.toSnakeCase() + "_pk";
-          sub = props[key].type.parentOf ? "ARRAY" : "";
-          sub += "(SELECT %I FROM %I WHERE %I._pk = %I) AS %I";
-          cols.push(sub);
+        alias = key.toSnakeCase();
 
-          if (props[key].type.properties) {
-            view = "_" + name.toSnakeCase() + "$" +
-              key.toSnakeCase();
-          } else {
+        /* Handle relations */
+        if (typeof props[key].type === "object") {
+          type = props[key].type;
+
+          /* Handle to many */
+          if (type.parentOf) {
+            sub = "ARRAY(SELECT %I FROM %I WHERE %I.%I = %I._pk) AS %I";
             view = "_" + props[key].type.relation.toSnakeCase();
+            col = "_" + type.parentOf.toSnakeCase() + "_" + table + "_pk";
+            args = args.concat([view, view, view,
+              col, table, alias]);
+
+          /* Handle to one */
+          } else if (!type.childOf) {
+            col = "_" + key.toSnakeCase() + "_" +
+              props[key].type.relation.toSnakeCase() + "_pk";
+            sub = "(SELECT %I FROM %I WHERE %I._pk = %I) AS %I";
+
+            if (props[key].type.properties) {
+              view = "_" + name.toSnakeCase() + "$" +
+                key.toSnakeCase();
+            } else {
+              view = "_" + props[key].type.relation.toSnakeCase();
+            }
+
+            args = args.concat([view, view, view, col, alias]);
+          } else {
+            sub = "_" + key.toSnakeCase() + "_" + type.relation.toSnakeCase() +
+               "_pk";
           }
 
-          args = args.concat([view, view, view, col, key.toSnakeCase()]);
+          cols.push(sub);
+
+        /* Handle regular types */
         } else {
           cols.push("%I");
-          args.push(key.toSnakeCase());
+          args.push(alias);
         }
       }
     }
@@ -707,7 +728,6 @@ create or replace function load_fp() returns void as $$
     args.push(table);
     sql = ("CREATE OR REPLACE VIEW %I AS SELECT " + cols.join(",") +
       " FROM %I;").format(args);
-
     plv8.execute(sql);
   };
 
