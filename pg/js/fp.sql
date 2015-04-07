@@ -865,7 +865,8 @@ create or replace function load_fp() returns void as $$
       result,
       value,
       sql,
-      err;
+      err,
+      pk;
 
     /* Check id for existence and uniqueness and regenerate if any problem */
     data.id = data.id === undefined || _getKey(data.id) !== undefined ?
@@ -935,10 +936,10 @@ create or replace function load_fp() returns void as $$
     }
 
     sql = ("INSERT INTO %I (" + tokens.toString(",") + ") VALUES (" +
-      params.toString(",") + ");").format(args);
+      params.toString(",") + ") returning _pk;").format(args);
 
     /* Execute */
-    plv8.execute(sql, values);
+    pk = plv8.execute(sql, values)[0]._pk;
 
     /* Iterate through children */
     for (key in children) {
@@ -954,6 +955,8 @@ create or replace function load_fp() returns void as $$
         }
       }
     }
+
+    if (isChild) { return; }
     
     result = _select({name: obj.name, id: data.id});
 
@@ -961,11 +964,35 @@ create or replace function load_fp() returns void as $$
   };
 
   /** private */
+  _isChildClass = function (klass) {
+    var props = klass.properties,
+      key;
+    
+    for (key in props) {
+      if (props.hasOwnProperty(key)) {
+        if (typeof props[key].type === "object" &&
+            props[key].type.childOf) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  };
+
+  /** private */
   _patch = function (obj) {
     var patches = obj.data,
-      oldRec = _select(obj),
       klass = featherbone.getClass(obj.name),
+      oldRec,
       newRec;
+
+    /* Validate */
+    if (_isChildClass(klass)) {
+      plv8.elog(ERROR, "Can not directly update a child class");
+    }
+
+    oldRec = _select(obj);
 
     if (!Object.keys(oldRec).length) { return false; }
     newRec = JSON.parse(JSON.stringify(oldRec));
@@ -1008,11 +1035,12 @@ create or replace function load_fp() returns void as $$
   /** private */
   _select = function (obj) {
     var klass = featherbone.getClass(obj.name),
-      table = klass.name.toSnakeCase(),
+      table = "_" + klass.name.toSnakeCase(),
       keys = obj.properties || Object.keys(klass.properties),
       tokens = [],
       result = {},
       cols = [],
+      props,
       type,
       view,
       key,
@@ -1021,6 +1049,11 @@ create or replace function load_fp() returns void as $$
       col,
       pk,
       i = 0;
+
+    /* Validate */
+    if (_isChildClass(klass)) {
+      plv8.elog(ERROR, "Can not query directly on a child class");
+    }
 
     while (i < keys.length) {
       key = keys[i];
@@ -1038,7 +1071,7 @@ create or replace function load_fp() returns void as $$
       pk = _getKey(obj.id, obj.name);
       if (pk === undefined) { return {}; }
       sql +=  " WHERE _pk = $1";
-
+ 
       result = plv8.execute(sql, [pk])[0];
 
     /* Get a filtered result */
