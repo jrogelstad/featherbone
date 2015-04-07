@@ -20,7 +20,6 @@ create or replace function load_fp() returns void as $$
 (function () {
 
   var _settings = {},
-    _camelize,
     _createView,
     _curry,
     _getKey,
@@ -651,22 +650,6 @@ create or replace function load_fp() returns void as $$
   //
 
   /** private */
-  _camelize = function (obj) {
-    var result = {},
-      key;
-
-    for (key in obj) {
-      if (obj.hasOwnProperty(key)) {
-        result[key.toCamelCase()] = obj[key];
-      }
-    }
-
-    obj = result;
-
-    return obj;
-  };
-
-  /** private */
   _createView = function (name) {
     var klass = featherbone.getClass(name),
       table = name.toSnakeCase(),
@@ -1011,25 +994,39 @@ create or replace function load_fp() returns void as $$
     var isArray = Array.isArray(obj),
       ary = isArray ? obj : [obj],
       i = 0,
+      oldObj,
+      newObj,
       key;
 
     while (i < ary.length) {
-      delete ary[i]._pk;
-      ary[i] = _camelize(ary[i]);
 
       /* Copy to convert dates back to string for accurate comparisons */
-      ary[i] = JSON.parse(JSON.stringify(ary[i]));
+      oldObj = JSON.parse(JSON.stringify(ary[i]));
+      newObj = {};
 
-      for (key in ary[i]) {
-        if (ary[i].hasOwnProperty(key) &&
-            typeof ary[i][key] === "object") {
-          ary[i][key] = ary[i][key] ? _sanitize(ary[i][key]) : {};
+      for (key in oldObj) {
+        if (oldObj.hasOwnProperty(key)) {
+
+          /* Remove internal properties */
+          if (key.match("^_")) {
+            delete oldObj[key];
+          } else {
+            /* Make properties camel case */
+            newObj[key.toCamelCase()] = ary[i][key];
+
+            /* Recursively sanitize objects */
+            if (typeof oldObj[key] === "object") {
+              newObj[key] = oldObj[key] ? _sanitize(oldObj[key]) : {};
+            }
+          }
         }
       }
+      ary[i] = newObj;
+
       i++;
     }
 
-    return isArray ? obj : ary[0];
+    return isArray ? ary : ary[0];
   };
 
   /** private */
