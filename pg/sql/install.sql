@@ -52,6 +52,7 @@ do $$
      plv8.execute(sqlCmt.format(['object','updated','Last time the record was updated']));
      plv8.execute(sqlCmt.format(['object','updated_by','Last user who created the record']));
      plv8.execute(sqlCmt.format(['object','is_deleted','Indicates the record is no longer active']));
+     plv8.execute("CREATE OR REPLACE VIEW _object AS SELECT * FROM object;");
    };
 
    /** Create the base log table **/
@@ -63,6 +64,7 @@ do $$
      plv8.execute(sql);
      plv8.execute("COMMENT ON TABLE log IS 'Class for logging all schema and data changes'");
      plv8.execute(sqlCmt.format(['log','change','Patch formatted json indicating changes']));
+     plv8.execute("CREATE OR REPLACE VIEW _log AS SELECT * FROM log;");
    };
 
    /** Create the settings table **/

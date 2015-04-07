@@ -21,6 +21,7 @@ create or replace function load_fp() returns void as $$
 
   var _settings = {},
     _camelize,
+    _createView,
     _curry,
     _getKey,
     _getKeys,
@@ -86,9 +87,11 @@ create or replace function load_fp() returns void as $$
 
       var table = obj.name ? obj.name.toSnakeCase() : false,
         catalog = featherbone.getSettings('catalog'),
-        sql = "DROP TABLE %I".format([table]),
+        sql = "DROP VIEW %I; DROP TABLE %I;"
+          .format(["_" + table, table]),
         props,
         view,
+        type,
         key;
 
       if (!table || !catalog[obj.name]) { return false; }
@@ -100,13 +103,19 @@ create or replace function load_fp() returns void as $$
       props = catalog[obj.name].properties;
       for (key in props) {
         if (props.hasOwnProperty(key) &&
-            typeof props[key].type === "object" &&
-            props[key].type.properties) {
-          view = "_" + obj.name.toSnakeCase() + "_" + key.toSnakeCase();
-          sql = "DROP VIEW %I;"
-            .format([view]);
+            typeof props[key].type === "object") {
+          type = props[key].type;
 
-          plv8.execute(sql);
+          if (type.properties) {
+            view = "_" + obj.name.toSnakeCase() + "$" + key.toSnakeCase();
+            sql = "DROP VIEW %I;".format([view]);
+            plv8.execute(sql);
+          }
+
+          if (type.childOf) {
+            delete catalog[type.relation].properties[type.childOf];
+            _createView(type.relation, catalog);
+          }
         }
       }
 
@@ -428,7 +437,7 @@ create or replace function load_fp() returns void as $$
                 /* Create a view for the subquery */
                 if (type.properties) {
                   cols = ["%I"];
-                  name = "_" + table + "_" + key.toSnakeCase();
+                  name = "_" + table + "$" + key.toSnakeCase();
                   args = [name, "_pk"];
 
                   /* Always include "id" whether specified or not */
@@ -576,9 +585,14 @@ create or replace function load_fp() returns void as $$
       }
 
       /* Update catalog settings */
-      catalog[obj.name] = obj;
+      name = obj.name
+      catalog[name] = obj;    
       delete obj.name;
       featherbone.saveSettings("catalog", catalog);
+
+      
+      /* Create or replace view */
+      _createView(name, catalog);
 
       return true;
     },
@@ -637,6 +651,30 @@ create or replace function load_fp() returns void as $$
     obj = result;
 
     return obj;
+  };
+
+  /** private */
+  _createView = function (name, catalog) {
+    var cols = [],
+      klass = catalog[name],
+      table = name.toSnakeCase(),
+      args= ["_" + table];
+
+    for (key in klass.properties) {
+      if (klass.properties.hasOwnProperty(key)) {
+        if (typeof klass.properties[key].type === "object") {
+        } else {
+          cols.push("%I");
+          args.push(key.toSnakeCase());
+        }
+      }
+    }
+
+    args.push(table);
+    sql = ("CREATE OR REPLACE VIEW %I AS SELECT " + cols.join(",") +
+      " FROM %I;").format(args);
+
+    plv8.execute(sql);
   };
 
   /** private */
@@ -927,6 +965,7 @@ create or replace function load_fp() returns void as $$
       key,
       sql,
       rel,
+      col,
       pk,
       i = 0;
 
@@ -935,8 +974,14 @@ create or replace function load_fp() returns void as $$
       type = klass.properties[key].type;
 
       if (typeof type === "object") {
-        if (!type.parentOf) {
-          tokens.push("(SELECT %I FROM %I WHERE %I._pk = %I) AS %I");
+        col = "(SELECT %I FROM %I WHERE %I._pk = %I) AS %I";
+        /* Handle to many composites */
+        if (type.parentOf) {
+          col = " ARRAY" + col;
+          /* TODO: More... */
+        /* Handle to one composites */
+        } else {
+          tokens.push(col);
           if (type.properties) {
             view = "_" + table + "_" + key.toSnakeCase();
           } else {
