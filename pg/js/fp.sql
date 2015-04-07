@@ -655,14 +655,32 @@ create or replace function load_fp() returns void as $$
 
   /** private */
   _createView = function (name, catalog) {
-    var cols = [],
-      klass = catalog[name],
+    var klass = catalog[name],
       table = name.toSnakeCase(),
-      args= ["_" + table];
+      args= ["_" + table, "_pk"],
+      props = klass.properties,
+      cols = ["%I"],
+      col,
+      view;
 
-    for (key in klass.properties) {
-      if (klass.properties.hasOwnProperty(key)) {
-        if (typeof klass.properties[key].type === "object") {
+    for (key in props) {
+      if (props.hasOwnProperty(key)) {
+        if (typeof props[key].type === "object") {
+          if (props[key].type.parentOf) {
+          } else {
+            col = "_" + key.toSnakeCase() + "_" +
+              props[key].type.relation.toSnakeCase() + "_pk";
+            cols.push("(SELECT %I FROM %I WHERE %I._pk = %I) AS %I");
+
+            if (props[key].type.properties) {
+              view = "_" + name.toSnakeCase() + "$" +
+                key.toSnakeCase();
+            } else {
+              view = "_" + props[key].type.relation.toSnakeCase();
+            }
+
+            args = args.concat([view, view, view, col, key.toSnakeCase()]);
+          }
         } else {
           cols.push("%I");
           args.push(key.toSnakeCase());
@@ -671,6 +689,7 @@ create or replace function load_fp() returns void as $$
     }
 
     args.push(table);
+ 
     sql = ("CREATE OR REPLACE VIEW %I AS SELECT " + cols.join(",") +
       " FROM %I;").format(args);
 
@@ -900,7 +919,6 @@ create or replace function load_fp() returns void as $$
         }
       }
     }
-
     
     result = _select({name: obj.name, id: data.id});
 
@@ -972,28 +990,8 @@ create or replace function load_fp() returns void as $$
     while (i < keys.length) {
       key = keys[i];
       type = klass.properties[key].type;
-
-      if (typeof type === "object") {
-        col = "(SELECT %I FROM %I WHERE %I._pk = %I) AS %I";
-        /* Handle to many composites */
-        if (type.parentOf) {
-          col = " ARRAY" + col;
-          /* TODO: More... */
-        /* Handle to one composites */
-        } else {
-          tokens.push(col);
-          if (type.properties) {
-            view = "_" + table + "_" + key.toSnakeCase();
-          } else {
-            view = type.relation.toSnakeCase();
-          }
-          rel =  _relationColumn(key, type.relation);
-          cols = cols.concat([view, view, view, rel, key.toSnakeCase()]);
-        }
-      } else {
-        tokens.push("%I");
-        cols.push(key.toSnakeCase());
-      }
+      tokens.push("%I");
+      cols.push(key.toSnakeCase());
       i++;
     }
 
