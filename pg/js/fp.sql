@@ -24,6 +24,7 @@ create or replace function load_fp() returns void as $$
     _curry,
     _getKey,
     _getKeys,
+    _isChildClass,
     _patch,
     _relationColumn,
     _sanitize,
@@ -115,7 +116,7 @@ create or replace function load_fp() returns void as $$
 
           if (type.childOf) {
             delete catalog[type.relation].properties[type.childOf];
-            rels.push(type.relation)
+            rels.push(type.relation);
           }
         }
       }
@@ -339,26 +340,26 @@ create or replace function load_fp() returns void as $$
         }
       }
 
-     * @param {Object} Class specification payload.
+     * @param {Object | Array} Class specification payload(s).
      * @return {String}
     */
-    saveClass: function (obj) {
-      obj = obj || {};
+    saveClass: function (specs) {
+      specs = Array.isArray(specs) ? specs : [specs];
 
-      var table = obj.name ? obj.name.toSnakeCase() : false,
-        inherits = (obj.inherits || "Object").toSnakeCase(),
-        klass = featherbone.getClass(obj.name, false),
-        catalog = featherbone.getSettings('catalog'),
-        sql = "",
+      var table,
+        inherits,
+        klass,
+        catalog,
+        sql,
         sqlUpd,
         token,
-        parents = [],
-        tokens = [],
-        values = [],
-        adds = [],
-        args = [],
-        fns = [],
-        cols = [],
+        parents,
+        tokens,
+        values,
+        adds,
+        args,
+        fns,
+        cols,
         defaultValue,
         props,
         key,
@@ -367,237 +368,259 @@ create or replace function load_fp() returns void as $$
         err,
         name,
         parent,
-        i = 0,
-        n = 0,
+        obj,
+        o = 0,
+        i,
+        n,
+        p;
+
+      while (o < specs.length) {
+        obj = specs[o];
+        table = obj.name ? obj.name.toSnakeCase() : false;
+        inherits = (obj.inherits || "Object").toSnakeCase();
+        klass = featherbone.getClass(obj.name, false);
+        catalog = featherbone.getSettings('catalog');
+        sql = "";
+        parents = [];
+        tokens = [];
+        values = [];
+        adds = [];
+        args = [];
+        fns = [];
+        cols = [];
+        i = 0;
+        n = 0;
         p = 1;
 
-      if (!table) { return false; }
+        if (!table) { plv8.elog(ERROR, "No name defined"); }
 
-      /* Create table if applicable */
-      if (!klass) {
-        sql = "CREATE TABLE %I( " +
-          "CONSTRAINT %I PRIMARY KEY (_pk), " +
-          "CONSTRAINT %I UNIQUE (id)) " +
-          "INHERITS (%I);";
-        tokens = tokens.concat([
-          table,
-          table + "_pkey",
-          table + "_id_key",
-          inherits
-        ]);
-      } else {
-        /* Drop non-inherited columns not included in properties */
-        props = klass.properties;
-        for (key in props) {
-          if (props.hasOwnProperty(key)) {
-            if (!obj.properties[key]) {
-              /* Handle relations */
-              type = props[key].type;
+        /* Create table if applicable */
+        if (!klass) {
+          sql = "CREATE TABLE %I( " +
+            "CONSTRAINT %I PRIMARY KEY (_pk), " +
+            "CONSTRAINT %I UNIQUE (id)) " +
+            "INHERITS (%I);";
+          tokens = tokens.concat([
+            table,
+            table + "_pkey",
+            table + "_id_key",
+            inherits
+          ]);
+        } else {
+          /* Drop non-inherited columns not included in properties */
+          props = klass.properties;
+          for (key in props) {
+            if (props.hasOwnProperty(key)) {
+              if (!obj.properties[key]) {
+                /* Handle relations */
+                type = props[key].type;
 
-              if (typeof type === "object") {
-                /* Drop associated view if applicable */
-                if (type.properties) {
-                  sql += "DROP VIEW %I;"
-                  tokens = tokens.concat([
-                    "_" + table + "_" + key.toSnakeCase(),
-                    table,
-                    _relationColumn(key, type.relation)
-                  ]);
-                } else {
-                  tokens = tokens.concat([table, key.toSnakeCase()]);
+                if (typeof type === "object") {
+                  /* Drop associated view if applicable */
+                  if (type.properties) {
+                    sql += "DROP VIEW %I;";
+                    tokens = tokens.concat([
+                      "_" + table + "_" + key.toSnakeCase(),
+                      table,
+                      _relationColumn(key, type.relation)
+                    ]);
+                  } else {
+                    tokens = tokens.concat([table, key.toSnakeCase()]);
+                  }
+
+                  sql += "ALTER TABLE %I DROP COLUMN %I;";
                 }
 
-                sql += "ALTER TABLE %I DROP COLUMN %I;";
-              }
-
-              /* Unrelate parent if applicable */
-              if (type.childOf) {
-                parent = catalog[type.relation];
-                delete parent.properties[type.childOf];
-              }
-            }
-          }
-        }
-      }
-
-      /* Add table description */
-      if (obj.description) {
-        sql += "COMMENT ON TABLE %I IS %L;";
-        tokens = tokens.concat([table, obj.description || ""]);
-      }
-
-      /* Add columns */
-      props = obj.properties;
-      for (key in props) {
-        if (props.hasOwnProperty(key)) {
-          type = typeof props[key].type === "string" ?
-              _types[props[key].type] : props[key].type;
-
-          if (type) {
-            if (!klass || !klass.properties[key]) {
-              sql += "ALTER TABLE %I ADD COLUMN %I ";
-
-              /* Handle composite types */
-              if (type.relation) {
-                sql += "integer;";
-                token = _relationColumn(key, type.relation);
-
-                /* Update parent class for children */
+                /* Unrelate parent if applicable */
                 if (type.childOf) {
                   parent = catalog[type.relation];
-                  if (!parent.properties[type.childOf]) {
-                    parent.properties[type.childOf] = {
-                      description: 'Parent of "' + key + '" on "' +
-                        obj.name + '"',
-                      type: {
-                        relation: obj.name,
-                        parentOf: key
-                      }
+                  delete parent.properties[type.childOf];
+                }
+              }
+            }
+          }
+        }
+
+        /* Add table description */
+        if (obj.description) {
+          sql += "COMMENT ON TABLE %I IS %L;";
+          tokens = tokens.concat([table, obj.description || ""]);
+        }
+
+        /* Add columns */
+        props = obj.properties;
+        for (key in props) {
+          if (props.hasOwnProperty(key)) {
+            type = typeof props[key].type === "string" ?
+                _types[props[key].type] : props[key].type;
+
+            if (type) {
+              if (!klass || !klass.properties[key]) {
+                sql += "ALTER TABLE %I ADD COLUMN %I ";
+
+                /* Handle composite types */
+                if (type.relation) {
+                  sql += "integer;";
+                  token = _relationColumn(key, type.relation);
+
+                  /* Update parent class for children */
+                  if (type.childOf) {
+                    parent = catalog[type.relation];
+                    if (!parent.properties[type.childOf]) {
+                      parent.properties[type.childOf] = {
+                        description: 'Parent of "' + key + '" on "' +
+                          obj.name + '"',
+                        type: {
+                          relation: obj.name,
+                          parentOf: key
+                        }
+                      };
+
+                      parents.push(type.relation);
+                    } else {
+                      err = 'Property "' + type.childOf +
+                        '" already exists on "' + type.relation + '"';
+                      plv8.elog(ERROR, err);
                     }
 
-                    parents.push(type.relation);
-                  } else {
-                    err = 'Property "' + type.childOf + '" already exists on "' +
-                      type.relation + '"';
+                  } else if (type.parentOf) {
+                    err = 'Can not set parent directly for "' + key + '"';
                     plv8.elog(ERROR, err);
-                  }
-                    
-                } else if (type.parentOf) {
-                  err = 'Can not set parent directly for "' + key + '"';
-                  plv8.elog(ERROR, err);
- 
-                } else if (type.properties) {
-                  cols = ["%I"];
-                  name = "_" + table + "$" + key.toSnakeCase();
-                  args = [name, "_pk"];
 
-                  /* Always include "id" whether specified or not */
-                  if (type.properties.indexOf("id") === -1) {
-                    type.properties.unshift("id");
+                  } else if (type.properties) {
+                    cols = ["%I"];
+                    name = "_" + table + "$" + key.toSnakeCase();
+                    args = [name, "_pk"];
+
+                    /* Always include "id" whether specified or not */
+                    if (type.properties.indexOf("id") === -1) {
+                      type.properties.unshift("id");
+                    }
+
+                    while (i < type.properties.length) {
+                      cols.push("%I");
+                      args.push(type.properties[i].toSnakeCase());
+                      i++;
+                    }
+
+                    args.push(type.relation.toSnakeCase());
+                    sql += ("CREATE VIEW %I AS SELECT " + cols.join(",") +
+                      " FROM %I;").format(args);
                   }
 
-                   while (i < type.properties.length) {
-                    cols.push("%I");
-                    args.push(type.properties[i].toSnakeCase());
-                    i++;
-                  }
-
-                  args.push(type.relation.toSnakeCase());
-                  sql += ("CREATE VIEW %I AS SELECT " + cols.join(",") +
-                    " FROM %I;").format(args);
+                /* Handle standard types */
+                } else {
+                  sql += type.type + ";";
+                  token = key.toSnakeCase();
                 }
+                adds.push(key);
 
-              /* Handle standard types */
-              } else {
-                sql += type.type + ";";
-                token = key.toSnakeCase();
+                tokens = tokens.concat([table, token]);
+
+                if (props[key].description) {
+                  sql += "COMMENT ON COLUMN %I.%I IS %L;";
+                  tokens = tokens.concat([
+                    table,
+                    token,
+                    props[key].description || ""
+                  ]);
+                }
               }
-              adds.push(key);
-
-              tokens = tokens.concat([table, token]);
-
-              if (props[key].description) {
-                sql += "COMMENT ON COLUMN %I.%I IS %L;";
-                tokens = tokens.concat([
-                  table,
-                  token,
-                  props[key].description || ""
-                ]);
-              }
-            }
-          } else {
-            err = 'Invalid type "' + props[key].type + '" for property "' +
-              key +'" on class "' + obj.name + '"'
-            plv8.elog(ERROR, err);
-          }
-        }
-      }
-
-      /* Update schema */
-      sql = sql.format(tokens);
-      plv8.execute(sql);
-
-      /* Populate defaults */
-      if (adds.length) {
-        values = [];
-        tokens = [];
-        args = [table];
-        i = 0;
-
-        while (i < adds.length) {
-          type = props[adds[i]].type;
-          if (typeof type === "object") {
-            defaultValue = -1;
-          } else {
-            defaultValue = props[adds[i]].defaultValue ||
-              _types[type].defaultValue;
-          }
-
-          if (typeof defaultValue === "string" &&
-              defaultValue.match(/\(\)$/)) {
-            fns.push({
-              col: adds[i].toSnakeCase(),
-              defaultValue: defaultValue.replace(/\(\)$/, "")
-            });
-          } else {
-            values.push(defaultValue);
-            tokens.push("%I=$" + p);
-            if (typeof type === "object") {
-              args.push(_relationColumn(adds[i], type.relation));
             } else {
-              args.push(adds[i].toSnakeCase());
+              err = 'Invalid type "' + props[key].type + '" for property "' +
+                  key + '" on class "' + obj.name + '"';
+              plv8.elog(ERROR, err);
             }
-            p++;
           }
-          i++;
         }
 
-        if (values.length) {
-          sql = ("UPDATE %I SET " + tokens.join(",") + ";").format(args);
-          plv8.execute(sql, values);
-        }
+        /* Update schema */
+        sql = sql.format(tokens);
+        plv8.execute(sql);
 
-        /* Update function based defaults (one by one) */
-        if (fns.length) {
-          sql = "SELECT _pk FROM %I ORDER BY _pk OFFSET $1 LIMIT 1;"
-            .format([table]);
-          recs = plv8.execute(sql, [n]);
+        /* Populate defaults */
+        if (adds.length) {
+          values = [];
           tokens = [];
           args = [table];
           i = 0;
 
-          while (i < fns.length) {
-            tokens.push("%I=$" + (i + 2));
-            args.push(fns[i].col);
+          while (i < adds.length) {
+            type = props[adds[i]].type;
+            if (typeof type === "object") {
+              defaultValue = -1;
+            } else {
+              defaultValue = props[adds[i]].defaultValue ||
+                _types[type].defaultValue;
+            }
+
+            if (typeof defaultValue === "string" &&
+                defaultValue.match(/\(\)$/)) {
+              fns.push({
+                col: adds[i].toSnakeCase(),
+                defaultValue: defaultValue.replace(/\(\)$/, "")
+              });
+            } else {
+              values.push(defaultValue);
+              tokens.push("%I=$" + p);
+              if (typeof type === "object") {
+                args.push(_relationColumn(adds[i], type.relation));
+              } else {
+                args.push(adds[i].toSnakeCase());
+              }
+              p++;
+            }
             i++;
           }
 
-          sqlUpd = ("UPDATE %I SET " + tokens.join(",") + " WHERE _pk = $1")
-            .format(args);
+          if (values.length) {
+            sql = ("UPDATE %I SET " + tokens.join(",") + ";").format(args);
+            plv8.execute(sql, values);
+          }
 
-          while (recs.length) {
-            values = [recs[0]._pk];
+          /* Update function based defaults (one by one) */
+          if (fns.length) {
+            sql = "SELECT _pk FROM %I ORDER BY _pk OFFSET $1 LIMIT 1;"
+              .format([table]);
+            recs = plv8.execute(sql, [n]);
+            tokens = [];
+            args = [table];
             i = 0;
-            n++;
 
             while (i < fns.length) {
-              values.push(featherbone[fns[i].defaultValue]());
+              tokens.push("%I=$" + (i + 2));
+              args.push(fns[i].col);
               i++;
             }
 
-            plv8.execute(sqlUpd, values);
-            recs = plv8.execute(sql, [n]);
+            sqlUpd = ("UPDATE %I SET " + tokens.join(",") + " WHERE _pk = $1")
+              .format(args);
+
+            while (recs.length) {
+              values = [recs[0]._pk];
+              i = 0;
+              n++;
+
+              while (i < fns.length) {
+                values.push(featherbone[fns[i].defaultValue]());
+                i++;
+              }
+
+              plv8.execute(sqlUpd, values);
+              recs = plv8.execute(sql, [n]);
+            }
           }
+          o++;
         }
       }
 
       /* Update catalog settings */
-      name = obj.name
-      catalog[name] = obj;    
+      name = obj.name;
+      catalog[name] = obj;
       delete obj.name;
       featherbone.saveSettings("catalog", catalog);
 
-      
+
       /* Create or replace views */
       _createView(name);
       i = 0;
@@ -627,7 +650,8 @@ create or replace function load_fp() returns void as $$
         rec = result[0];
 
         if (settings.etag !== rec.etag) {
-          err = 'Settings for "' + name + '" changed by another user. Save failed.'
+          err = 'Settings for "' + name +
+            '" changed by another user. Save failed.';
           plv8.elog(ERROR, err);
         }
 
@@ -653,7 +677,7 @@ create or replace function load_fp() returns void as $$
   _createView = function (name) {
     var klass = featherbone.getClass(name),
       table = name.toSnakeCase(),
-      args= ["_" + table, "_pk"],
+      args = ["_" + table, "_pk"],
       props = klass.properties,
       cols = ["%I"],
       alias,
@@ -661,7 +685,8 @@ create or replace function load_fp() returns void as $$
       view,
       sub,
       col,
-      sql;
+      sql,
+      key;
 
     for (key in props) {
       if (props.hasOwnProperty(key)) {
@@ -837,7 +862,6 @@ create or replace function load_fp() returns void as $$
       tokens = [],
       params = [],
       values = [],
-      defaultValue,
       i = 0,
       p = 1,
       child,
@@ -848,8 +872,7 @@ create or replace function load_fp() returns void as $$
       result,
       value,
       sql,
-      err,
-      pk;
+      err;
 
     /* Check id for existence and uniqueness and regenerate if any problem */
     data.id = data.id === undefined || _getKey(data.id) !== undefined ?
@@ -899,7 +922,7 @@ create or replace function load_fp() returns void as $$
 
           if (value === undefined) {
             value = prop.defaultValue === undefined ?
-              _types[prop.type].defaultValue : prop.defaultValue;
+                _types[prop.type].defaultValue : prop.defaultValue;
 
             /* If we have a class specific default that calls a function */
             if (value && typeof value === "string" && value.match(/\(\)$/)) {
@@ -919,10 +942,10 @@ create or replace function load_fp() returns void as $$
     }
 
     sql = ("INSERT INTO %I (" + tokens.toString(",") + ") VALUES (" +
-      params.toString(",") + ") returning _pk;").format(args);
+      params.toString(",") + ");").format(args);
 
     /* Execute */
-    pk = plv8.execute(sql, values)[0]._pk;
+    plv8.execute(sql, values);
 
     /* Iterate through children */
     for (key in children) {
@@ -932,7 +955,7 @@ create or replace function load_fp() returns void as $$
           child = {
             name: children[key].type.relation,
             data: data[key][i]
-          }
+          };
           _insert(child, true);
           i++;
         }
@@ -940,7 +963,7 @@ create or replace function load_fp() returns void as $$
     }
 
     if (isChild) { return; }
-    
+
     result = _select({name: obj.name, id: data.id});
 
     return jsonpatch.compare(obj.data, _sanitize(result));
@@ -950,7 +973,7 @@ create or replace function load_fp() returns void as $$
   _isChildClass = function (klass) {
     var props = klass.properties,
       key;
-    
+
     for (key in props) {
       if (props.hasOwnProperty(key)) {
         if (typeof props[key].type === "object" &&
@@ -1037,15 +1060,10 @@ create or replace function load_fp() returns void as $$
       tokens = [],
       result = {},
       cols = [],
-      props,
-      type,
-      view,
+      i = 0,
       key,
       sql,
-      rel,
-      col,
-      pk,
-      i = 0;
+      pk;
 
     /* Validate */
     if (_isChildClass(klass)) {
@@ -1054,7 +1072,6 @@ create or replace function load_fp() returns void as $$
 
     while (i < keys.length) {
       key = keys[i];
-      type = klass.properties[key].type;
       tokens.push("%I");
       cols.push(key.toSnakeCase());
       i++;
@@ -1068,7 +1085,7 @@ create or replace function load_fp() returns void as $$
       pk = _getKey(obj.id, obj.name);
       if (pk === undefined) { return {}; }
       sql +=  " WHERE _pk = $1";
- 
+
       result = plv8.execute(sql, [pk])[0];
 
     /* Get a filtered result */
