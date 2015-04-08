@@ -185,7 +185,7 @@ create or replace function load_fp() returns void as $$
         delete result.inherits;
       }
 
-      /* Now add in local properties back in */
+      /* Now add local properties back in */
       klassProps = catalog[name].properties;
       resultProps = result.properties;
       for (key in klassProps) {
@@ -284,7 +284,8 @@ create or replace function load_fp() returns void as $$
              }
           }
 
-      @return {String}
+      @param {Object} Payload
+      @return {Object | Array}
     */
     request: function (obj) {
       var prop = obj.name,
@@ -341,38 +342,15 @@ create or replace function load_fp() returns void as $$
       }
 
      * @param {Object | Array} Class specification payload(s).
-     * @return {String}
+     * @return {Boolean}
     */
     saveClass: function (specs) {
       specs = Array.isArray(specs) ? specs : [specs];
 
-      var table,
-        inherits,
-        klass,
-        catalog,
-        sql,
-        sqlUpd,
-        token,
-        parents,
-        tokens,
-        values,
-        adds,
-        args,
-        fns,
-        cols,
-        defaultValue,
-        props,
-        key,
-        recs,
-        type,
-        err,
-        name,
-        parent,
-        obj,
-        o = 0,
-        i,
-        n,
-        p;
+      var table, inherits, klass, catalog, sql, sqlUpd, token, parents, tokens,
+        values, adds, args, fns, cols, defaultValue, props, key, recs, type,
+        err, name, parent, obj, i, n, p,
+        o = 0;
 
       while (o < specs.length) {
         obj = specs[o];
