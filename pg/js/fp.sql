@@ -588,25 +588,26 @@ create or replace function load_fp() returns void as $$
               recs = plv8.execute(sql, [n]);
             }
           }
-          o++;
         }
+
+        /* Update catalog settings */
+        name = obj.name;
+        catalog[name] = obj;
+        delete obj.name;
+        featherbone.saveSettings("catalog", catalog);
+
+
+        /* Create or replace views */
+        _createView(name);
+        i = 0;
+        while (i < parents.length) {
+          _createView(parents[i]);
+          i++;
+        }
+
+        o++;
       }
-
-      /* Update catalog settings */
-      name = obj.name;
-      catalog[name] = obj;
-      delete obj.name;
-      featherbone.saveSettings("catalog", catalog);
-
-
-      /* Create or replace views */
-      _createView(name);
-      i = 0;
-      while (i < parents.length) {
-        _createView(parents[i]);
-        i++;
-      }
-
+      
       return true;
     },
 
