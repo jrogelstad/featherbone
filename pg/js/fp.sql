@@ -79,56 +79,63 @@ create or replace function load_fp() returns void as $$
     /**
       Remove a class from the database.
 
-      * @param {Object} Object describing object to remove.
+      * @param {Object | Array} Object(s) describing object to remove.
       * @return {String}
     */
-    deleteClass: function (obj) {
-      obj = obj || {};
+    deleteClass: function (specs) {
+      specs = Array.isArray ? specs : [specs];
 
-      var table = obj.name ? obj.name.toSnakeCase() : false,
-        catalog = featherbone.getSettings('catalog'),
+      var obj, table, catalog, sql, rels, i, props, view, type, key,
+        o = 0;
+
+      while (o < specs.length) {
+        obj = specs[o];
+
+        table = obj.name ? obj.name.toSnakeCase() : false;
+        catalog = featherbone.getSettings('catalog');
         sql = "DROP VIEW %I; DROP TABLE %I;"
-          .format(["_" + table, table]),
-        rels = [],
-        i = 0,
-        props,
-        view,
-        type,
-        key;
+          .format(["_" + table, table]);
+        rels = [];
+        i = 0;
 
-      if (!table || !catalog[obj.name]) { return false; }
+        if (!table || !catalog[obj.name]) {
+          plv8.elog(ERROR, 'Class not found');
+        }
 
-      /* Drop table */
-      plv8.execute(sql);
+        /* Drop table */
+        plv8.execute(sql);
 
-      /* Drop views for composite types */
-      props = catalog[obj.name].properties;
-      for (key in props) {
-        if (props.hasOwnProperty(key) &&
-            typeof props[key].type === "object") {
-          type = props[key].type;
+        /* Drop views for composite types */
+        props = catalog[obj.name].properties;
+        for (key in props) {
+          if (props.hasOwnProperty(key) &&
+              typeof props[key].type === "object") {
+            type = props[key].type;
 
-          if (type.properties) {
-            view = "_" + obj.name.toSnakeCase() + "$" + key.toSnakeCase();
-            sql = "DROP VIEW %I;".format([view]);
-            plv8.execute(sql);
-          }
+            if (type.properties) {
+              view = "_" + obj.name.toSnakeCase() + "$" + key.toSnakeCase();
+              sql = "DROP VIEW %I;".format([view]);
+              plv8.execute(sql);
+            }
 
-          if (type.childOf) {
-            delete catalog[type.relation].properties[type.childOf];
-            rels.push(type.relation);
+            if (type.childOf && catalog[type.relation]) {
+              delete catalog[type.relation].properties[type.childOf];
+              rels.push(type.relation);
+            }
           }
         }
-      }
 
-      /* Update catalog settings */
-      delete catalog[obj.name];
-      featherbone.saveSettings("catalog", catalog);
+        /* Update catalog settings */
+        delete catalog[obj.name];
+        featherbone.saveSettings("catalog", catalog);
 
-      /* Update views */
-      while (i < rels.length) {
-        _createView(rels[i]);
-        i++;
+        /* Update views */
+        while (i < rels.length) {
+          _createView(rels[i]);
+          i++;
+        }
+
+        o++;
       }
 
       return true;
@@ -607,13 +614,15 @@ create or replace function load_fp() returns void as $$
 
         o++;
       }
-      
+
       return true;
     },
 
     /**
       Create or upate settings.
 
+      @param {String} Name of settings
+      @param {Object} Settings payload
       @return {String}
     */
     saveSettings: function (name, settings) {
