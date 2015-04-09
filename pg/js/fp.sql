@@ -164,6 +164,7 @@ create or replace function load_fp() returns void as $$
             if (klassProps.hasOwnProperty(key)) {
               if (childProps[key] === undefined) {
                 childProps[key] = klassProps[key];
+                childProps[key].inheritedFrom = parent;
               }
             }
           }
@@ -433,6 +434,7 @@ create or replace function load_fp() returns void as $$
         }
 
         /* Add columns */
+        obj.properties = obj.properties || {};
         props = obj.properties;
         for (key in props) {
           if (props.hasOwnProperty(key)) {
@@ -668,6 +670,7 @@ create or replace function load_fp() returns void as $$
       args = ["_" + table, "_pk"],
       props = klass.properties,
       cols = ["%I"],
+      parent,
       alias,
       type,
       view,
@@ -688,7 +691,9 @@ create or replace function load_fp() returns void as $$
           if (type.parentOf) {
             sub = "ARRAY(SELECT %I FROM %I WHERE %I.%I = %I._pk) AS %I";
             view = "_" + props[key].type.relation.toSnakeCase();
-            col = "_" + type.parentOf.toSnakeCase() + "_" + table + "_pk";
+            parent =  props[key].inheritedFrom ?
+              props[key].inheritedFrom.toSnakeCase() : table;
+            col = "_" + type.parentOf.toSnakeCase() + "_" + parent + "_pk";
             args = args.concat([view, view, view,
               col, table, alias]);
 
