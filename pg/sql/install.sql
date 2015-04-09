@@ -32,7 +32,7 @@ do $$
      sql,
      params;
 
-   /** Create the base object table **/
+   /* Create the base object table */
    if (!plv8.execute(sqlChk,['object']).length) {
      sql = "CREATE TABLE object (" +
        "_pk bigserial PRIMARY KEY," +
@@ -55,19 +55,7 @@ do $$
      plv8.execute("CREATE OR REPLACE VIEW _object AS SELECT * FROM object;");
    };
 
-   /** Create the base log table **/
-   if (!plv8.execute(sqlChk,['log']).length) {
-     sql = "CREATE TABLE log (" +
-       "change json default '{}'," +
-       "constraint log_pkey primary key (_pk), " +
-       "constraint log_id_key unique (id)) inherits (object)";
-     plv8.execute(sql);
-     plv8.execute("COMMENT ON TABLE log IS 'Class for logging all schema and data changes'");
-     plv8.execute(sqlCmt.format(['log','change','Patch formatted json indicating changes']));
-     plv8.execute("CREATE OR REPLACE VIEW _log AS SELECT * FROM log;");
-   };
-
-   /** Create the settings table **/
+   /* Create the settings table */
    if (!plv8.execute(sqlChk,['_settings']).length) {
      sql = "CREATE TABLE _settings (" +
        "name text default ''," +
@@ -114,18 +102,33 @@ do $$
                "type": "string",
                "defaultValue": "createId()"}
              }
-          },
-         "Log": {
-         "description": "Class for logging all schema and data changes",
-         "inherits": "Object",
-         "properties": {
-             "change": {
-               "description": "Patch formatted json indicating changes",
-               "type": "object"}
-             }
           }
        }
      ]
      plv8.execute(sql, params);
-   };
+   }
+
+   /* Create some foundation classes */
+   featherbone.saveClass([{
+       name: "Document",
+       description: "Base document class"
+     },{
+       name: "log", 
+       description: "Class for logging all schema and data changes",
+       properties: {
+         parent: {
+            description: "Parent reference",
+            type: {
+                relation: "Document",
+                childOf: "changeLog"
+            }
+         },
+         change: {
+             description: "Patch formatted json indicating changes",
+             type: "object"
+         }
+       }
+     }
+   ]);
+
 $$ language plv8;
