@@ -26,6 +26,7 @@ create or replace function load_fp() returns void as $$
     _getKeys,
     _isChildClass,
     _patch,
+    _propagateViews,
     _relationColumn,
     _sanitize,
     _insert,
@@ -380,6 +381,11 @@ create or replace function load_fp() returns void as $$
 
         if (!table) { plv8.elog(ERROR, "No name defined"); }
 
+        /* Drow views */
+        sql = "DROP VIEW IF EXISTS %I CASCADE;",
+       plv8.execute(sql.format(["_" + table]));
+       sql = "";
+
         /* Create table if applicable */
         if (!klass) {
           sql = "CREATE TABLE %I( " +
@@ -397,25 +403,23 @@ create or replace function load_fp() returns void as $$
           props = klass.properties;
           for (key in props) {
             if (props.hasOwnProperty(key)) {
-              if (!obj.properties[key]) {
+              if (obj.properties && !obj.properties[key]) {
                 /* Handle relations */
                 type = props[key].type;
 
-                if (typeof type === "object") {
+                if (typeof type === "object" && type.properties) {
                   /* Drop associated view if applicable */
-                  if (type.properties) {
-                    sql += "DROP VIEW %I;";
-                    tokens = tokens.concat([
-                      "_" + table + "_" + key.toSnakeCase(),
-                      table,
-                      _relationColumn(key, type.relation)
-                    ]);
-                  } else {
-                    tokens = tokens.concat([table, key.toSnakeCase()]);
-                  }
-
-                  sql += "ALTER TABLE %I DROP COLUMN %I;";
+                  sql += "DROP VIEW %I;";
+                  tokens = tokens.concat([
+                    "_" + table + "_" + key.toSnakeCase(),
+                    table,
+                    _relationColumn(key, type.relation)
+                  ]);
+                } else {
+                  tokens = tokens.concat([table, key.toSnakeCase()]);
                 }
+
+                sql += "ALTER TABLE %I DROP COLUMN %I;";
 
                 /* Unrelate parent if applicable */
                 if (type.childOf) {
@@ -605,9 +609,10 @@ create or replace function load_fp() returns void as $$
         delete obj.name;
         featherbone.saveSettings("catalog", catalog);
 
+        /* Propagate views down */
+        _propagateViews(name);
 
-        /* Create or replace views */
-        _createView(name);
+        /* Propagate views up */
         i = 0;
         while (i < parents.length) {
           _createView(parents[i]);
@@ -998,6 +1003,20 @@ create or replace function load_fp() returns void as $$
     jsonpatch.apply(newRec, patches);
 
     return _update(klass, obj.id, oldRec, newRec);
+  };
+
+  /** private */
+  _propagateViews = function (name) {
+    var catalog = featherbone.getSettings("catalog"),
+      key;
+    
+    _createView(name);
+
+    for (key in catalog) {
+      if (catalog.hasOwnProperty(key) && catalog[key].inherits === name) {
+        _propagateViews(key);
+      }
+    }
   };
 
   /** private */
