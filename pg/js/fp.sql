@@ -453,8 +453,9 @@ create or replace function load_fp() returns void as $$
                 /* Drop views */
                 if (klass && !changed) {
                   sql += dropSql;
-                  changed = true;
                 }
+
+                changed = true;
               
                 sql += "ALTER TABLE %I ADD COLUMN %I ";
 
