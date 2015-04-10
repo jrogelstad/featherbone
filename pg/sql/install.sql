@@ -56,17 +56,17 @@ do $$
    };
 
    /* Create the settings table */
-   if (!plv8.execute(sqlChk,['_settings']).length) {
-     sql = "CREATE TABLE _settings (" +
+   if (!plv8.execute(sqlChk,['"$settings"']).length) {
+     sql = "CREATE TABLE \"$settings\" (" +
        "name text default ''," +
        "data json default '{}'," +
        "CONSTRAINT settings_pkey PRIMARY KEY (_pk), " +
        "CONSTRAINT settings_id_key UNIQUE (id)) INHERITS (object)";
      plv8.execute(sql);
-     plv8.execute("comment on table _settings is 'Internal table for storing system settyngs'");
-     plv8.execute(sqlCmt.format(['_settings','name','Name of settings']));
-     plv8.execute(sqlCmt.format(['_settings','data','Object containing settings']));
-     sql = "INSERT INTO _settings VALUES (nextval('object__pk_seq'), $1, now(), CURRENT_USER, now(), CURRENT_USER, $2, false, $3, $4);";
+     plv8.execute("comment on table \"$settings\" is 'Internal table for storing system settings'");
+     plv8.execute(sqlCmt.format(['$settings','name','Name of settings']));
+     plv8.execute(sqlCmt.format(['$settings','data','Object containing settings']));
+     sql = "INSERT INTO \"$settings\" VALUES (nextval('object__pk_seq'), $1, now(), CURRENT_USER, now(), CURRENT_USER, $2, false, $3, $4);";
      params = [
        featherbone.createId(),
        featherbone.createId(),

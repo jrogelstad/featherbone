@@ -249,7 +249,7 @@ create or replace function load_fp() returns void as $$
       @return {Object}
     */
     getSettings: function (name) {
-      var sql = "SELECT data FROM _settings WHERE name = $1",
+      var sql = "SELECT data FROM \"$settings\" WHERE name = $1",
         result,
         rec;
 
@@ -637,7 +637,7 @@ create or replace function load_fp() returns void as $$
       @return {String}
     */
     saveSettings: function (name, settings) {
-      var sql = "SELECT data FROM _settings WHERE name = $1;",
+      var sql = "SELECT data FROM \"$settings\" WHERE name = $1;",
         params = [name, settings],
         result,
         rec,
@@ -654,11 +654,11 @@ create or replace function load_fp() returns void as $$
           plv8.elog(ERROR, err);
         }
 
-        sql = "UPDATE _settings SET data = $2 WHERE name = $1;";
+        sql = "UPDATE \"$settings\" SET data = $2 WHERE name = $1;";
 
         plv8.execute(sql, params);
       } else {
-        sql = "INSERT INTO settings (name, data) VALUES ($1, $2);";
+        sql = "INSERT INTO \"$settings\" (name, data) VALUES ($1, $2);";
         plv8.execute(sql, params);
       }
 
