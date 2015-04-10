@@ -403,7 +403,9 @@ create or replace function load_fp() returns void as $$
           props = klass.properties;
           for (key in props) {
             if (props.hasOwnProperty(key)) {
-              if (obj.properties && !obj.properties[key]) {
+              if (obj.properties && !obj.properties[key] &&
+                  !(typeof klass.properties[key].type === "object" &&
+                  typeof klass.properties[key].type.parentOf)) {
                 /* Handle relations */
                 type = props[key].type;
 
