@@ -358,7 +358,7 @@ create or replace function load_fp() returns void as $$
 
       var table, inherits, klass, catalog, sql, sqlUpd, token, parents, tokens,
         values, adds, args, fns, cols, defaultValue, props, key, recs, type,
-        err, name, parent, obj, i, n, p,
+        err, name, parent, obj, i, n, p, dropSql, changed,
         o = 0;
 
       while (o < specs.length) {
@@ -367,6 +367,8 @@ create or replace function load_fp() returns void as $$
         inherits = (obj.inherits || "Object").toSnakeCase();
         klass = featherbone.getClass(obj.name, false);
         catalog = featherbone.getSettings('catalog');
+        dropSql = "DROP VIEW %I CASCADE;".format(["_" + table]);
+        changed = false;
         sql = "";
         parents = [];
         tokens = [];
@@ -380,11 +382,6 @@ create or replace function load_fp() returns void as $$
         p = 1;
 
         if (!table) { plv8.elog(ERROR, "No name defined"); }
-
-        /* Drow views */
-        sql = "DROP VIEW IF EXISTS %I CASCADE;",
-       plv8.execute(sql.format(["_" + table]));
-       sql = "";
 
         /* Create table if applicable */
         if (!klass) {
@@ -406,6 +403,12 @@ create or replace function load_fp() returns void as $$
               if (obj.properties && !obj.properties[key] &&
                   !(typeof klass.properties[key].type === "object" &&
                   typeof klass.properties[key].type.parentOf)) {
+                /* Drop views */
+                if (!changed) {
+                  sql += dropSql;
+                  changed = true;
+                }
+                  
                 /* Handle relations */
                 type = props[key].type;
 
@@ -449,6 +452,12 @@ create or replace function load_fp() returns void as $$
 
             if (type) {
               if (!klass || !klass.properties[key]) {
+                /* Drop views */
+                if (klass && !changed) {
+                  sql += dropSql;
+                  changed = true;
+                }
+              
                 sql += "ALTER TABLE %I ADD COLUMN %I ";
 
                 /* Handle composite types */
@@ -612,7 +621,9 @@ create or replace function load_fp() returns void as $$
         featherbone.saveSettings("catalog", catalog);
 
         /* Propagate views down */
-        _propagateViews(name);
+        if (changed) {
+          _propagateViews(name);
+        }
 
         /* Propagate views up */
         i = 0;
