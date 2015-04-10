@@ -103,9 +103,6 @@ create or replace function load_fp() returns void as $$
           plv8.elog(ERROR, 'Class not found');
         }
 
-        /* Drop table */
-        plv8.execute(sql);
-
         /* Drop views for composite types */
         props = catalog[obj.name].properties;
         for (key in props) {
@@ -115,8 +112,7 @@ create or replace function load_fp() returns void as $$
 
             if (type.properties) {
               view = "_" + obj.name.toSnakeCase() + "$" + key.toSnakeCase();
-              sql = "DROP VIEW %I;".format([view]);
-              plv8.execute(sql);
+              sql += "DROP VIEW %I;".format([view]);
             }
 
             if (type.childOf && catalog[type.relation]) {
@@ -132,9 +128,12 @@ create or replace function load_fp() returns void as $$
 
         /* Update views */
         while (i < rels.length) {
-          _createView(rels[i]);
+          _createView(rels[i], true);
           i++;
         }
+
+        /* Drop table(s) */
+        plv8.execute(sql);
 
         o++;
       }
@@ -356,9 +355,9 @@ create or replace function load_fp() returns void as $$
     saveClass: function (specs) {
       specs = Array.isArray(specs) ? specs : [specs];
 
-      var table, inherits, klass, catalog, sql, sqlUpd, token, parents, tokens,
-        values, adds, args, fns, cols, defaultValue, props, key, recs, type,
-        err, name, parent, obj, i, n, p, dropSql, changed,
+      var table, inherits, klass, catalog, sql, sqlUpd, token, tokens, values,
+        adds, args, fns, cols, defaultValue, props, key, recs, type, err, name,
+        parent, obj, i, n, p, dropSql, changed,
         o = 0;
 
       while (o < specs.length) {
@@ -367,10 +366,9 @@ create or replace function load_fp() returns void as $$
         inherits = (obj.inherits || "Object").toSnakeCase();
         klass = featherbone.getClass(obj.name, false);
         catalog = featherbone.getSettings('catalog');
-        dropSql = "DROP VIEW %I CASCADE;".format(["_" + table]);
+        dropSql = "DROP VIEW IF EXISTS %I CASCADE;".format(["_" + table]);
         changed = false;
         sql = "";
-        parents = [];
         tokens = [];
         values = [];
         adds = [];
@@ -478,7 +476,6 @@ create or replace function load_fp() returns void as $$
                         }
                       };
 
-                      parents.push(type.relation);
                     } else {
                       err = 'Property "' + type.childOf +
                         '" already exists on "' + type.relation + '"';
@@ -620,16 +617,9 @@ create or replace function load_fp() returns void as $$
         delete obj.name;
         featherbone.saveSettings("catalog", catalog);
 
-        /* Propagate views down */
+        /* Propagate views */
         if (changed) {
           _propagateViews(name);
-        }
-
-        /* Propagate views up */
-        i = 0;
-        while (i < parents.length) {
-          _createView(parents[i]);
-          i++;
         }
 
         o++;
@@ -682,19 +672,19 @@ create or replace function load_fp() returns void as $$
   //
 
   /** private */
-  _createView = function (name) {
+  _createView = function (name, dropFirst) {
     var klass = featherbone.getClass(name),
       table = name.toSnakeCase(),
       args = ["_" + table, "_pk"],
       props = klass.properties,
       cols = ["%I"],
+      sql = "",
       parent,
       alias,
       type,
       view,
       sub,
       col,
-      sql,
       key;
 
     for (key in props) {
@@ -745,8 +735,14 @@ create or replace function load_fp() returns void as $$
     }
 
     args.push(table);
-    sql = ("CREATE OR REPLACE VIEW %I AS SELECT " + cols.join(",") +
+
+    if (dropFirst) {
+      sql = "DROP VIEW %I;".format(["_" + table]);
+    }
+
+    sql += ("CREATE OR REPLACE VIEW %I AS SELECT " + cols.join(",") +
       " FROM %I;").format(args);
+
     plv8.execute(sql);
   };
 
@@ -1021,13 +1017,25 @@ create or replace function load_fp() returns void as $$
   /** private */
   _propagateViews = function (name) {
     var catalog = featherbone.getSettings("catalog"),
+      props,
       key;
     
     _createView(name);
 
+    /* Propagate down */
     for (key in catalog) {
       if (catalog.hasOwnProperty(key) && catalog[key].inherits === name) {
         _propagateViews(key);
+      }
+    }
+
+    /* Propagate up */
+    props = catalog[name].properties;
+    for (key in props) {
+      if (props.hasOwnProperty(key)) {
+        if (typeof props[key].type === "object" && props[key].type.childOf) {
+          _createView(props[key].type.relation);
+        }
       }
     }
   };
