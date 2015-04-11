@@ -255,7 +255,7 @@ create or replace function load_fp() returns void as $$
 
       if (_settings[name]) {
         id = _settings[name].id;
-        etag = _settings[name].etag);
+        etag = _settings[name].etag;
         if (featherbone.checkEtag("$settings", id, etag)) {
           return _settings[name];
         }
@@ -367,7 +367,7 @@ create or replace function load_fp() returns void as $$
         table = obj.name ? obj.name.toSnakeCase() : false;
         inherits = (obj.inherits || "Object").toSnakeCase();
         klass = featherbone.getClass(obj.name, false);
-        catalog = featherbone.getSettings('catalog');
+        catalog = featherbone.getSettings("catalog");
         dropSql = "DROP VIEW IF EXISTS %I CASCADE;".format(["_" + table]);
         changed = false;
         sql = "";
@@ -761,7 +761,7 @@ create or replace function load_fp() returns void as $$
 
   /** private */
   _getKey = function (id, name) {
-    name = name ? name.toSnakeCase() : 'object';
+    name = name ? name.toSnakeCase() : "object";
 
     var sql = ("SELECT _pk FROM %I WHERE id = $1").format([name]),
       result = plv8.execute(sql, [id])[0];
@@ -1106,7 +1106,7 @@ create or replace function load_fp() returns void as $$
     }
 
     cols.push(table);
-    sql = ('SELECT ' +  tokens.toString(",") + ' FROM %I').format(cols);
+    sql = ("SELECT " +  tokens.toString(",") + " FROM %I").format(cols);
 
     /* Get one result by key */
     if (obj.id) {
@@ -1171,10 +1171,8 @@ create or replace function load_fp() returns void as $$
               value = updRec[key].id ? _getKey(updRec[key].id) : -1;
 
               if (value === undefined) {
-                err = 'Relation not found in "{rel}" for "{key}" with id "{id}"'
-                  .replace("{rel}", props[key].type.relation)
-                  .replace("{key}", key)
-                  .replace("{id}", updRec[key].id);
+                err = "Relation not found in \"" + props[key].type.relation + 
+                  "\" for \"" + key + "\" with id \"" + updRec[key].id + "\"";
                 plv8.elog(ERROR, err);
               }
 
@@ -1192,12 +1190,12 @@ create or replace function load_fp() returns void as $$
         }
       }
 
-      sql = ("UPDATE %I SET " + ary.join(",") + " WHERE _pk = $" + p +
-        " RETURNING *;").format(tokens);
+      sql = ("UPDATE %I SET " + ary.join(",") + " WHERE _pk = $" + p)
+        .format(tokens);
       params.push(pk);
+      plv8.execute(sql, params);
 
-      result = _sanitize(plv8.execute(sql, params));
-      result = JSON.parse(JSON.stringify(result[0]));
+      result = _select({name: klass.name, id: id});
 
       return jsonpatch.compare(newRec, result);
     }
