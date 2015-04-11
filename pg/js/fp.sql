@@ -675,19 +675,13 @@ create or replace function load_fp() returns void as $$
 
   /** private */
   _createView = function (name, dropFirst) {
-    var klass = featherbone.getClass(name),
+    var parent, alias, type, view, sub, col, key,
+      klass = featherbone.getClass(name),
       table = name.toSnakeCase(),
       args = ["_" + table, "_pk"],
       props = klass.properties,
       cols = ["%I"],
-      sql = "",
-      parent,
-      alias,
-      type,
-      view,
-      sub,
-      col,
-      key;
+      sql = "";
 
     for (key in props) {
       if (props.hasOwnProperty(key)) {
@@ -776,21 +770,17 @@ create or replace function load_fp() returns void as $$
 
   /** private */
   _getKeys = function (name, filter) {
-    var sql = "SELECT _pk FROM %I ",
+    var part, order, op, err, n,
+      ops = ["=", "!=", "<", ">", "<>", "~", "*~", "!~", "!~*"],
+      sql = "SELECT _pk FROM %I ",
       tokens = [name.toSnakeCase()],
       criteria = filter.criteria || [],
       sort = filter.sort || [],
       params = [],
-      ops = ["=", "!=", "<", ">", "<>", "~", "*~", "!~", "!~*"],
       result  = [],
       parts = [],
-      part,
-      order,
-      op,
-      err,
       i = 0,
-      p = 1,
-      n;
+      p = 1;
 
     /* Only return values if we have a filter */
     if (filter) {
@@ -1054,7 +1044,8 @@ create or replace function load_fp() returns void as $$
       i = 0,
       oldObj,
       newObj,
-      key;
+      oldKey,
+      newKey;
 
     while (i < ary.length) {
 
@@ -1062,19 +1053,20 @@ create or replace function load_fp() returns void as $$
       oldObj = JSON.parse(JSON.stringify(ary[i]));
       newObj = {};
 
-      for (key in oldObj) {
-        if (oldObj.hasOwnProperty(key)) {
+      for (oldKey in oldObj) {
+        if (oldObj.hasOwnProperty(oldKey)) {
 
           /* Remove internal properties */
-          if (key.match("^_")) {
-            delete oldObj[key];
+          if (oldKey.match("^_")) {
+            delete oldObj[oldKey];
           } else {
             /* Make properties camel case */
-            newObj[key.toCamelCase()] = ary[i][key];
+            newKey = oldKey.toCamelCase();
+            newObj[newKey] = oldObj[oldKey];
 
             /* Recursively sanitize objects */
-            if (typeof oldObj[key] === "object") {
-              newObj[key] = oldObj[key] ? _sanitize(oldObj[key]) : {};
+            if (typeof newObj[newKey] === "object") {
+              newObj[newKey] = newObj[newKey] ? _sanitize(newObj[newKey]) : {};
             }
           }
         }
