@@ -250,12 +250,13 @@ create or replace function load_fp() returns void as $$
       @return {Object}
     */
     getSettings: function (name) {
-      var sql = "SELECT data FROM \"$settings\" WHERE name = $1",
-        result,
-        rec;
+      var result, rec, id, etag,
+        sql = "SELECT data FROM \"$settings\" WHERE name = $1";
 
       if (_settings[name]) {
-        if (featherbone.checkEtag("$settings",_settings[name].id, _settings[name].etag)) {
+        id = _settings[name].id;
+        etag = _settings[name].etag);
+        if (featherbone.checkEtag("$settings", id, etag)) {
           return _settings[name];
         }
       }
@@ -407,7 +408,7 @@ create or replace function load_fp() returns void as $$
                   sql += dropSql;
                   changed = true;
                 }
-                  
+
                 /* Handle relations */
                 type = props[key].type;
 
@@ -457,7 +458,7 @@ create or replace function load_fp() returns void as $$
                 }
 
                 changed = true;
-              
+
                 sql += "ALTER TABLE %I ADD COLUMN %I ";
 
                 /* Handle composite types */
@@ -696,7 +697,7 @@ create or replace function load_fp() returns void as $$
             sub = "ARRAY(SELECT %I FROM %I WHERE %I.%I = %I._pk) AS %I";
             view = "_" + props[key].type.relation.toSnakeCase();
             parent =  props[key].inheritedFrom ?
-              props[key].inheritedFrom.toSnakeCase() : table;
+                props[key].inheritedFrom.toSnakeCase() : table;
             col = "_" + type.parentOf.toSnakeCase() + "_" + parent + "_pk";
             args = args.concat([view, view, view,
               col, table, alias]);
@@ -880,7 +881,7 @@ create or replace function load_fp() returns void as $$
         createdBy: data.createdBy,
         updated: data.updated,
         updatedBy: data.updatedBy,
-        change: obj.data
+        change: obj
       }];
     }
 
@@ -1011,7 +1012,7 @@ create or replace function load_fp() returns void as $$
     var catalog = featherbone.getSettings("catalog"),
       props,
       key;
-    
+
     _createView(name);
 
     /* Propagate down */
