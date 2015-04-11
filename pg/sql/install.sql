@@ -41,7 +41,6 @@ do $$
        "created_by text," +
        "updated timestamp with time zone," +
        "updated_by text," +
-       "etag text," +
        "is_deleted boolean)";
      plv8.execute(sql);
      plv8.execute("COMMENT ON TABLE object IS 'Abstract object class from which all other classes will inherit'");
@@ -60,15 +59,15 @@ do $$
      sql = "CREATE TABLE \"$settings\" (" +
        "name text default ''," +
        "data json default '{}'," +
+       "etag text default ''," +
        "CONSTRAINT settings_pkey PRIMARY KEY (_pk), " +
        "CONSTRAINT settings_id_key UNIQUE (id)) INHERITS (object)";
      plv8.execute(sql);
      plv8.execute("comment on table \"$settings\" is 'Internal table for storing system settings'");
      plv8.execute(sqlCmt.format(['$settings','name','Name of settings']));
      plv8.execute(sqlCmt.format(['$settings','data','Object containing settings']));
-     sql = "INSERT INTO \"$settings\" VALUES (nextval('object__pk_seq'), $1, now(), CURRENT_USER, now(), CURRENT_USER, $2, false, $3, $4);";
+     sql = "INSERT INTO \"$settings\" VALUES (nextval('object__pk_seq'), $1, now(), CURRENT_USER, now(), CURRENT_USER, false, $2, $3);";
      params = [
-       featherbone.createId(),
        featherbone.createId(),
        'catalog',
        {"Object": {
@@ -97,10 +96,6 @@ do $$
              "isDeleted": {
                "description": "Indicates the record is no longer active",
                "type": "boolean"},
-             "etag": {
-               "description": "Optimistic lock key",
-               "type": "string",
-               "defaultValue": "createId()"}
              }
           }
        }
@@ -111,7 +106,14 @@ do $$
    /* Create some foundation classes */
    featherbone.saveClass([{
        name: "Document",
-       description: "Base document class"
+       description: "Base document class",
+       properties: {
+         etag: {
+             description: "Optimistic locking key",
+             type: "string",
+             defaultValue: "createId()"
+         }
+       }
      },{
        name: "log", 
        description: "Class for logging all schema and data changes",
