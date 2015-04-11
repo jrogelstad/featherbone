@@ -694,13 +694,13 @@ create or replace function load_fp() returns void as $$
 
           /* Handle to many */
           if (type.parentOf) {
-            sub = "ARRAY(SELECT %I FROM %I WHERE %I.%I = %I._pk) AS %I";
+            sub = "ARRAY(SELECT %I FROM %I WHERE %I.%I = %I._pk " +
+              "AND NOT I%.is_deleted ORDER BY %I._pk) AS %I";
             view = "_" + props[key].type.relation.toSnakeCase();
             parent =  props[key].inheritedFrom ?
                 props[key].inheritedFrom.toSnakeCase() : table;
             col = "_" + type.parentOf.toSnakeCase() + "_" + parent + "_pk";
-            args = args.concat([view, view, view,
-              col, table, alias]);
+            args = args.concat([view, view, view, col, table, table, alias]);
 
           /* Handle to one */
           } else if (!type.childOf) {
@@ -1141,33 +1141,74 @@ create or replace function load_fp() returns void as $$
     return _sanitize(result);
   };
 
-  _update = function (klass, id, oldRec, newRec) {
-    var tokens = [klass.name.toSnakeCase()],
+  _update = function (klass, id, oldRec, newRec, isChild) {
+    var result, updRec, props, value, key, sql, i, cKlass, id, child, err, row,
+      tokens = [klass.name.toSnakeCase()],
       pk = _getKey(id),
       params = [],
       ary = [],
       p = 1,
-      result,
-      updRec,
-      props,
-      value,
-      key,
-      sql,
-      err;
+      exists = function (ary, id) {
+        var i = 0;
+
+        while (i < ary.length) {
+          if (ary[i].id === id) { return true; }
+          i++
+        }
+
+        return false;
+      };
 
     if (jsonpatch.compare(oldRec, newRec).length) {
       props = klass.properties;
       updRec = JSON.parse(JSON.stringify(newRec));
       updRec.updated = new Date().toJSON();
       updRec.updatedBy = featherbone.getCurrentUser();
-      updRec.etag = featherbone.createId();
+      if (klass.properties.etag) {
+        updRec.etag = featherbone.createId();
+      }
 
       for (key in props) {
         if (props.hasOwnProperty(key)) {
+          /* Handle composite types */
           if (typeof props[key].type === "object") {
+            /* Handle child records */
             if (Array.isArray(updRec[key])) {
-              /* TODO: iterate through relation */
-            } else if (updRec[key].id !== oldRec[key].id) {
+              cKlass = featherbone.getClass(props[key].type.relation);
+              i = 0;
+
+              /* Process deletes */
+              while (i < oldRec[key].length) {
+                if (!exists(newRec[key], id)) {
+                  /* TODO */
+                }
+                i++;
+              }
+
+              /* Process inserts and updates */
+              i = 0;
+              while (i < updRec[key].length) {
+                id = updRec[key][i].id;
+                row = newRec[key][i];
+
+                if (exists(oldRec[key], id)) {
+                  if (jsonpatch.compare(oldRec[key][i], row).length) {
+                  plv8.elog(NOTICE, "UPDATE", JSON.stringify(oldRec[key][i], null, 2));
+                  plv8.elog(ERROR, "UPDATE", JSON.stringify(row, null, 2));
+                    _update(cKlass, id, oldRec[key][i], row, true);
+                  }
+                } else {
+                  row[props[key].type.parentOf] = {id: newRec.id};
+                  child = {name: cKlass.name, data: row};
+                  _insert(child, true);
+                }
+
+                i++;
+              }
+
+            /* Handle to one relations */
+            } else if (!props[key].type.childOf &&
+                updRec[key].id !== oldRec[key].id) {
               value = updRec[key].id ? _getKey(updRec[key].id) : -1;
 
               if (value === undefined) {
@@ -1181,6 +1222,8 @@ create or replace function load_fp() returns void as $$
               params.push(value);
               p++;
             }
+
+          /* Handle regular data types */
           } else if (updRec[key] !== oldRec[key]) {
             tokens.push(key.toSnakeCase());
             ary.push("%I = $" + p);
@@ -1195,6 +1238,9 @@ create or replace function load_fp() returns void as $$
       params.push(pk);
       plv8.execute(sql, params);
 
+      if (isChild) { return; }
+
+      /* If a top level record, return patch of what changed */
       result = _select({name: klass.name, id: id});
 
       return jsonpatch.compare(newRec, result);
