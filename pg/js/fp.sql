@@ -70,8 +70,9 @@ create or replace function load_fp() returns void as $$
       * @return {String}
     */
 
-    checkEtag: function (id, etag) {
-      var sql = "SELECT etag FROM object WHERE id = $1",
+    checkEtag: function (name, id, etag) {
+      var sql = "SELECT etag FROM %I WHERE id = $1"
+          .format([name.toSnakeCase()]),
         result = plv8.execute(sql, [id]);
 
       return result.length ? result[0].etag === etag : false;
@@ -254,7 +255,7 @@ create or replace function load_fp() returns void as $$
         rec;
 
       if (_settings[name]) {
-        if (featherbone.checkEtag(_settings[name].id, _settings[name].etag)) {
+        if (featherbone.checkEtag("$settings",_settings[name].id, _settings[name].etag)) {
           return _settings[name];
         }
       }
@@ -863,24 +864,17 @@ create or replace function load_fp() returns void as $$
 
   /** private */
   _insert = function (obj, isChild) {
-    var data = JSON.parse(JSON.stringify(obj.data)),
+    var child, key, col, prop, result, value, sql, err,
+      data = JSON.parse(JSON.stringify(obj.data)),
       klass = featherbone.getClass(obj.name),
       args = [obj.name.toSnakeCase()],
+      props = klass.properties,
       children = {},
       tokens = [],
       params = [],
       values = [],
       i = 0,
-      p = 1,
-      child,
-      key,
-      col,
-      props,
-      prop,
-      result,
-      value,
-      sql,
-      err;
+      p = 1;
 
     /* Check id for existence and uniqueness and regenerate if any problem */
     data.id = data.id === undefined || _getKey(data.id) !== undefined ?
@@ -890,10 +884,17 @@ create or replace function load_fp() returns void as $$
     data.created = data.updated = featherbone.now();
     data.createdBy = featherbone.getCurrentUser();
     data.updatedBy = featherbone.getCurrentUser();
-    data.etag = featherbone.createId();
+    if (props.changeLog) {
+      data.changeLog = [{
+        created: data.created,
+        createdBy: data.createdBy,
+        updated: data.updated,
+        updatedBy: data.updatedBy,
+        change: obj.data
+      }];
+    }
 
     /* Build values */
-    props = klass.properties;
     for (key in props) {
       if (props.hasOwnProperty(key)) {
         child = false;
@@ -957,7 +958,7 @@ create or replace function load_fp() returns void as $$
 
     /* Iterate through children */
     for (key in children) {
-      if (children.hasOwnProperty(key)) {
+      if (children.hasOwnProperty(key) && data[key]) {
         while (i < data[key].length) {
           data[key][i][children[key].type.parentOf] = {id: data.id};
           child = {
