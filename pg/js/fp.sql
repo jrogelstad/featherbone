@@ -730,7 +730,6 @@ create or replace function load_fp() returns void as $$
 
     sql += ("CREATE OR REPLACE VIEW %I AS SELECT " + cols.join(",") +
       " FROM %I;").format(args);
-
     plv8.execute(sql);
   };
 
@@ -1031,11 +1030,27 @@ create or replace function load_fp() returns void as $$
 
   /** private */
   _propagateViews = function (name) {
-    var catalog = featherbone.getSettings("catalog"),
-      props,
-      key;
+    var props, key, cprops, ckey;
+    catalog = featherbone.getSettings("catalog");
 
     _createView(name);
+
+    /* Propagate relations */
+    for (key in catalog) {
+      if (catalog.hasOwnProperty(key)) {
+        cprops = catalog[key].properties;
+
+        for (ckey in cprops) {
+          if (cprops.hasOwnProperty(ckey) &&
+              typeof cprops[ckey].type === "object" &&
+              cprops[ckey].type.relation === name &&
+              !cprops[ckey].type.childOf &&
+              !cprops[ckey].type.parentOf) {
+            _propagateViews(key);
+          }
+        }
+      }
+    }
 
     /* Propagate down */
     for (key in catalog) {
