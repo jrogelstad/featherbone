@@ -751,6 +751,12 @@ create or replace function load_fp() returns void as $$
   };
 
   /** private */
+  _debug = function (value) {
+    value = typeof value === "object" ? JSON.stringify(value, null, 2) : value;
+    plv8.elog(NOTICE, value);
+  };
+
+  /** private */
   _delete = function (obj) {
     var sql = "UPDATE object SET is_deleted = true WHERE id=$1;";
 
@@ -1168,6 +1174,20 @@ create or replace function load_fp() returns void as $$
         updRec.etag = featherbone.createId();
       }
 
+      if (updRec.changeLog) {
+        updRec.changeLog.push({
+          created: updRec.updated,
+          createdBy: updRec.updatedBy,
+          updated: updRec.updated,
+          updatedBy: updRec.updatedBy,
+          change: {
+            name: klass.name,
+            action: "PATCH",
+            data: jsonpatch.compare(oldRec, newRec)
+          }
+        });
+      }
+
       for (key in props) {
         if (props.hasOwnProperty(key)) {
           /* Handle composite types */
@@ -1189,16 +1209,14 @@ create or replace function load_fp() returns void as $$
               i = 0;
               while (i < updRec[key].length) {
                 id = updRec[key][i].id;
-                row = newRec[key][i];
+                row = updRec[key][i];
 
                 if (exists(oldRec[key], id)) {
                   if (jsonpatch.compare(oldRec[key][i], row).length) {
-                  plv8.elog(NOTICE, "UPDATE", JSON.stringify(oldRec[key][i], null, 2));
-                  plv8.elog(ERROR, "UPDATE", JSON.stringify(row, null, 2));
                     _update(cKlass, id, oldRec[key][i], row, true);
                   }
                 } else {
-                  row[props[key].type.parentOf] = {id: newRec.id};
+                  row[props[key].type.parentOf] = {id: updRec.id};
                   child = {name: cKlass.name, data: row};
                   _insert(child, true);
                 }
