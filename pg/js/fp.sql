@@ -15,24 +15,14 @@
 **/
 
 create or replace function load_fp() returns void as $$
-/*global plv8: true, jsonpatch: true, featherbone: true, ERROR: true */
+/*global plv8: true, jsonpatch: true, featherbone: true, NOTICE: true, ERROR: true */
 /*jslint nomen: true, plusplus: true, indent: 2, sloppy: true, todo: true, maxlen: 80*/
 (function () {
 
-  var _settings = {},
-    _createView,
-    _curry,
-    _getKey,
-    _getKeys,
-    _isChildClass,
-    _patch,
-    _propagateViews,
-    _relationColumn,
-    _sanitize,
-    _insert,
-    _select,
-    _update,
-    _delete,
+  var _createView, _curry, _getKey, _getKeys, _isChildClass, _patch, _delete,
+    _propagateViews, _relationColumn, _sanitize, _insert, _select, _update,
+    _debug,
+    _settings = {},
     _types = {
       object: {type: "json", defaultValue: {}},
       array: {type: "json", defaultValue: []},
@@ -700,7 +690,8 @@ create or replace function load_fp() returns void as $$
             parent =  props[key].inheritedFrom ?
                 props[key].inheritedFrom.toSnakeCase() : table;
             col = "_" + type.parentOf.toSnakeCase() + "_" + parent + "_pk";
-            args = args.concat([view, view, view, col, table, view, view, alias]);
+            args = args.concat([view, view, view, col, table, view, view,
+              alias]);
 
           /* Handle to one */
           } else if (!type.childOf) {
@@ -757,9 +748,34 @@ create or replace function load_fp() returns void as $$
   };
 
   /** private */
-  _delete = function (obj) {
-    var sql = "UPDATE object SET is_deleted = true WHERE id=$1;";
+  _delete = function (obj, isChild) {
+    var oldRec, key, i, child, rel,
+      sql = "UPDATE object SET is_deleted = true WHERE id=$1;",
+      klass = featherbone.getClass(obj.name),
+      props = klass.properties;
 
+    if (!isChild && _isChildClass(obj.name)) {
+      plv8.elog(ERROR, "Can not directly delete a child class");
+    }
+
+    /* Delete children recursively */
+    for (key in props) {
+      if (props.hasOwnProperty(key) &&
+          typeof props[key].type === "object" &&
+          props[key].type.parentOf) {
+        oldRec = oldRec || _select(obj);
+        rel = props[key].type.relation;
+        i = 0;
+
+        while (i < oldRec[key].length) {
+          child = {name: rel, id: oldRec[key][i].id};
+          _delete(child, true);
+          i++;
+        }
+      }
+    }
+
+    /* Now delete object */
     plv8.execute(sql, [obj.id]);
 
     return true;
@@ -1087,7 +1103,7 @@ create or replace function load_fp() returns void as $$
   };
 
   /** private */
-  _select = function (obj) {
+  _select = function (obj, isChild) {
     var klass = featherbone.getClass(obj.name),
       table = "_" + klass.name.toSnakeCase(),
       keys = obj.properties || Object.keys(klass.properties),
@@ -1100,7 +1116,7 @@ create or replace function load_fp() returns void as $$
       pk;
 
     /* Validate */
-    if (_isChildClass(klass)) {
+    if (!isChild && _isChildClass(klass)) {
       plv8.elog(ERROR, "Can not query directly on a child class");
     }
 
@@ -1148,18 +1164,19 @@ create or replace function load_fp() returns void as $$
   };
 
   _update = function (klass, id, oldRec, newRec, isChild) {
-    var result, updRec, props, value, key, sql, i, cKlass, id, child, err, row,
+    var result, updRec, props, value, key, sql, i, cKlass, cid, child, err,
+      row,
       tokens = [klass.name.toSnakeCase()],
       pk = _getKey(id),
       params = [],
       ary = [],
       p = 1,
       exists = function (ary, id) {
-        var i = 0;
+        var n = 0;
 
-        while (i < ary.length) {
-          if (ary[i].id === id) { return true; }
-          i++
+        while (n < ary.length) {
+          if (ary[n].id === id) { return true; }
+          n++;
         }
 
         return false;
@@ -1199,21 +1216,24 @@ create or replace function load_fp() returns void as $$
 
               /* Process deletes */
               while (i < oldRec[key].length) {
-                if (!exists(newRec[key], id)) {
-                  /* TODO */
+                cid = oldRec[key][i].id;
+                if (!exists(updRec[key], cid)) {
+                  child = {name: cKlass.name, id: cid};
+                  _delete(child, true);
                 }
+
                 i++;
               }
 
               /* Process inserts and updates */
               i = 0;
               while (i < updRec[key].length) {
-                id = updRec[key][i].id;
+                cid = updRec[key][i].id;
                 row = updRec[key][i];
 
-                if (exists(oldRec[key], id)) {
+                if (exists(oldRec[key], cid)) {
                   if (jsonpatch.compare(oldRec[key][i], row).length) {
-                    _update(cKlass, id, oldRec[key][i], row, true);
+                    _update(cKlass, cid, oldRec[key][i], row, true);
                   }
                 } else {
                   row[props[key].type.parentOf] = {id: updRec.id};
@@ -1230,7 +1250,7 @@ create or replace function load_fp() returns void as $$
               value = updRec[key].id ? _getKey(updRec[key].id) : -1;
 
               if (value === undefined) {
-                err = "Relation not found in \"" + props[key].type.relation + 
+                err = "Relation not found in \"" + props[key].type.relation +
                   "\" for \"" + key + "\" with id \"" + updRec[key].id + "\"";
                 plv8.elog(ERROR, err);
               }
