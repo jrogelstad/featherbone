@@ -497,7 +497,7 @@ create or replace function load_fp() returns void as $$
 
                     args.push(type.relation.toSnakeCase());
                     sql += ("CREATE VIEW %I AS SELECT " + cols.join(",") +
-                      " FROM %I;").format(args);
+                      " FROM %I WHERE NOT is_deleted;").format(args);
                   }
 
                 /* Handle standard types */
