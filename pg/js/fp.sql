@@ -695,12 +695,12 @@ create or replace function load_fp() returns void as $$
           /* Handle to many */
           if (type.parentOf) {
             sub = "ARRAY(SELECT %I FROM %I WHERE %I.%I = %I._pk " +
-              "AND NOT I%.is_deleted ORDER BY %I._pk) AS %I";
+              "AND NOT %I.is_deleted ORDER BY %I._pk) AS %I";
             view = "_" + props[key].type.relation.toSnakeCase();
             parent =  props[key].inheritedFrom ?
                 props[key].inheritedFrom.toSnakeCase() : table;
             col = "_" + type.parentOf.toSnakeCase() + "_" + parent + "_pk";
-            args = args.concat([view, view, view, col, table, table, alias]);
+            args = args.concat([view, view, view, col, table, view, view, alias]);
 
           /* Handle to one */
           } else if (!type.childOf) {
