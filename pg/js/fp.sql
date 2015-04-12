@@ -971,6 +971,7 @@ create or replace function load_fp() returns void as $$
     /* Iterate through children */
     for (key in children) {
       if (children.hasOwnProperty(key) && data[key]) {
+        i = 0;
         while (i < data[key].length) {
           data[key][i][children[key].type.parentOf] = {id: data.id};
           child = {

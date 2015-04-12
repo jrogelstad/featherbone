@@ -115,8 +115,18 @@ do $$
          }
        }
      },{
-       name: "log", 
+       name: "Log", 
        description: "Class for logging all schema and data changes",
+       properties: {
+         change: {
+             description: "Patch formatted json indicating changes",
+             type: "object"
+         }
+       }
+     },{
+       name: "DocumentLog", 
+       description: "Child log class for documents",
+       inherits: "Log",
        properties: {
          parent: {
             description: "Parent reference",
@@ -124,10 +134,6 @@ do $$
                 relation: "Document",
                 childOf: "changeLog"
             }
-         },
-         change: {
-             description: "Patch formatted json indicating changes",
-             type: "object"
          }
        }
      }
