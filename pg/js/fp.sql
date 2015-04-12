@@ -751,7 +751,13 @@ create or replace function load_fp() returns void as $$
     var oldRec, key, i, child, rel,
       sql = "UPDATE object SET is_deleted = true WHERE id=$1;",
       klass = featherbone.getClass(obj.name),
-      props = klass.properties;
+      props = klass.properties,
+      noChildProps = function (key) {
+        if (typeof klass.properties[key].type !== "object" ||
+            !klass.properties[key].type.childOf) {
+          return true;
+        }
+      };
 
     if (!isChild && _isChildClass(obj.name)) {
       plv8.elog(ERROR, "Can not directly delete a child class");
@@ -762,7 +768,12 @@ create or replace function load_fp() returns void as $$
       if (props.hasOwnProperty(key) &&
           typeof props[key].type === "object" &&
           props[key].type.parentOf) {
-        oldRec = oldRec || _select(obj);
+        if (!oldRec) {
+          /* Exclude child key when we select */
+          obj.properties = Object.keys(klass.properties)
+            .filter(noChildProps);
+          oldRec = _select(obj, true);
+        }
         rel = props[key].type.relation;
         i = 0;
 
@@ -1031,8 +1042,8 @@ create or replace function load_fp() returns void as $$
 
   /** private */
   _propagateViews = function (name) {
-    var props, key, cprops, ckey;
-    catalog = featherbone.getSettings("catalog");
+    var props, key, cprops, ckey,
+      catalog = featherbone.getSettings("catalog");
 
     _createView(name);
 
