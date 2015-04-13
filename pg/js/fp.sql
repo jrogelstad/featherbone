@@ -785,23 +785,26 @@ create or replace function load_fp() returns void as $$
   };
 
   /** private */
-  _getKey = function (id, name) {
+  _getKey = function (id, name, showDeleted) {
     name = name ? name.toSnakeCase() : "object";
 
-    var sql = ("SELECT _pk FROM %I WHERE id = $1").format([name]),
+    var clause = showDeleted ? "true" : "NOT is_deleted",
+      sql = ("SELECT _pk FROM %I WHERE " + clause +" AND id = $1")
+        .format([name]),
       result = plv8.execute(sql, [id])[0];
 
     return result ? result._pk : undefined;
   };
 
   /** private */
-  _getKeys = function (name, filter) {
+  _getKeys = function (name, filter, showDeleted) {
     var part, order, op, err, n,
       ops = ["=", "!=", "<", ">", "<>", "~", "*~", "!~", "!~*"],
-      sql = "SELECT _pk FROM %I ",
+      clause = showDeleted ? "true" : "NOT is_deleted",
+      sql = "SELECT _pk FROM %I WHERE " + clause,
       tokens = [name.toSnakeCase()],
-      criteria = filter.criteria || [],
-      sort = filter.sort || [],
+      criteria = filter ? filter.criteria || [] : false,
+      sort = filter ? filter.sort || [] : false,
       params = [],
       result  = [],
       parts = [],
@@ -838,7 +841,7 @@ create or replace function load_fp() returns void as $$
       }
 
       if (parts.length) {
-        sql += " WHERE " + parts.join(" AND ");
+        sql += " AND " + parts.join(" AND ");
       }
 
       /* Process sort */
@@ -855,7 +858,7 @@ create or replace function load_fp() returns void as $$
       }
 
       if (parts.length) {
-        sql += " order by " + parts.join(",");
+        sql += " ORDER BY " + parts.join(",");
       }
 
       /* Process offset and limit */
@@ -868,14 +871,13 @@ create or replace function load_fp() returns void as $$
         sql += " LIMIT $" + p;
         params.push(filter.limit);
       }
-
-      sql = sql.format(tokens);
-      return plv8.execute(sql, params).map(function (rec) {
-        return rec._pk;
-      });
     }
 
-    return result;
+    sql = sql.format(tokens);
+
+    return plv8.execute(sql, params).map(function (rec) {
+      return rec._pk;
+    });
   };
 
   /** private */
@@ -1131,15 +1133,15 @@ create or replace function load_fp() returns void as $$
 
     /* Get one result by key */
     if (obj.id) {
-      pk = _getKey(obj.id, obj.name);
+      pk = _getKey(obj.id, obj.name, obj.showDeleted);
       if (pk === undefined) { return {}; }
       sql +=  " WHERE _pk = $1";
 
       result = plv8.execute(sql, [pk])[0];
 
     /* Get a filtered result */
-    } else if (obj.filter) {
-      pk = _getKeys(obj.name, obj.filter);
+    } else {
+      pk = _getKeys(obj.name, obj.filter, obj.showDeleted);
 
       if (pk.length) {
         tokens = [];
@@ -1153,10 +1155,6 @@ create or replace function load_fp() returns void as $$
         sql += " WHERE _pk IN (" + tokens.toString(",") + ")";
         result = plv8.execute(sql, pk);
       }
-
-    /* Get all results */
-    } else {
-      result = plv8.execute(sql);
     }
 
     return _sanitize(result);
