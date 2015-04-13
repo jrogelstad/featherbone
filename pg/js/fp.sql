@@ -15,13 +15,12 @@
 **/
 
 create or replace function load_fp() returns void as $$
-/*global plv8: true, jsonpatch: true, featherbone: true, NOTICE: true, ERROR: true */
+/*global plv8: true, jsonpatch: true, featherbone: true, ERROR: true */
 /*jslint nomen: true, plusplus: true, indent: 2, sloppy: true, todo: true, maxlen: 80*/
 (function () {
 
-  var _createView, _curry, _getKey, _getKeys, _isChildClass, _patch, _delete,
+  var _createView, _curry, _getKey, _getKeys, _isChildClass, _delete,
     _propagateViews, _relationColumn, _sanitize, _insert, _select, _update,
-    _debug,
     _settings = {},
     _types = {
       object: {type: "json", defaultValue: {}},
@@ -307,7 +306,7 @@ create or replace function load_fp() returns void as $$
 
         return _insert(obj);
       case "PATCH":
-        return _patch(obj);
+        return _update(obj);
       case "DELETE":
         return _delete(obj);
       }
@@ -741,12 +740,6 @@ create or replace function load_fp() returns void as $$
   };
 
   /** private */
-  _debug = function (value) {
-    value = typeof value === "object" ? JSON.stringify(value, null, 2) : value;
-    plv8.elog(NOTICE, value);
-  };
-
-  /** private */
   _delete = function (obj, isChild) {
     var oldRec, key, i, child, rel,
       sql = "UPDATE object SET is_deleted = true WHERE id=$1;",
@@ -1020,27 +1013,6 @@ create or replace function load_fp() returns void as $$
   };
 
   /** private */
-  _patch = function (obj) {
-    var patches = obj.data,
-      klass = featherbone.getClass(obj.name),
-      oldRec,
-      newRec;
-
-    /* Validate */
-    if (_isChildClass(klass)) {
-      plv8.elog(ERROR, "Can not directly update a child class");
-    }
-
-    oldRec = _select(obj);
-
-    if (!Object.keys(oldRec).length) { return false; }
-    newRec = JSON.parse(JSON.stringify(oldRec));
-    jsonpatch.apply(newRec, patches);
-
-    return _update(klass, obj.id, oldRec, newRec);
-  };
-
-  /** private */
   _propagateViews = function (name) {
     var props, key, cprops, ckey,
       catalog = featherbone.getSettings("catalog");
@@ -1190,26 +1162,48 @@ create or replace function load_fp() returns void as $$
     return _sanitize(result);
   };
 
-  _update = function (klass, id, oldRec, newRec, isChild) {
-    var result, updRec, props, value, key, sql, i, cKlass, cid, child, err,
-      row,
+  _update = function (obj, isChild) {
+      var result, updRec, props, value, key, sql, i, cKlass, cid, child, err,
+      oldRec, newRec, id, cOldRec, cNewRec, cpatches,
+      patches = obj.data || [],
+      klass = featherbone.getClass(obj.name),
       tokens = [klass.name.toSnakeCase()],
       pk = _getKey(id),
+      id = obj.id,
       params = [],
       ary = [],
       p = 1,
-      exists = function (ary, id) {
+      find = function (ary, id) {
         var n = 0;
 
         while (n < ary.length) {
-          if (ary[n].id === id) { return true; }
+          if (ary[n].id === id) { return ary[n]; }
           n++;
         }
 
         return false;
+      },      
+      noChildProps = function (key) {
+        if (typeof klass.properties[key].type !== "object" ||
+            !klass.properties[key].type.childOf) {
+          return true;
+        }
       };
 
-    if (jsonpatch.compare(oldRec, newRec).length) {
+    /* Validate */
+    if (!isChild && _isChildClass(klass)) {
+      plv8.elog(ERROR, "Can not directly update a child class");
+    }
+
+    obj.properties = Object.keys(klass.properties).filter(noChildProps);
+    oldRec = _select(obj, isChild);
+    if (!Object.keys(oldRec).length) { return false; }
+
+    newRec = JSON.parse(JSON.stringify(oldRec));
+
+    jsonpatch.apply(newRec, patches);
+
+    if (patches.length) {
       props = klass.properties;
       updRec = JSON.parse(JSON.stringify(newRec));
       updRec.updated = new Date().toJSON();
@@ -1227,7 +1221,7 @@ create or replace function load_fp() returns void as $$
           change: {
             name: klass.name,
             action: "PATCH",
-            data: jsonpatch.compare(oldRec, newRec)
+            data: patches
           }
         });
       }
@@ -1244,7 +1238,7 @@ create or replace function load_fp() returns void as $$
               /* Process deletes */
               while (i < oldRec[key].length) {
                 cid = oldRec[key][i].id;
-                if (!exists(updRec[key], cid)) {
+                if (!find(updRec[key], cid)) {
                   child = {name: cKlass.name, id: cid};
                   _delete(child, true);
                 }
@@ -1256,15 +1250,19 @@ create or replace function load_fp() returns void as $$
               i = 0;
               while (i < updRec[key].length) {
                 cid = updRec[key][i].id;
-                row = updRec[key][i];
+                cOldRec = find(oldRec[key], cid);
+                cNewRec = find(updRec[key], cid);
 
-                if (exists(oldRec[key], cid)) {
-                  if (jsonpatch.compare(oldRec[key][i], row).length) {
-                    _update(cKlass, cid, oldRec[key][i], row, true);
+                if (cOldRec) {
+                  cpatches = jsonpatch.compare(cOldRec, cNewRec);
+
+                  if (cpatches.length) {
+                    child = {name: cKlass.name, data: cpatches};
+                    _update(child, true);
                   }
                 } else {
-                  row[props[key].type.parentOf] = {id: updRec.id};
-                  child = {name: cKlass.name, data: row};
+                  cNewRec[props[key].type.parentOf] = {id: updRec.id};
+                  child = {name: cKlass.name, data: cNewRec};
                   _insert(child, true);
                 }
 

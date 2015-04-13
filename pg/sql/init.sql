@@ -72,10 +72,19 @@ create or replace function init() returns void as $$
       return this.replace((/([a-z])([A-Z])/g), '$1_$2').toLowerCase();
     };
 
-    /** TODO: We want to load these directly from js files **/
+    /* TODO: We want to load these directly from js files */
     plv8.execute("select load_fp();");
     plv8.execute("select load_jsonpatch();");
     plv8._init = true;
+
+     /**
+       Helper debug function. Raises a plv8 notice passing the value argument.
+       @returns {String} Value
+    */
+    debug = function (value) {
+      value = typeof value === "object" ? JSON.stringify(value, null, 2) : value;
+      plv8.elog(NOTICE, value);
+    };
 
   }());
 $$ language plv8;
