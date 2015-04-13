@@ -1168,8 +1168,8 @@ create or replace function load_fp() returns void as $$
       patches = obj.data || [],
       klass = featherbone.getClass(obj.name),
       tokens = [klass.name.toSnakeCase()],
-      pk = _getKey(id),
       id = obj.id,
+      pk = _getKey(id),
       params = [],
       ary = [],
       p = 1,
@@ -1257,7 +1257,7 @@ create or replace function load_fp() returns void as $$
                   cpatches = jsonpatch.compare(cOldRec, cNewRec);
 
                   if (cpatches.length) {
-                    child = {name: cKlass.name, data: cpatches};
+                    child = {name: cKlass.name, id: cid, data: cpatches};
                     _update(child, true);
                   }
                 } else {
@@ -1302,7 +1302,6 @@ create or replace function load_fp() returns void as $$
       plv8.execute(sql, params);
 
       if (isChild) { return; }
-
       /* If a top level record, return patch of what changed */
       result = _select({name: klass.name, id: id});
 
