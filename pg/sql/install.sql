@@ -29,8 +29,7 @@ do $$
    plv8.execute('select init()');
    var sqlChk = "SELECT * FROM pg_tables WHERE schemaname = 'public' AND tablename = $1;",
      sqlCmt = "COMMENT ON COLUMN %I.%I IS %L",
-     sql,
-     params;
+     sql, params, global;
 
    /* Create the base object table */
    if (!plv8.execute(sqlChk,['object']).length) {
@@ -55,7 +54,7 @@ do $$
    };
 
    /* Create the settings table */
-   if (!plv8.execute(sqlChk,['"$settings"']).length) {
+   if (!plv8.execute(sqlChk,['$settings']).length) {
      sql = "CREATE TABLE \"$settings\" (" +
        "name text default ''," +
        "data json default '{}'," +
@@ -105,6 +104,38 @@ do $$
 
    /* Create some foundation classes */
    featherbone.saveClass([{
+       name: "Folder", 
+       description: "Container of parent objects",
+       properties: {
+         name: {
+             description: "Name",
+             type: "string"
+         },
+         description: {
+             description: "Description",
+             type: "string"
+         }
+       }
+     },{
+       name: "FolderChild", 
+       description: "Child folder reference to a parent folder",
+       properties: {
+         parent: {
+             description: "Parent folder",
+             type: {
+               relation: "Folder",
+               childOf: "folders"
+             }
+         },
+         child: {
+             description: "Child folder",
+             type: {
+               relation: "Folder",
+               properties: ["id"]
+             }
+         }
+       }
+     },{
        name: "Document",
        description: "Base document class",
        properties: {
@@ -112,6 +143,14 @@ do $$
              description: "Optimistic locking key",
              type: "string",
              defaultValue: "createId()"
+         },
+         folder: {
+           description: "Document container",
+           type: {
+             relation: "Folder",
+             properties: ["name", "description"]
+           },
+           defaultValue: "{\"id\": \"global\"}"
          }
        }
      },{
@@ -138,5 +177,24 @@ do $$
        }
      }
    ]);
+
+   
+   global = featherbone.request({
+     name: "Folder",
+     action: "GET",
+     id: "global"
+   });
+     
+   if (!Object.keys(global).length) {
+     featherbone.request({
+       name: "Folder",
+       action: "POST",
+       data: {
+         id: "global",
+         name: "Global folder",
+         description: "Root folder for all objects"
+       }
+     })
+   }
 
 $$ language plv8;
