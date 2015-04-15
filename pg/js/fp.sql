@@ -19,7 +19,7 @@ create or replace function load_fp() returns void as $$
 /*jslint nomen: true, plusplus: true, indent: 2, sloppy: true, todo: true, maxlen: 80*/
 (function () {
 
-  var _createView, _curry, _getKey, _getKeys, _isChildClass, _delete,
+  var _createView, _curry, _getKey, _getKeys, _isChildFeather, _delete,
     _propagateViews, _relationColumn, _sanitize, _insert, _select, _update,
     _settings = {},
     _types = {
@@ -73,7 +73,7 @@ create or replace function load_fp() returns void as $$
       * @param {Object | Array} Object(s) describing object to remove.
       * @return {String}
     */
-    deleteClass: function (specs) {
+    deleteFeather: function (specs) {
       specs = Array.isArray ? specs : [specs];
 
       var obj, table, catalog, sql, rels, i, props, view, type, key,
@@ -90,7 +90,7 @@ create or replace function load_fp() returns void as $$
         i = 0;
 
         if (!table || !catalog[obj.name]) {
-          plv8.elog(ERROR, 'Class not found');
+          plv8.elog(ERROR, 'Feather not found');
         }
 
         /* Drop views for composite types */
@@ -134,26 +134,26 @@ create or replace function load_fp() returns void as $$
     /**
       Return a class definition, including inherited properties.
 
-      @param {String} Class name
+      @param {String} Feather name
       @param {Boolean} Include inherited or not. Defult = true.
       @return {String}
     */
-    getClass: function (name, includeInherited) {
+    getFeather: function (name, includeInherited) {
       var catalog = featherbone.getSettings('catalog'),
         appendParent = function (child, parent) {
-          var klass = catalog[parent],
-            klassProps = klass.properties,
+          var feather = catalog[parent],
+            featherProps = feather.properties,
             childProps = child.properties,
             key;
 
           if (parent !== "Object") {
-            appendParent(child, klass.inherits || "Object");
+            appendParent(child, feather.inherits || "Object");
           }
 
-          for (key in klassProps) {
-            if (klassProps.hasOwnProperty(key)) {
+          for (key in featherProps) {
+            if (featherProps.hasOwnProperty(key)) {
               if (childProps[key] === undefined) {
-                childProps[key] = klassProps[key];
+                childProps[key] = featherProps[key];
                 childProps[key].inheritedFrom = parent;
               }
             }
@@ -163,7 +163,7 @@ create or replace function load_fp() returns void as $$
         },
         result = {name: name, inherits: "Object"},
         resultProps,
-        klassProps,
+        featherProps,
         key;
 
       if (!catalog[name]) { return false; }
@@ -184,11 +184,11 @@ create or replace function load_fp() returns void as $$
       }
 
       /* Now add local properties back in */
-      klassProps = catalog[name].properties;
+      featherProps = catalog[name].properties;
       resultProps = result.properties;
-      for (key in klassProps) {
-        if (klassProps.hasOwnProperty(key)) {
-          resultProps[key] = klassProps[key];
+      for (key in featherProps) {
+        if (featherProps.hasOwnProperty(key)) {
+          resultProps[key] = featherProps[key];
         }
       }
 
@@ -340,13 +340,13 @@ create or replace function load_fp() returns void as $$
         }
       }
 
-     * @param {Object | Array} Class specification payload(s).
+     * @param {Object | Array} Feather specification payload(s).
      * @return {Boolean}
     */
-    saveClass: function (specs) {
+    saveFeather: function (specs) {
       specs = Array.isArray(specs) ? specs : [specs];
 
-      var table, inherits, klass, catalog, sql, sqlUpd, token, tokens, values,
+      var table, inherits, feather, catalog, sql, sqlUpd, token, tokens, values,
         adds, args, fns, cols, defaultValue, props, key, recs, type, err, name,
         parent, obj, i, n, p, dropSql, changed,
         o = 0;
@@ -355,7 +355,7 @@ create or replace function load_fp() returns void as $$
         obj = specs[o];
         table = obj.name ? obj.name.toSnakeCase() : false;
         inherits = (obj.inherits || "Object").toSnakeCase();
-        klass = featherbone.getClass(obj.name, false);
+        feather = featherbone.getFeather(obj.name, false);
         catalog = featherbone.getSettings("catalog");
         dropSql = "DROP VIEW IF EXISTS %I CASCADE;".format(["_" + table]);
         changed = false;
@@ -373,7 +373,7 @@ create or replace function load_fp() returns void as $$
         if (!table) { plv8.elog(ERROR, "No name defined"); }
 
         /* Create table if applicable */
-        if (!klass) {
+        if (!feather) {
           sql = "CREATE TABLE %I( " +
             "CONSTRAINT %I PRIMARY KEY (_pk), " +
             "CONSTRAINT %I UNIQUE (id)) " +
@@ -386,12 +386,12 @@ create or replace function load_fp() returns void as $$
           ]);
         } else {
           /* Drop non-inherited columns not included in properties */
-          props = klass.properties;
+          props = feather.properties;
           for (key in props) {
             if (props.hasOwnProperty(key)) {
               if (obj.properties && !obj.properties[key] &&
-                  !(typeof klass.properties[key].type === "object" &&
-                  typeof klass.properties[key].type.parentOf)) {
+                  !(typeof feather.properties[key].type === "object" &&
+                  typeof feather.properties[key].type.parentOf)) {
                 /* Drop views */
                 if (!changed) {
                   sql += dropSql;
@@ -440,9 +440,9 @@ create or replace function load_fp() returns void as $$
                 _types[props[key].type] : props[key].type;
 
             if (type) {
-              if (!klass || !klass.properties[key]) {
+              if (!feather || !feather.properties[key]) {
                 /* Drop views */
-                if (klass && !changed) {
+                if (feather && !changed) {
                   sql += dropSql;
                 }
 
@@ -666,10 +666,10 @@ create or replace function load_fp() returns void as $$
   /** private */
   _createView = function (name, dropFirst) {
     var parent, alias, type, view, sub, col, key,
-      klass = featherbone.getClass(name),
+      feather = featherbone.getFeather(name),
       table = name.toSnakeCase(),
       args = ["_" + table, "_pk"],
-      props = klass.properties,
+      props = feather.properties,
       cols = ["%I"],
       sql = "";
 
@@ -742,16 +742,16 @@ create or replace function load_fp() returns void as $$
   _delete = function (obj, isChild) {
     var oldRec, key, i, child, rel,
       sql = "UPDATE object SET is_deleted = true WHERE id=$1;",
-      klass = featherbone.getClass(obj.name),
-      props = klass.properties,
+      feather = featherbone.getFeather(obj.name),
+      props = feather.properties,
       noChildProps = function (key) {
-        if (typeof klass.properties[key].type !== "object" ||
-            !klass.properties[key].type.childOf) {
+        if (typeof feather.properties[key].type !== "object" ||
+            !feather.properties[key].type.childOf) {
           return true;
         }
       };
 
-    if (!isChild && _isChildClass(obj.name)) {
+    if (!isChild && _isChildFeather(obj.name)) {
       plv8.elog(ERROR, "Can not directly delete a child class");
     }
 
@@ -762,7 +762,7 @@ create or replace function load_fp() returns void as $$
           props[key].type.parentOf) {
         if (!oldRec) {
           /* Exclude child key when we select */
-          obj.properties = Object.keys(klass.properties)
+          obj.properties = Object.keys(feather.properties)
             .filter(noChildProps);
           oldRec = _select(obj, true);
         }
@@ -883,9 +883,9 @@ create or replace function load_fp() returns void as $$
   _insert = function (obj, isChild) {
     var child, key, col, prop, result, value, sql, err,
       data = JSON.parse(JSON.stringify(obj.data)),
-      klass = featherbone.getClass(obj.name),
+      feather = featherbone.getFeather(obj.name),
       args = [obj.name.toSnakeCase()],
-      props = klass.properties,
+      props = feather.properties,
       children = {},
       tokens = [],
       params = [],
@@ -901,6 +901,7 @@ create or replace function load_fp() returns void as $$
     data.created = data.updated = featherbone.now();
     data.createdBy = featherbone.getCurrentUser();
     data.updatedBy = featherbone.getCurrentUser();
+
     if (props.changeLog) {
       data.changeLog = [{
         created: data.created,
@@ -997,8 +998,8 @@ create or replace function load_fp() returns void as $$
   };
 
   /** private */
-  _isChildClass = function (klass) {
-    var props = klass.properties,
+  _isChildFeather = function (feather) {
+    var props = feather.properties,
       key;
 
     for (key in props) {
@@ -1104,9 +1105,9 @@ create or replace function load_fp() returns void as $$
 
   /** private */
   _select = function (obj, isChild) {
-    var klass = featherbone.getClass(obj.name),
-      table = "_" + klass.name.toSnakeCase(),
-      keys = obj.properties || Object.keys(klass.properties),
+    var feather = featherbone.getFeather(obj.name),
+      table = "_" + feather.name.toSnakeCase(),
+      keys = obj.properties || Object.keys(feather.properties),
       tokens = [],
       result = {},
       cols = [],
@@ -1116,7 +1117,7 @@ create or replace function load_fp() returns void as $$
       pk;
 
     /* Validate */
-    if (!isChild && _isChildClass(klass)) {
+    if (!isChild && _isChildFeather(feather)) {
       plv8.elog(ERROR, "Can not query directly on a child class");
     }
 
@@ -1163,8 +1164,8 @@ create or replace function load_fp() returns void as $$
       var result, updRec, props, value, key, sql, i, cKlass, cid, child, err,
       oldRec, newRec, id, cOldRec, cNewRec, cpatches,
       patches = obj.data || [],
-      klass = featherbone.getClass(obj.name),
-      tokens = [klass.name.toSnakeCase()],
+      feather = featherbone.getFeather(obj.name),
+      tokens = [feather.name.toSnakeCase()],
       id = obj.id,
       pk = _getKey(id),
       params = [],
@@ -1181,18 +1182,18 @@ create or replace function load_fp() returns void as $$
         return false;
       },      
       noChildProps = function (key) {
-        if (typeof klass.properties[key].type !== "object" ||
-            !klass.properties[key].type.childOf) {
+        if (typeof feather.properties[key].type !== "object" ||
+            !feather.properties[key].type.childOf) {
           return true;
         }
       };
 
     /* Validate */
-    if (!isChild && _isChildClass(klass)) {
+    if (!isChild && _isChildFeather(feather)) {
       plv8.elog(ERROR, "Can not directly update a child class");
     }
 
-    obj.properties = Object.keys(klass.properties).filter(noChildProps);
+    obj.properties = Object.keys(feather.properties).filter(noChildProps);
     oldRec = _select(obj, isChild);
     if (!Object.keys(oldRec).length) { return false; }
 
@@ -1201,11 +1202,11 @@ create or replace function load_fp() returns void as $$
     jsonpatch.apply(newRec, patches);
 
     if (patches.length) {
-      props = klass.properties;
+      props = feather.properties;
       updRec = JSON.parse(JSON.stringify(newRec));
       updRec.updated = new Date().toJSON();
       updRec.updatedBy = featherbone.getCurrentUser();
-      if (klass.properties.etag) {
+      if (feather.properties.etag) {
         updRec.etag = featherbone.createId();
       }
 
@@ -1216,7 +1217,7 @@ create or replace function load_fp() returns void as $$
           updated: updRec.updated,
           updatedBy: updRec.updatedBy,
           change: {
-            name: klass.name,
+            name: feather.name,
             action: "PATCH",
             data: patches
           }
@@ -1229,7 +1230,7 @@ create or replace function load_fp() returns void as $$
           if (typeof props[key].type === "object") {
             /* Handle child records */
             if (Array.isArray(updRec[key])) {
-              cKlass = featherbone.getClass(props[key].type.relation);
+              cKlass = featherbone.getFeather(props[key].type.relation);
               i = 0;
 
               /* Process deletes */
@@ -1300,7 +1301,7 @@ create or replace function load_fp() returns void as $$
 
       if (isChild) { return; }
       /* If a top level record, return patch of what changed */
-      result = _select({name: klass.name, id: id});
+      result = _select({name: feather.name, id: id});
 
       return jsonpatch.compare(newRec, result);
     }

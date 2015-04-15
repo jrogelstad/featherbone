@@ -103,7 +103,7 @@ do $$
    }
 
    /* Create some foundation classes */
-   featherbone.saveClass([{
+   featherbone.saveFeather([{
        name: "Folder", 
        description: "Container of parent objects",
        properties: {
@@ -155,7 +155,7 @@ do $$
        }
      },{
        name: "Log", 
-       description: "Class for logging all schema and data changes",
+       description: "Feather for logging all schema and data changes",
        properties: {
          change: {
              description: "Patch formatted json indicating changes",
