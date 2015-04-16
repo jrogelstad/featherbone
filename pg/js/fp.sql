@@ -90,7 +90,7 @@ create or replace function load_fp() returns void as $$
         i = 0;
 
         if (!table || !catalog[obj.name]) {
-          plv8.elog(ERROR, 'Feather not found');
+          featherbone.error('Class not found');
         }
 
         /* Drop views for composite types */
@@ -196,12 +196,52 @@ create or replace function load_fp() returns void as $$
     },
 
     /**
+      Return settings.
+
+      @param {String} Setting name
+      @return {Object}
+    */
+    getSettings: function (name) {
+      var result, rec, id, etag,
+        sql = "SELECT data FROM \"$settings\" WHERE name = $1";
+
+      if (_settings[name]) {
+        id = _settings[name].id;
+        etag = _settings[name].etag;
+        if (featherbone.checkEtag("$settings", id, etag)) {
+          return _settings[name];
+        }
+      }
+
+      result = plv8.execute(sql, [name]);
+      if (result.length) {
+        rec = result[0];
+        _settings[name] = {
+          id: rec.id,
+          etag: rec.etag,
+          data: rec.data
+        };
+      }
+
+      return _settings[name].data;
+    },
+
+    /**
       Return the current user.
 
       @return {String}
     */
     getCurrentUser: function () {
       return plv8.execute("SELECT CURRENT_USER AS user;")[0].user;
+    },
+
+    /**
+      Raise an error.
+
+      @param {String} Error message.
+    */
+    error: function (message) {
+      plv8.elog(ERROR, message);
     },
 
     /**
@@ -232,36 +272,6 @@ create or replace function load_fp() returns void as $$
       return new Date();
     },
 
-    /**
-      Return settings.
-
-      @param {String} Setting name
-      @return {Object}
-    */
-    getSettings: function (name) {
-      var result, rec, id, etag,
-        sql = "SELECT data FROM \"$settings\" WHERE name = $1";
-
-      if (_settings[name]) {
-        id = _settings[name].id;
-        etag = _settings[name].etag;
-        if (featherbone.checkEtag("$settings", id, etag)) {
-          return _settings[name];
-        }
-      }
-
-      result = plv8.execute(sql, [name]);
-      if (result.length) {
-        rec = result[0];
-        _settings[name] = {
-          id: rec.id,
-          etag: rec.etag,
-          data: rec.data
-        };
-      }
-
-      return _settings[name].data;
-    },
 
     /**
       Request.
@@ -370,7 +380,7 @@ create or replace function load_fp() returns void as $$
         n = 0;
         p = 1;
 
-        if (!table) { plv8.elog(ERROR, "No name defined"); }
+        if (!table) { featherbone.error("No name defined"); }
 
         /* Create table if applicable */
         if (!feather) {
@@ -471,12 +481,12 @@ create or replace function load_fp() returns void as $$
                     } else {
                       err = 'Property "' + type.childOf +
                         '" already exists on "' + type.relation + '"';
-                      plv8.elog(ERROR, err);
+                      featherbone.error(err);
                     }
 
                   } else if (type.parentOf) {
                     err = 'Can not set parent directly for "' + key + '"';
-                    plv8.elog(ERROR, err);
+                    featherbone.error(err);
 
                   } else if (type.properties) {
                     cols = ["%I"];
@@ -520,7 +530,7 @@ create or replace function load_fp() returns void as $$
             } else {
               err = 'Invalid type "' + props[key].type + '" for property "' +
                   key + '" on class "' + obj.name + '"';
-              plv8.elog(ERROR, err);
+              featherbone.error(err);
             }
           }
         }
@@ -642,7 +652,7 @@ create or replace function load_fp() returns void as $$
         if (settings.etag !== rec.etag) {
           err = 'Settings for "' + name +
             '" changed by another user. Save failed.';
-          plv8.elog(ERROR, err);
+          featherbone.error(err);
         }
 
         sql = "UPDATE \"$settings\" SET data = $2 WHERE name = $1;";
@@ -752,7 +762,7 @@ create or replace function load_fp() returns void as $$
       };
 
     if (!isChild && _isChildFeather(obj.name)) {
-      plv8.elog(ERROR, "Can not directly delete a child class");
+      featherbone.error("Can not directly delete a child class");
     }
 
     /* Delete children recursively */
@@ -829,7 +839,7 @@ create or replace function load_fp() returns void as $$
         } else {
           if (ops.indexOf(op) === -1) {
             err = 'Unknown operator "' + criteria[i].operator + '"';
-            plv8.elog(ERROR, err);
+            featherbone.error(err);
           }
           params.push(criteria[i].value);
           part = " %I" + op + "$" + p++;
@@ -849,7 +859,7 @@ create or replace function load_fp() returns void as $$
       while (sort[i]) {
         order = (sort[i].order || "ASC").toUpperCase();
         if (order !== "ASC" && order !== "DESC") {
-          plv8.elog(ERROR, 'Unknown operator "' + order + '"');
+          featherbone.error('Unknown operator "' + order + '"');
         }
         tokens.push(sort[i].property);
         parts.push(" %I " + order);
@@ -892,6 +902,10 @@ create or replace function load_fp() returns void as $$
       values = [],
       i = 0,
       p = 1;
+
+    if (!feather) {
+      featherbone.error("Class \"" + obj.name + "\" not found");
+    }
 
     /* Check id for existence and uniqueness and regenerate if any problem */
     data.id = data.id === undefined || _getKey(data.id) !== undefined ?
@@ -938,7 +952,7 @@ create or replace function load_fp() returns void as $$
               err = "Child records may only be created from the parent.";
             }
             if (err) {
-              plv8.elog(ERROR, err);
+              featherbone.error(err);
             }
           }
 
@@ -1118,7 +1132,7 @@ create or replace function load_fp() returns void as $$
 
     /* Validate */
     if (!isChild && _isChildFeather(feather)) {
-      plv8.elog(ERROR, "Can not query directly on a child class");
+      featherbone.error("Can not query directly on a child class");
     }
 
     while (i < keys.length) {
@@ -1190,7 +1204,7 @@ create or replace function load_fp() returns void as $$
 
     /* Validate */
     if (!isChild && _isChildFeather(feather)) {
-      plv8.elog(ERROR, "Can not directly update a child class");
+      featherbone.error("Can not directly update a child class");
     }
 
     obj.properties = Object.keys(feather.properties).filter(noChildProps);
@@ -1275,7 +1289,7 @@ create or replace function load_fp() returns void as $$
               if (value === undefined) {
                 err = "Relation not found in \"" + props[key].type.relation +
                   "\" for \"" + key + "\" with id \"" + updRec[key].id + "\"";
-                plv8.elog(ERROR, err);
+                featherbone.error(err);
               }
 
               tokens.push(_relationColumn(key, props[key].type.relation));
