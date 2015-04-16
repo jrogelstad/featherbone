@@ -916,14 +916,9 @@ create or replace function load_fp() returns void as $$
     data.createdBy = featherbone.getCurrentUser();
     data.updatedBy = featherbone.getCurrentUser();
 
+    /* No user changes to change log allowed */
     if (props.changeLog) {
-      data.changeLog = [{
-        created: data.created,
-        createdBy: data.createdBy,
-        updated: data.updated,
-        updatedBy: data.updatedBy,
-        change: obj
-      }];
+      data.changeLog = [];
     }
 
     /* Build values */
@@ -1006,9 +1001,27 @@ create or replace function load_fp() returns void as $$
 
     if (isChild) { return; }
 
-    result = _select({name: obj.name, id: data.id});
+    result = _sanitize(_select({name: obj.name, id: data.id}));
 
-    return jsonpatch.compare(obj.data, _sanitize(result));
+    /* Handle change log */
+    if (props.changeLog) {
+      child = {
+        name: props.changeLog.type.relation,
+        data: {
+          created: data.created,
+          createdBy: data.createdBy,
+          updated: data.updated,
+          updatedBy: data.updatedBy,
+          change: JSON.parse(JSON.stringify(result))
+        }
+      };
+      child.data[props.changeLog.type.parentOf] = {id: data.id};
+      child.data.change.changeLog = undefined;
+      _insert(child, true);
+      result.changeLog.push(child.data);
+    }
+
+    return jsonpatch.compare(obj.data, result);
   };
 
   /** private */
