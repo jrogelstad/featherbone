@@ -750,7 +750,7 @@ create or replace function load_fp() returns void as $$
 
   /** private */
   _delete = function (obj, isChild) {
-    var oldRec, key, i, child, rel,
+    var oldRec, key, i, child, rel, now,
       sql = "UPDATE object SET is_deleted = true WHERE id=$1;",
       feather = featherbone.getFeather(obj.name),
       props = feather.properties,
@@ -789,6 +789,20 @@ create or replace function load_fp() returns void as $$
 
     /* Now delete object */
     plv8.execute(sql, [obj.id]);
+
+    /* Handle change log */
+    now = featherbone.now();
+    _insert({
+      name: "Log",
+      data: {
+        objectId: obj.id,
+        action: "DELETE",
+        created: now,
+        createdBy: now,
+        updated: now,
+        updatedBy: now,
+      }
+    }, true);
 
     return true;
   };
