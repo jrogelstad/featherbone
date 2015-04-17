@@ -801,6 +801,7 @@ create or replace function load_fp() returns void as $$
         createdBy: now,
         updated: now,
         updatedBy: now,
+        change: null
       }
     }, true);
 
