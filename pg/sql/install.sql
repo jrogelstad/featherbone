@@ -157,22 +157,17 @@ do $$
        name: "Log", 
        description: "Feather for logging all schema and data changes",
        properties: {
+         objectId: {
+             description: "Object change was performed against",
+             type: "string"
+         },
+         action: {
+             description: "Action performed",
+             type: "string"
+         },
          change: {
              description: "Patch formatted json indicating changes",
              type: "object"
-         }
-       }
-     },{
-       name: "DocumentLog", 
-       description: "Child log class for documents",
-       inherits: "Log",
-       properties: {
-         parent: {
-            description: "Parent reference",
-            type: {
-                relation: "Document",
-                childOf: "changeLog"
-            }
          }
        }
      }

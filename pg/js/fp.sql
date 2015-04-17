@@ -916,11 +916,6 @@ create or replace function load_fp() returns void as $$
     data.createdBy = featherbone.getCurrentUser();
     data.updatedBy = featherbone.getCurrentUser();
 
-    /* No user changes to change log allowed */
-    if (props.changeLog) {
-      data.changeLog = [];
-    }
-
     /* Build values */
     for (key in props) {
       if (props.hasOwnProperty(key)) {
@@ -1001,25 +996,21 @@ create or replace function load_fp() returns void as $$
 
     if (isChild) { return; }
 
-    result = _sanitize(_select({name: obj.name, id: data.id}));
+    result = _select({name: obj.name, id: data.id});
 
     /* Handle change log */
-    if (props.changeLog) {
-      child = {
-        name: props.changeLog.type.relation,
-        data: {
-          created: data.created,
-          createdBy: data.createdBy,
-          updated: data.updated,
-          updatedBy: data.updatedBy,
-          change: JSON.parse(JSON.stringify(result))
-        }
-      };
-      child.data[props.changeLog.type.parentOf] = {id: data.id};
-      child.data.change.changeLog = undefined;
-      _insert(child, true);
-      result.changeLog.push(child.data);
-    }
+    _insert({
+      name: "Log",
+      data: {
+        objectId: data.id,
+        action: "POST",
+        created: data.created,
+        createdBy: data.createdBy,
+        updated: data.updated,
+        updatedBy: data.updatedBy,
+        change: JSON.parse(JSON.stringify(result))
+      }
+    }, true);
 
     return jsonpatch.compare(obj.data, result);
   };
@@ -1188,7 +1179,7 @@ create or replace function load_fp() returns void as $$
   };
 
   _update = function (obj, isChild) {
-      var result, updRec, props, value, key, sql, i, cKlass, cid, child, err,
+      var result, updRec, props, value, key, sql, i, cFeather, cid, child, err,
       oldRec, newRec, id, cOldRec, cNewRec, cpatches,
       patches = obj.data || [],
       feather = featherbone.getFeather(obj.name),
@@ -1237,34 +1228,20 @@ create or replace function load_fp() returns void as $$
         updRec.etag = featherbone.createId();
       }
 
-      if (updRec.changeLog) {
-        updRec.changeLog.push({
-          created: updRec.updated,
-          createdBy: updRec.updatedBy,
-          updated: updRec.updated,
-          updatedBy: updRec.updatedBy,
-          change: {
-            name: feather.name,
-            action: "PATCH",
-            data: patches
-          }
-        });
-      }
-
       for (key in props) {
         if (props.hasOwnProperty(key)) {
           /* Handle composite types */
           if (typeof props[key].type === "object") {
             /* Handle child records */
             if (Array.isArray(updRec[key])) {
-              cKlass = featherbone.getFeather(props[key].type.relation);
+              cFeather = featherbone.getFeather(props[key].type.relation);
               i = 0;
 
               /* Process deletes */
               while (i < oldRec[key].length) {
                 cid = oldRec[key][i].id;
                 if (!find(updRec[key], cid)) {
-                  child = {name: cKlass.name, id: cid};
+                  child = {name: cFeather.name, id: cid};
                   _delete(child, true);
                 }
 
@@ -1282,12 +1259,12 @@ create or replace function load_fp() returns void as $$
                   cpatches = jsonpatch.compare(cOldRec, cNewRec);
 
                   if (cpatches.length) {
-                    child = {name: cKlass.name, id: cid, data: cpatches};
+                    child = {name: cFeather.name, id: cid, data: cpatches};
                     _update(child, true);
                   }
                 } else {
                   cNewRec[props[key].type.parentOf] = {id: updRec.id};
-                  child = {name: cKlass.name, data: cNewRec};
+                  child = {name: cFeather.name, data: cNewRec};
                   _insert(child, true);
                 }
 
@@ -1327,11 +1304,28 @@ create or replace function load_fp() returns void as $$
       plv8.execute(sql, params);
 
       if (isChild) { return; }
+
       /* If a top level record, return patch of what changed */
       result = _select({name: feather.name, id: id});
 
+      /* Handle change log */
+      _insert({
+        name: "Log",
+        data: {
+          objectId: id,
+          action: "PATCH",
+          created: updRec.updated,
+          createdBy: updRec.updatedBy,
+          updated: updRec.updated,
+          updatedBy: updRec.updatedBy,
+          change: jsonpatch.compare(oldRec, result)
+        }
+      }, true);
+
       return jsonpatch.compare(newRec, result);
     }
+
+    return [];
   };
 
 }());
