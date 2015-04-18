@@ -691,7 +691,7 @@ create or replace function load_fp() returns void as $$
         if (typeof props[key].type === "object") {
           type = props[key].type;
           parent =  props[key].inheritedFrom ?
-            props[key].inheritedFrom.toSnakeCase() : table;
+              props[key].inheritedFrom.toSnakeCase() : table;
 
           /* Handle to many */
           if (type.parentOf) {
@@ -812,7 +812,7 @@ create or replace function load_fp() returns void as $$
     name = name ? name.toSnakeCase() : "object";
 
     var clause = showDeleted ? "true" : "NOT is_deleted",
-      sql = ("SELECT _pk FROM %I WHERE " + clause +" AND id = $1")
+      sql = ("SELECT _pk FROM %I WHERE " + clause + " AND id = $1")
         .format([name]),
       result = plv8.execute(sql, [id])[0];
 
@@ -829,7 +829,6 @@ create or replace function load_fp() returns void as $$
       criteria = filter ? filter.criteria || [] : false,
       sort = filter ? filter.sort || [] : false,
       params = [],
-      result  = [],
       parts = [],
       i = 0,
       p = 1;
@@ -1193,8 +1192,8 @@ create or replace function load_fp() returns void as $$
   };
 
   _update = function (obj, isChild) {
-      var result, updRec, props, value, key, sql, i, cFeather, cid, child, err,
-      oldRec, newRec, id, cOldRec, cNewRec, cpatches,
+    var result, updRec, props, value, key, sql, i, cFeather, cid, child, err,
+      oldRec, newRec, cOldRec, cNewRec, cpatches,
       patches = obj.data || [],
       feather = featherbone.getFeather(obj.name),
       tokens = [feather.name.toSnakeCase()],
@@ -1212,7 +1211,7 @@ create or replace function load_fp() returns void as $$
         }
 
         return false;
-      },      
+      },
       noChildProps = function (key) {
         if (typeof feather.properties[key].type !== "object" ||
             !feather.properties[key].type.childOf) {
