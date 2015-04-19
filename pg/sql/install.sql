@@ -64,7 +64,8 @@ do $$
        "can_read boolean default false," +
        "can_update boolean default false," +
        "can_delete boolean default false," +
-       "can_execute boolean default false)";
+       "can_execute boolean default false," +
+       "CONSTRAINT \"$auth_object_pk_role_pk_is_inherited_key\" UNIQUE (object_pk, role_pk, is_inherited))";
      plv8.execute(sql);
      plv8.execute("COMMENT ON TABLE \"$auth\" IS 'Table for storing object level authorization information'");
      plv8.execute(sqlCmt.format(['$auth','pk','Primary key']));
@@ -77,6 +78,15 @@ do $$
      plv8.execute(sqlCmt.format(['$auth','can_delete','Can delete the object']));
      plv8.execute(sqlCmt.format(['$auth','can_execute','Can execute against the object']));
    };
+
+   /* Create the feather table */
+   if (!plv8.execute(sqlChk,['$feather']).length) {
+     sql = "CREATE TABLE \"$feather\" (" +
+       "CONSTRAINT feather_pkey PRIMARY KEY (_pk), " +
+       "CONSTRAINT feather_id_key UNIQUE (id)) INHERITS (object)";
+     plv8.execute(sql);
+     plv8.execute("comment on table \"$feather\" is 'Internal table for storing class names'");
+   }
 
    /* Create the settings table */
    if (!plv8.execute(sqlChk,['$settings']).length) {
@@ -228,7 +238,6 @@ do $$
      }
    ]);
 
-   
    global = featherbone.request({
      name: "Folder",
      action: "GET",
