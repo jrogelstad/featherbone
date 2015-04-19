@@ -56,9 +56,10 @@ do $$
    /* Create the object auth table */
    if (!plv8.execute(sqlChk,['$auth']).length) {
      sql = "CREATE TABLE \"$auth\" (" +
-       "id serial PRIMARY KEY," +
+       "pk serial PRIMARY KEY," +
        "object_pk bigint," +
-       "role name," +
+       "role_pk bigint," +
+       "is_inherited boolean default false," +
        "can_create boolean default false," +
        "can_read boolean default false," +
        "can_update boolean default false," +
@@ -66,9 +67,10 @@ do $$
        "can_execute boolean default false)";
      plv8.execute(sql);
      plv8.execute("COMMENT ON TABLE \"$auth\" IS 'Table for storing object level authorization information'");
-     plv8.execute(sqlCmt.format(['$auth','id','Internal primary key']));
+     plv8.execute(sqlCmt.format(['$auth','pk','Primary key']));
      plv8.execute(sqlCmt.format(['$auth','object_pk','Primary key for object authorization applies to']));
-     plv8.execute(sqlCmt.format(['$auth','role','Role authorization applies to']));
+     plv8.execute(sqlCmt.format(['$auth','role_pk','Primary key for role authorization applies to']));
+     plv8.execute(sqlCmt.format(['$auth','is_inherited','Authorization is inherited from a parent folder']));
      plv8.execute(sqlCmt.format(['$auth','can_create','Can create the object']));
      plv8.execute(sqlCmt.format(['$auth','can_read','Can read the object']));
      plv8.execute(sqlCmt.format(['$auth','can_update','Can update the object']));
@@ -127,6 +129,35 @@ do $$
 
    /* Create some foundation classes */
    featherbone.saveFeather([{
+       name: "Role", 
+       description: "User authorization role",
+       properties: {
+         name: {
+             description: "Name",
+             type: "string"
+         },
+         description: {
+             description: "Description",
+             type: "string"
+         }
+       }
+     },{
+       name: "RoleMember", 
+       description: "Member reference to a parent role",
+       properties: {
+         parent: {
+             description: "Parent role",
+             type: {
+               relation: "Role",
+               childOf: "members"
+             }
+         },
+         member: {
+             description: "member",
+             type: "string"
+         }
+       }
+     },{
        name: "Folder", 
        description: "Container of parent objects",
        properties: {
@@ -147,7 +178,8 @@ do $$
              description: "Parent folder",
              type: {
                relation: "Folder",
-               childOf: "folders"
+               childOf: "folders",
+               isUnique: true
              }
          },
          child: {
