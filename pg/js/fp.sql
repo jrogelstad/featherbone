@@ -16,7 +16,7 @@
 
 create or replace function load_fp() returns void as $$
 /*global plv8: true, jsonpatch: true, featherbone: true, ERROR: true */
-/*jslint nomen: true, plusplus: true, indent: 2, sloppy: true, todo: true, maxlen: 80*/
+/*jslint nomen: true, plusplus: true, indent: 2, sloppy: true, maxlen: 80*/
 (function () {
 
   var _createView, _curry, _getKey, _getKeys, _isChildFeather, _delete,
@@ -272,7 +272,6 @@ create or replace function load_fp() returns void as $$
       return new Date();
     },
 
-
     /**
       Request.
 
@@ -320,6 +319,16 @@ create or replace function load_fp() returns void as $$
       case "DELETE":
         return _delete(obj);
       }
+    },
+
+    /**
+      Restore a deleted record to its previous state.
+
+      @return {Object}
+    */
+    restore: function (id) {
+      /* TODO */
+      return false;
     },
 
     /**
@@ -459,6 +468,8 @@ create or replace function load_fp() returns void as $$
                 changed = true;
 
                 sql += "ALTER TABLE %I ADD COLUMN %I ";
+
+                if (props[key].isUnique) { sql += "UNIQUE "; }
 
                 /* Handle composite types */
                 if (type.relation) {
