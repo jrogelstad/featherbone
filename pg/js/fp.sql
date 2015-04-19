@@ -84,7 +84,8 @@ create or replace function load_fp() returns void as $$
 
         table = obj.name ? obj.name.toSnakeCase() : false;
         catalog = featherbone.getSettings('catalog');
-        sql = "DROP VIEW %I; DROP TABLE %I;"
+        sql = ("DROP VIEW %I; DROP TABLE %I;" +
+          "DELETE FROM \"$feather\" WHERE id=$1;")
           .format(["_" + table, table]);
         rels = [];
         i = 0;
@@ -123,7 +124,7 @@ create or replace function load_fp() returns void as $$
         }
 
         /* Drop table(s) */
-        plv8.execute(sql);
+        plv8.execute(sql, [table]);
 
         o++;
       }
@@ -367,7 +368,7 @@ create or replace function load_fp() returns void as $$
 
       var table, inherits, feather, catalog, sql, sqlUpd, token, tokens, values,
         adds, args, fns, cols, defaultValue, props, key, recs, type, err, name,
-        parent, obj, i, n, p, dropSql, changed,
+        parent, obj, i, n, p, dropSql, addSql, changed, isNew,
         o = 0;
 
       while (o < specs.length) {
@@ -376,6 +377,9 @@ create or replace function load_fp() returns void as $$
         inherits = (obj.inherits || "Object").toSnakeCase();
         feather = featherbone.getFeather(obj.name, false);
         catalog = featherbone.getSettings("catalog");
+        addSql = "INSERT INTO \"$feather\" " +
+          "(id, created, created_by, updated, updated_by, is_deleted) VALUES " +
+          "($1, now(), $2, now(), $3, false);";
         dropSql = "DROP VIEW IF EXISTS %I CASCADE;".format(["_" + table]);
         changed = false;
         sql = "";
@@ -403,6 +407,12 @@ create or replace function load_fp() returns void as $$
             table + "_id_key",
             inherits
           ]);
+          sql += addSql;
+          values = [
+            table,
+            featherbone.getCurrentUser(),
+            featherbone.getCurrentUser()
+          ];
         } else {
           /* Drop non-inherited columns not included in properties */
           props = feather.properties;
@@ -548,7 +558,7 @@ create or replace function load_fp() returns void as $$
 
         /* Update schema */
         sql = sql.format(tokens);
-        plv8.execute(sql);
+        plv8.execute(sql, values);
 
         /* Populate defaults */
         if (adds.length) {
@@ -631,6 +641,7 @@ create or replace function load_fp() returns void as $$
         featherbone.saveSettings("catalog", catalog);
 
         /* Propagate views */
+        changed = changed ? changed : feather === false;
         if (changed) {
           _propagateViews(name);
         }
@@ -749,6 +760,7 @@ create or replace function load_fp() returns void as $$
 
     sql += ("CREATE OR REPLACE VIEW %I AS SELECT " + cols.join(",") +
       " FROM %I;").format(args);
+
     plv8.execute(sql);
   };
 
@@ -1275,10 +1287,9 @@ create or replace function load_fp() returns void as $$
               /* Process inserts and updates */
               i = 0;
               while (i < updRec[key].length) {
-                cid = updRec[key][i].id;
+                cid = updRec[key][i].id || null;
                 cOldRec = find(oldRec[key], cid);
-                cNewRec = find(updRec[key], cid);
-
+                cNewRec = updRec[key][i];
                 if (cOldRec) {
                   cpatches = jsonpatch.compare(cOldRec, cNewRec);
 
