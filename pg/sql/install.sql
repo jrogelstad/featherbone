@@ -53,6 +53,29 @@ do $$
      plv8.execute("CREATE OR REPLACE VIEW _object AS SELECT * FROM object;");
    };
 
+   /* Create the object auth table */
+   if (!plv8.execute(sqlChk,['$auth']).length) {
+     sql = "CREATE TABLE \"$auth\" (" +
+       "id serial PRIMARY KEY," +
+       "object_pk bigint," +
+       "role name," +
+       "can_create boolean default false," +
+       "can_read boolean default false," +
+       "can_update boolean default false," +
+       "can_delete boolean default false," +
+       "can_execute boolean default false)";
+     plv8.execute(sql);
+     plv8.execute("COMMENT ON TABLE \"$auth\" IS 'Table for storing object level authorization information'");
+     plv8.execute(sqlCmt.format(['$auth','id','Internal primary key']));
+     plv8.execute(sqlCmt.format(['$auth','object_pk','Primary key for object authorization applies to']));
+     plv8.execute(sqlCmt.format(['$auth','role','Role authorization applies to']));
+     plv8.execute(sqlCmt.format(['$auth','can_create','Can create the object']));
+     plv8.execute(sqlCmt.format(['$auth','can_read','Can read the object']));
+     plv8.execute(sqlCmt.format(['$auth','can_update','Can update the object']));
+     plv8.execute(sqlCmt.format(['$auth','can_delete','Can delete the object']));
+     plv8.execute(sqlCmt.format(['$auth','can_execute','Can execute against the object']));
+   };
+
    /* Create the settings table */
    if (!plv8.execute(sqlChk,['$settings']).length) {
      sql = "CREATE TABLE \"$settings\" (" +
