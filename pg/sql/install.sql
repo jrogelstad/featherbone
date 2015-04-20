@@ -82,6 +82,8 @@ do $$
    /* Create the feather table */
    if (!plv8.execute(sqlChk,['$feather']).length) {
      sql = "CREATE TABLE \"$feather\" (" +
+       "is_child boolean," +
+       "parent_pk bigint," +
        "CONSTRAINT feather_pkey PRIMARY KEY (_pk), " +
        "CONSTRAINT feather_id_key UNIQUE (id)) INHERITS (object)";
      plv8.execute(sql);
@@ -91,9 +93,9 @@ do $$
    /* Create the settings table */
    if (!plv8.execute(sqlChk,['$settings']).length) {
      sql = "CREATE TABLE \"$settings\" (" +
-       "name text default ''," +
-       "data json default '{}'," +
-       "etag text default ''," +
+       "name text," +
+       "data json," +
+       "etag text," +
        "CONSTRAINT settings_pkey PRIMARY KEY (_pk), " +
        "CONSTRAINT settings_id_key UNIQUE (id)) INHERITS (object)";
      plv8.execute(sql);

@@ -368,8 +368,28 @@ create or replace function load_fp() returns void as $$
 
       var table, inherits, feather, catalog, sql, sqlUpd, token, tokens, values,
         adds, args, fns, cols, defaultValue, props, key, recs, type, err, name,
-        parent, obj, i, n, p, dropSql, addSql, changed, isNew,
-        o = 0;
+        parent, obj, i, n, p, dropSql, addSql, changed, isChild, pk,
+        o = 0,
+        getParentKey = function (child) {
+          var parent, cKey, cProps;
+
+          cProps = featherbone.getFeather(child).properties;
+
+          for (cKey in cProps) {
+            if (cProps.hasOwnProperty(cKey)&&
+                typeof cProps[cKey].type === "object" &&
+                cProps[cKey].type.childOf) {
+              parent = cProps[cKey].type.relation;
+
+              if (_isChildFeather(featherbone.getFeather(parent))) {
+                return getParentKey(parent);
+              } else {
+                return _getKey(parent);
+              }
+            }
+          }
+          
+        };
 
       while (o < specs.length) {
         obj = specs[o];
@@ -377,14 +397,10 @@ create or replace function load_fp() returns void as $$
         inherits = (obj.inherits || "Object").toSnakeCase();
         feather = featherbone.getFeather(obj.name, false);
         catalog = featherbone.getSettings("catalog");
-        addSql = "INSERT INTO \"$feather\" " +
-          "(id, created, created_by, updated, updated_by, is_deleted) VALUES " +
-          "($1, now(), $2, now(), $3, false);";
         dropSql = "DROP VIEW IF EXISTS %I CASCADE;".format(["_" + table]);
         changed = false;
         sql = "";
         tokens = [];
-        values = [];
         adds = [];
         args = [];
         fns = [];
@@ -407,12 +423,6 @@ create or replace function load_fp() returns void as $$
             table + "_id_key",
             inherits
           ]);
-          sql += addSql;
-          values = [
-            table,
-            featherbone.getCurrentUser(),
-            featherbone.getCurrentUser()
-          ];
         } else {
           /* Drop non-inherited columns not included in properties */
           props = feather.properties;
@@ -558,7 +568,7 @@ create or replace function load_fp() returns void as $$
 
         /* Update schema */
         sql = sql.format(tokens);
-        plv8.execute(sql, values);
+        plv8.execute(sql);
 
         /* Populate defaults */
         if (adds.length) {
@@ -640,8 +650,22 @@ create or replace function load_fp() returns void as $$
         delete obj.name;
         featherbone.saveSettings("catalog", catalog);
 
+        if (!feather) {
+          isChild = _isChildFeather(featherbone.getFeather(name));
+          pk = plv8.execute("select nextval('object__pk_seq') as pk;")[0].pk;
+          sql = "INSERT INTO \"$feather\" " +
+            "(_pk, id, created, created_by, updated, updated_by, is_deleted, " +
+            " is_child, parent_pk) VALUES " +
+            "($1, $2, now(), $3, now(), $4, false, $5, $6);",
+          values = [pk, name, featherbone.getCurrentUser(),
+            featherbone.getCurrentUser(), isChild,
+            isChild ? getParentKey(name) : pk];
+
+          plv8.execute(sql, values);
+        }
+
         /* Propagate views */
-        changed = changed ? changed : feather === false;
+        changed = changed ? changed : !feather;
         if (changed) {
           _propagateViews(name);
         }
