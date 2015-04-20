@@ -124,7 +124,7 @@ create or replace function load_fp() returns void as $$
         }
 
         /* Drop table(s) */
-        plv8.execute(sql, [table]);
+        plv8.execute(sql, [obj.name]);
 
         o++;
       }
