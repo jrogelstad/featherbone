@@ -124,7 +124,7 @@ create or replace function load_fp() returns void as $$
         }
 
         /* Drop table(s) */
-        plv8.execute(sql, [obj.name]);
+        plv8.execute(sql, [table]);
 
         o++;
       }
@@ -384,7 +384,7 @@ create or replace function load_fp() returns void as $$
               if (_isChildFeather(featherbone.getFeather(parent))) {
                 return getParentKey(parent);
               } else {
-                return _getKey(parent);
+                return _getKey(parent.toSnakeCase());
               }
             }
           }
@@ -657,7 +657,7 @@ create or replace function load_fp() returns void as $$
             "(_pk, id, created, created_by, updated, updated_by, is_deleted, " +
             " is_child, parent_pk) VALUES " +
             "($1, $2, now(), $3, now(), $4, false, $5, $6);",
-          values = [pk, name, featherbone.getCurrentUser(),
+          values = [pk, table, featherbone.getCurrentUser(),
             featherbone.getCurrentUser(), isChild,
             isChild ? getParentKey(name) : pk];
 
