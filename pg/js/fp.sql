@@ -21,6 +21,7 @@ create or replace function load_fp() returns void as $$
 
   var _createView, _curry, _getKey, _getKeys, _isChildFeather, _delete,
     _propagateViews, _relationColumn, _sanitize, _insert, _select, _update,
+    _currentUser, setCurrentUser,
     _settings = {},
     _types = {
       object: {type: "json", defaultValue: {}},
@@ -133,6 +134,17 @@ create or replace function load_fp() returns void as $$
     },
 
     /**
+      Return the current user.
+
+      @return {String}
+    */
+    getCurrentUser: function () {
+      if (_currentUser) { return _currentUser; }
+
+      featherbone.error("Current user undefined");
+    },
+
+    /**
       Return a class definition, including inherited properties.
 
       @param {String} Feather name
@@ -228,15 +240,6 @@ create or replace function load_fp() returns void as $$
     },
 
     /**
-      Return the current user.
-
-      @return {String}
-    */
-    getCurrentUser: function () {
-      return plv8.execute("SELECT CURRENT_USER AS user;")[0].user;
-    },
-
-    /**
       Raise an error.
 
       @param {String} Error message.
@@ -302,24 +305,35 @@ create or replace function load_fp() returns void as $$
         args,
         fn;
 
+      _setCurrentUser(obj.user);
+
       switch (obj.action) {
       case "GET":
-        return _select(obj);
+        result = _select(obj);
+        break;
       case "POST":
         /* Handle if posting a function call */
         if (featherbone[prop] && typeof featherbone[prop] === "function") {
           args = Array.isArray(obj.data) ? obj.data : [obj.data];
           fn = _curry(featherbone[prop], args);
           result.value = fn();
-          return result;
+        } else {
+          result = _insert(obj);
         }
-
-        return _insert(obj);
+        break;
       case "PATCH":
-        return _update(obj);
+        result = _update(obj);
+        break;
       case "DELETE":
-        return _delete(obj);
+        result = _delete(obj);
+        break;
+      default:
+        featherbone.error("action \"" + obj.action + "\" unknown");
       }
+
+      _setCurrentUser(undefined);
+
+      return result;
     },
 
     /**
@@ -855,24 +869,25 @@ create or replace function load_fp() returns void as $$
   };
 
   /** private */
-  _getKey = function (id, name, showDeleted) {
-    name = name ? name.toSnakeCase() : "object";
+  _getKey = function (id, name, showDeleted, isSuperUser) {
+    name = name || "Object";
 
-    var clause = showDeleted ? "true" : "NOT is_deleted",
-      sql = ("SELECT _pk FROM %I WHERE " + clause + " AND id = $1")
-        .format([name]),
-      result = plv8.execute(sql, [id])[0];
+    var result,
+      filter = {criteria: [{property: "id", value: id}]};
 
-    return result ? result._pk : undefined;
+    result = _getKeys(name, filter, showDeleted);
+
+    return result.length ? result[0] : undefined;
   };
 
   /** private */
-  _getKeys = function (name, filter, showDeleted) {
+  _getKeys = function (name, filter, showDeleted, isSuperUser) {
     var part, order, op, err, n,
       ops = ["=", "!=", "<", ">", "<>", "~", "*~", "!~", "!~*"],
-      clause = showDeleted ? "true" : "NOT is_deleted",
+      table = name.toSnakeCase(),
+      clause = showDeleted !== false ? "true" : "NOT is_deleted",
       sql = "SELECT _pk FROM %I WHERE " + clause,
-      tokens = [name.toSnakeCase()],
+      tokens = [table],
       criteria = filter ? filter.criteria || [] : false,
       sort = filter ? filter.sort || [] : false,
       params = [],
@@ -880,7 +895,66 @@ create or replace function load_fp() returns void as $$
       i = 0,
       p = 1;
 
-    /* Only return values if we have a filter */
+    /* Add authorization criteria */
+    if (isSuperUser !== false) {
+      sql += " AND _pk IN (" +
+        "SELECT %I._pk " +
+        "FROM %I " +
+        "  JOIN \"$feather\" ON \"$feather\".id::regclass::oid=%I.tableoid " +
+        "WHERE EXISTS (" +
+        "  SELECT can_read FROM ( " +
+        "    SELECT can_read" +
+        "    FROM \"$auth\"" +
+        "      JOIN \"role\" on \"$auth\".\"role_pk\"=\"role\".\"_pk\"" +
+        "      JOIN \"role_member\"" +
+        "        ON \"role\".\"_pk\"=\"role_member\".\"_parent_role_pk\"" +
+        "    WHERE member=$1" +
+        "      AND object_pk=\"$feather\".parent_pk" +
+        "    ORDER BY can_read DESC" +
+        "    LIMIT 1" +
+        "  ) AS data" +
+        "  WHERE can_read" +
+        ") " +
+        "INTERSECT " +
+        "SELECT %I._pk " +
+        "FROM %I" +
+        "  JOIN folder ON _folder_folder_pk=folder._pk " +
+        "WHERE EXISTS (" +
+        "  SELECT can_read FROM (" +
+        "    SELECT can_read" +
+        "    FROM \"$auth\"" +
+        "      JOIN \"role\" on \"$auth\".\"role_pk\"=\"role\".\"_pk\"" +
+        "      JOIN \"role_member\"" +
+        "        ON \"role\".\"_pk\"=\"role_member\".\"_parent_role_pk\"" +
+        "    WHERE member=$1" +
+        "      AND object_pk=folder._pk" +
+        "    ORDER BY is_inherited, can_read DESC" +
+        "    LIMIT 1" +
+        "  ) AS data" +
+        "  WHERE can_read" +
+        ") " +
+        "EXCEPT " +
+        "SELECT %I._pk " +
+        "FROM %I " +
+        "WHERE EXISTS ( " +
+        "  SELECT can_read FROM (" +
+        "    SELECT can_read" +
+        "    FROM \"$auth\"" +
+        "    JOIN \"role\" on \"$auth\".\"role_pk\"=\"role\".\"_pk\"" +
+        "    JOIN \"role_member\" " +
+        "      ON \"role\".\"_pk\"=\"role_member\".\"_parent_role_pk\"" +
+        "    WHERE member=$1" +
+        "      AND object_pk=contact._pk" +
+        "    ORDER BY can_read DESC" +
+        "    LIMIT 1 " +
+        "  ) AS data " +
+        "WHERE NOT can_read))";
+        tokens = tokens.concat([table, table, table, table, table, table, table]);
+        params.push(featherbone.getCurrentUser());
+        p++;
+    }
+
+    /* Process filter */
     if (filter) {
 
       /* Process criteria */
@@ -968,8 +1042,8 @@ create or replace function load_fp() returns void as $$
     }
 
     /* Check id for existence and uniqueness and regenerate if any problem */
-    data.id = data.id === undefined || _getKey(data.id) !== undefined ?
-        featherbone.createId() : data.id;
+    data.id = data.id === undefined || _getKey(data.id !== undefined ?
+        featherbone.createId() : data.id);
 
     /* Set some system controlled values */
     data.created = data.updated = featherbone.now();
@@ -1211,7 +1285,7 @@ create or replace function load_fp() returns void as $$
 
     /* Get one result by key */
     if (obj.id) {
-      pk = _getKey(obj.id, obj.name, obj.showDeleted);
+      pk = _getKey(obj.id, obj.name, obj.showDeleted, false);
       if (pk === undefined) { return {}; }
       sql +=  " WHERE _pk = $1";
 
@@ -1238,6 +1312,12 @@ create or replace function load_fp() returns void as $$
     return _sanitize(result);
   };
 
+  /** private */
+  _setCurrentUser = function (user) {
+    _currentUser = user;
+  };
+
+  /** Private */
   _update = function (obj, isChild) {
     var result, updRec, props, value, key, sql, i, cFeather, cid, child, err,
       oldRec, newRec, cOldRec, cNewRec, cpatches,
