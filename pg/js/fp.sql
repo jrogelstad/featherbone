@@ -929,7 +929,7 @@ create or replace function load_fp() returns void as $$
         "    LIMIT 1" +
         "  ) AS data" +
         "  WHERE can_read" +
-        ") " + 
+        ") " +
         folderSql +
         "EXCEPT " +
         "SELECT %I._pk " +
@@ -1043,7 +1043,7 @@ create or replace function load_fp() returns void as $$
     /* Check id for existence and uniqueness and regenerate if any problem */
     if (data.id === undefined ||  _getKey(data.id) !== undefined) {
       data.id = featherbone.createId();
-    };
+    }
 
     /* Set some system controlled values */
     data.created = data.updated = featherbone.now();
