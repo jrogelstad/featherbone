@@ -299,7 +299,9 @@ create or replace function load_fp() returns void as $$
       @param {Object} Payload
       @return {Object | Array}
     */
-    request: function (obj) {
+    request: function (obj, isSuperUser) {
+      isSuperUser = isSuperUser === undefined ? false : isSuperUser;
+
       var prop = obj.name,
         result = {},
         args,
@@ -309,7 +311,7 @@ create or replace function load_fp() returns void as $$
 
       switch (obj.action) {
       case "GET":
-        result = _select(obj);
+        result = _select(obj, false, isSuperUser);
         break;
       case "POST":
         /* Handle if posting a function call */
@@ -318,14 +320,14 @@ create or replace function load_fp() returns void as $$
           fn = _curry(featherbone[prop], args);
           result.value = fn();
         } else {
-          result = _insert(obj);
+          result = _insert(obj, isSuperUser);
         }
         break;
       case "PATCH":
-        result = _update(obj);
+        result = _update(obj, isSuperUser);
         break;
       case "DELETE":
-        result = _delete(obj);
+        result = _delete(obj, isSuperUser);
         break;
       default:
         featherbone.error("action \"" + obj.action + "\" unknown");
@@ -389,7 +391,7 @@ create or replace function load_fp() returns void as $$
                 return getParentKey(cParent);
               }
 
-              return _getKey(parent.toSnakeCase());
+              return _getKey(cParent.toSnakeCase());
             }
           }
 
@@ -843,6 +845,7 @@ create or replace function load_fp() returns void as $$
 
     /* Handle change log */
     now = featherbone.now();
+
     _insert({
       name: "Log",
       data: {
@@ -880,13 +883,35 @@ create or replace function load_fp() returns void as $$
       tokens = [table],
       criteria = filter ? filter.criteria || [] : false,
       sort = filter ? filter.sort || [] : false,
+      folderSql = "",
       params = [],
       parts = [],
       i = 0,
       p = 1;
 
     /* Add authorization criteria */
-    if (isSuperUser !== false) {
+    if (isSuperUser === false) {
+      if (featherbone.getFeather(name).properties.folder) {
+        folderSql = "INTERSECT " +
+          "SELECT %I._pk " +
+          "FROM %I" +
+          "  JOIN folder ON _folder_folder_pk=folder._pk " +
+          "WHERE EXISTS (" +
+          "  SELECT can_read FROM (" +
+          "    SELECT can_read" +
+          "    FROM \"$auth\"" +
+          "      JOIN \"role\" on \"$auth\".\"role_pk\"=\"role\".\"_pk\"" +
+          "      JOIN \"role_member\"" +
+          "        ON \"role\".\"_pk\"=\"role_member\".\"_parent_role_pk\"" +
+          "    WHERE member=$1" +
+          "      AND object_pk=folder._pk" +
+          "    ORDER BY is_inherited, can_read DESC" +
+          "    LIMIT 1" +
+          "  ) AS data" +
+          "  WHERE can_read" +
+          ") ";
+      }
+
       sql += " AND _pk IN (" +
         "SELECT %I._pk " +
         "FROM %I " +
@@ -904,25 +929,8 @@ create or replace function load_fp() returns void as $$
         "    LIMIT 1" +
         "  ) AS data" +
         "  WHERE can_read" +
-        ") " +
-        "INTERSECT " +
-        "SELECT %I._pk " +
-        "FROM %I" +
-        "  JOIN folder ON _folder_folder_pk=folder._pk " +
-        "WHERE EXISTS (" +
-        "  SELECT can_read FROM (" +
-        "    SELECT can_read" +
-        "    FROM \"$auth\"" +
-        "      JOIN \"role\" on \"$auth\".\"role_pk\"=\"role\".\"_pk\"" +
-        "      JOIN \"role_member\"" +
-        "        ON \"role\".\"_pk\"=\"role_member\".\"_parent_role_pk\"" +
-        "    WHERE member=$1" +
-        "      AND object_pk=folder._pk" +
-        "    ORDER BY is_inherited, can_read DESC" +
-        "    LIMIT 1" +
-        "  ) AS data" +
-        "  WHERE can_read" +
-        ") " +
+        ") " + 
+        folderSql +
         "EXCEPT " +
         "SELECT %I._pk " +
         "FROM %I " +
@@ -934,12 +942,13 @@ create or replace function load_fp() returns void as $$
         "    JOIN \"role_member\" " +
         "      ON \"role\".\"_pk\"=\"role_member\".\"_parent_role_pk\"" +
         "    WHERE member=$1" +
-        "      AND object_pk=contact._pk" +
+        "      AND object_pk=%I._pk" +
         "    ORDER BY can_read DESC" +
         "    LIMIT 1 " +
         "  ) AS data " +
         "WHERE NOT can_read))";
-      tokens = tokens.concat([table, table, table, table, table, table, table]);
+      tokens = tokens.concat([table, table, table, table, table, table, table,
+        table]);
       params.push(featherbone.getCurrentUser());
       p++;
     }
@@ -1032,8 +1041,9 @@ create or replace function load_fp() returns void as $$
     }
 
     /* Check id for existence and uniqueness and regenerate if any problem */
-    data.id = data.id === undefined || _getKey(data.id !== undefined ?
-        featherbone.createId() : data.id);
+    if (data.id === undefined ||  _getKey(data.id) !== undefined) {
+      data.id = featherbone.createId();
+    };
 
     /* Set some system controlled values */
     data.created = data.updated = featherbone.now();
@@ -1246,7 +1256,7 @@ create or replace function load_fp() returns void as $$
   };
 
   /** private */
-  _select = function (obj, isChild) {
+  _select = function (obj, isChild, isSuperUser) {
     var feather = featherbone.getFeather(obj.name),
       table = "_" + feather.name.toSnakeCase(),
       keys = obj.properties || Object.keys(feather.properties),
@@ -1275,7 +1285,7 @@ create or replace function load_fp() returns void as $$
 
     /* Get one result by key */
     if (obj.id) {
-      pk = _getKey(obj.id, obj.name, obj.showDeleted, false);
+      pk = _getKey(obj.id, obj.name, obj.showDeleted, isSuperUser);
       if (pk === undefined) { return {}; }
       sql +=  " WHERE _pk = $1";
 
@@ -1283,7 +1293,7 @@ create or replace function load_fp() returns void as $$
 
     /* Get a filtered result */
     } else {
-      pk = _getKeys(obj.name, obj.filter, obj.showDeleted, false);
+      pk = _getKeys(obj.name, obj.filter, obj.showDeleted, isSuperUser);
 
       if (pk.length) {
         tokens = [];
