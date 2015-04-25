@@ -21,7 +21,7 @@ create or replace function load_fp() returns void as $$
 
   var _createView, _curry, _getKey, _getKeys, _isChildFeather, _delete,
     _propagateViews, _relationColumn, _sanitize, _insert, _select, _update,
-    _currentUser, setCurrentUser,
+    _currentUser, _setCurrentUser,
     _settings = {},
     _types = {
       object: {type: "json", defaultValue: {}},
@@ -337,16 +337,6 @@ create or replace function load_fp() returns void as $$
     },
 
     /**
-      Restore a deleted record to its previous state.
-
-      @return {Object}
-    */
-    restore: function (id) {
-      /* TODO */
-      return false;
-    },
-
-    /**
       Create or update a persistence class. This function is idempotent. 
       Subsequent saves will automatically drop properties no longer present.
 
@@ -382,27 +372,27 @@ create or replace function load_fp() returns void as $$
 
       var table, inherits, feather, catalog, sql, sqlUpd, token, tokens, values,
         adds, args, fns, cols, defaultValue, props, key, recs, type, err, name,
-        parent, obj, i, n, p, dropSql, addSql, changed, isChild, pk,
+        parent, obj, i, n, p, dropSql, changed, isChild, pk,
         o = 0,
         getParentKey = function (child) {
-          var parent, cKey, cProps;
+          var cParent, cKey, cProps;
 
           cProps = featherbone.getFeather(child).properties;
 
           for (cKey in cProps) {
-            if (cProps.hasOwnProperty(cKey)&&
+            if (cProps.hasOwnProperty(cKey) &&
                 typeof cProps[cKey].type === "object" &&
                 cProps[cKey].type.childOf) {
-              parent = cProps[cKey].type.relation;
+              cParent = cProps[cKey].type.relation;
 
               if (_isChildFeather(featherbone.getFeather(parent))) {
-                return getParentKey(parent);
-              } else {
-                return _getKey(parent.toSnakeCase());
+                return getParentKey(cParent);
               }
+
+              return _getKey(parent.toSnakeCase());
             }
           }
-          
+
         };
 
       while (o < specs.length) {
@@ -670,7 +660,7 @@ create or replace function load_fp() returns void as $$
           sql = "INSERT INTO \"$feather\" " +
             "(_pk, id, created, created_by, updated, updated_by, is_deleted, " +
             " is_child, parent_pk) VALUES " +
-            "($1, $2, now(), $3, now(), $4, false, $5, $6);",
+            "($1, $2, now(), $3, now(), $4, false, $5, $6);";
           values = [pk, table, featherbone.getCurrentUser(),
             featherbone.getCurrentUser(), isChild,
             isChild ? getParentKey(name) : pk];
@@ -679,7 +669,7 @@ create or replace function load_fp() returns void as $$
         }
 
         /* Propagate views */
-        changed = changed ? changed : !feather;
+        changed = changed || !feather;
         if (changed) {
           _propagateViews(name);
         }
@@ -875,7 +865,7 @@ create or replace function load_fp() returns void as $$
     var result,
       filter = {criteria: [{property: "id", value: id}]};
 
-    result = _getKeys(name, filter, showDeleted);
+    result = _getKeys(name, filter, showDeleted, isSuperUser);
 
     return result.length ? result[0] : undefined;
   };
@@ -949,9 +939,9 @@ create or replace function load_fp() returns void as $$
         "    LIMIT 1 " +
         "  ) AS data " +
         "WHERE NOT can_read))";
-        tokens = tokens.concat([table, table, table, table, table, table, table]);
-        params.push(featherbone.getCurrentUser());
-        p++;
+      tokens = tokens.concat([table, table, table, table, table, table, table]);
+      params.push(featherbone.getCurrentUser());
+      p++;
     }
 
     /* Process filter */
@@ -1293,7 +1283,7 @@ create or replace function load_fp() returns void as $$
 
     /* Get a filtered result */
     } else {
-      pk = _getKeys(obj.name, obj.filter, obj.showDeleted);
+      pk = _getKeys(obj.name, obj.filter, obj.showDeleted, false);
 
       if (pk.length) {
         tokens = [];
