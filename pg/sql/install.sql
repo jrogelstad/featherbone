@@ -27,8 +27,10 @@ $$ language plv8;
 
 do $$
    plv8.execute('select init()');
+
    var sqlChk = "SELECT * FROM pg_tables WHERE schemaname = 'public' AND tablename = $1;",
      sqlCmt = "COMMENT ON COLUMN %I.%I IS %L",
+     user = plv8.execute("SELECT CURRENT_USER")[0].current_user,
      sql, params, global;
 
    /* Create the base object table */
@@ -140,7 +142,11 @@ do $$
    }
 
    /* Create some foundation classes */
-   featherbone.saveFeather([{
+   featherbone.request({
+     action: "POST",
+     name: "saveFeather",
+     user: user,
+     data: [[{
        name: "Role", 
        description: "User authorization role",
        properties: {
@@ -238,18 +244,20 @@ do $$
          }
        }
      }
-   ]);
+   ]]});
 
    global = featherbone.request({
      name: "Folder",
      action: "GET",
+     user: user,
      id: "global"
-   });
-     
+   }, true);
+
    if (!Object.keys(global).length) {
      featherbone.request({
        name: "Folder",
        action: "POST",
+       user: user,
        data: {
          id: "global",
          name: "Global folder",
