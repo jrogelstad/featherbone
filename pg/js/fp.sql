@@ -297,6 +297,7 @@ create or replace function load_fp() returns void as $$
           }
 
       @param {Object} Payload
+      @param {Boolean} Bypass authorization checks. Default = false.
       @return {Object | Array}
     */
     request: function (obj, isSuperUser) {
@@ -891,27 +892,6 @@ create or replace function load_fp() returns void as $$
 
     /* Add authorization criteria */
     if (isSuperUser === false) {
-      if (featherbone.getFeather(name).properties.folder) {
-        folderSql = "INTERSECT " +
-          "SELECT %I._pk " +
-          "FROM %I" +
-          "  JOIN folder ON _folder_folder_pk=folder._pk " +
-          "WHERE EXISTS (" +
-          "  SELECT can_read FROM (" +
-          "    SELECT can_read" +
-          "    FROM \"$auth\"" +
-          "      JOIN \"role\" on \"$auth\".\"role_pk\"=\"role\".\"_pk\"" +
-          "      JOIN \"role_member\"" +
-          "        ON \"role\".\"_pk\"=\"role_member\".\"_parent_role_pk\"" +
-          "    WHERE member=$1" +
-          "      AND object_pk=folder._pk" +
-          "    ORDER BY is_inherited, can_read DESC" +
-          "    LIMIT 1" +
-          "  ) AS data" +
-          "  WHERE can_read" +
-          ") ";
-      }
-
       sql += " AND _pk IN (" +
         "SELECT %I._pk " +
         "FROM %I " +
@@ -930,7 +910,24 @@ create or replace function load_fp() returns void as $$
         "  ) AS data" +
         "  WHERE can_read" +
         ") " +
-        folderSql +
+        "INTERSECT " +
+        "SELECT %I._pk " +
+        "FROM %I" +
+        "  JOIN folder ON _folder_folder_pk=folder._pk " +
+        "WHERE EXISTS (" +
+        "  SELECT can_read FROM (" +
+        "    SELECT can_read" +
+        "    FROM \"$auth\"" +
+        "      JOIN \"role\" on \"$auth\".\"role_pk\"=\"role\".\"_pk\"" +
+        "      JOIN \"role_member\"" +
+        "        ON \"role\".\"_pk\"=\"role_member\".\"_parent_role_pk\"" +
+        "    WHERE member=$1" +
+        "      AND object_pk=folder._pk" +
+        "    ORDER BY is_inherited, can_read DESC" +
+        "    LIMIT 1" +
+        "  ) AS data" +
+        "  WHERE can_read" +
+        ") "
         "EXCEPT " +
         "SELECT %I._pk " +
         "FROM %I " +
