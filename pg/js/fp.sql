@@ -250,31 +250,56 @@ create or replace function load_fp() returns void as $$
 
     /**
       Check whether a user is authorized to perform an action on a
-      particular object.
+      particular class (feather) or object.
 
-      Allowable actions: "canRead", "canUpdate", "canDelete"
+      Allowable actions: "canCreate", "canRead", "canUpdate", "canDelete"
 
-      @param {String} Id. Required
+      "canCreate" will only check feather names.
+
       @param {String} Action. Required
+      @param {String} Either feather name or object id. Required
       @param {String} User. Defaults to current user
     */
-    isAuthorized: function (objectId, action, user) {
+    isAuthorized: function (action, id, user) {
       user = user || featherbone.getCurrentUser();
 
-      var sql = "SELECT _pk, tableoid::regclass::text AS \"table\"" +
-        "FROM object WHERE id = $1;",
-        result = plv8.execute(sql, [objectId]),
-        tokens = [],
-        authSql = _buildAuthSql(action, table, tokens),
-        table,
-        pk;
+      var table, pk, result, authSql, sql,
+        catalog = featherbone.getSettings('catalog'),
+        tokens = [];
 
-      table = result[0].table;
-      pk = result[0]._pk;
-      tokens.push(table);
-      sql = "SELECT _pk FROM %I WHERE _pk = $1 " + authSql;
-      sql = sql.format(tokens);
-      result = plv8.execute(sql, [pk]);
+      /* If id is of a feather, check class authorization */
+      if (Object.keys(catalog).indexOf(id) !== -1) {
+        sql =
+          "SELECT pk FROM \"$auth\" AS auth " +
+          "  JOIN \"$feather\" AS feather ON feather._pk=auth.object_pk " +
+          "  JOIN role ON role._pk=auth.role_pk " +
+          "  JOIN role_member ON role_member._parent_role_pk=role._pk " +
+          "WHERE feather.id=$1" +
+          "  AND role_member.member=$2" +
+          "  AND %I";
+        sql = sql.format([action.toSnakeCase()]);
+        result = plv8.execute(sql, [id.toSnakeCase(), user]);
+
+      /* Otherwise check object authorization */
+      } else {
+        /* Find object */
+        sql = "SELECT _pk, tableoid::regclass::text AS \"table\"" +
+          "FROM object WHERE id = $1;",
+        result = plv8.execute(sql, [id]);
+
+        /* If object found, check authorization */
+        if (result.length) {
+          table = result[0].table;
+          pk = result[0]._pk;
+
+          tokens.push(table);
+          authSql =  _buildAuthSql(action, table, tokens);
+          sql = "SELECT _pk FROM %I WHERE _pk = $2 " + authSql;
+          sql = sql.format(tokens);
+
+          result = plv8.execute(sql, [user, pk]);
+        }
+      }
 
       return result.length > 0;
     },
@@ -351,14 +376,14 @@ create or replace function load_fp() returns void as $$
           fn = _curry(featherbone[prop], args);
           result.value = fn();
         } else {
-          result = _insert(obj, isSuperUser);
+          result = _insert(obj, false, isSuperUser);
         }
         break;
       case "PATCH":
-        result = _update(obj, isSuperUser);
+        result = _update(obj, false, isSuperUser);
         break;
       case "DELETE":
-        result = _delete(obj, isSuperUser);
+        result = _delete(obj, false, isSuperUser);
         break;
       default:
         featherbone.error("action \"" + obj.action + "\" unknown");
@@ -783,10 +808,12 @@ create or replace function load_fp() returns void as $$
         "canUpdate",
         "canDelete"
       ],
-      i = 8;
+      i = 8,
+      msg;
 
     if (actions.indexOf(action) === -1) {
-      featherbone.error("Invalid authorization action \"" + action + "\"");
+      msg = "Invalid authorization action for object \"" + action + "\"";
+      featherbone.error(msg);
     }
 
     while (i--) { 
@@ -926,7 +953,7 @@ create or replace function load_fp() returns void as $$
   };
 
   /** private */
-  _delete = function (obj, isChild) {
+  _delete = function (obj, isChild, isSuperUser) {
     var oldRec, key, i, child, rel, now,
       sql = "UPDATE object SET is_deleted = true WHERE id=$1;",
       feather = featherbone.getFeather(obj.name),
@@ -940,6 +967,9 @@ create or replace function load_fp() returns void as $$
 
     if (!isChild && _isChildFeather(obj.name)) {
       featherbone.error("Can not directly delete a child class");
+    } else if (isSuperUser === false &&
+        !featherbone.isAuthorized("canDelete", obj.id)) {
+      featherbone.error("Not authorized to delete \"" + obj.id + "\"");
     }
 
     /* Delete children recursively */
@@ -1091,7 +1121,7 @@ create or replace function load_fp() returns void as $$
   };
 
   /** private */
-  _insert = function (obj, isChild) {
+  _insert = function (obj, isChild, isSuperUser) {
     var child, key, col, prop, result, value, sql, err,
       data = JSON.parse(JSON.stringify(obj.data)),
       feather = featherbone.getFeather(obj.name),
@@ -1111,6 +1141,12 @@ create or replace function load_fp() returns void as $$
     /* Check id for existence and uniqueness and regenerate if any problem */
     if (data.id === undefined ||  _getKey(data.id) !== undefined) {
       data.id = featherbone.createId();
+    } else if (isSuperUser === false) {
+      if (!featherbone.isAuthorized("canCreate", obj.name)) {
+        featherbone.error("Not authorized to create \"" + obj.name + "\"");
+      } else {
+        /* TODO CHECK FOLDER AUTH */
+      }
     }
 
     /* Set some system controlled values */
@@ -1384,7 +1420,7 @@ create or replace function load_fp() returns void as $$
   };
 
   /** Private */
-  _update = function (obj, isChild) {
+  _update = function (obj, isChild, isSuperUser) {
     var result, updRec, props, value, key, sql, i, cFeather, cid, child, err,
       oldRec, newRec, cOldRec, cNewRec, cpatches,
       patches = obj.data || [],
@@ -1415,6 +1451,9 @@ create or replace function load_fp() returns void as $$
     /* Validate */
     if (!isChild && _isChildFeather(feather)) {
       featherbone.error("Can not directly update a child class");
+    } else if (isSuperUser === false &&
+        !featherbone.isAuthorized("canUpdate", id)) {
+      featherbone.error("Not authorized to update \"" + id + "\"");
     }
 
     obj.properties = Object.keys(feather.properties).filter(noChildProps);
