@@ -249,6 +249,37 @@ create or replace function load_fp() returns void as $$
     },
 
     /**
+      Check whether a user is authorized to perform an action on a
+      particular object.
+
+      Allowable actions: "canRead", "canUpdate", "canDelete"
+
+      @param {String} Id. Required
+      @param {String} Action. Required
+      @param {String} User. Defaults to current user
+    */
+    isAuthorized: function (objectId, action, user) {
+      user = user || featherbone.getCurrentUser();
+
+      var sql = "SELECT _pk, tableoid::regclass::text AS \"table\"" +
+        "FROM object WHERE id = $1;",
+        result = plv8.execute(sql, [objectId]),
+        tokens = [],
+        authSql = _buildAuthSql(action, table, tokens),
+        table,
+        pk;
+
+      table = result[0].table;
+      pk = result[0]._pk;
+      tokens.push(table);
+      sql = "SELECT _pk FROM %I WHERE _pk = $1 " + authSql;
+      sql = sql.format(tokens);
+      result = plv8.execute(sql, [pk]);
+
+      return result.length > 0;
+    },
+
+    /**
       Return a date that is the lowest system date.
 
       @return {Date}
@@ -265,7 +296,6 @@ create or replace function load_fp() returns void as $$
     maxDate: function () {
       return new Date("2100-01-01T00:00:00.000Z");
     },
-
 
     /**
       Return a date that is the current time.
@@ -337,6 +367,25 @@ create or replace function load_fp() returns void as $$
       _setCurrentUser(undefined);
 
       return result;
+    },
+
+    /**
+      Set authorazition for a particular authorization role.
+
+      Actions example:
+        {
+          canCreate: false,
+          canRead: true,
+          canUpdate: false,
+          canDelete: false
+        }
+
+      @param {String} Object Id. Required.
+      @param {String} Role Id. Required.
+      @param {Object} Actions. Required.
+    */
+    saveAuthorization: function (objectId, roleId, actions) {
+      featherbone.error("saveAuthorization not implemented");
     },
 
     /**
@@ -722,9 +771,83 @@ create or replace function load_fp() returns void as $$
     }
   };
 
+
   // ..........................................................
   // Private
   //
+
+  /** private */
+  _buildAuthSql = function (action, table, tokens) {
+    var actions = [
+        "canRead",
+        "canUpdate",
+        "canDelete"
+      ],
+      i = 8;
+
+    if (actions.indexOf(action) === -1) {
+      featherbone.error("Invalid authorization action \"" + action + "\"");
+    }
+
+    while (i--) { 
+      tokens.push(table);
+    }
+
+    action = action.toSnakeCase();
+
+    return " AND _pk IN (" +
+        "SELECT %I._pk " +
+        "FROM %I " +
+        "  JOIN \"$feather\" ON \"$feather\".id::regclass::oid=%I.tableoid " +
+        "WHERE EXISTS (" +
+        "  SELECT " + action + " FROM ( " +
+        "    SELECT " + action +
+        "    FROM \"$auth\"" +
+        "      JOIN \"role\" on \"$auth\".\"role_pk\"=\"role\".\"_pk\"" +
+        "      JOIN \"role_member\"" +
+        "        ON \"role\".\"_pk\"=\"role_member\".\"_parent_role_pk\"" +
+        "    WHERE member=$1" +
+        "      AND object_pk=\"$feather\".parent_pk" +
+        "    ORDER BY " + action + " DESC" +
+        "    LIMIT 1" +
+        "  ) AS data" +
+        "  WHERE " + action + 
+        ") " +
+        "INTERSECT " +
+        "SELECT %I._pk " +
+        "FROM %I" +
+        "  JOIN folder ON _folder_folder_pk=folder._pk " +
+        "WHERE EXISTS (" +
+        "  SELECT " + action + " FROM (" +
+        "    SELECT " + action +
+        "    FROM \"$auth\"" +
+        "      JOIN \"role\" on \"$auth\".\"role_pk\"=\"role\".\"_pk\"" +
+        "      JOIN \"role_member\"" +
+        "        ON \"role\".\"_pk\"=\"role_member\".\"_parent_role_pk\"" +
+        "    WHERE member=$1" +
+        "      AND object_pk=folder._pk" +
+        "    ORDER BY is_inherited, " + action + " DESC" +
+        "    LIMIT 1" +
+        "  ) AS data" +
+        "  WHERE " + action +
+        ") " +
+        "EXCEPT " +
+        "SELECT %I._pk " +
+        "FROM %I " +
+        "WHERE EXISTS ( " +
+        "  SELECT " + action + " FROM (" +
+        "    SELECT " + action +
+        "    FROM \"$auth\"" +
+        "    JOIN \"role\" on \"$auth\".\"role_pk\"=\"role\".\"_pk\"" +
+        "    JOIN \"role_member\" " +
+        "      ON \"role\".\"_pk\"=\"role_member\".\"_parent_role_pk\"" +
+        "    WHERE member=$1" +
+        "      AND object_pk=%I._pk" +
+        "    ORDER BY " + action + " DESC" +
+        "    LIMIT 1 " +
+        "  ) AS data " +
+        "WHERE NOT " + action + "))";
+  }
 
   /** private */
   _createView = function (name, dropFirst) {
@@ -892,60 +1015,8 @@ create or replace function load_fp() returns void as $$
 
     /* Add authorization criteria */
     if (isSuperUser === false) {
-      sql += " AND _pk IN (" +
-        "SELECT %I._pk " +
-        "FROM %I " +
-        "  JOIN \"$feather\" ON \"$feather\".id::regclass::oid=%I.tableoid " +
-        "WHERE EXISTS (" +
-        "  SELECT can_read FROM ( " +
-        "    SELECT can_read" +
-        "    FROM \"$auth\"" +
-        "      JOIN \"role\" on \"$auth\".\"role_pk\"=\"role\".\"_pk\"" +
-        "      JOIN \"role_member\"" +
-        "        ON \"role\".\"_pk\"=\"role_member\".\"_parent_role_pk\"" +
-        "    WHERE member=$1" +
-        "      AND object_pk=\"$feather\".parent_pk" +
-        "    ORDER BY can_read DESC" +
-        "    LIMIT 1" +
-        "  ) AS data" +
-        "  WHERE can_read" +
-        ") " +
-        "INTERSECT " +
-        "SELECT %I._pk " +
-        "FROM %I" +
-        "  JOIN folder ON _folder_folder_pk=folder._pk " +
-        "WHERE EXISTS (" +
-        "  SELECT can_read FROM (" +
-        "    SELECT can_read" +
-        "    FROM \"$auth\"" +
-        "      JOIN \"role\" on \"$auth\".\"role_pk\"=\"role\".\"_pk\"" +
-        "      JOIN \"role_member\"" +
-        "        ON \"role\".\"_pk\"=\"role_member\".\"_parent_role_pk\"" +
-        "    WHERE member=$1" +
-        "      AND object_pk=folder._pk" +
-        "    ORDER BY is_inherited, can_read DESC" +
-        "    LIMIT 1" +
-        "  ) AS data" +
-        "  WHERE can_read" +
-        ") "
-        "EXCEPT " +
-        "SELECT %I._pk " +
-        "FROM %I " +
-        "WHERE EXISTS ( " +
-        "  SELECT can_read FROM (" +
-        "    SELECT can_read" +
-        "    FROM \"$auth\"" +
-        "    JOIN \"role\" on \"$auth\".\"role_pk\"=\"role\".\"_pk\"" +
-        "    JOIN \"role_member\" " +
-        "      ON \"role\".\"_pk\"=\"role_member\".\"_parent_role_pk\"" +
-        "    WHERE member=$1" +
-        "      AND object_pk=%I._pk" +
-        "    ORDER BY can_read DESC" +
-        "    LIMIT 1 " +
-        "  ) AS data " +
-        "WHERE NOT can_read))";
-      tokens = tokens.concat([table, table, table, table, table, table, table,
-        table]);
+      sql += _buildAuthSql("canRead", table, tokens);
+
       params.push(featherbone.getCurrentUser());
       p++;
     }
@@ -1254,16 +1325,14 @@ create or replace function load_fp() returns void as $$
 
   /** private */
   _select = function (obj, isChild, isSuperUser) {
-    var feather = featherbone.getFeather(obj.name),
+    var key, sql, pk,
+      feather = featherbone.getFeather(obj.name),
       table = "_" + feather.name.toSnakeCase(),
       keys = obj.properties || Object.keys(feather.properties),
       tokens = [],
       result = {},
       cols = [],
-      i = 0,
-      key,
-      sql,
-      pk;
+      i = 0;
 
     /* Validate */
     if (!isChild && _isChildFeather(feather)) {
