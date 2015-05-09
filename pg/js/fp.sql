@@ -256,19 +256,26 @@ create or replace function load_fp() returns void as $$
 
       "canCreate" will only check feather names.
 
-      @param {String} Action. Required
-      @param {String} Either feather name or object id. Required
-      @param {String} User. Defaults to current user
+      @param {Object} Specification
+      @param {String} [specification.action] Required
+      @param {String} [specification.feather] Class
+      @param {String} [specification.id] Object id
+      @param {String} [specification.user] User. Defaults to current user
+      @param {String} [specification.folder] Folder. Applies to "canCreate" action
     */
-    isAuthorized: function (action, id, user) {
-      user = user || featherbone.getCurrentUser();
-
-      var table, pk, result, authSql, sql,
+    isAuthorized: function (obj) {
+      var table, pk, authSql, sql,
         catalog = featherbone.getSettings('catalog'),
-        tokens = [];
+        user = obj.user || featherbone.getCurrentUser(),
+        feather = obj.feather,
+        folder = obj.folder,
+        action = obj.action,
+        id = obj.id,
+        tokens = [],
+        result = false;
 
-      /* If id is of a feather, check class authorization */
-      if (Object.keys(catalog).indexOf(id) !== -1) {
+      /* If feather, check class authorization */
+      if (feather) {
         sql =
           "SELECT pk FROM \"$auth\" AS auth " +
           "  JOIN \"$feather\" AS feather ON feather._pk=auth.object_pk " +
@@ -278,17 +285,17 @@ create or replace function load_fp() returns void as $$
           "  AND role_member.member=$2" +
           "  AND %I";
         sql = sql.format([action.toSnakeCase()]);
-        result = plv8.execute(sql, [id.toSnakeCase(), user]);
+        result = plv8.execute(sql, [feather.toSnakeCase(), user]);
 
       /* Otherwise check object authorization */
-      } else {
+      } else if (id) {
         /* Find object */
         sql = "SELECT _pk, tableoid::regclass::text AS \"table\"" +
           "FROM object WHERE id = $1;",
         result = plv8.execute(sql, [id]);
 
         /* If object found, check authorization */
-        if (result.length) {
+        if (result.length > 0) {
           table = result[0].table;
           pk = result[0]._pk;
 
@@ -297,11 +304,29 @@ create or replace function load_fp() returns void as $$
           sql = "SELECT _pk FROM %I WHERE _pk = $2 " + authSql;
           sql = sql.format(tokens);
 
-          result = plv8.execute(sql, [user, pk]);
+          result = plv8.execute(sql, [user, pk]).length > 0;
         }
       }
 
-      return result.length > 0;
+      /* Check target location for create */
+      if (action === "canCreate" && result) {
+        if (!folder) { return false }
+        sql =
+          "SELECT can_create FROM \"$auth\" AS auth " +
+          "  JOIN folder ON folder._pk=auth.object_pk " +
+          "  JOIN role ON role._pk=auth.role_pk " +
+          "  JOIN role_member ON role_member._parent_role_pk=role._pk " +
+          "WHERE role_member.member=$1" +
+          "  AND folder.id=$2" +
+          "  AND is_member_auth " +
+          "ORDER BY is_inherited, can_create DESC " +
+          "LIMIT 1";
+
+        result = plv8.execute(sql, [user, folder]);
+        result = result.length > 0 ? result[0].can_create : false;
+      }
+
+      return result;
     },
 
     /**
@@ -992,7 +1017,7 @@ create or replace function load_fp() returns void as $$
     if (!isChild && _isChildFeather(obj.name)) {
       featherbone.error("Can not directly delete a child class");
     } else if (isSuperUser === false &&
-        !featherbone.isAuthorized("canDelete", obj.id)) {
+        !featherbone.isAuthorized({action: "canDelete", id: obj.id})) {
       featherbone.error("Not authorized to delete \"" + obj.id + "\"");
     }
 
@@ -1146,7 +1171,7 @@ create or replace function load_fp() returns void as $$
 
   /** private */
   _insert = function (obj, isChild, isSuperUser) {
-    var child, key, col, prop, result, value, sql, err, pk,
+    var child, key, col, prop, result, value, sql, err, pk, msg,
       data = JSON.parse(JSON.stringify(obj.data)),
       feather = featherbone.getFeather(obj.name),
       folder = obj.folder || "global",
@@ -1167,10 +1192,14 @@ create or replace function load_fp() returns void as $$
     if (data.id === undefined ||  _getKey(data.id) !== undefined) {
       data.id = featherbone.createId();
     } else if (isSuperUser === false) {
-      if (!featherbone.isAuthorized("canCreate", obj.name)) {
-        featherbone.error("Not authorized to create \"" + obj.name + "\"");
-      } else {
-        /* TODO CHECK FOLDER AUTH */
+      if (!featherbone.isAuthorized({
+          action: "canCreate",
+          feather: obj.name,
+          folder: folder
+        })) {
+        msg = "Not authorized to create \"" + obj.name + "\" in folder \"" +
+          folder + "\"";
+        featherbone.error(msg);
       }
     }
 
@@ -1440,6 +1469,7 @@ create or replace function load_fp() returns void as $$
         }
 
         sql += " WHERE _pk IN (" + tokens.toString(",") + ")";
+
         result = plv8.execute(sql, pk);
       }
     }
@@ -1485,7 +1515,7 @@ create or replace function load_fp() returns void as $$
     if (!isChild && _isChildFeather(feather)) {
       featherbone.error("Can not directly update a child class");
     } else if (isSuperUser === false &&
-        !featherbone.isAuthorized("canUpdate", id)) {
+        !featherbone.isAuthorized({action: "canUpdate", id: id})) {
       featherbone.error("Not authorized to update \"" + id + "\"");
     }
 
