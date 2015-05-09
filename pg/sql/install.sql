@@ -31,7 +31,7 @@ do $$
    var sqlChk = "SELECT * FROM pg_tables WHERE schemaname = 'public' AND tablename = $1;",
      sqlCmt = "COMMENT ON COLUMN %I.%I IS %L",
      user = plv8.execute("SELECT CURRENT_USER")[0].current_user,
-     sql, params, global;
+     sql, params, global, role;
 
    /* Create the base object table */
    if (!plv8.execute(sqlChk,['object']).length) {
@@ -59,14 +59,14 @@ do $$
    if (!plv8.execute(sqlChk,['$auth']).length) {
      sql = "CREATE TABLE \"$auth\" (" +
        "pk serial PRIMARY KEY," +
-       "object_pk bigint," +
-       "role_pk bigint," +
-       "is_inherited boolean default false," +
-       "can_create boolean default false," +
-       "can_read boolean default false," +
-       "can_update boolean default false," +
-       "can_delete boolean default false," +
-       "can_execute boolean default false," +
+       "object_pk bigint not null," +
+       "role_pk bigint not null," +
+       "is_inherited boolean not null," +
+       "can_create boolean not null," +
+       "can_read boolean not null," +
+       "can_update boolean not null," +
+       "can_delete boolean not null," +
+       "is_member_auth boolean not null," +
        "CONSTRAINT \"$auth_object_pk_role_pk_is_inherited_key\" UNIQUE (object_pk, role_pk, is_inherited))";
      plv8.execute(sql);
      plv8.execute("COMMENT ON TABLE \"$auth\" IS 'Table for storing object level authorization information'");
@@ -78,7 +78,7 @@ do $$
      plv8.execute(sqlCmt.format(['$auth','can_read','Can read the object']));
      plv8.execute(sqlCmt.format(['$auth','can_update','Can update the object']));
      plv8.execute(sqlCmt.format(['$auth','can_delete','Can delete the object']));
-     plv8.execute(sqlCmt.format(['$auth','can_execute','Can execute against the object']));
+     plv8.execute(sqlCmt.format(['$auth','is_member_auth','Is authorization for members of a parent']));
    };
 
    /* Create the feather table */
@@ -149,6 +149,7 @@ do $$
      data: [[{
        name: "Role", 
        description: "User authorization role",
+       authorization: false,
        properties: {
          name: {
              description: "Name",
@@ -162,6 +163,7 @@ do $$
      },{
        name: "RoleMember", 
        description: "Member reference to a parent role",
+       authorization: false,
        properties: {
          parent: {
              description: "Parent role",
@@ -178,6 +180,7 @@ do $$
      },{
        name: "Folder", 
        description: "Container of parent objects",
+       authorization: false,
        properties: {
          name: {
              description: "Name",
@@ -189,46 +192,20 @@ do $$
          }
        }
      },{
-       name: "FolderChild", 
-       description: "Child folder reference to a parent folder",
-       properties: {
-         parent: {
-             description: "Parent folder",
-             type: {
-               relation: "Folder",
-               childOf: "folders",
-               isUnique: true
-             }
-         },
-         child: {
-             description: "Child folder",
-             type: {
-               relation: "Folder",
-               properties: ["id"]
-             }
-         }
-       }
-     },{
        name: "Document",
        description: "Base document class",
+       authorization: false,
        properties: {
          etag: {
              description: "Optimistic locking key",
              type: "string",
              defaultValue: "createId()"
-         },
-         folder: {
-           description: "Document container",
-           type: {
-             relation: "Folder",
-             properties: ["name", "description"]
-           },
-           defaultValue: "{\"id\": \"global\"}"
          }
        }
      },{
        name: "Log", 
        description: "Feather for logging all schema and data changes",
+       authorization: false,
        properties: {
          objectId: {
              description: "Object change was performed against",
@@ -244,8 +221,21 @@ do $$
          }
        }
      }
-   ]]});
+   ]]}, true);
 
+   /* Create the object auth table */
+   if (!plv8.execute(sqlChk,['$objectfolder']).length) {
+     sql = "CREATE TABLE \"$objectfolder\" (" +
+       "object_pk bigint PRIMARY KEY," +
+       "folder_pk bigint);" +
+       "ALTER TABLE \"$objectfolder\" ADD FOREIGN KEY (folder_pk) REFERENCES folder (_pk);"
+     plv8.execute(sql);
+     plv8.execute("COMMENT ON TABLE \"$objectfolder\" IS 'Table for storing object folder locations'");
+     plv8.execute(sqlCmt.format(['$auth','pk','Object key']));
+     plv8.execute(sqlCmt.format(['$auth','object_pk','Folder key']));
+   };
+
+   /* Create default global folder */
    global = featherbone.request({
      name: "Folder",
      action: "GET",
@@ -263,7 +253,54 @@ do $$
          name: "Global folder",
          description: "Root folder for all objects"
        }
-     })
+     }, true)
+   }
+
+   /* Create Everyone role */
+   role = featherbone.request({
+     name: "Role",
+     action: "GET",
+     user: user,
+     id: "everyone"
+   }, true);
+
+   if (!Object.keys(role).length) {
+     featherbone.request({
+       name: "Role",
+       action: "POST",
+       user: user,
+       folder: "global",
+       data: {
+         id: "everyone",
+         name: "Everyone",
+         description: "All users",
+         members: [
+           {member: user}
+         ]
+       }
+     }, true);
+
+     sql = "insert into \"$auth\" (" +
+      " object_pk, role_pk, is_inherited, can_create, can_read, can_update, " +
+      " can_delete, is_member_auth) values (" +
+      "(select _pk from object where id = $1), " +
+      "(select _pk from object where id = 'everyone'), " +
+      " $2, true, true, true, true,  $3);";
+
+     /* Grant everyone access to global folder */
+     plv8.execute(sql, ['global', true, true]);
+
+     /* Grant everyone access to other objects */
+     plv8.execute(sql, ['role', false, false]);
+     plv8.execute(sql, ['folder', false, false]);
+     plv8.execute(sql, ['log', false, false]);
    }
 
 $$ language plv8;
+
+/** Drop everything
+  DROP TABLE object CASCADE;
+  DROP TABLE "$auth";
+  DROP TABLE "$objectfolder";
+
+*/

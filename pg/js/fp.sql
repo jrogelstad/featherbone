@@ -751,6 +751,29 @@ create or replace function load_fp() returns void as $$
           _propagateViews(name);
         }
 
+        /* Set authorization */
+        if (obj.authorization && typeof obj.authorization === "object") {
+          /* TODO: Implement authorization setting */
+          sql = "insert into \"$auth\" (" +
+            " object_pk, role_pk, is_inherited, can_create, can_read, " +
+            " can_update, can_delete, is_member_auth) values (" +
+            "(select _pk from object where id = $1), " +
+            "(select _pk from object where id = 'everyone'), " +
+            " false, false, false, false, false,  false);";
+          plv8.execute(sql, [table]);
+
+
+        /* If no specific authorization, grant to all */
+        } else if (obj.authorization !== false) {
+          sql = "insert into \"$auth\" (" +
+            " object_pk, role_pk, is_inherited, can_create, can_read, " +
+            " can_update, can_delete, is_member_auth) values (" +
+            "(select _pk from object where id = $1), " +
+            "(select _pk from object where id = 'everyone'), " +
+            " false, true, true, true, true,  false);";
+          plv8.execute(sql, [table]);
+        }
+
         o++;
       }
 
@@ -843,7 +866,7 @@ create or replace function load_fp() returns void as $$
         "INTERSECT " +
         "SELECT %I._pk " +
         "FROM %I" +
-        "  JOIN folder ON _folder_folder_pk=folder._pk " +
+        "  JOIN \"$objectfolder\" ON _pk=object_pk " +
         "WHERE EXISTS (" +
         "  SELECT " + action + " FROM (" +
         "    SELECT " + action +
@@ -852,7 +875,8 @@ create or replace function load_fp() returns void as $$
         "      JOIN \"role_member\"" +
         "        ON \"role\".\"_pk\"=\"role_member\".\"_parent_role_pk\"" +
         "    WHERE member=$1" +
-        "      AND object_pk=folder._pk" +
+        "      AND object_pk=folder_pk" +
+        "      AND is_member_auth" +
         "    ORDER BY is_inherited, " + action + " DESC" +
         "    LIMIT 1" +
         "  ) AS data" +
@@ -1122,9 +1146,10 @@ create or replace function load_fp() returns void as $$
 
   /** private */
   _insert = function (obj, isChild, isSuperUser) {
-    var child, key, col, prop, result, value, sql, err,
+    var child, key, col, prop, result, value, sql, err, pk,
       data = JSON.parse(JSON.stringify(obj.data)),
       feather = featherbone.getFeather(obj.name),
+      folder = obj.folder || "global",
       args = [obj.name.toSnakeCase()],
       props = feather.properties,
       children = {},
@@ -1132,7 +1157,7 @@ create or replace function load_fp() returns void as $$
       params = [],
       values = [],
       i = 0,
-      p = 1;
+      p = 2;
 
     if (!feather) {
       featherbone.error("Class \"" + obj.name + "\" not found");
@@ -1153,6 +1178,10 @@ create or replace function load_fp() returns void as $$
     data.created = data.updated = featherbone.now();
     data.createdBy = featherbone.getCurrentUser();
     data.updatedBy = featherbone.getCurrentUser();
+
+    /* Get primary key */
+    pk = plv8.execute("select nextval('object__pk_seq')")[0].nextval;
+    values.push(pk);
 
     /* Build values */
     for (key in props) {
@@ -1210,7 +1239,7 @@ create or replace function load_fp() returns void as $$
       }
     }
 
-    sql = ("INSERT INTO %I (" + tokens.toString(",") + ") VALUES (" +
+    sql = ("INSERT INTO %I (_pk, " + tokens.toString(",") + ") VALUES ($1," +
       params.toString(",") + ");").format(args);
 
     /* Execute */
@@ -1235,6 +1264,10 @@ create or replace function load_fp() returns void as $$
     if (isChild) { return; }
 
     result = _select({name: obj.name, id: data.id});
+
+    /* Handle folder */
+    sql = "INSERT INTO \"$objectfolder\" VALUES ($1, $2);";
+    plv8.execute(sql, [pk, _getKey(folder)]);
 
     /* Handle change log */
     _insert({
