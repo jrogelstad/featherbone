@@ -330,6 +330,23 @@ create or replace function load_fp() returns void as $$
     },
 
     /**
+      Returns whether user is super user.
+
+      @param {String} User. Defaults to current user
+      @return {Boolean}
+    */
+    isSuperUser: function (user) {
+      user = user === undefined ? featherbone.getCurrentUser() : user;
+
+      var sql = "SELECT is_super FROM \"$user\" WHERE username=$1;",
+        result;
+
+      result = plv8.execute(sql, [user]);
+
+      return result.length ? result[0].is_super : false;
+    },
+
+    /**
       Return a date that is the lowest system date.
 
       @return {Date}
@@ -422,20 +439,118 @@ create or replace function load_fp() returns void as $$
     /**
       Set authorazition for a particular authorization role.
 
-      Actions example:
+      Example:
         {
-          canCreate: false,
-          canRead: true,
-          canUpdate: false,
-          canDelete: false
+          id: "ExWIx6'",
+          role: "IWi.QWvo",
+          isMember: true,
+          actions: 
+            {
+              canCreate: false,
+              canRead: true,
+              canUpdate: false,
+              canDelete: false
+            }
         }
 
-      @param {String} Object Id. Required.
-      @param {String} Role Id. Required.
-      @param {Object} Actions. Required.
+      @param {Object} Specificication
+      @param {String} [specification.feather] Class name
+      @param {String} [specification.id] Object id
+      @param {Boolean} [specification.isMember] Indicates member privilege of folder
+      @param {String} [specification.role] Role
+      @param {Object} [specification.actions] Required
+      @param {Boolean} [specification.actions.canCreate]
+      @param {Boolean} [specification.actions.canRead]
+      @param {Boolean} [specification.actions.canUpdate]
+      @param {Boolean} [specification.actions.canDelete]
     */
-    saveAuthorization: function (objectId, roleId, actions) {
-      featherbone.error("saveAuthorization not implemented");
+    saveAuthorization: function (obj) {
+      var result, sql, pk, err, feather,
+        id = obj.feather ? obj.feather.toSnakeCase() : obj.id,
+        currentUser = featherbone.getCurrentUser(),
+        objPk = getKey(id),
+        rolePk = getKey(obj.role),
+        isMember = false, hasAuth = false, i= 4,
+        params = [
+          obj.actions.canCreate || false,
+          obj.actions.canRead || false,
+          obj.actions.canUpdate || false,
+          obj.actions.canDelete || false
+        ];
+
+      /* Validation */
+      if (!objPk) {
+        err = "Object \"" + id + "\" not found";
+      } else if (!rolePk) {
+        err = "Role \"" + id + "\" not found";
+      }
+
+      if (err) { featherbone.error(err); }
+
+      if (obj.id && obj.isMember) {
+        sql = "SELECT tableoid::regclass::text AS feather " +
+          "FROM object WHERE id=$1";
+        feather = plv8.execute(sql, [id])[0].feather;
+
+        if (feather === "folder") {
+          isMember = obj.isMember || false;
+        }
+
+        feather = featherbone.getFeather(feather);
+
+        if (_isChildFeather(feather)) {
+          err = "Can not set authorization on child feathers.";
+        } else if (!feather.properties.owner) {
+          err = "Feather must have owner property to set authorization";
+        }
+
+        if (err) { featherbone.error(err); }
+      }
+
+      if (!featherbone.isSuperUser()) {
+        sql = "SELECT owner FROM %I WHERE _pk=$1"
+          .format(feather.name.toSnakeCase());
+        result = plv8.execute(sql, [objPk]);
+
+        if (result[0].owner !== currentUser) {
+          err = "Must be super user or owner of \"" + id + "\" to set authorization.";
+          featherbone.error(err);
+        }
+      }
+
+      /* Determine whether any authorization has been granted */
+      while (i -= 1) { hasAuth = hasAuth || params[i]; }
+
+      /* Find an existing authorization record */
+      sql = "SELECT auth.* FROM \"$auth\" AS auth " +
+        "JOIN object ON object._pk=object_pk " +
+        "JOIN role ON role._pk=role_pk" +
+        "WHERE object.id=$1 AND role.id=$2 AND is_member_auth=$3";
+      result = plv8.execute(sql, [id, role, isMember]);
+
+      if (result.length) {
+        pk = result[0].pk;
+
+        if (hasAuth) {
+          sql = "UPDATE \"$auth\" SET can_create=$1, can_read=$2," +
+            "can_update=$3, can_delete=$4 WHERE pk=$5";
+          params.push(pk);
+        } else {
+          sql = "DELETE FROM \"$auth\" WHERE pk=$1";
+          params = [pk]; 
+        }
+      } else if (hasAuth) {
+        sql = "INSERT INTO \"$auth\" VALUES (" +
+          "nextval('$auth_pk_seq'), $1, $2, false," + 
+          "$3, $4, $5, $6, $7)";
+        params.unshift(objPk);
+        params.unshift(rolePk);
+        params.push(isMember);
+      } else { 
+        return; 
+      }
+
+      plv8.execute(sql, params);
     },
 
     /**
@@ -841,6 +956,41 @@ create or replace function load_fp() returns void as $$
       _settings[name] = settings;
 
       return true;
+    },
+
+    /**
+      Returns whether user is super user.
+
+      @param {String} User
+      @param {Boolean} Is super user. Default = true
+    */
+    setSuperUser: function (user, isSuper) {
+      isSuper = isSuper === undefined ? true : isSuper;
+
+      var sql = "SELECT * FROM pg_user WHERE usename=$1;",
+        params = [user, isSuper],
+        result;
+
+      if (!featherbone.isSuperUser(featherbone.getCurrentUser())) {
+        featherbone.error("Only a super user can set another super user");
+      }
+
+      result = plv8.execute(sql, [user]);
+
+      if (!result.length) {
+        featherbone.error("User does not exist");
+      }
+
+      sql = "SELECT * FROM \"$user\" WHERE username=$1;";
+      result = plv8.execute(sql, [user]);
+
+      if (result.length) {
+        sql = "UPDATE \"$user\" SET is_super=$2 WHERE username=$1";
+      } else {
+        sql = "INSERT INTO \"$user\" VALUES ($1, $2)";
+      }
+
+      plv8.execute(sql, params);
     }
   };
 

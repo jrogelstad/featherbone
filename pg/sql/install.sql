@@ -92,6 +92,19 @@ do $$
      plv8.execute("comment on table \"$feather\" is 'Internal table for storing class names'");
    }
 
+   /* Create the user table */
+   if (!plv8.execute(sqlChk,['$user']).length) {
+     sql = "CREATE TABLE \"$user\" (" +
+       "username text PRIMARY KEY," +
+       "is_super boolean)";
+     plv8.execute(sql);
+     plv8.execute("comment on table \"$user\" is 'Internal table for storing supplimental user information'");
+     plv8.execute(sqlCmt.format(['$user','username','System user']));
+     plv8.execute(sqlCmt.format(['$user','username','Indicates whether user is super user']));
+
+     plv8.execute("INSERT INTO \"$user\" VALUES ($1, true)", [user]);
+   }
+
    /* Create the settings table */
    if (!plv8.execute(sqlChk,['$settings']).length) {
      sql = "CREATE TABLE \"$settings\" (" +
