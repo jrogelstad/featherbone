@@ -209,6 +209,11 @@ do $$
        description: "Base document class",
        authorization: false,
        properties: {
+         owner: {
+             description: "Owner of the document",
+             type: "string",
+             defaultValue: "getCurrentUser()"
+         },
          etag: {
              description: "Optimistic locking key",
              type: "string",
@@ -315,5 +320,6 @@ $$ language plv8;
   DROP TABLE object CASCADE;
   DROP TABLE "$auth";
   DROP TABLE "$objectfolder";
+  DROP TABLE "$user";
 
 */

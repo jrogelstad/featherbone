@@ -21,7 +21,7 @@ create or replace function load_fp() returns void as $$
 
   var _createView, _curry, _getKey, _getKeys, _isChildFeather, _delete,
     _propagateViews, _relationColumn, _sanitize, _insert, _select, _update,
-    _currentUser, _setCurrentUser,
+    _currentUser, _setCurrentUser, _buildAuthSql,
     _settings = {},
     _types = {
       object: {type: "json", defaultValue: {}},
@@ -261,11 +261,11 @@ create or replace function load_fp() returns void as $$
       @param {String} [specification.feather] Class
       @param {String} [specification.id] Object id
       @param {String} [specification.user] User. Defaults to current user
-      @param {String} [specification.folder] Folder. Applies to "canCreate" action
+      @param {String} [specification.folder] Folder. Applies to "canCreate"
+        action
     */
     isAuthorized: function (obj) {
       var table, pk, authSql, sql,
-        catalog = featherbone.getSettings('catalog'),
         user = obj.user || featherbone.getCurrentUser(),
         feather = obj.feather,
         folder = obj.folder,
@@ -291,7 +291,7 @@ create or replace function load_fp() returns void as $$
       } else if (id) {
         /* Find object */
         sql = "SELECT _pk, tableoid::regclass::text AS \"table\"" +
-          "FROM object WHERE id = $1;",
+          "FROM object WHERE id = $1;";
         result = plv8.execute(sql, [id]);
 
         /* If object found, check authorization */
@@ -310,7 +310,7 @@ create or replace function load_fp() returns void as $$
 
       /* Check target location for create */
       if (action === "canCreate" && result) {
-        if (!folder) { return false }
+        if (!folder) { return false; }
         sql =
           "SELECT can_create FROM \"$auth\" AS auth " +
           "  JOIN folder ON folder._pk=auth.object_pk " +
@@ -456,7 +456,8 @@ create or replace function load_fp() returns void as $$
       @param {Object} Specificication
       @param {String} [specification.feather] Class name
       @param {String} [specification.id] Object id
-      @param {Boolean} [specification.isMember] Indicates member privilege of folder
+      @param {Boolean} [specification.isMember] Indicates member privilege
+        of folder
       @param {String} [specification.role] Role
       @param {Object} [specification.actions] Required
       @param {Boolean} [specification.actions.canCreate]
@@ -465,18 +466,14 @@ create or replace function load_fp() returns void as $$
       @param {Boolean} [specification.actions.canDelete]
     */
     saveAuthorization: function (obj) {
-      var result, sql, pk, err, feather,
+      var result, sql, pk, err, feather, params,
         id = obj.feather ? obj.feather.toSnakeCase() : obj.id,
         currentUser = featherbone.getCurrentUser(),
-        objPk = getKey(id),
-        rolePk = getKey(obj.role),
-        isMember = false, hasAuth = false, i= 4,
-        params = [
-          obj.actions.canCreate || false,
-          obj.actions.canRead || false,
-          obj.actions.canUpdate || false,
-          obj.actions.canDelete || false
-        ];
+        objPk = _getKey(id),
+        rolePk = _getKey(obj.role),
+        actions = obj.actions || {},
+        isMember = false,
+        hasAuth = false;
 
       /* Validation */
       if (!objPk) {
@@ -513,41 +510,62 @@ create or replace function load_fp() returns void as $$
         result = plv8.execute(sql, [objPk]);
 
         if (result[0].owner !== currentUser) {
-          err = "Must be super user or owner of \"" + id + "\" to set authorization.";
+          err = "Must be super user or owner of \"" + id + "\" to set " +
+            "authorization.";
           featherbone.error(err);
         }
       }
 
       /* Determine whether any authorization has been granted */
-      while (i -= 1) { hasAuth = hasAuth || params[i]; }
+      hasAuth = actions.canCreate ||
+        actions.canRead ||
+        actions.canUpdate ||
+        actions.canDelete;
 
       /* Find an existing authorization record */
       sql = "SELECT auth.* FROM \"$auth\" AS auth " +
         "JOIN object ON object._pk=object_pk " +
         "JOIN role ON role._pk=role_pk" +
         "WHERE object.id=$1 AND role.id=$2 AND is_member_auth=$3";
-      result = plv8.execute(sql, [id, role, isMember]);
+      result = plv8.execute(sql, [id, obj.role, isMember]);
 
       if (result.length) {
         pk = result[0].pk;
+        result = result[0];
 
         if (hasAuth) {
           sql = "UPDATE \"$auth\" SET can_create=$1, can_read=$2," +
             "can_update=$3, can_delete=$4 WHERE pk=$5";
-          params.push(pk);
+          params = [
+            actions.canCreate === undefined ?
+                result.can_create : actions.canCreate,
+            actions.canRead === undefined ?
+                result.can_read : actions.canRead,
+            actions.canUpdate === undefined ?
+                result.can_update : actions.canUpdate,
+            actions.canDelete === undefined ?
+                result.can_delete : actions.canDelete,
+            pk
+          ];
         } else {
           sql = "DELETE FROM \"$auth\" WHERE pk=$1";
-          params = [pk]; 
+          params = [pk];
         }
       } else if (hasAuth) {
         sql = "INSERT INTO \"$auth\" VALUES (" +
-          "nextval('$auth_pk_seq'), $1, $2, false," + 
+          "nextval('$auth_pk_seq'), $1, $2, false," +
           "$3, $4, $5, $6, $7)";
-        params.unshift(objPk);
-        params.unshift(rolePk);
-        params.push(isMember);
-      } else { 
-        return; 
+        params = [
+          objPk,
+          rolePk,
+          actions.canCreate === undefined ? false : actions.canCreate,
+          actions.canRead === undefined ? false : actions.canRead,
+          actions.canUpdate === undefined ? false : actions.canUpdate,
+          actions.canDelete === undefined ? false : actions.canDelete,
+          isMember
+        ];
+      } else {
+        return;
       }
 
       plv8.execute(sql, params);
@@ -902,7 +920,6 @@ create or replace function load_fp() returns void as $$
             " false, false, false, false, false,  false);";
           plv8.execute(sql, [table]);
 
-
         /* If no specific authorization, grant to all */
         } else if (obj.authorization !== false) {
           sql = "insert into \"$auth\" (" +
@@ -1014,7 +1031,7 @@ create or replace function load_fp() returns void as $$
       featherbone.error(msg);
     }
 
-    while (i--) { 
+    while (i--) {
       tokens.push(table);
     }
 
@@ -1036,7 +1053,7 @@ create or replace function load_fp() returns void as $$
         "    ORDER BY " + action + " DESC" +
         "    LIMIT 1" +
         "  ) AS data" +
-        "  WHERE " + action + 
+        "  WHERE " + action +
         ") " +
         "INTERSECT " +
         "SELECT %I._pk " +
@@ -1073,7 +1090,7 @@ create or replace function load_fp() returns void as $$
         "    LIMIT 1 " +
         "  ) AS data " +
         "WHERE NOT " + action + "))";
-  }
+  };
 
   /** private */
   _createView = function (name, dropFirst) {
@@ -1236,7 +1253,6 @@ create or replace function load_fp() returns void as $$
       tokens = [table],
       criteria = filter ? filter.criteria || [] : false,
       sort = filter ? filter.sort || [] : false,
-      folderSql = "",
       params = [],
       parts = [],
       i = 0,
