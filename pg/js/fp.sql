@@ -526,14 +526,18 @@ create or replace function load_fp() returns void as $$
       sql = "SELECT auth.* FROM \"$auth\" AS auth " +
         "JOIN object ON object._pk=object_pk " +
         "JOIN role ON role._pk=role_pk " +
-        "WHERE object.id=$1 AND role.id=$2 AND is_member_auth=$3";
+        "WHERE object.id=$1 AND role.id=$2 AND is_member_auth=$3 " +
+        " ORDER BY is_inherited";
       result = plv8.execute(sql, [id, obj.role, isMember]);
+      result = result.length ? result[0] : false;
 
-      if (result.length) {
-        pk = result[0].pk;
-        result = result[0];
+      if (result && !result.is_inherited) {
+        pk = result.pk;
 
-        if (hasAuth) {
+        if (!hasAuth && isMember)  {
+          sql = "DELETE FROM \"$auth\" WHERE pk=$1";
+          params = [pk];
+        } else {
           sql = "UPDATE \"$auth\" SET can_create=$1, can_read=$2," +
             "can_update=$3, can_delete=$4 WHERE pk=$5";
           params = [
@@ -547,11 +551,8 @@ create or replace function load_fp() returns void as $$
                 result.can_delete : actions.canDelete,
             pk
           ];
-        } else {
-          sql = "DELETE FROM \"$auth\" WHERE pk=$1";
-          params = [pk];
         }
-      } else if (hasAuth) {
+      } else if (hasAuth || (!isMember || result.is_inherited)) {
         sql = "INSERT INTO \"$auth\" VALUES (" +
           "nextval('$auth_pk_seq'), $1, $2, false," +
           "$3, $4, $5, $6, $7)";
