@@ -913,14 +913,7 @@ create or replace function load_fp() returns void as $$
 
         /* Set authorization */
         if (authorization && typeof authorization === "object") {
-          /* TODO: Implement authorization setting */
-          sql = "insert into \"$auth\" (" +
-            " object_pk, role_pk, is_inherited, can_create, can_read, " +
-            " can_update, can_delete, is_member_auth) values (" +
-            "(select _pk from object where id = $1), " +
-            "(select _pk from object where id = 'everyone'), " +
-            " false, false, false, false, false,  false);";
-          plv8.execute(sql, [table]);
+          featherbone.saveAuthorization(authorization);
 
         /* If no specific authorization, grant to all */
         } else if (authorization !== false) {
