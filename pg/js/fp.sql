@@ -487,9 +487,9 @@ create or replace function load_fp() returns void as $$
       if (obj.id && obj.isMember) {
         sql = "SELECT tableoid::regclass::text AS feather " +
           "FROM object WHERE id=$1";
-        feather = plv8.execute(sql, [id])[0].feather;
+        feather = plv8.execute(sql, [id])[0].feather.toProperCase();
 
-        if (feather === "folder") {
+        if (feather === "Folder") {
           isMember = obj.isMember || false;
         }
 
@@ -525,7 +525,7 @@ create or replace function load_fp() returns void as $$
       /* Find an existing authorization record */
       sql = "SELECT auth.* FROM \"$auth\" AS auth " +
         "JOIN object ON object._pk=object_pk " +
-        "JOIN role ON role._pk=role_pk" +
+        "JOIN role ON role._pk=role_pk " +
         "WHERE object.id=$1 AND role.id=$2 AND is_member_auth=$3";
       result = plv8.execute(sql, [id, obj.role, isMember]);
 
@@ -607,7 +607,7 @@ create or replace function load_fp() returns void as $$
 
       var table, inherits, feather, catalog, sql, sqlUpd, token, tokens, values,
         adds, args, fns, cols, defaultValue, props, key, recs, type, err, name,
-        parent, obj, i, n, p, dropSql, changed, isChild, pk,
+        parent, obj, i, n, p, dropSql, changed, isChild, pk, authorization,
         o = 0,
         getParentKey = function (child) {
           var cParent, cKey, cProps;
@@ -636,6 +636,7 @@ create or replace function load_fp() returns void as $$
         inherits = (obj.inherits || "Object").toSnakeCase();
         feather = featherbone.getFeather(obj.name, false);
         catalog = featherbone.getSettings("catalog");
+        authorization = obj.authorization;
         dropSql = "DROP VIEW IF EXISTS %I CASCADE;".format(["_" + table]);
         changed = false;
         sql = "";
@@ -887,6 +888,7 @@ create or replace function load_fp() returns void as $$
         name = obj.name;
         catalog[name] = obj;
         delete obj.name;
+        delete obj.authorization;
         featherbone.saveSettings("catalog", catalog);
 
         if (!feather) {
@@ -910,7 +912,7 @@ create or replace function load_fp() returns void as $$
         }
 
         /* Set authorization */
-        if (obj.authorization && typeof obj.authorization === "object") {
+        if (authorization && typeof authorization === "object") {
           /* TODO: Implement authorization setting */
           sql = "insert into \"$auth\" (" +
             " object_pk, role_pk, is_inherited, can_create, can_read, " +
@@ -921,14 +923,17 @@ create or replace function load_fp() returns void as $$
           plv8.execute(sql, [table]);
 
         /* If no specific authorization, grant to all */
-        } else if (obj.authorization !== false) {
-          sql = "insert into \"$auth\" (" +
-            " object_pk, role_pk, is_inherited, can_create, can_read, " +
-            " can_update, can_delete, is_member_auth) values (" +
-            "(select _pk from object where id = $1), " +
-            "(select _pk from object where id = 'everyone'), " +
-            " false, true, true, true, true,  false);";
-          plv8.execute(sql, [table]);
+        } else if (authorization !== false) {
+          featherbone.saveAuthorization({
+            feather: name,
+            role: "everyone",
+            actions: {
+              canCreate: true,
+              canRead: true,
+              canUpdate: true,
+              canDelete: true
+            }
+          })
         }
 
         o++;

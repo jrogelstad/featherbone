@@ -55,7 +55,7 @@ create or replace function init() returns void as $$
     };
 
     /**
-       Change sting with underscores '_' to camel case.
+       Change string with underscores '_' to camel case.
        @returns {String}
     */
     String.prototype.toCamelCase = function () {
@@ -70,6 +70,14 @@ create or replace function init() returns void as $$
     */
     String.prototype.toSnakeCase = function () {
       return this.replace((/([a-z])([A-Z])/g), '$1_$2').toLowerCase();
+    };
+
+    /**
+       Change string with underscores '_' to proper case.
+       @returns {String}
+    */
+    String.prototype.toProperCase = function () {
+      return this.slice(0, 1).toUpperCase() + this.toCamelCase().slice(1);
     };
 
     /* TODO: We want to load these directly from js files */

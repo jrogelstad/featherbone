@@ -31,7 +31,7 @@ do $$
    var sqlChk = "SELECT * FROM pg_tables WHERE schemaname = 'public' AND tablename = $1;",
      sqlCmt = "COMMENT ON COLUMN %I.%I IS %L",
      user = plv8.execute("SELECT CURRENT_USER")[0].current_user,
-     sql, params, global, role;
+     sql, params, global, role, req;
 
    /* Create the base object table */
    if (!plv8.execute(sqlChk,['object']).length) {
@@ -67,7 +67,7 @@ do $$
        "can_update boolean not null," +
        "can_delete boolean not null," +
        "is_member_auth boolean not null," +
-       "CONSTRAINT \"$auth_object_pk_role_pk_is_inherited_key\" UNIQUE (object_pk, role_pk, is_inherited))";
+       "CONSTRAINT \"$auth_object_pk_role_pk_is_inherited__is_member_auth_key\" UNIQUE (object_pk, role_pk, is_inherited, is_member_auth))";
      plv8.execute(sql);
      plv8.execute("COMMENT ON TABLE \"$auth\" IS 'Table for storing object level authorization information'");
      plv8.execute(sqlCmt.format(['$auth','pk','Primary key']));
@@ -195,6 +195,11 @@ do $$
        description: "Container of parent objects",
        authorization: false,
        properties: {
+         owner: {
+             description: "Owner of the document",
+             type: "string",
+             defaultValue: "getCurrentUser()"
+         },
          name: {
              description: "Name",
              type: "string"
@@ -298,20 +303,38 @@ do $$
        }
      }, true);
 
-     sql = "insert into \"$auth\" (" +
-      " object_pk, role_pk, is_inherited, can_create, can_read, can_update, " +
-      " can_delete, is_member_auth) values (" +
-      "(select _pk from object where id = $1), " +
-      "(select _pk from object where id = 'everyone'), " +
-      " $2, true, true, true, true,  $3);";
-
      /* Grant everyone access to global folder */
-     plv8.execute(sql, ['global', true, true]);
+     req = {
+       action: "POST",
+       name: "saveAuthorization",
+       user: user,
+       data: {
+         id: "global",
+         role: "everyone",
+         isMember: true,
+         actions: {
+           canCreate: true,
+           canRead: true,
+           canUpdate: true,
+           canDelete: true
+         }
+       }
+     };
+
+     /* Access to folder contents */
+     featherbone.request(req);
+
+     /* Access to folder itself */
+     delete req.data.isMember;
+     featherbone.request(req);
 
      /* Grant everyone access to other objects */
-     plv8.execute(sql, ['role', false, false]);
-     plv8.execute(sql, ['folder', false, false]);
-     plv8.execute(sql, ['log', false, false]);
+     req.data.id = "role";
+     featherbone.request(req);
+     req.data.id = "folder";
+     featherbone.request(req);
+     req.data.id = "log"
+     featherbone.request(req);
    }
 
 $$ language plv8;
