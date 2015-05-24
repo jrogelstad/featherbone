@@ -21,7 +21,7 @@ create or replace function load_fp() returns void as $$
 
   var _createView, _curry, _getKey, _getKeys, _isChildFeather, _delete,
     _propagateViews, _relationColumn, _sanitize, _insert, _select, _update,
-    _currentUser, _setCurrentUser, _buildAuthSql,
+    _currentUser, _setCurrentUser, _buildAuthSql, _propagateAuth,
     _settings = {},
     _types = {
       object: {type: "json", defaultValue: {}},
@@ -534,7 +534,7 @@ create or replace function load_fp() returns void as $$
       if (result && !result.is_inherited) {
         pk = result.pk;
 
-        if (!hasAuth && isMember)  {
+        if (!hasAuth && isMember) {
           sql = "DELETE FROM \"$auth\" WHERE pk=$1";
           params = [pk];
         } else {
@@ -570,6 +570,10 @@ create or replace function load_fp() returns void as $$
       }
 
       plv8.execute(sql, params);
+
+      if (feather === "Folder" && isMember) {
+        _propagateAuth({folderId: obj.id, roleId: obj.role});
+      }
     },
 
     /**
@@ -601,6 +605,22 @@ create or replace function load_fp() returns void as $$
       }
 
      * @param {Object | Array} Feather specification payload(s).
+     * @param {String} [specification.name] Name
+     * @param {String} [specification.description] Description
+     * @param {Object | Boolean} [specification.authorization] Authorization
+     *  spec. Defaults to grant all to everyone if undefined. Pass false to
+     *  grant no auth.
+     * @param {String} [specification.properties] Feather properties
+     * @param {String} [specification.properties.description] Description
+     * @param {String} [specification.properties.defaultValue] Default value
+     *  or function name.
+     * @param {String | Object} [specification.properties.type] Type. Standard
+     *  types are string, boolean, number, date. Object is used for relation
+     *  specs.
+     * @param {String} [specification.properties.relation] Feather name of
+     *  relation.
+     * @param {String} [specification.properties.childOf] Property name on
+     *  parent relation if one to many relation.
      * @return {Boolean}
     */
     saveFeather: function (specs) {
@@ -912,13 +932,9 @@ create or replace function load_fp() returns void as $$
           _propagateViews(name);
         }
 
-        /* Set authorization */
-        if (authorization && typeof authorization === "object") {
-          featherbone.saveAuthorization(authorization);
-
         /* If no specific authorization, grant to all */
-        } else if (authorization !== false) {
-          featherbone.saveAuthorization({
+        if (authorization === undefined) {
+          authorization = {
             feather: name,
             role: "everyone",
             actions: {
@@ -927,7 +943,12 @@ create or replace function load_fp() returns void as $$
               canUpdate: true,
               canDelete: true
             }
-          })
+          };
+        }
+
+        /* Set authorization */
+        if (authorization) {
+          featherbone.saveAuthorization(authorization);
         }
 
         o++;
@@ -1339,7 +1360,7 @@ create or replace function load_fp() returns void as $$
     var child, key, col, prop, result, value, sql, err, pk, msg,
       data = JSON.parse(JSON.stringify(obj.data)),
       feather = featherbone.getFeather(obj.name),
-      folder = obj.folder || "global",
+      folder = obj.folder !== false ? obj.folder || "global" : false,
       args = [obj.name.toSnakeCase()],
       props = feather.properties,
       children = {},
@@ -1460,8 +1481,10 @@ create or replace function load_fp() returns void as $$
     result = _select({name: obj.name, id: data.id});
 
     /* Handle folder */
-    sql = "INSERT INTO \"$objectfolder\" VALUES ($1, $2);";
-    plv8.execute(sql, [pk, _getKey(folder)]);
+    if (folder) {
+      sql = "INSERT INTO \"$objectfolder\" VALUES ($1, $2);";
+      plv8.execute(sql, [pk, _getKey(folder)]);
+    }
 
     /* Handle change log */
     _insert({
@@ -1476,6 +1499,11 @@ create or replace function load_fp() returns void as $$
         change: JSON.parse(JSON.stringify(result))
       }
     }, true);
+
+    /* Handle folder authorization propagation */
+    if (obj.name === "Folder") {
+      _propagateAuth({folderId: obj.folder});
+    }
 
     return jsonpatch.compare(obj.data, result);
   };
@@ -1495,6 +1523,88 @@ create or replace function load_fp() returns void as $$
     }
 
     return false;
+  };
+
+  /** private 
+    @param {Object} Specification
+    @param {String} [specification.folderId] Folder id. Required.
+    @param {String} [specification.roleId] Role id.
+    @param {String} [specification.isDeleted] Folder is hard deleted.
+  */
+  _propagateAuth = function (obj) {
+    var auth, auths, children, child, roleKey, n,
+      folderKey = _getKey(obj.folderId),
+      params = [folderKey, false],
+      authSql = "SELECT object_pk, role_pk, can_create, can_read, " +
+      " can_update, can_delete " +
+      "FROM \"$auth\" AS auth" +
+      "  JOIN role ON role_pk=_pk " +
+      "WHERE object_pk=$1 " +
+      "  AND is_member_auth " +
+      "  AND is_inherited= $2",
+      childSql = "SELECT _pk, id " +
+      "FROM \"$objectfolder\"" +
+      " JOIN folder ON object_pk=_pk " +
+      "WHERE folder_pk=$1 ",
+      delSql = "DELETE FROM \"$auth\"" +
+      "WHERE object_pk=$1 AND role_pk=$2 " +
+      "  AND is_inherited " +
+      "  AND is_member_auth",
+      insSql = "INSERT INTO \"$auth\" VALUES (nextval('$auth_pk_seq')," +
+      "$1, $2, true, $3, $4, $5, $6, true)",
+      roleSql = "SELECT id FROM role WHERE _pk=$1",
+      i = 0;
+
+    if (obj.roleId) {
+      roleKey = _getKey(obj.roleId);
+      authSql += " AND role.id=$3";
+      params.push(roleKey);
+    }
+
+    /* Get all authorizations for this folder */
+    auths = plv8.execute(authSql, params);
+
+    if (!obj.roleId) {
+      authSql += " AND role.id=$3";
+    }
+
+    /* Propagate each authorization to children */
+    while (i < auths.length) {
+      auth = auths[i];
+
+      /* Only process if auth has no manual over-ride */
+      params = [folderKey, false, auth.role_pk];
+
+      if (!plv8.execute(authSql, params).length) {
+
+        /* Find child folders */
+        children = plv8.execute(childSql, [auth.object_pk]);
+        n = 0;
+
+        while (n < children.length) {
+          child = children[n];
+
+          /* Delete old authorizations */
+          plv8.execute(delSql, [child._pk, auth.role_pk]);
+
+          /* Insert new authorizations */
+          params = [child._pk, auth.role_pk, auth.can_create, auth.can_read,
+            auth.can_update, auth.can_delete];
+          if (!obj.isDeleted) { plv8.execute(insSql, params); }
+
+          /* Propagate recursively */
+          _propagateAuth({
+            folderId: child.id,
+            roleId: obj.roleId || plv8.execute(roleSql, [auth.role_pk])[0].id,
+            isDeleted: obj.isDeleted
+          });
+
+          n++;
+        }
+      }
+
+      i++;
+    }
   };
 
   /** private */

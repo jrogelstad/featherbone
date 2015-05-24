@@ -15,7 +15,7 @@
 **/
 
 /** Expose certain js functions to the database for use as defaults **/
-create or replace function request(obj json, init boolean default false) returns json as $$
+CREATE OR REPLACE FUNCTION request(obj json, init boolean default false) RETURNS json as $$
   return (function () {
     if (init || !plv8._init) {
       plv8.execute('select init()'); 
@@ -23,10 +23,10 @@ create or replace function request(obj json, init boolean default false) returns
 
     return featherbone.request(obj);
   }());
-$$ language plv8;
+$$ LANGUAGE plv8;
 
-do $$
-   plv8.execute('select init()');
+DO $$
+   plv8.execute('SELECT init()');
 
    var sqlChk = "SELECT * FROM pg_tables WHERE schemaname = 'public' AND tablename = $1;",
      sqlCmt = "COMMENT ON COLUMN %I.%I IS %L",
@@ -37,7 +37,7 @@ do $$
    if (!plv8.execute(sqlChk,['object']).length) {
      sql = "CREATE TABLE object (" +
        "_pk bigserial PRIMARY KEY," +
-       "id text unique," +
+       "id text UNIQUE," +
        "created timestamp with time zone," +
        "created_by text," +
        "updated timestamp with time zone," +
@@ -67,7 +67,7 @@ do $$
        "can_update boolean not null," +
        "can_delete boolean not null," +
        "is_member_auth boolean not null," +
-       "CONSTRAINT \"$auth_object_pk_role_pk_is_inherited__is_member_auth_key\" UNIQUE (object_pk, role_pk, is_inherited, is_member_auth))";
+       "CONSTRAINT \"$auth_object_pk_role_pk_is_inherited__is_membe	r_auth_key\" UNIQUE (object_pk, role_pk, is_inherited, is_member_auth))";
      plv8.execute(sql);
      plv8.execute("COMMENT ON TABLE \"$auth\" IS 'Table for storing object level authorization information'");
      plv8.execute(sqlCmt.format(['$auth','pk','Primary key']));
@@ -271,6 +271,7 @@ do $$
        name: "Folder",
        action: "POST",
        user: user,
+       folder: false,
        data: {
          id: "global",
          name: "Global folder",
@@ -337,12 +338,14 @@ do $$
      featherbone.request(req);
    }
 
-$$ language plv8;
+$$ LANGUAGE plv8;
 
 /** Drop everything
+
   DROP TABLE object CASCADE;
   DROP TABLE "$auth";
   DROP TABLE "$objectfolder";
   DROP TABLE "$user";
+  DROP FUNCTION request(json, boolean);
 
 */
