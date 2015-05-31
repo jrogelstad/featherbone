@@ -1,4 +1,4 @@
-﻿[
+[
     {
         "name": "Role",
         "description": "User authorization role",
@@ -89,3 +89,4 @@
         }
     }
 ]
+

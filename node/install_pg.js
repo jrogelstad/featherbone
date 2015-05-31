@@ -87,11 +87,11 @@ processFile = function (err, result) {
   file = manifest.files[i];
   filename = dir + "/" + file.path;
   ext = path.extname(filename);
-  content = fs.readFileSync(filename).toString();
+  content = fs.readFileSync(filename, "utf8");
   name = path.parse(filename).name;
   i++;
 
-  if (i === manifest.files.length) {
+  if (i > manifest.files.length) {
     commit();
     return;
   }
@@ -109,8 +109,7 @@ processFile = function (err, result) {
       saveScript(name, content, file.requires, manifest.version);
       break;
     case "feather":
-      processFile();
-      //saveFeather(content);
+      saveFeather(JSON.parse(content));
       break;
     default:
       console.error("Unknown type.");
@@ -141,8 +140,20 @@ saveScript = function (name, script, requires, version) {
   })
 };
 
-saveFeather = function (script) {
-  console.log("Save feather not implemented!");
+saveFeather = function (feathers) {
+  client.query("SELECT CURRENT_USER;", function (err, result) {
+    var payload = JSON.stringify({
+        action: "POST",
+        name: "saveFeather",
+        user: result.rows[0].current_user,
+        data: [feathers]
+      }),
+      sql = "SELECT request('" + payload + "');";
+
+      client.query(sql, function () {
+        processFile();
+      })
+  });
 };
 
 /* Real work starts here */

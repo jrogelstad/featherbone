@@ -37,6 +37,10 @@
         {
             "type": "feather",
             "path": "feathers.js"
+        },
+        {
+            "type": "execute",
+            "path": "populate.js"
         }
     ]
 }
