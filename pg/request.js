@@ -13,29 +13,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-
-/** Expose JavaScript functions to the database **/
-CREATE OR REPLACE FUNCTION init() RETURNS void AS $$
-  return (function () {
-
-    var sql = "SELECT script FROM \"$script\"",
-      i = 0, result;
-
-    plv8.execute(sql);
-    while (i < result.length) {
-      eval(result[i].script);
-      i++;
-    }
-
-    plv8._init = true;
-
-  }());
-$$ LANGUAGE plv8;
-
-CREATE OR REPLACE FUNCTION request(obj json, init boolean default false) RETURNS json AS $$
-  return (function () {
-    if (init || !plv8._init) { plv8.execute('SELECT init()'); }
-
-    return featherbone.request(obj);
-  }());
-$$ LANGUAGE plv8;
+return (function () {
+  if (init || !plv8._init) { plv8.execute('SELECT init()'); }
+  return featherbone.request(obj);
+}());

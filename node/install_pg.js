@@ -14,7 +14,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-var manifest, file, ext, content, result, filename, execute,
+var manifest, file, content, result, filename, execute, name, createFunction,
   saveScript, saveFeather, rollback, commit, begin, processFile,
   pg = require("pg"),
   fs = require("fs"),
@@ -42,17 +42,38 @@ rollback = function () {
   });
 };
 
-execute = function (script, extname) {
-  var sql = "";
+execute = function (script) {
+  var sql = "DO $$" + script + "$$ LANGUAGE plv8;";
 
-  if (extname === ".js") {
-    sql = "DO $$" + script + "$$ LANGUAGE plv8;";
-  } else if (extname !== ".sql") {
-    console.error("Unknown file extension " + extname);
-    rollback();
-    return;
-  }
+  client.query(sql, processFile);
+};
 
+createFunction = function (name, args, returns, script) {
+  var sql = "CREATE OR REPLACE function " + name + "(",
+    ary = [],
+    n = 0,
+    keys, arg, txt;
+
+  if (args) {
+    keys = Object.keys(args);
+
+    while (n < keys.length) {
+      arg = args[keys[n]];
+      txt = keys[n] + " " + arg.type;
+
+      if (arg.defaultValue) {
+        txt += " default " + arg.defaultValue;
+      };
+
+      ary.push(txt);
+      n++;
+    }
+
+    sql += ary.join(", ")
+  };
+
+  sql += ") RETURNS " + (returns || "void") + " AS $$" + script +
+    "$$ LANGUAGE plv8;"
   client.query(sql, processFile);
 };
 
@@ -67,6 +88,7 @@ processFile = function (err, result) {
   filename = dir + "/" + file.path;
   ext = path.extname(filename);
   content = fs.readFileSync(filename).toString();
+  name = path.parse(filename).name;
   i++;
 
   if (i === manifest.files.length) {
@@ -74,11 +96,14 @@ processFile = function (err, result) {
     return;
   }
 
-  console.log("Running " + filename);
+  console.log("Installing " + filename);
   
   switch (file.type) {
     case "execute":
-      execute(content, ext);
+      execute(content);
+      break;
+    case "function":
+      createFunction(name, file.args, file.returns, content);
       break;
     case "script":
       processFile();
