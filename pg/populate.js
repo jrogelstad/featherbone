@@ -24,7 +24,7 @@ global = featherbone.request({
   action: "GET",
   user: user,
   id: "global"
-});
+}, true);
 
 if (!Object.keys(global).length) {
   featherbone.request({
@@ -37,7 +37,7 @@ if (!Object.keys(global).length) {
       name: "Global folder",
       description: "Root folder for all objects"
     }
-  });
+  }, true);
 }
 
 /* Create Everyone role */
@@ -46,7 +46,7 @@ role = featherbone.request({
   action: "GET",
   user: user,
   id: "everyone"
-});
+}, true);
 
 if (!Object.keys(role).length) {
   featherbone.request({
@@ -62,7 +62,7 @@ if (!Object.keys(role).length) {
         {member: user}
       ]
     }
-  });
+  }, true);
 
   /* Grant everyone access to global folder */
   req = {

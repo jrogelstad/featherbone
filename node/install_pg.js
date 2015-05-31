@@ -85,16 +85,17 @@ processFile = function (err, result) {
   }
 
   file = manifest.files[i];
-  filename = dir + "/" + file.path;
-  ext = path.extname(filename);
-  content = fs.readFileSync(filename, "utf8");
-  name = path.parse(filename).name;
   i++;
 
   if (i > manifest.files.length) {
     commit();
     return;
   }
+
+  filename = dir + "/" + file.path;
+  ext = path.extname(filename);
+  content = fs.readFileSync(filename, "utf8");
+  name = path.parse(filename).name;
 
   console.log("Installing " + filename);
   
