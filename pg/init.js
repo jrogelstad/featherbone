@@ -25,3 +25,4 @@ return (function () {
 
   plv8._init = true;
 }());
+

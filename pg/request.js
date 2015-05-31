@@ -17,3 +17,4 @@ return (function () {
   if (init || !plv8._init) { plv8.execute('SELECT init()'); }
   return featherbone.request(obj);
 }());
+
