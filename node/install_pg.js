@@ -138,5 +138,3 @@ filename = path.format({root: "/", dir: dir, base: "manifest.js"});
 manifest = JSON.parse(fs.readFileSync(filename).toString());
 
 client.connect(begin);
-
-
