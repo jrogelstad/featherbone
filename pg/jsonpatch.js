@@ -27,8 +27,6 @@ This file is modified from the following MIT licensed code:
 * (c) 2013 Joachim Wester
 * MIT license
 */
-
-create or replace function load_jsonpatch() returns void as $$
 var __extends = this.__extends || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
@@ -725,4 +723,4 @@ jsonpatch = {}; /** Making this global! */
     }
     jsonpatch.validate = validate;
 })(jsonpatch || (jsonpatch = {}));
-$$ language plv8;
+

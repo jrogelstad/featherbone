@@ -14,12 +14,38 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 return (function () {
-  var sql = "SELECT script FROM \"$script\"",
-    i = 0, result;
+  var result, row,
+    sql = "SELECT * FROM \"$script\"",
+    loaded = {},
+    i = 0,
+    load = function (name, script, requires) {
+      if (loaded[name]) { return; }
 
-  plv8.execute(sql);
+      var req, n = 0,
+        required = result.filter(function (rec) {
+          return requires.indexOf(rec.name) !== -1;
+        }) || [];
+
+      /* Recursively load requirements */
+      while (n < required.length) {
+        req = required[n];
+
+        load(req.name, req.script, req.requires);
+
+        n++;
+      }
+
+      eval(script);
+      loaded[name] = true;
+    };
+
+  result = plv8.execute(sql);
+
   while (i < result.length) {
-    eval(result[i].script);
+    row = result[i];
+
+    load(row.name, row.script, row.requires);
+
     i++;
   }
 

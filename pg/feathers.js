@@ -15,6 +15,8 @@
 **/
 
 DO $$
+   var user = plv8.execute("SELECT CURRENT_USER")[0].current_user;
+
    plv8.execute('SELECT init()');
 
    /* Create some foundation classes */

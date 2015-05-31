@@ -14,7 +14,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-create or replace function load_fp() returns void as $$
 /*global plv8: true, jsonpatch: true, featherbone: true, ERROR: true, debug: true */
 /*jslint nomen: true, plusplus: true, indent: 2, sloppy: true, maxlen: 80*/
 (function () {
@@ -1977,4 +1976,4 @@ create or replace function load_fp() returns void as $$
   };
 
 }());
-$$ language plv8;
+

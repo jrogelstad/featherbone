@@ -106,8 +106,7 @@ processFile = function (err, result) {
       createFunction(name, file.args, file.returns, content);
       break;
     case "script":
-      processFile();
-      //saveScript(content);
+      saveScript(name, content, file.requires, manifest.version);
       break;
     case "feather":
       processFile();
@@ -120,8 +119,26 @@ processFile = function (err, result) {
   }
 }
 
-saveScript = function (script) {
-  console.log("Save script not implemented!");
+saveScript = function (name, script, requires, version) {
+  requires = JSON.stringify(requires || []);
+
+  var sql = "SELECT * FROM \"$script\" WHERE name='" + name + "';";
+
+  client.query(sql, function (err, result) {
+    if (result.rows.length) {
+      sql = "UPDATE \"$script\" SET " +
+        "script=$$" + script + "$$," +
+        "requires='" + requires + "'," +
+        "version='" + version + "' " +
+        "WHERE name='" + name + "';";
+    } else {
+      sql = "INSERT INTO \"$script\" VALUES ('" + name +
+        "',$$" + script + "$$,'" + requires +
+        "','" + version + "');";
+    }
+
+    client.query(sql, processFile);
+  })
 };
 
 saveFeather = function (script) {

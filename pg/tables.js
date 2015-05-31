@@ -15,7 +15,6 @@
 **/
 
 var sqlChk = "SELECT * FROM pg_tables WHERE schemaname = 'public' AND tablename = $1;",
-    sqlCmt = "COMMENT ON COLUMN %I.%I IS %L",
     user = plv8.execute("SELECT CURRENT_USER")[0].current_user,
     sql, params, global, role, req;
 
@@ -96,7 +95,11 @@ if (!plv8.execute(sqlChk,['$script']).length) {
     "script text," +
     "requires json, " +
     "version text);" +
-    "COMMENT ON TABLE \"$script\" IS 'Internal table for storing JavaScript'";
+    "COMMENT ON TABLE \"$script\" IS 'Internal table for storing JavaScript';" +
+    "COMMENT ON COLUMN \"$script\".name IS 'Primary key';" +
+    "COMMENT ON COLUMN \"$script\".script IS 'JavaScript content';" +
+    "COMMENT ON COLUMN \"$script\".requires IS 'Array of dependencies';" +
+    "COMMENT ON COLUMN \"$script\".version IS 'Version number';";
     plv8.execute(sql);
 }
 
