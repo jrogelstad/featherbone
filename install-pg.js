@@ -19,7 +19,6 @@ var manifest, file, content, result, filename, execute, name, createFunction,
   pg = require("pg"),
   fs = require("fs"),
   path = require("path"),
-  dir = process.argv[2],
   conString = "postgres://postgres:password@localhost/demo",
   client = new pg.Client(conString),
   i = 0;
@@ -92,7 +91,7 @@ processFile = function (err, result) {
     return;
   }
 
-  filename = dir + "/" + file.path;
+  filename = file.path;
   ext = path.extname(filename);
   content = fs.readFileSync(filename, "utf8");
   name = path.parse(filename).name;
@@ -158,12 +157,7 @@ saveFeather = function (feathers) {
 };
 
 /* Real work starts here */
-if (!dir) { 
-  console.error("A manifest directory must be provided.");
-  return;
-}
-
-filename = path.format({root: "/", dir: dir, base: "manifest.js"});
+filename = path.format({root: "/", base: "manifest.json"});
 manifest = JSON.parse(fs.readFileSync(filename).toString());
 
 client.connect(begin);

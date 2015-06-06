@@ -3,15 +3,15 @@
     "files": [
         {
             "type": "execute",
-            "path": "tables.js"
+            "path": "pg/tables.js"
         },
         {
             "type": "function",
-            "path": "init.js"
+            "path": "pg/init.js"
         },
         {
             "type": "function",
-            "path": "request.js",
+            "path": "pg/request.js",
             "args": {
                 "obj": {
                     "type": "json"
@@ -25,22 +25,22 @@
         },
         {
             "type": "script",
-            "path": "jsonpatch.js"
+            "path": "pg/jsonpatch.js"
         },
         {
             "type": "script",
-            "path": "featherbone.js",
+            "path": "pg/featherbone.js",
             "requires": [
                 "jsonpatch"
             ]
         },
         {
             "type": "feather",
-            "path": "feathers.js"
+            "path": "pg/feathers.json"
         },
         {
             "type": "execute",
-            "path": "populate.js"
+            "path": "pg/populate.js"
         }
     ]
 }
