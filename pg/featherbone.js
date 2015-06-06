@@ -1,4 +1,4 @@
-﻿/**
+/**
     Featherbone is a JavaScript based persistence framework for building object relational database applications
     
     Copyright (C) 2015  John Rogelstad
@@ -16,7 +16,7 @@
 
 /*global plv8: true, ERROR: true, debug: true */
 /*jslint nomen: true, plusplus: true, indent: 2, sloppy: true, maxlen: 80*/
-var featherbone
+var featherbone = {};
 (function (featherbone) {
 
   var _proto, _createView, _curry, _getKey, _getKeys, _isChildFeather, _delete,
@@ -1034,9 +1034,9 @@ var featherbone
   };
 
   // Set prototype properties on featherbone
-  keys = Object.keys(_proto);
-  while (c < keys.length) {
-    featherbone[keys[c]] = _proto[keys[c]];
+  _keys = Object.keys(_proto);
+  while (c < _keys.length) {
+    featherbone[_keys[c]] = _proto[_keys[c]];
     c++;
   }
 
@@ -1918,25 +1918,25 @@ var featherbone
     return [];
   };
 
-})(featherbone || (featherbone = {}));
+}(featherbone));
 
-if (typeof exports !== "undefined") {
-    exports.createId = featherbone.createId;
-    exports.checkEtag = featherbone.checkEtag;
-    exports.deleteFeather = featherbone.deleteFeather;
-    exports.getCurrentUser = featherbone.getCurrentUser;
-    exports.getFeather = featherbone.getFeather;
-    exports.getSettings = featherbone.getSettings;
-    exports.error = featherbone.error;
-    exports.isAuthorized = featherbone.isAuthorized;
-    exports.isSuperUser = featherbone.isSuperUser;
-    exports.minDate = featherbone.minDate;
-    exports.maxDate = featherbone.maxDate;
-    exports.now = featherbone.now;
-    exports.request = featherbone.request;
-    exports.saveAuthorization = featherbone.saveAuthorization;
-    exports.saveFeather = featherbone.saveFeather;
-    exports.saveSettings = featherbone.saveSettings;
-    exports.setSuperUser = featherbone.setSuperUser;
+if (exports !== "undefined") {
+  exports.createId = featherbone.createId;
+  exports.checkEtag = featherbone.checkEtag;
+  exports.deleteFeather = featherbone.deleteFeather;
+  exports.getCurrentUser = featherbone.getCurrentUser;
+  exports.getFeather = featherbone.getFeather;
+  exports.getSettings = featherbone.getSettings;
+  exports.error = featherbone.error;
+  exports.isAuthorized = featherbone.isAuthorized;
+  exports.isSuperUser = featherbone.isSuperUser;
+  exports.minDate = featherbone.minDate;
+  exports.maxDate = featherbone.maxDate;
+  exports.now = featherbone.now;
+  exports.request = featherbone.request;
+  exports.saveAuthorization = featherbone.saveAuthorization;
+  exports.saveFeather = featherbone.saveFeather;
+  exports.saveSettings = featherbone.saveSettings;
+  exports.setSuperUser = featherbone.setSuperUser;
 }
 

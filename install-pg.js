@@ -15,7 +15,7 @@
 **/
 
 var manifest, file, content, result, filename, execute, name, createFunction,
-  saveModule, saveFeather, rollback, commit, begin, processFile,
+  saveModule, saveFeather, rollback, commit, begin, processFile, ext,
   pg = require("pg"),
   fs = require("fs"),
   path = require("path"),
@@ -48,10 +48,10 @@ execute = function (script) {
 };
 
 createFunction = function (name, args, returns, script) {
-  var sql = "CREATE OR REPLACE function " + name + "(",
+  var keys, arg, txt,
+    sql = "CREATE OR REPLACE function " + name + "(",
     ary = [],
-    n = 0,
-    keys, arg, txt;
+    n = 0;
 
   if (args) {
     keys = Object.keys(args);
@@ -62,22 +62,22 @@ createFunction = function (name, args, returns, script) {
 
       if (arg.defaultValue) {
         txt += " default " + arg.defaultValue;
-      };
+      }
 
       ary.push(txt);
       n++;
     }
 
-    sql += ary.join(", ")
-  };
+    sql += ary.join(", ");
+  }
 
   sql += ") RETURNS " + (returns || "void") + " AS $$" + script +
-    "$$ LANGUAGE plv8;"
+    "$$ LANGUAGE plv8;";
 
   client.query(sql, processFile);
 };
 
-processFile = function (err, result) {
+processFile = function (err) {
   if (err) {
     console.log(err);
     rollback();
@@ -98,26 +98,26 @@ processFile = function (err, result) {
   name = path.parse(filename).name;
 
   console.log("Installing " + filename);
-  
+
   switch (file.type) {
-    case "execute":
-      execute(content);
-      break;
-    case "function":
-      createFunction(name, file.args, file.returns, content);
-      break;
-    case "module":
-      saveModule(file.name || name, content, file.isGlobal, manifest.version);
-      break;
-    case "feather":
-      saveFeather(JSON.parse(content));
-      break;
-    default:
-      console.error("Unknown type.");
-      rollback();
-      return;
+  case "execute":
+    execute(content);
+    break;
+  case "function":
+    createFunction(name, file.args, file.returns, content);
+    break;
+  case "module":
+    saveModule(file.name || name, content, file.isGlobal, manifest.version);
+    break;
+  case "feather":
+    saveFeather(JSON.parse(content));
+    break;
+  default:
+    console.error("Unknown type.");
+    rollback();
+    return;
   }
-}
+};
 
 saveModule = function (name, script, isGlobal, version) {
   isGlobal = JSON.stringify(isGlobal || false);
@@ -125,6 +125,11 @@ saveModule = function (name, script, isGlobal, version) {
   var sql = "SELECT * FROM \"$module\" WHERE name='" + name + "';";
 
   client.query(sql, function (err, result) {
+    if (err) {
+      rollback();
+      console.error(err);
+      return;
+    }
     if (result.rows.length) {
       sql = "UPDATE \"$module\" SET " +
         "script=$$" + script + "$$," +
@@ -137,11 +142,17 @@ saveModule = function (name, script, isGlobal, version) {
     }
 
     client.query(sql, processFile);
-  })
+  });
 };
 
 saveFeather = function (feathers) {
   client.query("SELECT CURRENT_USER;", function (err, result) {
+    if (err) {
+      console.error(err);
+      rollback();
+      return;
+    }
+
     var payload = JSON.stringify({
         action: "POST",
         name: "saveFeather",
@@ -150,14 +161,14 @@ saveFeather = function (feathers) {
       }),
       sql = "SELECT request('" + payload + "');";
 
-      client.query(sql, function (err, result) {
-        if (err) {
-          console.error(err);
-          rollback();
-          return;
-        }
-        processFile();
-      })
+    client.query(sql, function (err) {
+      if (err) {
+        console.error(err);
+        rollback();
+        return;
+      }
+      processFile();
+    });
   });
 };
 
