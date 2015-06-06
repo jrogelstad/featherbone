@@ -15,7 +15,7 @@
 **/
 
 var manifest, file, content, result, filename, execute, name, createFunction,
-  saveScript, saveFeather, rollback, commit, begin, processFile,
+  saveModule, saveFeather, rollback, commit, begin, processFile,
   pg = require("pg"),
   fs = require("fs"),
   path = require("path"),
@@ -73,6 +73,7 @@ createFunction = function (name, args, returns, script) {
 
   sql += ") RETURNS " + (returns || "void") + " AS $$" + script +
     "$$ LANGUAGE plv8;"
+
   client.query(sql, processFile);
 };
 
@@ -105,8 +106,8 @@ processFile = function (err, result) {
     case "function":
       createFunction(name, file.args, file.returns, content);
       break;
-    case "script":
-      saveScript(name, content, file.requires, manifest.version);
+    case "module":
+      saveModule(file.name || name, content, file.isGlobal, manifest.version);
       break;
     case "feather":
       saveFeather(JSON.parse(content));
@@ -118,22 +119,21 @@ processFile = function (err, result) {
   }
 }
 
-saveScript = function (name, script, requires, version) {
-  requires = JSON.stringify(requires || []);
+saveModule = function (name, script, isGlobal, version) {
+  isGlobal = JSON.stringify(isGlobal || false);
 
-  var sql = "SELECT * FROM \"$script\" WHERE name='" + name + "';";
+  var sql = "SELECT * FROM \"$module\" WHERE name='" + name + "';";
 
   client.query(sql, function (err, result) {
     if (result.rows.length) {
-      sql = "UPDATE \"$script\" SET " +
+      sql = "UPDATE \"$module\" SET " +
         "script=$$" + script + "$$," +
-        "requires='" + requires + "'," +
+        "is_global='" + isGlobal + "', " +
         "version='" + version + "' " +
         "WHERE name='" + name + "';";
     } else {
-      sql = "INSERT INTO \"$script\" VALUES ('" + name +
-        "',$$" + script + "$$,'" + requires +
-        "','" + version + "');";
+      sql = "INSERT INTO \"$module\" VALUES ('" + name +
+        "',$$" + script + "$$," + isGlobal + ", '" + version + "');";
     }
 
     client.query(sql, processFile);
@@ -150,7 +150,12 @@ saveFeather = function (feathers) {
       }),
       sql = "SELECT request('" + payload + "');";
 
-      client.query(sql, function () {
+      client.query(sql, function (err, result) {
+        if (err) {
+          console.error(err);
+          rollback();
+          return;
+        }
         processFile();
       })
   });

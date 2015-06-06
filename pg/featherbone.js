@@ -14,13 +14,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-/*global plv8: true, jsonpatch: true, featherbone: true, ERROR: true, debug: true */
+/*global plv8: true, ERROR: true, debug: true */
 /*jslint nomen: true, plusplus: true, indent: 2, sloppy: true, maxlen: 80*/
-(function () {
+var featherbone
+(function (featherbone) {
 
-  var _createView, _curry, _getKey, _getKeys, _isChildFeather, _delete,
+  var _proto, _createView, _curry, _getKey, _getKeys, _isChildFeather, _delete,
     _propagateViews, _relationColumn, _sanitize, _insert, _select, _update,
-    _currentUser, _setCurrentUser, _buildAuthSql, _propagateAuth,
+    _currentUser, _setCurrentUser, _buildAuthSql, _propagateAuth, _keys,
+    _jsonpatch = require("fast-json-patch"),
     _settings = {},
     _types = {
       object: {type: "json", defaultValue: {}},
@@ -29,75 +31,10 @@
       number: {type: "numeric", defaultValue: 0},
       date: {type: "timestamp with time zone", defaultValue: "minDate()"},
       boolean: {type: "boolean", defaultValue: "false"}
-    };
+    },
+    c = 0;
 
-  // ..........................................................
-  // GLOBAL
-  //
-
-  /**
-    Helper debug function. Raises a plv8 notice passing the value argument.
-    @returns {String} Value
-  */
-  debug = function (value) {
-    value = typeof value === "object" ? JSON.stringify(value, null, 2) : value;
-    plv8.elog(NOTICE, value);
-  };
-
-  /**
-    * Escape strings to prevent sql injection
-      http://www.postgresql.org/docs/9.1/interactive/functions-string.html#FUNCTIONS-STRING-OTHER
-    *
-    * @param {String} A string with tokens to replace.
-    * @param {Array} Array of replacement strings.
-    * @return {String} Escaped string.
-  */
-  String.prototype.format = function (ary) {
-    var params = [],
-      i = 0;
-
-    ary = ary || [];
-    ary.unshift(this);
-
-    while (ary[i]) {
-      i++;
-      params.push("$" + i);
-    }
-
-    return plv8.execute("select format(" + params.toString(",") + ")", ary)[0].format;
-  };
-
-  /**
-     Change string with underscores '_' to camel case.
-     @returns {String}
-  */
-  String.prototype.toCamelCase = function () {
-    return this.replace(/_+(.)?/g, function(match, chr) {
-      return chr ? chr.toUpperCase() : '';
-    });
-  };
-
-  /**
-     Change a camel case string to snake case.
-     @returns {String} The argument modified
-  */
-  String.prototype.toSnakeCase = function () {
-    return this.replace((/([a-z])([A-Z])/g), '$1_$2').toLowerCase();
-  };
-
-  /**
-     Change string with underscores '_' to proper case.
-     @returns {String}
-  */
-  String.prototype.toProperCase = function () {
-    return this.slice(0, 1).toUpperCase() + this.toCamelCase().slice(1);
-  };
-
-  // ..........................................................
-  // FEATHERBONE
-  //
-
-  featherbone = {
+  _proto = {
 
     /**
       Return a unique identifier string.
@@ -1096,6 +1033,12 @@
     }
   };
 
+  // Set prototype properties on featherbone
+  keys = Object.keys(_proto);
+  while (c < keys.length) {
+    featherbone[keys[c]] = _proto[keys[c]];
+    c++;
+  }
 
   // ..........................................................
   // PRIVATE
@@ -1570,7 +1513,7 @@
       _propagateAuth({folderId: obj.folder});
     }
 
-    return jsonpatch.compare(obj.data, result);
+    return _jsonpatch.compare(obj.data, result);
   };
 
   /** private */
@@ -1865,7 +1808,7 @@
 
     newRec = JSON.parse(JSON.stringify(oldRec));
 
-    jsonpatch.apply(newRec, patches);
+    _jsonpatch.apply(newRec, patches);
 
     if (patches.length) {
       props = feather.properties;
@@ -1903,7 +1846,7 @@
                 cOldRec = find(oldRec[key], cid);
                 cNewRec = updRec[key][i];
                 if (cOldRec) {
-                  cpatches = jsonpatch.compare(cOldRec, cNewRec);
+                  cpatches = _jsonpatch.compare(cOldRec, cNewRec);
 
                   if (cpatches.length) {
                     child = {name: cFeather.name, id: cid, data: cpatches};
@@ -1965,15 +1908,35 @@
           createdBy: updRec.updatedBy,
           updated: updRec.updated,
           updatedBy: updRec.updatedBy,
-          change: jsonpatch.compare(oldRec, result)
+          change: _jsonpatch.compare(oldRec, result)
         }
       }, true);
 
-      return jsonpatch.compare(newRec, result);
+      return _jsonpatch.compare(newRec, result);
     }
 
     return [];
   };
 
-}());
+})(featherbone || (featherbone = {}));
+
+if (typeof exports !== "undefined") {
+    exports.createId = featherbone.createId;
+    exports.checkEtag = featherbone.checkEtag;
+    exports.deleteFeather = featherbone.deleteFeather;
+    exports.getCurrentUser = featherbone.getCurrentUser;
+    exports.getFeather = featherbone.getFeather;
+    exports.getSettings = featherbone.getSettings;
+    exports.error = featherbone.error;
+    exports.isAuthorized = featherbone.isAuthorized;
+    exports.isSuperUser = featherbone.isSuperUser;
+    exports.minDate = featherbone.minDate;
+    exports.maxDate = featherbone.maxDate;
+    exports.now = featherbone.now;
+    exports.request = featherbone.request;
+    exports.saveAuthorization = featherbone.saveAuthorization;
+    exports.saveFeather = featherbone.saveFeather;
+    exports.saveSettings = featherbone.saveSettings;
+    exports.setSuperUser = featherbone.setSuperUser;
+}
 

@@ -14,7 +14,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 return (function () {
-  if (init || !plv8._init) { plv8.execute('SELECT init()'); }
+  if (init || this.require === undefined) { 
+    plv8.execute('SELECT init()');
+  }
+
   return featherbone.request(obj);
 }());
 

@@ -24,15 +24,14 @@
             "returns": "json"
         },
         {
-            "type": "script",
-            "path": "pg/jsonpatch.js"
+            "name": "fast-json-patch",
+            "type": "module",
+            "path": "node_modules/fast-json-patch/src/json-patch-duplex.js"
         },
         {
-            "type": "script",
+            "type": "module",
             "path": "pg/featherbone.js",
-            "requires": [
-                "jsonpatch"
-            ]
+            "isGlobal": true
         },
         {
             "type": "feather",

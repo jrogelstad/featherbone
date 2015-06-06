@@ -13,7 +13,6 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-
 var sqlChk = "SELECT * FROM pg_tables WHERE schemaname = 'public' AND tablename = $1;",
     user = plv8.execute("SELECT CURRENT_USER")[0].current_user,
     sql, params, global, role, req;
@@ -88,18 +87,18 @@ if (!plv8.execute(sqlChk,['$objectfolder']).length) {
     plv8.execute(sql);
 };
 
-/* Create the script table */
-if (!plv8.execute(sqlChk,['$script']).length) {
-    sql = "CREATE TABLE \"$script\" (" +
+/* Create the module table */
+if (!plv8.execute(sqlChk,['$module']).length) {
+    sql = "CREATE TABLE \"$module\" (" +
     "name text PRIMARY KEY," +
     "script text," +
-    "requires json, " +
+    "is_global boolean," +
     "version text);" +
-    "COMMENT ON TABLE \"$script\" IS 'Internal table for storing JavaScript';" +
-    "COMMENT ON COLUMN \"$script\".name IS 'Primary key';" +
-    "COMMENT ON COLUMN \"$script\".script IS 'JavaScript content';" +
-    "COMMENT ON COLUMN \"$script\".requires IS 'Array of dependencies';" +
-    "COMMENT ON COLUMN \"$script\".version IS 'Version number';";
+    "COMMENT ON TABLE \"$module\" IS 'Internal table for storing JavaScript';" +
+    "COMMENT ON COLUMN \"$module\".name IS 'Primary key';" +
+    "COMMENT ON COLUMN \"$module\".script IS 'JavaScript content';" +
+    "COMMENT ON COLUMN \"$module\".is_global IS 'Create a global variable using the name of this module';" +
+    "COMMENT ON COLUMN \"$module\".version IS 'Version number';";
     plv8.execute(sql);
 }
 
