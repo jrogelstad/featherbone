@@ -1,5 +1,6 @@
 /**
-    Featherbone is a JavaScript based persistence framework for building object relational database applications
+    Featherbone is a JavaScript based persistence framework for building object
+    relationaldatabase applications
     
     Copyright (C) 2015  John Rogelstad
     This program is free software: you can redistribute it and/or modify
@@ -14,8 +15,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-/*global plv8: true, ERROR: true, debug: true */
-/*jslint nomen: true, plusplus: true, indent: 2, sloppy: true, maxlen: 80*/
+/*global plv8, ERROR, debug */
 var featherbone = {};
 (function (featherbone) {
 
@@ -136,6 +136,15 @@ var featherbone = {};
     },
 
     /**
+      Raise an error.
+
+      @param {String} Error message.
+    */
+    error: function (message) {
+      plv8.elog(ERROR, message);
+    },
+
+    /**
       Return the current user.
 
       @return {String}
@@ -242,17 +251,8 @@ var featherbone = {};
     },
 
     /**
-      Raise an error.
-
-      @param {String} Error message.
-    */
-    error: function (message) {
-      plv8.elog(ERROR, message);
-    },
-
-    /**
       Check whether a user is authorized to perform an action on a
-      particular class (feather) or object.
+      particular feather (class) or object.
 
       Allowable actions: "canCreate", "canRead", "canUpdate", "canDelete"
 
@@ -1924,10 +1924,10 @@ if (exports !== "undefined") {
   exports.createId = featherbone.createId;
   exports.checkEtag = featherbone.checkEtag;
   exports.deleteFeather = featherbone.deleteFeather;
+  exports.error = featherbone.error;
   exports.getCurrentUser = featherbone.getCurrentUser;
   exports.getFeather = featherbone.getFeather;
   exports.getSettings = featherbone.getSettings;
-  exports.error = featherbone.error;
   exports.isAuthorized = featherbone.isAuthorized;
   exports.isSuperUser = featherbone.isSuperUser;
   exports.minDate = featherbone.minDate;

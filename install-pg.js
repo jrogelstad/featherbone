@@ -1,5 +1,6 @@
 /**
-    Featherbone is a JavaScript based persistence framework for building object relational database applications
+    Featherbone is a JavaScript based persistence framework for building object
+    relational database applications
     
     Copyright (C) 2015  John Rogelstad
     This program is free software: you can redistribute it and/or modify
