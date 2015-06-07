@@ -1,4 +1,4 @@
-﻿/**
+/**
     Featherbone is a JavaScript based persistence framework for building object relational database applications
 
     Copyright (C) 2015  John Rogelstad
@@ -13,16 +13,16 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*global eval: true*/
+/*global eval: true, plv8: true, debug: true, require: true, NOTICE: true, ERROR: true*/
 (function () {
-  //"use strict";
 
   // ..........................................................
   // LOCAL
   //
 
-  var modules = plv8.execute("SELECT * FROM \"$module\""),
-    i = 0, module, script;
+  var module, script,
+    modules = plv8.execute("SELECT * FROM \"$module\""),
+    n = 0;
 
   // ..........................................................
   // GLOBAL
@@ -38,17 +38,19 @@
   };
 
   /**
-    Load a module.
+    Load a module into memory.
+
     @param {String} Module name
     @returns {Object} Exports
   */
-  require = function (module) {
+  require = function (name) {
     var found = modules.filter(function (row) {
-        return row.name === module;
-      }), exports = {};
+        return row.name === name;
+      }),
+      exports = {};
 
     if (!found.length) {
-      plv8.elog(ERROR, "Module " + module + " not found.");
+      plv8.elog(ERROR, "Module " + name + " not found.");
     }
 
     eval(found[0].script);
@@ -58,7 +60,7 @@
 
   /**
     * Escape strings to prevent sql injection
-      http://www.postgresql.org/docs/9.1/interactive/functions-string.html#FUNCTIONS-STRING-OTHER
+      http://www.postgresql.org/docs/9.1/interactive/functions-string.html
     *
     * @param {String} A string with tokens to replace.
     * @param {Array} Array of replacement strings.
@@ -66,7 +68,8 @@
   */
   String.prototype.format = function (ary) {
     var params = [],
-      i = 0;
+      i = 0,
+      sql;
 
     ary = ary || [];
     ary.unshift(this);
@@ -76,7 +79,9 @@
       params.push("$" + i);
     }
 
-    return plv8.execute("select format(" + params.toString(",") + ")", ary)[0].format;
+    sql = "select format(" + params.toString(",") + ")";
+
+    return plv8.execute(sql, ary)[0].format;
   };
 
   /**
@@ -84,7 +89,6 @@
      @returns {String}
   */
   String.prototype.toCamelCase = function () {
-    return this.replace(/_+(.)?/g, function(match, chr) {
       return chr ? chr.toUpperCase() : '';
     });
   };
@@ -106,15 +110,15 @@
   };
 
   // Load global modules
-  while (i < modules.length) {
-    module = modules[i];
+  while (n < modules.length) {
+    module = modules[n];
 
     if (module.is_global) {
       script = module.name + "= require(\"" + module.name + "\");";
       eval(script);
     }
 
-    i++;
+    n++;
   }
 }());
 
