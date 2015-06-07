@@ -1365,7 +1365,8 @@ var featherbone = {};
 
   /** private */
   _insert = function (obj, isChild, isSuperUser) {
-    var child, key, col, prop, result, value, sql, err, pk, msg,
+    var child, key, col, prop, result, value, sql, err, pk, msg, fkeys, dkeys,
+      len, n,
       data = JSON.parse(JSON.stringify(obj.data)),
       feather = featherbone.getFeather(obj.name),
       folder = obj.folder !== false ? obj.folder || "global" : false,
@@ -1380,6 +1381,18 @@ var featherbone = {};
 
     if (!feather) {
       featherbone.error("Class \"" + obj.name + "\" not found");
+    }
+
+    fkeys = Object.keys(props);
+    dkeys = Object.keys(data);
+
+    /* Validate */
+    len = dkeys.length;
+    for (n = 0; n < len; n++) {
+      if (fkeys.indexOf(dkeys[n]) === -1) {
+        featherbone.error("Feather \"" + obj.name +
+          "\" does not contain property \"" + dkeys[n] + "\"");
+      }
     }
 
     /* Check id for existence and uniqueness and regenerate if any problem */
@@ -1407,58 +1420,58 @@ var featherbone = {};
     values.push(pk);
 
     /* Build values */
-    for (key in props) {
-      if (props.hasOwnProperty(key)) {
-        child = false;
-        prop = props[key];
+    len = fkeys.length;
+    for (n = 0; n < len; n++) {
+      key = fkeys[n];
+      child = false;
+      prop = props[key];
 
-        /* Handle relations */
-        if (typeof prop.type === "object") {
-          if (prop.type.parentOf) {
-          /* To many */
-            child = true;
-            children[key] = prop;
+      /* Handle relations */
+      if (typeof prop.type === "object") {
+        if (prop.type.parentOf) {
+        /* To many */
+          child = true;
+          children[key] = prop;
 
-          /* To one */
-          } else {
-            col = _relationColumn(key, prop.type.relation);
-            value = data[key] !== undefined ? _getKey(data[key].id) : -1;
-            if (value === undefined) {
-              err = 'Relation not found in "{rel}" for "{key}" with id "{id}"'
-                .replace("{rel}", prop.type.relation)
-                .replace("{key}", key)
-                .replace("{id}", data[key].id);
-            } else if (!isChild && prop.type.childOf) {
-              err = "Child records may only be created from the parent.";
-            }
-            if (err) {
-              featherbone.error(err);
-            }
-          }
-
-        /* Handle regular types */
+        /* To one */
         } else {
-          value = data[key];
-          col = key.toSnakeCase();
-
+          col = _relationColumn(key, prop.type.relation);
+          value = data[key] !== undefined ? _getKey(data[key].id) : -1;
           if (value === undefined) {
-            value = prop.defaultValue === undefined ?
-                _types[prop.type].defaultValue : prop.defaultValue;
-
-            /* If we have a class specific default that calls a function */
-            if (value && typeof value === "string" && value.match(/\(\)$/)) {
-              value = featherbone[value.replace(/\(\)$/, "")]();
-            }
+            err = 'Relation not found in "{rel}" for "{key}" with id "{id}"'
+              .replace("{rel}", prop.type.relation)
+              .replace("{key}", key)
+              .replace("{id}", data[key].id);
+          } else if (!isChild && prop.type.childOf) {
+            err = "Child records may only be created from the parent.";
+          }
+          if (err) {
+            featherbone.error(err);
           }
         }
 
-        if (!child) {
-          args.push(col);
-          tokens.push("%I");
-          values.push(value);
-          params.push("$" + p);
-          p++;
+      /* Handle regular types */
+      } else {
+        value = data[key];
+        col = key.toSnakeCase();
+
+        if (value === undefined) {
+          value = prop.defaultValue === undefined ?
+              _types[prop.type].defaultValue : prop.defaultValue;
+
+          /* If we have a class specific default that calls a function */
+          if (value && typeof value === "string" && value.match(/\(\)$/)) {
+            value = featherbone[value.replace(/\(\)$/, "")]();
+          }
         }
+      }
+
+      if (!child) {
+        args.push(col);
+        tokens.push("%I");
+        values.push(value);
+        params.push("$" + p);
+        p++;
       }
     }
 

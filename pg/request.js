@@ -15,11 +15,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*global obj, init, plv8, featherbone */
-(function () {
-  if (init || this.require === undefined) {
-    plv8.execute('SELECT init()');
-  }
+if (init || this.require === undefined) {
+  plv8.execute('SELECT init()');
+}
 
-  return featherbone.request(obj);
-}());
+return featherbone.request(obj);
 

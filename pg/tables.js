@@ -168,7 +168,7 @@ if (!plv8.execute(sqlChk,['$settings']).length) {
   DROP TABLE object CASCADE;
   DROP TABLE "$auth";
   DROP TABLE "$objectfolder";
-  DROP TABLE "$script";
+  DROP TABLE "$module";
   DROP TABLE "$user";
   DROP FUNCTION init();
   DROP FUNCTION request(json, boolean);
