@@ -44,6 +44,18 @@ paths:
           description: Error
           schema:
             $ref: "#/definitions/ErrorResponse"
+  /favicon.ico:
+    x-swagger-router-controller: data
+    get:
+      description: Placeholder for chrome. Returns nothing for now
+      # used as the method name of the controller
+      operationId: favicon
+      responses:
+        "200":
+          description: Success
+          schema:
+            # a pointer to a definition
+            $ref: "#/definitions/FaviconResponse"
   /contacts:
     # binds a127 app logic to a route
     x-swagger-router-controller: data
@@ -78,6 +90,12 @@ definitions:
       message:
         type: string
   ErrorResponse:
+    required:
+      - message
+    properties:
+      message:
+        type: string
+  FaviconResponse:
     required:
       - message
     properties:

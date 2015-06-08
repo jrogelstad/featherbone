@@ -29,7 +29,8 @@ var util = require('util'),
  */
 module.exports = {
   hello: hello,
-  data: data
+  data: data,
+  favicon: favicon
 };
 
 /*
@@ -98,4 +99,9 @@ function data(req, res) {
   }
 
   begin();
+}
+
+function favicon(req, res) {
+  // Placeholder to be dealt with later. Without route Chrome causes errors
+  res.json("");
 }
