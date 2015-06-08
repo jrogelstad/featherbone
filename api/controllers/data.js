@@ -62,18 +62,26 @@ function data(req, res) {
   }
 
   query = function (err, resp) {
-    var payload, sql;
+    var payload, sql, filter = {},
+      limit = req.swagger.params.limit.value || 0;
 
     if (err) { 
       console.error(err);
       return;
     }
 
+    if (limit) {
+      filter.limit = limit;
+    };
+
     payload = {
       action: "GET",
       name: "Contact",
-      user: "postgres"
+      user: "postgres",
+      filter: filter
     };
+
+    console.log(payload);
     sql = "SELECT request($$" + JSON.stringify(payload) + "$$);";
 
     client.query(sql, qcallback);
@@ -86,7 +94,7 @@ function data(req, res) {
     }
 
     // this sends back a JSON response which is a single string
-    res.json(JSON.stringify(resp));
+    res.json(resp.rows);
   }
 
   begin();

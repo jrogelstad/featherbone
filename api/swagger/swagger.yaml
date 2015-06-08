@@ -2,6 +2,8 @@ swagger: "2.0"
 info:
   version: "0.0.1"
   title: Featherbone data service
+  license: 
+    name: GPLv3
 # during dev, should point to your local machine
 host: localhost:10010
 # basePath prefixes all resource paths 
@@ -42,25 +44,26 @@ paths:
           description: Error
           schema:
             $ref: "#/definitions/ErrorResponse"
-  /data:
+  /contacts:
     # binds a127 app logic to a route
     x-swagger-router-controller: data
     get:
-      description: Returns 'Hello' to the caller
+      description: Contact data
       # used as the method name of the controller
       operationId: data
       parameters:
-        - name: name
+        - name: limit
           in: query
-          description: The name of the person to whom to say hello
+          description: How many items to return
           required: false
-          type: string
+          type: integer
+          format: int32
       responses:
         "200":
-          description: Success
+          description: Array of contacts
           schema:
             # a pointer to a definition
-            $ref: "#/definitions/HelloWorldResponse"
+            $ref: "#/definitions/Contacts"
         # responses may fall through to errors
         default:
           description: Error
@@ -79,4 +82,104 @@ definitions:
       - message
     properties:
       message:
+        type: string
+  Address:
+    properties:
+      id:
+        type: string
+      created:
+        type: string
+      createdBy:
+        type: string
+      updated:
+        type: string
+      updatedBy:
+        type: string
+      isDeleted:
+        type: boolean
+      type:
+        type: string
+      line1:
+        type: string
+      line2:
+        type: string
+      line3:
+        type: string
+      city:
+        type: string
+      state:
+        type: string
+      postalCode:
+        type: string
+      country:
+        type: string
+  Contact:
+    properties:
+      id:
+        type: string
+      created:
+        type: string
+      createdBy:
+        type: string
+      updated:
+        type: string
+      updatedBy:
+        type: string
+      isDeleted:
+        type: boolean
+      owner:
+        type: string
+      etag:
+        type: string
+      title:
+        type: string
+      firstName:
+        type: string
+      lastName:
+        type: string
+      notes:
+        type: array
+        items:
+          $ref: "#/definitions/Note"
+      addresses:
+        type: array
+        items:
+          $ref: "#/definitions/ContactAddress"
+  ContactAddress:
+    properties:
+      id:
+        type: string
+      created:
+        type: string
+      createdBy:
+        type: string
+      updated:
+        type: string
+      updatedBy:
+        type: string
+      isDeleted:
+        type: boolean
+      address:
+        type: object
+        items:
+          $ref: "#/definitions/Address"
+  Contacts:
+    type: array
+    items:
+      $ref: "#/definitions/Contact"
+  Note:
+    properties:
+      id:
+        type: string
+      created:
+        type: string
+      createdBy:
+        type: string
+      updated:
+        type: string
+      updatedBy:
+        type: string
+      isDeleted:
+        type: boolean
+      text:
         type: string
