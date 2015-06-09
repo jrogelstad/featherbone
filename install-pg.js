@@ -16,7 +16,7 @@
 **/
 
 var manifest, file, content, result, filename, execute, name, createFunction,
-  saveModule, saveFeather, rollback, commit, begin, processFile, ext,
+  saveModule, saveModels, rollback, commit, begin, processFile, ext,
   pg = require("pg"),
   fs = require("fs"),
   path = require("path"),
@@ -110,8 +110,8 @@ processFile = function (err) {
   case "module":
     saveModule(file.name || name, content, file.isGlobal, manifest.version);
     break;
-  case "feather":
-    saveFeather(JSON.parse(content));
+  case "model":
+    saveModels(JSON.parse(content));
     break;
   default:
     console.error("Unknown type.");
@@ -146,7 +146,7 @@ saveModule = function (name, script, isGlobal, version) {
   });
 };
 
-saveFeather = function (feathers) {
+saveModels = function (models) {
   client.query("SELECT CURRENT_USER;", function (err, result) {
     if (err) {
       console.error(err);
@@ -156,9 +156,9 @@ saveFeather = function (feathers) {
 
     var payload = JSON.stringify({
         action: "POST",
-        name: "saveFeather",
+        name: "saveModel",
         user: result.rows[0].current_user,
-        data: [feathers]
+        data: [models]
       }),
       sql = "SELECT request('" + payload + "');";
 

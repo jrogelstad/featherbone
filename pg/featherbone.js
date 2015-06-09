@@ -19,7 +19,7 @@
 var featherbone = {};
 (function (featherbone) {
 
-  var _proto, _createView, _curry, _getKey, _getKeys, _isChildFeather, _delete,
+  var _proto, _createView, _curry, _getKey, _getKeys, _isChildModel, _delete,
     _propagateViews, _relationColumn, _sanitize, _insert, _select, _update,
     _currentUser, _setCurrentUser, _buildAuthSql, _propagateAuth, _keys,
     _jsonpatch = require("fast-json-patch"),
@@ -76,7 +76,7 @@ var featherbone = {};
       * @param {Object | Array} Object(s) describing object to remove.
       * @return {String}
     */
-    deleteFeather: function (specs) {
+    deleteModel: function (specs) {
       specs = Array.isArray ? specs : [specs];
 
       var obj, table, catalog, sql, rels, i, props, view, type, key,
@@ -88,7 +88,7 @@ var featherbone = {};
         table = obj.name ? obj.name.toSnakeCase() : false;
         catalog = featherbone.getSettings('catalog');
         sql = ("DROP VIEW %I; DROP TABLE %I;" +
-          "DELETE FROM \"$feather\" WHERE id=$1;")
+          "DELETE FROM \"$fodel\" WHERE id=$1;")
           .format(["_" + table, table]);
         rels = [];
         i = 0;
@@ -158,26 +158,26 @@ var featherbone = {};
     /**
       Return a class definition, including inherited properties.
 
-      @param {String} Feather name
+      @param {String} Model name
       @param {Boolean} Include inherited or not. Defult = true.
       @return {String}
     */
-    getFeather: function (name, includeInherited) {
+    getModel: function (name, includeInherited) {
       var catalog = featherbone.getSettings('catalog'),
         appendParent = function (child, parent) {
-          var feather = catalog[parent],
-            featherProps = feather.properties,
+          var model = catalog[parent],
+            modelProps = model.properties,
             childProps = child.properties,
             key;
 
           if (parent !== "Object") {
-            appendParent(child, feather.inherits || "Object");
+            appendParent(child, model.inherits || "Object");
           }
 
-          for (key in featherProps) {
-            if (featherProps.hasOwnProperty(key)) {
+          for (key in modelProps) {
+            if (modelProps.hasOwnProperty(key)) {
               if (childProps[key] === undefined) {
-                childProps[key] = featherProps[key];
+                childProps[key] = modelProps[key];
                 childProps[key].inheritedFrom = parent;
               }
             }
@@ -187,7 +187,7 @@ var featherbone = {};
         },
         result = {name: name, inherits: "Object"},
         resultProps,
-        featherProps,
+        modelProps,
         key;
 
       if (!catalog[name]) { return false; }
@@ -208,11 +208,11 @@ var featherbone = {};
       }
 
       /* Now add local properties back in */
-      featherProps = catalog[name].properties;
+      modelProps = catalog[name].properties;
       resultProps = result.properties;
-      for (key in featherProps) {
-        if (featherProps.hasOwnProperty(key)) {
-          resultProps[key] = featherProps[key];
+      for (key in modelProps) {
+        if (modelProps.hasOwnProperty(key)) {
+          resultProps[key] = modelProps[key];
         }
       }
 
@@ -252,15 +252,15 @@ var featherbone = {};
 
     /**
       Check whether a user is authorized to perform an action on a
-      particular feather (class) or object.
+      particular model (class) or object.
 
       Allowable actions: "canCreate", "canRead", "canUpdate", "canDelete"
 
-      "canCreate" will only check feather names.
+      "canCreate" will only check model names.
 
       @param {Object} Specification
       @param {String} [specification.action] Required
-      @param {String} [specification.feather] Class
+      @param {String} [specification.model] Class
       @param {String} [specification.id] Object id
       @param {String} [specification.user] User. Defaults to current user
       @param {String} [specification.folder] Folder. Applies to "canCreate"
@@ -269,25 +269,25 @@ var featherbone = {};
     isAuthorized: function (obj) {
       var table, pk, authSql, sql,
         user = obj.user || featherbone.getCurrentUser(),
-        feather = obj.feather,
+        model = obj.model,
         folder = obj.folder,
         action = obj.action,
         id = obj.id,
         tokens = [],
         result = false;
 
-      /* If feather, check class authorization */
-      if (feather) {
+      /* If model, check class authorization */
+      if (model) {
         sql =
           "SELECT pk FROM \"$auth\" AS auth " +
-          "  JOIN \"$feather\" AS feather ON feather._pk=auth.object_pk " +
+          "  JOIN \"$model\" AS model ON model._pk=auth.object_pk " +
           "  JOIN role ON role._pk=auth.role_pk " +
           "  JOIN role_member ON role_member._parent_role_pk=role._pk " +
-          "WHERE feather.id=$1" +
+          "WHERE model.id=$1" +
           "  AND role_member.member=$2" +
           "  AND %I";
         sql = sql.format([action.toSnakeCase()]);
-        result = plv8.execute(sql, [feather.toSnakeCase(), user]);
+        result = plv8.execute(sql, [model.toSnakeCase(), user]);
 
       /* Otherwise check object authorization */
       } else if (id) {
@@ -456,7 +456,7 @@ var featherbone = {};
         }
 
       @param {Object} Specificication
-      @param {String} [specification.feather] Class name
+      @param {String} [specification.model] Class name
       @param {String} [specification.id] Object id
       @param {Boolean} [specification.isMember] Indicates member privilege
         of folder
@@ -468,8 +468,8 @@ var featherbone = {};
       @param {Boolean} [specification.actions.canDelete]
     */
     saveAuthorization: function (obj) {
-      var result, sql, pk, err, feather, params,
-        id = obj.feather ? obj.feather.toSnakeCase() : obj.id,
+      var result, sql, pk, err, model, params,
+        id = obj.model ? obj.model.toSnakeCase() : obj.id,
         currentUser = featherbone.getCurrentUser(),
         objPk = _getKey(id),
         rolePk = _getKey(obj.role),
@@ -487,20 +487,20 @@ var featherbone = {};
       if (err) { featherbone.error(err); }
 
       if (obj.id && obj.isMember) {
-        sql = "SELECT tableoid::regclass::text AS feather " +
+        sql = "SELECT tableoid::regclass::text AS model " +
           "FROM object WHERE id=$1";
-        feather = plv8.execute(sql, [id])[0].feather.toProperCase();
+        model = plv8.execute(sql, [id])[0].model.toProperCase();
 
-        if (feather === "Folder") {
+        if (model === "Folder") {
           isMember = obj.isMember || false;
         }
 
-        feather = featherbone.getFeather(feather);
+        model = featherbone.getModel(model);
 
-        if (_isChildFeather(feather)) {
-          err = "Can not set authorization on child feathers.";
-        } else if (!feather.properties.owner) {
-          err = "Feather must have owner property to set authorization";
+        if (_isChildModel(model)) {
+          err = "Can not set authorization on child models.";
+        } else if (!model.properties.owner) {
+          err = "Model must have owner property to set authorization";
         }
 
         if (err) { featherbone.error(err); }
@@ -508,7 +508,7 @@ var featherbone = {};
 
       if (!featherbone.isSuperUser()) {
         sql = "SELECT owner FROM %I WHERE _pk=$1"
-          .format(feather.name.toSnakeCase());
+          .format(model.name.toSnakeCase());
         result = plv8.execute(sql, [objPk]);
 
         if (result[0].owner !== currentUser) {
@@ -573,7 +573,7 @@ var featherbone = {};
 
       plv8.execute(sql, params);
 
-      if (feather === "Folder" && isMember) {
+      if (model === "Folder" && isMember) {
         _propagateAuth({folderId: obj.id, roleId: obj.role});
       }
     },
@@ -606,36 +606,36 @@ var featherbone = {};
         }
       }
 
-     * @param {Object | Array} Feather specification payload(s).
+     * @param {Object | Array} Model specification payload(s).
      * @param {String} [specification.name] Name
      * @param {String} [specification.description] Description
      * @param {Object | Boolean} [specification.authorization] Authorization
      *  spec. Defaults to grant all to everyone if undefined. Pass false to
      *  grant no auth.
-     * @param {String} [specification.properties] Feather properties
+     * @param {String} [specification.properties] Model properties
      * @param {String} [specification.properties.description] Description
      * @param {String} [specification.properties.defaultValue] Default value
      *  or function name.
      * @param {String | Object} [specification.properties.type] Type. Standard
      *  types are string, boolean, number, date. Object is used for relation
      *  specs.
-     * @param {String} [specification.properties.relation] Feather name of
+     * @param {String} [specification.properties.relation] Model name of
      *  relation.
      * @param {String} [specification.properties.childOf] Property name on
      *  parent relation if one to many relation.
      * @return {Boolean}
     */
-    saveFeather: function (specs) {
+    saveModel: function (specs) {
       specs = Array.isArray(specs) ? specs : [specs];
 
-      var table, inherits, feather, catalog, sql, sqlUpd, token, tokens, values,
+      var table, inherits, model, catalog, sql, sqlUpd, token, tokens, values,
         adds, args, fns, cols, defaultValue, props, key, recs, type, err, name,
         parent, obj, i, n, p, dropSql, changed, isChild, pk, authorization,
         o = 0,
         getParentKey = function (child) {
           var cParent, cKey, cProps;
 
-          cProps = featherbone.getFeather(child).properties;
+          cProps = featherbone.getModel(child).properties;
 
           for (cKey in cProps) {
             if (cProps.hasOwnProperty(cKey) &&
@@ -643,7 +643,7 @@ var featherbone = {};
                 cProps[cKey].type.childOf) {
               cParent = cProps[cKey].type.relation;
 
-              if (_isChildFeather(featherbone.getFeather(parent))) {
+              if (_isChildModel(featherbone.getModel(parent))) {
                 return getParentKey(cParent);
               }
 
@@ -657,7 +657,7 @@ var featherbone = {};
         obj = specs[o];
         table = obj.name ? obj.name.toSnakeCase() : false;
         inherits = (obj.inherits || "Object").toSnakeCase();
-        feather = featherbone.getFeather(obj.name, false);
+        model = featherbone.getModel(obj.name, false);
         catalog = featherbone.getSettings("catalog");
         authorization = obj.authorization;
         dropSql = "DROP VIEW IF EXISTS %I CASCADE;".format(["_" + table]);
@@ -675,7 +675,7 @@ var featherbone = {};
         if (!table) { featherbone.error("No name defined"); }
 
         /* Create table if applicable */
-        if (!feather) {
+        if (!model) {
           sql = "CREATE TABLE %I( " +
             "CONSTRAINT %I PRIMARY KEY (_pk), " +
             "CONSTRAINT %I UNIQUE (id)) " +
@@ -688,12 +688,12 @@ var featherbone = {};
           ]);
         } else {
           /* Drop non-inherited columns not included in properties */
-          props = feather.properties;
+          props = model.properties;
           for (key in props) {
             if (props.hasOwnProperty(key)) {
               if (obj.properties && !obj.properties[key] &&
-                  !(typeof feather.properties[key].type === "object" &&
-                  typeof feather.properties[key].type.parentOf)) {
+                  !(typeof model.properties[key].type === "object" &&
+                  typeof model.properties[key].type.parentOf)) {
                 /* Drop views */
                 if (!changed) {
                   sql += dropSql;
@@ -742,9 +742,9 @@ var featherbone = {};
                 _types[props[key].type] : props[key].type;
 
             if (type) {
-              if (!feather || !feather.properties[key]) {
+              if (!model || !model.properties[key]) {
                 /* Drop views */
-                if (feather && !changed) {
+                if (model && !changed) {
                   sql += dropSql;
                 }
 
@@ -914,10 +914,10 @@ var featherbone = {};
         delete obj.authorization;
         featherbone.saveSettings("catalog", catalog);
 
-        if (!feather) {
-          isChild = _isChildFeather(featherbone.getFeather(name));
+        if (!model) {
+          isChild = _isChildModel(featherbone.getModel(name));
           pk = plv8.execute("select nextval('object__pk_seq') as pk;")[0].pk;
-          sql = "INSERT INTO \"$feather\" " +
+          sql = "INSERT INTO \"$model\" " +
             "(_pk, id, created, created_by, updated, updated_by, is_deleted, " +
             " is_child, parent_pk) VALUES " +
             "($1, $2, now(), $3, now(), $4, false, $5, $6);";
@@ -929,7 +929,7 @@ var featherbone = {};
         }
 
         /* Propagate views */
-        changed = changed || !feather;
+        changed = changed || !model;
         if (changed) {
           _propagateViews(name);
         }
@@ -937,7 +937,7 @@ var featherbone = {};
         /* If no specific authorization, grant to all */
         if (authorization === undefined) {
           authorization = {
-            feather: name,
+            model: name,
             role: "everyone",
             actions: {
               canCreate: true,
@@ -1068,7 +1068,7 @@ var featherbone = {};
     return " AND _pk IN (" +
         "SELECT %I._pk " +
         "FROM %I " +
-        "  JOIN \"$feather\" ON \"$feather\".id::regclass::oid=%I.tableoid " +
+        "  JOIN \"$model\" ON \"$model\".id::regclass::oid=%I.tableoid " +
         "WHERE EXISTS (" +
         "  SELECT " + action + " FROM ( " +
         "    SELECT " + action +
@@ -1077,7 +1077,7 @@ var featherbone = {};
         "      JOIN \"role_member\"" +
         "        ON \"role\".\"_pk\"=\"role_member\".\"_parent_role_pk\"" +
         "    WHERE member=$1" +
-        "      AND object_pk=\"$feather\".parent_pk" +
+        "      AND object_pk=\"$model\".parent_pk" +
         "    ORDER BY " + action + " DESC" +
         "    LIMIT 1" +
         "  ) AS data" +
@@ -1123,10 +1123,10 @@ var featherbone = {};
   /** private */
   _createView = function (name, dropFirst) {
     var parent, alias, type, view, sub, col, key,
-      feather = featherbone.getFeather(name),
+      model = featherbone.getModel(name),
       table = name.toSnakeCase(),
       args = ["_" + table, "_pk"],
-      props = feather.properties,
+      props = model.properties,
       cols = ["%I"],
       sql = "";
 
@@ -1200,16 +1200,16 @@ var featherbone = {};
   _delete = function (obj, isChild, isSuperUser) {
     var oldRec, key, i, child, rel, now,
       sql = "UPDATE object SET is_deleted = true WHERE id=$1;",
-      feather = featherbone.getFeather(obj.name),
-      props = feather.properties,
+      model = featherbone.getModel(obj.name),
+      props = model.properties,
       noChildProps = function (key) {
-        if (typeof feather.properties[key].type !== "object" ||
-            !feather.properties[key].type.childOf) {
+        if (typeof model.properties[key].type !== "object" ||
+            !model.properties[key].type.childOf) {
           return true;
         }
       };
 
-    if (!isChild && _isChildFeather(obj.name)) {
+    if (!isChild && _isChildModel(obj.name)) {
       featherbone.error("Can not directly delete a child class");
     } else if (isSuperUser === false &&
         !featherbone.isAuthorized({action: "canDelete", id: obj.id})) {
@@ -1223,7 +1223,7 @@ var featherbone = {};
           props[key].type.parentOf) {
         if (!oldRec) {
           /* Exclude child key when we select */
-          obj.properties = Object.keys(feather.properties)
+          obj.properties = Object.keys(model.properties)
             .filter(noChildProps);
           oldRec = _select(obj, true);
         }
@@ -1368,10 +1368,10 @@ var featherbone = {};
     var child, key, col, prop, result, value, sql, err, pk, msg, fkeys, dkeys,
       len, n,
       data = JSON.parse(JSON.stringify(obj.data)),
-      feather = featherbone.getFeather(obj.name),
+      model = featherbone.getModel(obj.name),
       folder = obj.folder !== false ? obj.folder || "global" : false,
       args = [obj.name.toSnakeCase()],
-      props = feather.properties,
+      props = model.properties,
       children = {},
       tokens = [],
       params = [],
@@ -1379,7 +1379,7 @@ var featherbone = {};
       i = 0,
       p = 2;
 
-    if (!feather) {
+    if (!model) {
       featherbone.error("Class \"" + obj.name + "\" not found");
     }
 
@@ -1390,7 +1390,7 @@ var featherbone = {};
     len = dkeys.length;
     for (n = 0; n < len; n++) {
       if (fkeys.indexOf(dkeys[n]) === -1) {
-        featherbone.error("Feather \"" + obj.name +
+        featherbone.error("Model \"" + obj.name +
           "\" does not contain property \"" + dkeys[n] + "\"");
       }
     }
@@ -1401,7 +1401,7 @@ var featherbone = {};
     } else if (isSuperUser === false) {
       if (!featherbone.isAuthorized({
           action: "canCreate",
-          feather: obj.name,
+          model: obj.name,
           folder: folder
         })) {
         msg = "Not authorized to create \"" + obj.name + "\" in folder \"" +
@@ -1530,8 +1530,8 @@ var featherbone = {};
   };
 
   /** private */
-  _isChildFeather = function (feather) {
-    var props = feather.properties,
+  _isChildModel = function (model) {
+    var props = model.properties,
       key;
 
     for (key in props) {
@@ -1720,16 +1720,16 @@ var featherbone = {};
   /** private */
   _select = function (obj, isChild, isSuperUser) {
     var key, sql, pk,
-      feather = featherbone.getFeather(obj.name),
-      table = "_" + feather.name.toSnakeCase(),
-      keys = obj.properties || Object.keys(feather.properties),
+      model = featherbone.getModel(obj.name),
+      table = "_" + model.name.toSnakeCase(),
+      keys = obj.properties || Object.keys(model.properties),
       tokens = [],
       result = {},
       cols = [],
       i = 0;
 
     /* Validate */
-    if (!isChild && _isChildFeather(feather)) {
+    if (!isChild && _isChildModel(model)) {
       featherbone.error("Can not query directly on a child class");
     }
 
@@ -1780,11 +1780,11 @@ var featherbone = {};
 
   /** Private */
   _update = function (obj, isChild, isSuperUser) {
-    var result, updRec, props, value, key, sql, i, cFeather, cid, child, err,
+    var result, updRec, props, value, key, sql, i, cModel, cid, child, err,
       oldRec, newRec, cOldRec, cNewRec, cpatches,
       patches = obj.data || [],
-      feather = featherbone.getFeather(obj.name),
-      tokens = [feather.name.toSnakeCase()],
+      model = featherbone.getModel(obj.name),
+      tokens = [model.name.toSnakeCase()],
       id = obj.id,
       pk = _getKey(id),
       params = [],
@@ -1801,21 +1801,21 @@ var featherbone = {};
         return false;
       },
       noChildProps = function (key) {
-        if (typeof feather.properties[key].type !== "object" ||
-            !feather.properties[key].type.childOf) {
+        if (typeof model.properties[key].type !== "object" ||
+            !model.properties[key].type.childOf) {
           return true;
         }
       };
 
     /* Validate */
-    if (!isChild && _isChildFeather(feather)) {
+    if (!isChild && _isChildModel(model)) {
       featherbone.error("Can not directly update a child class");
     } else if (isSuperUser === false &&
         !featherbone.isAuthorized({action: "canUpdate", id: id})) {
       featherbone.error("Not authorized to update \"" + id + "\"");
     }
 
-    obj.properties = Object.keys(feather.properties).filter(noChildProps);
+    obj.properties = Object.keys(model.properties).filter(noChildProps);
     oldRec = _select(obj, isChild);
     if (!Object.keys(oldRec).length) { return false; }
 
@@ -1824,11 +1824,11 @@ var featherbone = {};
     _jsonpatch.apply(newRec, patches);
 
     if (patches.length) {
-      props = feather.properties;
+      props = model.properties;
       updRec = JSON.parse(JSON.stringify(newRec));
       updRec.updated = new Date().toJSON();
       updRec.updatedBy = featherbone.getCurrentUser();
-      if (feather.properties.etag) {
+      if (model.properties.etag) {
         updRec.etag = featherbone.createId();
       }
 
@@ -1838,14 +1838,14 @@ var featherbone = {};
           if (typeof props[key].type === "object") {
             /* Handle child records */
             if (Array.isArray(updRec[key])) {
-              cFeather = featherbone.getFeather(props[key].type.relation);
+              cModel = featherbone.getModel(props[key].type.relation);
               i = 0;
 
               /* Process deletes */
               while (i < oldRec[key].length) {
                 cid = oldRec[key][i].id;
                 if (!find(updRec[key], cid)) {
-                  child = {name: cFeather.name, id: cid};
+                  child = {name: cModel.name, id: cid};
                   _delete(child, true);
                 }
 
@@ -1862,12 +1862,12 @@ var featherbone = {};
                   cpatches = _jsonpatch.compare(cOldRec, cNewRec);
 
                   if (cpatches.length) {
-                    child = {name: cFeather.name, id: cid, data: cpatches};
+                    child = {name: cModel.name, id: cid, data: cpatches};
                     _update(child, true);
                   }
                 } else {
                   cNewRec[props[key].type.parentOf] = {id: updRec.id};
-                  child = {name: cFeather.name, data: cNewRec};
+                  child = {name: cModel.name, data: cNewRec};
                   _insert(child, true);
                 }
 
@@ -1909,7 +1909,7 @@ var featherbone = {};
       if (isChild) { return; }
 
       /* If a top level record, return patch of what changed */
-      result = _select({name: feather.name, id: id});
+      result = _select({name: model.name, id: id});
 
       /* Handle change log */
       _insert({
@@ -1936,10 +1936,10 @@ var featherbone = {};
 if (exports !== "undefined") {
   exports.createId = featherbone.createId;
   exports.checkEtag = featherbone.checkEtag;
-  exports.deleteFeather = featherbone.deleteFeather;
+  exports.deleteModel = featherbone.deleteModel;
   exports.error = featherbone.error;
   exports.getCurrentUser = featherbone.getCurrentUser;
-  exports.getFeather = featherbone.getFeather;
+  exports.getModel = featherbone.getModel;
   exports.getSettings = featherbone.getSettings;
   exports.isAuthorized = featherbone.isAuthorized;
   exports.isSuperUser = featherbone.isSuperUser;
@@ -1948,7 +1948,7 @@ if (exports !== "undefined") {
   exports.now = featherbone.now;
   exports.request = featherbone.request;
   exports.saveAuthorization = featherbone.saveAuthorization;
-  exports.saveFeather = featherbone.saveFeather;
+  exports.saveModel = featherbone.saveModel;
   exports.saveSettings = featherbone.saveSettings;
   exports.setSuperUser = featherbone.setSuperUser;
 }

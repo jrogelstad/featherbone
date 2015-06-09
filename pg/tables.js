@@ -65,14 +65,14 @@ if (!plv8.execute(sqlChk,['$auth']).length) {
     plv8.execute(sql);
 };
 
-/* Create the feather table */
-if (!plv8.execute(sqlChk,['$feather']).length) {
-    sql = "CREATE TABLE \"$feather\" (" +
+/* Create the model table */
+if (!plv8.execute(sqlChk,['$model']).length) {
+    sql = "CREATE TABLE \"$model\" (" +
     "is_child boolean," +
     "parent_pk bigint," +
-    "CONSTRAINT feather_pkey PRIMARY KEY (_pk), " +
-    "CONSTRAINT feather_id_key UNIQUE (id)) INHERITS (object);" +
-    "COMMENT ON TABLE \"$feather\" is 'Internal table for storing class names';";
+    "CONSTRAINT model_pkey PRIMARY KEY (_pk), " +
+    "CONSTRAINT model_id_key UNIQUE (id)) INHERITS (object);" +
+    "COMMENT ON TABLE \"$model\" is 'Internal table for storing class names';";
     plv8.execute(sql);
 }
 

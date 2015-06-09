@@ -34,8 +34,8 @@
             "isGlobal": true
         },
         {
-            "type": "feather",
-            "path": "pg/feathers.json"
+            "type": "model",
+            "path": "pg/models.json"
         },
         {
             "type": "execute",
