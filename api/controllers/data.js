@@ -89,9 +89,9 @@ function data(req, res) {
   }
 
   qcallback = function qcallback(err, resp) {
-    if (err) { 
-      console.error(err);
-      return;
+    if (err) {
+      resp.statusCode = 500;
+      return next(err);
     }
 
     // this sends back a JSON response which is a single string
