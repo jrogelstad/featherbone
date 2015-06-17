@@ -101,36 +101,61 @@ definitions:
     properties:
       message:
         type: string
-  Address:
-    properties:
-      id:
+  Object:
+    description: Abstract object class from which all models will inherit
+    discriminator: objectType
+    properties: 
+      created: 
+        default: now()
+        description: Create time of the record
         type: string
-      created:
+      createdBy: 
+        default: getCurrentUser()
+        description: User who created the record
         type: string
-      createdBy:
+      id: 
+        default: createId()
+        description: Surrogate key
         type: string
-      updated:
-        type: string
-      updatedBy:
-        type: string
-      isDeleted:
+      isDeleted: 
+        default: false
+        description: Indicates the record is no longer active
         type: boolean
-      type:
+      updated: 
+        default: now()
+        description: Last time the record was updated
         type: string
-      line1:
+      updatedBy: 
+        default: getCurrentUser()
+        description: User who created the record
         type: string
-      line2:
+      objectType:
+        default: Object
+        description: Discriminator
         type: string
-      line3:
-        type: string
-      city:
-        type: string
-      state:
-        type: string
-      postalCode:
-        type: string
-      country:
-        type: string
+    required:
+    - id
+    - objectType
+  Address:
+    allOf:
+    - $ref: "#/definitions/Object"
+    - properties:
+        type:
+          type: string
+        line1:
+          type: string
+        line2:
+          type: string
+        line3:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        postalCode:
+          type: string
+        country:
+          type: string
   Contact:
     properties:
       id:

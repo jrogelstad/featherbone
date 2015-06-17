@@ -131,7 +131,7 @@ if (!plv8.execute(sqlChk,['$settings']).length) {
     'catalog',
     'catalog',
     {"Object": {
-        "description": "Abstract object class from which all other classes will inherit",
+        "description": "Abstract object class from which all models will inherit",
         "properties": {
             "id": {
             "description": "Surrogate key",
