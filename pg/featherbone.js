@@ -586,6 +586,7 @@ var featherbone = {};
        {
          "name": "Contact",
          "description": "Contact data about a person",
+         "discriminator": "contactType",
          "properties": {
            "fullName": {
              "description": "Full name",
@@ -602,6 +603,10 @@ var featherbone = {};
           "dependents": {
             "description": "Number of dependents",
             "type": "number"
+          },
+          "contactType": {
+            "description": "Discriminator",
+            "type": "string"
           }
         }
       }
@@ -609,6 +614,8 @@ var featherbone = {};
      * @param {Object | Array} Model specification payload(s).
      * @param {String} [specification.name] Name
      * @param {String} [specification.description] Description
+     * @param {String} [specification.discriminator] Indicates property used
+    *   to differentiate types on inherited objects
      * @param {Object | Boolean} [specification.authorization] Authorization
      *  spec. Defaults to grant all to everyone if undefined. Pass false to
      *  grant no auth.
@@ -629,17 +636,15 @@ var featherbone = {};
       specs = Array.isArray(specs) ? specs : [specs];
 
       var table, inherits, model, catalog, sql, sqlUpd, token, tokens, values,
-        adds, args, fns, cols, defaultValue, props, key, recs, type, err, name,
-        parent, obj, i, n, p, dropSql, changed, isChild, pk, authorization,
-        o = 0,
+        adds, args, fns, cols, defaultValue, props, keys, recs, type, err, name,
+        parent, i, n, p, dropSql, changed, isChild, pk, authorization,
         getParentKey = function (child) {
-          var cParent, cKey, cProps;
+          var cParent, cKeys, cProps;
 
           cProps = featherbone.getModel(child).properties;
-
-          for (cKey in cProps) {
-            if (cProps.hasOwnProperty(cKey) &&
-                typeof cProps[cKey].type === "object" &&
+          cKeys = Object.keys(cProps);
+          cKeys.forEach(function (cKey) {
+            if (typeof cProps[cKey].type === "object" &&
                 cProps[cKey].type.childOf) {
               cParent = cProps[cKey].type.relation;
 
@@ -649,12 +654,11 @@ var featherbone = {};
 
               return _getKey(cParent.toSnakeCase());
             }
-          }
+          });
 
         };
 
-      while (o < specs.length) {
-        obj = specs[o];
+      specs.forEach(function (obj) {
         table = obj.name ? obj.name.toSnakeCase() : false;
         inherits = (obj.inherits || "Object").toSnakeCase();
         model = featherbone.getModel(obj.name, false);
@@ -689,42 +693,41 @@ var featherbone = {};
         } else {
           /* Drop non-inherited columns not included in properties */
           props = model.properties;
-          for (key in props) {
-            if (props.hasOwnProperty(key)) {
-              if (obj.properties && !obj.properties[key] &&
-                  !(typeof model.properties[key].type === "object" &&
-                  typeof model.properties[key].type.parentOf)) {
-                /* Drop views */
-                if (!changed) {
-                  sql += dropSql;
-                  changed = true;
-                }
+          keys = Object.keys(props);
+          keys.forEach(function (key) {
+            if (obj.properties && !obj.properties[key] &&
+                !(typeof model.properties[key].type === "object" &&
+                typeof model.properties[key].type.parentOf)) {
+              /* Drop views */
+              if (!changed) {
+                sql += dropSql;
+                changed = true;
+              }
 
-                /* Handle relations */
-                type = props[key].type;
+              /* Handle relations */
+              type = props[key].type;
 
-                if (typeof type === "object" && type.properties) {
-                  /* Drop associated view if applicable */
-                  sql += "DROP VIEW %I;";
-                  tokens = tokens.concat([
-                    "_" + table + "_" + key.toSnakeCase(),
-                    table,
-                    _relationColumn(key, type.relation)
-                  ]);
-                } else {
-                  tokens = tokens.concat([table, key.toSnakeCase()]);
-                }
+              if (typeof type === "object" && type.properties) {
+                /* Drop associated view if applicable */
+                sql += "DROP VIEW %I;";
+                tokens = tokens.concat([
+                  "_" + table + "_" + key.toSnakeCase(),
+                  table,
+                  _relationColumn(key, type.relation)
+                ]);
+              } else {
+                tokens = tokens.concat([table, key.toSnakeCase()]);
+              }
 
-                sql += "ALTER TABLE %I DROP COLUMN %I;";
+              sql += "ALTER TABLE %I DROP COLUMN %I;";
 
-                /* Unrelate parent if applicable */
-                if (type.childOf) {
-                  parent = catalog[type.relation];
-                  delete parent.properties[type.childOf];
-                }
+              /* Unrelate parent if applicable */
+              if (type.childOf) {
+                parent = catalog[type.relation];
+                delete parent.properties[type.childOf];
               }
             }
-          }
+          });
         }
 
         /* Add table description */
@@ -736,98 +739,97 @@ var featherbone = {};
         /* Add columns */
         obj.properties = obj.properties || {};
         props = obj.properties;
-        for (key in props) {
-          if (props.hasOwnProperty(key)) {
-            type = typeof props[key].type === "string" ?
-                _types[props[key].type] : props[key].type;
+        keys = Object.keys(props);
+        keys.forEach(function (key) {
+          type = typeof props[key].type === "string" ?
+              _types[props[key].type] : props[key].type;
 
-            if (type) {
-              if (!model || !model.properties[key]) {
-                /* Drop views */
-                if (model && !changed) {
-                  sql += dropSql;
-                }
+          if (type) {
+            if (!model || !model.properties[key]) {
+              /* Drop views */
+              if (model && !changed) {
+                sql += dropSql;
+              }
 
-                changed = true;
+              changed = true;
 
-                sql += "ALTER TABLE %I ADD COLUMN %I ";
+              sql += "ALTER TABLE %I ADD COLUMN %I ";
 
-                if (props[key].isUnique) { sql += "UNIQUE "; }
+              if (props[key].isUnique) { sql += "UNIQUE "; }
 
-                /* Handle composite types */
-                if (type.relation) {
-                  sql += "integer;";
-                  token = _relationColumn(key, type.relation);
+              /* Handle composite types */
+              if (type.relation) {
+                sql += "integer;";
+                token = _relationColumn(key, type.relation);
 
-                  /* Update parent class for children */
-                  if (type.childOf) {
-                    parent = catalog[type.relation];
-                    if (!parent.properties[type.childOf]) {
-                      parent.properties[type.childOf] = {
-                        description: 'Parent of "' + key + '" on "' +
-                          obj.name + '"',
-                        type: {
-                          relation: obj.name,
-                          parentOf: key
-                        }
-                      };
+                /* Update parent class for children */
+                if (type.childOf) {
+                  parent = catalog[type.relation];
+                  if (!parent.properties[type.childOf]) {
+                    parent.properties[type.childOf] = {
+                      description: 'Parent of "' + key + '" on "' +
+                        obj.name + '"',
+                      type: {
+                        relation: obj.name,
+                        parentOf: key
+                      }
+                    };
 
-                    } else {
-                      err = 'Property "' + type.childOf +
-                        '" already exists on "' + type.relation + '"';
-                      featherbone.error(err);
-                    }
-
-                  } else if (type.parentOf) {
-                    err = 'Can not set parent directly for "' + key + '"';
+                  } else {
+                    err = 'Property "' + type.childOf +
+                      '" already exists on "' + type.relation + '"';
                     featherbone.error(err);
-
-                  } else if (type.properties) {
-                    cols = ["%I"];
-                    name = "_" + table + "$" + key.toSnakeCase();
-                    args = [name, "_pk"];
-
-                    /* Always include "id" whether specified or not */
-                    if (type.properties.indexOf("id") === -1) {
-                      type.properties.unshift("id");
-                    }
-
-                    while (i < type.properties.length) {
-                      cols.push("%I");
-                      args.push(type.properties[i].toSnakeCase());
-                      i++;
-                    }
-
-                    args.push(type.relation.toSnakeCase());
-                    sql += ("CREATE VIEW %I AS SELECT " + cols.join(",") +
-                      " FROM %I WHERE NOT is_deleted;").format(args);
                   }
 
-                /* Handle standard types */
-                } else {
-                  sql += type.type + ";";
-                  token = key.toSnakeCase();
-                }
-                adds.push(key);
+                } else if (type.parentOf) {
+                  err = 'Can not set parent directly for "' + key + '"';
+                  featherbone.error(err);
 
-                tokens = tokens.concat([table, token]);
+                } else if (type.properties) {
+                  cols = ["%I"];
+                  name = "_" + table + "$" + key.toSnakeCase();
+                  args = [name, "_pk"];
 
-                if (props[key].description) {
-                  sql += "COMMENT ON COLUMN %I.%I IS %L;";
-                  tokens = tokens.concat([
-                    table,
-                    token,
-                    props[key].description || ""
-                  ]);
+                  /* Always include "id" whether specified or not */
+                  if (type.properties.indexOf("id") === -1) {
+                    type.properties.unshift("id");
+                  }
+
+                  while (i < type.properties.length) {
+                    cols.push("%I");
+                    args.push(type.properties[i].toSnakeCase());
+                    i++;
+                  }
+
+                  args.push(type.relation.toSnakeCase());
+                  sql += ("CREATE VIEW %I AS SELECT " + cols.join(",") +
+                    " FROM %I WHERE NOT is_deleted;").format(args);
                 }
+
+              /* Handle standard types */
+              } else {
+                sql += type.type + ";";
+                token = key.toSnakeCase();
               }
-            } else {
-              err = 'Invalid type "' + props[key].type + '" for property "' +
-                  key + '" on class "' + obj.name + '"';
-              featherbone.error(err);
+              adds.push(key);
+
+              tokens = tokens.concat([table, token]);
+
+              if (props[key].description) {
+                sql += "COMMENT ON COLUMN %I.%I IS %L;";
+                tokens = tokens.concat([
+                  table,
+                  token,
+                  props[key].description || ""
+                ]);
+              }
             }
+          } else {
+            err = 'Invalid type "' + props[key].type + '" for property "' +
+                key + '" on class "' + obj.name + '"';
+            featherbone.error(err);
           }
-        }
+        });
 
         /* Update schema */
         sql = sql.format(tokens);
@@ -952,9 +954,7 @@ var featherbone = {};
         if (authorization) {
           featherbone.saveAuthorization(authorization);
         }
-
-        o++;
-      }
+      });
 
       return true;
     },
