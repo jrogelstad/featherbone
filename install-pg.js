@@ -48,7 +48,9 @@ execute = function (script) {
   client.query(sql, processFile);
 };
 
-createFunction = function (name, args, returns, script) {
+createFunction = function (name, args, returns, volatility, script) {
+  volatility = volatility || "VOLATILE";
+
   var keys, arg, txt,
     sql = "CREATE OR REPLACE function " + name + "(",
     ary = [],
@@ -73,7 +75,7 @@ createFunction = function (name, args, returns, script) {
   }
 
   sql += ") RETURNS " + (returns || "void") + " AS $$" + script +
-    "$$ LANGUAGE plv8;";
+    "$$ LANGUAGE plv8 " + volatility + ";";
 
   client.query(sql, processFile);
 };
@@ -105,7 +107,7 @@ processFile = function (err) {
     execute(content);
     break;
   case "function":
-    createFunction(name, file.args, file.returns, content);
+    createFunction(name, file.args, file.returns, file.volatility, content);
     break;
   case "module":
     saveModule(file.name || name, content, file.isGlobal, manifest.version);

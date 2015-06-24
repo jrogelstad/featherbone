@@ -168,20 +168,18 @@ var featherbone = {};
           var model = catalog[parent],
             modelProps = model.properties,
             childProps = child.properties,
-            key;
+            keys = Object.keys(modelProps);
 
           if (parent !== "Object") {
             appendParent(child, model.inherits || "Object");
           }
 
-          for (key in modelProps) {
-            if (modelProps.hasOwnProperty(key)) {
-              if (childProps[key] === undefined) {
-                childProps[key] = modelProps[key];
-                childProps[key].inheritedFrom = parent;
-              }
+          keys.forEach(function (key) {
+            if (childProps[key] === undefined) {
+              childProps[key] = modelProps[key];
+              childProps[key].inheritedFrom = parent;
             }
-          }
+          });
 
           return child;
         },
@@ -586,7 +584,7 @@ var featherbone = {};
        {
          "name": "Contact",
          "description": "Contact data about a person",
-         "discriminator": "contactType",
+         "inherits": "Object",
          "properties": {
            "fullName": {
              "description": "Full name",
@@ -603,10 +601,6 @@ var featherbone = {};
           "dependents": {
             "description": "Number of dependents",
             "type": "number"
-          },
-          "contactType": {
-            "description": "Discriminator",
-            "type": "string"
           }
         }
       }
@@ -614,8 +608,6 @@ var featherbone = {};
      * @param {Object | Array} Model specification payload(s).
      * @param {String} [specification.name] Name
      * @param {String} [specification.description] Description
-     * @param {String} [specification.discriminator] Indicates property used
-    *   to differentiate types on inherited objects
      * @param {Object | Boolean} [specification.authorization] Authorization
      *  spec. Defaults to grant all to everyone if undefined. Pass false to
      *  grant no auth.
@@ -744,7 +736,7 @@ var featherbone = {};
           type = typeof props[key].type === "string" ?
               _types[props[key].type] : props[key].type;
 
-          if (type) {
+          if (type && key !== obj.discriminator) {
             if (!model || !model.properties[key]) {
               /* Drop views */
               if (model && !changed) {
@@ -1122,60 +1114,64 @@ var featherbone = {};
 
   /** private */
   _createView = function (name, dropFirst) {
-    var parent, alias, type, view, sub, col, key,
+    var parent, alias, type, view, sub, col,
       model = featherbone.getModel(name),
       table = name.toSnakeCase(),
       args = ["_" + table, "_pk"],
       props = model.properties,
+      keys = Object.keys(props),
       cols = ["%I"],
       sql = "";
 
-    for (key in props) {
-      if (props.hasOwnProperty(key)) {
-        alias = key.toSnakeCase();
+    keys.forEach(function (key) {
+      alias = key.toSnakeCase();
 
-        /* Handle relations */
-        if (typeof props[key].type === "object") {
-          type = props[key].type;
-          parent =  props[key].inheritedFrom ?
-              props[key].inheritedFrom.toSnakeCase() : table;
+      /* Handle discriminator */
+      if (key === "objectType") {
+        cols.push("%s");
+        args.push("to_proper_case(tableoid::regclass::text) AS " + alias);
 
-          /* Handle to many */
-          if (type.parentOf) {
-            sub = "ARRAY(SELECT %I FROM %I WHERE %I.%I = %I._pk " +
-              "AND NOT %I.is_deleted ORDER BY %I._pk) AS %I";
-            view = "_" + props[key].type.relation.toSnakeCase();
-            col = "_" + type.parentOf.toSnakeCase() + "_" + parent + "_pk";
-            args = args.concat([view, view, view, col, table, view, view,
-              alias]);
+      /* Handle relations */
+      } else if (typeof props[key].type === "object") {
+        type = props[key].type;
+        parent =  props[key].inheritedFrom ?
+            props[key].inheritedFrom.toSnakeCase() : table;
 
-          /* Handle to one */
-          } else if (!type.childOf) {
-            col = "_" + key.toSnakeCase() + "_" +
-              props[key].type.relation.toSnakeCase() + "_pk";
-            sub = "(SELECT %I FROM %I WHERE %I._pk = %I) AS %I";
+        /* Handle to many */
+        if (type.parentOf) {
+          sub = "ARRAY(SELECT %I FROM %I WHERE %I.%I = %I._pk " +
+            "AND NOT %I.is_deleted ORDER BY %I._pk) AS %I";
+          view = "_" + props[key].type.relation.toSnakeCase();
+          col = "_" + type.parentOf.toSnakeCase() + "_" + parent + "_pk";
+          args = args.concat([view, view, view, col, table, view, view,
+            alias]);
 
-            if (props[key].type.properties) {
-              view = "_" + parent + "$" + key.toSnakeCase();
-            } else {
-              view = "_" + props[key].type.relation.toSnakeCase();
-            }
+        /* Handle to one */
+        } else if (!type.childOf) {
+          col = "_" + key.toSnakeCase() + "_" +
+            props[key].type.relation.toSnakeCase() + "_pk";
+          sub = "(SELECT %I FROM %I WHERE %I._pk = %I) AS %I";
 
-            args = args.concat([view, view, view, col, alias]);
+          if (props[key].type.properties) {
+            view = "_" + parent + "$" + key.toSnakeCase();
           } else {
-            sub = "_" + key.toSnakeCase() + "_" + type.relation.toSnakeCase() +
-               "_pk";
+            view = "_" + props[key].type.relation.toSnakeCase();
           }
 
-          cols.push(sub);
-
-        /* Handle regular types */
+          args = args.concat([view, view, view, col, alias]);
         } else {
-          cols.push("%I");
-          args.push(alias);
+          sub = "_" + key.toSnakeCase() + "_" + type.relation.toSnakeCase() +
+             "_pk";
         }
+
+        cols.push(sub);
+
+      /* Handle regular types */
+      } else {
+        cols.push("%I");
+        args.push(alias);
       }
-    }
+    });
 
     args.push(table);
 
@@ -1449,6 +1445,10 @@ var featherbone = {};
             featherbone.error(err);
           }
         }
+
+      /* Handle discriminator */
+      } else if (key === "objectType") {
+        child = true;
 
       /* Handle regular types */
       } else {
@@ -1780,7 +1780,7 @@ var featherbone = {};
 
   /** Private */
   _update = function (obj, isChild, isSuperUser) {
-    var result, updRec, props, value, key, sql, i, cModel, cid, child, err,
+    var result, updRec, props, value, keys, sql, i, cModel, cid, child, err,
       oldRec, newRec, cOldRec, cNewRec, cpatches,
       patches = obj.data || [],
       model = featherbone.getModel(obj.name),
@@ -1832,74 +1832,73 @@ var featherbone = {};
         updRec.etag = featherbone.createId();
       }
 
-      for (key in props) {
-        if (props.hasOwnProperty(key)) {
-          /* Handle composite types */
-          if (typeof props[key].type === "object") {
-            /* Handle child records */
-            if (Array.isArray(updRec[key])) {
-              cModel = featherbone.getModel(props[key].type.relation);
-              i = 0;
+      keys = Object.keys(props);
+      keys.forEach(function (key) {
+        /* Handle composite types */
+        if (typeof props[key].type === "object") {
+          /* Handle child records */
+          if (Array.isArray(updRec[key])) {
+            cModel = featherbone.getModel(props[key].type.relation);
+            i = 0;
 
-              /* Process deletes */
-              while (i < oldRec[key].length) {
-                cid = oldRec[key][i].id;
-                if (!find(updRec[key], cid)) {
-                  child = {name: cModel.name, id: cid};
-                  _delete(child, true);
-                }
-
-                i++;
+            /* Process deletes */
+            while (i < oldRec[key].length) {
+              cid = oldRec[key][i].id;
+              if (!find(updRec[key], cid)) {
+                child = {name: cModel.name, id: cid};
+                _delete(child, true);
               }
 
-              /* Process inserts and updates */
-              i = 0;
-              while (i < updRec[key].length) {
-                cid = updRec[key][i].id || null;
-                cOldRec = find(oldRec[key], cid);
-                cNewRec = updRec[key][i];
-                if (cOldRec) {
-                  cpatches = _jsonpatch.compare(cOldRec, cNewRec);
-
-                  if (cpatches.length) {
-                    child = {name: cModel.name, id: cid, data: cpatches};
-                    _update(child, true);
-                  }
-                } else {
-                  cNewRec[props[key].type.parentOf] = {id: updRec.id};
-                  child = {name: cModel.name, data: cNewRec};
-                  _insert(child, true);
-                }
-
-                i++;
-              }
-
-            /* Handle to one relations */
-            } else if (!props[key].type.childOf &&
-                updRec[key].id !== oldRec[key].id) {
-              value = updRec[key].id ? _getKey(updRec[key].id) : -1;
-
-              if (value === undefined) {
-                err = "Relation not found in \"" + props[key].type.relation +
-                  "\" for \"" + key + "\" with id \"" + updRec[key].id + "\"";
-                featherbone.error(err);
-              }
-
-              tokens.push(_relationColumn(key, props[key].type.relation));
-              ary.push("%I = $" + p);
-              params.push(value);
-              p++;
+              i++;
             }
 
-          /* Handle regular data types */
-          } else if (updRec[key] !== oldRec[key]) {
-            tokens.push(key.toSnakeCase());
+            /* Process inserts and updates */
+            i = 0;
+            while (i < updRec[key].length) {
+              cid = updRec[key][i].id || null;
+              cOldRec = find(oldRec[key], cid);
+              cNewRec = updRec[key][i];
+              if (cOldRec) {
+                cpatches = _jsonpatch.compare(cOldRec, cNewRec);
+
+                if (cpatches.length) {
+                  child = {name: cModel.name, id: cid, data: cpatches};
+                  _update(child, true);
+                }
+              } else {
+                cNewRec[props[key].type.parentOf] = {id: updRec.id};
+                child = {name: cModel.name, data: cNewRec};
+                _insert(child, true);
+              }
+
+              i++;
+            }
+
+          /* Handle to one relations */
+          } else if (!props[key].type.childOf &&
+              updRec[key].id !== oldRec[key].id) {
+            value = updRec[key].id ? _getKey(updRec[key].id) : -1;
+
+            if (value === undefined) {
+              err = "Relation not found in \"" + props[key].type.relation +
+                "\" for \"" + key + "\" with id \"" + updRec[key].id + "\"";
+              featherbone.error(err);
+            }
+
+            tokens.push(_relationColumn(key, props[key].type.relation));
             ary.push("%I = $" + p);
-            params.push(updRec[key]);
+            params.push(value);
             p++;
           }
+
+        /* Handle regular data types */
+        } else if (updRec[key] !== oldRec[key] && key !== "objectType") {
+          tokens.push(key.toSnakeCase());
+          ary.push("%I = $" + p);
+          params.push(updRec[key]);
+          p++;
         }
-      }
+      });
 
       sql = ("UPDATE %I SET " + ary.join(",") + " WHERE _pk = $" + p)
         .format(tokens);

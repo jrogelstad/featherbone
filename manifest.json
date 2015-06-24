@@ -24,6 +24,17 @@
             "returns": "json"
         },
         {
+            "type": "function",
+            "path": "pg/to_proper_case.js",
+            "args": {
+                "str": {
+                    "type": "text"
+                }
+            },
+            "volatility": "IMMUTABLE",
+            "returns": "text"
+        },
+        {
             "name": "fast-json-patch",
             "type": "module",
             "path": "node_modules/fast-json-patch/src/json-patch-duplex.js"

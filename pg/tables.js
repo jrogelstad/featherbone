@@ -132,30 +132,34 @@ if (!plv8.execute(sqlChk,['$settings']).length) {
     'catalog',
     {"Object": {
         "description": "Abstract object class from which all models will inherit",
+        "discriminator": "objectType",
         "properties": {
             "id": {
-            "description": "Surrogate key",
-            "type": "string",
-            "defaultValue": "createId()"},
+              "description": "Surrogate key",
+              "type": "string",
+              "defaultValue": "createId()"},
             "created": {
-            "description": "Create time of the record",
-            "type": "date",
-            "defaultValue": "now()"},
+              "description": "Create time of the record",
+              "type": "date",
+              "defaultValue": "now()"},
             "createdBy": {
-            "description": "User who created the record",
-            "type": "string",
-            "defaultValue": "getCurrentUser()"},
+              "description": "User who created the record",
+              "type": "string",
+              "defaultValue": "getCurrentUser()"},
             "updated": {
-            "description": "Last time the record was updated",
-            "type": "date",
+              "description": "Last time the record was updated",
+              "type": "date",
             "defaultValue": "now()"},
-            "updatedBy": {
-            "description": "User who created the record",
-            "type": "string",
-            "defaultValue": "getCurrentUser()"},
+              "updatedBy": {
+              "description": "User who created the record",
+              "type": "string",
+              "defaultValue": "getCurrentUser()"},
             "isDeleted": {
-            "description": "Indicates the record is no longer active",
-            "type": "boolean"},
+              "description": "Indicates the record is no longer active",
+              "type": "boolean"},
+            "objectType": {
+              "description": "Discriminates which inherited object type the object represents",
+              "type": "string"}
             }
         }
     }
