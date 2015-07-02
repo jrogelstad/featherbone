@@ -21,7 +21,7 @@ plv8.execute('SELECT init()');
 /* Create default global folder */
 global = featherbone.request({
   name: "Folder",
-  action: "GET",
+  method: "GET",
   user: user,
   id: "global"
 }, true);
@@ -29,7 +29,7 @@ global = featherbone.request({
 if (!Object.keys(global).length) {
   featherbone.request({
     name: "Folder",
-    action: "POST",
+    method: "POST",
     user: user,
     folder: false,
     data: {
@@ -43,7 +43,7 @@ if (!Object.keys(global).length) {
 /* Create Everyone role */
 role = featherbone.request({
   name: "Role",
-  action: "GET",
+  method: "GET",
   user: user,
   id: "everyone"
 }, true);
@@ -51,7 +51,7 @@ role = featherbone.request({
 if (!Object.keys(role).length) {
   featherbone.request({
     name: "Role",
-    action: "POST",
+    method: "POST",
     user: user,
     folder: "global",
     data: {
@@ -66,7 +66,7 @@ if (!Object.keys(role).length) {
 
   /* Grant everyone access to global folder */
   req = {
-    action: "POST",
+    method: "POST",
     name: "saveAuthorization",
     user: user,
     data: {

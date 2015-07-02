@@ -379,7 +379,7 @@ var featherbone = {};
       Example payload:
           {
              "name": "Contact",
-             "action": "POST",
+             "method": "POST",
              "data": {
                "id": "1f8c8akkptfe",
                "created": "2015-04-26T12:57:57.896Z",
@@ -407,7 +407,7 @@ var featherbone = {};
 
       _setCurrentUser(obj.user);
 
-      switch (obj.action) {
+      switch (obj.method) {
       case "GET":
         result = _select(obj, false, isSuperUser);
         break;
@@ -428,7 +428,7 @@ var featherbone = {};
         result = _delete(obj, false, isSuperUser);
         break;
       default:
-        featherbone.error("action \"" + obj.action + "\" unknown");
+        featherbone.error("method \"" + obj.method + "\" unknown");
       }
 
       _setCurrentUser(undefined);

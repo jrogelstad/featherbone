@@ -157,7 +157,7 @@ saveModels = function (models) {
     }
 
     var payload = JSON.stringify({
-        action: "POST",
+        method: "POST",
         name: "saveModel",
         user: result.rows[0].current_user,
         data: [models]
