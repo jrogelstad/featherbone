@@ -22,7 +22,7 @@
      @returns {String}
   */
   String.prototype.toCamelCase = function (upper) {
-    var str = this.replace(/-+(.)?/g, function (match, chr) {
+    var str = this.replace(/_+(.)?/g, function (match, chr) {
       return chr ? chr.toUpperCase() : '';
     });
 
