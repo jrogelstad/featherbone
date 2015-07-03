@@ -76,21 +76,18 @@ function request(req, res) {
   };
 
   query = function (err) {
-    var payload, sql, filter = {},
+    var payload, sql,
       params = req.swagger.params,
       method = req.method,
       name = resolveName(req.swagger.apiPath),
-      limit = params.limit !== undefined ? params.limit.value || 2000 : 2000,
       id = params.id !== undefined ? params.id.value : undefined,
+      limit = params.limit !== undefined ? params.limit.value : 2000,
+      offset = params.offset !== undefined ? params.offset.value || 0 : 0,
       result;
 
     if (err) {
       console.error(err);
       return;
-    }
-
-    if (limit) {
-      filter.limit = limit;
     }
 
     payload = {
@@ -102,7 +99,10 @@ function request(req, res) {
     if (id) {
       payload.id = id;
     } else {
-      payload.filter = filter;
+      payload.filter = {
+        limit: limit,
+        offset: offset
+      };
     }
 
     sql = buildSql(payload);

@@ -81,6 +81,12 @@ paths:
       description: Contact data
       operationId: request
       parameters:
+        - name: offset
+          in: query
+          description: Offset from first item
+          required: false
+          type: integer
+          format: int32
         - name: limit
           in: query
           description: How many items to return
@@ -123,6 +129,12 @@ paths:
       # used as the method name of the controller
       operationId: request
       parameters:
+        - name: offset
+          in: query
+          description: Offset from first item
+          required: false
+          type: integer
+          format: int32
         - name: limit
           in: query
           description: How many items to return
