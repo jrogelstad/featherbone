@@ -33,7 +33,7 @@ function hello(req, res) {
 }
 
 function request(req, res) {
-  var begin, buildSql, getCatalog, query, resolveModel,
+  var begin, buildSql, getCatalog, query, resolveName,
     client = new pg.Client(conn);
 
   //console.log(Object.keys(req));
@@ -77,9 +77,11 @@ function request(req, res) {
 
   query = function (err) {
     var payload, sql, filter = {},
-      limit = req.swagger.params.limit.value || 0,
+      params = req.swagger.params,
       method = req.method,
-      name = resolveModel(req.swagger.apiPath);
+      name = resolveName(req.swagger.apiPath),
+      limit = params.limit !== undefined ? params.limit.value || 0 : 0,
+      id = params.id !== undefined ? params.id.value : undefined;
 
     if (err) {
       console.error(err);
@@ -93,9 +95,14 @@ function request(req, res) {
     payload = {
       method: method,
       name: name,
-      user: "postgres",
-      filter: filter
+      user: "postgres"
     };
+
+    if (id) {
+      payload.id = id;
+    } else {
+      payload.filter = filter;
+    }
 
     sql = buildSql(payload);
 
@@ -112,10 +119,16 @@ function request(req, res) {
     });
   };
 
-  resolveModel = function (apiPath) {
-    var name = apiPath.slice(1).toCamelCase(true),
+  resolveName = function (apiPath) {
+    var name,
       keys,
       found;
+
+    if (apiPath.lastIndexOf("/") > 0) {
+      name = apiPath.match("[/](.*)[/]")[1].toCamelCase(true);
+    } else {
+      name = apiPath.slice(1).toCamelCase(true);
+    }
 
     if (catalog) {
       // Look for model with same name

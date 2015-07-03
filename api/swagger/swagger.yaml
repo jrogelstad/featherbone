@@ -56,11 +56,29 @@ paths:
           schema:
             # a pointer to a definition
             $ref: "#/definitions/FaviconResponse"
+  /contact/{id}:
+    x-swagger-router-controller: data
+    get:
+      summary: Info for a specific contact
+      operationId: request
+      parameters:
+        - name: id
+          in: path
+          description: The id of the contact to retrieve
+          type: string
+      responses:
+        200:
+          description: Expected response to a valid request
+          schema:
+            $ref: "#/definitions/Contact"
+        default:
+          description: unexpected error
+          schema:
+            $ref: "#/definitions/ErrorResponse"
   /contacts:
     x-swagger-router-controller: data
     get:
       description: Contact data
-      # used as the method name of the controller
       operationId: request
       parameters:
         - name: limit
@@ -73,11 +91,29 @@ paths:
         "200":
           description: Array of contacts
           schema:
-            # a pointer to a definition
             $ref: "#/definitions/Contacts"
         # responses may fall through to errors
         default:
           description: Error
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+  /lead/{id}:
+    x-swagger-router-controller: data
+    get:
+      summary: Info for a specific lead
+      operationId: request
+      parameters:
+        - name: id
+          in: path
+          description: The id of the lead to retrieve
+          type: string
+      responses:
+        200:
+          description: Expected response to a valid request
+          schema:
+            $ref: "#/definitions/Lead"
+        default:
+          description: unexpected error
           schema:
             $ref: "#/definitions/ErrorResponse"
   /leads:
@@ -180,117 +216,68 @@ definitions:
         country:
           type: string
   Contact:
-    properties:
-      id:
-        type: string
-      created:
-        type: string
-      createdBy:
-        type: string
-      updated:
-        type: string
-      updatedBy:
-        type: string
-      isDeleted:
-        type: boolean
-      owner:
-        type: string
-      etag:
-        type: string
-      title:
-        type: string
-      firstName:
-        type: string
-      lastName:
-        type: string
-      notes:
-        type: array
-        items:
-          $ref: "#/definitions/Note"
-      addresses:
-        type: array
-        items:
-          $ref: "#/definitions/ContactAddress"
+    allOf:
+    - $ref: "#/definitions/Document"
+    - properties:
+        title:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        addresses:
+          type: array
+          items:
+            $ref: "#/definitions/ContactAddress"
   ContactAddress:
-    properties:
-      id:
-        type: string
-      created:
-        type: string
-      createdBy:
-        type: string
-      updated:
-        type: string
-      updatedBy:
-        type: string
-      isDeleted:
-        type: boolean
-      address:
-        type: object
-        items:
-          $ref: "#/definitions/Address"
+    allOf:
+    - $ref: "#/definitions/Object"
+    - properties:
+        address:
+          type: object
+          items:
+            $ref: "#/definitions/Address"
   Contacts:
     type: array
     items:
       $ref: "#/definitions/Contact"
+  Document:
+    description: Base document class
+    allOf:
+    - $ref: "#/definitions/Object"
+    - properties:
+        owner: 
+          description: Owner of the document
+          type: string
+          default: getCurrentUser()
+        etag: 
+          description: Optimistic locking key
+          type: string
+          default: createId()
+        notes:
+          type: array
+          items:
+            $ref: "#/definitions/Note"
   Lead:
-    properties:
-      id:
-        type: string
-      created:
-        type: string
-      createdBy:
-        type: string
-      updated:
-        type: string
-      updatedBy:
-        type: string
-      isDeleted:
-        type: boolean
-      owner:
-        type: string
-      etag:
-        type: string
-      title:
-        type: string
-      firstName:
-        type: string
-      lastName:
-        type: string
-      notes:
-        type: array
-        items:
-          $ref: "#/definitions/Note"
-      addresses:
-        type: array
-        items:
-          $ref: "#/definitions/ContactAddress"
-      company:
-        description: Company,
-        type: string
-      remarks:
-        description: Misc. text,
-        type: string
-      probability:
-        description: Probability of closing,
-        type: number
+    allOf:
+    - $ref: "#/definitions/Contact"
+    - properties:
+        company:
+          description: Company,
+          type: string
+        remarks:
+          description: Misc. text,
+          type: string
+        probability:
+          description: Probability of closing,
+          type: number
   Leads:
     type: array
     items:
       $ref: "#/definitions/Lead"
   Note:
-    properties:
-      id:
-        type: string
-      created:
-        type: string
-      createdBy:
-        type: string
-      updated:
-        type: string
-      updatedBy:
-        type: string
-      isDeleted:
-        type: boolean
-      text:
-        type: string
+    allOf:
+    - $ref: "#/definitions/Object"
+    - properties:
+        text:
+          type: string
