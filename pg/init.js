@@ -87,12 +87,15 @@
 
   /**
      Change string with underscores '_' to camel case.
+     @param {Boolean} Convert first character to upper case. Default false.
      @returns {String}
   */
-  String.prototype.toCamelCase = function () {
-    return this.replace(/_+(.)?/g, function (match, chr) {
+  String.prototype.toCamelCase = function (upper) {
+    var str = this.replace(/-+(.)?/g, function (match, chr) {
       return chr ? chr.toUpperCase() : '';
     });
+
+    return upper ? str.slice(0, 1).toUpperCase() + str.slice(1) : str;
   };
 
   /**
@@ -101,14 +104,6 @@
   */
   String.prototype.toSnakeCase = function () {
     return this.replace((/([a-z])([A-Z])/g), '$1_$2').toLowerCase();
-  };
-
-  /**
-     Change string with underscores '_' to proper case.
-     @returns {String}
-  */
-  String.prototype.toProperCase = function () {
-    return this.slice(0, 1).toUpperCase() + this.toCamelCase().slice(1);
   };
 
   // Load global modules

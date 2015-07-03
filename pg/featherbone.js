@@ -487,7 +487,7 @@ var featherbone = {};
       if (obj.id && obj.isMember) {
         sql = "SELECT tableoid::regclass::text AS model " +
           "FROM object WHERE id=$1";
-        model = plv8.execute(sql, [id])[0].model.toProperCase();
+        model = plv8.execute(sql, [id])[0].model.toCamelCase(true);
 
         if (model === "Folder") {
           isMember = obj.isMember || false;
@@ -1129,7 +1129,7 @@ var featherbone = {};
       /* Handle discriminator */
       if (key === "objectType") {
         cols.push("%s");
-        args.push("to_proper_case(tableoid::regclass::text) AS " + alias);
+        args.push("to_camel_case(tableoid::regclass::text, true) AS " + alias);
 
       /* Handle relations */
       } else if (typeof props[key].type === "object") {

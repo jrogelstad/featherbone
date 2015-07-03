@@ -62,7 +62,7 @@ paths:
     get:
       description: Contact data
       # used as the method name of the controller
-      operationId: data
+      operationId: request
       parameters:
         - name: limit
           in: query

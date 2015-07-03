@@ -176,6 +176,7 @@ if (!plv8.execute(sqlChk,['$settings']).length) {
   DROP TABLE "$user";
   DROP FUNCTION init();
   DROP FUNCTION request(json, boolean);
+  DROP FUNCTION to_camel_case(text, boolean);
 
 */
 

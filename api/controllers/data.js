@@ -1,35 +1,16 @@
 'use strict';
-/*
- 'use strict' is not required but helpful for turning syntactical errors into true errors in the program flow
- http://www.w3schools.com/js/js_strict.asp
-*/
 
-/*
- Modules make it possible to import JavaScript files into your application.  Modules are imported
- using 'require' statements that give you a reference to the module.
-
-  It is a good idea to list the modules that your application depends on in the package.json in the project root
- */
 var util = require('util'),
   pg = require("pg"),
   conn = "postgres://postgres:password@localhost/demo",
-  client = new pg.Client(conn);
+  catalog = true,
+  hello,
+  request,
+  favicon;
 
-/*
- Once you 'require' a module you can reference the things that it exports.  These are defined in module.exports.
-
- For a controller in a127 (which this is) you should export the functions referenced in your Swagger document by name.
-
- Either:
-  - The HTTP Verb of the corresponding operation (get, put, post, delete, etc)
-  - Or the operationId associated with the operation in your Swagger document
-
-  In the starter/skeleton project the 'get' operation on the '/hello' path has an operationId named 'hello'.  Here,
-  we specify that in the exports of this module that 'hello' maps to the function named 'hello'
- */
 module.exports = {
   hello: hello,
-  data: data,
+  request: request,
   favicon: favicon
 };
 
@@ -40,65 +21,106 @@ module.exports = {
   Param 2: a handle to the response object
  */
 function hello(req, res) {
-  // variables defined in the Swagger document can be referenced using req.swagger.params.{parameter_name}
-  var name = req.swagger.params.name.value || 'stranger';
-  var hello = util.format('Hello, %s!', name);
+  // variables defined in the Swagger document can be referenced using
+  // req.swagger.params.{parameter_name}
+  var name = req.swagger.params.name.value || 'stranger',
+    ret = util.format('Hello, %s!', name);
 
   // this sends back a JSON response which is a single string
-  res.json(hello);
+  res.json(ret);
 }
 
-function data(req, res) {
-  var begin, query, qcallback;
+function request(req, res) {
+  var begin, buildSql, getCatalog, query, qcallback,
+    client = new pg.Client(conn);
 
-  //console.log(req);
+  console.log(Object.keys(req));
+  console.log(req.url);
 
   begin = function (err) {
-    if (err) { 
+    if (err) {
       console.error(err);
       return;
     }
 
     client.connect(query);
-  }
+  };
 
-  query = function (err, resp) {
+  buildSql = function (payload) {
+    return "SELECT request($$" + JSON.stringify(payload) + "$$) as response;";
+  };
+
+  getCatalog = function (callback) {
+    client.connect(function (err) {
+      if (err) {
+        console.error(err);
+        return;
+      }
+
+      var payload = {
+          method: "POST",
+          name: "getSettings",
+          user: "postgres",
+          data: "catalog"
+        },
+        sql;
+
+      sql = buildSql(payload);
+
+      client.query(sql, function (err, resp) {
+        if (err) {
+          console.error(err);
+          return;
+        }
+
+        catalog = resp.rows[0].repsonse;
+
+        callback();
+      });
+    });
+  };
+
+  query = function (err) {
     var payload, sql, filter = {},
       limit = req.swagger.params.limit.value || 0;
 
-    if (err) { 
+    if (err) {
       console.error(err);
       return;
     }
 
     if (limit) {
       filter.limit = limit;
-    };
+    }
 
     payload = {
-      action: "GET",
+      method: req.method,
       name: "Contact",
       user: "postgres",
       filter: filter
     };
 
-    console.log(payload);
-    sql = "SELECT request($$" + JSON.stringify(payload) + "$$);";
-
+    sql = buildSql(payload);
     client.query(sql, qcallback);
-  }
+  };
 
   qcallback = function qcallback(err, resp) {
     if (err) {
       resp.statusCode = 500;
-      return next(err);
+      return err;
     }
 
-    // this sends back a JSON response which is a single string
-    res.json(resp.rows);
-  }
+    client.end();
 
-  begin();
+    // this sends back a JSON response which is a single string
+    res.json(resp.rows[0].response);
+  };
+
+  if (catalog) {
+    begin();
+  } else {
+    getCatalog(begin);
+  }
 }
 
 function favicon(req, res) {
