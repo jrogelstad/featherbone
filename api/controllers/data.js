@@ -3,7 +3,7 @@
 var util = require('util'),
   pg = require("pg"),
   conn = "postgres://postgres:password@localhost/demo",
-  catalog = true,
+  catalog,
   hello,
   request,
   favicon;
@@ -34,16 +34,11 @@ function request(req, res) {
   var begin, buildSql, getCatalog, query, qcallback,
     client = new pg.Client(conn);
 
-  console.log(Object.keys(req));
-  console.log(req.url);
+  //console.log(Object.keys(req));
+  //console.log(req.url);
 
-  begin = function (err) {
-    if (err) {
-      console.error(err);
-      return;
-    }
-
-    client.connect(query);
+  begin = function (callback) {
+    client.connect(callback);
   };
 
   buildSql = function (payload) {
@@ -51,7 +46,7 @@ function request(req, res) {
   };
 
   getCatalog = function (callback) {
-    client.connect(function (err) {
+    begin(function (err) {
       if (err) {
         console.error(err);
         return;
@@ -73,8 +68,7 @@ function request(req, res) {
           return;
         }
 
-        catalog = resp.rows[0].repsonse;
-
+        catalog = resp.rows[0].response.value;
         callback();
       });
     });
@@ -117,9 +111,9 @@ function request(req, res) {
   };
 
   if (catalog) {
-    begin();
+    begin(query);
   } else {
-    getCatalog(begin);
+    getCatalog(query);
   }
 }
 
