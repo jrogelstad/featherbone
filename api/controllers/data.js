@@ -2,13 +2,12 @@
 
 require('../../common/extend_string.js');
 
-var util = require('util'),
+var pgconfig, catalog, hello, request, favicon,
+  util = require('util'),
   pg = require("pg"),
-  conn = "postgres://postgres:password@localhost/demo",
-  catalog,
-  hello,
-  request,
-  favicon;
+  fs = require("fs"),
+  path = require("path"),
+  isInitialized = false;
 
 module.exports = {
   hello: hello,
@@ -33,12 +32,18 @@ function hello(req, res) {
 }
 
 function request(req, res) {
-  var begin, buildSql, getCatalog, query, resolveName,
-    client = new pg.Client(conn);
+  var begin, buildSql, getCatalog, init, query, resolveName, client;
 
   //console.log(Object.keys(req));
 
   begin = function (callback) {
+    var conn = "postgres://" +
+      pgconfig.user + ":" +
+      pgconfig.password + "@" +
+      pgconfig.server + "/" +
+      pgconfig.database;
+
+    client = new pg.Client(conn);
     client.connect(callback);
   };
 
@@ -75,13 +80,34 @@ function request(req, res) {
     });
   };
 
+  init = function () {
+    var filename;
+
+    if (isInitialized) {
+      begin(query);
+      return;
+    }
+
+    filename = path.format({root: "/", base: "config/pg.json"});
+    fs.readFile(filename, function (err, data) {
+      if (err) {
+        console.error(err);
+        return;
+      }
+
+      pgconfig = JSON.parse(data.toString());
+      getCatalog(query);
+    });
+  };
+
   query = function (err) {
     var payload, sql,
       params = req.swagger.params,
       method = req.method,
       name = resolveName(req.swagger.apiPath),
       id = params.id !== undefined ? params.id.value : undefined,
-      limit = params.limit !== undefined ? params.limit.value : 2000,
+      defaultLimit = pgconfig.defaultLimit,
+      limit = params.limit !== undefined ? params.limit.value : defaultLimit,
       offset = params.offset !== undefined ? params.offset.value || 0 : 0,
       result;
 
@@ -157,11 +183,7 @@ function request(req, res) {
     }
   };
 
-  if (catalog) {
-    begin(query);
-  } else {
-    getCatalog(query);
-  }
+  init();
 }
 
 function favicon(req, res) {
