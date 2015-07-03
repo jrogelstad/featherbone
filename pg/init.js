@@ -85,27 +85,6 @@
     return plv8.execute(sql, ary)[0].format;
   };
 
-  /**
-     Change string with underscores '_' to camel case.
-     @param {Boolean} Convert first character to upper case. Default false.
-     @returns {String}
-  */
-  String.prototype.toCamelCase = function (upper) {
-    var str = this.replace(/-+(.)?/g, function (match, chr) {
-      return chr ? chr.toUpperCase() : '';
-    });
-
-    return upper ? str.slice(0, 1).toUpperCase() + str.slice(1) : str;
-  };
-
-  /**
-     Change a camel case string to snake case.
-     @returns {String} The argument modified
-  */
-  String.prototype.toSnakeCase = function () {
-    return this.replace((/([a-z])([A-Z])/g), '$1_$2').toLowerCase();
-  };
-
   // Load global modules
   while (n < modules.length) {
     module = modules[n];

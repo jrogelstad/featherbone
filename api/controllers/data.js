@@ -1,5 +1,7 @@
 'use strict';
 
+require('../../common/extend_string.js');
+
 var util = require('util'),
   pg = require("pg"),
   conn = "postgres://postgres:password@localhost/demo",
@@ -31,11 +33,10 @@ function hello(req, res) {
 }
 
 function request(req, res) {
-  var begin, buildSql, getCatalog, query, qcallback,
+  var begin, buildSql, getCatalog, query, resolveModel,
     client = new pg.Client(conn);
 
   //console.log(Object.keys(req));
-  //console.log(req.url);
 
   begin = function (callback) {
     client.connect(callback);
@@ -76,7 +77,9 @@ function request(req, res) {
 
   query = function (err) {
     var payload, sql, filter = {},
-      limit = req.swagger.params.limit.value || 0;
+      limit = req.swagger.params.limit.value || 0,
+      method = req.method,
+      name = resolveModel(req.swagger.apiPath);
 
     if (err) {
       console.error(err);
@@ -88,26 +91,48 @@ function request(req, res) {
     }
 
     payload = {
-      method: req.method,
-      name: "Contact",
+      method: method,
+      name: name,
       user: "postgres",
       filter: filter
     };
 
     sql = buildSql(payload);
-    client.query(sql, qcallback);
+
+    client.query(sql, function (err, resp) {
+      if (err) {
+        resp.statusCode = 500;
+        return err;
+      }
+
+      client.end();
+
+      // this sends back a JSON response which is a single string
+      res.json(resp.rows[0].response);
+    });
   };
 
-  qcallback = function qcallback(err, resp) {
-    if (err) {
-      resp.statusCode = 500;
-      return err;
+  resolveModel = function (apiPath) {
+    var name = apiPath.slice(1).toCamelCase(true),
+      keys,
+      found;
+
+    if (catalog) {
+      // Look for model with same name
+      if (catalog[name]) { return name; }
+
+      // Look for plural version
+      keys = Object.keys(catalog);
+      found = keys.filter(function (key) {
+        return catalog[key].plural === name;
+      });
+
+      if (found.length) {
+        return found[0];
+      }
+
+      return;
     }
-
-    client.end();
-
-    // this sends back a JSON response which is a single string
-    res.json(resp.rows[0].response);
   };
 
   if (catalog) {
@@ -121,3 +146,4 @@ function favicon(req, res) {
   // Placeholder to be dealt with later. Without route Chrome causes errors
   res.json("");
 }
+

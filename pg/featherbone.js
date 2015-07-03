@@ -19,6 +19,8 @@
 var featherbone = {};
 (function (featherbone) {
 
+  require("extend-string");
+
   var _proto, _createView, _curry, _getKey, _getKeys, _isChildModel, _delete,
     _propagateViews, _relationColumn, _sanitize, _insert, _select, _update,
     _currentUser, _setCurrentUser, _buildAuthSql, _propagateAuth, _keys,

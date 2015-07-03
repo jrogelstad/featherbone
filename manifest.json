@@ -39,6 +39,11 @@
             "returns": "text"
         },
         {
+            "name": "extend-string",
+            "type": "module",
+            "path": "common/extend_string.js"
+        },
+        {
             "name": "fast-json-patch",
             "type": "module",
             "path": "node_modules/fast-json-patch/src/json-patch-duplex.js"

@@ -57,7 +57,6 @@ paths:
             # a pointer to a definition
             $ref: "#/definitions/FaviconResponse"
   /contacts:
-    # binds a127 app logic to a route
     x-swagger-router-controller: data
     get:
       description: Contact data
@@ -76,6 +75,30 @@ paths:
           schema:
             # a pointer to a definition
             $ref: "#/definitions/Contacts"
+        # responses may fall through to errors
+        default:
+          description: Error
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+  /leads:
+    x-swagger-router-controller: data
+    get:
+      description: Lead data
+      # used as the method name of the controller
+      operationId: request
+      parameters:
+        - name: limit
+          in: query
+          description: How many items to return
+          required: false
+          type: integer
+          format: int32
+      responses:
+        "200":
+          description: Array of leads
+          schema:
+            # a pointer to a definition
+            $ref: "#/definitions/Leads"
         # responses may fall through to errors
         default:
           description: Error
@@ -210,6 +233,51 @@ definitions:
     type: array
     items:
       $ref: "#/definitions/Contact"
+  Lead:
+    properties:
+      id:
+        type: string
+      created:
+        type: string
+      createdBy:
+        type: string
+      updated:
+        type: string
+      updatedBy:
+        type: string
+      isDeleted:
+        type: boolean
+      owner:
+        type: string
+      etag:
+        type: string
+      title:
+        type: string
+      firstName:
+        type: string
+      lastName:
+        type: string
+      notes:
+        type: array
+        items:
+          $ref: "#/definitions/Note"
+      addresses:
+        type: array
+        items:
+          $ref: "#/definitions/ContactAddress"
+      company:
+        description: Company,
+        type: string
+      remarks:
+        description: Misc. text,
+        type: string
+      probability:
+        description: Probability of closing,
+        type: number
+  Leads:
+    type: array
+    items:
+      $ref: "#/definitions/Lead"
   Note:
     properties:
       id:
