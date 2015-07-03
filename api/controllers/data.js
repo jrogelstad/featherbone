@@ -80,8 +80,9 @@ function request(req, res) {
       params = req.swagger.params,
       method = req.method,
       name = resolveName(req.swagger.apiPath),
-      limit = params.limit !== undefined ? params.limit.value || 0 : 0,
-      id = params.id !== undefined ? params.id.value : undefined;
+      limit = params.limit !== undefined ? params.limit.value || 2000 : 2000,
+      id = params.id !== undefined ? params.id.value : undefined,
+      result;
 
     if (err) {
       console.error(err);
@@ -114,8 +115,16 @@ function request(req, res) {
 
       client.end();
 
+      result = resp.rows[0].response;
+
+      if ((Array.isArray(result) && !result.length) ||
+          !Object.keys(result).length) {
+        res.statusCode = 204;
+        result = "";
+      }
+
       // this sends back a JSON response which is a single string
-      res.json(resp.rows[0].response);
+      res.json(result);
     });
   };
 
