@@ -721,6 +721,12 @@ var featherbone = {};
                 parent = catalog[type.relation];
                 delete parent.properties[type.childOf];
               }
+
+            // Parent properties need to be added back into spec so not lost
+            } else if (obj.properties && !obj.properties[key] &&
+                (typeof model.properties[key].type === "object" &&
+                typeof model.properties[key].type.parentOf)) {
+              obj.properties[key] = model.properties[key];
             }
           });
         }
