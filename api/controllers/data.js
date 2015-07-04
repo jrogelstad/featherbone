@@ -5,8 +5,7 @@ require('../../common/extend_string.js');
 var pgconfig, catalog, hello, request, favicon,
   util = require('util'),
   pg = require("pg"),
-  fs = require("fs"),
-  path = require("path"),
+  readPgConfig = require("../../common/pgconfig.js"),
   isInitialized = false;
 
 module.exports = {
@@ -81,21 +80,14 @@ function request(req, res) {
   };
 
   init = function () {
-    var filename;
-
     if (isInitialized) {
       begin(query);
       return;
     }
 
-    filename = path.format({root: "/", base: "config/pg.json"});
-    fs.readFile(filename, function (err, data) {
-      if (err) {
-        console.error(err);
-        return;
-      }
-
-      pgconfig = JSON.parse(data.toString());
+    readPgConfig(function (config) {
+      pgconfig = config;
+      isInitialized = true;
       getCatalog(query);
     });
   };

@@ -16,16 +16,31 @@
 **/
 
 var manifest, file, content, result, filename, execute, name, createFunction,
-  saveModule, saveModels, rollback, commit, begin, processFile, ext,
+  saveModule, saveModels, rollback, commit, begin, processFile, ext, client,
   pg = require("pg"),
   fs = require("fs"),
   path = require("path"),
-  conString = "postgres://postgres:password@localhost/demo",
-  client = new pg.Client(conString),
+  readPgConfig = require("./common/pgconfig.js"),
   i = 0;
 
 begin = function () {
-  client.query("BEGIN;", processFile);
+  readPgConfig(function (config) {
+    var conn = "postgres://" +
+      config.user + ":" +
+      config.password + "@" +
+      config.server + "/" +
+      config.database;
+
+    client = new pg.Client(conn);
+    client.connect(function (err) {
+      if (err) {
+        console.log(err);
+        return;
+      }
+
+      client.query("BEGIN;", processFile);
+    });
+  });
 };
 
 commit = function () {
@@ -179,5 +194,5 @@ saveModels = function (models) {
 filename = path.format({root: "/", base: "manifest.json"});
 manifest = JSON.parse(fs.readFileSync(filename).toString());
 
-client.connect(begin);
+begin();
 
