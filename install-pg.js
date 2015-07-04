@@ -56,7 +56,6 @@ begin = function () {
 
 commit = function (callback) {
   client.query("COMMIT;", function () {
-    console.log("Install completed!");
     client.end();
     callback();
   });
@@ -207,6 +206,8 @@ saveModels = function (models) {
 buildApi = function () {
   var swagger, catalog, sql, payload, keys;
 
+  console.log("Building swagger API");
+
   // Load the baseline swagger file
   fs.readFile("config/swagger-base.yaml", "utf8", function (err, data) {
     if (err) {
@@ -253,45 +254,96 @@ buildApi = function () {
             name = key.toProperCase();
 
           // Append singluar path
-          path = {
-            "x-swagger-router-controller": "data",
-            get: {
-              summary: "Info for a specific" + name,
-              operationId: "request",
-              parameters: [
-                {
-                  name: "id",
-                  in: "path",
-                  description: "The id of the" + name + " to retrieve",
-                  type: "string"
-                }
-              ],
-              responses: {
-                200: {
-                  description: "Expected response to a valid request",
-                  schema: {
-                    $ref: "#/definitions/" + key
+          if (!model.isChild) {
+            path = {
+              "x-swagger-router-controller": "data",
+              get: {
+                summary: "Info for a specific " + name,
+                operationId: "request",
+                parameters: [
+                  {
+                    name: "id",
+                    in: "path",
+                    description: "The id of the " + name + " to retrieve",
+                    type: "string"
                   }
-                },
-                default: {
-                  description: "unexpected error",
-                  schema: {
-                    $ref: "#/definitions/ErrorResponse"
+                ],
+                responses: {
+                  200: {
+                    description: "Expected response to a valid request",
+                    schema: {
+                      $ref: "#/definitions/" + key
+                    }
+                  },
+                  default: {
+                    description: "unexpected error",
+                    schema: {
+                      $ref: "#/definitions/ErrorResponse"
+                    }
                   }
                 }
               }
+            };
+
+            swagger.paths[pathName] = path;
+
+            // Append list path
+            if (model.plural) {
+              path = {
+                "x-swagger-router-controller": "data",
+                get: {
+                  description: key + " data",
+                  operationId: "request",
+                  parameters: [
+                    {
+                      name: "offset",
+                      in: "query",
+                      description: "Offset from first item",
+                      required: false,
+                      type: "integer",
+                      format: "int32"
+                    },
+                    {
+                      name: "limit",
+                      in: "query",
+                      description: "How many items to return",
+                      required: false,
+                      type: "integer",
+                      format: "int32"
+                    }
+                  ],
+                  responses: {
+                    200: {
+                      description: "Array of " + model.plural.toProperCase(),
+                      schema: {
+                        $ref: "#/definitions/" + model.plural
+                      }
+                    },
+                    default: {
+                      description: "Error",
+                      schema: {
+                        $ref: "#/definitions/ErrorResponse"
+                      }
+                    }
+                  }
+                }
+              };
+
+              pathName = "/" + model.plural.toSnakeCase();
+              swagger.paths[pathName] = path;
             }
-          };
-
-          swagger.paths[pathName] = path;
-
-          // Append list path
+          }
 
           // Append singular model definition
-          definition = {
-            description: model.description,
-            discriminator: model.discriminator
-          };
+          definition = {};
+
+          if (model.description) {
+            definition.description = model.description;
+          }
+
+          if (model.discriminator) {
+            definition.discriminator = model.discriminator;
+          }
 
           processProperties(model, properties);
 
@@ -321,29 +373,44 @@ buildApi = function () {
           }
         });
 
-        console.log(JSON.stringify(swagger, null, 2));
-        client.end();
+        // Save swagger file
+        data = yaml.safeDump(swagger);
+        fs.writeFile("api/swagger/swagger.yaml", data, function (err) {
+          if (err) {
+            console.error(err);
+            return;
+          }
+
+          console.log("Install completed!");
+          client.end();
+        });
       });
     });
   });
 };
 
 processProperties = function (model, properties) {
-  console.log("model->", model);
   var keys = Object.keys(model.properties);
 
   keys.forEach(function (key) {
-    var property = model.properties[key],
+    var property = model.properties[key], newProperty,
       primitives = ["array", "boolean", "integer", "number", "null",
         "object", "string"],
       formats = ["integer", "long", "float", "double", "string", "double",
-        "string", "byte", "boolean", "date", "dateTime", "password"],
-      newProperty;
+        "string", "byte", "boolean", "date", "dateTime", "password"];
 
-    newProperty = {
-      description: property.description,
-      default: property.defaultValue
-    };
+    // Bail if child property. Not necessary for api definition
+    if (typeof property.type === "object" && property.type.childOf) { return; }
+
+    newProperty = {};
+
+    if (property.description) {
+      newProperty.description = property.description;
+    }
+
+    if (property.defaultValue) {
+      newProperty.default = property.defaultValue;
+    }
 
     if (typeof property.type === "object") {
       newProperty.type = "object";

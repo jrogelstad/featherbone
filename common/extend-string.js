@@ -35,7 +35,7 @@
   */
   String.prototype.toProperCase = function (upper) {
     return this.replace(/^[a-z]|[A-Z]/g, function (v, i) {
-      return upper ? v.toUpperCase() : " " + v.toLowerCase();
+      return (upper ? v.toUpperCase() : " " + v.toLowerCase()).trim();
     });
   };
 

@@ -909,6 +909,7 @@ var featherbone = {};
         catalog[name] = obj;
         delete obj.name;
         delete obj.authorization;
+        obj.isChild = _isChildModel(obj);
         featherbone.saveSettings("catalog", catalog);
 
         if (!model) {
