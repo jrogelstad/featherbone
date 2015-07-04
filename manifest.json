@@ -41,7 +41,7 @@
         {
             "name": "extend-string",
             "type": "module",
-            "path": "common/extend_string.js"
+            "path": "common/extend-string.js"
         },
         {
             "name": "fast-json-patch",

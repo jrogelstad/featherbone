@@ -1,6 +1,6 @@
 'use strict';
 
-require('../../common/extend_string.js');
+require('../../common/extend-string.js');
 
 var pgconfig, catalog, hello, request, favicon,
   util = require('util'),

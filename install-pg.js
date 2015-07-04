@@ -15,6 +15,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
+require("./common/extend-string.js");
+
 var manifest, file, content, result, execute, name, createFunction, buildApi,
   saveModule, saveModels, rollback, connect, commit, begin, processFile, ext,
   client, user, processProperties,
@@ -243,12 +245,49 @@ buildApi = function () {
         // Loop through each model and append to swagger api
         keys = Object.keys(catalog);
         keys.forEach(function (key) {
-          var model = catalog[key],
+          var definition, path,
+            model = catalog[key],
             properties = {},
             inherits = model.inherits || "Object",
-            definition;
+            pathName = "/" + key.toSnakeCase() + "/{id}",
+            name = key.toProperCase();
 
-          // Append model definition
+          // Append singluar path
+          path = {
+            "x-swagger-router-controller": "data",
+            get: {
+              summary: "Info for a specific" + name,
+              operationId: "request",
+              parameters: [
+                {
+                  name: "id",
+                  in: "path",
+                  description: "The id of the" + name + " to retrieve",
+                  type: "string"
+                }
+              ],
+              responses: {
+                200: {
+                  description: "Expected response to a valid request",
+                  schema: {
+                    $ref: "#/definitions/" + key
+                  }
+                },
+                default: {
+                  description: "unexpected error",
+                  schema: {
+                    $ref: "#/definitions/ErrorResponse"
+                  }
+                }
+              }
+            }
+          };
+
+          swagger.paths[pathName] = path;
+
+          // Append list path
+
+          // Append singular model definition
           definition = {
             description: model.description,
             discriminator: model.discriminator
@@ -270,6 +309,16 @@ buildApi = function () {
           }
 
           definitions[key] = definition;
+
+          // Append plural definition
+          if (model.plural) {
+            definitions[model.plural] = {
+              type: "array",
+              items: {
+                $ref: "#/definitions/" + key
+              }
+            };
+          }
         });
 
         console.log(JSON.stringify(swagger, null, 2));

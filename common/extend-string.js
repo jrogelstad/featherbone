@@ -30,6 +30,16 @@
   };
 
   /**
+     Change a camel case string to proper case.
+     @returns {String} The argument modified
+  */
+  String.prototype.toProperCase = function (upper) {
+    return this.replace(/^[a-z]|[A-Z]/g, function (v, i) {
+      return upper ? v.toUpperCase() : " " + v.toLowerCase();
+    });
+  };
+
+  /**
      Change a camel case string to snake case.
      @returns {String} The argument modified
   */
