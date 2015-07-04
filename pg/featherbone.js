@@ -30,6 +30,7 @@ var featherbone = {};
       object: {type: "json", defaultValue: {}},
       array: {type: "json", defaultValue: []},
       string: {type: "text", defaultValue: "''"},
+      integer: {type: "integer", defaultValue: 0},
       number: {type: "numeric", defaultValue: 0},
       date: {type: "timestamp with time zone", defaultValue: "minDate()"},
       boolean: {type: "boolean", defaultValue: "false"}

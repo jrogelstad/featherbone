@@ -63,9 +63,7 @@ function request(req, res) {
           user: "postgres",
           data: "catalog"
         },
-        sql;
-
-      sql = buildSql(payload);
+        sql = buildSql(payload);
 
       client.query(sql, function (err, resp) {
         if (err) {

@@ -160,7 +160,8 @@ if (!plv8.execute(sqlChk,['$settings']).length) {
             "objectType": {
               "description": "Discriminates which inherited object type the object represents",
               "type": "string"}
-            }
+            },
+        "required": ["id", "objectType"]
         }
     }
     ]
