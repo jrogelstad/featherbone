@@ -17,12 +17,12 @@
 (function () {
 
   /**
-     Change string with underscores '_' to camel case.
+     Change string with underscores '_' or '-' to camel case.
      @param {Boolean} Convert first character to upper case. Default false.
      @returns {String}
   */
   String.prototype.toCamelCase = function (upper) {
-    var str = this.replace(/_+(.)?/g, function (match, chr) {
+    var str = this.replace(/[_,-]+(.)?/g, function (match, chr) {
       return chr ? chr.toUpperCase() : '';
     });
 
@@ -45,6 +45,14 @@
   */
   String.prototype.toSnakeCase = function () {
     return this.replace((/([a-z])([A-Z])/g), '$1_$2').toLowerCase();
+  };
+
+  /**
+     Change a camel case string to spinal case.
+     @returns {String} The argument modified
+  */
+  String.prototype.toSpinalCase = function () {
+    return this.replace((/([a-z])([A-Z])/g), '$1-$2').toLowerCase();
   };
 
 }());

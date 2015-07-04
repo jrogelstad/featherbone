@@ -250,7 +250,7 @@ buildApi = function () {
             model = catalog[key],
             properties = {},
             inherits = model.inherits || "Object",
-            pathName = "/" + key.toSnakeCase() + "/{id}",
+            pathName = "/" + key.toSpinalCase() + "/{id}",
             name = key.toProperCase();
 
           // Append singluar path
@@ -437,7 +437,7 @@ processProperties = function (model, properties) {
           newProperty.type = property.type;
         }
 
-        newProperty.format = property.type;
+        newProperty.format = property.type.toSpinalCase();
       }
     }
 

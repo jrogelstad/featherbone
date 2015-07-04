@@ -141,7 +141,7 @@ if (!plv8.execute(sqlChk,['$settings']).length) {
               "defaultValue": "createId()"},
             "created": {
               "description": "Create time of the record",
-              "type": "date",
+              "type": "dateTime",
               "defaultValue": "now()"},
             "createdBy": {
               "description": "User who created the record",
@@ -149,7 +149,7 @@ if (!plv8.execute(sqlChk,['$settings']).length) {
               "defaultValue": "getCurrentUser()"},
             "updated": {
               "description": "Last time the record was updated",
-              "type": "date",
+              "type": "dateTime",
             "defaultValue": "now()"},
               "updatedBy": {
               "description": "User who created the record",
