@@ -45,3 +45,4 @@ Temporary Items
 node/node_modules
 node/npm-debug.log
 node_modules
+api/swagger/swagger.yaml
