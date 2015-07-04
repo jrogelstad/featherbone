@@ -133,6 +133,7 @@ if (!plv8.execute(sqlChk,['$settings']).length) {
     {"Object": {
         "description": "Abstract object class from which all models will inherit",
         "discriminator": "objectType",
+        "plural": "Objects",
         "properties": {
             "id": {
               "description": "Surrogate key",

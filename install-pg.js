@@ -408,12 +408,8 @@ processProperties = function (model, properties) {
       newProperty.description = property.description;
     }
 
-    if (property.defaultValue) {
-      newProperty.default = property.defaultValue;
-    }
-
     if (typeof property.type === "object") {
-      newProperty.type = "object";
+      newProperty.type = property.type.parentOf ? "array" : "object";
       newProperty.items = {
         $ref: "#/definitions/" + property.type.relation
       };
