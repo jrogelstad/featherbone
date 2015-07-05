@@ -12,7 +12,8 @@
     "pg": "4.4.0",
     "express": "^4.12.3",
     "swagger-express-mw": "0.0.x",
-    "js-yaml": "^3.3.0"
+    "js-yaml": "^3.3.0",
+    "mithril": "^0.2.0"
   },
   "devDependencies": {
     "should": "^5.2.0",
