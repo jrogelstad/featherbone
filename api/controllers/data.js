@@ -125,7 +125,8 @@ function request(req, res) {
 
     client.query(sql, function (err, resp) {
       if (err) {
-        resp.statusCode = 500;
+        res.statusCode = 500;
+        console.error(err);
         return err;
       }
 

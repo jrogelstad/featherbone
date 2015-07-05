@@ -2,10 +2,6 @@
     "version": "0.0.1",
     "files": [
         {
-            "type": "execute",
-            "path": "pg/tables.js"
-        },
-        {
             "type": "function",
             "path": "pg/init.js"
         },
@@ -37,6 +33,10 @@
             },
             "volatility": "IMMUTABLE",
             "returns": "text"
+        },
+        {
+            "type": "execute",
+            "path": "pg/tables.js"
         },
         {
             "name": "extend-string",

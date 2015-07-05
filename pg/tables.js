@@ -35,7 +35,7 @@ if (!plv8.execute(sqlChk,['object']).length) {
     "COMMENT ON COLUMN object.updated IS 'Last time the record was updated';" +
     "COMMENT ON COLUMN object.updated_by IS 'Last user who created the record';" +
     "COMMENT ON COLUMN object.is_deleted IS 'Indicates the record is no longer active';" +
-    "CREATE OR REPLACE VIEW _object AS SELECT * FROM object;"
+    "CREATE OR REPLACE VIEW _object AS SELECT *, to_camel_case(tableoid::regclass::text, true) AS object_type FROM object;"
     plv8.execute(sql);
 };
 
@@ -150,8 +150,8 @@ if (!plv8.execute(sqlChk,['$settings']).length) {
             "updated": {
               "description": "Last time the record was updated",
               "type": "dateTime",
-            "defaultValue": "now()"},
-              "updatedBy": {
+              "defaultValue": "now()"},
+            "updatedBy": {
               "description": "User who created the record",
               "type": "string",
               "defaultValue": "getCurrentUser()"},
