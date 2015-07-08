@@ -8,12 +8,12 @@
   "license": "",
   "main": "app.js",
   "dependencies": {
+    "express": "^4.13.1",
     "fast-json-patch": "0.5.2",
+    "js-yaml": "^3.3.1",
+    "mithril": "^0.2.0",
     "pg": "4.4.0",
-    "express": "^4.12.3",
-    "swagger-express-mw": "0.0.x",
-    "js-yaml": "^3.3.0",
-    "mithril": "^0.2.0"
+    "swagger-express-mw": "0.0.x"
   },
   "devDependencies": {
     "should": "^5.2.0",
