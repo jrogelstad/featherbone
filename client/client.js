@@ -112,13 +112,13 @@ f.Contact = function(obj) {
       this.state('new', function() {
         this.event('fetch', function() { this.goto('/busy/fetching'); });
         this.event('save', function() { this.goto('/busy/submitting'); });
-        this.event('delete', function() { this.goto('/destroyed'); });
+        this.event('delete', function() { this.goto('../destroyed'); });
       });
 
       this.state('fetched', function() {
         this.state('clean', function() {
           this.event('changed', function() { this.goto('../dirty'); });
-          this.event('delete', function() { this.goto('/destroyed/dirty'); });
+          this.event('delete', function() { this.goto('/ready/destroyed/dirty'); });
         });
 
         this.state('dirty', function() {
@@ -136,7 +136,7 @@ f.Contact = function(obj) {
 
     this.state('busy', function() {
       this.state('loading');
-      this.state('saving');
+      this.state('submitting');
 
       this.event('success', function() { this.goto('/ready/fetched'); });
       this.event('error', function() { this.goto('/error'); });
