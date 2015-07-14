@@ -75,7 +75,7 @@
     {
         "name": "Log",
         "plural": "Logs",
-        "description": "Feather for logging all schema and data changes",
+        "description": "Logs all data changes",
         "authorization": false,
         "properties": {
             "objectId": {

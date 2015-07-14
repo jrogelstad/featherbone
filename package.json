@@ -1,12 +1,16 @@
 {
-  "name": "data",
+  "name": "featherbone",
   "version": "0.0.1",
   "private": true,
-  "description": "New Swagger API Project",
+  "description": "JavaScript based persistence framework for building object relational database applications",
   "keywords": [],
-  "author": "",
-  "license": "",
+  "author": "John Rogelstad",
+  "license": "GPL v3",
   "main": "app.js",
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/jrogelstad/featherbone.git"
+  },
   "dependencies": {
     "express": "^4.13.1",
     "fast-json-patch": "0.5.2",
