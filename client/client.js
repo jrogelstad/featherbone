@@ -65,3 +65,85 @@ todo.view = function() {
 //initialize the application
 m.mount(document, {controller: todo.controller, view: todo.view});
 
+var State = (typeof require === 'function' ? require('statechart') : window.statechart).State;
+
+var door = State.define(function() {
+  this.state('closed', function() {
+    this.state('locked', function() {
+      this.event('unlockDoor', function() { this.goto('../unlocked'); });
+    });
+
+    this.state('unlocked', function() {
+      this.event('lockDoor', function() { this.goto('../locked'); });
+      this.event('openDoor', function() { this.goto('/opened'); });
+    });
+
+    this.event('knock', function() { console.log('*knock knock*'); });
+  });
+
+  this.state('opened', function() {
+    this.event('closeDoor', function() { this.goto('/closed/unlocked'); });
+  });
+});
+
+var f = {};
+
+f.Contact = function(obj) {
+  obj = obj || {};
+
+  this.data = data = {};
+
+  data.id = m.prop(obj.id);
+  data.created = m.prop(obj.created || new Date());
+  data.createdBy = m.prop(obj.createdBy || "admin");
+  data.updated = m.prop(obj.updated || new Date());
+  data.updatedBy = m.prop(obj.updatedBy || "admin");
+  data.objectType = m.prop('Contact');
+  data.owner = m.prop(obj.owner || "admin");
+  data.etag = m.prop(obj.etag);
+  data.notes = m.prop(obj.notes || []);
+  data.title = m.prop(obj.title);
+  data.first = m.prop(obj.first);
+  data.last = m.prop(obj.last);
+  data.address = m.prop(obj.address || []);
+
+  this.state = State.define(function() {
+    this.state('ready', function() {
+      this.state('new', function() {
+        this.event('fetch', function() { this.goto('/busy/fetching'); });
+        this.event('save', function() { this.goto('/busy/submitting'); });
+        this.event('delete', function() { this.goto('/destroyed'); });
+      });
+
+      this.state('fetched', function() {
+        this.state('clean', function() {
+          this.event('changed', function() { this.goto('../dirty'); });
+          this.event('delete', function() { this.goto('/destroyed/dirty'); });
+        });
+
+        this.state('dirty', function() {
+          this.event('save', function() { this.goto('/busy/submitting'); });
+        });
+
+        this.event('fetch', function() { this.goto('/busy/submitting'); });
+      });
+
+      this.state('destroyed', function() {
+        this.state('clean');
+        this.state('dirty');
+      });
+    });
+
+    this.state('busy', function() {
+      this.state('loading');
+      this.state('saving');
+
+      this.event('success', function() { this.goto('/ready/fetched'); });
+      this.event('error', function() { this.goto('/error'); });
+    });
+
+    this.state('error');
+  });
+  this.state.goto();
+};
+
