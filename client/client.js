@@ -77,47 +77,29 @@ var State = (typeof require === 'function' ? require('statechart') :
       window.statechart).State;
 var f = {};
 
-f.Contact = function (obj) {
-  obj = obj || {};
+f.model = function (spec) {
+  spec = spec || {};
 
   var _changed, _delete, _deleted, _error, _fetch, _fetched, _patch, _post,
-    data,
-    that = this;
-
-  // ..........................................................
-  // ATTRIBUTES
-  //
-
-  this.data = data = {};
-
-  data.id = m.prop(obj.id);
-  data.created = m.prop(obj.created || new Date());
-  data.createdBy = m.prop(obj.createdBy || "admin");
-  data.updated = m.prop(obj.updated || new Date());
-  data.updatedBy = m.prop(obj.updatedBy || "admin");
-  data.objectType = m.prop("Contact");
-  data.owner = m.prop(obj.owner || "admin");
-  data.etag = m.prop(obj.etag);
-  data.notes = m.prop(obj.notes || []);
-  data.title = m.prop(obj.title);
-  data.first = m.prop(obj.first);
-  data.last = m.prop(obj.last);
-  data.address = m.prop(obj.address || []);
+    that = {},
+    data = {};
 
   // ..........................................................
   // PUBLIC
   //
 
-  this.save = function () {
+  that.data = data;
+
+  that.save = function () {
     that.state.send("save");
   };
 
-  this.fetch = function (obj) {
-    obj = obj || {};
+  that.fetch = function (filter) {
+    filter = filter || {};
     that.state.send("fetch");
   };
 
-  this.delete = function () {
+  that.delete = function () {
     that.state.send("delete");
   };
 
@@ -161,7 +143,7 @@ f.Contact = function (obj) {
   // STATECHART
   //
 
-  this.state = State.define(function () {
+  that.state = State.define(function () {
     this.state("ready", function () {
       this.state("new", function () {
         this.event("fetch", _fetch.bind(this));
@@ -197,6 +179,35 @@ f.Contact = function (obj) {
     this.state("error");
   });
 
-  this.state.goto();
+  that.state.goto();
+
+  return that;
+};
+
+f.contact = function (spec) {
+  spec = spec || {};
+
+  var that = f.model(spec),
+    data = that.data;
+
+  // ..........................................................
+  // ATTRIBUTES
+  //
+
+  data.id = m.prop(spec.id);
+  data.created = m.prop(spec.created || new Date());
+  data.createdBy = m.prop(spec.createdBy || "admin");
+  data.updated = m.prop(spec.updated || new Date());
+  data.updatedBy = m.prop(spec.updatedBy || "admin");
+  data.specectType = m.prop("Contact");
+  data.owner = m.prop(spec.owner || "admin");
+  data.etag = m.prop(spec.etag);
+  data.notes = m.prop(spec.notes || []);
+  data.title = m.prop(spec.title);
+  data.first = m.prop(spec.first);
+  data.last = m.prop(spec.last);
+  data.address = m.prop(spec.address || []);
+
+  return that;
 };
 
