@@ -80,15 +80,12 @@ var f = {};
 f.model = function (model, spec) {
   spec = spec || {};
 
-  var _delete, _fetch, _init, _patch, _post,
-    obj = {},
-    data = {};
+  var doDelete, doFetch, doInit, doPatch, doPost,
+    obj = {data: {}};
 
   // ..........................................................
   // PUBLIC
   //
-
-  obj.data = data;
 
   obj.save = function () {
     obj.state.send("save");
@@ -107,17 +104,17 @@ f.model = function (model, spec) {
   // PRIVATE
   //
 
-  _delete = function () {
+  doDelete = function () {
     this.goto("/busy/saving");
   };
 
-  _fetch = function () {
+  doFetch = function () {
     var ret = m.prop({}),
       fetched = function () {
         console.log(ret());
         obj.state.send('fetched');
       }.bind(this),
-      url = "http://localhost:10010/" + model + "/" + data.id();
+      url = "http://localhost:10010/" + model + "/" + obj.data.id();
 
     obj.state.goto("/busy");
     m.request({method: "GET", url: url})
@@ -125,15 +122,15 @@ f.model = function (model, spec) {
       .then(fetched);
   };
 
-  _init = function () {
+  doInit = function () {
     console.log("Hello World");
   };
 
-  _patch = function () {
+  doPatch = function () {
     this.goto("/busy/saving");
   };
 
-  _post = function () {
+  doPost = function () {
     this.goto("/busy/saving");
   };
 
@@ -144,23 +141,23 @@ f.model = function (model, spec) {
   obj.state = State.define(function () {
     this.state("ready", function () {
       this.state("new", function () {
-        this.enter(_init);
-        this.event("fetch", _fetch.bind(this));
-        this.event("save", _post.bind(this));
+        this.enter(doInit);
+        this.event("fetch", doFetch.bind(this));
+        this.event("save", doPost.bind(this));
         this.event("delete", function () { this.goto("/ready/deleted"); });
       });
 
       this.state("fetched", function () {
         this.state("clean", function () {
           this.event("changed", function () { this.goto("../dirty"); });
-          this.event("delete", _delete.bind(this));
+          this.event("delete", doDelete.bind(this));
         });
 
         this.state("dirty", function () {
-          this.event("save", _patch.bind(this));
+          this.event("save", doPatch.bind(this));
         });
 
-        this.event("fetch", _fetch.bind(this));
+        this.event("fetch", doFetch.bind(this));
       });
 
       this.state("deleted", function () {
@@ -192,71 +189,103 @@ f.model = function (model, spec) {
 f.contact = function (spec) {
   spec = spec || {};
 
-  var obj = f.model("contact", spec),
-    store = {},
-    changed = function (changes) {
-      var prop = changes[0].name,
-        method = obj.onChange[prop],
-        f = obj[method],
-        oldValue = changes[0].oldValue,
-        newValue = changes[0].object[prop];
-
-      if (typeof f === "function") { f(newValue, oldValue, changes); }
-    }.bind(this),
-    prop = function (name, value) {
-      var p;
+  var keys,
+    obj = f.model("contact", spec),
+    prop = function (store) {
+      var newValue, oldValue, p;
 
       p = function () {
         if (arguments.length) {
-          store[name] = arguments[0];
+          newValue = arguments[0];
+          oldValue = store;
+
+          p.state.send("change");
+
+          store = newValue;
+
+          p.state.send("changed");
         }
 
-        return store[name];
+        return store;
       };
 
-      store[name] = value;
+      p.newValue = function () {
+        return newValue;
+      };
+      p.oldValue = function () {
+        return oldValue;
+      };
+      p.state = State.define(function () {
+        this.state("ready", function () {
+          this.event("change", function () { this.goto("../changing"); });
+        });
+        this.state("changing", function () {
+          this.event("changed", function () {
+            this.goto("../ready");
+            this.exit(function () {
+              // Bubble up to parent
+              obj.state.send("changed");
+            });
+          });
+        });
+      });
+
+      p.state.goto();
 
       return p;
     },
     data = obj.data;
 
-  Object.observe(store, changed);
-
-  obj.onChange = {
-    "first": "firstChanged",
-    "last": "lastChanged",
-    "id": "idChanged"
-  };
-
-  obj.firstChanged = function (newVal, oldVal, changes) {
-    console.log("First name changed from " + oldVal + " to " + newVal + "!");
-  };
-
-  obj.lastChanged = function (newVal, oldVal, changes) {
-    console.log("Last name changed from " + oldVal + " to " + newVal + "!");
-  };
-
-  obj.idChanged = function (newVal, oldVal, changes) {
-    console.log("Id changed from " + oldVal + " to " + newVal + "!");
-  };
-
   // ..........................................................
   // ATTRIBUTES
   //
 
-  data.id = prop("id", spec.id);
-  data.created = prop("created", spec.created || new Date());
-  data.createdBy = prop("createdBy", spec.createdBy || "admin");
-  data.updated = prop("updated", spec.updated || new Date());
-  data.updatedBy = prop("updatedBy", spec.updatedBy || "admin");
-  data.objectType = prop("objectType", "Contact");
-  data.owner = prop("owner", spec.owner || "admin");
-  data.etag = prop("etag", spec.etag);
-  data.notes = prop("notes", spec.notes || []);
-  data.title = prop("title", spec.title);
-  data.first = prop("first", spec.first);
-  data.last = prop("last", spec.last);
-  data.address = prop("address", spec.address || []);
+  data.id = prop(spec.id);
+  data.created = prop(spec.created || new Date());
+  data.createdBy = prop(spec.createdBy || "admin");
+  data.updated = prop(spec.updated || new Date());
+  data.updatedBy = prop(spec.updatedBy || "admin");
+  data.objectType = prop("Contact");
+  data.owner = prop(spec.owner || "admin");
+  data.etag = prop(spec.etag);
+  data.notes = prop(spec.notes || []);
+  data.title = prop(spec.title);
+  data.first = prop(spec.first);
+  data.last = prop(spec.last);
+  data.address = prop(spec.address || []);
+
+  // ..........................................................
+  // CHANGE EVENT RECEIVERS
+  //
+
+  this.changingFirst = function () {
+    console.log("First name changed from " +
+      this.oldValue() + " to " + this.newValue() + "!");
+  };
+
+  this.changingLast = function () {
+    console.log("Last name changed from " +
+      this.oldValue() + " to " + this.newValue() + "!");
+  };
+
+  this.changingId = function () {
+    console.log("Id changed from " +
+      this.oldValue() + " to " + this.newValue() + "!");
+  };
+
+  // ..........................................................
+  // EVENT BINDINGS
+  //
+
+  keys = Object.keys(data);
+  keys.forEach(function (key) {
+    var state,
+      fn = this["changing" + key.slice(0, 1).toUpperCase() + key.slice(1)];
+    if (typeof fn === "function") {
+      state = data[key].state.substateMap.changing;
+      state.enter(fn.bind(data[key]));
+    }
+  }.bind(this));
 
   return obj;
 };
