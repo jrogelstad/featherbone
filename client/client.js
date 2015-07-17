@@ -77,58 +77,56 @@ var State = (typeof require === 'function' ? require('statechart') :
       window.statechart).State;
 var f = {};
 
-f.model = function (spec) {
+f.model = function (model, spec) {
   spec = spec || {};
 
-  var _changed, _delete, _deleted, _error, _fetch, _fetched, _patch, _post,
-    that = {},
+  var _delete, _fetch, _init, _patch, _post,
+    obj = {},
     data = {};
 
   // ..........................................................
   // PUBLIC
   //
 
-  that.data = data;
+  obj.data = data;
 
-  that.save = function () {
-    that.state.send("save");
+  obj.save = function () {
+    obj.state.send("save");
   };
 
-  that.fetch = function (filter) {
+  obj.fetch = function (filter) {
     filter = filter || {};
-    that.state.send("fetch");
+    obj.state.send("fetch");
   };
 
-  that.delete = function () {
-    that.state.send("delete");
+  obj.delete = function () {
+    obj.state.send("delete");
   };
 
   // ..........................................................
   // PRIVATE
   //
 
-  _changed = function () {
-    this.goto("../dirty");
-  };
-
   _delete = function () {
     this.goto("/busy/saving");
   };
 
-  _deleted = function () {
-    this.goto("/deleted");
-  };
-
-  _error = function () {
-    this.goto("/error");
-  };
-
   _fetch = function () {
-    this.goto("/busy");
+    var ret = m.prop({}),
+      fetched = function () {
+        console.log(ret());
+        obj.state.send('fetched');
+      }.bind(this),
+      url = "http://localhost:10010/" + model + "/" + data.id();
+
+    obj.state.goto("/busy");
+    m.request({method: "GET", url: url})
+      .then(ret)
+      .then(fetched);
   };
 
-  _fetched = function () {
-    this.goto("/ready/fetched");
+  _init = function () {
+    console.log("Hello World");
   };
 
   _patch = function () {
@@ -143,17 +141,18 @@ f.model = function (spec) {
   // STATECHART
   //
 
-  that.state = State.define(function () {
+  obj.state = State.define(function () {
     this.state("ready", function () {
       this.state("new", function () {
+        this.enter(_init);
         this.event("fetch", _fetch.bind(this));
         this.event("save", _post.bind(this));
-        this.event("delete", _deleted.bind(this));
+        this.event("delete", function () { this.goto("/ready/deleted"); });
       });
 
       this.state("fetched", function () {
         this.state("clean", function () {
-          this.event("changed", _changed.bind(this));
+          this.event("changed", function () { this.goto("../dirty"); });
           this.event("delete", _delete.bind(this));
         });
 
@@ -164,50 +163,101 @@ f.model = function (spec) {
         this.event("fetch", _fetch.bind(this));
       });
 
-      this.state("deleted");
+      this.state("deleted", function () {
+        // Prevent exiting from this state
+        this.canExit = function () { return false; };
+      });
     });
 
     this.state("busy", function () {
       this.state("fetching");
       this.state("saving");
 
-      this.event("fetched", _fetched.bind(this));
-      this.event("deleted", _deleted.bind(this));
-      this.event("error", _error.bind(this));
+      this.event("fetched", function () { this.goto("/ready/fetched"); });
+      this.event("deleted", function () { this.goto("/ready/deleted"); });
+      this.event("error", function () { this.goto("/error"); });
     });
 
-    this.state("error");
+    this.state("error", function () {
+      // Prevent exiting from this state
+      this.canExit = function () { return false; };
+    });
   });
 
-  that.state.goto();
+  obj.state.goto();
 
-  return that;
+  return obj;
 };
 
 f.contact = function (spec) {
   spec = spec || {};
 
-  var that = f.model(spec),
-    data = that.data;
+  var obj = f.model("contact", spec),
+    store = {},
+    changed = function (changes) {
+      var prop = changes[0].name,
+        method = obj.onChange[prop],
+        f = obj[method],
+        oldValue = changes[0].oldValue,
+        newValue = changes[0].object[prop];
+
+      if (typeof f === "function") { f(newValue, oldValue, changes); }
+    }.bind(this),
+    prop = function (name, value) {
+      var p;
+
+      p = function () {
+        if (arguments.length) {
+          store[name] = arguments[0];
+        }
+
+        return store[name];
+      };
+
+      store[name] = value;
+
+      return p;
+    },
+    data = obj.data;
+
+  Object.observe(store, changed);
+
+  obj.onChange = {
+    "first": "firstChanged",
+    "last": "lastChanged",
+    "id": "idChanged"
+  };
+
+  obj.firstChanged = function (newVal, oldVal, changes) {
+    console.log("First name changed from " + oldVal + " to " + newVal + "!");
+  };
+
+  obj.lastChanged = function (newVal, oldVal, changes) {
+    console.log("Last name changed from " + oldVal + " to " + newVal + "!");
+  };
+
+  obj.idChanged = function (newVal, oldVal, changes) {
+    console.log("Id changed from " + oldVal + " to " + newVal + "!");
+  };
 
   // ..........................................................
   // ATTRIBUTES
   //
 
-  data.id = m.prop(spec.id);
-  data.created = m.prop(spec.created || new Date());
-  data.createdBy = m.prop(spec.createdBy || "admin");
-  data.updated = m.prop(spec.updated || new Date());
-  data.updatedBy = m.prop(spec.updatedBy || "admin");
-  data.specectType = m.prop("Contact");
-  data.owner = m.prop(spec.owner || "admin");
-  data.etag = m.prop(spec.etag);
-  data.notes = m.prop(spec.notes || []);
-  data.title = m.prop(spec.title);
-  data.first = m.prop(spec.first);
-  data.last = m.prop(spec.last);
-  data.address = m.prop(spec.address || []);
+  data.id = prop("id", spec.id);
+  data.created = prop("created", spec.created || new Date());
+  data.createdBy = prop("createdBy", spec.createdBy || "admin");
+  data.updated = prop("updated", spec.updated || new Date());
+  data.updatedBy = prop("updatedBy", spec.updatedBy || "admin");
+  data.objectType = prop("objectType", "Contact");
+  data.owner = prop("owner", spec.owner || "admin");
+  data.etag = prop("etag", spec.etag);
+  data.notes = prop("notes", spec.notes || []);
+  data.title = prop("title", spec.title);
+  data.first = prop("first", spec.first);
+  data.last = prop("last", spec.last);
+  data.address = prop("address", spec.address || []);
 
-  return that;
+  return obj;
 };
 
