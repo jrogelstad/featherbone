@@ -113,6 +113,10 @@ var prop = function (store) {
     });
   });
 
+  p.toJSON = function () {
+    return store;
+  };
+
   p.state.goto();
 
   return p;
