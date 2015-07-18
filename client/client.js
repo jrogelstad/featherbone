@@ -253,39 +253,40 @@ f.model = function (spec, my) {
     });
   });
 
+  that.state.goto();
+
   return that;
 };
 
 f.contact = function (spec, my) {
   spec = spec || {};
 
-  var shared = {name: "Contact", data: {}},
-    that = f.model(spec, shared),
-    d = shared.data;
+  var that = {name: "Contact", data: {}},
+    d = that.data;
 
   // ..........................................................
   // ATTRIBUTES
   //
 
-  d.id = prop(spec.id, that);
-  d.created = prop(spec.created || new Date(), that);
-  d.createdBy = prop(spec.createdBy || "admin", that);
-  d.updated = prop(spec.updated || new Date(), that);
-  d.updatedBy = prop(spec.updatedBy || "admin", that);
-  d.objectType = prop("Contact", that);
-  d.owner = prop(spec.owner || "admin", that);
-  d.etag = prop(spec.etag, that);
-  d.notes = prop(spec.notes || [], that);
-  d.title = prop(spec.title, that);
-  d.first = prop(spec.first, that);
-  d.last = prop(spec.last, that);
-  d.address = prop(spec.address || [], that);
+  d.id = prop(spec.id);
+  d.created = prop(spec.created || new Date());
+  d.createdBy = prop(spec.createdBy || "admin");
+  d.updated = prop(spec.updated || new Date());
+  d.updatedBy = prop(spec.updatedBy || "admin");
+  d.objectType = prop("Contact");
+  d.owner = prop(spec.owner || "admin");
+  d.etag = prop(spec.etag);
+  d.notes = prop(spec.notes || []);
+  d.title = prop(spec.title);
+  d.first = prop(spec.first);
+  d.last = prop(spec.last);
+  d.address = prop(spec.address || []);
 
   // ..........................................................
   // CHANGE EVENT HANDLERS
   //
 
-  shared.onChange = {
+  that.onChange = {
     first: function () {
       console.log("First name changed from " +
         this.oldValue() + " to " + this.newValue() + "!");
@@ -300,8 +301,6 @@ f.contact = function (spec, my) {
     }
   };
 
-  that.state.goto();
-
-  return that;
+  return f.model(spec, that);
 };
 
