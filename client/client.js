@@ -87,9 +87,7 @@ var prop = function (store) {
       oldValue = store;
 
       p.state.send("change");
-
       store = newValue;
-
       p.state.send("changed");
     }
 
@@ -104,10 +102,35 @@ var prop = function (store) {
   };
   p.state = State.define(function () {
     this.state("ready", function () {
-      this.event("change", function () { this.goto("../changing"); });
+      this.event("change", function () {
+        this.goto("../changing");
+      });
+      this.event("silence", function () {
+        this.goto("../silent");
+      });
+      this.event("disable", function () {
+        this.goto("../disabled");
+      });
     });
     this.state("changing", function () {
       this.event("changed", function () {
+        this.goto("../ready");
+      });
+    });
+    this.state("silent", function () {
+      this.event("report", function () {
+        this.goto("../ready");
+      });
+      this.event("disable", function () {
+        this.goto("../disabled");
+      });
+    });
+    this.state("disabled", function () {
+      // Attempts to change from disabled mode revert back
+      this.event("changed", function () {
+        store = oldValue;
+      });
+      this.event("enable", function () {
         this.goto("../ready");
       });
     });
@@ -150,7 +173,7 @@ f.model = function (spec, my) {
   //
 
   doDelete = function () {
-    this.goto("/busy/saving");
+    that.state.goto("/busy/saving");
   };
 
   doFetch = function () {
@@ -158,7 +181,7 @@ f.model = function (spec, my) {
       callback = function () {
         console.log(ret());
         that.state.send('fetched');
-      }.bind(this),
+      },
       url = "http://localhost:10010/" +
         my.name.toSpinalCase() + "/" + that.data.id();
 
@@ -199,11 +222,11 @@ f.model = function (spec, my) {
   };
 
   doPatch = function () {
-    this.goto("/busy/saving");
+    that.state.goto("/busy/saving");
   };
 
   doPost = function () {
-    this.goto("/busy/saving");
+    that.state.goto("/busy/saving");
   };
 
   // ..........................................................
@@ -214,27 +237,22 @@ f.model = function (spec, my) {
     this.state("ready", function () {
       this.state("new", function () {
         this.enter(doInit);
-        this.event("fetch", doFetch.bind(this));
-        this.event("save", doPost.bind(this));
+        this.event("fetch", doFetch);
+        this.event("save", doPost);
         this.event("delete", function () { this.goto("/ready/deleted"); });
       });
 
       this.state("fetched", function () {
         this.state("clean", function () {
           this.event("changed", function () { this.goto("../dirty"); });
-          this.event("delete", doDelete.bind(this));
+          this.event("delete", doDelete);
         });
 
         this.state("dirty", function () {
-          this.event("save", doPatch.bind(this));
+          this.event("save", doPatch);
         });
 
-        this.event("fetch", doFetch.bind(this));
-      });
-
-      this.state("deleted", function () {
-        // Prevent exiting from this state
-        this.canExit = function () { return false; };
+        this.event("fetch", doFetch);
       });
     });
 
@@ -245,6 +263,11 @@ f.model = function (spec, my) {
       this.event("fetched", function () { this.goto("/ready/fetched"); });
       this.event("deleted", function () { this.goto("/ready/deleted"); });
       this.event("error", function () { this.goto("/error"); });
+    });
+
+    this.state("deleted", function () {
+      // Prevent exiting from this state
+      this.canExit = function () { return false; };
     });
 
     this.state("error", function () {
