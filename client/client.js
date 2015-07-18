@@ -75,13 +75,59 @@ m.mount(document, {controller: todo.controller, view: todo.view});
 
 var State = (typeof require === 'function' ? require('statechart') :
       window.statechart).State;
+
 var f = {};
 
-f.model = function (model, spec) {
-  spec = spec || {};
+var prop = function (store, obj) {
+  var newValue, oldValue, p;
 
-  var doDelete, doFetch, doInit, doPatch, doPost,
-    obj = {data: {}};
+  p = function () {
+    if (arguments.length) {
+      newValue = arguments[0];
+      oldValue = store;
+
+      p.state.send("change");
+
+      store = newValue;
+
+      p.state.send("changed");
+    }
+
+    return store;
+  };
+
+  p.newValue = function () {
+    return newValue;
+  };
+  p.oldValue = function () {
+    return oldValue;
+  };
+  p.state = State.define(function () {
+    this.state("ready", function () {
+      this.event("change", function () { this.goto("../changing"); });
+    });
+    this.state("changing", function () {
+      this.event("changed", function () {
+        this.goto("../ready");
+        this.exit(function () {
+          // Bubble up to parent
+          obj.state.send("changed");
+        });
+      });
+    });
+  });
+
+  p.state.goto();
+
+  return p;
+};
+
+f.model = function (obj) {
+  if (typeof obj !== "object" || typeof obj.name !== "string") { return false; }
+
+  obj.data = obj.data || {};
+
+  var doDelete, doFetch, doInit, doPatch, doPost;
 
   // ..........................................................
   // PUBLIC
@@ -110,20 +156,33 @@ f.model = function (model, spec) {
 
   doFetch = function () {
     var ret = m.prop({}),
-      fetched = function () {
+      callback = function () {
         console.log(ret());
         obj.state.send('fetched');
       }.bind(this),
-      url = "http://localhost:10010/" + model + "/" + obj.data.id();
+      url = "http://localhost:10010/" +
+        obj.name.toSpinalCase() + "/" + obj.data.id();
 
     obj.state.goto("/busy");
     m.request({method: "GET", url: url})
       .then(ret)
-      .then(fetched);
+      .then(callback);
   };
 
   doInit = function () {
-    console.log("Hello World");
+    var keys = Object.keys(obj.data);
+
+    // Bind property change events
+    keys.forEach(function (key) {
+      var state,
+        d = obj.data,
+        fn = d[key].onChange;
+
+      if (typeof fn === "function") {
+        state = d[key].state.substateMap.changing;
+        state.enter(fn.bind(d[key]));
+      }
+    });
   };
 
   doPatch = function () {
@@ -186,76 +245,32 @@ f.model = function (model, spec) {
   return obj;
 };
 
-f.contact = function (spec) {
-  spec = spec || {};
+f.contact = function (attrs) {
+  attrs = attrs || {};
 
-  var keys, bindData,
-    obj = f.model("contact", spec),
-    prop = function (store) {
-      var newValue, oldValue, p;
-
-      p = function () {
-        if (arguments.length) {
-          newValue = arguments[0];
-          oldValue = store;
-
-          p.state.send("change");
-
-          store = newValue;
-
-          p.state.send("changed");
-        }
-
-        return store;
-      };
-
-      p.newValue = function () {
-        return newValue;
-      };
-      p.oldValue = function () {
-        return oldValue;
-      };
-      p.state = State.define(function () {
-        this.state("ready", function () {
-          this.event("change", function () { this.goto("../changing"); });
-        });
-        this.state("changing", function () {
-          this.event("changed", function () {
-            this.goto("../ready");
-            this.exit(function () {
-              // Bubble up to parent
-              obj.state.send("changed");
-            });
-          });
-        });
-      });
-
-      p.state.goto();
-
-      return p;
-    },
+  var obj = {name: "Contact", data: {}},
     d = obj.data;
 
   // ..........................................................
   // ATTRIBUTES
   //
 
-  d.id = prop(spec.id);
-  d.created = prop(spec.created || new Date());
-  d.createdBy = prop(spec.createdBy || "admin");
-  d.updated = prop(spec.updated || new Date());
-  d.updatedBy = prop(spec.updatedBy || "admin");
-  d.objectType = prop("Contact");
-  d.owner = prop(spec.owner || "admin");
-  d.etag = prop(spec.etag);
-  d.notes = prop(spec.notes || []);
-  d.title = prop(spec.title);
-  d.first = prop(spec.first);
-  d.last = prop(spec.last);
-  d.address = prop(spec.address || []);
+  d.id = prop(attrs.id, obj);
+  d.created = prop(attrs.created || new Date(), obj);
+  d.createdBy = prop(attrs.createdBy || "admin", obj);
+  d.updated = prop(attrs.updated || new Date(), obj);
+  d.updatedBy = prop(attrs.updatedBy || "admin", obj);
+  d.objectType = prop("Contact", obj);
+  d.owner = prop(attrs.owner || "admin", obj);
+  d.etag = prop(attrs.etag, obj);
+  d.notes = prop(attrs.notes || [], obj);
+  d.title = prop(attrs.title, obj);
+  d.first = prop(attrs.first, obj);
+  d.last = prop(attrs.last, obj);
+  d.address = prop(attrs.address || [], obj);
 
   // ..........................................................
-  // CHANGE EVENT RECEIVERS
+  // CHANGE EVENT HANDLERS
   //
 
   d.first.onChange = function () {
@@ -273,24 +288,6 @@ f.contact = function (spec) {
       this.oldValue() + " to " + this.newValue() + "!");
   };
 
-  // ..........................................................
-  // EVENT BINDINGS
-  //
-
-  bindData = function (data) {
-    keys = Object.keys(data);
-    keys.forEach(function (key) {
-      var state,
-        fn = data[key].onChange;
-
-      if (typeof fn === "function") {
-        state = data[key].state.substateMap.changing;
-        state.enter(fn.bind(data[key]));
-      }
-    });
-  };
-  bindData(d);
-
-  return obj;
+  return f.model(obj);
 };
 
