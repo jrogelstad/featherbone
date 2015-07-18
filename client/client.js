@@ -189,7 +189,7 @@ f.model = function (model, spec) {
 f.contact = function (spec) {
   spec = spec || {};
 
-  var keys,
+  var keys, bindData,
     obj = f.model("contact", spec),
     prop = function (store) {
       var newValue, oldValue, p;
@@ -234,41 +234,41 @@ f.contact = function (spec) {
 
       return p;
     },
-    data = obj.data;
+    d = obj.data;
 
   // ..........................................................
   // ATTRIBUTES
   //
 
-  data.id = prop(spec.id);
-  data.created = prop(spec.created || new Date());
-  data.createdBy = prop(spec.createdBy || "admin");
-  data.updated = prop(spec.updated || new Date());
-  data.updatedBy = prop(spec.updatedBy || "admin");
-  data.objectType = prop("Contact");
-  data.owner = prop(spec.owner || "admin");
-  data.etag = prop(spec.etag);
-  data.notes = prop(spec.notes || []);
-  data.title = prop(spec.title);
-  data.first = prop(spec.first);
-  data.last = prop(spec.last);
-  data.address = prop(spec.address || []);
+  d.id = prop(spec.id);
+  d.created = prop(spec.created || new Date());
+  d.createdBy = prop(spec.createdBy || "admin");
+  d.updated = prop(spec.updated || new Date());
+  d.updatedBy = prop(spec.updatedBy || "admin");
+  d.objectType = prop("Contact");
+  d.owner = prop(spec.owner || "admin");
+  d.etag = prop(spec.etag);
+  d.notes = prop(spec.notes || []);
+  d.title = prop(spec.title);
+  d.first = prop(spec.first);
+  d.last = prop(spec.last);
+  d.address = prop(spec.address || []);
 
   // ..........................................................
   // CHANGE EVENT RECEIVERS
   //
 
-  this.changingFirst = function () {
+  d.first.onChange = function () {
     console.log("First name changed from " +
       this.oldValue() + " to " + this.newValue() + "!");
   };
 
-  this.changingLast = function () {
+  d.last.onChange = function () {
     console.log("Last name changed from " +
       this.oldValue() + " to " + this.newValue() + "!");
   };
 
-  this.changingId = function () {
+  d.id.onChange = function () {
     console.log("Id changed from " +
       this.oldValue() + " to " + this.newValue() + "!");
   };
@@ -277,15 +277,19 @@ f.contact = function (spec) {
   // EVENT BINDINGS
   //
 
-  keys = Object.keys(data);
-  keys.forEach(function (key) {
-    var state,
-      fn = this["changing" + key.slice(0, 1).toUpperCase() + key.slice(1)];
-    if (typeof fn === "function") {
-      state = data[key].state.substateMap.changing;
-      state.enter(fn.bind(data[key]));
-    }
-  }.bind(this));
+  bindData = function (data) {
+    keys = Object.keys(data);
+    keys.forEach(function (key) {
+      var state,
+        fn = data[key].onChange;
+
+      if (typeof fn === "function") {
+        state = data[key].state.substateMap.changing;
+        state.enter(fn.bind(data[key]));
+      }
+    });
+  };
+  bindData(d);
 
   return obj;
 };
