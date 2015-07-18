@@ -78,7 +78,7 @@ var State = (typeof require === 'function' ? require('statechart') :
 
 var f = {};
 
-var prop = function (store, obj) {
+var prop = function (store) {
   var newValue, oldValue, p;
 
   p = function () {
@@ -109,10 +109,6 @@ var prop = function (store, obj) {
     this.state("changing", function () {
       this.event("changed", function () {
         this.goto("../ready");
-        this.exit(function () {
-          // Bubble up to parent
-          obj.state.send("changed");
-        });
       });
     });
   });
@@ -122,29 +118,33 @@ var prop = function (store, obj) {
   return p;
 };
 
-f.model = function (obj) {
-  if (typeof obj !== "object" || typeof obj.name !== "string") { return false; }
+f.model = function (spec, my) {
+  spec = spec || {};
 
-  obj.data = obj.data || {};
-  obj.onChange = obj.onChange || {};
+  var doDelete, doFetch, doInit, doPatch, doPost,
+    that = {data: {}, onChange: {}};
 
-  var doDelete, doFetch, doInit, doPatch, doPost;
+  // Forward shared secrets to new object
+  if (typeof my === "object") {
+    if (typeof my.data === "object") { that.data = my.data; }
+    if (typeof my.onChange === "object") { that.onChange = my.onChange; }
+  }
 
   // ..........................................................
   // PUBLIC
   //
 
-  obj.save = function () {
-    obj.state.send("save");
+  that.save = function () {
+    that.state.send("save");
   };
 
-  obj.fetch = function (filter) {
+  that.fetch = function (filter) {
     filter = filter || {};
-    obj.state.send("fetch");
+    that.state.send("fetch");
   };
 
-  obj.delete = function () {
-    obj.state.send("delete");
+  that.delete = function () {
+    that.state.send("delete");
   };
 
   // ..........................................................
@@ -159,30 +159,36 @@ f.model = function (obj) {
     var ret = m.prop({}),
       callback = function () {
         console.log(ret());
-        obj.state.send('fetched');
+        that.state.send('fetched');
       }.bind(this),
       url = "http://localhost:10010/" +
-        obj.name.toSpinalCase() + "/" + obj.data.id();
+        my.name.toSpinalCase() + "/" + that.data.id();
 
-    obj.state.goto("/busy");
+    that.state.goto("/busy");
     m.request({method: "GET", url: url})
       .then(ret)
       .then(callback);
   };
 
   doInit = function () {
-    var keys = Object.keys(obj.data);
+    var keys = Object.keys(that.data);
 
-    // Bind property change events
+    // Bind property events
     keys.forEach(function (key) {
       var state,
-        d = obj.data,
-        fn = obj.onChange[key];
+        d = that.data,
+        fn = that.onChange[key];
 
+      // Execute onChange function
       if (typeof fn === "function") {
         state = d[key].state.substateMap.changing;
         state.enter(fn.bind(d[key]));
       }
+
+      // Bubble event up to model when property changes
+      d[key].state.substateMap.changing.exit(function () {
+        that.state.send("changed");
+      });
     });
   };
 
@@ -198,7 +204,7 @@ f.model = function (obj) {
   // STATECHART
   //
 
-  obj.state = State.define(function () {
+  that.state = State.define(function () {
     this.state("ready", function () {
       this.state("new", function () {
         this.enter(doInit);
@@ -241,40 +247,39 @@ f.model = function (obj) {
     });
   });
 
-  obj.state.goto();
-
-  return obj;
+  return that;
 };
 
-f.contact = function (attrs) {
-  attrs = attrs || {};
+f.contact = function (spec, my) {
+  spec = spec || {};
 
-  var obj = {name: "Contact", data: {}},
-    d = obj.data;
+  var that,
+    shared = {name: "Contact", data: {}},
+    d = shared.data;
 
   // ..........................................................
   // ATTRIBUTES
   //
 
-  d.id = prop(attrs.id, obj);
-  d.created = prop(attrs.created || new Date(), obj);
-  d.createdBy = prop(attrs.createdBy || "admin", obj);
-  d.updated = prop(attrs.updated || new Date(), obj);
-  d.updatedBy = prop(attrs.updatedBy || "admin", obj);
-  d.objectType = prop("Contact", obj);
-  d.owner = prop(attrs.owner || "admin", obj);
-  d.etag = prop(attrs.etag, obj);
-  d.notes = prop(attrs.notes || [], obj);
-  d.title = prop(attrs.title, obj);
-  d.first = prop(attrs.first, obj);
-  d.last = prop(attrs.last, obj);
-  d.address = prop(attrs.address || [], obj);
+  d.id = prop(spec.id, that);
+  d.created = prop(spec.created || new Date(), that);
+  d.createdBy = prop(spec.createdBy || "admin", that);
+  d.updated = prop(spec.updated || new Date(), that);
+  d.updatedBy = prop(spec.updatedBy || "admin", that);
+  d.objectType = prop("Contact", that);
+  d.owner = prop(spec.owner || "admin", that);
+  d.etag = prop(spec.etag, that);
+  d.notes = prop(spec.notes || [], that);
+  d.title = prop(spec.title, that);
+  d.first = prop(spec.first, that);
+  d.last = prop(spec.last, that);
+  d.address = prop(spec.address || [], that);
 
   // ..........................................................
   // CHANGE EVENT HANDLERS
   //
 
-  obj.onChange = {
+  shared.onChange = {
     first: function () {
       console.log("First name changed from " +
         this.oldValue() + " to " + this.newValue() + "!");
@@ -289,6 +294,9 @@ f.contact = function (attrs) {
     }
   };
 
-  return f.model(obj);
+  that = f.model(spec, shared);
+  that.state.goto();
+
+  return that;
 };
 
