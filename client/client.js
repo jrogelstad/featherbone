@@ -126,6 +126,7 @@ f.model = function (obj) {
   if (typeof obj !== "object" || typeof obj.name !== "string") { return false; }
 
   obj.data = obj.data || {};
+  obj.onChange = obj.onChange || {};
 
   var doDelete, doFetch, doInit, doPatch, doPost;
 
@@ -176,7 +177,7 @@ f.model = function (obj) {
     keys.forEach(function (key) {
       var state,
         d = obj.data,
-        fn = d[key].onChange;
+        fn = obj.onChange[key];
 
       if (typeof fn === "function") {
         state = d[key].state.substateMap.changing;
@@ -273,19 +274,19 @@ f.contact = function (attrs) {
   // CHANGE EVENT HANDLERS
   //
 
-  d.first.onChange = function () {
-    console.log("First name changed from " +
-      this.oldValue() + " to " + this.newValue() + "!");
-  };
-
-  d.last.onChange = function () {
-    console.log("Last name changed from " +
-      this.oldValue() + " to " + this.newValue() + "!");
-  };
-
-  d.id.onChange = function () {
-    console.log("Id changed from " +
-      this.oldValue() + " to " + this.newValue() + "!");
+  obj.onChange = {
+    first: function () {
+      console.log("First name changed from " +
+        this.oldValue() + " to " + this.newValue() + "!");
+    },
+    last: function () {
+      console.log("Last name changed from " +
+        this.oldValue() + " to " + this.newValue() + "!");
+    },
+    id: function () {
+      console.log("Id changed from " +
+        this.oldValue() + " to " + this.newValue() + "!");
+    }
   };
 
   return f.model(obj);
