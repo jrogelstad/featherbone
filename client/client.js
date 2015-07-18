@@ -148,7 +148,7 @@ var prop = function (store) {
 f.model = function (spec, my) {
   spec = spec || {};
 
-  var doDelete, doFetch, doInit, doPatch, doPost,
+  var doDelete, doFetch, doInit, doPatch, doPost, state,
     that = {data: {}, onChange: {}};
 
   // ..........................................................
@@ -156,16 +156,70 @@ f.model = function (spec, my) {
   //
 
   that.save = function () {
-    that.state.send("save");
+    state.send("save");
   };
 
-  that.fetch = function (filter) {
-    filter = filter || {};
-    that.state.send("fetch");
+  /*
+    Send event to fetch data based on the current id from the server.
+    Only executes in "/ready" state.
+  */
+  that.fetch = function () {
+    state.send("fetch");
   };
 
+  /*
+    Send event to delete the current object from the server.
+    Only executes in "/ready/clean" and "/ready/new" states.
+  */
   that.delete = function () {
-    that.state.send("delete");
+    state.send("delete");
+  };
+
+  /*
+    Send an event to all properties.
+
+    @param {String} event name.
+    @returns receiver
+  */
+  that.sendToProperties = function (str) {
+    var d = that.data,
+      keys = Object.keys(d);
+
+    keys.forEach(function (key) {
+      d[key].state.send(str);
+    });
+
+    return this;
+  };
+
+  /*
+    Set properties to the values of a passed object
+
+    @param {Object} Attributes to set
+    @param {Boolean} Silence change events
+    @returns reciever
+  */
+  that.set = function (attrs, silent) {
+    var keys,
+      d = that.data;
+
+    if (typeof attrs === "object") {
+      keys = Object.keys(attrs);
+
+      // Silence events if applicable
+      if (silent) { that.sendToProperties("silence"); }
+
+      // Loop through each attribute and assign
+      keys.forEach(function (key) {
+        if (typeof d[key] === "function") {
+          d[key](attrs[key]);
+        }
+      });
+
+      that.sendToProperties("report"); // History?
+    }
+
+    return this;
   };
 
   // ..........................................................
@@ -177,17 +231,18 @@ f.model = function (spec, my) {
   };
 
   doFetch = function () {
-    var ret = m.prop({}),
+    var result = m.prop({}),
       callback = function () {
-        console.log(ret());
-        that.state.send('fetched');
+        console.log(result());
+        that.set(result(), true);
+        state.send('fetched');
       },
       url = "http://localhost:10010/" +
         my.name.toSpinalCase() + "/" + that.data.id();
 
-    that.state.goto("/busy");
+    state.goto("/busy");
     m.request({method: "GET", url: url})
-      .then(ret)
+      .then(result)
       .then(callback);
   };
 
@@ -205,18 +260,18 @@ f.model = function (spec, my) {
 
     // loop through properties and bind events
     keys.forEach(function (key) {
-      var state,
+      var pState,
         fn = that.onChange[key];
 
       // Execute onChange function if applicable
       if (typeof fn === "function") {
-        state = d[key].state.substateMap.changing;
-        state.enter(fn.bind(d[key]));
+        pState = d[key].state.substateMap.changing;
+        pState.enter(fn.bind(d[key]));
       }
 
       // Bubble event up to model when property changes
       d[key].state.substateMap.changing.exit(function () {
-        that.state.send("changed");
+        state.send("changed");
       });
     });
   };
@@ -233,7 +288,7 @@ f.model = function (spec, my) {
   // STATECHART
   //
 
-  that.state = State.define(function () {
+  state = State.define(function () {
     this.state("ready", function () {
       this.state("new", function () {
         this.enter(doInit);
@@ -276,7 +331,16 @@ f.model = function (spec, my) {
     });
   });
 
-  that.state.goto();
+  state.goto();
+
+  that.state = {
+    send: function (str) {
+      return state.send(str);
+    },
+    current: function () {
+      return state.current();
+    }
+  };
 
   return that;
 };
