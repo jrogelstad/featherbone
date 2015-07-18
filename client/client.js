@@ -128,12 +128,6 @@ f.model = function (spec, my) {
   var doDelete, doFetch, doInit, doPatch, doPost,
     that = {data: {}, onChange: {}};
 
-  // Forward shared secrets to new object
-  if (typeof my === "object") {
-    if (typeof my.data === "object") { that.data = my.data; }
-    if (typeof my.onChange === "object") { that.onChange = my.onChange; }
-  }
-
   // ..........................................................
   // PUBLIC
   //
@@ -175,15 +169,23 @@ f.model = function (spec, my) {
   };
 
   doInit = function () {
-    var keys = Object.keys(that.data);
+    var keys, d;
 
-    // Bind property events
+    // Forward shared secrets to new object
+    if (typeof my === "object") {
+      if (typeof my.data === "object") { that.data = my.data; }
+      if (typeof my.onChange === "object") { that.onChange = my.onChange; }
+    }
+
+    d = that.data;
+    keys = Object.keys(that.data);
+
+    // loop through properties and bind events
     keys.forEach(function (key) {
       var state,
-        d = that.data,
         fn = that.onChange[key];
 
-      // Execute onChange function
+      // Execute onChange function if applicable
       if (typeof fn === "function") {
         state = d[key].state.substateMap.changing;
         state.enter(fn.bind(d[key]));
@@ -257,8 +259,8 @@ f.model = function (spec, my) {
 f.contact = function (spec, my) {
   spec = spec || {};
 
-  var that,
-    shared = {name: "Contact", data: {}},
+  var shared = {name: "Contact", data: {}},
+    that = f.model(spec, shared),
     d = shared.data;
 
   // ..........................................................
@@ -298,7 +300,6 @@ f.contact = function (spec, my) {
     }
   };
 
-  that = f.model(spec, shared);
   that.state.goto();
 
   return that;
