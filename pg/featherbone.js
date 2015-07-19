@@ -27,17 +27,17 @@ var featherbone = {};
     _jsonpatch = require("fast-json-patch"),
     _settings = {},
     _types = {
-      object: {type: "json", defaultValue: {}},
-      array: {type: "json", defaultValue: []},
-      string: {type: "text", defaultValue: "''"},
-      integer: {type: "integer", defaultValue: 0},
-      long: {type: "bigint", defaultValue: 0},
-      number: {type: "numeric", defaultValue: 0},
-      float: {type: "real", defaultValue: 0},
-      double: {type: "double precision", defaultValue: 0},
-      date: {type: "date", defaultValue: "minDate()"},
-      dateTime: {type: "timestamp with time zone", defaultValue: "minDate()"},
-      boolean: {type: "boolean", defaultValue: "false"}
+      object: {type: "json", default: {}},
+      array: {type: "json", default: []},
+      string: {type: "text", default: "''"},
+      integer: {type: "integer", default: 0},
+      long: {type: "bigint", default: 0},
+      number: {type: "numeric", default: 0},
+      float: {type: "real", default: 0},
+      double: {type: "double precision", default: 0},
+      date: {type: "date", default: "minDate()"},
+      dateTime: {type: "timestamp with time zone", default: "minDate()"},
+      boolean: {type: "boolean", default: "false"}
     },
     c = 0;
 
@@ -620,7 +620,7 @@ var featherbone = {};
      *  grant no auth.
      * @param {String} [specification.properties] Model properties
      * @param {String} [specification.properties.description] Description
-     * @param {String} [specification.properties.defaultValue] Default value
+     * @param {String} [specification.properties.default] Default value
      *  or function name.
      * @param {String | Object} [specification.properties.type] Type. Standard
      *  types are string, boolean, number, date. Object is used for relation
@@ -852,15 +852,15 @@ var featherbone = {};
             if (typeof type === "object") {
               defaultValue = -1;
             } else {
-              defaultValue = props[adds[i]].defaultValue ||
-                _types[type].defaultValue;
+              defaultValue = props[adds[i]].default ||
+                _types[type].default;
             }
 
             if (typeof defaultValue === "string" &&
                 defaultValue.match(/\(\)$/)) {
               fns.push({
                 col: adds[i].toSnakeCase(),
-                defaultValue: defaultValue.replace(/\(\)$/, "")
+                default: defaultValue.replace(/\(\)$/, "")
               });
             } else {
               values.push(defaultValue);
@@ -904,7 +904,7 @@ var featherbone = {};
               n++;
 
               while (i < fns.length) {
-                values.push(featherbone[fns[i].defaultValue]());
+                values.push(featherbone[fns[i].default]());
                 i++;
               }
 
@@ -1470,8 +1470,8 @@ var featherbone = {};
         col = key.toSnakeCase();
 
         if (value === undefined) {
-          value = prop.defaultValue === undefined ?
-              _types[prop.type].defaultValue : prop.defaultValue;
+          value = prop.default === undefined ?
+              _types[prop.type].default : prop.default;
 
           /* If we have a class specific default that calls a function */
           if (value && typeof value === "string" && value.match(/\(\)$/)) {
