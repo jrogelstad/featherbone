@@ -76,80 +76,134 @@ m.mount(document, {controller: todo.controller, view: todo.view});
 var State = (typeof require === 'function' ? require('statechart') :
       window.statechart).State;
 
-var f = {};
+var f = {
 
-var prop = function (store) {
-  var newValue, oldValue, p;
+  /**
+    Return a unique identifier string.
 
-  p = function () {
-    if (arguments.length) {
-      newValue = arguments[0];
-      oldValue = store;
+    Moddified from https://github.com/google/closure-library
+    @author arv@google.com (Erik Arvidsson)
+    http://www.apache.org/licenses/LICENSE-2.0
 
-      p.state.send("change");
-      store = newValue;
-      p.state.send("changed");
-    }
+    @return {String}
+  */
+  createId: function () {
+    var x = 2147483648,
+      dt = new Date(),
+      result = Math.floor(Math.random() * x).toString(36) +
+        Math.abs(Math.floor(Math.random() * x) ^ dt).toString(36);
 
-    return store;
-  };
+    return result;
+  },
 
-  p.newValue = function () {
-    return newValue;
-  };
-  p.oldValue = function () {
-    return oldValue;
-  };
-  p.state = State.define(function () {
-    this.state("ready", function () {
-      this.event("change", function () {
-        this.goto("../changing");
+  /*
+    TODO: Make this real
+  */
+  getCurrentUser: function () {
+    return "admin";
+  },
+
+  /**
+    Return a date that is the current time.
+
+    @return {Date}
+  */
+  now: function () {
+    return new Date();
+  },
+
+  /**
+    Creates a property getter setter function with a default value.
+    Includes state...
+
+    @param {Any} Initial value
+    @return {Function}
+  */
+  prop: function (store) {
+    var newValue, oldValue, p;
+
+    p = function (value) {
+      if (arguments.length) {
+        newValue = value;
+        oldValue = store;
+
+        p.state.send("change");
+        store = newValue;
+        p.state.send("changed");
+
+        newValue = undefined;
+        oldValue = newValue;
+      }
+
+      return store;
+    };
+
+    /*
+      Getter setter for the new value
+
+    */
+    p.newValue = function (value) {
+      if (arguments.length) {
+        newValue = value;
+      }
+
+      return newValue;
+    };
+    p.oldValue = function () {
+      return oldValue;
+    };
+    p.state = State.define(function () {
+      this.state("ready", function () {
+        this.event("change", function () {
+          this.goto("../changing");
+        });
+        this.event("silence", function () {
+          this.goto("../silent");
+        });
+        this.event("disable", function () {
+          this.goto("../disabled");
+        });
       });
-      this.event("silence", function () {
-        this.goto("../silent");
+      this.state("changing", function () {
+        this.event("changed", function () {
+          this.goto("../ready");
+        });
       });
-      this.event("disable", function () {
-        this.goto("../disabled");
+      this.state("silent", function () {
+        this.event("report", function () {
+          this.goto("../ready");
+        });
+        this.event("disable", function () {
+          this.goto("../disabled");
+        });
+      });
+      this.state("disabled", function () {
+        // Attempts to change from disabled mode revert back
+        this.event("changed", function () {
+          store = oldValue;
+        });
+        this.event("enable", function () {
+          this.goto("../ready");
+        });
       });
     });
-    this.state("changing", function () {
-      this.event("changed", function () {
-        this.goto("../ready");
-      });
-    });
-    this.state("silent", function () {
-      this.event("report", function () {
-        this.goto("../ready");
-      });
-      this.event("disable", function () {
-        this.goto("../disabled");
-      });
-    });
-    this.state("disabled", function () {
-      // Attempts to change from disabled mode revert back
-      this.event("changed", function () {
-        store = oldValue;
-      });
-      this.event("enable", function () {
-        this.goto("../ready");
-      });
-    });
-  });
 
-  p.toJSON = function () {
-    return store;
-  };
+    p.toJSON = function () {
+      return store;
+    };
 
-  p.state.goto();
+    p.state.goto();
 
-  return p;
+    return p;
+  }
 };
 
 f.model = function (spec, my) {
   spec = spec || {};
 
-  var doDelete, doFetch, doInit, doPatch, doPost, state,
-    that = {data: {}, onChange: {}};
+  var  state, doDelete, doFetch, doInit, doPatch, doPost, doProperties,
+    that = {data: {}, onChange: {}},
+    d = that.data;
 
   // ..........................................................
   // PUBLIC
@@ -182,8 +236,7 @@ f.model = function (spec, my) {
     @returns receiver
   */
   that.sendToProperties = function (str) {
-    var d = that.data,
-      keys = Object.keys(d);
+    var keys = Object.keys(d);
 
     keys.forEach(function (key) {
       d[key].state.send(str);
@@ -195,16 +248,15 @@ f.model = function (spec, my) {
   /*
     Set properties to the values of a passed object
 
-    @param {Object} Attributes to set
+    @param {Object} Data to set
     @param {Boolean} Silence change events
     @returns reciever
   */
-  that.set = function (attrs, silent) {
-    var keys,
-      d = that.data;
+  that.set = function (data, silent) {
+    var keys;
 
-    if (typeof attrs === "object") {
-      keys = Object.keys(attrs);
+    if (typeof data === "object") {
+      keys = Object.keys(data);
 
       // Silence events if applicable
       if (silent) { that.sendToProperties("silence"); }
@@ -212,7 +264,7 @@ f.model = function (spec, my) {
       // Loop through each attribute and assign
       keys.forEach(function (key) {
         if (typeof d[key] === "function") {
-          d[key](attrs[key]);
+          d[key](data[key]);
         }
       });
 
@@ -233,7 +285,6 @@ f.model = function (spec, my) {
   doFetch = function () {
     var result = m.prop({}),
       callback = function () {
-        console.log(result());
         that.set(result(), true);
         state.send('fetched');
       },
@@ -247,7 +298,7 @@ f.model = function (spec, my) {
   };
 
   doInit = function () {
-    var keys, d;
+    var keys;
 
     // Forward shared secrets to new object
     if (typeof my === "object") {
@@ -256,6 +307,12 @@ f.model = function (spec, my) {
     }
 
     d = that.data;
+
+    // Create properties
+    if (typeof my === "object" && typeof my.properties === "object") {
+      doProperties(my.properties);
+    }
+
     keys = Object.keys(that.data);
 
     // loop through properties and bind events
@@ -284,9 +341,36 @@ f.model = function (spec, my) {
     that.state.goto("/busy/saving");
   };
 
-  // ..........................................................
-  // STATECHART
-  //
+  doProperties = function (props) {
+    var keys;
+
+    keys = Object.keys(props);
+
+    keys.forEach(function (key) {
+      var fn, defaultValue,
+        value = spec[key];
+
+      // Handle default
+      if (value === undefined && props[key].default) {
+        defaultValue = props[key].default;
+
+        // Handle default that is a function
+        if (typeof defaultValue === "string" &&
+            defaultValue.match(/\(\)$/)) {
+          fn = f[defaultValue.replace(/\(\)$/, "")];
+          value = fn();
+        } else {
+          value = defaultValue;
+        }
+      }
+
+      d[key] = f.prop(value);
+      d[key].description = props[key].description;
+      d[key].type = props[key].type;
+      d[key].default = fn || defaultValue;
+    });
+  };
+
 
   state = State.define(function () {
     this.state("ready", function () {
@@ -316,7 +400,7 @@ f.model = function (spec, my) {
       this.state("saving");
 
       this.event("fetched", function () { this.goto("/ready/fetched"); });
-      this.event("deleted", function () { this.goto("/ready/deleted"); });
+      this.event("deleted", function () { this.goto("/deleted"); });
       this.event("error", function () { this.goto("/error"); });
     });
 
@@ -331,8 +415,7 @@ f.model = function (spec, my) {
     });
   });
 
-  state.goto();
-
+  // Expose specific state capabilities users can see and manipulate
   that.state = {
     send: function (str) {
       return state.send(str);
@@ -342,38 +425,91 @@ f.model = function (spec, my) {
     }
   };
 
+  state.goto();
+
   return that;
 };
 
 f.contact = function (spec, my) {
   spec = spec || {};
 
-  var that = {name: "Contact", data: {}},
-    d = that.data;
+  var that,
+    shared = {name: "Contact", data: {}};
 
   // ..........................................................
-  // ATTRIBUTES
+  // PROPERTIES 
   //
 
-  d.id = prop(spec.id);
-  d.created = prop(spec.created || new Date());
-  d.createdBy = prop(spec.createdBy || "admin");
-  d.updated = prop(spec.updated || new Date());
-  d.updatedBy = prop(spec.updatedBy || "admin");
-  d.objectType = prop("Contact");
-  d.owner = prop(spec.owner || "admin");
-  d.etag = prop(spec.etag);
-  d.notes = prop(spec.notes || []);
-  d.title = prop(spec.title);
-  d.first = prop(spec.first);
-  d.last = prop(spec.last);
-  d.address = prop(spec.address || []);
+  shared.properties = {
+    id: {
+      description: "Surrogate key",
+      type: "string",
+      default: "createId()"
+    },
+    created: {
+      description: "Create time of the record",
+      type: "dateTime",
+      default: "now()"
+    },
+    createdBy: {
+      description: "User who created the record",
+      type: "string",
+      default: "getCurrentUser()"
+    },
+    updated: {
+      description: "Last time the record was updated",
+      type: "dateTime",
+      default: "now()"
+    },
+    updatedBy: {
+      description: "User who created the record",
+      type: "string",
+      default: "getCurrentUser()"
+    },
+    isDeleted: {
+      description: "Indicates the record is no longer active",
+      type: "boolean"
+    },
+    objectType: {
+      description: "Discriminates which inherited object type",
+      type: "string"
+    },
+    owner: {
+      description: "Owner of the document",
+      type: "string",
+      default: "getCurrentUser()"
+    },
+    notes: {
+      description: "Notes",
+      type: {
+        relation: "DocumentNote",
+        parentOf: "parent"
+      }
+    },
+    etag: {
+      description: "Optimistic locking key",
+      type: "string",
+      default: "createId()"
+    },
+    title: {
+      description: "Honorific title",
+      type: "string"
+    },
+    first: {
+      description: "First name",
+      type: "string"
+    },
+    last: {
+      description: "Last name",
+      type: "string"
+    }
+  };
 
   // ..........................................................
   // CHANGE EVENT HANDLERS
   //
 
-  that.onChange = {
+  shared.onChange = {
     first: function () {
       console.log("First name changed from " +
         this.oldValue() + " to " + this.newValue() + "!");
@@ -388,6 +524,13 @@ f.contact = function (spec, my) {
     }
   };
 
-  return f.model(spec, that);
+  // ..........................................................
+  // LOCAL OVERLOADS
+  //
+
+  that = f.model(spec, shared);
+
+
+  return that;
 };
 
