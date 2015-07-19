@@ -209,23 +209,12 @@ f.model = function (spec, my) {
 
   var  state, doDelete, doFetch, doInit, doPatch, doPost, doProperties,
     that = {data: {}, onChange: {}},
-    d = that.data;
+    d = that.data,
+    stateMap = {};
 
   // ..........................................................
   // PUBLIC
   //
-
-  that.save = function () {
-    state.send("save");
-  };
-
-  /*
-    Send event to fetch data based on the current id from the server.
-    Only executes in "/ready" state.
-  */
-  that.fetch = function () {
-    state.send("fetch");
-  };
 
   /*
     Send event to delete the current object from the server.
@@ -233,6 +222,36 @@ f.model = function (spec, my) {
   */
   that.delete = function () {
     state.send("delete");
+  };
+
+  /*
+    Send event to fetch data based on the current id from the server.
+    Only results in action in the "/ready" state.
+  */
+  that.fetch = function () {
+    state.send("fetch");
+  };
+
+  /*
+    Add a change event binding to property.
+
+    @param {String} Property name
+    @param {Function} Function to call on change
+    @return Reciever
+  */
+  that.onChange = function (name, func) {
+    stateMap[name].substateMap.changing.enter(func.bind(d[name]));
+
+    return this;
+  };
+
+  /*
+    Send the save event to persist current data to the server.
+    Only results in action in the "/ready/fetched/dirty" and
+    "/ready/new" states.
+  */
+  that.save = function () {
+    state.send("save");
   };
 
   /*
@@ -306,8 +325,7 @@ f.model = function (spec, my) {
   doInit = function () {
     // Forward shared secrets to new object
     if (typeof my === "object") {
-      if (typeof my.onChange === "object") { that.onChange = my.onChange; }
-      if (typeof my.properties === "object") { doProperties(my.properties); }
+      doProperties(my.properties);
     }
   };
 
@@ -322,12 +340,13 @@ f.model = function (spec, my) {
   doProperties = function (props) {
     var keys;
 
+    if (typeof props !== "object") { return; }
+
     keys = Object.keys(props);
 
     keys.forEach(function (key) {
-      var prop, fn, defaultValue, pState,
-        value = spec[key],
-        onChange = that.onChange[key];
+      var prop, func, defaultValue,
+        value = spec[key];
 
       // Handle default
       if (value === undefined && props[key].default) {
@@ -336,8 +355,8 @@ f.model = function (spec, my) {
         // Handle default that is a function
         if (typeof defaultValue === "string" &&
             defaultValue.match(/\(\)$/)) {
-          fn = f[defaultValue.replace(/\(\)$/, "")];
-          value = fn();
+          func = f[defaultValue.replace(/\(\)$/, "")];
+          value = func();
         } else {
           value = defaultValue;
         }
@@ -349,26 +368,21 @@ f.model = function (spec, my) {
       // Carry othe property definitions forward
       prop.description = props[key].description;
       prop.type = props[key].type;
-      prop.default = fn || defaultValue;
+      prop.default = func || defaultValue;
 
-      // Bind onChange function if applicable
-      if (typeof onChange === "function") {
-        prop.state.substateMap.changing.enter(onChange.bind(prop));
-      }
-
-      // Report event up to model when property changes
+      // Report property changed event up to model
       prop.state.substateMap.changing.exit(function () {
         state.send("changed");
       });
 
-      // Limit access to state...
-      pState = prop.state;
+      // Limit access to state
+      stateMap[key] = prop.state;
       prop.state = {
         current: function () {
-          return pState.current();
+          return stateMap[key].current();
         },
         send: function (str) {
-          return pState.send(str);
+          return stateMap[key].send(str);
         }
       };
 
@@ -435,8 +449,8 @@ f.model = function (spec, my) {
   return that;
 };
 
-f.contact = function (spec, my) {
-  spec = spec || {};
+f.contact = function (data, my) {
+  data = data || {};
 
   var that,
     shared = {name: "Contact", data: {}};
@@ -510,31 +524,26 @@ f.contact = function (spec, my) {
     }
   };
 
-  // ..........................................................
-  // CHANGE EVENT HANDLERS
-  //
-
-  shared.onChange = {
-    first: function () {
-      console.log("First name changed from " +
-        this.oldValue() + " to " + this.newValue() + "!");
-    },
-    last: function () {
-      console.log("Last name changed from " +
-        this.oldValue() + " to " + this.newValue() + "!");
-    },
-    id: function () {
-      console.log("Id changed from " +
-        this.oldValue() + " to " + this.newValue() + "!");
-    }
-  };
+  that = f.model(data, shared);
 
   // ..........................................................
-  // LOCAL OVERLOADS
+  // CHANGE EVENT BINDINGS
   //
 
-  that = f.model(spec, shared);
+  that.onChange("first", function () {
+    console.log("First name changed from " +
+      this.oldValue() + " to " + this.newValue() + "!");
+  });
 
+  that.onChange("last", function () {
+    console.log("Last name changed from " +
+      this.oldValue() + " to " + this.newValue() + "!");
+  });
+
+  that.onChange("id", function () {
+    console.log("Id changed from " +
+      this.oldValue() + " to " + this.newValue() + "!");
+  });
 
   return that;
 };
