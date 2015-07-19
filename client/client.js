@@ -204,8 +204,8 @@ var f = {
   }
 };
 
-f.model = function (spec, my) {
-  spec = spec || {};
+f.model = function (data, my) {
+  data = data || {};
 
   var  state, doDelete, doFetch, doInit, doPatch, doPost, doProperties,
     that = {data: {}, onChange: {}},
@@ -293,7 +293,7 @@ f.model = function (spec, my) {
         }
       });
 
-      that.sendToProperties("report"); // History?
+      that.sendToProperties("report"); // TODO: History?
     }
 
     return this;
@@ -346,7 +346,7 @@ f.model = function (spec, my) {
 
     keys.forEach(function (key) {
       var prop, func, defaultValue,
-        value = spec[key];
+        value = data[key];
 
       // Handle default
       if (value === undefined && props[key].default) {
@@ -453,7 +453,7 @@ f.contact = function (data, my) {
   data = data || {};
 
   var that,
-    shared = {name: "Contact", data: {}};
+    shared = {name: "Contact"};
 
   // ..........................................................
   // PROPERTIES 
