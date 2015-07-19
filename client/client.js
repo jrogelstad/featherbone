@@ -120,39 +120,10 @@ var f = {
     @return {Function}
   */
   prop: function (store) {
-    var newValue, oldValue, p;
+    var newValue, oldValue, p, state;
 
-    p = function (value) {
-      if (arguments.length) {
-        newValue = value;
-        oldValue = store;
-
-        p.state.send("change");
-        store = newValue;
-        p.state.send("changed");
-
-        newValue = undefined;
-        oldValue = newValue;
-      }
-
-      return store;
-    };
-
-    /*
-      Getter setter for the new value
-
-    */
-    p.newValue = function (value) {
-      if (arguments.length) {
-        newValue = value;
-      }
-
-      return newValue;
-    };
-    p.oldValue = function () {
-      return oldValue;
-    };
-    p.state = State.define(function () {
+    // Initialize state
+    state = State.define(function () {
       this.state("ready", function () {
         this.event("change", function () {
           this.goto("../changing");
@@ -188,11 +159,46 @@ var f = {
       });
     });
 
+    // Private function that will be returned
+    p = function (value) {
+      if (arguments.length) {
+        newValue = value;
+        oldValue = store;
+
+        p.state.send("change");
+        store = newValue;
+        p.state.send("changed");
+
+        newValue = undefined;
+        oldValue = newValue;
+      }
+
+      return store;
+    };
+
+    /*
+      Getter setter for the new value
+
+    */
+    p.newValue = function (value) {
+      if (arguments.length) {
+        newValue = value;
+      }
+
+      return newValue;
+    };
+    p.oldValue = function () {
+      return oldValue;
+    };
+
+    p.state = state;
+
     p.toJSON = function () {
       return store;
     };
 
-    p.state.goto();
+    // Initialize state
+    state.goto();
 
     return p;
   }
@@ -319,7 +325,7 @@ f.model = function (spec, my) {
     keys = Object.keys(props);
 
     keys.forEach(function (key) {
-      var fn, defaultValue,
+      var prop, fn, defaultValue, pState,
         value = spec[key],
         onChange = that.onChange[key];
 
@@ -338,22 +344,35 @@ f.model = function (spec, my) {
       }
 
       // Create property
-      d[key] = f.prop(value);
+      prop = f.prop(value);
 
       // Carry othe property definitions forward
-      d[key].description = props[key].description;
-      d[key].type = props[key].type;
-      d[key].default = fn || defaultValue;
+      prop.description = props[key].description;
+      prop.type = props[key].type;
+      prop.default = fn || defaultValue;
 
       // Bind onChange function if applicable
       if (typeof onChange === "function") {
-        d[key].state.substateMap.changing.enter(onChange.bind(d[key]))
+        prop.state.substateMap.changing.enter(onChange.bind(prop));
       }
 
       // Report event up to model when property changes
-      d[key].state.substateMap.changing.exit(function () {
+      prop.state.substateMap.changing.exit(function () {
         state.send("changed");
       });
+
+      // Limit access to state...
+      pState = prop.state;
+      prop.state = {
+        current: function () {
+          return pState.current();
+        },
+        send: function (str) {
+          return pState.send(str);
+        }
+      };
+
+      d[key] = prop;
     });
   };
 
