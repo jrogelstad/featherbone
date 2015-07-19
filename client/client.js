@@ -178,7 +178,7 @@ var f = {
         });
       });
       this.state("disabled", function () {
-        // Attempts to change from disabled mode revert back
+        // Attempts to make changes from disabled mode revert back
         this.event("changed", function () {
           store = oldValue;
         });
@@ -298,47 +298,19 @@ f.model = function (spec, my) {
   };
 
   doInit = function () {
-    var keys;
-
     // Forward shared secrets to new object
     if (typeof my === "object") {
-      if (typeof my.data === "object") { that.data = my.data; }
       if (typeof my.onChange === "object") { that.onChange = my.onChange; }
+      if (typeof my.properties === "object") { doProperties(my.properties); }
     }
-
-    d = that.data;
-
-    // Create properties
-    if (typeof my === "object" && typeof my.properties === "object") {
-      doProperties(my.properties);
-    }
-
-    keys = Object.keys(that.data);
-
-    // loop through properties and bind events
-    keys.forEach(function (key) {
-      var pState,
-        fn = that.onChange[key];
-
-      // Execute onChange function if applicable
-      if (typeof fn === "function") {
-        pState = d[key].state.substateMap.changing;
-        pState.enter(fn.bind(d[key]));
-      }
-
-      // Bubble event up to model when property changes
-      d[key].state.substateMap.changing.exit(function () {
-        state.send("changed");
-      });
-    });
   };
 
   doPatch = function () {
-    that.state.goto("/busy/saving");
+    state.goto("/busy/saving");
   };
 
   doPost = function () {
-    that.state.goto("/busy/saving");
+    state.goto("/busy/saving");
   };
 
   doProperties = function (props) {
@@ -348,7 +320,8 @@ f.model = function (spec, my) {
 
     keys.forEach(function (key) {
       var fn, defaultValue,
-        value = spec[key];
+        value = spec[key],
+        onChange = that.onChange[key];
 
       // Handle default
       if (value === undefined && props[key].default) {
@@ -364,13 +337,25 @@ f.model = function (spec, my) {
         }
       }
 
+      // Create property
       d[key] = f.prop(value);
+
+      // Carry othe property definitions forward
       d[key].description = props[key].description;
       d[key].type = props[key].type;
       d[key].default = fn || defaultValue;
+
+      // Bind onChange function if applicable
+      if (typeof onChange === "function") {
+        d[key].state.substateMap.changing.enter(onChange.bind(d[key]))
+      }
+
+      // Report event up to model when property changes
+      d[key].state.substateMap.changing.exit(function () {
+        state.send("changed");
+      });
     });
   };
-
 
   state = State.define(function () {
     this.state("ready", function () {
@@ -425,6 +410,7 @@ f.model = function (spec, my) {
     }
   };
 
+  // Initialize
   state.goto();
 
   return that;
