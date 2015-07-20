@@ -120,44 +120,46 @@ var f = {
     @return {Function}
   */
   prop: function (store) {
-    var newValue, oldValue, p, state;
+    var newValue, oldValue, p, state, revert;
 
     // Initialize state
     state = State.define(function () {
-      this.state("ready", function () {
+      this.state("Ready", function () {
         this.event("change", function () {
-          this.goto("../changing");
+          this.goto("../Changing");
         });
         this.event("silence", function () {
-          this.goto("../silent");
+          this.goto("../Silent");
         });
         this.event("disable", function () {
-          this.goto("../disabled");
+          this.goto("../Disabled");
         });
       });
-      this.state("changing", function () {
+      this.state("Changing", function () {
         this.event("changed", function () {
-          this.goto("../ready");
+          this.goto("../Ready");
         });
       });
-      this.state("silent", function () {
+      this.state("Silent", function () {
         this.event("report", function () {
-          this.goto("../ready");
+          this.goto("../Ready");
         });
-        this.event("disable", function () {
-          this.goto("../disabled");
+        this.event("Disable", function () {
+          this.goto("../Disabled");
         });
       });
-      this.state("disabled", function () {
+      this.state("Disabled", function () {
         // Attempts to make changes from disabled mode revert back
-        this.event("changed", function () {
-          store = oldValue;
-        });
+        this.event("changed", revert);
         this.event("enable", function () {
-          this.goto("../ready");
+          this.goto("../Ready");
         });
       });
     });
+
+    revert = function () {
+      store = oldValue;
+    };
 
     // Private function that will be returned
     p = function (value) {
@@ -206,9 +208,10 @@ var f = {
 
 f.model = function (data, my) {
   data = data || {};
+  my = my || {};
 
   var  state, doDelete, doFetch, doInit, doPatch, doPost, doProperties,
-    that = {data: {}, onChange: {}},
+    that = {data: {}},
     d = that.data,
     stateMap = {};
 
@@ -233,14 +236,14 @@ f.model = function (data, my) {
   };
 
   /*
-    Add a change event binding to property.
+    Add a change event binding to a property.
 
     @param {String} Property name
     @param {Function} Function to call on change
     @return Reciever
   */
   that.onChange = function (name, func) {
-    stateMap[name].substateMap.changing.enter(func.bind(d[name]));
+    stateMap[name].substateMap.Changing.enter(func.bind(d[name]));
 
     return this;
   };
@@ -304,7 +307,7 @@ f.model = function (data, my) {
   //
 
   doDelete = function () {
-    that.state.goto("/busy/saving");
+    that.state.goto("/Busy/Saving");
   };
 
   doFetch = function () {
@@ -316,40 +319,33 @@ f.model = function (data, my) {
       url = "http://localhost:10010/" +
         my.name.toSpinalCase() + "/" + that.data.id();
 
-    state.goto("/busy");
+    state.goto("/Busy");
     m.request({method: "GET", url: url})
       .then(result)
       .then(callback);
   };
 
   doInit = function () {
-    // Forward shared secrets to new object
-    if (typeof my === "object") {
-      doProperties(my.properties);
-    }
+    doProperties(my.properties);
   };
 
   doPatch = function () {
-    state.goto("/busy/saving");
+    state.goto("/Busy/Saving");
   };
 
   doPost = function () {
-    state.goto("/busy/saving");
+    state.goto("/Busy/Saving");
   };
 
   doProperties = function (props) {
-    var keys;
-
-    if (typeof props !== "object") { return; }
-
-    keys = Object.keys(props);
+    var keys = Object.keys(props || {});
 
     keys.forEach(function (key) {
       var prop, func, defaultValue,
         value = data[key];
 
       // Handle default
-      if (value === undefined && props[key].default) {
+      if (value === undefined && props[key].default !== undefined) {
         defaultValue = props[key].default;
 
         // Handle default that is a function
@@ -365,17 +361,17 @@ f.model = function (data, my) {
       // Create property
       prop = f.prop(value);
 
-      // Carry othe property definitions forward
+      // Carry other property definitions forward
       prop.description = props[key].description;
       prop.type = props[key].type;
       prop.default = func || defaultValue;
 
       // Report property changed event up to model
-      prop.state.substateMap.changing.exit(function () {
+      prop.state.substateMap.Changing.exit(function () {
         state.send("changed");
       });
 
-      // Limit access to state
+      // Limit public access to state
       stateMap[key] = prop.state;
       prop.state = {
         current: function () {
@@ -390,22 +386,22 @@ f.model = function (data, my) {
     });
   };
 
-  state = State.define(function () {
-    this.state("ready", function () {
-      this.state("new", function () {
+  state = my.state || State.define(function () {
+    this.state("Ready", function () {
+      this.state("New", function () {
         this.enter(doInit);
         this.event("fetch", doFetch);
         this.event("save", doPost);
-        this.event("delete", function () { this.goto("/ready/deleted"); });
+        this.event("delete", function () { this.goto("/Ready/Deleted"); });
       });
 
-      this.state("fetched", function () {
-        this.state("clean", function () {
-          this.event("changed", function () { this.goto("../dirty"); });
+      this.state("Fetched", function () {
+        this.state("Clean", function () {
+          this.event("changed", function () { this.goto("../Dirty"); });
           this.event("delete", doDelete);
         });
 
-        this.state("dirty", function () {
+        this.state("Dirty", function () {
           this.event("save", doPatch);
         });
 
@@ -413,21 +409,21 @@ f.model = function (data, my) {
       });
     });
 
-    this.state("busy", function () {
-      this.state("fetching");
-      this.state("saving");
+    this.state("Busy", function () {
+      this.state("Fetching");
+      this.state("Saving");
 
-      this.event("fetched", function () { this.goto("/ready/fetched"); });
-      this.event("deleted", function () { this.goto("/deleted"); });
-      this.event("error", function () { this.goto("/error"); });
+      this.event("fetched", function () { this.goto("/Ready/Fetched"); });
+      this.event("deleted", function () { this.goto("/Deleted"); });
+      this.event("error", function () { this.goto("/Error"); });
     });
 
-    this.state("deleted", function () {
+    this.state("Deleted", function () {
       // Prevent exiting from this state
       this.canExit = function () { return false; };
     });
 
-    this.state("error", function () {
+    this.state("Error", function () {
       // Prevent exiting from this state
       this.canExit = function () { return false; };
     });
@@ -445,6 +441,14 @@ f.model = function (data, my) {
 
   // Initialize
   state.goto();
+
+  return that;
+};
+
+f.catalog = function () {
+  var that, shared = {};
+
+  that = f.model(null, shared);
 
   return that;
 };
