@@ -386,7 +386,7 @@ f.model = function (data, my) {
     });
   };
 
-  state = my.state || State.define(function () {
+  state = State.define(function () {
     this.state("Ready", function () {
       this.state("New", function () {
         this.enter(doInit);
@@ -445,10 +445,75 @@ f.model = function (data, my) {
   return that;
 };
 
-f.catalog = function () {
-  var that, shared = {};
+f.settings = function (my) {
+  var state, doFetch, doPost,
+    that = {};
 
-  that = f.model(null, shared);
+  // TODO: Create properties for setting
+
+  doFetch = function () {
+    var result = m.prop({}),
+      callback = function () {
+        that.set(result(), true);
+        state.send('fetched');
+      },
+      url = "http://localhost:10010/" +
+        my.name.toSpinalCase() + "/" + that.data.id();
+
+    state.goto("/Busy");
+    m.request({method: "GET", url: url})
+      .then(result)
+      .then(callback);
+  };
+
+  doPost = function () {
+    state.goto("/Busy/Saving");
+  };
+
+  state = State.define(function () {
+    this.state("Ready", function () {
+      this.state("New", function () {
+        this.event("fetch", doFetch);
+      });
+
+      this.state("Fetched", function () {
+        this.state("Clean", function () {
+          this.event("changed", function () { this.goto("../Dirty"); });
+        });
+
+        this.state("Dirty", function () {
+          this.event("save", doPost);
+        });
+
+        this.event("fetch", doFetch);
+      });
+    });
+
+    this.state("Busy", function () {
+      this.state("Fetching");
+      this.state("Saving");
+
+      this.event("fetched", function () { this.goto("/Ready/Fetched"); });
+      this.event("error", function () { this.goto("/Error"); });
+    });
+
+    this.state("Error", function () {
+      // Prevent exiting from this state
+      this.canExit = function () { return false; };
+    });
+  });
+
+  // Expose specific state capabilities users can see and manipulate
+  that.state = {
+    send: function (str) {
+      return state.send(str);
+    },
+    current: function () {
+      return state.current();
+    }
+  };
+
+  state.goto();
 
   return that;
 };
