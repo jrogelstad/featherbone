@@ -457,8 +457,7 @@ f.settings = function (my) {
         that.set(result(), true);
         state.send('fetched');
       },
-      url = "http://localhost:10010/" +
-        my.name.toSpinalCase() + "/" + that.data.id();
+      url = "http://localhost:10010/settings/catalog";
 
     state.goto("/Busy");
     m.request({method: "GET", url: url})
@@ -474,6 +473,7 @@ f.settings = function (my) {
     this.state("Ready", function () {
       this.state("New", function () {
         this.event("fetch", doFetch);
+        this.enter(function () { state.send("fetch"); });
       });
 
       this.state("Fetched", function () {

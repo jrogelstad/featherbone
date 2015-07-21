@@ -259,7 +259,7 @@ buildApi = function () {
               "x-swagger-router-controller": "data",
               get: {
                 summary: "Info for a specific " + name,
-                operationId: "request",
+                operationId: "doGet",
                 parameters: [
                   {
                     name: "id",
@@ -293,7 +293,7 @@ buildApi = function () {
                 "x-swagger-router-controller": "data",
                 get: {
                   description: key + " data",
-                  operationId: "request",
+                  operationId: "doGet",
                   parameters: [
                     {
                       name: "offset",

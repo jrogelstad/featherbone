@@ -76,3 +76,35 @@ definitions:
     properties:
       message:
         type: string
+  Settings:
+    description: Generic definition for settings
+    properties:
+      id:
+        description: Surrogate key
+        type: string
+      created:
+        description: Create time of the record
+        type: string
+        format: date-time
+      createdBy:
+        description: User who created the record
+        type: string
+      updated:
+        description: Last time the record was updated
+        type: string
+        format: date-time
+      updatedBy:
+        description: User who created the record
+        type: string
+      isDeleted:
+        description: Indicates the record is no longer active
+        type: boolean
+      name:
+        description: SName
+        type: string
+      data:
+        description: Data
+        type: object
+      etag:
+        description: Optimistic locking key
+        type: string
