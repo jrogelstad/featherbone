@@ -2,7 +2,7 @@
 
 require('../../common/extend-string.js');
 
-var pgconfig, catalog, hello, doGetList, doGetOne, doPatch, doPost,
+var pgconfig, catalog, hello, doGetList, doGetOne, doUpsert,
   favicon, query, begin, buildSql, getCatalog, init, resolveName, client,
   util = require('util'),
   pg = require("pg"),
@@ -14,8 +14,7 @@ module.exports = {
   hello: hello,
   doGetList: doGetList,
   doGetOne: doGetOne,
-  doPatch: doPatch,
-  doPost: doPost,
+  doUpsert: doUpsert,
   favicon: favicon
 };
 
@@ -220,12 +219,13 @@ function doGetOne(req, res) {
   init(query);
 }
 
-function doPost(req, res) {
+function doUpsert(req, res) {
   var query;
 
   query = function (err) {
-    var payload, sql, gotPost, handleError, concatStream,
+    var payload, sql, gotData, handleError, concatStream,
       params = req.swagger.params,
+      method = req.method,
       name = resolveName(req.swagger.apiPath),
       id = params.id.value,
       result;
@@ -235,17 +235,15 @@ function doPost(req, res) {
       return;
     }
 
-    gotPost = function (data) {
-      console.log(data);
-
+    gotData = function (data) {
       payload = JSON.parse(data);
-      payload.method = "POST";
+      payload.method = method;
       payload.name = name;
       payload.user = "postgres";
       payload.id = id;
 
       sql = buildSql(payload);
-
+console.log(sql);
       client.query(sql, function (err, resp) {
         if (err) {
           res.statusCode = 500;
@@ -267,62 +265,7 @@ function doPost(req, res) {
       console.error(err); // print the error to STDERR
     };
 
-    concatStream = concat({encoding: "string"}, gotPost);
-    req.on('error', handleError);
-    req.pipe(concatStream);
-  };
-
-  init(query);
-}
-
-function doPatch(req, res) {
-  var query;
-
-  query = function (err) {
-    var payload, sql, gotPatch, handleError, concatStream,
-      params = req.swagger.params,
-      name = resolveName(req.swagger.apiPath),
-      id = params.id.value,
-      result;
-
-    if (err) {
-      console.error(err);
-      return;
-    }
-
-    gotPatch = function (data) {
-      console.log(data);
-
-      payload = JSON.parse(data);
-      payload.method = "PATCH";
-      payload.name = name;
-      payload.user = "postgres";
-      payload.id = id;
-
-      sql = buildSql(payload);
-
-      client.query(sql, function (err, resp) {
-        if (err) {
-          res.statusCode = 500;
-          console.error(err);
-          return err;
-        }
-
-        client.end();
-
-        result = resp.rows[0].response;
-
-        // this sends back a JSON response which is a single string
-        res.json(result);
-      });
-    };
-
-    handleError = function (err) {
-      // handle your error appropriately here, e.g.:
-      console.error(err); // print the error to STDERR
-    };
-
-    concatStream = concat({encoding: "string"}, gotPatch);
+    concatStream = concat({encoding: "string"}, gotData);
     req.on('error', handleError);
     req.pipe(concatStream);
   };

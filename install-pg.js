@@ -285,7 +285,7 @@ buildApi = function () {
               },
               post: {
                 summary: "Add a new object to the database" + name,
-                operationId: "doPost",
+                operationId: "doUpsert",
                 parameters: [
                   {
                     name: "id",
@@ -311,7 +311,7 @@ buildApi = function () {
               },
               patch: {
                 summary: "Update an existing object in the database" + name,
-                operationId: "doPatch",
+                operationId: "doUpsert",
                 parameters: [
                   {
                     name: "id",
