@@ -284,7 +284,7 @@ buildApi = function () {
                 }
               },
               post: {
-                summary: "Add a new record to the database" + name,
+                summary: "Add a new object to the database" + name,
                 operationId: "doPost",
                 parameters: [
                   {
@@ -299,6 +299,32 @@ buildApi = function () {
                     description: "Expected response to a valid request",
                     schema: {
                       $ref: "#/definitions/PostResponse"
+                    }
+                  },
+                  default: {
+                    description: "unexpected error",
+                    schema: {
+                      $ref: "#/definitions/ErrorResponse"
+                    }
+                  }
+                }
+              },
+              patch: {
+                summary: "Update an existing object in the database" + name,
+                operationId: "doPatch",
+                parameters: [
+                  {
+                    name: "id",
+                    in: "path",
+                    description: "The id of the " + name + " to update",
+                    type: "string"
+                  }
+                ],
+                responses: {
+                  200: {
+                    description: "Expected response to a valid request",
+                    schema: {
+                      $ref: "#/definitions/PatchResponse"
                     }
                   },
                   default: {

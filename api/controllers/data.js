@@ -2,8 +2,8 @@
 
 require('../../common/extend-string.js');
 
-var pgconfig, catalog, hello, doGetList, doGetOne, doPost, favicon, query,
-  begin, buildSql, getCatalog, init, resolveName, client,
+var pgconfig, catalog, hello, doGetList, doGetOne, doPatch, doPost,
+  favicon, query, begin, buildSql, getCatalog, init, resolveName, client,
   util = require('util'),
   pg = require("pg"),
   concat = require("concat-stream"),
@@ -14,6 +14,7 @@ module.exports = {
   hello: hello,
   doGetList: doGetList,
   doGetOne: doGetOne,
+  doPatch: doPatch,
   doPost: doPost,
   favicon: favicon
 };
@@ -226,7 +227,7 @@ function doPost(req, res) {
     var payload, sql, gotPost, handleError, concatStream,
       params = req.swagger.params,
       name = resolveName(req.swagger.apiPath),
-      id = params.id !== undefined ? params.id.value : undefined,
+      id = params.id.value,
       result;
 
     if (err) {
@@ -267,6 +268,61 @@ function doPost(req, res) {
     };
 
     concatStream = concat({encoding: "string"}, gotPost);
+    req.on('error', handleError);
+    req.pipe(concatStream);
+  };
+
+  init(query);
+}
+
+function doPatch(req, res) {
+  var query;
+
+  query = function (err) {
+    var payload, sql, gotPatch, handleError, concatStream,
+      params = req.swagger.params,
+      name = resolveName(req.swagger.apiPath),
+      id = params.id.value,
+      result;
+
+    if (err) {
+      console.error(err);
+      return;
+    }
+
+    gotPatch = function (data) {
+      console.log(data);
+
+      payload = JSON.parse(data);
+      payload.method = "PATCH";
+      payload.name = name;
+      payload.user = "postgres";
+      payload.id = id;
+
+      sql = buildSql(payload);
+
+      client.query(sql, function (err, resp) {
+        if (err) {
+          res.statusCode = 500;
+          console.error(err);
+          return err;
+        }
+
+        client.end();
+
+        result = resp.rows[0].response;
+
+        // this sends back a JSON response which is a single string
+        res.json(result);
+      });
+    };
+
+    handleError = function (err) {
+      // handle your error appropriately here, e.g.:
+      console.error(err); // print the error to STDERR
+    };
+
+    concatStream = concat({encoding: "string"}, gotPatch);
     req.on('error', handleError);
     req.pipe(concatStream);
   };
