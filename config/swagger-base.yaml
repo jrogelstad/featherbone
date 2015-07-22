@@ -76,6 +76,12 @@ definitions:
     properties:
       message:
         type: string
+  PostResponse:
+    required:
+      - message
+    properties:
+      message:
+        type: string
   Settings:
     description: Generic definition for settings
     properties:

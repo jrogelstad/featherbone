@@ -259,7 +259,7 @@ buildApi = function () {
               "x-swagger-router-controller": "data",
               get: {
                 summary: "Info for a specific " + name,
-                operationId: "doGet",
+                operationId: "doGetOne",
                 parameters: [
                   {
                     name: "id",
@@ -282,6 +282,32 @@ buildApi = function () {
                     }
                   }
                 }
+              },
+              post: {
+                summary: "Add a new record to the database" + name,
+                operationId: "doPost",
+                parameters: [
+                  {
+                    name: "id",
+                    in: "path",
+                    description: "The id of the " + name + " to add",
+                    type: "string"
+                  }
+                ],
+                responses: {
+                  200: {
+                    description: "Expected response to a valid request",
+                    schema: {
+                      $ref: "#/definitions/PostResponse"
+                    }
+                  },
+                  default: {
+                    description: "unexpected error",
+                    schema: {
+                      $ref: "#/definitions/ErrorResponse"
+                    }
+                  }
+                }
               }
             };
 
@@ -293,7 +319,7 @@ buildApi = function () {
                 "x-swagger-router-controller": "data",
                 get: {
                   description: key + " data",
-                  operationId: "doGet",
+                  operationId: "doGetList",
                   parameters: [
                     {
                       name: "offset",

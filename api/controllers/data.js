@@ -2,7 +2,7 @@
 
 require('../../common/extend-string.js');
 
-var pgconfig, catalog, hello, doGet, doPost, favicon,
+var pgconfig, catalog, hello, doGetList, doGetOne, doPost, favicon, query,
   begin, buildSql, getCatalog, init, resolveName, client,
   util = require('util'),
   pg = require("pg"),
@@ -12,7 +12,8 @@ var pgconfig, catalog, hello, doGet, doPost, favicon,
 
 module.exports = {
   hello: hello,
-  doGet: doGet,
+  doGetList: doGetList,
+  doGetOne: doGetOne,
   doPost: doPost,
   favicon: favicon
 };
@@ -118,14 +119,13 @@ function hello(req, res) {
   res.json(ret);
 }
 
-function doGet(req, res) {
+function doGetList(req, res) {
   var query;
 
   query = function (err) {
     var payload, sql,
       params = req.swagger.params,
       name = resolveName(req.swagger.apiPath),
-      id = params.id !== undefined ? params.id.value : undefined,
       defaultLimit = pgconfig.defaultLimit,
       limit = params.limit !== undefined ? params.limit.value : defaultLimit,
       offset = params.offset !== undefined ? params.offset.value || 0 : 0,
@@ -139,17 +139,12 @@ function doGet(req, res) {
     payload = {
       method: "GET",
       name: name,
-      user: "postgres"
-    };
-
-    if (id) {
-      payload.id = id;
-    } else {
-      payload.filter = {
+      user: "postgres",
+      filter: {
         limit: limit,
         offset: offset
-      };
-    }
+      }
+    };
 
     sql = buildSql(payload);
 
@@ -164,8 +159,54 @@ function doGet(req, res) {
 
       result = resp.rows[0].response;
 
-      if ((Array.isArray(result) && !result.length) ||
-          !Object.keys(result).length) {
+      if (!result.length) {
+        res.statusCode = 204;
+        result = "";
+      }
+
+      // this sends back a JSON response which is a single string
+      res.json(result);
+    });
+  };
+
+  init(query);
+}
+
+function doGetOne(req, res) {
+  var query;
+
+  query = function (err) {
+    var payload, sql,
+      name = resolveName(req.swagger.apiPath),
+      id = req.swagger.params.id.value,
+      result;
+
+    if (err) {
+      console.error(err);
+      return;
+    }
+
+    payload = {
+      method: "GET",
+      name: name,
+      user: "postgres",
+      id: id
+    };
+
+    sql = buildSql(payload);
+
+    client.query(sql, function (err, resp) {
+      if (err) {
+        res.statusCode = 500;
+        console.error(err);
+        return err;
+      }
+
+      client.end();
+
+      result = resp.rows[0].response;
+
+      if (!Object.keys(result).length) {
         res.statusCode = 204;
         result = "";
       }
@@ -223,7 +264,6 @@ function doPost(req, res) {
     handleError = function (err) {
       // handle your error appropriately here, e.g.:
       console.error(err); // print the error to STDERR
-      process.exit(1); // exit program with non-zero exit code
     };
 
     concatStream = concat({encoding: "string"}, gotPost);
