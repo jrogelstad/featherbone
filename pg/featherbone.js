@@ -1208,7 +1208,7 @@ var featherbone = {};
 
   /** private */
   _delete = function (obj, isChild, isSuperUser) {
-    var oldRec, key, i, child, rel, now,
+    var oldRec, keys, i, child, rel, now,
       sql = "UPDATE object SET is_deleted = true WHERE id=$1;",
       model = featherbone.getModel(obj.name),
       props = model.properties,
@@ -1226,17 +1226,18 @@ var featherbone = {};
       featherbone.error("Not authorized to delete \"" + obj.id + "\"");
     }
 
+    // Get old record, bail if it doesn't exist
+    /* Exclude child key when we select */
+    obj.properties = Object.keys(model.properties)
+      .filter(noChildProps);
+    oldRec = _select(obj, true);
+    if (!Object.keys(oldRec).length) { return false; }
+
     /* Delete children recursively */
-    for (key in props) {
-      if (props.hasOwnProperty(key) &&
-          typeof props[key].type === "object" &&
+    keys = Object.keys(props);
+    keys.forEach(function (key) {
+      if (typeof props[key].type === "object" &&
           props[key].type.parentOf) {
-        if (!oldRec) {
-          /* Exclude child key when we select */
-          obj.properties = Object.keys(model.properties)
-            .filter(noChildProps);
-          oldRec = _select(obj, true);
-        }
         rel = props[key].type.relation;
         i = 0;
 
@@ -1246,7 +1247,7 @@ var featherbone = {};
           i++;
         }
       }
-    }
+    });
 
     /* Now delete object */
     plv8.execute(sql, [obj.id]);

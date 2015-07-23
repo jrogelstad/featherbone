@@ -259,7 +259,7 @@ buildApi = function () {
               "x-swagger-router-controller": "data",
               get: {
                 summary: "Info for a specific " + name,
-                operationId: "doGetOne",
+                operationId: "doHandleOne",
                 parameters: [
                   {
                     name: "id",
@@ -298,7 +298,7 @@ buildApi = function () {
                   200: {
                     description: "Expected response to a valid request",
                     schema: {
-                      $ref: "#/definitions/PostResponse"
+                      $ref: "#/definitions/RequestResponse"
                     }
                   },
                   default: {
@@ -324,7 +324,7 @@ buildApi = function () {
                   200: {
                     description: "Expected response to a valid request",
                     schema: {
-                      $ref: "#/definitions/PatchResponse"
+                      $ref: "#/definitions/RequestResponse"
                     }
                   },
                   default: {
@@ -334,7 +334,33 @@ buildApi = function () {
                     }
                   }
                 }
-              }
+              },
+              delete: {
+                summary: "Delete a " + name,
+                operationId: "doHandleOne",
+                parameters: [
+                  {
+                    name: "id",
+                    in: "path",
+                    description: "The id of the " + name + " to delete",
+                    type: "string"
+                  }
+                ],
+                responses: {
+                  200: {
+                    description: "Expected response to a valid request",
+                    schema: {
+                      $ref: "#/definitions/RequestResponse"
+                    }
+                  },
+                  default: {
+                    description: "unexpected error",
+                    schema: {
+                      $ref: "#/definitions/ErrorResponse"
+                    }
+                  }
+                }
+              },
             };
 
             swagger.paths[pathName] = path;
@@ -345,7 +371,7 @@ buildApi = function () {
                 "x-swagger-router-controller": "data",
                 get: {
                   description: key + " data",
-                  operationId: "doGetList",
+                  operationId: "doGet",
                   parameters: [
                     {
                       name: "offset",

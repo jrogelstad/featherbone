@@ -2,7 +2,7 @@
 
 require('../../common/extend-string.js');
 
-var pgconfig, catalog, hello, doGetList, doGetOne, doUpsert,
+var pgconfig, catalog, hello, doGet, doHandleOne, doUpsert,
   favicon, query, begin, buildSql, getCatalog, init, resolveName, client,
   util = require('util'),
   pg = require("pg"),
@@ -12,8 +12,8 @@ var pgconfig, catalog, hello, doGetList, doGetOne, doUpsert,
 
 module.exports = {
   hello: hello,
-  doGetList: doGetList,
-  doGetOne: doGetOne,
+  doGet: doGet,
+  doHandleOne: doHandleOne,
   doUpsert: doUpsert,
   favicon: favicon
 };
@@ -119,7 +119,7 @@ function hello(req, res) {
   res.json(ret);
 }
 
-function doGetList(req, res) {
+function doGet(req, res) {
   var query;
 
   query = function (err) {
@@ -172,12 +172,13 @@ function doGetList(req, res) {
   init(query);
 }
 
-function doGetOne(req, res) {
+function doHandleOne(req, res) {
   var query;
 
   query = function (err) {
     var payload, sql,
       name = resolveName(req.swagger.apiPath),
+      method = req.method,
       id = req.swagger.params.id.value,
       result;
 
@@ -187,7 +188,7 @@ function doGetOne(req, res) {
     }
 
     payload = {
-      method: "GET",
+      method: method,
       name: name,
       user: "postgres",
       id: id
@@ -206,7 +207,7 @@ function doGetOne(req, res) {
 
       result = resp.rows[0].response;
 
-      if (!Object.keys(result).length) {
+      if (typeof result !== "boolean" && !Object.keys(result).length) {
         res.statusCode = 204;
         result = "";
       }
@@ -243,7 +244,7 @@ function doUpsert(req, res) {
       payload.id = id;
 
       sql = buildSql(payload);
-console.log(sql);
+
       client.query(sql, function (err, resp) {
         if (err) {
           res.statusCode = 500;

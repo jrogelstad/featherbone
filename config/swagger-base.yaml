@@ -76,13 +76,7 @@ definitions:
     properties:
       message:
         type: string
-  PatchResponse:
-    required:
-      - message
-    properties:
-      message:
-        type: string
-  PostResponse:
+  RequestResponse:
     required:
       - message
     properties:
