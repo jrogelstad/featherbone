@@ -72,6 +72,8 @@
     /*
       Getter setter for the new value
 
+      @param {Any} New value
+      @return {Any}
     */
     p.newValue = function (value) {
       if (arguments.length) {
@@ -96,6 +98,14 @@
     return p;
   };
 
+  /**
+    Returns a base model definition. Can be extended by modifying the return
+    object directly.
+
+    @param {Object} Default data.
+    @param {Object} Object definition for subclass
+    return {Object}
+  */
   f.model = function (data, my) {
     data = data || {};
     my = my || {};
@@ -206,8 +216,7 @@
           that.set(result(), true);
           state.send('fetched');
         },
-        url = "http://localhost:10010/" +
-          my.name.toSpinalCase() + "/" + that.data.id();
+        url = f.baseUrl() + my.name.toSpinalCase() + "/" + that.data.id();
 
       state.goto("/Busy");
       m.request({method: "GET", url: url})

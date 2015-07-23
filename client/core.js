@@ -9,6 +9,15 @@ f = {};
   var that = {
 
     /**
+      Returns the base url used to fetch and post data
+      @return {String}
+    */
+    baseUrl: function () {
+      //TODO: Make this configurable
+      return "http://localhost:10010/";
+    },
+
+    /**
       Return a unique identifier string.
 
       Moddified from https://github.com/google/closure-library

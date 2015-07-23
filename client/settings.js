@@ -16,7 +16,7 @@
       var callback = function () {
           state.send('fetched');
         },
-        url = "http://localhost:10010/settings/" + name;
+        url = f.baseUrl() + "settings/" + name;
 
       state.goto("/Busy");
       m.request({method: "GET", url: url})
