@@ -2,8 +2,9 @@
 
 require('../../common/extend-string.js');
 
-var pgconfig, catalog, hello, doGet, doHandleOne, doUpsert,
-  favicon, query, begin, buildSql, getCatalog, init, resolveName, client,
+var pgconfig, catalog, hello, getCatalog, getCurrentUser,
+  doGet, doHandleOne, doUpsert, doGetSettings, doSaveSettings,
+  favicon, query, begin, buildSql, init, resolveName, client,
   util = require('util'),
   pg = require("pg"),
   concat = require("concat-stream"),
@@ -13,7 +14,9 @@ var pgconfig, catalog, hello, doGet, doHandleOne, doUpsert,
 module.exports = {
   hello: hello,
   doGet: doGet,
+  doGetSettings: doGetSettings,
   doHandleOne: doHandleOne,
+  doSaveSettnigs: doSaveSettings,
   doUpsert: doUpsert,
   favicon: favicon
 };
@@ -59,6 +62,11 @@ getCatalog = function (callback) {
       callback();
     });
   });
+};
+
+getCurrentUser = function () {
+  // TODO: Make this real
+  return "postgres";
 };
 
 init = function (callback) {
@@ -139,7 +147,7 @@ function doGet(req, res) {
     payload = {
       method: "GET",
       name: name,
-      user: "postgres",
+      user: getCurrentUser(),
       filter: {
         limit: limit,
         offset: offset
@@ -190,7 +198,7 @@ function doHandleOne(req, res) {
     payload = {
       method: method,
       name: name,
-      user: "postgres",
+      user: getCurrentUser(),
       id: id
     };
 
@@ -240,7 +248,7 @@ function doUpsert(req, res) {
       payload = JSON.parse(data);
       payload.method = method;
       payload.name = name;
-      payload.user = "postgres";
+      payload.user = getCurrentUser();
       payload.id = id;
 
       sql = buildSql(payload);
@@ -273,6 +281,106 @@ function doUpsert(req, res) {
 
   init(query);
 }
+
+function doGetSettings(req, res) {
+  var query;
+
+  query = function (err) {
+    var payload, sql,
+      name = req.swagger.params.name.value,
+      result;
+
+    if (err) {
+      console.error(err);
+      return;
+    }
+
+    payload = {
+      method: "POST",
+      name: "getSettings",
+      user: getCurrentUser(),
+      data: [name]
+    };
+
+    sql = buildSql(payload);
+
+    client.query(sql, function (err, resp) {
+      if (err) {
+        res.statusCode = 500;
+        console.error(err);
+        return err;
+      }
+
+      client.end();
+
+      result = resp.rows[0].response;
+
+      if (!Object.keys(result).length) {
+        res.statusCode = 204;
+        result = "";
+      }
+
+      // this sends back a JSON response which is a single string
+      res.json(result);
+    });
+  };
+
+  init(query);
+}
+
+function doSaveSettings(req, res) {
+  var query;
+
+  query = function (err) {
+    var payload, sql, gotData, handleError, concatStream,
+      params = req.swagger.params,
+      name = params.id.name,
+      result;
+
+    if (err) {
+      console.error(err);
+      return;
+    }
+
+    gotData = function (data) {
+      payload = {
+        method: "POST",
+        name: "saveSettings",
+        user: getCurrentUser(),
+        data: [name, JSON.parse(data)]
+      };
+
+      sql = buildSql(payload);
+
+      client.query(sql, function (err, resp) {
+        if (err) {
+          res.statusCode = 500;
+          console.error(err);
+          return err;
+        }
+
+        client.end();
+
+        result = resp.rows[0].response;
+
+        // this sends back a JSON response which is a single string
+        res.json(result);
+      });
+    };
+
+    handleError = function (err) {
+      // handle your error appropriately here, e.g.:
+      console.error(err); // print the error to STDERR
+    };
+
+    concatStream = concat({encoding: "string"}, gotData);
+    req.on('error', handleError);
+    req.pipe(concatStream);
+  };
+
+  init(query);
+}
+
 
 function favicon(req, res) {
   // Placeholder to be dealt with later. Without route Chrome causes errors

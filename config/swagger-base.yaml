@@ -56,6 +56,42 @@ paths:
           schema:
             # a pointer to a definition
             $ref: "#/definitions/FaviconResponse"
+  '/settings/{name}':
+    x-swagger-router-controller: data
+    get:
+      summary: Get settings by name
+      operationId: doGetSettings
+      parameters:
+        - name: name
+          in: path
+          description: The name of the settings to retrieve
+          type: string
+      responses:
+        '200':
+          description: Expected response to a valid request
+          schema:
+            $ref: '#/definitions/Settings'
+        default:
+          description: unexpected error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+    put:
+      summary: Save new settings
+      operationId: doSaveSattings
+      parameters:
+        - name: name
+          in: path
+          description: The name of the settings
+          type: string
+      responses:
+        '200':
+          description: Expected response to a valid request
+          schema:
+            $ref: '#/definitions/RequestResponse'
+        default:
+          description: unexpected error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
 # complex objects have schema definitions
 definitions:
   HelloWorldResponse:
@@ -85,32 +121,6 @@ definitions:
   Settings:
     description: Generic definition for settings
     properties:
-      id:
+      value:
         description: Surrogate key
-        type: string
-      created:
-        description: Create time of the record
-        type: string
-        format: date-time
-      createdBy:
-        description: User who created the record
-        type: string
-      updated:
-        description: Last time the record was updated
-        type: string
-        format: date-time
-      updatedBy:
-        description: User who created the record
-        type: string
-      isDeleted:
-        description: Indicates the record is no longer active
-        type: boolean
-      name:
-        description: SName
-        type: string
-      data:
-        description: Data
         type: object
-      etag:
-        description: Optimistic locking key
-        type: string

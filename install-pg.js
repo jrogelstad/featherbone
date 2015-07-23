@@ -310,7 +310,7 @@ buildApi = function () {
                 }
               },
               patch: {
-                summary: "Update an existing object in the database" + name,
+                summary: "Update an existing " + name,
                 operationId: "doUpsert",
                 parameters: [
                   {
