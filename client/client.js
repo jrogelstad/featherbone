@@ -445,23 +445,24 @@ f.model = function (data, my) {
   return that;
 };
 
-f.settings = function (my) {
+f.settings = function (name) {
   var state, doFetch, doPost,
-    that = {};
+    that = {data: {}},
+    d = that.data;
 
-  // TODO: Create properties for setting
+  if (!name) { throw "Settings name is required"; }
+
+  d.value = f.prop({});
 
   doFetch = function () {
-    var result = m.prop({}),
-      callback = function () {
-        that.set(result(), true);
+    var callback = function () {
         state.send('fetched');
       },
-      url = "http://localhost:10010/settings/catalog";
+      url = "http://localhost:10010/settings/" + name;
 
     state.goto("/Busy");
     m.request({method: "GET", url: url})
-      .then(result)
+      .then(d.value)
       .then(callback);
   };
 
@@ -513,6 +514,7 @@ f.settings = function (my) {
     }
   };
 
+  // Initialize
   state.goto();
 
   return that;
