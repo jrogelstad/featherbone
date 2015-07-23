@@ -241,7 +241,7 @@ buildApi = function () {
           return;
         }
 
-        catalog = resp.rows[0].response.value;
+        catalog = resp.rows[0].response;
 
         // Loop through each model and append to swagger api
         keys = Object.keys(catalog);

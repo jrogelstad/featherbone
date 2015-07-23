@@ -58,7 +58,7 @@ getCatalog = function (callback) {
         return;
       }
 
-      catalog = resp.rows[0].response.value;
+      catalog = resp.rows[0].response;
       callback();
     });
   });

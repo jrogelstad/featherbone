@@ -423,7 +423,7 @@ var featherbone = {};
         if (featherbone[prop] && typeof featherbone[prop] === "function") {
           args = Array.isArray(obj.data) ? obj.data : [obj.data];
           fn = _curry(featherbone[prop], args);
-          result.value = fn();
+          result = fn();
         } else {
           result = _insert(obj, false, isSuperUser);
         }

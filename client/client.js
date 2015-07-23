@@ -447,12 +447,11 @@ f.model = function (data, my) {
 
 f.settings = function (name) {
   var state, doFetch, doPost,
-    that = {data: {}},
-    d = that.data;
+    that = {};
 
   if (!name) { throw "Settings name is required"; }
 
-  d.value = f.prop({});
+  that.data = f.prop();
 
   doFetch = function () {
     var callback = function () {
@@ -462,7 +461,7 @@ f.settings = function (name) {
 
     state.goto("/Busy");
     m.request({method: "GET", url: url})
-      .then(d.value)
+      .then(that.data)
       .then(callback);
   };
 
@@ -520,6 +519,75 @@ f.settings = function (name) {
   return that;
 };
 
+// Invoke catalog settings as an object
+f.catalog = (function () {
+  var that = f.settings("catalog");
+
+  /**
+    Return a model definition, including inherited properties.
+
+    @param {String} Model name
+    @param {Boolean} Include inherited or not. Defult = true.
+    @return {String}
+  */
+  that.getModel = function (name, includeInherited) {
+    var catalog = that.data(),
+      appendParent = function (child, parent) {
+        var model = catalog[parent],
+          modelProps = model.properties,
+          childProps = child.properties,
+          keys = Object.keys(modelProps);
+
+        if (parent !== "Object") {
+          appendParent(child, model.inherits || "Object");
+        }
+
+        keys.forEach(function (key) {
+          if (childProps[key] === undefined) {
+            childProps[key] = modelProps[key];
+            childProps[key].inheritedFrom = parent;
+          }
+        });
+
+        return child;
+      },
+      result = {name: name, inherits: "Object"},
+      resultProps,
+      modelProps,
+      key;
+
+    if (!catalog[name]) { return false; }
+
+    /* Add other attributes after name */
+    for (key in catalog[name]) {
+      if (catalog[name].hasOwnProperty(key)) {
+        result[key] = catalog[name][key];
+      }
+    }
+
+    /* Want inherited properites before class properties */
+    if (includeInherited !== false && name !== "Object") {
+      result.properties = {};
+      result = appendParent(result, result.inherits);
+    } else {
+      delete result.inherits;
+    }
+
+    /* Now add local properties back in */
+    modelProps = catalog[name].properties;
+    resultProps = result.properties;
+    for (key in modelProps) {
+      if (modelProps.hasOwnProperty(key)) {
+        resultProps[key] = modelProps[key];
+      }
+    }
+
+    return result;
+  };
+
+  return that;
+}());
+
 f.contact = function (data, my) {
   data = data || {};
 
@@ -530,70 +598,7 @@ f.contact = function (data, my) {
   // PROPERTIES 
   //
 
-  shared.properties = {
-    id: {
-      description: "Surrogate key",
-      type: "string",
-      default: "createId()"
-    },
-    created: {
-      description: "Create time of the record",
-      type: "dateTime",
-      default: "now()"
-    },
-    createdBy: {
-      description: "User who created the record",
-      type: "string",
-      default: "getCurrentUser()"
-    },
-    updated: {
-      description: "Last time the record was updated",
-      type: "dateTime",
-      default: "now()"
-    },
-    updatedBy: {
-      description: "User who created the record",
-      type: "string",
-      default: "getCurrentUser()"
-    },
-    isDeleted: {
-      description: "Indicates the record is no longer active",
-      type: "boolean"
-    },
-    objectType: {
-      description: "Discriminates which inherited object type",
-      type: "string"
-    },
-    owner: {
-      description: "Owner of the document",
-      type: "string",
-      default: "getCurrentUser()"
-    },
-    notes: {
-      description: "Notes",
-      type: {
-        relation: "DocumentNote",
-        parentOf: "parent"
-      }
-    },
-    etag: {
-      description: "Optimistic locking key",
-      type: "string",
-      default: "createId()"
-    },
-    title: {
-      description: "Honorific title",
-      type: "string"
-    },
-    first: {
-      description: "First name",
-      type: "string"
-    },
-    last: {
-      description: "Last name",
-      type: "string"
-    }
-  };
+  shared.properties = f.catalog.getModel("Contact").properties;
 
   that = f.model(data, shared);
 
