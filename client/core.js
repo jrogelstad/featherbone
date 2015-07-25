@@ -28,9 +28,9 @@ f = {};
     */
     createId: function () {
       var x = 2147483648,
-        dt = new Date(),
+        d = new Date(),
         result = Math.floor(Math.random() * x).toString(36) +
-          Math.abs(Math.floor(Math.random() * x) ^ dt).toString(36);
+          Math.abs(Math.floor(Math.random() * x) ^ d).toString(36);
 
       return result;
     },

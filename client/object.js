@@ -76,7 +76,7 @@
       @return {Any}
     */
     p.newValue = function (value) {
-      if (arguments.length) {
+      if (arguments.length && p.state.current() === "/Changing") {
         newValue = value;
       }
 
@@ -103,7 +103,8 @@
     object directly.
 
     @param {Object} Default data.
-    @param {Object} "My" object definition for subclass
+    @param {Object} "My" definition for subclass
+    @param {Array} [my.name] the class name of the object
     @param {Array} [my.properties] the properties to set on the data object
     return {Object}
   */
@@ -112,7 +113,7 @@
     my = my || {};
 
     var  state, doDelete, doFetch, doInit, doPatch, doPost, doProperties,
-      that = {data: {}},
+      that = {data: {}, name: my.name || "Object"},
       d = that.data,
       stateMap = {};
 
@@ -137,9 +138,24 @@
     };
 
     /*
-      Add a change event binding to a property.
+      Add a change event binding to a property or this object.
 
-      @param {String} Property name
+        f.contact = function (data, my) {
+          var shared = {
+              name: my.name || "Contact",
+              properties: my.properties ||
+                f.catalog.getModel("Contact").properties
+            },
+            that = f.object(data, shared);
+
+          // Add a change event to a property
+          that.onChange("first", function () {
+            console.log("First name changed from " +
+              this.oldValue() + " to " + this.newValue() + "!");
+          });
+        }
+
+      @param {String} Property name to call on cahnge
       @param {Function} Function to call on change
       @return Reciever
     */

@@ -73,18 +73,13 @@ todo.view = function () {
 m.mount(document, {controller: todo.controller, view: todo.view});
 
 f.contact = function (data, my) {
-  data = data || {};
+  my = my || {};
 
-  var that,
-    shared = {name: "Contact"};
-
-  // ..........................................................
-  // PROPERTIES 
-  //
-
-  shared.properties = f.catalog.getModel("Contact").properties;
-
-  that = f.object(data, shared);
+  var shared = {
+      name: my.name || "Contact",
+      properties: my.properties || f.catalog.getModel("Contact").properties
+    },
+    that = f.object(data, shared);
 
   // ..........................................................
   // CHANGE EVENT BINDINGS
