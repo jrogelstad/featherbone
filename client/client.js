@@ -84,7 +84,7 @@ f.contact = function (data, my) {
 
   shared.properties = f.catalog.getModel("Contact").properties;
 
-  that = f.model(data, shared);
+  that = f.object(data, shared);
 
   // ..........................................................
   // CHANGE EVENT BINDINGS

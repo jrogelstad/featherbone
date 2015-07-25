@@ -103,10 +103,11 @@
     object directly.
 
     @param {Object} Default data.
-    @param {Object} Object definition for subclass
+    @param {Object} "My" object definition for subclass
+    @param {Array} [my.properties] the properties to set on the data object
     return {Object}
   */
-  f.model = function (data, my) {
+  f.object = function (data, my) {
     data = data || {};
     my = my || {};
 
@@ -200,6 +201,17 @@
       }
 
       return this;
+    };
+
+    that.toJSON = function () {
+      var keys = Object.keys(d),
+        result = {};
+
+      keys.forEach(function (key) {
+        result[key] = d[key].toJSON();
+      });
+
+      return result;
     };
 
     // ..........................................................
