@@ -18,6 +18,7 @@
     "js-yaml": "^3.3.1",
     "mithril": "^0.2.0",
     "pg": "4.4.0",
+    "statechart": "git+ssh://git@github.com/burrows/statechart.js.git",
     "swagger-express-mw": "0.0.x"
   },
   "devDependencies": {

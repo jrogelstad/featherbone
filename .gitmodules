@@ -1,3 +1,0 @@
-[submodule "lib/statechart"]
-	path = lib/statechart
-	url = http://github.com/burrows/statechart.js.git
