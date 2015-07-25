@@ -1,6 +1,6 @@
 /**
     Featherbone is a JavaScript based persistence framework for building object
-    relationaldatabase applications
+    relational database applications
     
     Copyright (C) 2015  John Rogelstad
     This program is free software: you can redistribute it and/or modify
@@ -31,14 +31,23 @@ var featherbone = {};
       array: {type: "json", default: []},
       string: {type: "text", default: "''"},
       integer: {type: "integer", default: 0},
-      long: {type: "bigint", default: 0},
       number: {type: "numeric", default: 0},
+      date: {type: "date", default: "minDate()"},
+      boolean: {type: "boolean", default: "false"}
+    },
+    formats = {
+      integer: {type: "integer", default: 0},
+      long: {type: "bigint", default: 0},
       float: {type: "real", default: 0},
       double: {type: "double precision", default: 0},
+      string: {type: "text", default: "''"},
+      boolean: {type: "boolean", default: "false"},
       date: {type: "date", default: "minDate()"},
       dateTime: {type: "timestamp with time zone", default: "minDate()"},
-      boolean: {type: "boolean", default: "false"}
-    };
+      password: {type: "text", default: ""}
+    },
+    PRECISION_DEFAULT = 18,
+    SCALE_DEFAULT = 6;
 
   proto = {
 
@@ -94,7 +103,7 @@ var featherbone = {};
         table = obj.name ? obj.name.toSnakeCase() : false;
         catalog = featherbone.getSettings('catalog');
         sql = ("DROP VIEW %I; DROP TABLE %I;" +
-          "DELETE FROM \"$fodel\" WHERE id=$1;")
+          "DELETE FROM \"$model\" WHERE id=$1;")
           .format(["_" + table, table]);
         rels = [];
         i = 0;
@@ -656,6 +665,8 @@ var featherbone = {};
         };
 
       specs.forEach(function (obj) {
+        var precision, scale;
+
         table = obj.name ? obj.name.toSnakeCase() : false;
         inherits = (obj.inherits || "Object").toSnakeCase();
         model = featherbone.getModel(obj.name, false);
@@ -744,8 +755,9 @@ var featherbone = {};
         props = obj.properties;
         keys = Object.keys(props);
         keys.forEach(function (key) {
-          type = typeof props[key].type === "string" ?
-              types[props[key].type] : props[key].type;
+          var prop = props[key];
+          type = typeof prop.type === "string" ?
+              types[prop.type] : prop.type;
 
           if (type && key !== obj.discriminator) {
             if (!model || !model.properties[key]) {
@@ -758,7 +770,7 @@ var featherbone = {};
 
               sql += "ALTER TABLE %I ADD COLUMN %I ";
 
-              if (props[key].isUnique) { sql += "UNIQUE "; }
+              if (prop.isUnique) { sql += "UNIQUE "; }
 
               /* Handle composite types */
               if (type.relation) {
@@ -811,7 +823,19 @@ var featherbone = {};
 
               /* Handle standard types */
               } else {
-                sql += type.type + ";";
+                if (prop.format && formats[prop.format]) {
+                  sql += formats[prop.format].type;
+                } else {
+                  sql += type.type;
+                  if (type.type === "numeric") {
+                    precision = typeof prop.precision === "number" ?
+                        prop.precision : PRECISION_DEFAULT;
+                    scale = typeof prop.scale === "number" ?
+                        prop.scale : SCALE_DEFAULT;
+                    sql += "(" + precision + "," + scale + ")";
+                  }
+                }
+                sql += ";";
                 token = key.toSnakeCase();
               }
               adds.push(key);

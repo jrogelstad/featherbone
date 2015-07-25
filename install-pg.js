@@ -474,7 +474,7 @@ processProperties = function (model, properties) {
     var property = model.properties[key], newProperty,
       primitives = ["array", "boolean", "integer", "number", "null",
         "object", "string"],
-      formats = ["integer", "long", "float", "double", "string", "double",
+      formats = ["integer", "long", "float", "double", "string",
         "string", "byte", "boolean", "date", "dateTime", "password"];
 
     // Bail if child property. Not necessary for api definition
@@ -494,28 +494,19 @@ processProperties = function (model, properties) {
     } else {
       if (primitives.indexOf(property.type) !== -1) {
         newProperty.type = property.type;
-      } else if (formats.indexOf(property.type) === -1) {
-        console.error("Unsupported type \"" + property.type + "\"");
       } else {
-        switch (property.type) {
-        case "date":
-        case "dateTime":
-        case "byte":
-        case "password":
-          newProperty.type = "string";
-          break;
-        case "long":
-          newProperty.type = "integer";
-          break;
-        case "float":
-        case "double":
-          newProperty.type = "number";
-          break;
-        default:
-          newProperty.type = property.type;
-        }
+        console.error("Property type " + property.type + " not supported.");
+        process.exit(1);
+      }
 
-        newProperty.format = property.type.toSpinalCase();
+      if (property.format) {
+        if (formats.indexOf(property.format) !== -1) {
+          newProperty.format = property.format.toSpinalCase();
+        } else {
+          console.error("Property format " + property.format +
+            " not supported.");
+          process.exit(1);
+        }
       }
     }
 
