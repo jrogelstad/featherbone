@@ -21,12 +21,12 @@ var featherbone = {};
 
   require("extend-string");
 
-  var _proto, _createView, _curry, _getKey, _getKeys, _isChildModel, _delete,
-    _propagateViews, _relationColumn, _sanitize, _insert, _select, _update,
-    _currentUser, _setCurrentUser, _buildAuthSql, _propagateAuth, _keys,
-    _jsonpatch = require("fast-json-patch"),
-    _settings = {},
-    _types = {
+  var proto, createView, curry, getKey, getKeys, isChildModel, propagateViews,
+    relationColumn, sanitize, doInsert, doSelect, doUpdate, doDelete,
+    currentUser, setCurrentUser, buildAuthSql, propagateAuth,
+    jsonpatch = require("fast-json-patch"),
+    settings = {},
+    types = {
       object: {type: "json", default: {}},
       array: {type: "json", default: []},
       string: {type: "text", default: "''"},
@@ -38,10 +38,9 @@ var featherbone = {};
       date: {type: "date", default: "minDate()"},
       dateTime: {type: "timestamp with time zone", default: "minDate()"},
       boolean: {type: "boolean", default: "false"}
-    },
-    c = 0;
+    };
 
-  _proto = {
+  proto = {
 
     /**
       Return a unique identifier string.
@@ -58,7 +57,7 @@ var featherbone = {};
         result = Math.floor(Math.random() * x).toString(36) +
           Math.abs(Math.floor(Math.random() * x) ^ d).toString(36);
 
-      return _getKey(result) ? featherbone.createId() : result;
+      return getKey(result) ? featherbone.createId() : result;
     },
 
     /**
@@ -129,7 +128,7 @@ var featherbone = {};
 
         /* Update views */
         while (i < rels.length) {
-          _createView(rels[i], true);
+          createView(rels[i], true);
           i++;
         }
 
@@ -157,7 +156,7 @@ var featherbone = {};
       @return {String}
     */
     getCurrentUser: function () {
-      if (_currentUser) { return _currentUser; }
+      if (currentUser) { return currentUser; }
 
       featherbone.error("Current user undefined");
     },
@@ -234,25 +233,25 @@ var featherbone = {};
       var result, rec, id, etag,
         sql = "SELECT data FROM \"$settings\" WHERE name = $1";
 
-      if (_settings[name]) {
-        id = _settings[name].id;
-        etag = _settings[name].etag;
+      if (settings[name]) {
+        id = settings[name].id;
+        etag = settings[name].etag;
         if (featherbone.checkEtag("$settings", id, etag)) {
-          return _settings[name];
+          return settings[name];
         }
       }
 
       result = plv8.execute(sql, [name]);
       if (result.length) {
         rec = result[0];
-        _settings[name] = {
+        settings[name] = {
           id: rec.id,
           etag: rec.etag,
           data: rec.data
         };
       }
 
-      return _settings[name].data;
+      return settings[name].data;
     },
 
     /**
@@ -307,7 +306,7 @@ var featherbone = {};
           pk = result[0]._pk;
 
           tokens.push(table);
-          authSql =  _buildAuthSql(action, table, tokens);
+          authSql =  buildAuthSql(action, table, tokens);
           sql = "SELECT _pk FROM %I WHERE _pk = $2 " + authSql;
           sql = sql.format(tokens);
 
@@ -412,33 +411,33 @@ var featherbone = {};
         args,
         fn;
 
-      _setCurrentUser(obj.user);
+      setCurrentUser(obj.user);
 
       switch (obj.method) {
       case "GET":
-        result = _select(obj, false, isSuperUser);
+        result = doSelect(obj, false, isSuperUser);
         break;
       case "POST":
         /* Handle if posting a function call */
         if (featherbone[prop] && typeof featherbone[prop] === "function") {
           args = Array.isArray(obj.data) ? obj.data : [obj.data];
-          fn = _curry(featherbone[prop], args);
+          fn = curry(featherbone[prop], args);
           result = fn();
         } else {
-          result = _insert(obj, false, isSuperUser);
+          result = doInsert(obj, false, isSuperUser);
         }
         break;
       case "PATCH":
-        result = _update(obj, false, isSuperUser);
+        result = doUpdate(obj, false, isSuperUser);
         break;
       case "DELETE":
-        result = _delete(obj, false, isSuperUser);
+        result = doDelete(obj, false, isSuperUser);
         break;
       default:
         featherbone.error("method \"" + obj.method + "\" unknown");
       }
 
-      _setCurrentUser(undefined);
+      setCurrentUser(undefined);
 
       return result;
     },
@@ -475,9 +474,8 @@ var featherbone = {};
     saveAuthorization: function (obj) {
       var result, sql, pk, err, model, params,
         id = obj.model ? obj.model.toSnakeCase() : obj.id,
-        currentUser = featherbone.getCurrentUser(),
-        objPk = _getKey(id),
-        rolePk = _getKey(obj.role),
+        objPk = getKey(id),
+        rolePk = getKey(obj.role),
         actions = obj.actions || {},
         isMember = false,
         hasAuth = false;
@@ -502,7 +500,7 @@ var featherbone = {};
 
         model = featherbone.getModel(model);
 
-        if (_isChildModel(model)) {
+        if (isChildModel(model)) {
           err = "Can not set authorization on child models.";
         } else if (!model.properties.owner) {
           err = "Model must have owner property to set authorization";
@@ -516,7 +514,7 @@ var featherbone = {};
           .format(model.name.toSnakeCase());
         result = plv8.execute(sql, [objPk]);
 
-        if (result[0].owner !== currentUser) {
+        if (result[0].owner !== featherbone.getCurrentUser()) {
           err = "Must be super user or owner of \"" + id + "\" to set " +
             "authorization.";
           featherbone.error(err);
@@ -579,7 +577,7 @@ var featherbone = {};
       plv8.execute(sql, params);
 
       if (model === "Folder" && isMember) {
-        _propagateAuth({folderId: obj.id, roleId: obj.role});
+        propagateAuth({folderId: obj.id, roleId: obj.role});
       }
     },
 
@@ -647,11 +645,11 @@ var featherbone = {};
                 cProps[cKey].type.childOf) {
               cParent = cProps[cKey].type.relation;
 
-              if (_isChildModel(featherbone.getModel(parent))) {
+              if (isChildModel(featherbone.getModel(parent))) {
                 return getParentKey(cParent);
               }
 
-              return _getKey(cParent.toSnakeCase());
+              return getKey(cParent.toSnakeCase());
             }
           });
 
@@ -712,7 +710,7 @@ var featherbone = {};
                 tokens = tokens.concat([
                   "_" + table + "_" + key.toSnakeCase(),
                   table,
-                  _relationColumn(key, type.relation)
+                  relationColumn(key, type.relation)
                 ]);
               } else {
                 tokens = tokens.concat([table, key.toSnakeCase()]);
@@ -747,7 +745,7 @@ var featherbone = {};
         keys = Object.keys(props);
         keys.forEach(function (key) {
           type = typeof props[key].type === "string" ?
-              _types[props[key].type] : props[key].type;
+              types[props[key].type] : props[key].type;
 
           if (type && key !== obj.discriminator) {
             if (!model || !model.properties[key]) {
@@ -765,7 +763,7 @@ var featherbone = {};
               /* Handle composite types */
               if (type.relation) {
                 sql += "integer;";
-                token = _relationColumn(key, type.relation);
+                token = relationColumn(key, type.relation);
 
                 /* Update parent class for children */
                 if (type.childOf) {
@@ -853,7 +851,7 @@ var featherbone = {};
               defaultValue = -1;
             } else {
               defaultValue = props[adds[i]].default ||
-                _types[type].default;
+                types[type].default;
             }
 
             if (typeof defaultValue === "string" &&
@@ -866,7 +864,7 @@ var featherbone = {};
               values.push(defaultValue);
               tokens.push("%I=$" + p);
               if (typeof type === "object") {
-                args.push(_relationColumn(adds[i], type.relation));
+                args.push(relationColumn(adds[i], type.relation));
               } else {
                 args.push(adds[i].toSnakeCase());
               }
@@ -919,11 +917,11 @@ var featherbone = {};
         catalog[name] = obj;
         delete obj.name;
         delete obj.authorization;
-        obj.isChild = _isChildModel(obj);
+        obj.isChild = isChildModel(obj);
         featherbone.saveSettings("catalog", catalog);
 
         if (!model) {
-          isChild = _isChildModel(featherbone.getModel(name));
+          isChild = isChildModel(featherbone.getModel(name));
           pk = plv8.execute("select nextval('object__pk_seq') as pk;")[0].pk;
           sql = "INSERT INTO \"$model\" " +
             "(_pk, id, created, created_by, updated, updated_by, is_deleted, " +
@@ -939,7 +937,7 @@ var featherbone = {};
         /* Propagate views */
         changed = changed || !model;
         if (changed) {
-          _propagateViews(name);
+          propagateViews(name);
         }
 
         /* If no specific authorization, grant to all */
@@ -998,7 +996,7 @@ var featherbone = {};
         plv8.execute(sql, params);
       }
 
-      _settings[name] = settings;
+      settings[name] = settings;
 
       return true;
     },
@@ -1040,18 +1038,16 @@ var featherbone = {};
   };
 
   // Set prototype properties on featherbone
-  _keys = Object.keys(_proto);
-  while (c < _keys.length) {
-    featherbone[_keys[c]] = _proto[_keys[c]];
-    c++;
-  }
+  Object.keys(proto).forEach(function (key) {
+    featherbone[key] = proto[key];
+  });
 
   // ..........................................................
   // PRIVATE
   //
 
   /** private */
-  _buildAuthSql = function (action, table, tokens) {
+  buildAuthSql = function (action, table, tokens) {
     var actions = [
         "canRead",
         "canUpdate",
@@ -1127,7 +1123,7 @@ var featherbone = {};
   };
 
   /** private */
-  _createView = function (name, dropFirst) {
+  createView = function (name, dropFirst) {
     var parent, alias, type, view, sub, col,
       model = featherbone.getModel(name),
       table = name.toSnakeCase(),
@@ -1200,14 +1196,14 @@ var featherbone = {};
   };
 
   /** private */
-  _curry = function (fn, args) {
+  curry = function (fn, args) {
     return function () {
       return fn.apply(this, args.concat([].slice.call(arguments)));
     };
   };
 
   /** private */
-  _delete = function (obj, isChild, isSuperUser) {
+  doDelete = function (obj, isChild, isSuperUser) {
     var oldRec, keys, i, child, rel, now,
       sql = "UPDATE object SET is_deleted = true WHERE id=$1;",
       model = featherbone.getModel(obj.name),
@@ -1219,7 +1215,7 @@ var featherbone = {};
         }
       };
 
-    if (!isChild && _isChildModel(obj.name)) {
+    if (!isChild && isChildModel(obj.name)) {
       featherbone.error("Can not directly delete a child class");
     } else if (isSuperUser === false &&
         !featherbone.isAuthorized({action: "canDelete", id: obj.id})) {
@@ -1230,7 +1226,7 @@ var featherbone = {};
     /* Exclude child key when we select */
     obj.properties = Object.keys(model.properties)
       .filter(noChildProps);
-    oldRec = _select(obj, true);
+    oldRec = doSelect(obj, true);
     if (!Object.keys(oldRec).length) { return false; }
 
     /* Delete children recursively */
@@ -1243,7 +1239,7 @@ var featherbone = {};
 
         while (i < oldRec[key].length) {
           child = {name: rel, id: oldRec[key][i].id};
-          _delete(child, true);
+          doDelete(child, true);
           i++;
         }
       }
@@ -1255,7 +1251,7 @@ var featherbone = {};
     /* Handle change log */
     now = featherbone.now();
 
-    _insert({
+    doInsert({
       name: "Log",
       data: {
         objectId: obj.id,
@@ -1271,19 +1267,19 @@ var featherbone = {};
   };
 
   /** private */
-  _getKey = function (id, name, showDeleted, isSuperUser) {
+  getKey = function (id, name, showDeleted, isSuperUser) {
     name = name || "Object";
 
     var result,
       filter = {criteria: [{property: "id", value: id}]};
 
-    result = _getKeys(name, filter, showDeleted, isSuperUser);
+    result = getKeys(name, filter, showDeleted, isSuperUser);
 
     return result.length ? result[0] : undefined;
   };
 
   /** private */
-  _getKeys = function (name, filter, showDeleted, isSuperUser) {
+  getKeys = function (name, filter, showDeleted, isSuperUser) {
     var part, order, op, err, n,
       ops = ["=", "!=", "<", ">", "<>", "~", "*~", "!~", "!~*"],
       table = name.toSnakeCase(),
@@ -1299,7 +1295,7 @@ var featherbone = {};
 
     /* Add authorization criteria */
     if (isSuperUser === false) {
-      sql += _buildAuthSql("canRead", table, tokens);
+      sql += buildAuthSql("canRead", table, tokens);
 
       params.push(featherbone.getCurrentUser());
       p++;
@@ -1375,7 +1371,7 @@ var featherbone = {};
   };
 
   /** private */
-  _insert = function (obj, isChild, isSuperUser) {
+  doInsert = function (obj, isChild, isSuperUser) {
     var child, key, col, prop, result, value, sql, err, pk, msg, fkeys, dkeys,
       len, n,
       data = JSON.parse(JSON.stringify(obj.data)),
@@ -1407,7 +1403,7 @@ var featherbone = {};
     }
 
     /* Check id for existence and uniqueness and regenerate if any problem */
-    if (data.id === undefined ||  _getKey(data.id) !== undefined) {
+    if (data.id === undefined ||  getKey(data.id) !== undefined) {
       data.id = featherbone.createId();
     } else if (isSuperUser === false) {
       if (!featherbone.isAuthorized({
@@ -1446,8 +1442,8 @@ var featherbone = {};
 
         /* To one */
         } else {
-          col = _relationColumn(key, prop.type.relation);
-          value = data[key] !== undefined ? _getKey(data[key].id) : -1;
+          col = relationColumn(key, prop.type.relation);
+          value = data[key] !== undefined ? getKey(data[key].id) : -1;
           if (value === undefined) {
             err = 'Relation not found in "{rel}" for "{key}" with id "{id}"'
               .replace("{rel}", prop.type.relation)
@@ -1472,7 +1468,7 @@ var featherbone = {};
 
         if (value === undefined) {
           value = prop.default === undefined ?
-              _types[prop.type].default : prop.default;
+              types[prop.type].default : prop.default;
 
           /* If we have a class specific default that calls a function */
           if (value && typeof value === "string" && value.match(/\(\)$/)) {
@@ -1506,7 +1502,7 @@ var featherbone = {};
             name: children[key].type.relation,
             data: data[key][i]
           };
-          _insert(child, true);
+          doInsert(child, true);
           i++;
         }
       }
@@ -1514,16 +1510,16 @@ var featherbone = {};
 
     if (isChild) { return; }
 
-    result = _select({name: obj.name, id: data.id});
+    result = doSelect({name: obj.name, id: data.id});
 
     /* Handle folder */
     if (folder) {
       sql = "INSERT INTO \"$objectfolder\" VALUES ($1, $2);";
-      plv8.execute(sql, [pk, _getKey(folder)]);
+      plv8.execute(sql, [pk, getKey(folder)]);
     }
 
     /* Handle change log */
-    _insert({
+    doInsert({
       name: "Log",
       data: {
         objectId: data.id,
@@ -1538,14 +1534,14 @@ var featherbone = {};
 
     /* Handle folder authorization propagation */
     if (obj.name === "Folder") {
-      _propagateAuth({folderId: obj.folder});
+      propagateAuth({folderId: obj.folder});
     }
 
-    return _jsonpatch.compare(obj.data, result);
+    return jsonpatch.compare(obj.data, result);
   };
 
   /** private */
-  _isChildModel = function (model) {
+  isChildModel = function (model) {
     var props = model.properties,
       key;
 
@@ -1567,9 +1563,9 @@ var featherbone = {};
     @param {String} [specification.roleId] Role id.
     @param {String} [specification.isDeleted] Folder is hard deleted.
   */
-  _propagateAuth = function (obj) {
+  propagateAuth = function (obj) {
     var auth, auths, children, child, roleKey, n,
-      folderKey = _getKey(obj.folderId),
+      folderKey = getKey(obj.folderId),
       params = [folderKey, false],
       authSql = "SELECT object_pk, role_pk, can_create, can_read, " +
       " can_update, can_delete " +
@@ -1592,7 +1588,7 @@ var featherbone = {};
       i = 0;
 
     if (obj.roleId) {
-      roleKey = _getKey(obj.roleId);
+      roleKey = getKey(obj.roleId);
       authSql += " AND role.id=$3";
       params.push(roleKey);
     }
@@ -1629,7 +1625,7 @@ var featherbone = {};
           if (!obj.isDeleted) { plv8.execute(insSql, params); }
 
           /* Propagate recursively */
-          _propagateAuth({
+          propagateAuth({
             folderId: child.id,
             roleId: obj.roleId || plv8.execute(roleSql, [auth.role_pk])[0].id,
             isDeleted: obj.isDeleted
@@ -1644,11 +1640,11 @@ var featherbone = {};
   };
 
   /** private */
-  _propagateViews = function (name) {
+  propagateViews = function (name) {
     var props, key, cprops, ckey,
       catalog = featherbone.getSettings("catalog");
 
-    _createView(name);
+    createView(name);
 
     /* Propagate relations */
     for (key in catalog) {
@@ -1661,7 +1657,7 @@ var featherbone = {};
               cprops[ckey].type.relation === name &&
               !cprops[ckey].type.childOf &&
               !cprops[ckey].type.parentOf) {
-            _propagateViews(key);
+            propagateViews(key);
           }
         }
       }
@@ -1670,7 +1666,7 @@ var featherbone = {};
     /* Propagate down */
     for (key in catalog) {
       if (catalog.hasOwnProperty(key) && catalog[key].inherits === name) {
-        _propagateViews(key);
+        propagateViews(key);
       }
     }
 
@@ -1679,19 +1675,19 @@ var featherbone = {};
     for (key in props) {
       if (props.hasOwnProperty(key)) {
         if (typeof props[key].type === "object" && props[key].type.childOf) {
-          _createView(props[key].type.relation);
+          createView(props[key].type.relation);
         }
       }
     }
   };
 
   /** private */
-  _relationColumn = function (key, relation) {
+  relationColumn = function (key, relation) {
     return "_" + key.toSnakeCase() + "_" + relation.toSnakeCase() + "_pk";
   };
 
   /** private */
-  _sanitize = function (obj) {
+  sanitize = function (obj) {
     var isArray = Array.isArray(obj),
       ary = isArray ? obj : [obj],
       i = 0,
@@ -1719,7 +1715,7 @@ var featherbone = {};
 
             /* Recursively sanitize objects */
             if (typeof newObj[newKey] === "object") {
-              newObj[newKey] = newObj[newKey] ? _sanitize(newObj[newKey]) : {};
+              newObj[newKey] = newObj[newKey] ? sanitize(newObj[newKey]) : {};
             }
           }
         }
@@ -1733,7 +1729,7 @@ var featherbone = {};
   };
 
   /** private */
-  _select = function (obj, isChild, isSuperUser) {
+  doSelect = function (obj, isChild, isSuperUser) {
     var key, sql, pk,
       model = featherbone.getModel(obj.name),
       table = "_" + model.name.toSnakeCase(),
@@ -1744,7 +1740,7 @@ var featherbone = {};
       i = 0;
 
     /* Validate */
-    if (!isChild && _isChildModel(model)) {
+    if (!isChild && isChildModel(model)) {
       featherbone.error("Can not query directly on a child class");
     }
 
@@ -1760,7 +1756,7 @@ var featherbone = {};
 
     /* Get one result by key */
     if (obj.id) {
-      pk = _getKey(obj.id, obj.name, obj.showDeleted, isSuperUser);
+      pk = getKey(obj.id, obj.name, obj.showDeleted, isSuperUser);
       if (pk === undefined) { return {}; }
       sql +=  " WHERE _pk = $1";
 
@@ -1768,7 +1764,7 @@ var featherbone = {};
 
     /* Get a filtered result */
     } else {
-      pk = _getKeys(obj.name, obj.filter, obj.showDeleted, isSuperUser);
+      pk = getKeys(obj.name, obj.filter, obj.showDeleted, isSuperUser);
 
       if (pk.length) {
         tokens = [];
@@ -1785,23 +1781,23 @@ var featherbone = {};
       }
     }
 
-    return _sanitize(result);
+    return sanitize(result);
   };
 
   /** private */
-  _setCurrentUser = function (user) {
-    _currentUser = user;
+  setCurrentUser = function (user) {
+    currentUser = user;
   };
 
   /** Private */
-  _update = function (obj, isChild, isSuperUser) {
+  doUpdate = function (obj, isChild, isSuperUser) {
     var result, updRec, props, value, keys, sql, i, cModel, cid, child, err,
       oldRec, newRec, cOldRec, cNewRec, cpatches,
       patches = obj.data || [],
       model = featherbone.getModel(obj.name),
       tokens = [model.name.toSnakeCase()],
       id = obj.id,
-      pk = _getKey(id),
+      pk = getKey(id),
       params = [],
       ary = [],
       p = 1,
@@ -1823,7 +1819,7 @@ var featherbone = {};
       };
 
     /* Validate */
-    if (!isChild && _isChildModel(model)) {
+    if (!isChild && isChildModel(model)) {
       featherbone.error("Can not directly update a child class");
     } else if (isSuperUser === false &&
         !featherbone.isAuthorized({action: "canUpdate", id: id})) {
@@ -1831,12 +1827,12 @@ var featherbone = {};
     }
 
     obj.properties = Object.keys(model.properties).filter(noChildProps);
-    oldRec = _select(obj, isChild);
+    oldRec = doSelect(obj, isChild);
     if (!Object.keys(oldRec).length) { return false; }
 
     newRec = JSON.parse(JSON.stringify(oldRec));
 
-    _jsonpatch.apply(newRec, patches);
+    jsonpatch.apply(newRec, patches);
 
     if (patches.length) {
       props = model.properties;
@@ -1861,7 +1857,7 @@ var featherbone = {};
               cid = oldRec[key][i].id;
               if (!find(updRec[key], cid)) {
                 child = {name: cModel.name, id: cid};
-                _delete(child, true);
+                doDelete(child, true);
               }
 
               i++;
@@ -1874,16 +1870,16 @@ var featherbone = {};
               cOldRec = find(oldRec[key], cid);
               cNewRec = updRec[key][i];
               if (cOldRec) {
-                cpatches = _jsonpatch.compare(cOldRec, cNewRec);
+                cpatches = jsonpatch.compare(cOldRec, cNewRec);
 
                 if (cpatches.length) {
                   child = {name: cModel.name, id: cid, data: cpatches};
-                  _update(child, true);
+                  doUpdate(child, true);
                 }
               } else {
                 cNewRec[props[key].type.parentOf] = {id: updRec.id};
                 child = {name: cModel.name, data: cNewRec};
-                _insert(child, true);
+                doInsert(child, true);
               }
 
               i++;
@@ -1892,7 +1888,7 @@ var featherbone = {};
           /* Handle to one relations */
           } else if (!props[key].type.childOf &&
               updRec[key].id !== oldRec[key].id) {
-            value = updRec[key].id ? _getKey(updRec[key].id) : -1;
+            value = updRec[key].id ? getKey(updRec[key].id) : -1;
 
             if (value === undefined) {
               err = "Relation not found in \"" + props[key].type.relation +
@@ -1900,7 +1896,7 @@ var featherbone = {};
               featherbone.error(err);
             }
 
-            tokens.push(_relationColumn(key, props[key].type.relation));
+            tokens.push(relationColumn(key, props[key].type.relation));
             ary.push("%I = $" + p);
             params.push(value);
             p++;
@@ -1923,10 +1919,10 @@ var featherbone = {};
       if (isChild) { return; }
 
       /* If a top level record, return patch of what changed */
-      result = _select({name: model.name, id: id});
+      result = doSelect({name: model.name, id: id});
 
       /* Handle change log */
-      _insert({
+      doInsert({
         name: "Log",
         data: {
           objectId: id,
@@ -1935,11 +1931,11 @@ var featherbone = {};
           createdBy: updRec.updatedBy,
           updated: updRec.updated,
           updatedBy: updRec.updatedBy,
-          change: _jsonpatch.compare(oldRec, result)
+          change: jsonpatch.compare(oldRec, result)
         }
       }, true);
 
-      return _jsonpatch.compare(newRec, result);
+      return jsonpatch.compare(newRec, result);
     }
 
     return [];
