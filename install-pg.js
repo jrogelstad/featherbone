@@ -25,6 +25,7 @@ var manifest, file, content, result, execute, name, createFunction, buildApi,
   path = require("path"),
   yaml = require("js-yaml"),
   pgConfig = require("./common/pgconfig.js"),
+  f = require("./common/core.js"),
   filename = path.format({root: "/", base: "manifest.json"}),
   i = 0;
 
@@ -253,6 +254,8 @@ buildApi = function () {
             pathName = "/" + key.toSpinalCase() + "/{id}",
             name = key.toProperCase();
 
+          model.name = key; // For error trapping later
+
           // Append singluar path
           if (!model.isChild) {
             path = {
@@ -472,10 +475,8 @@ processProperties = function (model, properties) {
 
   keys.forEach(function (key) {
     var property = model.properties[key], newProperty,
-      primitives = ["array", "boolean", "integer", "number", "null",
-        "object", "string"],
-      formats = ["integer", "long", "float", "double", "string",
-        "string", "byte", "boolean", "date", "dateTime", "password"];
+      primitives = Object.keys(f.types),
+      formats = Object.keys(f.formats);
 
     // Bail if child property. Not necessary for api definition
     if (typeof property.type === "object" && property.type.childOf) { return; }
@@ -495,7 +496,8 @@ processProperties = function (model, properties) {
       if (primitives.indexOf(property.type) !== -1) {
         newProperty.type = property.type;
       } else {
-        console.error("Property type " + property.type + " not supported.");
+        console.error("Property type " + property.type +
+          " not supported on " + key + " for model " + model.name);
         process.exit(1);
       }
 
@@ -504,7 +506,7 @@ processProperties = function (model, properties) {
           newProperty.format = property.format.toSpinalCase();
         } else {
           console.error("Property format " + property.format +
-            " not supported.");
+            " not supported on " + key + " for model " + model.name);
           process.exit(1);
         }
       }

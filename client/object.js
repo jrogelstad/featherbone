@@ -3,14 +3,19 @@
 (function (f) {
   "use strict";
 
+  f.format = function (value) {
+    // TO DO
+  };
+
   /**
     Creates a property getter setter function with a default value.
     Includes state...
 
-    @param {Any} Initial value
+    @param {Any} Initial 
+    @param {String} Format. Optional
     @return {Function}
   */
-  f.prop = function (store) {
+  f.prop = function (store, format) {
     var newValue, oldValue, p, state, revert;
 
     // Initialize state

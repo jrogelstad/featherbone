@@ -1967,23 +1967,9 @@ var featherbone = {};
 
 }(featherbone));
 
-if (exports !== "undefined") {
-  exports.createId = featherbone.createId;
-  exports.checkEtag = featherbone.checkEtag;
-  exports.deleteModel = featherbone.deleteModel;
-  exports.error = featherbone.error;
-  exports.getCurrentUser = featherbone.getCurrentUser;
-  exports.getModel = featherbone.getModel;
-  exports.getSettings = featherbone.getSettings;
-  exports.isAuthorized = featherbone.isAuthorized;
-  exports.isSuperUser = featherbone.isSuperUser;
-  exports.minDate = featherbone.minDate;
-  exports.maxDate = featherbone.maxDate;
-  exports.now = featherbone.now;
-  exports.request = featherbone.request;
-  exports.saveAuthorization = featherbone.saveAuthorization;
-  exports.saveModel = featherbone.saveModel;
-  exports.saveSettings = featherbone.saveSettings;
-  exports.setSuperUser = featherbone.setSuperUser;
+if (typeof exports !== "undefined") {
+  Object.keys(featherbone).forEach(function (key) {
+    exports[key] = featherbone[key];
+  });
 }
 

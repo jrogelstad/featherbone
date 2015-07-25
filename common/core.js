@@ -6,7 +6,11 @@ f = {};
 (function (f) {
   "use strict";
 
-  var that = {
+  var that,
+    State = (typeof require === 'function' ? require('statechart') :
+        window.statechart).State;
+
+  that = {
 
     /**
       Returns the base url used to fetch and post data
@@ -35,11 +39,41 @@ f = {};
       return result;
     },
 
+    formats: {
+      "integer": undefined,
+      "long": undefined,
+      "float": undefined,
+      "double": undefined,
+      "string": undefined,
+      "boolean": undefined,
+      "date": undefined,
+      "dateTime": undefined,
+      "password": undefined
+    },
+
     /*
       TODO: Make this real
     */
     getCurrentUser: function () {
       return "admin";
+    },
+
+    /**
+      Return a date that is the highest system date.
+
+      @return {Date}
+    */
+    maxDate: function () {
+      return new Date("2100-01-01T00:00:00.000Z");
+    },
+
+    /**
+      Return a date that is the lowest system date.
+
+      @return {Date}
+    */
+    minDate: function () {
+      return new Date(0);
     },
 
     /**
@@ -51,8 +85,16 @@ f = {};
       return new Date();
     },
 
-    State: (typeof require === 'function' ? require('statechart') :
-        window.statechart).State
+    State: State,
+
+    types: {
+      "array": undefined,
+      "boolean": undefined,
+      "integer": undefined,
+      "number": undefined,
+      "object": undefined,
+      "string": undefined
+    }
   };
 
   Object.keys(that).forEach(function (key) {
@@ -60,3 +102,10 @@ f = {};
   });
 
 }(f));
+
+if (typeof exports !== "undefined") {
+  Object.keys(f).forEach(function (key) {
+    exports[key] = f[key];
+  });
+}
+
