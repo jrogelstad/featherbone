@@ -162,12 +162,8 @@
     /*
       Add a change event binding to a property.
 
-        f.contact = function (data, my) {
-          var shared = {
-              name: my.name || "Contact",
-              properties: my.properties ||
-                f.catalog.getModel("Contact").properties
-            },
+        contact = function (data, model) {
+          var shared = model || f.catalog.getModel("Contact"),
             that = f.object(data, shared);
 
           // Add a change event to a property
@@ -190,12 +186,8 @@
     /*
       Add a fetched event binding to the object.
 
-        f.contact = function (data, my) {
-          var shared = {
-              name: my.name || "Contact",
-              properties: my.properties ||
-                f.catalog.getModel("Contact").properties
-            },
+        contact = function (data, model) {
+          var shared = model || f.catalog.getModel("Contact"),
             that = f.object(data, shared);
 
           // Add a fetched event
@@ -204,7 +196,6 @@
           });
         }
 
-      @param {String} Property name to call on cahnge
       @param {Function} Function to call on change
       @return Reciever
     */

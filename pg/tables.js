@@ -138,25 +138,25 @@ if (!plv8.execute(sqlChk,['$settings']).length) {
             "id": {
               "description": "Surrogate key",
               "type": "string",
-              "defaultValue": "createId()"},
+              "default": "createId()"},
             "created": {
               "description": "Create time of the record",
               "type": "string",
               "format": "dateTime",
-              "defaultValue": "now()"},
+              "default": "now()"},
             "createdBy": {
               "description": "User who created the record",
               "type": "string",
-              "defaultValue": "getCurrentUser()"},
+              "default": "getCurrentUser()"},
             "updated": {
               "description": "Last time the record was updated",
               "type": "string",
               "format": "dateTime",
-              "defaultValue": "now()"},
+              "default": "now()"},
             "updatedBy": {
               "description": "User who created the record",
               "type": "string",
-              "defaultValue": "getCurrentUser()"},
+              "default": "getCurrentUser()"},
             "isDeleted": {
               "description": "Indicates the record is no longer active",
               "type": "boolean"},
