@@ -6,9 +6,7 @@ var f = (function () {
   var that,
     dateToString = function (value) {
       return value instanceof Date ? value.toJSON() : value;
-    },
-    State = (typeof require === 'function' ? require('statechart') :
-        window.statechart).State;
+    };
 
   that = {
 
@@ -124,8 +122,6 @@ var f = (function () {
     now: function () {
       return new Date();
     },
-
-    State: State,
 
     /**
       Return a date that is the current date at midnight.

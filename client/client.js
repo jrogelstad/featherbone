@@ -72,13 +72,8 @@ todo.view = function () {
 //initialize the application
 m.mount(document, {controller: todo.controller, view: todo.view});
 
-f.contact = function (data, my) {
-  my = my || {};
-
-  var shared = {
-      name: my.name || "Contact",
-      properties: my.properties || f.catalog.getModel("Contact").properties
-    },
+f.contact = function (data, model) {
+  var shared = model || f.catalog.getModel("Contact"),
     that = f.object(data, shared);
 
   // ..........................................................

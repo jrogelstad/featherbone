@@ -1,8 +1,11 @@
-/*global m, f */
+/*global window, m, f */
 
 
 (function (f) {
   "use strict";
+
+  var statechart = typeof require === 'function' ? require('statechart') :
+      window.statechart;
 
   f.settings = function (name) {
     var state, doFetch, doPost,
@@ -28,7 +31,7 @@
       state.goto("/Busy/Saving");
     };
 
-    state = f.State.define(function () {
+    state = statechart.State.define(function () {
       this.state("Ready", function () {
         this.state("New", function () {
           this.event("fetch", doFetch);

@@ -1,7 +1,17 @@
-/*global m, f */
+/*global window, m, f */
 
 (function (f) {
   "use strict";
+
+  var statechart, jsonpatch;
+
+  if (typeof require === 'function') {
+    statechart = require("statechart");
+    jsonpatch = require("fast-json-patch");
+  } else {
+    statechart = window.statechart;
+    jsonpatch = window.jsonpatch;
+  }
 
   /**
     Creates a property getter setter function with a default value.
@@ -17,10 +27,14 @@
   f.prop = function (store, formatter) {
     formatter = formatter || {};
 
-    var newValue, oldValue, p, state, revert;
+    var newValue, oldValue, p, state, revert,
+      defaultTransform = function (value) { return value; };
+
+    formatter.toType = formatter.toType || defaultTransform;
+    formatter.fromType = formatter.fromType || defaultTransform;
 
     // Initialize state
-    state = f.State.define(function () {
+    state = statechart.State.define(function () {
       this.state("Ready", function () {
         this.event("change", function () {
           this.goto("../Changing");
@@ -61,18 +75,20 @@
     // Private function that will be returned
     p = function (value) {
       if (arguments.length) {
+        if (formatter.toType(value) === store) { return; }
+
         newValue = value;
         oldValue = store;
 
         p.state.send("change");
-        store = formatter.toType ? formatter.toType(newValue) : newValue;
+        store = formatter.toType(newValue);
         p.state.send("changed");
 
         newValue = undefined;
         oldValue = newValue;
       }
 
-      return formatter.fromType ? formatter.fromType(store) : store;
+      return formatter.fromType(store);
     };
 
     /*
@@ -89,7 +105,7 @@
       return newValue;
     };
     p.oldValue = function () {
-      return formatter.fromType ? formatter.fromType(oldValue) : oldValue;
+      return formatter.fromType(oldValue);
     };
 
     p.state = state;
@@ -110,16 +126,16 @@
 
     @param {Object} Default data.
     @param {Object} "My" definition for subclass
-    @param {Array} [my.name] the class name of the object
-    @param {Array} [my.properties] the properties to set on the data object
+    @param {Array} [model.name] the class name of the object
+    @param {Array} [model.properties] the properties to set on the data object
     return {Object}
   */
-  f.object = function (data, my) {
+  f.object = function (data, model) {
     data = data || {};
-    my = my || {};
+    model = model || {};
 
     var  state, doDelete, doFetch, doInit, doPatch, doPost, doProperties,
-      that = {data: {}, name: my.name || "Object"},
+      that = {data: {}, name: model.name || "Object" },
       d = that.data,
       stateMap = {};
 
@@ -250,7 +266,7 @@
           that.set(result(), true);
           state.send('fetched');
         },
-        url = f.baseUrl() + my.name.toSpinalCase() + "/" + that.data.id();
+        url = f.baseUrl() + that.name.toSpinalCase() + "/" + that.data.id();
 
       state.goto("/Busy");
       m.request({method: "GET", url: url})
@@ -259,7 +275,7 @@
     };
 
     doInit = function () {
-      doProperties(my.properties);
+      doProperties(model.properties);
     };
 
     doPatch = function () {
@@ -267,7 +283,18 @@
     };
 
     doPost = function () {
+      var result = m.prop({}),
+        cache = that.toJSON(),
+        callback = function () {
+          jsonpatch.apply(cache, result());
+          that.set(cache, true);
+          state.send('fetched');
+        },
+        url = f.baseUrl() + model.plural.toSpinalCase() + "/";
       state.goto("/Busy/Saving");
+      m.request({method: "POST", url: url, data: {data: cache}})
+        .then(result)
+        .then(callback);
     };
 
     doProperties = function (props) {
@@ -330,7 +357,7 @@
       });
     };
 
-    state = f.State.define(function () {
+    state = statechart.State.define(function () {
       this.state("Ready", function () {
         this.state("New", function () {
           this.enter(doInit);
