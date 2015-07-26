@@ -1289,109 +1289,6 @@
     return true;
   };
 
-  /** private */
-  getKey = function (id, name, showDeleted, isSuperUser) {
-    name = name || "Object";
-
-    var result,
-      filter = {criteria: [{property: "id", value: id}]};
-
-    result = getKeys(name, filter, showDeleted, isSuperUser);
-
-    return result.length ? result[0] : undefined;
-  };
-
-  /** private */
-  getKeys = function (name, filter, showDeleted, isSuperUser) {
-    var part, order, op, err, n,
-      ops = ["=", "!=", "<", ">", "<>", "~", "*~", "!~", "!~*"],
-      table = name.toSnakeCase(),
-      clause = showDeleted !== false ? "true" : "NOT is_deleted",
-      sql = "SELECT _pk FROM %I WHERE " + clause,
-      tokens = [table],
-      criteria = filter ? filter.criteria || [] : false,
-      sort = filter ? filter.sort || [] : false,
-      params = [],
-      parts = [],
-      i = 0,
-      p = 1;
-
-    /* Add authorization criteria */
-    if (isSuperUser === false) {
-      sql += buildAuthSql("canRead", table, tokens);
-
-      params.push(that.getCurrentUser());
-      p++;
-    }
-
-    /* Process filter */
-    if (filter) {
-
-      /* Process criteria */
-      while (criteria[i]) {
-        op = criteria[i].operator || "=";
-        tokens.push(criteria[i].property.toSnakeCase());
-
-        if (op === "IN") {
-          n = criteria[i].value.length;
-          part = [];
-          while (n--) {
-            params.push(criteria[i].value[n]);
-            part.push("$" + p++);
-          }
-          part = " %I IN (" + part.join(",") + ")";
-        } else {
-          if (ops.indexOf(op) === -1) {
-            err = 'Unknown operator "' + criteria[i].operator + '"';
-            that.error(err);
-          }
-          params.push(criteria[i].value);
-          part = " %I" + op + "$" + p++;
-          i++;
-        }
-        parts.push(part);
-        i++;
-      }
-
-      if (parts.length) {
-        sql += " AND " + parts.join(" AND ");
-      }
-
-      /* Process sort */
-      i = 0;
-      parts = [];
-      while (sort[i]) {
-        order = (sort[i].order || "ASC").toUpperCase();
-        if (order !== "ASC" && order !== "DESC") {
-          that.error('Unknown operator "' + order + '"');
-        }
-        tokens.push(sort[i].property);
-        parts.push(" %I " + order);
-        i++;
-      }
-
-      if (parts.length) {
-        sql += " ORDER BY " + parts.join(",");
-      }
-
-      /* Process offset and limit */
-      if (filter.offset) {
-        sql += " OFFSET $" + p++;
-        params.push(filter.offset);
-      }
-
-      if (filter.limit) {
-        sql += " LIMIT $" + p;
-        params.push(filter.limit);
-      }
-    }
-
-    sql = sql.format(tokens);
-
-    return plv8.execute(sql, params).map(function (rec) {
-      return rec._pk;
-    });
-  };
 
   /** private */
   doInsert = function (obj, isChild, isSuperUser) {
@@ -1426,7 +1323,7 @@
     }
 
     /* Check id for existence and uniqueness and regenerate if any problem */
-    if (data.id === undefined ||  getKey(data.id) !== undefined) {
+    if (!data.id ||  getKey(data.id) !== undefined) {
       data.id = that.createId();
     } else if (isSuperUser === false) {
       if (!that.isAuthorized({
@@ -1564,6 +1461,214 @@
   };
 
   /** private */
+  doSelect = function (obj, isChild, isSuperUser) {
+    var key, sql, pk,
+      model = that.getModel(obj.name),
+      table = "_" + model.name.toSnakeCase(),
+      keys = obj.properties || Object.keys(model.properties),
+      tokens = [],
+      result = {},
+      cols = [],
+      i = 0;
+
+    /* Validate */
+    if (!isChild && isChildModel(model)) {
+      that.error("Can not query directly on a child class");
+    }
+
+    while (i < keys.length) {
+      key = keys[i];
+      tokens.push("%I");
+      cols.push(key.toSnakeCase());
+      i++;
+    }
+
+    cols.push(table);
+    sql = ("SELECT " +  tokens.toString(",") + " FROM %I").format(cols);
+
+    /* Get one result by key */
+    if (obj.id) {
+      pk = getKey(obj.id, obj.name, obj.showDeleted, isSuperUser);
+      if (pk === undefined) { return {}; }
+      sql +=  " WHERE _pk = $1";
+
+      result = plv8.execute(sql, [pk])[0];
+
+    /* Get a filtered result */
+    } else {
+      pk = getKeys(obj.name, obj.filter, obj.showDeleted, isSuperUser);
+
+      if (pk.length) {
+        tokens = [];
+        i = 0;
+
+        while (pk[i]) {
+          i++;
+          tokens.push("$" + i);
+        }
+
+        sql += " WHERE _pk IN (" + tokens.toString(",") + ")";
+
+        result = plv8.execute(sql, pk);
+      }
+    }
+
+    return sanitize(result);
+  };
+
+  /** Private */
+  doUpdate = function (obj, isChild, isSuperUser) {
+    var result, updRec, props, value, keys, sql, i, cModel, cid, child, err,
+      oldRec, newRec, cOldRec, cNewRec, cpatches,
+      patches = obj.data || [],
+      model = that.getModel(obj.name),
+      tokens = [model.name.toSnakeCase()],
+      id = obj.id,
+      pk = getKey(id),
+      params = [],
+      ary = [],
+      p = 1,
+      find = function (ary, id) {
+        var n = 0;
+
+        while (n < ary.length) {
+          if (ary[n].id === id) { return ary[n]; }
+          n++;
+        }
+
+        return false;
+      },
+      noChildProps = function (key) {
+        if (typeof model.properties[key].type !== "object" ||
+            !model.properties[key].type.childOf) {
+          return true;
+        }
+      };
+
+    /* Validate */
+    if (!isChild && isChildModel(model)) {
+      that.error("Can not directly update a child class");
+    } else if (isSuperUser === false &&
+        !that.isAuthorized({action: "canUpdate", id: id})) {
+      that.error("Not authorized to update \"" + id + "\"");
+    }
+
+    obj.properties = Object.keys(model.properties).filter(noChildProps);
+    oldRec = doSelect(obj, isChild);
+    if (!Object.keys(oldRec).length || oldRec.isDeleted) { return false; }
+
+    newRec = JSON.parse(JSON.stringify(oldRec));
+
+    jsonpatch.apply(newRec, patches);
+
+    if (patches.length) {
+      props = model.properties;
+      updRec = JSON.parse(JSON.stringify(newRec));
+      updRec.updated = new Date().toJSON();
+      updRec.updatedBy = that.getCurrentUser();
+      if (model.properties.etag) {
+        updRec.etag = that.createId();
+      }
+
+      keys = Object.keys(props);
+      keys.forEach(function (key) {
+        /* Handle composite types */
+        if (typeof props[key].type === "object") {
+          /* Handle child records */
+          if (Array.isArray(updRec[key])) {
+            cModel = that.getModel(props[key].type.relation);
+            i = 0;
+
+            /* Process deletes */
+            while (i < oldRec[key].length) {
+              cid = oldRec[key][i].id;
+              if (!find(updRec[key], cid)) {
+                child = {name: cModel.name, id: cid};
+                doDelete(child, true);
+              }
+
+              i++;
+            }
+
+            /* Process inserts and updates */
+            i = 0;
+            while (i < updRec[key].length) {
+              cid = updRec[key][i].id || null;
+              cOldRec = find(oldRec[key], cid);
+              cNewRec = updRec[key][i];
+              if (cOldRec) {
+                cpatches = jsonpatch.compare(cOldRec, cNewRec);
+
+                if (cpatches.length) {
+                  child = {name: cModel.name, id: cid, data: cpatches};
+                  doUpdate(child, true);
+                }
+              } else {
+                cNewRec[props[key].type.parentOf] = {id: updRec.id};
+                child = {name: cModel.name, data: cNewRec};
+                doInsert(child, true);
+              }
+
+              i++;
+            }
+
+          /* Handle to one relations */
+          } else if (!props[key].type.childOf &&
+              updRec[key].id !== oldRec[key].id) {
+            value = updRec[key].id ? getKey(updRec[key].id) : -1;
+
+            if (value === undefined) {
+              err = "Relation not found in \"" + props[key].type.relation +
+                "\" for \"" + key + "\" with id \"" + updRec[key].id + "\"";
+              that.error(err);
+            }
+
+            tokens.push(relationColumn(key, props[key].type.relation));
+            ary.push("%I = $" + p);
+            params.push(value);
+            p++;
+          }
+
+        /* Handle regular data types */
+        } else if (updRec[key] !== oldRec[key] && key !== "objectType") {
+          tokens.push(key.toSnakeCase());
+          ary.push("%I = $" + p);
+          params.push(updRec[key]);
+          p++;
+        }
+      });
+
+      sql = ("UPDATE %I SET " + ary.join(",") + " WHERE _pk = $" + p)
+        .format(tokens);
+      params.push(pk);
+      plv8.execute(sql, params);
+
+      if (isChild) { return; }
+
+      /* If a top level record, return patch of what changed */
+      result = doSelect({name: model.name, id: id});
+
+      /* Handle change log */
+      doInsert({
+        name: "Log",
+        data: {
+          objectId: id,
+          action: "PATCH",
+          created: updRec.updated,
+          createdBy: updRec.updatedBy,
+          updated: updRec.updated,
+          updatedBy: updRec.updatedBy,
+          change: jsonpatch.compare(oldRec, result)
+        }
+      }, true);
+
+      return jsonpatch.compare(newRec, result);
+    }
+
+    return [];
+  };
+
+  /** private */
   isChildModel = function (model) {
     var props = model.properties,
       key;
@@ -1578,6 +1683,110 @@
     }
 
     return false;
+  };
+
+  /** private */
+  getKey = function (id, name, showDeleted, isSuperUser) {
+    name = name || "Object";
+
+    var result,
+      filter = {criteria: [{property: "id", value: id}]};
+
+    result = getKeys(name, filter, showDeleted, isSuperUser);
+
+    return result.length ? result[0] : undefined;
+  };
+
+  /** private */
+  getKeys = function (name, filter, showDeleted, isSuperUser) {
+    var part, order, op, err, n,
+      ops = ["=", "!=", "<", ">", "<>", "~", "*~", "!~", "!~*"],
+      table = name.toSnakeCase(),
+      clause = showDeleted !== false ? "true" : "NOT is_deleted",
+      sql = "SELECT _pk FROM %I WHERE " + clause,
+      tokens = [table],
+      criteria = filter ? filter.criteria || [] : false,
+      sort = filter ? filter.sort || [] : false,
+      params = [],
+      parts = [],
+      i = 0,
+      p = 1;
+
+    /* Add authorization criteria */
+    if (isSuperUser === false) {
+      sql += buildAuthSql("canRead", table, tokens);
+
+      params.push(that.getCurrentUser());
+      p++;
+    }
+
+    /* Process filter */
+    if (filter) {
+
+      /* Process criteria */
+      while (criteria[i]) {
+        op = criteria[i].operator || "=";
+        tokens.push(criteria[i].property.toSnakeCase());
+
+        if (op === "IN") {
+          n = criteria[i].value.length;
+          part = [];
+          while (n--) {
+            params.push(criteria[i].value[n]);
+            part.push("$" + p++);
+          }
+          part = " %I IN (" + part.join(",") + ")";
+        } else {
+          if (ops.indexOf(op) === -1) {
+            err = 'Unknown operator "' + criteria[i].operator + '"';
+            that.error(err);
+          }
+          params.push(criteria[i].value);
+          part = " %I" + op + "$" + p++;
+          i++;
+        }
+        parts.push(part);
+        i++;
+      }
+
+      if (parts.length) {
+        sql += " AND " + parts.join(" AND ");
+      }
+
+      /* Process sort */
+      i = 0;
+      parts = [];
+      while (sort[i]) {
+        order = (sort[i].order || "ASC").toUpperCase();
+        if (order !== "ASC" && order !== "DESC") {
+          that.error('Unknown operator "' + order + '"');
+        }
+        tokens.push(sort[i].property);
+        parts.push(" %I " + order);
+        i++;
+      }
+
+      if (parts.length) {
+        sql += " ORDER BY " + parts.join(",");
+      }
+
+      /* Process offset and limit */
+      if (filter.offset) {
+        sql += " OFFSET $" + p++;
+        params.push(filter.offset);
+      }
+
+      if (filter.limit) {
+        sql += " LIMIT $" + p;
+        params.push(filter.limit);
+      }
+    }
+
+    sql = sql.format(tokens);
+
+    return plv8.execute(sql, params).map(function (rec) {
+      return rec._pk;
+    });
   };
 
   /** private 
@@ -1752,216 +1961,8 @@
   };
 
   /** private */
-  doSelect = function (obj, isChild, isSuperUser) {
-    var key, sql, pk,
-      model = that.getModel(obj.name),
-      table = "_" + model.name.toSnakeCase(),
-      keys = obj.properties || Object.keys(model.properties),
-      tokens = [],
-      result = {},
-      cols = [],
-      i = 0;
-
-    /* Validate */
-    if (!isChild && isChildModel(model)) {
-      that.error("Can not query directly on a child class");
-    }
-
-    while (i < keys.length) {
-      key = keys[i];
-      tokens.push("%I");
-      cols.push(key.toSnakeCase());
-      i++;
-    }
-
-    cols.push(table);
-    sql = ("SELECT " +  tokens.toString(",") + " FROM %I").format(cols);
-
-    /* Get one result by key */
-    if (obj.id) {
-      pk = getKey(obj.id, obj.name, obj.showDeleted, isSuperUser);
-      if (pk === undefined) { return {}; }
-      sql +=  " WHERE _pk = $1";
-
-      result = plv8.execute(sql, [pk])[0];
-
-    /* Get a filtered result */
-    } else {
-      pk = getKeys(obj.name, obj.filter, obj.showDeleted, isSuperUser);
-
-      if (pk.length) {
-        tokens = [];
-        i = 0;
-
-        while (pk[i]) {
-          i++;
-          tokens.push("$" + i);
-        }
-
-        sql += " WHERE _pk IN (" + tokens.toString(",") + ")";
-
-        result = plv8.execute(sql, pk);
-      }
-    }
-
-    return sanitize(result);
-  };
-
-  /** private */
   setCurrentUser = function (user) {
     currentUser = user;
-  };
-
-  /** Private */
-  doUpdate = function (obj, isChild, isSuperUser) {
-    var result, updRec, props, value, keys, sql, i, cModel, cid, child, err,
-      oldRec, newRec, cOldRec, cNewRec, cpatches,
-      patches = obj.data || [],
-      model = that.getModel(obj.name),
-      tokens = [model.name.toSnakeCase()],
-      id = obj.id,
-      pk = getKey(id),
-      params = [],
-      ary = [],
-      p = 1,
-      find = function (ary, id) {
-        var n = 0;
-
-        while (n < ary.length) {
-          if (ary[n].id === id) { return ary[n]; }
-          n++;
-        }
-
-        return false;
-      },
-      noChildProps = function (key) {
-        if (typeof model.properties[key].type !== "object" ||
-            !model.properties[key].type.childOf) {
-          return true;
-        }
-      };
-
-    /* Validate */
-    if (!isChild && isChildModel(model)) {
-      that.error("Can not directly update a child class");
-    } else if (isSuperUser === false &&
-        !that.isAuthorized({action: "canUpdate", id: id})) {
-      that.error("Not authorized to update \"" + id + "\"");
-    }
-
-    obj.properties = Object.keys(model.properties).filter(noChildProps);
-    oldRec = doSelect(obj, isChild);
-    if (!Object.keys(oldRec).length) { return false; }
-
-    newRec = JSON.parse(JSON.stringify(oldRec));
-
-    jsonpatch.apply(newRec, patches);
-
-    if (patches.length) {
-      props = model.properties;
-      updRec = JSON.parse(JSON.stringify(newRec));
-      updRec.updated = new Date().toJSON();
-      updRec.updatedBy = that.getCurrentUser();
-      if (model.properties.etag) {
-        updRec.etag = that.createId();
-      }
-
-      keys = Object.keys(props);
-      keys.forEach(function (key) {
-        /* Handle composite types */
-        if (typeof props[key].type === "object") {
-          /* Handle child records */
-          if (Array.isArray(updRec[key])) {
-            cModel = that.getModel(props[key].type.relation);
-            i = 0;
-
-            /* Process deletes */
-            while (i < oldRec[key].length) {
-              cid = oldRec[key][i].id;
-              if (!find(updRec[key], cid)) {
-                child = {name: cModel.name, id: cid};
-                doDelete(child, true);
-              }
-
-              i++;
-            }
-
-            /* Process inserts and updates */
-            i = 0;
-            while (i < updRec[key].length) {
-              cid = updRec[key][i].id || null;
-              cOldRec = find(oldRec[key], cid);
-              cNewRec = updRec[key][i];
-              if (cOldRec) {
-                cpatches = jsonpatch.compare(cOldRec, cNewRec);
-
-                if (cpatches.length) {
-                  child = {name: cModel.name, id: cid, data: cpatches};
-                  doUpdate(child, true);
-                }
-              } else {
-                cNewRec[props[key].type.parentOf] = {id: updRec.id};
-                child = {name: cModel.name, data: cNewRec};
-                doInsert(child, true);
-              }
-
-              i++;
-            }
-
-          /* Handle to one relations */
-          } else if (!props[key].type.childOf &&
-              updRec[key].id !== oldRec[key].id) {
-            value = updRec[key].id ? getKey(updRec[key].id) : -1;
-
-            if (value === undefined) {
-              err = "Relation not found in \"" + props[key].type.relation +
-                "\" for \"" + key + "\" with id \"" + updRec[key].id + "\"";
-              that.error(err);
-            }
-
-            tokens.push(relationColumn(key, props[key].type.relation));
-            ary.push("%I = $" + p);
-            params.push(value);
-            p++;
-          }
-
-        /* Handle regular data types */
-        } else if (updRec[key] !== oldRec[key] && key !== "objectType") {
-          tokens.push(key.toSnakeCase());
-          ary.push("%I = $" + p);
-          params.push(updRec[key]);
-          p++;
-        }
-      });
-
-      sql = ("UPDATE %I SET " + ary.join(",") + " WHERE _pk = $" + p)
-        .format(tokens);
-      params.push(pk);
-      plv8.execute(sql, params);
-
-      if (isChild) { return; }
-
-      /* If a top level record, return patch of what changed */
-      result = doSelect({name: model.name, id: id});
-
-      /* Handle change log */
-      doInsert({
-        name: "Log",
-        data: {
-          objectId: id,
-          action: "PATCH",
-          created: updRec.updated,
-          createdBy: updRec.updatedBy,
-          updated: updRec.updated,
-          updatedBy: updRec.updatedBy,
-          change: jsonpatch.compare(oldRec, result)
-        }
-      }, true);
-
-      return jsonpatch.compare(newRec, result);
-    }
-
-    return [];
   };
 }(exports));
 
