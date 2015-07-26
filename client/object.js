@@ -3,19 +3,20 @@
 (function (f) {
   "use strict";
 
-  f.format = function (value) {
-    // TO DO
-  };
-
   /**
     Creates a property getter setter function with a default value.
     Includes state...
 
     @param {Any} Initial 
-    @param {String} Format. Optional
+    @param {Object} Formatter. Optional
+    @param {Any} [formatter.default] Function or value returned by default.
+    @param {Function} [formatter.toType] Converts input to internal type.
+    @param {Function} [formatter.fromType] Formats internal value for output.
     @return {Function}
   */
-  f.prop = function (store, format) {
+  f.prop = function (store, formatter) {
+    formatter = formatter || {};
+
     var newValue, oldValue, p, state, revert;
 
     // Initialize state
@@ -64,14 +65,14 @@
         oldValue = store;
 
         p.state.send("change");
-        store = newValue;
+        store = formatter.toType ? formatter.toType(newValue) : newValue;
         p.state.send("changed");
 
         newValue = undefined;
         oldValue = newValue;
       }
 
-      return store;
+      return formatter.fromType ? formatter.fromType(store) : store;
     };
 
     /*
@@ -88,7 +89,7 @@
       return newValue;
     };
     p.oldValue = function () {
-      return oldValue;
+      return formatter.fromType ? formatter.fromType(oldValue) : oldValue;
     };
 
     p.state = state;
@@ -273,12 +274,23 @@
       var keys = Object.keys(props || {});
 
       keys.forEach(function (key) {
-        var prop, func, defaultValue,
+        var prop, func, defaultValue, formatter,
+          p = props[key],
           value = data[key];
 
+        // Resolve formatter
+        formatter = f.formats[p.format] || f.types[p.type] || {};
+
         // Handle default
-        if (value === undefined && props[key].default !== undefined) {
-          defaultValue = props[key].default;
+        if (value === undefined) {
+
+          if (props[key].default !== undefined) {
+            defaultValue = props[key].default;
+          } else if (typeof formatter.default === "function") {
+            defaultValue = formatter.default();
+          } else {
+            defaultValue = formatter.default;
+          }
 
           // Handle default that is a function
           if (typeof defaultValue === "string" &&
@@ -291,7 +303,7 @@
         }
 
         // Create property
-        prop = f.prop(value);
+        prop = f.prop(value, formatter);
 
         // Carry other property definitions forward
         prop.description = props[key].description;
