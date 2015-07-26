@@ -236,7 +236,7 @@ function doUpsert(req, res) {
       params = req.swagger.params,
       method = req.method,
       name = resolveName(req.swagger.apiPath),
-      id = params.id.value,
+      id = params.id ? params.id.value : false,
       result;
 
     if (err) {
@@ -249,7 +249,7 @@ function doUpsert(req, res) {
       payload.method = method;
       payload.name = name;
       payload.user = getCurrentUser();
-      payload.id = id;
+      if (id) { payload.id = id; }
 
       sql = buildSql(payload);
 

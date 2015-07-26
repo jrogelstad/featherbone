@@ -286,32 +286,6 @@ buildApi = function () {
                   }
                 }
               },
-              post: {
-                summary: "Add a new object to the database" + name,
-                operationId: "doUpsert",
-                parameters: [
-                  {
-                    name: "id",
-                    in: "path",
-                    description: "The id of the " + name + " to add",
-                    type: "string"
-                  }
-                ],
-                responses: {
-                  200: {
-                    description: "Expected response to a valid request",
-                    schema: {
-                      $ref: "#/definitions/RequestResponse"
-                    }
-                  },
-                  default: {
-                    description: "unexpected error",
-                    schema: {
-                      $ref: "#/definitions/ErrorResponse"
-                    }
-                  }
-                }
-              },
               patch: {
                 summary: "Update an existing " + name,
                 operationId: "doUpsert",
@@ -402,6 +376,24 @@ buildApi = function () {
                     },
                     default: {
                       description: "Error",
+                      schema: {
+                        $ref: "#/definitions/ErrorResponse"
+                      }
+                    }
+                  }
+                },
+                post: {
+                  summary: "Add a new " + name + " to the database",
+                  operationId: "doUpsert",
+                  responses: {
+                    200: {
+                      description: "Expected response to a valid request",
+                      schema: {
+                        $ref: "#/definitions/RequestResponse"
+                      }
+                    },
+                    default: {
+                      description: "unexpected error",
                       schema: {
                         $ref: "#/definitions/ErrorResponse"
                       }
