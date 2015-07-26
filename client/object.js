@@ -134,7 +134,8 @@
     data = data || {};
     model = model || {};
 
-    var  state, doDelete, doFetch, doInit, doPatch, doPost, doProperties,
+    var  doDelete, doFetch, doInit, doPatch, doPost, doProperties,
+      lastFetched, state,
       that = {data: {}, name: model.name || "Object" },
       d = that.data,
       stateMap = {};
@@ -281,6 +282,7 @@
     doFetch = function () {
       var result = m.prop({}),
         callback = function () {
+          lastFetched = result();
           that.set(result(), true);
           state.send('fetched');
         },
@@ -297,7 +299,20 @@
     };
 
     doPatch = function () {
+      var result = m.prop({}),
+        patch = jsonpatch.compare(lastFetched, that.toJSON()),
+        callback = function () {
+          jsonpatch.apply(lastFetched, patch); // Update to sent changes
+          jsonpatch.apply(lastFetched, result()); // Update server side changes
+          that.set(lastFetched, true);
+          state.send('fetched');
+        },
+        url = f.baseUrl() + that.name.toSpinalCase() + "/" + that.data.id();
+
       state.goto("/Busy/Saving");
+      m.request({method: "PATCH", url: url, data: {data: patch}})
+        .then(result)
+        .then(callback);
     };
 
     doPost = function () {
