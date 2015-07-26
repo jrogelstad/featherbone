@@ -160,7 +160,7 @@
     };
 
     /*
-      Add a change event binding to a property or this object.
+      Add a change event binding to a property.
 
         f.contact = function (data, my) {
           var shared = {
@@ -183,6 +183,33 @@
     */
     that.onChange = function (name, func) {
       stateMap[name].substateMap.Changing.enter(func.bind(d[name]));
+
+      return this;
+    };
+
+    /*
+      Add a fetched event binding to the object.
+
+        f.contact = function (data, my) {
+          var shared = {
+              name: my.name || "Contact",
+              properties: my.properties ||
+                f.catalog.getModel("Contact").properties
+            },
+            that = f.object(data, shared);
+
+          // Add a fetched event
+          that.onFetched(function () {
+            console.log("Data fetched!");
+          });
+        }
+
+      @param {String} Property name to call on cahnge
+      @param {Function} Function to call on change
+      @return Reciever
+    */
+    that.onFetched = function (func) {
+      state.substateMap.Ready.substateMap.Fetched.enter(func.bind(that));
 
       return this;
     };
@@ -291,6 +318,7 @@
           state.send('fetched');
         },
         url = f.baseUrl() + model.plural.toSpinalCase() + "/";
+
       state.goto("/Busy/Saving");
       m.request({method: "POST", url: url, data: {data: cache}})
         .then(result)
