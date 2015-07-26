@@ -14,9 +14,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-var user = plv8.execute("SELECT CURRENT_USER")[0].current_user;
-
 plv8.execute('SELECT init()');
+
+var user = plv8.execute("SELECT CURRENT_USER")[0].current_user,
+  featherbone = require("featherbone-persist");
 
 /* Create default global folder */
 global = featherbone.request({

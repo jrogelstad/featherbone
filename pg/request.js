@@ -14,9 +14,10 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*global obj, init, plv8, featherbone */
-if (init || this.require === undefined) {
+/*global obj, featherbone, init, plv8, featherbone */
+if (init || typeof featherbone === "undefined") {
   plv8.execute('SELECT init()');
+  featherbone = require("featherbone-persist");
 }
 
 return featherbone.request(obj);

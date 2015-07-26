@@ -49,6 +49,7 @@
             "path": "node_modules/fast-json-patch/src/json-patch-duplex.js"
         },
         {
+            "name": "featherbone-persist",
             "type": "module",
             "path": "pg/featherbone.js",
             "isGlobal": true

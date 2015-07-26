@@ -16,14 +16,11 @@
 **/
 /*global plv8, debug, require, NOTICE, ERROR*/
 (function () {
-
   // ..........................................................
   // LOCAL
   //
 
-  var module, script,
-    modules = plv8.execute("SELECT * FROM \"$module\""),
-    n = 0;
+  var modules = plv8.execute("SELECT * FROM \"$module\"");
 
   // ..........................................................
   // GLOBAL
@@ -85,16 +82,5 @@
     return plv8.execute(sql, ary)[0].format;
   };
 
-  // Load global modules
-  while (n < modules.length) {
-    module = modules[n];
-
-    if (module.is_global) {
-      script = module.name + "= require(\"" + module.name + "\");";
-      eval(script);
-    }
-
-    n++;
-  }
 }());
 
