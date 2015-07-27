@@ -276,7 +276,18 @@
     //
 
     doDelete = function () {
-      that.state.goto("/Busy/Saving");
+      var result = m.prop({}),
+        callback = function () {
+          lastFetched = result();
+          that.set(result(), true);
+          state.send('deleted');
+        },
+        url = f.baseUrl() + that.name.toSpinalCase() + "/" + that.data.id();
+
+      state.goto("/Busy");
+      m.request({method: "DELETE", url: url})
+        .then(result)
+        .then(callback);
     };
 
     doFetch = function () {
