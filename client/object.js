@@ -1,4 +1,4 @@
-/*global window, m, f */
+/*global window, f */
 
 (function (f) {
   "use strict";
@@ -136,7 +136,7 @@
 
     var  doDelete, doFetch, doInit, doPatch, doPost, doProperties,
       lastFetched, state,
-      that = {data: {}, name: model.name || "Object" },
+      that = {data: {}, name: model.name || "Object", plural: model.plural},
       d = that.data,
       stateMap = {};
 
@@ -276,31 +276,31 @@
     //
 
     doDelete = function () {
-      var result = m.prop({}),
+      var ds = f.dataSource,
+        result = f.prop({}),
         callback = function () {
           lastFetched = result();
           that.set(result(), true);
           state.send('deleted');
-        },
-        url = f.baseUrl() + that.name.toSpinalCase() + "/" + that.data.id();
+        };
 
       state.goto("/Busy");
-      m.request({method: "DELETE", url: url})
+      ds.request({method: "DELETE", name: that.name, id: that.data.id()})
         .then(result)
         .then(callback);
     };
 
     doFetch = function () {
-      var result = m.prop({}),
+      var ds = f.dataSource,
+        result = f.prop({}),
         callback = function () {
           lastFetched = result();
           that.set(result(), true);
           state.send('fetched');
-        },
-        url = f.baseUrl() + that.name.toSpinalCase() + "/" + that.data.id();
+        };
 
       state.goto("/Busy");
-      m.request({method: "GET", url: url})
+      ds.request({method: "GET", name: that.name, id: that.data.id()})
         .then(result)
         .then(callback);
     };
@@ -310,34 +310,35 @@
     };
 
     doPatch = function () {
-      var result = m.prop({}),
+      var ds = f.dataSource,
+        result = f.prop({}),
         patch = jsonpatch.compare(lastFetched, that.toJSON()),
         callback = function () {
           jsonpatch.apply(lastFetched, patch); // Update to sent changes
           jsonpatch.apply(lastFetched, result()); // Update server side changes
           that.set(lastFetched, true);
           state.send('fetched');
-        },
-        url = f.baseUrl() + that.name.toSpinalCase() + "/" + that.data.id();
+        };
 
       state.goto("/Busy/Saving");
-      m.request({method: "PATCH", url: url, data: {data: patch}})
+      ds.request({method: "PATCH", name: that.name, id: that.data.id(),
+        data: {data: patch}})
         .then(result)
         .then(callback);
     };
 
     doPost = function () {
-      var result = m.prop({}),
+      var ds = f.dataSource,
+        result = f.prop({}),
         cache = that.toJSON(),
         callback = function () {
           jsonpatch.apply(cache, result());
           that.set(cache, true);
           state.send('fetched');
-        },
-        url = f.baseUrl() + model.plural.toSpinalCase() + "/";
+        };
 
       state.goto("/Busy/Saving");
-      m.request({method: "POST", url: url, data: {data: cache}})
+      ds.request({method: "POST", name: that.plural, data: {data: cache}})
         .then(result)
         .then(callback);
     };
