@@ -134,7 +134,7 @@
     data = data || {};
     model = model || {};
 
-    var  doDelete, doFetch, doInit, doPatch, doPost, doProperties,
+    var  doClear, doDelete, doFetch, doInit, doPatch, doPost,
       lastFetched, state,
       that = {data: {}, name: model.name || "Object", plural: model.plural},
       d = that.data,
@@ -145,8 +145,15 @@
     //
 
     /*
+      Send event to clear properties on the object and set it to
+      "/Ready/New" state.
+    */
+    that.clear = function () {
+      state.send("clear");
+    };
+
+    /*
       Send event to delete the current object from the server.
-      Only executes in "/ready/clean" and "/ready/new" states.
     */
     that.delete = function () {
       state.send("delete");
@@ -154,7 +161,6 @@
 
     /*
       Send event to fetch data based on the current id from the server.
-      Only results in action in the "/ready" state.
     */
     that.fetch = function () {
       state.send("fetch");
@@ -275,9 +281,24 @@
     // PRIVATE
     //
 
+    doClear = function () {
+      var keys = Object.keys(that.data),
+        values = {};
+
+      keys.forEach(function (key) {
+        var value = that.data[key].default;
+
+        values[key] = typeof value === "function" ? value() : value;
+      });
+
+      that.set(values, true); // Uses silent option
+      state.goto("/Ready/New");
+    };
+
     doDelete = function () {
       var ds = f.dataSource,
         result = f.prop({}),
+        payload = {method: "DELETE", name: that.name, id: that.data.id()},
         callback = function () {
           lastFetched = result();
           that.set(result(), true);
@@ -285,14 +306,13 @@
         };
 
       state.goto("/Busy");
-      ds.request({method: "DELETE", name: that.name, id: that.data.id()})
-        .then(result)
-        .then(callback);
+      ds.request(payload).then(result).then(callback);
     };
 
     doFetch = function () {
       var ds = f.dataSource,
         result = f.prop({}),
+        payload = {method: "GET", name: that.name, id: that.data.id()},
         callback = function () {
           lastFetched = result();
           that.set(result(), true);
@@ -300,19 +320,15 @@
         };
 
       state.goto("/Busy");
-      ds.request({method: "GET", name: that.name, id: that.data.id()})
-        .then(result)
-        .then(callback);
-    };
-
-    doInit = function () {
-      doProperties(model.properties);
+      ds.request(payload).then(result).then(callback);
     };
 
     doPatch = function () {
       var ds = f.dataSource,
         result = f.prop({}),
         patch = jsonpatch.compare(lastFetched, that.toJSON()),
+        payload = {method: "PATCH", name: that.name, id: that.data.id(),
+          data: {data: patch}},
         callback = function () {
           jsonpatch.apply(lastFetched, patch); // Update to sent changes
           jsonpatch.apply(lastFetched, result()); // Update server side changes
@@ -321,16 +337,14 @@
         };
 
       state.goto("/Busy/Saving");
-      ds.request({method: "PATCH", name: that.name, id: that.data.id(),
-        data: {data: patch}})
-        .then(result)
-        .then(callback);
+      ds.request(payload).then(result).then(callback);
     };
 
     doPost = function () {
       var ds = f.dataSource,
         result = f.prop({}),
         cache = that.toJSON(),
+        payload = {method: "POST", name: that.plural, data: {data: cache}},
         callback = function () {
           jsonpatch.apply(cache, result());
           that.set(cache, true);
@@ -338,13 +352,12 @@
         };
 
       state.goto("/Busy/Saving");
-      ds.request({method: "POST", name: that.plural, data: {data: cache}})
-        .then(result)
-        .then(callback);
+      ds.request(payload).then(result).then(callback);
     };
 
-    doProperties = function (props) {
-      var keys = Object.keys(props || {});
+    doInit = function () {
+      var props = model.properties,
+        keys = Object.keys(props || {});
 
       keys.forEach(function (key) {
         var prop, func, defaultValue, formatter,
@@ -355,24 +368,22 @@
         formatter = f.formats[p.format] || f.types[p.type] || {};
 
         // Handle default
+        if (props[key].default !== undefined) {
+          defaultValue = props[key].default;
+        } else if (typeof formatter.default === "function") {
+          defaultValue = formatter.default();
+        } else {
+          defaultValue = formatter.default;
+        }
+
+        // Handle default that is a function
+        if (typeof defaultValue === "string" &&
+            defaultValue.match(/\(\)$/)) {
+          func = f[defaultValue.replace(/\(\)$/, "")];
+        }
+
         if (value === undefined) {
-
-          if (props[key].default !== undefined) {
-            defaultValue = props[key].default;
-          } else if (typeof formatter.default === "function") {
-            defaultValue = formatter.default();
-          } else {
-            defaultValue = formatter.default;
-          }
-
-          // Handle default that is a function
-          if (typeof defaultValue === "string" &&
-              defaultValue.match(/\(\)$/)) {
-            func = f[defaultValue.replace(/\(\)$/, "")];
-            value = func();
-          } else {
-            value = defaultValue;
-          }
+          value = func ? func() : defaultValue;
         }
 
         // Create property
@@ -404,15 +415,17 @@
     };
 
     state = statechart.State.define(function () {
+      this.enter(doInit);
       this.state("Ready", function () {
         this.state("New", function () {
-          this.enter(doInit);
+          this.event("clear", doClear);
           this.event("fetch", doFetch);
           this.event("save", doPost);
           this.event("delete", function () { this.goto("/Ready/Deleted"); });
         });
 
         this.state("Fetched", function () {
+          this.event("clear", doClear);
           this.state("Clean", function () {
             this.event("changed", function () { this.goto("../Dirty"); });
             this.event("delete", doDelete);
@@ -436,8 +449,7 @@
       });
 
       this.state("Deleted", function () {
-        // Prevent exiting from this state
-        this.canExit = function () { return false; };
+        this.event("clear", doClear);
       });
 
       this.state("Error", function () {

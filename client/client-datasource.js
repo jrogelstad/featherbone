@@ -14,7 +14,7 @@
     },
 
     request: function (options) {
-      options.url = f.baseUrl() + options.name.toSpinalCase() + "/";
+      options.url = f.dataSource.baseUrl() + options.name.toSpinalCase() + "/";
       if (options.id) { options.url += options.id; }
       delete options.name;
       delete options.id;

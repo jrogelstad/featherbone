@@ -1,4 +1,4 @@
-/*global window, m, f */
+/*global window, f */
 
 
 (function (f) {
@@ -16,15 +16,14 @@
     that.data = f.prop();
 
     doFetch = function () {
-      var callback = function () {
+      var ds = f.dataSource,
+        payload = {method: "GET", name: "settings", id: name},
+        callback = function () {
           state.send('fetched');
-        },
-        url = f.baseUrl() + "settings/" + name;
+        };
 
       state.goto("/Busy");
-      m.request({method: "GET", url: url})
-        .then(that.data)
-        .then(callback);
+      ds.request(payload).then(that.data).then(callback);
     };
 
     doPost = function () {
