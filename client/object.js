@@ -174,17 +174,19 @@
             that = f.object(data, shared);
 
           // Add a change event to a property
-          that.onChange("first", function () {
+          that.onChange("first", function (property) {
             console.log("First name changed from " +
-              this.oldValue() + " to " + this.newValue() + "!");
+              property.oldValue() + " to " + property.newValue() + "!");
           });
         }
 
       @param {String} Property name to call on cahnge
-      @param {Function} Function to call on change
+      @param {Function} Callback function to call on change
       @return Reciever
     */
-    that.onChange = function (name, func) {
+    that.onChange = function (name, callback) {
+      var func = function () { callback(this); };
+
       stateMap[name].substateMap.Changing.enter(func.bind(d[name]));
 
       return this;
@@ -198,16 +200,18 @@
             that = f.object(data, shared);
 
           // Add a fetched event
-          that.onFetched(function () {
+          that.onFetched(function (obj) {
             console.log("Data fetched!");
           });
         }
 
-      @param {Function} Function to call on change
+      @param {Function} Calbback to execute on fetch
       @return Reciever
     */
-    that.onFetched = function (func) {
-      state.substateMap.Ready.substateMap.Fetched.enter(func.bind(that));
+    that.onFetched = function (callback) {
+      var func = function () { callback(that); };
+
+      state.substateMap.Ready.substateMap.Fetched.enter(func);
 
       return this;
     };
