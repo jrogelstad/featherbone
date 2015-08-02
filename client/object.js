@@ -134,10 +134,12 @@
     data = data || {};
     model = model || {};
 
-    var  doClear, doDelete, doFetch, doInit, doPatch, doPost,
-      lastFetched, state,
+    var  doClear, doDelete, doError, doFetch, doInit, doPatch, doPost,
+      lastError, lastFetched, state,
       that = {data: {}, name: model.name || "Object", plural: model.plural},
       d = that.data,
+      errHandlers = [],
+      validators = [],
       stateMap = {};
 
     // ..........................................................
@@ -164,6 +166,33 @@
     */
     that.fetch = function () {
       state.send("fetch");
+    };
+
+    /*
+      Returns whether the object is in a valid state to save.
+
+      @return {Boolean}
+    */
+    that.isValid = function () {
+      try {
+        validators.forEach(function (validator) {
+          validator();
+        });
+      } catch (e) {
+        doError(e);
+        return false;
+      }
+
+      return true;
+    };
+
+    /*
+      Return the last error raised.
+
+      @return {String}
+    */
+    that.lastError = function () {
+      return lastError;
     };
 
     /*
@@ -194,6 +223,29 @@
     };
 
     /*
+      Add an error handler binding to the object. Pass a callback
+      in and the error will be passed as an argument.
+
+        contact = function (data, model) {
+          var shared = model || f.catalog.getModel("Contact"),
+            that = f.object(data, shared);
+
+          // Add an error handler
+          that.onError(function (err) {
+            console.log("Error->", err);
+          });
+        }
+
+      @param {Function} Callback to execute on error
+      @return Reciever
+    */
+    that.onError = function (callback) {
+      errHandlers.push(callback);
+
+      return this;
+    };
+
+    /*
       Add a fetched event binding to the object. Pass a callback
       in and the object will be passed as an argument.
 
@@ -207,7 +259,7 @@
           });
         }
 
-      @param {Function} Calbback to execute on fetch
+      @param {Function} Callback to execute on fetch
       @return Reciever
     */
     that.onFetched = function (callback) {
@@ -217,6 +269,37 @@
 
       return this;
     };
+
+    /*
+      Add a validator to execute when the `isValid` function is
+      called, which is also called after saving events. Errors thrown
+      by the validator will be caught and passed through `onError`
+      callback(s). The most recent error may also be access via
+      `lastError`.
+
+        contact = function (data, model) {
+          var shared = model || f.catalog.getModel("Contact"),
+            that = f.object(data, shared);
+
+          // Add a fetched event
+          that.onValidate(function (validator) {
+            if (!that.data.first()) {
+              throw "First name must not be empty.";
+            }
+          });
+        }
+
+      @seealso isValid
+      @seealso onError
+      @param {Function} Callback to execute when validating
+      @return Reciever
+    */
+    that.onValidate = function (callback) {
+      validators.push(callback);
+
+      return this;
+    };
+
 
     /*
       Send the save event to persist current data to the server.
@@ -291,6 +374,12 @@
       var keys = Object.keys(that.data),
         values = {};
 
+      // If first entry here with user data, clear for next time and bail
+      if (data) {
+        data = undefined;
+        return;
+      }
+
       keys.forEach(function (key) {
         var value = that.data[key].default;
 
@@ -298,7 +387,6 @@
       });
 
       that.set(values, true); // Uses silent option
-      state.goto("/Ready/New");
     };
 
     doDelete = function () {
@@ -311,8 +399,15 @@
           state.send('deleted');
         };
 
-      state.goto("/Busy");
       ds.request(payload).then(result).then(callback);
+    };
+
+    doError = function (err) {
+      lastError = err;
+      errHandlers.forEach(function (handler) {
+        handler(err);
+      });
+      state.send("error");
     };
 
     doFetch = function () {
@@ -325,7 +420,6 @@
           state.send('fetched');
         };
 
-      state.goto("/Busy");
       ds.request(payload).then(result).then(callback);
     };
 
@@ -342,8 +436,9 @@
           state.send('fetched');
         };
 
-      state.goto("/Busy/Saving");
-      ds.request(payload).then(result).then(callback);
+      if (that.isValid()) {
+        ds.request(payload).then(result).then(callback);
+      }
     };
 
     doPost = function () {
@@ -357,8 +452,9 @@
           state.send('fetched');
         };
 
-      state.goto("/Busy/Saving");
-      ds.request(payload).then(result).then(callback);
+      if (that.isValid()) {
+        ds.request(payload).then(result).then(callback);
+      }
     };
 
     doInit = function () {
@@ -422,48 +518,88 @@
 
     state = statechart.State.define(function () {
       this.enter(doInit);
-      this.state("Ready", function () {
-        this.state("New", function () {
-          var opts = {force: true};
 
+      this.state("Ready", {H: "*"}, function () {
+        this.event("fetch",  function () {
+          this.goto("/Busy");
+        });
+
+        this.state("New", function () {
           this.enter(doClear);
-          this.event("clear",  function () { this.goto("/Ready", opts); });
-          this.event("fetch", doFetch);
-          this.event("save", doPost);
-          this.event("delete", function () { this.goto("/Ready/Deleted"); });
+
+          this.event("clear",  function () {
+            this.goto("/Ready/New", {force: true});
+          });
+          this.event("save", function () {
+            this.goto("/Busy/Saving/Posting");
+          });
+          this.event("delete", function () {
+            this.goto("/Ready/Deleted");
+          });
         });
 
         this.state("Fetched", function () {
-          this.event("clear",  function () { this.goto("/Ready"); });
+          this.event("clear",  function () {
+            this.goto("/Ready/New");
+          });
+          this.event("delete",  function () {
+            this.goto("/Busy/Deleting");
+          });
+
           this.state("Clean", function () {
-            this.event("changed", function () { this.goto("../Dirty"); });
-            this.event("delete", doDelete);
+            this.event("changed", function () {
+              this.goto("../Dirty");
+            });
           });
 
           this.state("Dirty", function () {
-            this.event("save", doPatch);
+            this.event("save", function () {
+              this.goto("/Busy/Saving/Patching");
+            });
           });
-
-          this.event("fetch", doFetch);
         });
       });
 
       this.state("Busy", function () {
-        this.state("Fetching");
-        this.state("Saving");
+        this.state("Fetching", function () {
+          this.enter(doFetch);
+        });
+        this.state("Saving", function () {
+          this.state("Posting", function () {
+            this.enter(doPost);
+          });
+          this.state("Patching", function () {
+            this.enter(doPatch);
+          });
+        });
+        this.state("Deleting", function () {
+          this.enter(doDelete);
 
-        this.event("fetched", function () { this.goto("/Ready/Fetched"); });
-        this.event("deleted", function () { this.goto("/Deleted"); });
-        this.event("error", function () { this.goto("/Error"); });
+          this.event("deleted", function () {
+            this.goto("/Deleted");
+          });
+        });
+
+        this.event("fetched", function () {
+          this.goto("/Ready/Fetched/Clean");
+        });
+        this.event("error", function () {
+          this.goto("/Ready");
+        });
       });
 
       this.state("Deleted", function () {
-        this.event("clear",  function () { this.goto("/Ready"); });
+        this.event("clear",  function () {
+          this.goto("/Ready/New");
+        });
       });
 
-      this.state("Error", function () {
-        // Prevent exiting from this state
-        this.canExit = function () { return false; };
+      this.state("Deleting", function () {
+        this.enter(doDelete);
+
+        this.event("deleted",  function () {
+          this.goto("/Deleted");
+        });
       });
     });
 

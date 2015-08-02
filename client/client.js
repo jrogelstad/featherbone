@@ -77,7 +77,7 @@ f.contact = function (data, model) {
     that = f.object(data, shared);
 
   // ..........................................................
-  // CHANGE EVENT BINDINGS
+  // EVENT BINDINGS
   //
 
   that.onChange("first", function (prop) {
@@ -93,6 +93,16 @@ f.contact = function (data, model) {
   that.onChange("id", function (prop) {
     console.log("Id changed from " +
       (prop.oldValue() || "nothing") + " to " + prop.newValue() + "!");
+  });
+
+  that.onValidate(function (validator) {
+    if (!that.data.first()) {
+      throw "First name must not be empty.";
+    }
+  });
+
+  that.onError(function (err) {
+    console.log("Error->", err);
   });
 
   return that;
