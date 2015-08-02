@@ -50,8 +50,7 @@
         },
         {
             "type": "module",
-            "path": "pg/featherbone-persist.js",
-            "isGlobal": true
+            "path": "pg/postgres-datasource.js"
         },
         {
             "type": "model",

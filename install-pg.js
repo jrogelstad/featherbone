@@ -145,7 +145,7 @@ processFile = function (err) {
       createFunction(name, file.args, file.returns, file.volatility, content);
       break;
     case "module":
-      saveModule(file.name || name, content, file.isGlobal, manifest.version);
+      saveModule(file.name || name, content, manifest.version);
       break;
     case "model":
       saveModels(JSON.parse(content));
@@ -158,9 +158,7 @@ processFile = function (err) {
   });
 };
 
-saveModule = function (name, script, isGlobal, version) {
-  isGlobal = JSON.stringify(isGlobal || false);
-
+saveModule = function (name, script, version) {
   var sql = "SELECT * FROM \"$module\" WHERE name='" + name + "';";
 
   client.query(sql, function (err, result) {
@@ -172,12 +170,11 @@ saveModule = function (name, script, isGlobal, version) {
     if (result.rows.length) {
       sql = "UPDATE \"$module\" SET " +
         "script=$$" + script + "$$," +
-        "is_global='" + isGlobal + "', " +
         "version='" + version + "' " +
         "WHERE name='" + name + "';";
     } else {
       sql = "INSERT INTO \"$module\" VALUES ('" + name +
-        "',$$" + script + "$$," + isGlobal + ", '" + version + "');";
+        "',$$" + script + "$$, '" + version + "');";
     }
 
     client.query(sql, processFile);

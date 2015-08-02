@@ -17,7 +17,7 @@
 /*global obj, featherbone, init, plv8, featherbone */
 if (init || typeof featherbone === "undefined") {
   plv8.execute('SELECT init()');
-  featherbone = require("featherbone-persist");
+  featherbone = require("postgres-datasource");
 }
 
 return featherbone.request(obj);

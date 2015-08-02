@@ -92,12 +92,10 @@ if (!plv8.execute(sqlChk,['$module']).length) {
     sql = "CREATE TABLE \"$module\" (" +
     "name text PRIMARY KEY," +
     "script text," +
-    "is_global boolean," +
     "version text);" +
     "COMMENT ON TABLE \"$module\" IS 'Internal table for storing JavaScript';" +
     "COMMENT ON COLUMN \"$module\".name IS 'Primary key';" +
     "COMMENT ON COLUMN \"$module\".script IS 'JavaScript content';" +
-    "COMMENT ON COLUMN \"$module\".is_global IS 'Create a global variable using the name of this module';" +
     "COMMENT ON COLUMN \"$module\".version IS 'Version number';";
     plv8.execute(sql);
 }
