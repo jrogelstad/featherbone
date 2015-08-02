@@ -23,6 +23,7 @@
   var that, createView, curry, getKey, getKeys, isChildModel,
     propagateViews, propagateAuth, currentUser, setCurrentUser, buildAuthSql,
     relationColumn, sanitize, doInsert, doSelect, doUpdate, doDelete,
+    f = require("core"),
     jsonpatch = require("fast-json-patch"),
     settings = {},
     types = {
@@ -49,24 +50,6 @@
     SCALE_DEFAULT = 6;
 
   that = {
-
-    /**
-      Return a unique identifier string.
-
-      Moddified from https://github.com/google/closure-library
-      @author arv@google.com (Erik Arvidsson)
-      http://www.apache.org/licenses/LICENSE-2.0
-
-      @return {String}
-    */
-    createId: function () {
-      var x = 2147483648,
-        d = new Date(),
-        result = Math.floor(Math.random() * x).toString(36) +
-          Math.abs(Math.floor(Math.random() * x) ^ d).toString(36);
-
-      return getKey(result) ? that.createId() : result;
-    },
 
     /**
       Check to see if an etag is current.
@@ -358,33 +341,6 @@
       result = plv8.execute(sql, [user]);
 
       return result.length ? result[0].is_super : false;
-    },
-
-    /**
-      Return a date that is the lowest system date.
-
-      @return {Date}
-    */
-    minDate: function () {
-      return new Date(0);
-    },
-
-    /**
-      Return a date that is the highest system date.
-
-      @return {Date}
-    */
-    maxDate: function () {
-      return new Date("2100-01-01T00:00:00.000Z");
-    },
-
-    /**
-      Return a date that is the current time.
-
-      @return {Date}
-    */
-    now: function () {
-      return new Date();
     },
 
     /**
@@ -925,7 +881,7 @@
               n++;
 
               while (i < fns.length) {
-                values.push(that[fns[i].default]());
+                values.push(f[fns[i].default]());
                 i++;
               }
 
@@ -1272,7 +1228,7 @@
     plv8.execute(sql, [obj.id]);
 
     /* Handle change log */
-    now = that.now();
+    now = f.now();
 
     doInsert({
       name: "Log",
@@ -1324,7 +1280,7 @@
 
     /* Check id for existence and uniqueness and regenerate if any problem */
     if (!data.id ||  getKey(data.id) !== undefined) {
-      data.id = that.createId();
+      data.id = f.createId();
     } else if (isSuperUser === false) {
       if (!that.isAuthorized({
           action: "canCreate",
@@ -1338,7 +1294,7 @@
     }
 
     /* Set some system controlled values */
-    data.created = data.updated = that.now();
+    data.created = data.updated = f.now();
     data.createdBy = that.getCurrentUser();
     data.updatedBy = that.getCurrentUser();
 
@@ -1392,7 +1348,7 @@
 
           /* If we have a class specific default that calls a function */
           if (value && typeof value === "string" && value.match(/\(\)$/)) {
-            value = that[value.replace(/\(\)$/, "")]();
+            value = f[value.replace(/\(\)$/, "")]();
           }
         }
       }
@@ -1567,7 +1523,7 @@
       updRec.updated = new Date().toJSON();
       updRec.updatedBy = that.getCurrentUser();
       if (model.properties.etag) {
-        updRec.etag = that.createId();
+        updRec.etag = f.createId();
       }
 
       keys = Object.keys(props);

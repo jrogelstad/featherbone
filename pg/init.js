@@ -45,7 +45,8 @@
     var found = modules.filter(function (row) {
         return row.name === name;
       }),
-      exports = {};
+      module = {exports: {}},
+      exports = module.exports;
 
     if (!found.length) {
       plv8.elog(ERROR, "Module " + name + " not found.");
@@ -53,7 +54,7 @@
 
     eval(found[0].script);
 
-    return exports;
+    return module.exports;
   };
 
   /**

@@ -44,6 +44,10 @@
             "path": "common/extend-string.js"
         },
         {
+            "type": "module",
+            "path": "common/core.js"
+        },
+        {
             "name": "fast-json-patch",
             "type": "module",
             "path": "node_modules/fast-json-patch/src/json-patch-duplex.js"
