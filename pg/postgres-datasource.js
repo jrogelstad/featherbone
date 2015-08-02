@@ -91,7 +91,7 @@
         i = 0;
 
         if (!table || !catalog[obj.name]) {
-          that.error('Class not found');
+          throw "Class not found";
         }
 
         /* Drop views for composite types */
@@ -133,15 +133,6 @@
     },
 
     /**
-      Raise an error.
-
-      @param {String} Error message.
-    */
-    error: function (message) {
-      plv8.elog(ERROR, message);
-    },
-
-    /**
       Return the current user.
 
       @return {String}
@@ -149,7 +140,7 @@
     getCurrentUser: function () {
       if (currentUser) { return currentUser; }
 
-      that.error("Current user undefined");
+      throw "Current user undefined";
     },
 
     /**
@@ -398,7 +389,7 @@
         result = doDelete(obj, false, isSuperUser);
         break;
       default:
-        that.error("method \"" + obj.method + "\" unknown");
+        throw "method \"" + obj.method + "\" unknown";
       }
 
       setCurrentUser(undefined);
@@ -451,7 +442,7 @@
         err = "Role \"" + id + "\" not found";
       }
 
-      if (err) { that.error(err); }
+      if (err) { throw err; }
 
       if (obj.id && obj.isMember) {
         sql = "SELECT tableoid::regclass::text AS model " +
@@ -470,7 +461,7 @@
           err = "Model must have owner property to set authorization";
         }
 
-        if (err) { that.error(err); }
+        if (err) { throw err; }
       }
 
       if (!that.isSuperUser()) {
@@ -481,7 +472,7 @@
         if (result[0].owner !== that.getCurrentUser()) {
           err = "Must be super user or owner of \"" + id + "\" to set " +
             "authorization.";
-          that.error(err);
+          throw err;
         }
       }
 
@@ -597,7 +588,7 @@
       specs = Array.isArray(specs) ? specs : [specs];
 
       var table, inherits, model, catalog, sql, sqlUpd, token, tokens, values,
-        adds, args, fns, cols, defaultValue, props, keys, recs, type, err, name,
+        adds, args, fns, cols, defaultValue, props, keys, recs, type, name,
         parent, i, n, p, dropSql, changed, isChild, pk, authorization,
         getParentKey = function (child) {
           var cParent, cKeys, cProps;
@@ -639,7 +630,7 @@
         n = 0;
         p = 1;
 
-        if (!table) { that.error("No name defined"); }
+        if (!table) { throw "No name defined"; }
 
         /* Create table if applicable */
         if (!model) {
@@ -746,16 +737,15 @@
                     };
 
                   } else {
-                    err = 'Property "' + type.childOf +
+                    throw 'Property "' + type.childOf +
                       '" already exists on "' + type.relation + '"';
-                    that.error(err);
                   }
 
                 } else if (type.parentOf) {
-                  err = 'Can not set parent directly for "' + key + '"';
-                  that.error(err);
+                  throw 'Can not set parent directly for "' + key + '"';
+                }
 
-                } else if (type.properties) {
+                if (type.properties) {
                   cols = ["%I"];
                   name = "_" + table + "$" + key.toSnakeCase();
                   args = [name, "_pk"];
@@ -807,9 +797,8 @@
               }
             }
           } else {
-            err = 'Invalid type "' + props[key].type + '" for property "' +
+            throw 'Invalid type "' + props[key].type + '" for property "' +
                 key + '" on class "' + obj.name + '"';
-            that.error(err);
           }
         });
 
@@ -953,8 +942,7 @@
       var sql = "SELECT data FROM \"$settings\" WHERE name = $1;",
         params = [name, settings],
         result,
-        rec,
-        err;
+        rec;
 
       result = plv8.execute(sql, [name]);
 
@@ -962,9 +950,8 @@
         rec = result[0];
 
         if (settings.etag !== rec.etag) {
-          err = 'Settings for "' + name +
+          throw 'Settings for "' + name +
             '" changed by another user. Save failed.';
-          that.error(err);
         }
 
         sql = "UPDATE \"$settings\" SET data = $2 WHERE name = $1;";
@@ -994,13 +981,13 @@
         result;
 
       if (!that.isSuperUser(that.getCurrentUser())) {
-        that.error("Only a super user can set another super user");
+        throw "Only a super user can set another super user";
       }
 
       result = plv8.execute(sql, [user]);
 
       if (!result.length) {
-        that.error("User does not exist");
+        throw "User does not exist";
       }
 
       sql = "SELECT * FROM \"$user\" WHERE username=$1;";
@@ -1032,12 +1019,10 @@
         "canUpdate",
         "canDelete"
       ],
-      i = 8,
-      msg;
+      i = 8;
 
     if (actions.indexOf(action) === -1) {
-      msg = "Invalid authorization action for object \"" + action + "\"";
-      that.error(msg);
+      throw "Invalid authorization action for object \"" + action + "\"";
     }
 
     while (i--) {
@@ -1195,10 +1180,12 @@
       };
 
     if (!isChild && isChildModel(obj.name)) {
-      that.error("Can not directly delete a child class");
-    } else if (isSuperUser === false &&
+      throw "Can not directly delete a child class";
+    }
+
+    if (isSuperUser === false &&
         !that.isAuthorized({action: "canDelete", id: obj.id})) {
-      that.error("Not authorized to delete \"" + obj.id + "\"");
+      throw "Not authorized to delete \"" + obj.id + "\"";
     }
 
     // Get old record, bail if it doesn't exist
@@ -1248,7 +1235,7 @@
 
   /** private */
   doInsert = function (obj, isChild, isSuperUser) {
-    var child, key, col, prop, result, value, sql, err, pk, msg, fkeys, dkeys,
+    var child, key, col, prop, result, value, sql, err, pk, fkeys, dkeys,
       len, n,
       data = JSON.parse(JSON.stringify(obj.data)),
       model = that.getModel(obj.name),
@@ -1263,7 +1250,7 @@
       p = 2;
 
     if (!model) {
-      that.error("Class \"" + obj.name + "\" not found");
+      throw "Class \"" + obj.name + "\" not found";
     }
 
     fkeys = Object.keys(props);
@@ -1273,8 +1260,8 @@
     len = dkeys.length;
     for (n = 0; n < len; n++) {
       if (fkeys.indexOf(dkeys[n]) === -1) {
-        that.error("Model \"" + obj.name +
-          "\" does not contain property \"" + dkeys[n] + "\"");
+        throw "Model \"" + obj.name +
+          "\" does not contain property \"" + dkeys[n] + "\"";
       }
     }
 
@@ -1287,9 +1274,8 @@
           model: obj.name,
           folder: folder
         })) {
-        msg = "Not authorized to create \"" + obj.name + "\" in folder \"" +
+        throw "Not authorized to create \"" + obj.name + "\" in folder \"" +
           folder + "\"";
-        that.error(msg);
       }
     }
 
@@ -1329,7 +1315,7 @@
             err = "Child records may only be created from the parent.";
           }
           if (err) {
-            that.error(err);
+            throw err;
           }
         }
 
@@ -1429,7 +1415,7 @@
 
     /* Validate */
     if (!isChild && isChildModel(model)) {
-      that.error("Can not query directly on a child class");
+      throw "Can not query directly on a child class";
     }
 
     while (i < keys.length) {
@@ -1474,7 +1460,7 @@
 
   /** Private */
   doUpdate = function (obj, isChild, isSuperUser) {
-    var result, updRec, props, value, keys, sql, i, cModel, cid, child, err,
+    var result, updRec, props, value, keys, sql, i, cModel, cid, child,
       oldRec, newRec, cOldRec, cNewRec, cpatches,
       patches = obj.data || [],
       model = that.getModel(obj.name),
@@ -1503,10 +1489,12 @@
 
     /* Validate */
     if (!isChild && isChildModel(model)) {
-      that.error("Can not directly update a child class");
-    } else if (isSuperUser === false &&
+      throw "Can not directly update a child class";
+    }
+
+    if (isSuperUser === false &&
         !that.isAuthorized({action: "canUpdate", id: id})) {
-      that.error("Not authorized to update \"" + id + "\"");
+      throw "Not authorized to update \"" + id + "\"";
     }
 
     obj.properties = Object.keys(model.properties).filter(noChildProps);
@@ -1574,9 +1562,8 @@
             value = updRec[key].id ? getKey(updRec[key].id) : -1;
 
             if (value === undefined) {
-              err = "Relation not found in \"" + props[key].type.relation +
+              throw "Relation not found in \"" + props[key].type.relation +
                 "\" for \"" + key + "\" with id \"" + updRec[key].id + "\"";
-              that.error(err);
             }
 
             tokens.push(relationColumn(key, props[key].type.relation));
@@ -1695,7 +1682,7 @@
         } else {
           if (ops.indexOf(op) === -1) {
             err = 'Unknown operator "' + criteria[i].operator + '"';
-            that.error(err);
+            throw err;
           }
           params.push(criteria[i].value);
           part = " %I" + op + "$" + p++;
@@ -1715,7 +1702,7 @@
       while (sort[i]) {
         order = (sort[i].order || "ASC").toUpperCase();
         if (order !== "ASC" && order !== "DESC") {
-          that.error('Unknown operator "' + order + '"');
+          throw 'Unknown operator "' + order + '"';
         }
         tokens.push(sort[i].property);
         parts.push(" %I " + order);
