@@ -167,16 +167,17 @@
     };
 
     /*
-      Add a change event binding to a property.
+      Add a change event binding to a property. Pass a callback in
+      and the property will be passed to the callback.
 
         contact = function (data, model) {
           var shared = model || f.catalog.getModel("Contact"),
             that = f.object(data, shared);
 
           // Add a change event to a property
-          that.onChange("first", function (property) {
+          that.onChange("first", function (prop) {
             console.log("First name changed from " +
-              property.oldValue() + " to " + property.newValue() + "!");
+              (prop.oldValue() || "nothing") + " to " + prop.newValue() + "!");
           });
         }
 
@@ -193,7 +194,8 @@
     };
 
     /*
-      Add a fetched event binding to the object.
+      Add a fetched event binding to the object. Pass a callback
+      in and the object will be passed as an argument.
 
         contact = function (data, model) {
           var shared = model || f.catalog.getModel("Contact"),
@@ -201,7 +203,7 @@
 
           // Add a fetched event
           that.onFetched(function (obj) {
-            console.log("Data fetched!");
+            console.log("Data fetched for this " + obj.name + "!");
           });
         }
 
@@ -422,14 +424,17 @@
       this.enter(doInit);
       this.state("Ready", function () {
         this.state("New", function () {
-          this.event("clear", doClear);
+          var opts = {force: true};
+
+          this.enter(doClear);
+          this.event("clear",  function () { this.goto("/Ready", opts); });
           this.event("fetch", doFetch);
           this.event("save", doPost);
           this.event("delete", function () { this.goto("/Ready/Deleted"); });
         });
 
         this.state("Fetched", function () {
-          this.event("clear", doClear);
+          this.event("clear",  function () { this.goto("/Ready"); });
           this.state("Clean", function () {
             this.event("changed", function () { this.goto("../Dirty"); });
             this.event("delete", doDelete);
@@ -453,7 +458,7 @@
       });
 
       this.state("Deleted", function () {
-        this.event("clear", doClear);
+        this.event("clear",  function () { this.goto("/Ready"); });
       });
 
       this.state("Error", function () {

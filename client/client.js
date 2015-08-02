@@ -80,19 +80,19 @@ f.contact = function (data, model) {
   // CHANGE EVENT BINDINGS
   //
 
-  that.onChange("first", function (property) {
+  that.onChange("first", function (prop) {
     console.log("First name changed from " +
-      property.oldValue() + " to " + property.newValue() + "!");
+      (prop.oldValue() || "nothing") + " to " + prop.newValue() + "!");
   });
 
-  that.onChange("last", function (property) {
+  that.onChange("last", function (prop) {
     console.log("Last name changed from " +
-      property.oldValue() + " to " + property.newValue() + "!");
+      (prop.oldValue() || "nothing") + " to " + prop.newValue() + "!");
   });
 
-  that.onChange("id", function (property) {
+  that.onChange("id", function (prop) {
     console.log("Id changed from " +
-      property.oldValue() + " to " + property.newValue() + "!");
+      (prop.oldValue() || "nothing") + " to " + prop.newValue() + "!");
   });
 
   return that;
