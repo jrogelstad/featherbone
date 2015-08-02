@@ -531,7 +531,7 @@
             this.goto("/Ready/New", {force: true});
           });
           this.event("save", function () {
-            this.goto("/Busy/Saving/Posting");
+            this.goto("/Busy/Saving");
           });
           this.event("delete", function () {
             this.goto("/Ready/Deleted");
