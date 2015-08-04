@@ -27,7 +27,10 @@ var pgconfig, catalog, hello, getCatalog, getCurrentUser,
   readPgConfig = require("./common/pgconfig.js"),
   isInitialized = false;
 
-// Shared functions
+// ..........................................................
+// CONTROLLERS
+//
+
 begin = function (callback) {
   var conn = "postgres://" +
     pgconfig.user + ":" +
@@ -334,51 +337,53 @@ function doGetSettings(req, res) {
 // ROUTES
 //
 
-var express = require('express'),
-  bodyParser = require('body-parser'),
-  app = express(),
-  port = process.env.PORT || 8080,
-  router = express.Router();
+init(function () {
+  var express = require('express'),
+    bodyParser = require('body-parser'),
+    app = express(),
+    port = process.env.PORT || 8080,
+    router = express.Router();
 
-// configure app to use bodyParser()
-// this will let us get the data from a POST
-app.use(bodyParser.urlencoded({extended: true}));
-app.use(bodyParser.json());
+  // configure app to use bodyParser()
+  // this will let us get the data from a POST
+  app.use(bodyParser.urlencoded({extended: true}));
+  app.use(bodyParser.json());
 
-// static pages
-app.use(express.static(__dirname));
+  // static pages
+  app.use(express.static(__dirname));
 
-// middleware to use for all requests
-router.use(function (req, res, next) {
-  // do logging
-  console.log('Something is happening.');
-  next(); // make sure we go to the next routes and don't stop here
+  // middleware to use for all requests
+  router.use(function (req, res, next) {
+    // do logging
+    console.log('Something is happening.');
+    next(); // make sure we go to the next routes and don't stop here
+  });
+
+  // test route to make sure everything is working 
+  // (accessed at GET http://localhost:8080/api)
+  router.get('/', function (req, res) {
+    res.json({ message: 'hooray! welcome to our api!' });
+  });
+
+  // more routes for our API will happen here
+  router.route('/contact/:id')
+    .get(doHandleOne)
+    .patch(doUpsert)
+    .delete(doHandleOne);
+
+  router.route('/contacts')
+    .get(doGet)
+    .post(doUpsert);
+
+  router.route('/settings/:name')
+    .get(doGetSettings);
+
+  // REGISTER OUR ROUTES -------------------------------
+  // all of our routes will be prefixed with /api
+  app.use('/data', router);
+
+  // START THE SERVER
+  // ========================================================================
+  app.listen(port);
+  console.log('Magic happens on port ' + port);
 });
-
-// test route to make sure everything is working 
-// (accessed at GET http://localhost:8080/api)
-router.get('/', function (req, res) {
-  res.json({ message: 'hooray! welcome to our api!' });
-});
-
-// more routes for our API will happen here
-router.route('/contact/:id')
-  .get(doHandleOne)
-  .patch(doUpsert)
-  .delete(doHandleOne);
-
-router.route('/contacts')
-  .get(doGet)
-  .post(doUpsert);
-
-router.route('/settings/:name')
-  .get(doGetSettings);
-
-// REGISTER OUR ROUTES -------------------------------
-// all of our routes will be prefixed with /api
-app.use('/data', router);
-
-// START THE SERVER
-// =============================================================================
-app.listen(port);
-console.log('Magic happens on port ' + port);
