@@ -22,7 +22,7 @@ require('./common/extend-string.js');
 var pgconfig, catalog, hello, getCatalog, getCurrentUser,
   doGet, doHandleOne, doUpsert, doGetSettings, doGetModel,
   doGetMethod, doSaveModel, doSaveMethod, doDeleteModel,
-  query, begin, buildSql, init, resolveName, client,
+  query, begin, buildSql, init, resolveName, client, done, handleError,
   util = require('util'),
   pg = require("pg"),
   readPgConfig = require("./common/pgconfig.js"),
@@ -32,6 +32,13 @@ var pgconfig, catalog, hello, getCatalog, getCurrentUser,
 // CONTROLLERS
 //
 
+handleError = function (err) {
+  if (!err) { return false; }
+  if (client) { done(client); }
+  console.log(err);
+  return true;
+};
+
 begin = function (callback) {
   var conn = "postgres://" +
     pgconfig.user + ":" +
@@ -39,8 +46,15 @@ begin = function (callback) {
     pgconfig.server + "/" +
     pgconfig.database;
 
-  client = new pg.Client(conn);
-  client.connect(callback);
+  pg.connect(conn, function (err, pclient, pdone) {
+    client = pclient;
+    done = pdone;
+
+    // handle an error from the connection
+    if (handleError(err)) { return; }
+
+    callback();
+  });
 };
 
 buildSql = function (payload) {
@@ -63,10 +77,7 @@ getCatalog = function (callback) {
       sql = buildSql(payload);
 
     client.query(sql, function (err, resp) {
-      if (err) {
-        console.error(err);
-        return;
-      }
+      if (handleError(err)) { return; }
 
       catalog = resp.rows[0].response;
       callback();
@@ -133,10 +144,7 @@ function doGet(req, res) {
       offset = params.offset !== undefined ? params.offset.value || 0 : 0,
       result;
 
-    if (err) {
-      console.error(err);
-      return;
-    }
+    if (handleError(err)) { return; }
 
     payload = {
       method: "GET",
@@ -152,14 +160,9 @@ function doGet(req, res) {
 
     client.query(sql, function (err, resp) {
       // Native error thrown. This should never happen
-      if (err) {
-        console.error(err);
-        res.statusCode = 500;
-        res.json(err);
-        return err;
-      }
+      if (handleError(err)) { return; }
 
-      client.end();
+      done();
 
       result = resp.rows[0].response;
 
@@ -192,10 +195,7 @@ function doHandleOne(req, res) {
       id = req.params.id,
       result;
 
-    if (err) {
-      console.error(err);
-      return;
-    }
+    if (handleError(err)) { return; }
 
     payload = {
       method: method,
@@ -208,14 +208,9 @@ function doHandleOne(req, res) {
 
     client.query(sql, function (err, resp) {
       // Native error thrown. This should never happen
-      if (err) {
-        console.error(err);
-        res.statusCode = 500;
-        res.json(err);
-        return err;
-      }
+      if (handleError(err)) { return; }
 
-      client.end();
+      done();
 
       result = resp.rows[0].response;
 
@@ -263,14 +258,9 @@ function doUpsert(req, res) {
 
     client.query(sql, function (err, resp) {
       // Native error thrown. This should never happen
-      if (err) {
-        console.error(err);
-        res.statusCode = 500;
-        res.json(err);
-        return err;
-      }
+      if (handleError(err)) { return; }
 
-      client.end();
+      done();
 
       result = resp.rows[0].response;
 
@@ -320,13 +310,9 @@ function doGetMethod(method, req, res) {
 
     client.query(sql, function (err, resp) {
       // Native error thrown. This should never happen
-      if (err) {
-        res.statusCode = 500;
-        console.error(err);
-        return err;
-      }
+      if (handleError(err)) { return; }
 
-      client.end();
+      done();
 
       result = resp.rows[0].response;
 
@@ -360,10 +346,7 @@ function doSaveMethod(method, req, res) {
 
     data.name = name;
 
-    if (err) {
-      console.error(err);
-      return;
-    }
+    if (handleError(err)) { return; }
 
     payload = {
       method: "POST",
@@ -376,13 +359,9 @@ function doSaveMethod(method, req, res) {
 
     client.query(sql, function (err, resp) {
       // Native error thrown. This should never happen
-      if (err) {
-        res.statusCode = 500;
-        console.error(err);
-        return err;
-      }
+      if (handleError(err)) { return; }
 
-      client.end();
+      done();
 
       result = resp.rows[0].response;
 
@@ -406,10 +385,7 @@ function doDeleteModel(req, res) {
     var payload, sql, result,
       name = req.params.name;
 
-    if (err) {
-      console.error(err);
-      return;
-    }
+    if (handleError(err)) { return; }
 
     payload = {
       method: "POST",
@@ -422,13 +398,9 @@ function doDeleteModel(req, res) {
 
     client.query(sql, function (err, resp) {
       // Native error thrown. This should never happen
-      if (err) {
-        res.statusCode = 500;
-        console.error(err);
-        return err;
-      }
+      if (handleError(err)) { return; }
 
-      client.end();
+      done();
 
       result = resp.rows[0].response;
 
