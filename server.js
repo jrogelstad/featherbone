@@ -20,7 +20,8 @@
 require('./common/extend-string.js');
 
 var pgconfig, catalog, hello, getCatalog, getCurrentUser,
-  doGet, doHandleOne, doUpsert, doGetSettings, doSaveSettings,
+  doGet, doHandleOne, doUpsert, doGetSettings, doGetModel,
+  doGetMethod,
   query, begin, buildSql, init, resolveName, client,
   util = require('util'),
   pg = require("pg"),
@@ -287,7 +288,15 @@ function doUpsert(req, res) {
   init(query);
 }
 
+function doGetModel(req, res) {
+  doGetMethod("getModel", req, res);
+}
+
 function doGetSettings(req, res) {
+  doGetMethod("getSettings", req, res);
+}
+
+function doGetMethod(method, req, res) {
   var query;
 
   query = function (err) {
@@ -302,7 +311,7 @@ function doGetSettings(req, res) {
 
     payload = {
       method: "POST",
-      name: "getSettings",
+      name: method,
       user: getCurrentUser(),
       data: [name]
     };
@@ -320,10 +329,7 @@ function doGetSettings(req, res) {
 
       result = resp.rows[0].response;
 
-      if (!Object.keys(result).length) {
-        res.statusCode = 204;
-        result = "";
-      }
+      if (!result) { res.statusCode = 204; }
 
       // this sends back a JSON response which is a single string
       res.json(result);
@@ -342,7 +348,9 @@ init(function () {
     bodyParser = require('body-parser'),
     app = express(),
     port = process.env.PORT || 8080,
-    router = express.Router(),
+    dataRouter = express.Router(),
+    modelRouter = express.Router(),
+    settingsRouter = express.Router(),
     keys;
 
   // configure app to use bodyParser()
@@ -354,7 +362,7 @@ init(function () {
   app.use(express.static(__dirname));
 
   // middleware to use for all requests
-  router.use(function (req, res, next) {
+  dataRouter.use(function (req, res, next) {
     // do logging
     console.log('Something is happening.');
     next(); // make sure we go to the next routes and don't stop here
@@ -362,31 +370,35 @@ init(function () {
 
   // test route to make sure everything is working 
   // (accessed at GET http://localhost:8080/api)
-  router.get('/', function (req, res) {
+  dataRouter.get('/', function (req, res) {
     res.json({ message: 'hooray! welcome to our api!' });
   });
 
   // Create routes for each catalog object
   keys = Object.keys(catalog);
   keys.forEach(function (key) {
-    router.route("/" + key.toSpinalCase() + "/:id")
+    dataRouter.route("/" + key.toSpinalCase() + "/:id")
       .get(doHandleOne)
       .patch(doUpsert)
       .delete(doHandleOne);
 
     if (catalog[key].plural) {
-      router.route("/" + catalog[key].plural.toSpinalCase())
+      dataRouter.route("/" + catalog[key].plural.toSpinalCase())
         .get(doGet)
         .post(doUpsert);
     }
   });
 
-  router.route('/settings/:name')
+  modelRouter.route('/:name')
+    .get(doGetModel);
+  settingsRouter.route('/:name')
     .get(doGetSettings);
 
   // REGISTER OUR ROUTES -------------------------------
-  // all of our routes will be prefixed with /api
-  app.use('/data', router);
+  // all of our routes will be prefixed with /data
+  app.use('/data', dataRouter);
+  app.use('/model', modelRouter);
+  app.use('/settings', settingsRouter);
 
   // START THE SERVER
   // ========================================================================

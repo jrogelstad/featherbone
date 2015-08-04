@@ -233,7 +233,7 @@
         };
       }
 
-      return settings[name].data;
+      return settings[name] ? settings[name].data : false;
     },
 
     /**
