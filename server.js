@@ -342,7 +342,8 @@ init(function () {
     bodyParser = require('body-parser'),
     app = express(),
     port = process.env.PORT || 8080,
-    router = express.Router();
+    router = express.Router(),
+    keys;
 
   // configure app to use bodyParser()
   // this will let us get the data from a POST
@@ -365,15 +366,20 @@ init(function () {
     res.json({ message: 'hooray! welcome to our api!' });
   });
 
-  // more routes for our API will happen here
-  router.route('/contact/:id')
-    .get(doHandleOne)
-    .patch(doUpsert)
-    .delete(doHandleOne);
+  // Create routes for each catalog object
+  keys = Object.keys(catalog);
+  keys.forEach(function (key) {
+    router.route("/" + key.toSpinalCase() + "/:id")
+      .get(doHandleOne)
+      .patch(doUpsert)
+      .delete(doHandleOne);
 
-  router.route('/contacts')
-    .get(doGet)
-    .post(doUpsert);
+    if (catalog[key].plural) {
+      router.route("/" + catalog[key].plural.toSpinalCase())
+        .get(doGet)
+        .post(doUpsert);
+    }
+  });
 
   router.route('/settings/:name')
     .get(doGetSettings);
