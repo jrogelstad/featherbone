@@ -1193,7 +1193,13 @@
     obj.properties = Object.keys(model.properties)
       .filter(noChildProps);
     oldRec = doSelect(obj, true);
-    if (!Object.keys(oldRec).length) { return false; }
+    if (!Object.keys(oldRec).length) {
+      throw "Record " + obj.id + " not found.";
+    }
+
+    if (oldRec.isDeleted) {
+      throw "Record " + obj.id + " already deleted.";
+    }
 
     /* Delete children recursively */
     keys = Object.keys(props);
@@ -1232,11 +1238,10 @@
     return true;
   };
 
-
   /** private */
   doInsert = function (obj, isChild, isSuperUser) {
     var child, key, col, prop, result, value, sql, err, pk, fkeys, dkeys,
-      len, n,
+      len, n, msg,
       data = JSON.parse(JSON.stringify(obj.data)),
       model = that.getModel(obj.name),
       folder = obj.folder !== false ? obj.folder || "global" : false,
@@ -1274,8 +1279,9 @@
           model: obj.name,
           folder: folder
         })) {
-        throw "Not authorized to create \"" + obj.name + "\" in folder \"" +
+        msg = "Not authorized to create \"" + obj.name + "\" in folder \"" +
           folder + "\"";
+        throw {statusCode: 401, message: msg};
       }
     }
 

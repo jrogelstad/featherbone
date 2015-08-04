@@ -392,7 +392,7 @@ buildApi = function () {
                     default: {
                       description: "unexpected error",
                       schema: {
-                        $ref: "#/definitions/ErrorResponse"
+                        $ref: "#/definitions/PgErrorResponse"
                       }
                     }
                   }
@@ -445,7 +445,7 @@ buildApi = function () {
 
         // Save swagger file
         data = yaml.safeDump(swagger);
-        fs.writeFile("api/swagger/swagger.yaml", data, function (err) {
+        fs.writeFile("swagger.yaml", data, function (err) {
           if (err) {
             console.error(err);
             return;

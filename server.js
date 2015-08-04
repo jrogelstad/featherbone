@@ -1,25 +1,32 @@
+/**
+    Featherbone is a JavaScript based persistence framework for building object
+    relational database applications
+    
+    Copyright (C) 2015  John Rogelstad
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+**/
+
 'use strict';
 
-require('../../common/extend-string.js');
+require('./common/extend-string.js');
 
 var pgconfig, catalog, hello, getCatalog, getCurrentUser,
   doGet, doHandleOne, doUpsert, doGetSettings, doSaveSettings,
-  favicon, query, begin, buildSql, init, resolveName, client,
+  query, begin, buildSql, init, resolveName, client,
   util = require('util'),
   pg = require("pg"),
   concat = require("concat-stream"),
-  readPgConfig = require("../../common/pgconfig.js"),
+  readPgConfig = require("./common/pgconfig.js"),
   isInitialized = false;
-
-module.exports = {
-  hello: hello,
-  doGet: doGet,
-  doGetSettings: doGetSettings,
-  doHandleOne: doHandleOne,
-  doSaveSettnigs: doSaveSettings,
-  doUpsert: doUpsert,
-  favicon: favicon
-};
 
 // Shared functions
 begin = function (callback) {
@@ -111,29 +118,13 @@ resolveName = function (apiPath) {
   }
 };
 
-/*
-  Functions in a127 controllers used for operations should take two parameters:
-
-  Param 1: a handle to the request object
-  Param 2: a handle to the response object
- */
-function hello(req, res) {
-  // variables defined in the Swagger document can be referenced using
-  // req.swagger.params.{parameter_name}
-  var name = req.swagger.params.name.value || 'stranger',
-    ret = util.format('Hello, %s!', name);
-
-  // this sends back a JSON response which is a single string
-  res.json(ret);
-}
-
 function doGet(req, res) {
   var query;
 
   query = function (err) {
     var payload, sql,
-      params = req.swagger.params,
-      name = resolveName(req.swagger.apiPath),
+      params = req.params,
+      name = resolveName(req.url),
       defaultLimit = pgconfig.defaultLimit,
       limit = params.limit !== undefined ? params.limit.value : defaultLimit,
       offset = params.offset !== undefined ? params.offset.value || 0 : 0,
@@ -157,9 +148,11 @@ function doGet(req, res) {
     sql = buildSql(payload);
 
     client.query(sql, function (err, resp) {
+      // Native error thrown. This should never happen
       if (err) {
-        res.statusCode = 500;
         console.error(err);
+        res.statusCode = 500;
+        res.json(err);
         return err;
       }
 
@@ -170,6 +163,12 @@ function doGet(req, res) {
       if (!result.length) {
         res.statusCode = 204;
         result = "";
+      }
+
+      // Handle processed error
+      if (result.isError) {
+        res.status(result.statusCode).json(result.message);
+        return res;
       }
 
       // this sends back a JSON response which is a single string
@@ -185,9 +184,9 @@ function doHandleOne(req, res) {
 
   query = function (err) {
     var payload, sql,
-      name = resolveName(req.swagger.apiPath),
+      name = resolveName(req.url),
       method = req.method,
-      id = req.swagger.params.id.value,
+      id = req.params.id,
       result;
 
     if (err) {
@@ -205,9 +204,11 @@ function doHandleOne(req, res) {
     sql = buildSql(payload);
 
     client.query(sql, function (err, resp) {
+      // Native error thrown. This should never happen
       if (err) {
-        res.statusCode = 500;
         console.error(err);
+        res.statusCode = 500;
+        res.json(err);
         return err;
       }
 
@@ -218,6 +219,12 @@ function doHandleOne(req, res) {
       if (typeof result !== "boolean" && !Object.keys(result).length) {
         res.statusCode = 204;
         result = "";
+      }
+
+      // Handle processed error
+      if (result.isError) {
+        res.status(result.statusCode).json(result.message);
+        return res;
       }
 
       // this sends back a JSON response which is a single string
@@ -232,62 +239,10 @@ function doUpsert(req, res) {
   var query;
 
   query = function (err) {
-    var payload, sql, gotData, handleError, concatStream,
-      params = req.swagger.params,
-      method = req.method,
-      name = resolveName(req.swagger.apiPath),
-      id = params.id ? params.id.value : false,
-      result;
-
-    if (err) {
-      console.error(err);
-      return;
-    }
-
-    gotData = function (data) {
-      payload = JSON.parse(data);
-      payload.method = method;
-      payload.name = name;
-      payload.user = getCurrentUser();
-      if (id) { payload.id = id; }
-
-      sql = buildSql(payload);
-
-      client.query(sql, function (err, resp) {
-        if (err) {
-          res.statusCode = 500;
-          console.error(err);
-          return err;
-        }
-
-        client.end();
-
-        result = resp.rows[0].response;
-
-        // this sends back a JSON response which is a single string
-        res.json(result);
-      });
-    };
-
-    handleError = function (err) {
-      // handle your error appropriately here, e.g.:
-      console.error(err); // print the error to STDERR
-    };
-
-    concatStream = concat({encoding: "string"}, gotData);
-    req.on('error', handleError);
-    req.pipe(concatStream);
-  };
-
-  init(query);
-}
-
-function doGetSettings(req, res) {
-  var query;
-
-  query = function (err) {
     var payload, sql,
-      name = req.swagger.params.name.value,
+      method = req.method,
+      name = resolveName(req.url),
+      id = req.params.id,
       result;
 
     if (err) {
@@ -295,19 +250,20 @@ function doGetSettings(req, res) {
       return;
     }
 
-    payload = {
-      method: "POST",
-      name: "getSettings",
-      user: getCurrentUser(),
-      data: [name]
-    };
+    payload = req.body;
+    payload.method = method;
+    payload.name = name;
+    payload.user = getCurrentUser();
+    if (id) { payload.id = id; }
 
     sql = buildSql(payload);
 
     client.query(sql, function (err, resp) {
+      // Native error thrown. This should never happen
       if (err) {
-        res.statusCode = 500;
         console.error(err);
+        res.statusCode = 500;
+        res.json(err);
         return err;
       }
 
@@ -315,9 +271,10 @@ function doGetSettings(req, res) {
 
       result = resp.rows[0].response;
 
-      if (!Object.keys(result).length) {
-        res.statusCode = 204;
-        result = "";
+      // Handle processed error
+      if (result.isError) {
+        res.status(result.statusCode).json(result.message);
+        return res;
       }
 
       // this sends back a JSON response which is a single string
@@ -328,62 +285,57 @@ function doGetSettings(req, res) {
   init(query);
 }
 
-function doSaveSettings(req, res) {
-  var query;
+/**************************************************************************/
 
-  query = function (err) {
-    var payload, sql, gotData, handleError, concatStream,
-      params = req.swagger.params,
-      name = params.id.name,
-      result;
+var express = require('express'),
+  bodyParser = require('body-parser'),
+  app = express(),
+  port = process.env.PORT || 8080,
+  router = express.Router();
 
-    if (err) {
-      console.error(err);
-      return;
-    }
+// configure app to use bodyParser()
+// this will let us get the data from a POST
+app.use(bodyParser.urlencoded({extended: true}));
+app.use(bodyParser.json());
 
-    gotData = function (data) {
-      payload = {
-        method: "POST",
-        name: "saveSettings",
-        user: getCurrentUser(),
-        data: [name, JSON.parse(data)]
-      };
+// middleware to use for all requests
+router.use(function (req, res, next) {
+  // do logging
+  console.log('Something is happening.');
+  next(); // make sure we go to the next routes and don't stop here
+});
 
-      sql = buildSql(payload);
+// test route to make sure everything is working 
+// (accessed at GET http://localhost:8080/api)
+router.get('/', function (req, res) {
+  res.json({ message: 'hooray! welcome to our api!' });
+});
 
-      client.query(sql, function (err, resp) {
-        if (err) {
-          res.statusCode = 500;
-          console.error(err);
-          return err;
-        }
+// more routes for our API will happen here
+router.route('/contact/:id')
+  .get(function (req, res) {
+    doHandleOne(req, res);
+  })
+  .patch(function (req, res) {
+    doUpsert(req, res);
+  })
+  .delete(function (req, res) {
+    doHandleOne(req, res);
+  });
 
-        client.end();
+router.route('/contacts')
+  .get(function (req, res) {
+    doGet(req, res);
+  })
+  .post(function (req, res) {
+    doUpsert(req, res);
+  });
 
-        result = resp.rows[0].response;
+// REGISTER OUR ROUTES -------------------------------
+// all of our routes will be prefixed with /api
+app.use('/data', router);
 
-        // this sends back a JSON response which is a single string
-        res.json(result);
-      });
-    };
-
-    handleError = function (err) {
-      // handle your error appropriately here, e.g.:
-      console.error(err); // print the error to STDERR
-    };
-
-    concatStream = concat({encoding: "string"}, gotData);
-    req.on('error', handleError);
-    req.pipe(concatStream);
-  };
-
-  init(query);
-}
-
-
-function favicon(req, res) {
-  // Placeholder to be dealt with later. Without route Chrome causes errors
-  res.json("");
-}
-
+// START THE SERVER
+// =============================================================================
+app.listen(port);
+console.log('Magic happens on port ' + port);

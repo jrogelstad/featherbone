@@ -25,7 +25,14 @@ if (init || typeof featherbone === "undefined") {
 try {
   resp = featherbone.request(obj);
 } catch (err) {
-  plv8.elog(ERROR, err);
+  if (typeof err === "object") {
+    err.statusCode = err.statusCode || 500;
+    resp = err;
+  } else {
+    resp = {message: err, statusCode: 500}
+  }
+
+  resp.isError = true;
 }
 
 return resp;
