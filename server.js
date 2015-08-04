@@ -21,7 +21,7 @@ require('./common/extend-string.js');
 
 var pgconfig, catalog, hello, getCatalog, getCurrentUser,
   doGet, doHandleOne, doUpsert, doGetSettings, doGetModel,
-  doGetMethod,
+  doGetMethod, doSaveModel, doSaveMethod, doDeleteModel,
   query, begin, buildSql, init, resolveName, client,
   util = require('util'),
   pg = require("pg"),
@@ -319,6 +319,7 @@ function doGetMethod(method, req, res) {
     sql = buildSql(payload);
 
     client.query(sql, function (err, resp) {
+      // Native error thrown. This should never happen
       if (err) {
         res.statusCode = 500;
         console.error(err);
@@ -331,7 +332,112 @@ function doGetMethod(method, req, res) {
 
       if (!result) { res.statusCode = 204; }
 
+      // Handle processed error
+      if (result.isError) {
+        res.status(result.statusCode).json(result.message);
+        return res;
+      }
+
       // this sends back a JSON response which is a single string
+      res.json(result);
+    });
+  };
+
+  init(query);
+}
+
+function doSaveModel(req, res) {
+  doSaveMethod("saveModel", req, res);
+}
+
+function doSaveMethod(method, req, res) {
+  var query;
+
+  query = function (err) {
+    var payload, sql, result,
+      name = req.params.name,
+      data = req.body;
+
+    data.name = name;
+
+    if (err) {
+      console.error(err);
+      return;
+    }
+
+    payload = {
+      method: "POST",
+      name: method,
+      user: getCurrentUser(),
+      data: [data]
+    };
+
+    sql = buildSql(payload);
+
+    client.query(sql, function (err, resp) {
+      // Native error thrown. This should never happen
+      if (err) {
+        res.statusCode = 500;
+        console.error(err);
+        return err;
+      }
+
+      client.end();
+
+      result = resp.rows[0].response;
+
+      // Handle processed error
+      if (result.isError) {
+        res.status(result.statusCode).json(result.message);
+        return res;
+      }
+
+      res.json(result);
+    });
+  };
+
+  init(query);
+}
+
+function doDeleteModel(req, res) {
+  var query;
+
+  query = function (err) {
+    var payload, sql, result,
+      name = req.params.name;
+
+    if (err) {
+      console.error(err);
+      return;
+    }
+
+    payload = {
+      method: "POST",
+      name: "deleteModel",
+      user: getCurrentUser(),
+      data: [[name]]
+    };
+
+    sql = buildSql(payload);
+
+    client.query(sql, function (err, resp) {
+      // Native error thrown. This should never happen
+      if (err) {
+        res.statusCode = 500;
+        console.error(err);
+        return err;
+      }
+
+      client.end();
+
+      result = resp.rows[0].response;
+
+      // Handle processed error
+      if (result.isError) {
+        res.status(result.statusCode).json(result.message);
+        return res;
+      }
+
       res.json(result);
     });
   };
@@ -390,7 +496,9 @@ init(function () {
   });
 
   modelRouter.route('/:name')
-    .get(doGetModel);
+    .get(doGetModel)
+    .put(doSaveModel)
+    .delete(doDeleteModel);
   settingsRouter.route('/:name')
     .get(doGetSettings);
 

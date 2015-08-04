@@ -70,19 +70,18 @@
     /**
       Remove a class from the database.
 
-      * @param {Object | Array} Object(s) describing object to remove.
-      * @return {String}
+      * @param {String | Array} Names(s) of model(s) to remove.
+      * @return {Boolean}
     */
-    deleteModel: function (specs) {
-      specs = Array.isArray ? specs : [specs];
+    deleteModel: function (names) {
+      names = Array.isArray ? names : [names];
 
-      var obj, table, catalog, sql, rels, i, props, view, type, key,
+      var name, table, catalog, sql, rels, i, props, view, type, key,
         o = 0;
 
-      while (o < specs.length) {
-        obj = specs[o];
-
-        table = obj.name ? obj.name.toSnakeCase() : false;
+      while (o < names.length) {
+        name = names[o];
+        table = name.toSnakeCase();
         catalog = that.getSettings('catalog');
         sql = ("DROP VIEW %I; DROP TABLE %I;" +
           "DELETE FROM \"$model\" WHERE id=$1;")
@@ -90,19 +89,19 @@
         rels = [];
         i = 0;
 
-        if (!table || !catalog[obj.name]) {
+        if (!table || !catalog[name]) {
           throw "Class not found";
         }
 
         /* Drop views for composite types */
-        props = catalog[obj.name].properties;
+        props = catalog[name].properties;
         for (key in props) {
           if (props.hasOwnProperty(key) &&
               typeof props[key].type === "object") {
             type = props[key].type;
 
             if (type.properties) {
-              view = "_" + obj.name.toSnakeCase() + "$" + key.toSnakeCase();
+              view = "_" + name.toSnakeCase() + "$" + key.toSnakeCase();
               sql += "DROP VIEW %I;".format([view]);
             }
 
@@ -114,7 +113,7 @@
         }
 
         /* Update catalog settings */
-        delete catalog[obj.name];
+        delete catalog[name];
         that.saveSettings("catalog", catalog);
 
         /* Update views */
@@ -699,7 +698,9 @@
         /* Add columns */
         obj.properties = obj.properties || {};
         props = obj.properties;
-        keys = Object.keys(props);
+        keys = Object.keys(props).filter(function (item) {
+          return !props[item].inheritedFrom;
+        });
         keys.forEach(function (key) {
           var prop = props[key];
           type = typeof prop.type === "string" ?

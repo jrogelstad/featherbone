@@ -26,8 +26,7 @@ try {
   resp = featherbone.request(obj);
 } catch (err) {
   if (typeof err === "object") {
-    err.statusCode = err.statusCode || 500;
-    resp = err;
+    resp = {message: err.message, statusCode: err.statusCode || 500};
   } else {
     resp = {message: err, statusCode: 500}
   }
