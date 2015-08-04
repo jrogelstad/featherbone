@@ -414,13 +414,16 @@
       var ds = f.dataSource,
         result = f.prop({}),
         payload = {method: "GET", name: that.name, id: that.data.id()},
+        handleErr = function (err) {
+          console.log(err);
+        },
         callback = function () {
           lastFetched = result();
           that.set(result(), true);
           state.send('fetched');
         };
 
-      ds.request(payload).then(result).then(callback);
+      ds.request(payload).then(result, handleErr).then(callback);
     };
 
     doPatch = function () {
@@ -447,6 +450,7 @@
         cache = that.toJSON(),
         payload = {method: "POST", name: that.plural, data: {data: cache}},
         callback = function () {
+  console.log(result())
           jsonpatch.apply(cache, result());
           that.set(cache, true);
           state.send('fetched');

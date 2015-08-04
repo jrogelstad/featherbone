@@ -24,7 +24,6 @@ var pgconfig, catalog, hello, getCatalog, getCurrentUser,
   query, begin, buildSql, init, resolveName, client,
   util = require('util'),
   pg = require("pg"),
-  concat = require("concat-stream"),
   readPgConfig = require("./common/pgconfig.js"),
   isInitialized = false;
 
@@ -285,7 +284,55 @@ function doUpsert(req, res) {
   init(query);
 }
 
-/**************************************************************************/
+function doGetSettings(req, res) {
+  var query;
+
+  query = function (err) {
+    var payload, sql,
+      name = req.params.name,
+      result;
+
+    if (err) {
+      console.error(err);
+      return;
+    }
+
+    payload = {
+      method: "POST",
+      name: "getSettings",
+      user: getCurrentUser(),
+      data: [name]
+    };
+
+    sql = buildSql(payload);
+
+    client.query(sql, function (err, resp) {
+      if (err) {
+        res.statusCode = 500;
+        console.error(err);
+        return err;
+      }
+
+      client.end();
+
+      result = resp.rows[0].response;
+
+      if (!Object.keys(result).length) {
+        res.statusCode = 204;
+        result = "";
+      }
+
+      // this sends back a JSON response which is a single string
+      res.json(result);
+    });
+  };
+
+  init(query);
+}
+
+// ..........................................................
+// ROUTES
+//
 
 var express = require('express'),
   bodyParser = require('body-parser'),
@@ -297,6 +344,9 @@ var express = require('express'),
 // this will let us get the data from a POST
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
+
+// static pages
+app.use(express.static(__dirname));
 
 // middleware to use for all requests
 router.use(function (req, res, next) {
@@ -313,23 +363,16 @@ router.get('/', function (req, res) {
 
 // more routes for our API will happen here
 router.route('/contact/:id')
-  .get(function (req, res) {
-    doHandleOne(req, res);
-  })
-  .patch(function (req, res) {
-    doUpsert(req, res);
-  })
-  .delete(function (req, res) {
-    doHandleOne(req, res);
-  });
+  .get(doHandleOne)
+  .patch(doUpsert)
+  .delete(doHandleOne);
 
 router.route('/contacts')
-  .get(function (req, res) {
-    doGet(req, res);
-  })
-  .post(function (req, res) {
-    doUpsert(req, res);
-  });
+  .get(doGet)
+  .post(doUpsert);
+
+router.route('/settings/:name')
+  .get(doGetSettings);
 
 // REGISTER OUR ROUTES -------------------------------
 // all of our routes will be prefixed with /api

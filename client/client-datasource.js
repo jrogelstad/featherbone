@@ -10,7 +10,7 @@
     */
     baseUrl: function () {
       //TODO: Make this configurable
-      return "http://localhost:10010/";
+      return "http://localhost:8080/data/";
     },
 
     request: function (options) {
