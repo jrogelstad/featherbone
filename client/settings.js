@@ -17,7 +17,7 @@
 
     doFetch = function () {
       var ds = f.dataSource,
-        payload = {method: "GET", name: "settings", id: name},
+        payload = {method: "GET", path: "/settings/" + name},
         callback = function () {
           state.send('fetched');
         };

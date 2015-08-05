@@ -135,7 +135,7 @@
     model = model || {};
 
     var  doClear, doDelete, doError, doFetch, doInit, doPatch, doPost,
-      lastError, lastFetched, state,
+      lastError, lastFetched, path, state,
       that = {data: {}, name: model.name || "Object", plural: model.plural},
       d = that.data,
       errHandlers = [],
@@ -392,7 +392,7 @@
     doDelete = function () {
       var ds = f.dataSource,
         result = f.prop({}),
-        payload = {method: "DELETE", name: that.name, id: that.data.id()},
+        payload = {method: "DELETE", path: path(that.name, that.id)},
         callback = function () {
           lastFetched = result();
           that.set(result(), true);
@@ -413,7 +413,7 @@
     doFetch = function () {
       var ds = f.dataSource,
         result = f.prop({}),
-        payload = {method: "GET", name: that.name, id: that.data.id()},
+        payload = {method: "GET", path: path(that.name, that.data.id())},
         handleErr = function (err) {
           console.log(err);
         },
@@ -430,7 +430,7 @@
       var ds = f.dataSource,
         result = f.prop({}),
         patch = jsonpatch.compare(lastFetched, that.toJSON()),
-        payload = {method: "PATCH", name: that.name, id: that.data.id(),
+        payload = {method: "PATCH", path: path(that.name, that.data.id()),
           data: {data: patch}},
         callback = function () {
           jsonpatch.apply(lastFetched, patch); // Update to sent changes
@@ -448,9 +448,9 @@
       var ds = f.dataSource,
         result = f.prop({}),
         cache = that.toJSON(),
-        payload = {method: "POST", name: that.plural, data: {data: cache}},
+        payload = {method: "POST", path: path(that.plural),
+          data: {data: cache}},
         callback = function () {
-  console.log(result())
           jsonpatch.apply(cache, result());
           that.set(cache, true);
           state.send('fetched');
@@ -518,6 +518,12 @@
 
         d[key] = prop;
       });
+    };
+
+    path = function (name, id) {
+      var ret = "/data/" + name.toSpinalCase();
+      if (id) { ret += "/" + id; }
+      return ret;
     };
 
     state = statechart.State.define(function () {

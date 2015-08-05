@@ -10,11 +10,11 @@
     */
     baseUrl: function () {
       //TODO: Make this configurable
-      return "http://localhost:8080/data/";
+      return "http://localhost:8080";
     },
 
     request: function (options) {
-      options.url = f.dataSource.baseUrl() + options.name.toSpinalCase() + "/";
+      options.url = f.dataSource.baseUrl() + options.path;
       if (options.id) { options.url += options.id; }
       delete options.name;
       delete options.id;
