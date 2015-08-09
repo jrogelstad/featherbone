@@ -15,5 +15,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*global str, upper, init, plv8, featherbone */
+if (typeof featherbone === "undefined") {
+  plv8.execute('SELECT init()');
+  featherbone = require("postgres-datasource");
+}
+
 return str.toCamelCase(upper);
 

@@ -28,7 +28,7 @@ try {
   if (typeof err === "object") {
     resp = {message: err.message, statusCode: err.statusCode || 500};
   } else {
-    resp = {message: err, statusCode: 500}
+    resp = {message: err, statusCode: 500};
   }
 
   resp.isError = true;

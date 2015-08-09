@@ -25,7 +25,8 @@ var pgconfig, catalog, hello, getCatalog, getCurrentUser,
   query, begin, buildSql, init, resolveName, client, done, handleError,
   util = require('util'),
   pg = require("pg"),
-  readPgConfig = require("./common/pgconfig.js"),
+  controller = require("./server/controller"),
+  readPgConfig = require("./common/pgconfig"),
   isInitialized = false;
 
 // ..........................................................
@@ -136,15 +137,35 @@ function doGet(req, res) {
   var query;
 
   query = function (err) {
-    var payload, sql,
+    var callback, payload,
       params = req.params,
       name = resolveName(req.url),
       defaultLimit = pgconfig.defaultLimit,
       limit = params.limit !== undefined ? params.limit.value : defaultLimit,
-      offset = params.offset !== undefined ? params.offset.value || 0 : 0,
-      result;
+      offset = params.offset !== undefined ? params.offset.value || 0 : 0;
 
     if (handleError(err)) { return; }
+
+    // Handle response
+    callback = function (err, resp) {
+      // Release client to pool
+      done();
+
+      // Handle controller error
+      if (err) {
+        res.status(err.statusCode).json(err.message);
+        return;
+      }
+
+      // Handle empty result
+      if (!resp.length) {
+        res.statusCode = 204;
+        resp = "";
+      }
+
+      // Send back a JSON response
+      res.json(resp);
+    };
 
     payload = {
       method: "GET",
@@ -153,33 +174,12 @@ function doGet(req, res) {
       filter: {
         limit: limit,
         offset: offset
-      }
+      },
+      client: client,
+      callback: callback
     };
 
-    sql = buildSql(payload);
-
-    client.query(sql, function (err, resp) {
-      // Native error thrown. This should never happen
-      if (handleError(err)) { return; }
-
-      done();
-
-      result = resp.rows[0].response;
-
-      if (!result.length) {
-        res.statusCode = 204;
-        result = "";
-      }
-
-      // Handle processed error
-      if (result.isError) {
-        res.status(result.statusCode).json(result.message);
-        return res;
-      }
-
-      // this sends back a JSON response which is a single string
-      res.json(result);
-    });
+    controller.request(payload);
   };
 
   init(query);
