@@ -1597,6 +1597,8 @@
 
               callback(null, sanitize(resp.rows));
             });
+          } else {
+            callback(null, []);
           }
         };
 

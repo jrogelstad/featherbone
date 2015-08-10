@@ -156,12 +156,7 @@ function doGet(req, res) {
         res.status(err.statusCode).json(err.message);
         return;
       }
-
-      // Handle empty result
-      if (!resp.length) {
-        res.statusCode = 204;
-        resp = "";
-      }
+  console.log("WTF")
 
       // Send back a JSON response
       res.json(resp);
