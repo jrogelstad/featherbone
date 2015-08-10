@@ -25,7 +25,7 @@ var pgconfig, catalog, hello, getCatalog, getCurrentUser,
   query, begin, buildSql, init, resolveName, client, done, handleError,
   util = require('util'),
   pg = require("pg"),
-  controller = require("./server/controller"),
+  datasource = require("./server/datasource"),
   readPgConfig = require("./common/pgconfig"),
   isInitialized = false;
 
@@ -179,7 +179,7 @@ function doGet(req, res) {
       callback: callback
     };
 
-    controller.request(payload);
+    datasource.request(payload);
   };
 
   init(query);
