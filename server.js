@@ -133,7 +133,7 @@ resolveName = function (apiPath) {
   }
 };
 
-function doGet(req, res) {
+function doRequest(req, res) {
   var query;
 
   query = function (err) {
@@ -141,6 +141,7 @@ function doGet(req, res) {
       params = req.params,
       name = resolveName(req.url),
       defaultLimit = pgconfig.defaultLimit,
+      id = params.id,
       limit = params.limit !== undefined ? params.limit.value : defaultLimit,
       offset = params.offset !== undefined ? params.offset.value || 0 : 0;
 
@@ -156,73 +157,33 @@ function doGet(req, res) {
         res.status(err.statusCode).json(err.message);
         return;
       }
-  console.log("WTF")
+
+      if (resp === undefined) {
+        res.statusCode = 204;
+      }
 
       // Send back a JSON response
       res.json(resp);
     };
 
     payload = {
-      method: "GET",
       name: name,
+      method: req.method,
       user: getCurrentUser(),
-      filter: {
-        limit: limit,
-        offset: offset
-      },
       client: client,
       callback: callback
     };
 
+    if (id) {
+      payload.id = id;
+    } else {
+      payload.filter = {
+        limit: limit,
+        offset: offset
+      };
+    }
+
     datasource.request(payload);
-  };
-
-  init(query);
-}
-
-function doHandleOne(req, res) {
-  var query;
-
-  query = function (err) {
-    var payload, sql,
-      name = resolveName(req.url),
-      method = req.method,
-      id = req.params.id,
-      result;
-
-    if (handleError(err)) { return; }
-
-    payload = {
-      method: method,
-      name: name,
-      user: getCurrentUser(),
-      id: id
-    };
-
-    sql = buildSql(payload);
-
-    client.query(sql, function (err, resp) {
-      // Native error thrown. This should never happen
-      if (handleError(err)) { return; }
-
-      done();
-
-      result = resp.rows[0].response;
-
-      if (typeof result !== "boolean" && !Object.keys(result).length) {
-        res.statusCode = 204;
-        result = "";
-      }
-
-      // Handle processed error
-      if (result.isError) {
-        res.status(result.statusCode).json(result.message);
-        return res;
-      }
-
-      // this sends back a JSON response which is a single string
-      res.json(result);
-    });
   };
 
   init(query);
@@ -451,13 +412,13 @@ init(function () {
   keys = Object.keys(catalog);
   keys.forEach(function (key) {
     dataRouter.route("/" + key.toSpinalCase() + "/:id")
-      .get(doHandleOne)
+      .get(doRequest)
       .patch(doUpsert)
-      .delete(doHandleOne);
+      .delete(doRequest);
 
     if (catalog[key].plural) {
       dataRouter.route("/" + catalog[key].plural.toSpinalCase())
-        .get(doGet)
+        .get(doRequest)
         .post(doUpsert);
     }
   });

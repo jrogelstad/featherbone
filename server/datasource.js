@@ -1556,7 +1556,7 @@
           }
 
           if (key === undefined) {
-            callback(null, {});
+            callback(null, undefined);
             return;
           }
 
