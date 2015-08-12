@@ -137,10 +137,11 @@ function doRequest(req, res) {
   var query;
 
   query = function (err) {
-    var callback, payload,
+    var callback,
       params = req.params,
       name = resolveName(req.url),
       defaultLimit = pgconfig.defaultLimit,
+      payload = req.body || {},
       id = params.id,
       limit = params.limit !== undefined ? params.limit.value : defaultLimit,
       offset = params.offset !== undefined ? params.offset.value || 0 : 0;
@@ -166,13 +167,11 @@ function doRequest(req, res) {
       res.json(resp);
     };
 
-    payload = {
-      name: name,
-      method: req.method,
-      user: getCurrentUser(),
-      client: client,
-      callback: callback
-    };
+    payload.name = name;
+    payload.method = req.method;
+    payload.user = getCurrentUser();
+    payload.client = client;
+    payload.callback = callback;
 
     if (id) {
       payload.id = id;
@@ -419,7 +418,7 @@ init(function () {
     if (catalog[key].plural) {
       dataRouter.route("/" + catalog[key].plural.toSpinalCase())
         .get(doRequest)
-        .post(doUpsert);
+        .post(doRequest);
     }
   });
 

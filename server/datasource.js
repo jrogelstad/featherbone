@@ -191,11 +191,9 @@
       @return receiver
     */
     getModel: function (obj, includeInherited) {
-      var payload = {},
+      var payload = {name: "catalog", client: obj.client},
         name = obj.name;
 
-      payload.name = "catalog";
-      payload.client = obj.client;
       payload.callback = function (err, catalog) {
         var resultProps, modelProps, keys, appendParent,
           result = {name: name, inherits: "Object"};
@@ -330,16 +328,18 @@
 
       "canCreate" will only check model names.
 
-      @param {Object} Specification
-      @param {String} [specification.action] Required
-      @param {String} [specification.model] Class
-      @param {String} [specification.id] Object id
-      @param {String} [specification.user] User. Defaults to current user
-      @param {String} [specification.folder] Folder. Applies to "canCreate"
+      @param {Object} Payload
+      @param {String} [payload.action] Required
+      @param {String} [payload.model] Class
+      @param {String} [payload.id] Object id
+      @param {String} [payload.user] User. Defaults to current user
+      @param {String} [payload.folder] Folder. Applies to "canCreate"
+      @param {String} [payload.client] Datobase client
+      @param {String} [payload.callback] Callback
         action
     */
     isAuthorized: function (obj) {
-      var table, pk, authSql, sql,
+      var table, pk, authSql, sql, callback, params,
         user = obj.user || that.getCurrentUser(),
         model = obj.model,
         folder = obj.folder,
@@ -348,8 +348,38 @@
         tokens = [],
         result = false;
 
+      callback = function () {
+        /* Check target location for create */
+        if (action === "canCreate" && result) {
+          if (!folder) { return false; }
+          sql =
+            "SELECT can_create FROM \"$auth\" AS auth " +
+            "  JOIN folder ON folder._pk=auth.object_pk " +
+            "  JOIN role ON role._pk=auth.role_pk " +
+            "  JOIN role_member ON role_member._parent_role_pk=role._pk " +
+            "WHERE role_member.member=$1" +
+            "  AND folder.id=$2" +
+            "  AND is_member_auth " +
+            "ORDER BY is_inherited, can_create DESC " +
+            "LIMIT 1";
+
+          obj.client.query(sql, [user, folder], function (err, resp) {
+            if (err) {
+              obj.callback(err);
+              return;
+            }
+
+            result = result.length > 0 ? result[0].can_create : false;
+            obj.callback(null, result);
+          });
+        }
+
+        obj.callback(null, result);
+      };
+
       /* If model, check class authorization */
       if (model) {
+        params = [model.toSnakeCase(), user];
         sql =
           "SELECT pk FROM \"$auth\" AS auth " +
           "  JOIN \"$model\" AS model ON model._pk=auth.object_pk " +
@@ -359,65 +389,74 @@
           "  AND role_member.member=$2" +
           "  AND %I";
         sql = sql.format([action.toSnakeCase()]);
-        result = plv8.execute(sql, [model.toSnakeCase(), user]);
+        result = plv8.execute(sql, params, function (err, resp) {
+          if (err) {
+            obj.callback(err);
+            return;
+          }
+
+          result = resp.rows;
+          callback();
+        });
 
       /* Otherwise check object authorization */
       } else if (id) {
         /* Find object */
         sql = "SELECT _pk, tableoid::regclass::text AS \"table\"" +
           "FROM object WHERE id = $1;";
-        result = plv8.execute(sql, [id]);
+        obj.client.query(sql, [id], function (err, resp) {
+          if (err) {
+            obj.callback(err);
+            return;
+          }
 
-        /* If object found, check authorization */
-        if (result.length > 0) {
-          table = result[0].table;
-          pk = result[0]._pk;
+          /* If object found, check authorization */
+          if (resp.rows.length > 0) {
+            table = result[0].table;
+            pk = result[0]._pk;
 
-          tokens.push(table);
-          authSql =  buildAuthSql(action, table, tokens);
-          sql = "SELECT _pk FROM %I WHERE _pk = $2 " + authSql;
-          sql = sql.format(tokens);
+            tokens.push(table);
+            authSql =  buildAuthSql(action, table, tokens);
+            sql = "SELECT _pk FROM %I WHERE _pk = $2 " + authSql;
+            sql = sql.format(tokens);
 
-          result = plv8.execute(sql, [user, pk]).length > 0;
-        }
+            obj.client.query(sql, [user, pk], function (err, resp) {
+              if (err) {
+                obj.callback(err);
+                return;
+              }
+
+              result = resp.rows.length > 0;
+              callback();
+            });
+          }
+        });
       }
-
-      /* Check target location for create */
-      if (action === "canCreate" && result) {
-        if (!folder) { return false; }
-        sql =
-          "SELECT can_create FROM \"$auth\" AS auth " +
-          "  JOIN folder ON folder._pk=auth.object_pk " +
-          "  JOIN role ON role._pk=auth.role_pk " +
-          "  JOIN role_member ON role_member._parent_role_pk=role._pk " +
-          "WHERE role_member.member=$1" +
-          "  AND folder.id=$2" +
-          "  AND is_member_auth " +
-          "ORDER BY is_inherited, can_create DESC " +
-          "LIMIT 1";
-
-        result = plv8.execute(sql, [user, folder]);
-        result = result.length > 0 ? result[0].can_create : false;
-      }
-
-      return result;
     },
 
     /**
       Returns whether user is super user.
 
-      @param {String} User. Defaults to current user
-      @return {Boolean}
+      @param {Object} Payload
+      @param {String} [payload.user] User. Defaults to current user
+      @param {String} [payload.client] Datobase client
+      @param {String} [payload.callback] Callback
+      @return receiver
     */
-    isSuperUser: function (user) {
-      user = user === undefined ? that.getCurrentUser() : user;
-
+    isSuperUser: function (obj) {
       var sql = "SELECT is_super FROM \"$user\" WHERE username=$1;",
-        result;
+        user = obj.user === undefined ? that.getCurrentUser() : obj.user;
 
-      result = plv8.execute(sql, [user]);
+      obj.client.query(sql, [user], function (err, resp) {
+        if (err) {
+          obj.callback(err);
+          return;
+        }
 
-      return result.length ? result[0].is_super : false;
+        obj.callback(null, resp.rows.length ? resp.rows[0].is_super : false);
+      });
+
+      return this;
     },
 
     /**
@@ -447,13 +486,31 @@
     request: function (obj, isSuperUser) {
       isSuperUser = isSuperUser === undefined ? false : isSuperUser;
 
-      var result, args, fn,
-        prop = obj.name,
+      var transaction, afterTransaction, afterRequest,
         callback = obj.callback;
 
       setCurrentUser(obj.user);
 
-      obj.callback = function (err, resp) {
+      afterTransaction = function (err, resp) {
+        if (err) {
+          obj.client.query("ROLLBACK;", function (err, resp) {
+            afterRequest(err);
+          });
+
+          return;
+        }
+
+        obj.client.query("COMMIT;", function (err, resp) {
+          if (err) {
+            afterRequest(err);
+            return;
+          }
+
+          afterRequest(null, resp);
+        });
+      };
+
+      afterRequest = function (err, resp) {
         setCurrentUser(undefined);
 
         // Format errors into objects that can be handled by server
@@ -475,26 +532,31 @@
 
       switch (obj.method) {
       case "GET":
+        obj.callback = afterRequest;
         doSelect(obj, false, isSuperUser);
         break;
       case "POST":
-        /* Handle if posting a function call */
-        if (that[prop] && typeof that[prop] === "function") {
-          args = Array.isArray(obj.data) ? obj.data : [obj.data];
-          fn = curry(that[prop], args);
-          result = fn();
-        } else {
-          result = doInsert(obj, false, isSuperUser);
-        }
+        transaction = doInsert;
         break;
       case "PATCH":
-        result = doUpdate(obj, false, isSuperUser);
+        transaction = doUpdate;
         break;
       case "DELETE":
-        result = doDelete(obj, false, isSuperUser);
+        transaction = doDelete;
         break;
       default:
-        throw "method \"" + obj.method + "\" unknown";
+        obj.callback("method \"" + obj.method + "\" unknown");
+      }
+
+      if (transaction) {
+        obj.callback = afterTransaction;
+        obj.client.query("BEGIN;", function (err, resp) {
+          if (err) {
+            obj.callback(err);
+          }
+
+          transaction(obj, false, isSuperUser);
+        });
       }
 
       return this;
@@ -1345,111 +1407,195 @@
 
   /** private */
   doInsert = function (obj, isChild, isSuperUser) {
-    var child, key, col, prop, result, value, sql, err, pk, fkeys, dkeys,
-      len, n, msg,
+    var len, msg, dkeys, fkeys, n, sql, props, result, child, pk, col, key,
+      prop, value, afterGetModel, afterIdCheck, afterNextVal, afterAuthorized,
+      buildInsert, afterGetPk, afterHandleRelations, afterInsert,
+      afterDoSelect, afterPropagateAuth, afterLog, afterHandleFolder,
+      payload = {name: obj.name, client: obj.client},
       data = JSON.parse(JSON.stringify(obj.data)),
-      model = that.getModel(obj.name),
       folder = obj.folder !== false ? obj.folder || "global" : false,
-      args = [obj.name.toSnakeCase()],
-      props = model.properties,
       children = {},
+      args = [obj.name.toSnakeCase()],
       tokens = [],
       params = [],
       values = [],
-      i = 0,
       p = 2;
 
-    if (!model) {
-      throw "Class \"" + obj.name + "\" not found";
-    }
-
-    fkeys = Object.keys(props);
-    dkeys = Object.keys(data);
-
-    /* Validate */
-    len = dkeys.length;
-    for (n = 0; n < len; n++) {
-      if (fkeys.indexOf(dkeys[n]) === -1) {
-        throw "Model \"" + obj.name +
-          "\" does not contain property \"" + dkeys[n] + "\"";
+    afterGetModel = function (err, model) {
+      if (err) {
+        obj.callback(err);
+        return;
       }
-    }
 
-    /* Check id for existence and uniqueness and regenerate if any problem */
-    if (!data.id ||  getKey(data.id) !== undefined) {
-      data.id = f.createId();
-    } else if (isSuperUser === false) {
-      if (!that.isAuthorized({
+      if (!model) {
+        obj.callback("Class \"" + obj.name + "\" not found");
+      }
+
+      props = model.properties;
+      fkeys = Object.keys(props);
+      dkeys = Object.keys(data);
+
+      /* Validate properties are valid */
+      len = dkeys.length;
+      for (n = 0; n < len; n++) {
+        if (fkeys.indexOf(dkeys[n]) === -1) {
+          obj.callback("Model \"" + obj.name +
+            "\" does not contain property \"" + dkeys[n] + "\"");
+        }
+      }
+
+      /* Check id for existence and uniqueness and regenerate if any problem */
+      if (!data.id) {
+        afterIdCheck(null, -1);
+        return;
+      }
+
+      getKey({id: data.id, client: obj.client, callback: afterIdCheck});
+    };
+
+    afterIdCheck = function (err, id) {
+      if (err) {
+        obj.callback(err);
+        return;
+      }
+
+      if (id !== undefined) {
+        data.id = f.createId();
+      }
+
+      if (isSuperUser === false) {
+        that.isAuthorized({
           action: "canCreate",
           model: obj.name,
-          folder: folder
-        })) {
+          folder: folder,
+          client: obj.client,
+          callback: afterAuthorized
+        });
+      }
+
+      afterAuthorized(null, true);
+    };
+
+    afterAuthorized = function (err, authorized) {
+      if (err) {
+        obj.callback(err);
+        return;
+      }
+
+      if (!authorized) {
         msg = "Not authorized to create \"" + obj.name + "\" in folder \"" +
           folder + "\"";
-        throw {statusCode: 401, message: msg};
+        obj.callback({statusCode: 401, message: msg});
       }
-    }
 
-    /* Set some system controlled values */
-    data.created = data.updated = f.now();
-    data.createdBy = that.getCurrentUser();
-    data.updatedBy = that.getCurrentUser();
+      /* Set some system controlled values */
+      data.created = data.updated = f.now();
+      data.createdBy = that.getCurrentUser();
+      data.updatedBy = that.getCurrentUser();
 
-    /* Get primary key */
-    pk = plv8.execute("select nextval('object__pk_seq')")[0].nextval;
-    values.push(pk);
+      /* Get primary key */
+      sql = "select nextval('object__pk_seq')";
+      obj.client.query(sql, afterNextVal);
+    };
 
-    /* Build values */
-    len = fkeys.length;
-    for (n = 0; n < len; n++) {
-      key = fkeys[n];
-      child = false;
-      prop = props[key];
+    afterNextVal = function (err, resp) {
+      if (err) {
+        obj.callback(err);
+        return;
+      }
 
-      /* Handle relations */
-      if (typeof prop.type === "object") {
-        if (prop.type.parentOf) {
-        /* To many */
+      pk = resp.rows[0].nextval;
+      values.push(pk);
+
+      /* Build values */
+      len = fkeys.length;
+      buildInsert();
+    };
+
+    buildInsert = function () {
+      if (n < len) {
+        key = fkeys[n];
+        child = false;
+        prop = props[key];
+        n++;
+
+        /* Handle relations */
+        if (typeof prop.type === "object") {
+          if (prop.type.parentOf) {
+          /* To many */
+            child = true;
+            children[key] = prop;
+
+          /* To one */
+          } else {
+            col = relationColumn(key, prop.type.relation);
+            if (data[key] !== undefined) {
+              value = -1;
+            } else {
+              getKey({
+                id: data[key].id,
+                client: obj.client,
+                callback: afterGetPk
+              });
+              return;
+            }
+          }
+
+        /* Handle discriminator */
+        } else if (key === "objectType") {
           child = true;
-          children[key] = prop;
 
-        /* To one */
+        /* Handle regular types */
         } else {
-          col = relationColumn(key, prop.type.relation);
-          value = data[key] !== undefined ? getKey(data[key].id) : -1;
+          value = data[key];
+          col = key.toSnakeCase();
+
           if (value === undefined) {
-            err = 'Relation not found in "{rel}" for "{key}" with id "{id}"'
-              .replace("{rel}", prop.type.relation)
-              .replace("{key}", key)
-              .replace("{id}", data[key].id);
-          } else if (!isChild && prop.type.childOf) {
-            err = "Child records may only be created from the parent.";
-          }
-          if (err) {
-            throw err;
+            value = prop.default === undefined ?
+                types[prop.type].default : prop.default;
+
+            // If we have a class specific default that calls a function
+            if (value && typeof value === "string" && value.match(/\(\)$/)) {
+              value = f[value.replace(/\(\)$/, "")]();
+            }
           }
         }
 
-      /* Handle discriminator */
-      } else if (key === "objectType") {
-        child = true;
-
-      /* Handle regular types */
-      } else {
-        value = data[key];
-        col = key.toSnakeCase();
-
-        if (value === undefined) {
-          value = prop.default === undefined ?
-              types[prop.type].default : prop.default;
-
-          /* If we have a class specific default that calls a function */
-          if (value && typeof value === "string" && value.match(/\(\)$/)) {
-            value = f[value.replace(/\(\)$/, "")]();
-          }
-        }
+        afterHandleRelations();
+        return;
       }
 
+      sql = ("INSERT INTO %I (_pk, " + tokens.toString(",") +
+        ") VALUES ($1," + params.toString(",") + ");").format(args);
+
+      // Perform the insert
+      obj.client.query(sql, values, afterInsert);
+    };
+
+    afterGetPk = function (err, id) {
+      if (err) {
+        obj.callback(err);
+        return;
+      }
+
+      value = id;
+
+      if (value === undefined) {
+        err = 'Relation not found in "' + prop.type.relation +
+          '" for "' + key + '" with id "' + data[key].id + '"';
+      } else if (!isChild && prop.type.childOf) {
+        err = "Child records may only be created from the parent.";
+      }
+
+      if (err) {
+        obj.callback(err);
+        return;
+      }
+
+      afterHandleRelations();
+    };
+
+    afterHandleRelations = function () {
       if (!child) {
         args.push(col);
         tokens.push("%I");
@@ -1457,74 +1603,151 @@
         params.push("$" + p);
         p++;
       }
-    }
 
-    sql = ("INSERT INTO %I (_pk, " + tokens.toString(",") + ") VALUES ($1," +
-      params.toString(",") + ");").format(args);
+      buildInsert();
+    };
 
-    /* Execute */
-    plv8.execute(sql, values);
+    afterInsert = function (err, resp) {
+      var keyCallback, insertCallback, keys, i,
+        k = 0;
 
-    /* Iterate through children */
-    for (key in children) {
-      if (children.hasOwnProperty(key) && data[key]) {
-        i = 0;
-        while (i < data[key].length) {
+      if (err) {
+        obj.callback(err);
+        return;
+      }
+
+      // Callback to loop through children keys
+      keyCallback = function () {
+        if (k < keys.length) {
+          key = keys[k];
+          k++;
+          if (data[key]) {
+            i = 0;
+            insertCallback();
+          }
+          return;
+        }
+
+        // We're done here if child
+        if (isChild) { return; } // TODO: How do we know to move on?
+
+        // Otherwise we'll move on to log the change
+        doSelect({
+          name: obj.name,
+          id: data.id,
+          client: obj.client,
+          callback: afterDoSelect
+        });
+      };
+
+      // Callback to loop through and insert child records
+      insertCallback = function () {
+        if (i < data[key].length) {
           data[key][i][children[key].type.parentOf] = {id: data.id};
           child = {
             name: children[key].type.relation,
-            data: data[key][i]
+            data: data[key][i],
+            client: obj.client,
+            callback: insertCallback
           };
-          doInsert(child, true);
           i++;
+          doInsert(child, true);
+          return;
         }
+
+        keyCallback();
+      };
+
+      /* Iterate through children */
+      keys = Object.keys(children);
+      keyCallback();
+    };
+
+    afterDoSelect = function (err, resp) {
+      if (err) {
+        obj.callback(err);
+        return;
       }
-    }
 
-    if (isChild) { return; }
+      result = resp;
 
-    result = doSelect({name: obj.name, id: data.id});
-
-    /* Handle folder */
-    if (folder) {
-      sql = "INSERT INTO \"$objectfolder\" VALUES ($1, $2);";
-      plv8.execute(sql, [pk, getKey(folder)]);
-    }
-
-    /* Handle change log */
-    doInsert({
-      name: "Log",
-      data: {
-        objectId: data.id,
-        action: "POST",
-        created: data.created,
-        createdBy: data.createdBy,
-        updated: data.updated,
-        updatedBy: data.updatedBy,
-        change: JSON.parse(JSON.stringify(result))
+      /* Handle folder */
+      if (folder) {
+        sql = "INSERT INTO \"$objectfolder\" VALUES ($1, $2);";
+        obj.client.query(sql, [pk, getKey(folder)], afterHandleFolder);
+        return;
       }
-    }, true);
 
-    /* Handle folder authorization propagation */
-    if (obj.name === "Folder") {
-      propagateAuth({folderId: obj.folder});
-    }
+      afterHandleFolder();
+    };
 
-    return jsonpatch.compare(obj.data, result);
+    afterHandleFolder = function (err, resp) {
+      if (err) {
+        obj.callback(err);
+        return;
+      }
+
+      /* Handle change log */
+      doInsert({
+        name: "Log",
+        data: {
+          objectId: data.id,
+          action: "POST",
+          created: data.created,
+          createdBy: data.createdBy,
+          updated: data.updated,
+          updatedBy: data.updatedBy,
+          change: JSON.parse(JSON.stringify(result))
+        },
+        client: obj.client,
+        callback: afterLog
+      }, true);
+    };
+
+    afterLog = function (err, resp) {
+      if (err) {
+        obj.callback(err);
+        return;
+      }
+
+      /* Handle folder authorization propagation */
+      if (obj.name === "Folder") {
+        propagateAuth({
+          folderId: obj.folder,
+          client: obj.client,
+          callback: afterPropagateAuth
+        });
+        return;
+      }
+
+      afterPropagateAuth();
+    };
+
+    afterPropagateAuth = function (err, resp) {
+      if (err) {
+        obj.callback(err);
+        return;
+      }
+
+      obj.callback(null, jsonpatch.compare(obj.data, result));
+    };
+
+    payload.callback = afterGetModel;
+    that.getModel(payload);
   };
 
   /** private */
   doSelect = function (obj, isChild, isSuperUser) {
     var key, sql, table, keys,
-      callback = obj.callback,
+      afterGetModel, afterGetKey, afterGetKeys,
       payload = {name: obj.name, client: obj.client},
       tokens = [],
       cols = [],
       i = 0;
 
-    payload.callback = function (err, model) {
+    afterGetModel = function (err, model) {
       if (err) {
-        callback(err);
+        obj.callback(err);
         return;
       }
 
@@ -1533,7 +1756,7 @@
 
       /* Validate */
       if (!isChild && model.isChild) {
-        callback("Can not query directly on a child class");
+        obj.callback("Can not query directly on a child class");
       }
 
       /* "While" is much faster than "forEach." Performance matters here. */
@@ -1549,66 +1772,70 @@
 
       /* Get one result by key */
       if (obj.id) {
-        obj.callback = function (err, key) {
-          if (err) {
-            callback(err);
-            return;
-          }
-
-          if (key === undefined) {
-            callback(null, undefined);
-            return;
-          }
-
-          sql +=  " WHERE _pk = $1";
-
-          obj.client.query(sql, [key], function (err, resp) {
-            if (err) {
-              callback(err);
-              return;
-            }
-
-            callback(null, sanitize(resp.rows[0]));
-          });
-
-        };
-
-        getKey(obj, isSuperUser);
+        payload.id = obj.id;
+        payload.callback = afterGetKey;
+        getKey(payload, isSuperUser);
 
       /* Get a filtered result */
       } else {
-        obj.callback = function (err, keys) {
-          if (keys.length) {
-            tokens = [];
-            i = 0;
-
-            while (keys[i]) {
-              i++;
-              tokens.push("$" + i);
-            }
-
-            sql += " WHERE _pk IN (" + tokens.toString(",") + ")";
-
-            obj.client.query(sql, keys, function (err, resp) {
-              if (err) {
-                callback(err);
-                return;
-              }
-
-              callback(null, sanitize(resp.rows));
-            });
-          } else {
-            callback(null, []);
-          }
-        };
-
-        getKeys(obj, isSuperUser);
+        payload.filter = obj.filter;
+        payload.callback = afterGetKeys;
+        getKeys(payload, isSuperUser);
       }
 
       return this;
     };
 
-    // Kick of query by getting model, the rest falls through callbacks
+    afterGetKey = function (err, key) {
+      if (err) {
+        obj.callback(err);
+        return;
+      }
+
+      if (key === undefined) {
+        obj.callback(null, undefined);
+        return;
+      }
+
+      sql +=  " WHERE _pk = $1";
+
+      obj.client.query(sql, [key], function (err, resp) {
+        if (err) {
+          obj.callback(err);
+          return;
+        }
+
+        obj.callback(null, sanitize(resp.rows[0]));
+      });
+    };
+
+    afterGetKeys = function (err, keys) {
+      if (keys.length) {
+        tokens = [];
+        i = 0;
+
+        while (keys[i]) {
+          i++;
+          tokens.push("$" + i);
+        }
+
+        sql += " WHERE _pk IN (" + tokens.toString(",") + ")";
+
+        obj.client.query(sql, keys, function (err, resp) {
+          if (err) {
+            obj.callback(err);
+            return;
+          }
+
+          obj.callback(null, sanitize(resp.rows));
+        });
+      } else {
+        obj.callback(null, []);
+      }
+    };
+
+    // Kick off query by getting model, the rest falls through callbacks
+    payload.callback = afterGetModel;
     that.getModel(payload);
 
     return this;
@@ -1912,13 +2139,16 @@
   };
 
   /** private 
-    @param {Object} Specification
-    @param {String} [specification.folderId] Folder id. Required.
-    @param {String} [specification.roleId] Role id.
-    @param {String} [specification.isDeleted] Folder is hard deleted.
+    @param {Object} Payload
+    @param {String} [payload.folderId] Folder id. Required.
+    @param {String} [payload.roleId] Role id.
+    @param {String} [payload.isDeleted] Folder is hard deleted.
+    @param {Object} [payload.client] Database client
+    @param {Function} [payload.callback] Callback
   */
   propagateAuth = function (obj) {
-    var auth, auths, children, child, roleKey, n,
+    var auth, auths, children, child, n,
+      afterGetRoleId, getAuths, propagate, updateChild, recurse,
       folderKey = getKey(obj.folderId),
       params = [folderKey, false],
       authSql = "SELECT object_pk, role_pk, can_create, can_read, " +
@@ -1941,56 +2171,147 @@
       roleSql = "SELECT id FROM role WHERE _pk=$1",
       i = 0;
 
-    if (obj.roleId) {
-      roleKey = getKey(obj.roleId);
-      authSql += " AND role.id=$3";
-      params.push(roleKey);
-    }
-
-    /* Get all authorizations for this folder */
-    auths = plv8.execute(authSql, params);
-
-    if (!obj.roleId) {
-      authSql += " AND role.id=$3";
-    }
-
-    /* Propagate each authorization to children */
-    while (i < auths.length) {
-      auth = auths[i];
-
-      /* Only process if auth has no manual over-ride */
-      params = [folderKey, false, auth.role_pk];
-
-      if (!plv8.execute(authSql, params).length) {
-
-        /* Find child folders */
-        children = plv8.execute(childSql, [auth.object_pk]);
-        n = 0;
-
-        while (n < children.length) {
-          child = children[n];
-
-          /* Delete old authorizations */
-          plv8.execute(delSql, [child._pk, auth.role_pk]);
-
-          /* Insert new authorizations */
-          params = [child._pk, auth.role_pk, auth.can_create, auth.can_read,
-            auth.can_update, auth.can_delete];
-          if (!obj.isDeleted) { plv8.execute(insSql, params); }
-
-          /* Propagate recursively */
-          propagateAuth({
-            folderId: child.id,
-            roleId: obj.roleId || plv8.execute(roleSql, [auth.role_pk])[0].id,
-            isDeleted: obj.isDeleted
-          });
-
-          n++;
-        }
+    afterGetRoleId = function (err, roleKey) {
+      if (err) {
+        obj.callback(err);
+        return;
       }
 
-      i++;
+      authSql += " AND role.id=$3";
+      params.push(roleKey);
+      getAuths();
+    };
+
+    // Get all authorizations for this folder
+    getAuths = function () {
+      obj.client.query(authSql, params, function (err, resp) {
+        if (err) {
+          obj.callback(err);
+          return;
+        }
+
+        auths = resp.rows;
+
+        if (!obj.roleId) {
+          authSql += " AND role.id=$3";
+        }
+
+        propagate();
+      });
+    };
+
+    // Propagate each authorization to children
+    propagate = function () {
+      if (i < auths.length) {
+        auth = auths[i];
+        i++;
+
+        // Only process if auth has no manual over-ride
+        params = [folderKey, false, auth.role_pk];
+        obj.client.query(authSql, params, function (err, resp) {
+          if (!resp.rows.length) {
+            // Find child folders
+            obj.client.query(childSql, [auth.object_pk], function (err, resp) {
+              if (err) {
+                obj.callback(err);
+                return;
+              }
+
+              children = resp.rows;
+              n = 0;
+
+              // Kick off update child loop
+              updateChild();
+            });
+
+            return;
+          }
+
+          propagate();
+        });
+
+        return;
+      }
+
+      // All done
+      obj.callback();
+    };
+
+    updateChild = function () {
+      if (n < children.length) {
+        child = children[n];
+        n++;
+
+        // Delete old authorizations
+        params = [child._pk, auth.role_pk];
+        obj.client.query(delSql, params, function (err) {
+          if (err) {
+            obj.callback(err);
+            return;
+          }
+
+          // Insert new authorizations
+          params = [child._pk, auth.role_pk, auth.can_create, auth.can_read,
+            auth.can_update, auth.can_delete];
+          if (!obj.isDeleted) {
+            obj.client.query(insSql, params, function (err) {
+              if (err) {
+                obj.callback(err);
+                return;
+              }
+
+              // Propagate recursively
+              if (obj.roleId) {
+                recurse(obj.roleId);
+                return;
+              }
+
+              obj.client.query(roleSql, [auth.role_pk], function (err, resp) {
+                if (err) {
+                  obj.callback(err);
+                  return;
+                }
+
+                recurse(resp.rows[0].id);
+              });
+            });
+
+            return;
+          }
+
+          // Move to next child
+          updateChild();
+        });
+
+        return;
+      }
+
+      // Loop to next authorization
+      propagate();
+    };
+
+    // Propagate recursively
+    recurse = function (roleId) {
+      propagateAuth({
+        folderId: child.id,
+        roleId: roleId,
+        isDeleted: obj.isDeleted,
+        client: obj.client,
+        callback: propagate
+      });
+    };
+
+    // Real work starts here
+    if (obj.roleId) {
+      getKey({
+        id: obj.roleId,
+        client: obj.client,
+        callback: afterGetRoleId
+      });
+      return;
     }
+
+    getAuths();
   };
 
   /** private */
@@ -2040,42 +2361,42 @@
     return "_" + key.toSnakeCase() + "_" + relation.toSnakeCase() + "_pk";
   };
 
-  /** private */
   sanitize = function (obj) {
-    var isArray = Array.isArray(obj),
+    var oldObj, newObj, oldKey, newKey, keys, klen, n,
+      isArray = Array.isArray(obj),
       ary = isArray ? obj : [obj],
-      i = 0,
-      oldObj,
-      newObj,
-      oldKey,
-      newKey;
+      len = ary.length,
+      i = 0;
 
-    while (i < ary.length) {
-
+    while (i < len) {
       /* Copy to convert dates back to string for accurate comparisons */
       oldObj = JSON.parse(JSON.stringify(ary[i]));
       newObj = {};
 
-      for (oldKey in oldObj) {
-        if (oldObj.hasOwnProperty(oldKey)) {
+      keys = Object.keys(oldObj);
+      klen = keys.length;
+      n = 0;
 
-          /* Remove internal properties */
-          if (oldKey.match("^_")) {
-            delete oldObj[oldKey];
-          } else {
-            /* Make properties camel case */
-            newKey = oldKey.toCamelCase();
-            newObj[newKey] = oldObj[oldKey];
+      while (n < klen) {
+        oldKey = keys[n];
+        n++;
 
-            /* Recursively sanitize objects */
-            if (typeof newObj[newKey] === "object") {
-              newObj[newKey] = newObj[newKey] ? sanitize(newObj[newKey]) : {};
-            }
+        /* Remove internal properties */
+        if (oldKey.match("^_")) {
+          delete oldObj[oldKey];
+        } else {
+          /* Make properties camel case */
+          newKey = oldKey.toCamelCase();
+          newObj[newKey] = oldObj[oldKey];
+
+          /* Recursively sanitize objects */
+          if (typeof newObj[newKey] === "object") {
+            newObj[newKey] = newObj[newKey] ? sanitize(newObj[newKey]) : {};
           }
         }
       }
-      ary[i] = newObj;
 
+      ary[i] = newObj;
       i++;
     }
 
