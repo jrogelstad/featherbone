@@ -501,7 +501,7 @@
           return;
         }
 
-        obj.client.query("COMMIT;", function (err, resp) {
+        obj.client.query("COMMIT;", function (err) {
           if (err) {
             afterRequest(err);
             return;
