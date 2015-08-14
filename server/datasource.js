@@ -528,7 +528,7 @@
         }
 
         // Otherwise return response
-        callback(err, resp);
+        callback(null, resp);
       };
 
       switch (obj.method) {
@@ -1452,7 +1452,6 @@
 
       // Move on only after all callbacks report back
       c++;
-console.log("callback->", c, "of", clen);
       if (c < clen) { return; }
 
       if (isChild) {
@@ -1481,7 +1480,7 @@ console.log("callback->", c, "of", clen);
         obj.callback(err);
         return;
       }
-console.log("done with", obj.id, obj.name);
+
       obj.callback(null, true);
     };
 
@@ -1530,6 +1529,7 @@ console.log("done with", obj.id, obj.name);
         if (fkeys.indexOf(dkeys[n]) === -1) {
           obj.callback("Model \"" + obj.name +
             "\" does not contain property \"" + dkeys[n] + "\"");
+          return;
         }
       }
 
@@ -1599,6 +1599,7 @@ console.log("done with", obj.id, obj.name);
       ckeys.forEach(function (key) {
         var rel = props[key].type.relation;
         data[key].forEach(function (row) {
+          row[props[key].type.parentOf] = {id: data.id};
           doInsert({
             name: rel,
             data: row,
@@ -1687,7 +1688,7 @@ console.log("done with", obj.id, obj.name);
 
       sql = ("INSERT INTO %I (_pk, " + tokens.toString(",") +
         ") VALUES ($1," + params.toString(",") + ");").format(args);
-console.log("sql->", sql, values)
+
       // Perform the insert
       obj.client.query(sql, values, afterInsert);
     };
@@ -1728,7 +1729,6 @@ console.log("sql->", sql, values)
     };
 
     afterInsert = function (err, resp) {
-console.log("INSERTED");
       if (err) {
         obj.callback(err);
         return;
@@ -1736,9 +1736,8 @@ console.log("INSERTED");
 
       // Done only when all callbacks report back
       c++;
-console.log("c->", c, "of", clen)
       if (c < clen) { return; }
-console.log("child->", isChild, obj.name)
+
       // We're done here if child
       if (isChild) {
         done();
@@ -1842,7 +1841,7 @@ console.log("child->", isChild, obj.name)
       payload = {name: obj.name, client: obj.client},
       tokens = [],
       cols = [];
-console.log("select->", obj.name, obj.id);
+
     afterGetModel = function (err, model) {
       if (err) {
         obj.callback(err);
