@@ -369,9 +369,10 @@
               return;
             }
 
-            result = result.length > 0 ? result[0].can_create : false;
+            result = resp.rows.length > 0 ? resp.rows[0].can_create : false;
             obj.callback(null, result);
           });
+          return;
         }
 
         obj.callback(null, result);
@@ -389,7 +390,7 @@
           "  AND role_member.member=$2" +
           "  AND %I";
         sql = sql.format([action.toSnakeCase()]);
-        result = plv8.execute(sql, params, function (err, resp) {
+        obj.client.query(sql, params, function (err, resp) {
           if (err) {
             obj.callback(err);
             return;
@@ -412,8 +413,8 @@
 
           /* If object found, check authorization */
           if (resp.rows.length > 0) {
-            table = result[0].table;
-            pk = result[0]._pk;
+            table = resp.rows[0].table;
+            pk = resp.rows[0]._pk;
 
             tokens.push(table);
             authSql =  buildAuthSql(action, table, tokens);
@@ -493,7 +494,7 @@
 
       afterTransaction = function (err, resp) {
         if (err) {
-          obj.client.query("ROLLBACK;", function (err, resp) {
+          obj.client.query("ROLLBACK;", function (e, resp) {
             afterRequest(err);
           });
 
@@ -1335,90 +1336,178 @@
 
   /** private */
   doDelete = function (obj, isChild, isSuperUser) {
-    var oldRec, keys, i, child, rel, now,
+    var oldRec, keys, props, noChildProps, afterGetModel,
+      afterAuthorization, afterDoSelect, afterDelete, afterLog,
       sql = "UPDATE object SET is_deleted = true WHERE id=$1;",
-      model = that.getModel(obj.name),
-      props = model.properties,
-      noChildProps = function (key) {
-        if (typeof model.properties[key].type !== "object" ||
-            !model.properties[key].type.childOf) {
+      clen = 1,
+      c = 0;
+
+    noChildProps = function (key) {
+      if (typeof props[key].type !== "object" ||
+          !props[key].type.childOf) {
+        return true;
+      }
+    };
+
+    afterGetModel = function (err, model) {
+      if (err) {
+        obj.callback(err);
+        return;
+      }
+
+      props = model.properties;
+
+      if (!isChild && model.isChild) {
+        obj.callback("Can not directly delete a child class");
+      }
+
+      if (isSuperUser === false) {
+        that.isAuthorized({
+          action: "canDelete",
+          id: obj.id,
+          client: obj.client,
+          callback: afterAuthorization
+        });
+        return;
+      }
+
+      afterAuthorization(null, true);
+    };
+
+    afterAuthorization = function (err, authorized) {
+      if (err) {
+        obj.callback(err);
+        return;
+      }
+
+      if (!authorized) {
+        obj.callback("Not authorized to delete \"" + obj.id + "\"");
+      }
+
+      // Get old record, bail if it doesn't exist
+      // Exclude childOf relations when we select
+      doSelect({
+        name: obj.name,
+        id: obj.id,
+        showDeleted: true,
+        properties: Object.keys(props).filter(noChildProps),
+        client: obj.client,
+        callback: afterDoSelect
+      }, true);
+    };
+
+    afterDoSelect = function (err, resp) {
+      if (err) {
+        obj.callback(err);
+        return;
+      }
+
+      oldRec = resp;
+
+      if (!oldRec) {
+        obj.callback("Record " + obj.id + " not found.");
+        return;
+      }
+
+      if (oldRec.isDeleted) {
+        obj.callback("Record " + obj.id + " already deleted.");
+        return;
+      }
+
+      // Get keys for properties of child arrays.
+      // Count expected callbacks along the way.
+      keys = Object.keys(props).filter(function (key) {
+        if (typeof props[key].type === "object" &&
+            props[key].type.parentOf) {
+          clen += oldRec[key].length;
           return true;
         }
-      };
+      });
 
-    if (!isChild && isChildModel(obj.name)) {
-      throw "Can not directly delete a child class";
-    }
+      // Delete children recursively
+      keys.forEach(function (key) {
+        var rel = props[key].type.relation;
+        oldRec[key].forEach(function (row) {
+          doDelete({
+            name: rel,
+            id: row.id,
+            client: obj.client,
+            callback: afterDelete
+          }, true);
+        });
+      });
 
-    if (isSuperUser === false &&
-        !that.isAuthorized({action: "canDelete", id: obj.id})) {
-      throw "Not authorized to delete \"" + obj.id + "\"";
-    }
+      // Finally, delete parent object
+      obj.client.query(sql, [obj.id], afterDelete);
+    };
 
-    // Get old record, bail if it doesn't exist
-    /* Exclude child key when we select */
-    obj.properties = Object.keys(model.properties)
-      .filter(noChildProps);
-    oldRec = doSelect(obj, true);
-    if (!Object.keys(oldRec).length) {
-      throw "Record " + obj.id + " not found.";
-    }
+    // Handle change log
+    afterDelete = function (err) {
+      var now = f.now();
 
-    if (oldRec.isDeleted) {
-      throw "Record " + obj.id + " already deleted.";
-    }
-
-    /* Delete children recursively */
-    keys = Object.keys(props);
-    keys.forEach(function (key) {
-      if (typeof props[key].type === "object" &&
-          props[key].type.parentOf) {
-        rel = props[key].type.relation;
-        i = 0;
-
-        while (i < oldRec[key].length) {
-          child = {name: rel, id: oldRec[key][i].id};
-          doDelete(child, true);
-          i++;
-        }
+      if (err) {
+        obj.callback(err);
+        return;
       }
+
+      // Move on only after all callbacks report back
+      c++;
+console.log("callback->", c, "of", clen);
+      if (c < clen) { return; }
+
+      if (isChild) {
+        afterLog();
+        return;
+      }
+
+      // Log the completed deletion
+      doInsert({
+        name: "Log",
+        data: {
+          objectId: obj.id,
+          action: "DELETE",
+          created: now,
+          createdBy: now,
+          updated: now,
+          updatedBy: now
+        },
+        client: obj.client,
+        callback: afterLog
+      }, true);
+    };
+
+    afterLog = function (err, resp) {
+      if (err) {
+        obj.callback(err);
+        return;
+      }
+console.log("done with", obj.id, obj.name);
+      obj.callback(null, true);
+    };
+
+    // Real work starts here
+    that.getModel({
+      name: obj.name,
+      client: obj.client,
+      callback: afterGetModel
     });
-
-    /* Now delete object */
-    plv8.execute(sql, [obj.id]);
-
-    /* Handle change log */
-    now = f.now();
-
-    doInsert({
-      name: "Log",
-      data: {
-        objectId: obj.id,
-        action: "DELETE",
-        created: now,
-        createdBy: now,
-        updated: now,
-        updatedBy: now
-      }
-    }, true);
-
-    return true;
   };
 
   /** private */
   doInsert = function (obj, isChild, isSuperUser) {
-    var len, msg, dkeys, fkeys, n, sql, props, result, child, pk, col, key,
-      prop, value, afterGetModel, afterIdCheck, afterNextVal, afterAuthorized,
+    var sql, col, key, child, pk, n, dkeys, fkeys, len, msg, props, prop, value,
+      result, afterGetModel, afterIdCheck, afterNextVal, afterAuthorized,
       buildInsert, afterGetPk, afterHandleRelations, afterInsert,
-      afterDoSelect, afterPropagateAuth, afterLog, afterHandleFolder,
+      afterDoSelect, afterLog, insertFolder, afterHandleFolder, done,
       payload = {name: obj.name, client: obj.client},
       data = JSON.parse(JSON.stringify(obj.data)),
       folder = obj.folder !== false ? obj.folder || "global" : false,
-      children = {},
       args = [obj.name.toSnakeCase()],
       tokens = [],
       params = [],
       values = [],
+      clen = 1,
+      c = 0,
       p = 2;
 
     afterGetModel = function (err, model) {
@@ -1450,7 +1539,11 @@
         return;
       }
 
-      getKey({id: data.id, client: obj.client, callback: afterIdCheck});
+      getKey({
+        id: data.id,
+        client: obj.client,
+        callback: afterIdCheck
+      }, true);
     };
 
     afterIdCheck = function (err, id) {
@@ -1463,7 +1556,7 @@
         data.id = f.createId();
       }
 
-      if (isSuperUser === false) {
+      if (!isChild && isSuperUser === false) {
         that.isAuthorized({
           action: "canCreate",
           model: obj.name,
@@ -1471,12 +1564,15 @@
           client: obj.client,
           callback: afterAuthorized
         });
+        return;
       }
 
       afterAuthorized(null, true);
     };
 
     afterAuthorized = function (err, authorized) {
+      var ckeys;
+
       if (err) {
         obj.callback(err);
         return;
@@ -1488,12 +1584,36 @@
         obj.callback({statusCode: 401, message: msg});
       }
 
-      /* Set some system controlled values */
+      // Get keys for properties of child arrays.
+      // Count expected callbacks along the way.
+      ckeys = Object.keys(props).filter(function (key) {
+        if (typeof props[key].type === "object" &&
+            props[key].type.parentOf &&
+            data[key] !== undefined) {
+          clen += data[key].length;
+          return true;
+        }
+      });
+
+      // Insert children recursively
+      ckeys.forEach(function (key) {
+        var rel = props[key].type.relation;
+        data[key].forEach(function (row) {
+          doInsert({
+            name: rel,
+            data: row,
+            client: obj.client,
+            callback: afterInsert
+          }, true);
+        });
+      });
+
+      // Set some system controlled values
       data.created = data.updated = f.now();
       data.createdBy = that.getCurrentUser();
       data.updatedBy = that.getCurrentUser();
 
-      /* Get primary key */
+      // Get primary key
       sql = "select nextval('object__pk_seq')";
       obj.client.query(sql, afterNextVal);
     };
@@ -1509,6 +1629,7 @@
 
       /* Build values */
       len = fkeys.length;
+      n = 0;
       buildInsert();
     };
 
@@ -1524,12 +1645,11 @@
           if (prop.type.parentOf) {
           /* To many */
             child = true;
-            children[key] = prop;
 
           /* To one */
           } else {
             col = relationColumn(key, prop.type.relation);
-            if (data[key] !== undefined) {
+            if (data[key] === undefined) {
               value = -1;
             } else {
               getKey({
@@ -1567,7 +1687,7 @@
 
       sql = ("INSERT INTO %I (_pk, " + tokens.toString(",") +
         ") VALUES ($1," + params.toString(",") + ");").format(args);
-
+console.log("sql->", sql, values)
       // Perform the insert
       obj.client.query(sql, values, afterInsert);
     };
@@ -1608,59 +1728,30 @@
     };
 
     afterInsert = function (err, resp) {
-      var keyCallback, insertCallback, keys, i,
-        k = 0;
-
+console.log("INSERTED");
       if (err) {
         obj.callback(err);
         return;
       }
 
-      // Callback to loop through children keys
-      keyCallback = function () {
-        if (k < keys.length) {
-          key = keys[k];
-          k++;
-          if (data[key]) {
-            i = 0;
-            insertCallback();
-          }
-          return;
-        }
+      // Done only when all callbacks report back
+      c++;
+console.log("c->", c, "of", clen)
+      if (c < clen) { return; }
+console.log("child->", isChild, obj.name)
+      // We're done here if child
+      if (isChild) {
+        done();
+        return;
+      }
 
-        // We're done here if child
-        if (isChild) { return; } // TODO: How do we know to move on?
-
-        // Otherwise we'll move on to log the change
-        doSelect({
-          name: obj.name,
-          id: data.id,
-          client: obj.client,
-          callback: afterDoSelect
-        });
-      };
-
-      // Callback to loop through and insert child records
-      insertCallback = function () {
-        if (i < data[key].length) {
-          data[key][i][children[key].type.parentOf] = {id: data.id};
-          child = {
-            name: children[key].type.relation,
-            data: data[key][i],
-            client: obj.client,
-            callback: insertCallback
-          };
-          i++;
-          doInsert(child, true);
-          return;
-        }
-
-        keyCallback();
-      };
-
-      /* Iterate through children */
-      keys = Object.keys(children);
-      keyCallback();
+      // Otherwise we'll move on to log the change
+      doSelect({
+        name: obj.name,
+        id: data.id,
+        client: obj.client,
+        callback: afterDoSelect
+      });
     };
 
     afterDoSelect = function (err, resp) {
@@ -1673,12 +1764,16 @@
 
       /* Handle folder */
       if (folder) {
-        sql = "INSERT INTO \"$objectfolder\" VALUES ($1, $2);";
-        obj.client.query(sql, [pk, getKey(folder)], afterHandleFolder);
+        getKey({id: folder, client: obj.client, callback: insertFolder});
         return;
       }
 
       afterHandleFolder();
+    };
+
+    insertFolder = function (err, resp) {
+      sql = "INSERT INTO \"$objectfolder\" VALUES ($1, $2);";
+      obj.client.query(sql, [pk, resp], afterHandleFolder);
     };
 
     afterHandleFolder = function (err, resp) {
@@ -1710,26 +1805,30 @@
         return;
       }
 
+      // We're geing to return the changes
+      result = jsonpatch.compare(obj.data, result);
+
       /* Handle folder authorization propagation */
       if (obj.name === "Folder") {
         propagateAuth({
           folderId: obj.folder,
           client: obj.client,
-          callback: afterPropagateAuth
+          callback: done
         });
         return;
       }
 
-      afterPropagateAuth();
+      done();
     };
 
-    afterPropagateAuth = function (err, resp) {
+    done = function (err, resp) {
       if (err) {
         obj.callback(err);
         return;
       }
 
-      obj.callback(null, jsonpatch.compare(obj.data, result));
+      // Report back result
+      obj.callback(null, result);
     };
 
     payload.callback = afterGetModel;
@@ -1738,13 +1837,12 @@
 
   /** private */
   doSelect = function (obj, isChild, isSuperUser) {
-    var key, sql, table, keys,
-      afterGetModel, afterGetKey, afterGetKeys,
+    var sql, table, keys,
+      afterGetModel, afterGetKey, afterGetKeys, mapKeys,
       payload = {name: obj.name, client: obj.client},
       tokens = [],
-      cols = [],
-      i = 0;
-
+      cols = [];
+console.log("select->", obj.name, obj.id);
     afterGetModel = function (err, model) {
       if (err) {
         obj.callback(err);
@@ -1757,18 +1855,17 @@
       /* Validate */
       if (!isChild && model.isChild) {
         obj.callback("Can not query directly on a child class");
+        return;
       }
 
-      /* "While" is much faster than "forEach." Performance matters here. */
-      while (i < keys.length) {
-        key = keys[i];
+      keys.forEach(function (key) {
         tokens.push("%I");
         cols.push(key.toSnakeCase());
-        i++;
-      }
+      });
 
       cols.push(table);
-      sql = ("SELECT " +  tokens.toString(",") + " FROM %I").format(cols);
+      sql = ("SELECT to_json((" +  tokens.toString(",") +
+        ")) AS result FROM %I").format(cols);
 
       /* Get one result by key */
       if (obj.id) {
@@ -1800,19 +1897,24 @@
       sql +=  " WHERE _pk = $1";
 
       obj.client.query(sql, [key], function (err, resp) {
+        var result;
+
         if (err) {
           obj.callback(err);
           return;
         }
 
-        obj.callback(null, sanitize(resp.rows[0]));
+        result = sanitize(mapKeys(resp.rows[0]));
+        obj.callback(null, result);
       });
     };
 
     afterGetKeys = function (err, keys) {
+      var result,
+        i = 0;
+
       if (keys.length) {
         tokens = [];
-        i = 0;
 
         while (keys[i]) {
           i++;
@@ -1827,11 +1929,26 @@
             return;
           }
 
-          obj.callback(null, sanitize(resp.rows));
+          result = sanitize(resp.rows.map(mapKeys));
+          obj.callback(null, result);
         });
       } else {
         obj.callback(null, []);
       }
+    };
+
+    mapKeys = function (row) {
+      var  result = row.result,
+        rkeys = Object.keys(result),
+        ret = {},
+        i = 0;
+
+      rkeys.forEach(function (key) {
+        ret[keys[i]] = result[key];
+        i++;
+      });
+
+      return ret;
     };
 
     // Kick off query by getting model, the rest falls through callbacks
