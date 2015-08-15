@@ -22,11 +22,7 @@ require('./common/extend-string.js');
 var catalog, init, resolveName, getCatalog, getCurrentUser,
   doHandleOne, doGetSettings, doGetModel,
   doGetMethod, doSaveModel, doDeleteModel,
-  util = require('util'),
-  pg = require("pg"),
-  datasource = require("./server/datasource"),
-  readPgConfig = require("./common/pgconfig"),
-  isInitialized = false;
+  datasource = require("./server/datasource");
 
 // ..........................................................
 // CONTROLLERS
