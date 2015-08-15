@@ -2112,13 +2112,13 @@
             });
 
             /* Process inserts and updates */
-            oldRec[key].forEach(function (cNewRec) {
-              var cid = cNewRec ? cNewRec.id || null : null,
+            updRec[key].forEach(function (cNewRec) {
+              if (!cNewRec) { return; }
+
+              var cid = cNewRec.id || null,
                 cOldRec = find(oldRec[key], cid);
 
               if (cOldRec) {
-console.log(JSON.stringify(cOldRec, null, 2));
-console.log(JSON.stringify(cNewRec, null, 2));
                 cpatches = jsonpatch.compare(cOldRec, cNewRec);
 
                 if (cpatches.length) {
