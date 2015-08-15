@@ -20,7 +20,7 @@
 require('./common/extend-string.js');
 
 var pgconfig, catalog, hello, getCatalog, getCurrentUser,
-  doGet, doHandleOne, doUpsert, doGetSettings, doGetModel,
+  doGet, doHandleOne, doGetSettings, doGetModel,
   doGetMethod, doSaveModel, doSaveMethod, doDeleteModel,
   query, begin, buildSql, init, resolveName, client, done, handleError,
   util = require('util'),
@@ -183,51 +183,6 @@ function doRequest(req, res) {
     }
 
     datasource.request(payload);
-  };
-
-  init(query);
-}
-
-function doUpsert(req, res) {
-  var query;
-
-  query = function (err) {
-    var payload, sql,
-      method = req.method,
-      name = resolveName(req.url),
-      id = req.params.id,
-      result;
-
-    if (err) {
-      console.error(err);
-      return;
-    }
-
-    payload = req.body;
-    payload.method = method;
-    payload.name = name;
-    payload.user = getCurrentUser();
-    if (id) { payload.id = id; }
-
-    sql = buildSql(payload);
-
-    client.query(sql, function (err, resp) {
-      // Native error thrown. This should never happen
-      if (handleError(err)) { return; }
-
-      done();
-
-      result = resp.rows[0].response;
-
-      // Handle processed error
-      if (result.isError) {
-        res.status(result.statusCode).json(result.message);
-        return res;
-      }
-
-      // this sends back a JSON response which is a single string
-      res.json(result);
-    });
   };
 
   init(query);
@@ -412,7 +367,7 @@ init(function () {
   keys.forEach(function (key) {
     dataRouter.route("/" + key.toSpinalCase() + "/:id")
       .get(doRequest)
-      .patch(doUpsert)
+      .patch(doRequest)
       .delete(doRequest);
 
     if (catalog[key].plural) {

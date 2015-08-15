@@ -1960,14 +1960,12 @@
 
   /** Private */
   doUpdate = function (obj, isChild, isSuperUser) {
-    var result, updRec, props, value, keys, sql,
-      oldRec, newRec, cpatches, model,
-      find, noChildProps, afterGetModel, afterAuthorization, afterDoSelect,
+    var result, updRec, props, value, keys, sql, pk,
+      oldRec, newRec, cpatches, model, tokens, find, noChildProps,
+      afterGetModel, afterGetKey, afterAuthorization, afterDoSelect,
       afterUpdate, afterSelectUpdated, done,
       patches = obj.data || [],
-      tokens = [model.name.toSnakeCase()],
       id = obj.id,
-      pk = getKey(id),
       params = [],
       ary = [],
       clen = 0,
@@ -1999,6 +1997,7 @@
       }
 
       model = resp;
+      tokens = [model.name.toSnakeCase()];
       props = model.properties;
 
       /* Validate */
@@ -2030,6 +2029,21 @@
         obj.callback("Not authorized to update \"" + id + "\"");
         return;
       }
+
+      getKey({
+        id: id,
+        client: obj.client,
+        callback: afterGetKey
+      });
+    };
+
+    afterGetKey = function (err, resp) {
+      if (err) {
+        obj.callback(err);
+        return;
+      }
+
+      pk = resp;
 
       // Get existing record
       doSelect({
@@ -2182,16 +2196,17 @@
         return;
       }
 
+      // Don't proceed until all callbacks report back
+      c++;
+      if (c < clen) { return; }
+
+      // If child, we're done here
       if (isChild) {
         obj.callback();
         return;
       }
 
-      // Don't proceed until all callbacks report back
-      c++;
-      if (c < clen) { return; }
-
-      /* If a top level record, return patch of what changed */
+      // If a top level record, return patch of what changed
       doSelect({
         name: model.name,
         id: id,
