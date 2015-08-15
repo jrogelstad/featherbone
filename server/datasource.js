@@ -2177,7 +2177,7 @@
         }
       });
 
-      // Execute main object change
+      // Execute top level object change
       sql = ("UPDATE %I SET " + ary.join(",") + " WHERE _pk = $" + p)
         .format(tokens);
       params.push(pk);
@@ -2223,7 +2223,7 @@
 
       result = resp;
 
-      /* Handle change log */
+      // Handle change log
       doInsert({
         name: "Log",
         data: {
@@ -2233,7 +2233,7 @@
           createdBy: updRec.updatedBy,
           updated: updRec.updated,
           updatedBy: updRec.updatedBy,
-          change: jsonpatch.compare(oldRec, result)
+          change: JSON.stringify(jsonpatch.compare(oldRec, result))
         },
         client: obj.client,
         callback: done
@@ -2246,7 +2246,8 @@
         return;
       }
 
-      obj.callback(jsonpatch.compare(newRec, result));
+      // Send back the differences between what user asked for and actual result
+      obj.callback(null, jsonpatch.compare(newRec, result));
     };
 
     // Kick off query by getting model, the rest falls through callbacks
