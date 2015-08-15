@@ -19,8 +19,8 @@
 
 require('./common/extend-string.js');
 
-var pgconfig, catalog, hello, getCatalog, getCurrentUser,
-  doGet, doHandleOne, doGetSettings, doGetModel,
+var pgconfig, catalog, getCatalog, getCurrentUser,
+  doHandleOne, doGetSettings, doGetModel,
   doGetMethod, doSaveModel, doSaveMethod, doDeleteModel,
   query, begin, buildSql, init, resolveName, client, done, handleError,
   util = require('util'),
