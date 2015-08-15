@@ -22,6 +22,13 @@
     pg = require("pg"),
     controller = require("./controller"),
     readPgConfig = require("./pgconfig"),
+    registered = {
+      GET: {},
+      POST: {},
+      PUT: {},
+      PATCH: {},
+      DELETE: {}
+    },
     that = {};
 
   /**
@@ -51,10 +58,55 @@
   that.request = function (obj, isSuperUser) {
     isSuperUser = isSuperUser === undefined ? false : isSuperUser;
 
-    var transaction, afterTransaction, afterRequest,
+    var transaction, doRequest, afterTransaction, afterRequest,
       callback = obj.callback;
 
-    controller.setCurrentUser(obj.user);
+    doRequest = function (err) {
+      if (err) {
+        afterRequest(err);
+        return;
+      }
+
+      // If registered function, execute it
+      if (typeof registered[obj.method][obj.name] === "function") {
+        obj.data.client = client;
+        callback = obj.data.callback;
+        registered[obj.method][obj.name](obj.data);
+        return;
+      }
+
+      // Otherwise handle as model
+      obj.client = client;
+
+      switch (obj.method) {
+      case "GET":
+        obj.callback = afterRequest;
+        controller.doSelect(obj, false, isSuperUser);
+        break;
+      case "POST":
+        transaction = controller.doInsert;
+        break;
+      case "PATCH":
+        transaction = controller.doUpdate;
+        break;
+      case "DELETE":
+        transaction = controller.doDelete;
+        break;
+      default:
+        obj.callback("method \"" + obj.method + "\" unknown");
+      }
+
+      if (transaction) {
+        obj.callback = afterTransaction;
+        obj.client.query("BEGIN;", function (err, resp) {
+          if (err) {
+            obj.callback(err);
+          }
+
+          transaction(obj, false, isSuperUser);
+        });
+      }
+    };
 
     afterTransaction = function (err, resp) {
       if (err) {
@@ -93,37 +145,105 @@
 
       // Otherwise return response
       callback(null, resp);
+      done();
     };
 
-    switch (obj.method) {
-    case "GET":
-      obj.callback = afterRequest;
-      controller.doSelect(obj, false, isSuperUser);
-      break;
-    case "POST":
-      transaction = controller.doInsert;
-      break;
-    case "PATCH":
-      transaction = controller.doUpdate;
-      break;
-    case "DELETE":
-      transaction = controller.doDelete;
-      break;
-    default:
-      obj.callback("method \"" + obj.method + "\" unknown");
+    controller.setCurrentUser(obj.user);
+    if (client) {
+      doRequest();
+      return;
     }
 
-    if (transaction) {
-      obj.callback = afterTransaction;
-      obj.client.query("BEGIN;", function (err, resp) {
+    // Initialize connection pool if necessary
+    readPgConfig(function (config) {
+      var conn = "postgres://" +
+        config.user + ":" +
+        config.password + "@" +
+        config.server + "/" +
+        config.database;
+
+      pg.connect(conn, function (err, c, d) {
+        client = c;
+        done = d;
+
+        // handle an error from the connection
         if (err) {
+          controller.setCurrentUser(undefined);
+          console.error("Could not connect to server", err);
           obj.callback(err);
+          return;
         }
 
-        transaction(obj, false, isSuperUser);
+        doRequest();
       });
-    }
+    });
 
+    return this;
+  };
+
+  /**
+    Register a function that can be called by a method type. Use
+    this to expose function calls via `request`. As a rule, all
+    functions must accept an object as an argument whose properties
+    can be used to calculate the result. The object should be passed
+    as `data` on the request.
+
+    The data object should include a callback to forward a response on
+    completion. The callback should accept an error as the first
+    argument and a response as the second.
+
+    The request will automatically append a client to the object to
+    use for executing queries.
+
+      var fn, callback, datasource = require(./datasource);
+
+      // Create a function that queries something
+      fn = function (obj) {
+        var sql = "SELECT foo FROM bar WHERE id=$1;",
+          params = [obj.id];
+
+        obj.client.query(sql, params, function (err, resp) {
+          if (err) {
+            obj.callback(err);
+            return;
+          }
+
+          obj.callback(null, resp.rows);
+        })
+      }
+
+      // Register the function
+      datasource.registerFunction("myQuery", "GET", fn);
+
+      // Define a callback to use our function
+      callback = function (err, resp) {
+        if (err) {
+          console.error(err);
+          return;
+        }
+
+        console.log("Query rows->", resp);
+      }
+
+      // Execute a request that calls our function and sends a response
+      // via callback
+      datasource.request({
+        method: "GET",
+        name: "myQuery",
+        data: {
+          id: "HTJ28n",
+          callback: callback
+        }
+      });
+
+
+    @param {String} Function name
+    @param {String} Method. "GET", "POST", "PUT", "PATCH", or "DELETE"
+    @param {Function} Function
+    @return receiver
+  */
+  that.registerFunction = function (method, name, func) {
+    registered[method][name] = func;
     return this;
   };
 
@@ -131,6 +251,9 @@
   Object.keys(that).forEach(function (key) {
     exports[key] = that[key];
   });
+
+  // Register certain functions
+  that.registerFunction("GET", "getSettings", controller.getSettings);
 
 }(exports));
 

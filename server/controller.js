@@ -1375,7 +1375,7 @@
       @param {Object} Request payload
       @param {Object} [payload.name] Settings name
       @param {Object} [payload.client] Database client
-      @param {Function} [paylead.callback] callback
+      @param {Function} [payload.callback] callback
       @return {Object}
     */
     getSettings: function (obj) {

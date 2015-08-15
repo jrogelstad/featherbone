@@ -19,10 +19,9 @@
 
 require('./common/extend-string.js');
 
-var pgconfig, catalog, getCatalog, getCurrentUser,
+var catalog, init, resolveName, getCatalog, getCurrentUser,
   doHandleOne, doGetSettings, doGetModel,
   doGetMethod, doSaveModel, doSaveMethod, doDeleteModel,
-  query, begin, buildSql, init, resolveName, client, done, handleError,
   util = require('util'),
   pg = require("pg"),
   datasource = require("./server/datasource"),
@@ -33,57 +32,30 @@ var pgconfig, catalog, getCatalog, getCurrentUser,
 // CONTROLLERS
 //
 
-handleError = function (err) {
-  if (!err) { return false; }
-  if (client) { done(client); }
-  console.log(err);
-  return true;
-};
-
-begin = function (callback) {
-  var conn = "postgres://" +
-    pgconfig.user + ":" +
-    pgconfig.password + "@" +
-    pgconfig.server + "/" +
-    pgconfig.database;
-
-  pg.connect(conn, function (err, pclient, pdone) {
-    client = pclient;
-    done = pdone;
-
-    // handle an error from the connection
-    if (handleError(err)) { return; }
-
-    callback();
-  });
-};
-
-buildSql = function (payload) {
-  return "SELECT request($$" + JSON.stringify(payload) + "$$) as response;";
-};
-
 getCatalog = function (callback) {
-  begin(function (err) {
+  var payload, after;
+
+  after = function (err, resp) {
     if (err) {
       console.error(err);
       return;
     }
 
-    var payload = {
-        method: "POST",
-        name: "getSettings",
-        user: "postgres",
-        data: "catalog"
-      },
-      sql = buildSql(payload);
+    catalog = resp;
+    callback();
+  };
 
-    client.query(sql, function (err, resp) {
-      if (handleError(err)) { return; }
+  payload = {
+    method: "GET",
+    name: "getSettings",
+    user: "postgres",
+    data: {
+      name: "catalog",
+      callback: after
+    },
+  };
 
-      catalog = resp.rows[0].response;
-      callback();
-    });
-  });
+  datasource.request(payload);
 };
 
 getCurrentUser = function () {
@@ -92,16 +64,7 @@ getCurrentUser = function () {
 };
 
 init = function (callback) {
-  if (isInitialized) {
-    begin(callback);
-    return;
-  }
-
-  readPgConfig(function (config) {
-    pgconfig = config;
-    isInitialized = true;
-    getCatalog(callback);
-  });
+  getCatalog(callback);
 };
 
 resolveName = function (apiPath) {
@@ -134,58 +97,45 @@ resolveName = function (apiPath) {
 };
 
 function doRequest(req, res) {
-  var query;
+  var callback,
+    params = req.params,
+    name = resolveName(req.url),
+    payload = req.body || {},
+    id = params.id,
+    limit = params.limit,
+    offset = params.offset || 0;
 
-  query = function (err) {
-    var callback,
-      params = req.params,
-      name = resolveName(req.url),
-      defaultLimit = pgconfig.defaultLimit,
-      payload = req.body || {},
-      id = params.id,
-      limit = params.limit !== undefined ? params.limit.value : defaultLimit,
-      offset = params.offset !== undefined ? params.offset.value || 0 : 0;
-
-    if (handleError(err)) { return; }
-
-    // Handle response
-    callback = function (err, resp) {
-      // Release client to pool
-      done();
-
-      // Handle controller error
-      if (err) {
-        res.status(err.statusCode).json(err.message);
-        return;
-      }
-
-      if (resp === undefined) {
-        res.statusCode = 204;
-      }
-
-      // Send back a JSON response
-      res.json(resp);
-    };
-
-    payload.name = name;
-    payload.method = req.method;
-    payload.user = getCurrentUser();
-    payload.client = client;
-    payload.callback = callback;
-
-    if (id) {
-      payload.id = id;
-    } else {
-      payload.filter = {
-        limit: limit,
-        offset: offset
-      };
+  // Handle response
+  callback = function (err, resp) {
+    // Handle datasource error
+    if (err) {
+      res.status(err.statusCode).json(err.message);
+      return;
     }
 
-    datasource.request(payload);
+    if (resp === undefined) {
+      res.statusCode = 204;
+    }
+
+    // Send back a JSON response
+    res.json(resp);
   };
 
-  init(query);
+  payload.name = name;
+  payload.method = req.method;
+  payload.user = getCurrentUser();
+  payload.callback = callback;
+
+  if (id) {
+    payload.id = id;
+  } else {
+    payload.filter = {
+      limit: limit,
+      offset: offset
+    };
+  }
+
+  datasource.request(payload);
 }
 
 function doGetModel(req, res) {
@@ -197,6 +147,7 @@ function doGetSettings(req, res) {
 }
 
 function doGetMethod(method, req, res) {
+  /*
   var query;
 
   query = function (err) {
@@ -240,6 +191,7 @@ function doGetMethod(method, req, res) {
   };
 
   init(query);
+  */
 }
 
 function doSaveModel(req, res) {
@@ -247,6 +199,7 @@ function doSaveModel(req, res) {
 }
 
 function doSaveMethod(method, req, res) {
+  /*
   var query;
 
   query = function (err) {
@@ -286,9 +239,11 @@ function doSaveMethod(method, req, res) {
   };
 
   init(query);
+  */
 }
 
 function doDeleteModel(req, res) {
+  /*
   var query;
 
   query = function (err) {
@@ -325,6 +280,7 @@ function doDeleteModel(req, res) {
   };
 
   init(query);
+  */
 }
 
 // ..........................................................
