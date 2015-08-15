@@ -1484,7 +1484,7 @@
       obj.callback(null, true);
     };
 
-    // Real work starts here
+    // Kick off query by getting model, the rest falls through callbacks
     that.getModel({
       name: obj.name,
       client: obj.client,
@@ -1830,6 +1830,7 @@
       obj.callback(null, result);
     };
 
+    // Kick off query by getting model, the rest falls through callbacks
     payload.callback = afterGetModel;
     that.getModel(payload);
   };
@@ -1959,117 +1960,199 @@
 
   /** Private */
   doUpdate = function (obj, isChild, isSuperUser) {
-    var result, updRec, props, value, keys, sql, i, cModel, cid, child,
-      oldRec, newRec, cOldRec, cNewRec, cpatches,
+    var result, updRec, props, value, keys, sql,
+      oldRec, newRec, cpatches, model,
+      find, noChildProps, afterGetModel, afterAuthorization, afterDoSelect,
+      afterUpdate, afterSelectUpdated, done,
       patches = obj.data || [],
-      model = that.getModel(obj.name),
       tokens = [model.name.toSnakeCase()],
       id = obj.id,
       pk = getKey(id),
       params = [],
       ary = [],
-      p = 1,
-      find = function (ary, id) {
-        var n = 0;
+      clen = 0,
+      c = 0,
+      p = 1;
 
-        while (n < ary.length) {
-          if (ary[n].id === id) { return ary[n]; }
-          n++;
-        }
+    find = function (ary, id) {
+      var n = 0;
 
-        return false;
-      },
-      noChildProps = function (key) {
-        if (typeof model.properties[key].type !== "object" ||
-            !model.properties[key].type.childOf) {
-          return true;
-        }
-      };
+      while (n < ary.length) {
+        if (ary[n].id === id) { return ary[n]; }
+        n++;
+      }
 
-    /* Validate */
-    if (!isChild && isChildModel(model)) {
-      throw "Can not directly update a child class";
-    }
+      return false;
+    };
 
-    if (isSuperUser === false &&
-        !that.isAuthorized({action: "canUpdate", id: id})) {
-      throw "Not authorized to update \"" + id + "\"";
-    }
+    noChildProps = function (key) {
+      if (typeof model.properties[key].type !== "object" ||
+          !model.properties[key].type.childOf) {
+        return true;
+      }
+    };
 
-    obj.properties = Object.keys(model.properties).filter(noChildProps);
-    oldRec = doSelect(obj, isChild);
-    if (!Object.keys(oldRec).length || oldRec.isDeleted) { return false; }
+    afterGetModel = function (err, resp) {
+      if (err) {
+        obj.callback(err);
+        return;
+      }
 
-    newRec = JSON.parse(JSON.stringify(oldRec));
-
-    jsonpatch.apply(newRec, patches);
-
-    if (patches.length) {
+      model = resp;
       props = model.properties;
+
+      /* Validate */
+      if (!isChild && model.isChild) {
+        obj.callback("Can not directly update a child class");
+        return;
+      }
+
+      if (isSuperUser === false) {
+        that.isAuthorized({
+          action: "canUpdate",
+          id: id,
+          client: obj.client,
+          callback: afterAuthorization
+        });
+        return;
+      }
+
+      afterAuthorization(null, true);
+    };
+
+    afterAuthorization = function (err, authorized) {
+      if (err) {
+        obj.callback(err);
+        return;
+      }
+
+      if (!authorized) {
+        obj.callback("Not authorized to update \"" + id + "\"");
+        return;
+      }
+
+      // Get existing record
+      doSelect({
+        name: obj.name,
+        id: obj.id,
+        properties: Object.keys(props).filter(noChildProps),
+        client: obj.client,
+        callback: afterDoSelect
+      }, isChild);
+    };
+
+    afterDoSelect = function (err, resp) {
+      var doList = [];
+
+      if (err) {
+        obj.callback(err);
+        return;
+      }
+
+      oldRec = resp;
+
+      if (!Object.keys(oldRec).length || oldRec.isDeleted) {
+        obj.callback(null, false);
+        return;
+      }
+
+      newRec = JSON.parse(JSON.stringify(oldRec));
+      jsonpatch.apply(newRec, patches);
+
+      if (!patches.length) {
+        afterUpdate();
+        return;
+      }
+
       updRec = JSON.parse(JSON.stringify(newRec));
       updRec.updated = new Date().toJSON();
       updRec.updatedBy = that.getCurrentUser();
-      if (model.properties.etag) {
+      if (props.etag) {
         updRec.etag = f.createId();
       }
 
+      // Process properties
       keys = Object.keys(props);
       keys.forEach(function (key) {
+        var relation;
+
         /* Handle composite types */
         if (typeof props[key].type === "object") {
           /* Handle child records */
           if (Array.isArray(updRec[key])) {
-            cModel = that.getModel(props[key].type.relation);
-            i = 0;
+            relation = props[key].type.relation;
 
             /* Process deletes */
-            while (i < oldRec[key].length) {
-              cid = oldRec[key][i].id;
-              if (!find(updRec[key], cid)) {
-                child = {name: cModel.name, id: cid};
-                doDelete(child, true);
-              }
+            oldRec[key].forEach(function (row) {
+              var cid = row.id;
 
-              i++;
-            }
+              if (!find(updRec[key], cid)) {
+                clen++;
+                doList.push({
+                  func: doDelete,
+                  payload: {
+                    name: relation,
+                    id: cid,
+                    client: obj.client,
+                    callback: afterUpdate
+                  }
+                });
+              }
+            });
 
             /* Process inserts and updates */
-            i = 0;
-            while (i < updRec[key].length) {
-              cid = updRec[key][i].id || null;
-              cOldRec = find(oldRec[key], cid);
-              cNewRec = updRec[key][i];
+            oldRec[key].forEach(function (cNewRec) {
+              var cid = cNewRec.id || null,
+                cOldRec = find(oldRec[key], cid);
+
               if (cOldRec) {
                 cpatches = jsonpatch.compare(cOldRec, cNewRec);
 
                 if (cpatches.length) {
-                  child = {name: cModel.name, id: cid, data: cpatches};
-                  doUpdate(child, true);
+                  clen++;
+                  doList.push({
+                    func: doUpdate,
+                    payload: {
+                      name: relation,
+                      id: cid,
+                      data: cpatches,
+                      client: obj.client,
+                      callback: afterUpdate
+                    }
+                  });
                 }
               } else {
                 cNewRec[props[key].type.parentOf] = {id: updRec.id};
-                child = {name: cModel.name, data: cNewRec};
-                doInsert(child, true);
+                clen++;
+                doList.push({
+                  func: doInsert,
+                  payload: {
+                    name: relation,
+                    data: cNewRec,
+                    client: obj.client,
+                    callback: afterUpdate
+                  }
+                });
               }
-
-              i++;
-            }
-
-          /* Handle to one relations */
-          } else if (!props[key].type.childOf &&
-              updRec[key].id !== oldRec[key].id) {
-            value = updRec[key].id ? getKey(updRec[key].id) : -1;
-
-            if (value === undefined) {
-              throw "Relation not found in \"" + props[key].type.relation +
-                "\" for \"" + key + "\" with id \"" + updRec[key].id + "\"";
-            }
-
-            tokens.push(relationColumn(key, props[key].type.relation));
-            ary.push("%I = $" + p);
-            params.push(value);
-            p++;
+            });
           }
+
+        /* Handle to one relations */
+        } else if (!props[key].type.childOf &&
+            updRec[key].id !== oldRec[key].id) {
+          value = updRec[key].id ? getKey(updRec[key].id) : -1;
+          relation = props[key].type.relation;
+
+          if (value === undefined) {
+            obj.callback("Relation not found in \"" + relation +
+              "\" for \"" + key + "\" with id \"" + updRec[key].id + "\"");
+            return;
+          }
+
+          tokens.push(relationColumn(key, relation));
+          ary.push("%I = $" + p);
+          params.push(value);
+          p++;
 
         /* Handle regular data types */
         } else if (updRec[key] !== oldRec[key] && key !== "objectType") {
@@ -2080,15 +2163,50 @@
         }
       });
 
+      // Execute main object change
       sql = ("UPDATE %I SET " + ary.join(",") + " WHERE _pk = $" + p)
         .format(tokens);
       params.push(pk);
-      plv8.execute(sql, params);
+      clen++;
+      obj.client.query(sql, params, afterUpdate);
 
-      if (isChild) { return; }
+      // Execute child changes
+      doList.forEach(function (item) {
+        item.func(item.payload, true);
+      });
+    };
+
+    afterUpdate = function (err, resp) {
+      if (err) {
+        obj.callback(err);
+        return;
+      }
+
+      if (isChild) {
+        obj.callback();
+        return;
+      }
+
+      // Don't proceed until all callbacks report back
+      c++;
+      if (c < clen) { return; }
 
       /* If a top level record, return patch of what changed */
-      result = doSelect({name: model.name, id: id});
+      doSelect({
+        name: model.name,
+        id: id,
+        client: obj.client,
+        callback: afterSelectUpdated
+      });
+    };
+
+    afterSelectUpdated = function (err, resp) {
+      if (err) {
+        obj.callback(err);
+        return;
+      }
+
+      result = resp;
 
       /* Handle change log */
       doInsert({
@@ -2101,13 +2219,29 @@
           updated: updRec.updated,
           updatedBy: updRec.updatedBy,
           change: jsonpatch.compare(oldRec, result)
-        }
+        },
+        client: obj.client,
+        callback: done
       }, true);
+    };
 
-      return jsonpatch.compare(newRec, result);
-    }
+    done = function (err) {
+      if (err) {
+        obj.callback(err);
+        return;
+      }
 
-    return [];
+      obj.callback(jsonpatch.compare(newRec, result));
+    };
+
+    // Kick off query by getting model, the rest falls through callbacks
+    that.getModel({
+      name: obj.name,
+      client: obj.client,
+      callback: afterGetModel
+    });
+
+    return this;
   };
 
   /** private */
