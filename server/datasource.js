@@ -1973,14 +1973,9 @@
       p = 1;
 
     find = function (ary, id) {
-      var n = 0;
-
-      while (n < ary.length) {
-        if (ary[n].id === id) { return ary[n]; }
-        n++;
-      }
-
-      return false;
+      return ary.filter(function (item) {
+        return item && item.id === id;
+      })[0] || false;
     };
 
     noChildProps = function (key) {
@@ -2079,6 +2074,8 @@
       }
 
       updRec = JSON.parse(JSON.stringify(newRec));
+      updRec.created = oldRec.created;
+      updRec.createdBy = oldRec.createdBy;
       updRec.updated = new Date().toJSON();
       updRec.updatedBy = that.getCurrentUser();
       if (props.etag) {
@@ -2116,10 +2113,12 @@
 
             /* Process inserts and updates */
             oldRec[key].forEach(function (cNewRec) {
-              var cid = cNewRec.id || null,
+              var cid = cNewRec ? cNewRec.id || null : null,
                 cOldRec = find(oldRec[key], cid);
 
               if (cOldRec) {
+console.log(JSON.stringify(cOldRec, null, 2));
+console.log(JSON.stringify(cNewRec, null, 2));
                 cpatches = jsonpatch.compare(cOldRec, cNewRec);
 
                 if (cpatches.length) {
