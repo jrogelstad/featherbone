@@ -21,7 +21,7 @@ require('./common/extend-string.js');
 
 var catalog, init, resolveName, getCatalog, getCurrentUser,
   doHandleOne, doGetSettings, doGetModel,
-  doGetMethod, doSaveModel, doSaveMethod, doDeleteModel,
+  doGetMethod, doSaveModel, doDeleteModel,
   util = require('util'),
   pg = require("pg"),
   datasource = require("./server/datasource"),
@@ -146,141 +146,86 @@ function doGetSettings(req, res) {
   doGetMethod("getSettings", req, res);
 }
 
-function doGetMethod(method, req, res) {
-  /*
-  var query;
+function doGetMethod(fn, req, res) {
+  var payload, callback,
+    name = req.params.name;
 
-  query = function (err) {
-    var payload, sql,
-      name = req.params.name,
-      result;
-
+  callback = function (err, resp) {
+    // Handle error
     if (err) {
-      console.error(err);
-      return;
+      err.status(err.statusCode).json(err.message);
+      return res;
     }
 
-    payload = {
-      method: "POST",
-      name: method,
-      user: getCurrentUser(),
-      data: [name]
-    };
-
-    sql = buildSql(payload);
-
-    client.query(sql, function (err, resp) {
-      // Native error thrown. This should never happen
-      if (handleError(err)) { return; }
-
-      done();
-
-      result = resp.rows[0].response;
-
-      if (!result) { res.statusCode = 204; }
-
-      // Handle processed error
-      if (result.isError) {
-        res.status(result.statusCode).json(result.message);
-        return res;
-      }
-
-      // this sends back a JSON response which is a single string
-      res.json(result);
-    });
+    if (!resp) { res.statusCode = 204; }
+    res.json(resp);
   };
 
-  init(query);
-  */
+  payload = {
+    method: "GET",
+    name: fn,
+    user: getCurrentUser(),
+    data: {
+      name: name,
+      callback: callback
+    }
+  };
+
+  datasource.request(payload);
 }
 
 function doSaveModel(req, res) {
-  doSaveMethod("saveModel", req, res);
-}
+  var payload, callback,
+    name = req.params.name,
+    data = req.body;
 
-function doSaveMethod(method, req, res) {
-  /*
-  var query;
+  callback = function (err, resp) {
+    if (err) {
+      err.status(err.statusCode).json(err.message);
+      return;
+    }
 
-  query = function (err) {
-    var payload, sql, result,
-      name = req.params.name,
-      data = req.body;
-
-    data.name = name;
-
-    if (handleError(err)) { return; }
-
-    payload = {
-      method: "POST",
-      name: method,
-      user: getCurrentUser(),
-      data: [data]
-    };
-
-    sql = buildSql(payload);
-
-    client.query(sql, function (err, resp) {
-      // Native error thrown. This should never happen
-      if (handleError(err)) { return; }
-
-      done();
-
-      result = resp.rows[0].response;
-
-      // Handle processed error
-      if (result.isError) {
-        res.status(result.statusCode).json(result.message);
-        return res;
-      }
-
-      res.json(result);
-    });
+    res.json(resp);
   };
 
-  init(query);
-  */
+  payload = {
+    method: "PUT",
+    name: "saveModel",
+    user: getCurrentUser(),
+    data: {
+      name: name,
+      data: data,
+      callback: callback
+    }
+  };
+
+  datasource.request(payload);
 }
 
 function doDeleteModel(req, res) {
-  /*
-  var query;
+  var payload, callback,
+    name = req.params.name;
 
-  query = function (err) {
-    var payload, sql, result,
-      name = req.params.name;
+  callback = function (err, resp) {
+    if (err) {
+      err.status(err.statusCode).json(err.message);
+      return;
+    }
 
-    if (handleError(err)) { return; }
-
-    payload = {
-      method: "POST",
-      name: "deleteModel",
-      user: getCurrentUser(),
-      data: [[name]]
-    };
-
-    sql = buildSql(payload);
-
-    client.query(sql, function (err, resp) {
-      // Native error thrown. This should never happen
-      if (handleError(err)) { return; }
-
-      done();
-
-      result = resp.rows[0].response;
-
-      // Handle processed error
-      if (result.isError) {
-        res.status(result.statusCode).json(result.message);
-        return res;
-      }
-
-      res.json(result);
-    });
+    res.json(resp);
   };
 
-  init(query);
-  */
+  payload = {
+    method: "DELETE",
+    name: "deleteModel",
+    user: getCurrentUser(),
+    data: {
+      name: name,
+      callback: callback
+    }
+  };
+
+  datasource.request(payload);
 }
 
 // ..........................................................

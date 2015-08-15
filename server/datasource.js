@@ -254,6 +254,9 @@
 
   // Register certain functions
   that.registerFunction("GET", "getSettings", controller.getSettings);
+  that.registerFunction("GET", "getModel", controller.getModel);
+  that.registerFunction("PUT", "saveModel", controller.saveModel);
+  that.registerFunction("DELETE", "deleteModel", controller.deleteModel);
 
 }(exports));
 
