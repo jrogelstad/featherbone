@@ -1336,7 +1336,7 @@
 
         /* Validation */
         if (!catalog[name]) {
-          obj.callback("Model " + name + " not found.");
+          obj.callback(null, false);
           return;
         }
 
@@ -1880,7 +1880,7 @@
      * @return receiver
     */
     saveModel: function (obj) {
-      var getParentKey, nextSpec, parent,
+      var spec, getParentKey, nextSpec, parent,
         specs = Array.isArray(obj.specs) ? obj.specs : [obj.specs],
         c = 0,
         len = specs.length;
@@ -1906,15 +1906,12 @@
       };
 
       nextSpec = function () {
-        var spec, sqlUpd, token, values, defaultValue, props, keys, recs, type,
+        var sqlUpd, token, values, defaultValue, props, keys, recs, type,
           name, isChild, pk, precision, scale, model, catalog,
           afterGetModel, afterGetCatalog, afterUpdateSchema, updateCatalog,
           afterUpdateCatalog, afterPropagateViews, afterNextVal,
           afterInsertModel, afterSaveAuthorization,
-          table = spec.name ? spec.name.toSnakeCase() : false,
-          inherits = (spec.inherits || "Object").toSnakeCase(),
-          authorization = spec.authorization,
-          dropSql = "DROP VIEW IF EXISTS %I CASCADE;".format(["_" + table]),
+          table, inherits, authorization, dropSql,
           changed = false,
           sql = "",
           tokens = [],
@@ -2274,15 +2271,30 @@
         };
 
         afterUpdateCatalog = function (err, resp) {
+          var callback;
+
           if (err) {
             obj.callback(err);
             return;
           }
 
-          if (!model) {
-            isChild = isChildModel(that.getModel(name));
+          callback = function (err, resp) {
+            if (err) {
+              obj.callback(err);
+              return;
+            }
+
+            isChild = isChildModel(resp);
             sql = "SELECT nextval('object__pk_seq') AS pk;";
             obj.client.query(sql, afterNextVal);
+          };
+
+          if (!model) {
+            that.getModel({
+              name: name,
+              client: obj.client,
+              callback: callback
+            });
             return;
           }
 
@@ -2379,6 +2391,10 @@
         // Real work starts here
         spec = specs[c];
         c++;
+        table = spec.name ? spec.name.toSnakeCase() : false;
+        inherits = (spec.inherits || "Object").toSnakeCase();
+        authorization = spec.authorization;
+        dropSql = "DROP VIEW IF EXISTS %I CASCADE;".format(["_" + table]);
 
         if (!table) {
           obj.callback("No name defined");

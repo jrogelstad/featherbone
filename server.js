@@ -190,7 +190,7 @@ function doSaveModel(req, res) {
     user: getCurrentUser(),
     data: {
       name: name,
-      data: data,
+      specs: data,
       callback: callback
     }
   };
