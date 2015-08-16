@@ -15,7 +15,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-/*global plv8 */
 (function (exports) {
 
   var client, done,
@@ -52,6 +51,11 @@
         }
 
     @param {Object} Payload
+    @param {String} [payload.name] Name of model or function
+    @param {String} [payload.method] Method to perform: "GET", "POST",
+      "PUT", "PATCH" or "DELETE"
+    @param {String} [payload.id] Identifier for "GET", "PATCH" ond "DELETE"
+    @param {String} [payload.data] Data for "POST" and "PATCH" or functions    
     @param {Boolean} Bypass authorization checks. Default = false.
     @return receiver
   */
@@ -192,8 +196,8 @@
     completion. The callback should accept an error as the first
     argument and a response as the second.
 
-    The request will automatically append a client to the object to
-    use for executing queries.
+    The request will automatically append an active client to the object
+    to use for executing queries.
 
       var fn, callback, datasource = require(./datasource);
 
@@ -213,9 +217,9 @@
       }
 
       // Register the function
-      datasource.registerFunction("myQuery", "GET", fn);
+      datasource.registerFunction("GET", "myQuery", fn);
 
-      // Define a callback to use our function
+      // Define a callback to use when calling our function
       callback = function (err, resp) {
         if (err) {
           console.error(err);
@@ -226,7 +230,7 @@
       }
 
       // Execute a request that calls our function and sends a response
-      // via callback
+      // via the callback
       datasource.request({
         method: "GET",
         name: "myQuery",
@@ -236,7 +240,6 @@
         }
       });
 
-
     @param {String} Function name
     @param {String} Method. "GET", "POST", "PUT", "PATCH", or "DELETE"
     @param {Function} Function
@@ -245,6 +248,20 @@
   that.registerFunction = function (method, name, func) {
     registered[method][name] = func;
     return this;
+  };
+
+  /**
+    @return {Object} Object listing register functions
+  */
+  that.registeredFunctions = function () {
+    var keys = Object.keys(registered),
+      result = {};
+
+    keys.forEach(function (key) {
+      result[key] = Object.keys(registered[key]);
+    });
+
+    return result;
   };
 
   // Set properties on exports
