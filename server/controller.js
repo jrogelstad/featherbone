@@ -1932,7 +1932,7 @@
           model = resp;
 
           that.getSettings({
-            name: catalog,
+            name: "catalog",
             client: obj.client,
             callback: afterGetCatalog
           });
@@ -2262,6 +2262,7 @@
           delete spec.name;
           delete spec.authorization;
           spec.isChild = isChildModel(spec);
+
           that.saveSettings({
             name: "catalog",
             data: catalog,
@@ -2458,7 +2459,6 @@
           }
 
           sql = "UPDATE \"$settings\" SET data = $2 WHERE name = $1;";
-
           obj.client.query(sql, params, done);
           return;
         }
@@ -2600,15 +2600,12 @@
 
   /** private */
   createView = function (obj) {
-    var parent, alias, type, view, sub, col,
+    var parent, alias, type, view, sub, col, model, props, keys,
       afterGetModel,
       name = obj.name,
       dropFirst = obj.dropFirst,
-      model = that.getModel(name),
       table = name.toSnakeCase(),
       args = ["_" + table, "_pk"],
-      props = model.properties,
-      keys = Object.keys(props),
       cols = ["%I"],
       sql = "";
 
@@ -2619,6 +2616,8 @@
       }
 
       model = resp;
+      props = model.properties;
+      keys = Object.keys(props);
 
       keys.forEach(function (key) {
         alias = key.toSnakeCase();
