@@ -108,65 +108,123 @@
     /**
       Remove a class from the database.
 
-      * @param {String | Array} Names(s) of model(s) to remove.
-      * @return {Boolean}
+        @param {Object} Request payload
+        @param {Object | Array} [payload.name] Name(s) of model(s) to delete
+        @param {Object} [payload.client] Database client
+        @param {Function} [payload.callback] Callback
+        @return {Boolean}
     */
-    deleteModel: function (names) {
-      names = Array.isArray ? names : [names];
+    deleteModel: function (obj) {
+      var name, table, catalog, sql, rels, props, view, type, keys,
+        afterGetCatalog, next, createViews, dropTables,
+        names = Array.isArray(obj.name) ? obj.name : [obj.name],
+        o = 0,
+        c = 0;
 
-      var name, table, catalog, sql, rels, i, props, view, type, key,
-        o = 0;
+      afterGetCatalog = function (err, resp) {
+        if (err) {
+          obj.callback(err);
+          return;
+        }
 
-      while (o < names.length) {
-        name = names[o];
-        table = name.toSnakeCase();
-        catalog = that.getSettings('catalog');
-        sql = ("DROP VIEW %I; DROP TABLE %I;" +
-          "DELETE FROM \"$model\" WHERE id=$1;")
+        catalog = resp;
+        next();
+      };
+
+      dropTables = function (err, resp) {
+        // Drop table(s)
+        sql = ("DROP VIEW %I; DROP TABLE %I;")
           .format(["_" + table, table]);
-        rels = [];
-        i = 0;
-
-        if (!table || !catalog[name]) {
-          throw "Class not found";
-        }
-
-        /* Drop views for composite types */
-        props = catalog[name].properties;
-        for (key in props) {
-          if (props.hasOwnProperty(key) &&
-              typeof props[key].type === "object") {
-            type = props[key].type;
-
-            if (type.properties) {
-              view = "_" + name.toSnakeCase() + "$" + key.toSnakeCase();
-              sql += "DROP VIEW %I;".format([view]);
-            }
-
-            if (type.childOf && catalog[type.relation]) {
-              delete catalog[type.relation].properties[type.childOf];
-              rels.push(type.relation);
-            }
+        obj.client.query(sql, function (err, resp) {
+          if (err) {
+            obj.callback(err);
+            return;
           }
+
+          sql = "DELETE FROM \"$model\" WHERE id=$1;";
+          obj.client.query(sql, [table], function (err, resp) {
+            if (err) {
+              obj.callback(err);
+              return;
+            }
+            next();
+          });
+        });
+      };
+
+      createViews = function (err, resp) {
+        var rel;
+
+        if (c < rels.length) {
+          rel = rels[c];
+          c++;
+
+          // Update views
+          createView({
+            name: rel,
+            dropFirst: true,
+            client: obj.client,
+            callback: createViews
+          });
+          return;
         }
 
-        /* Update catalog settings */
-        delete catalog[name];
-        that.saveSettings("catalog", catalog);
+        dropTables();
+      };
 
-        /* Update views */
-        while (i < rels.length) {
-          createView(rels[i], true);
-          i++;
+      next = function () {
+        if (o < names.length) {
+          name = names[o];
+          o++;
+          table = name.toSnakeCase();
+          rels = [];
+
+          if (!table || !catalog[name]) {
+            obj.callback("Class not found");
+            return;
+          }
+
+          /* Drop views for composite types */
+          props = catalog[name].properties;
+          keys = Object.keys(props);
+          keys.forEach(function (key) {
+            if (typeof props[key].type === "object") {
+              type = props[key].type;
+
+              if (type.properties) {
+                view = "_" + name.toSnakeCase() + "$" + key.toSnakeCase();
+                sql += "DROP VIEW %I;".format([view]);
+              }
+
+              if (type.childOf && catalog[type.relation]) {
+                delete catalog[type.relation].properties[type.childOf];
+                rels.push(type.relation);
+              }
+            }
+          });
+
+          /* Update catalog settings */
+          delete catalog[name];
+          that.saveSettings({
+            name: "catalog",
+            data: catalog,
+            client: obj.client,
+            callback: createViews
+          });
+          return;
         }
 
-        /* Drop table(s) */
-        plv8.execute(sql, [table]);
+        // All done
+        obj.callback(null, true);
+      };
 
-        o++;
-      }
+      that.getSettings({
+        name: 'catalog',
+        client: obj.client,
+        callback: afterGetCatalog
+      });
 
-      return true;
+      return this;
     },
 
     /**

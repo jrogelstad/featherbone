@@ -135,6 +135,7 @@ function doRequest(req, res) {
 }
 
 function doGetModel(req, res) {
+  req.params.name = req.params.name.toCamelCase(true);
   doGetMethod("getModel", req, res);
 }
 
@@ -172,7 +173,7 @@ function doGetMethod(fn, req, res) {
 
 function doSaveModel(req, res) {
   var payload, callback,
-    name = req.params.name,
+    name = req.params.name.toCamelCase(true),
     data = req.body;
 
   callback = function (err, resp) {
@@ -200,7 +201,7 @@ function doSaveModel(req, res) {
 
 function doDeleteModel(req, res) {
   var payload, callback,
-    name = req.params.name;
+    name = req.params.name.toCamelCase(true);
 
   callback = function (err, resp) {
     if (err) {
