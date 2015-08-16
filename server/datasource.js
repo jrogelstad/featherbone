@@ -75,29 +75,30 @@
       if (typeof registered[obj.method][obj.name] === "function") {
         obj.data.client = client;
         callback = obj.data.callback;
-        registered[obj.method][obj.name](obj.data);
-        return;
-      }
+        transaction = registered[obj.method][obj.name];
+        obj = obj.data;
 
       // Otherwise handle as model
-      obj.client = client;
+      } else {
+        obj.client = client;
 
-      switch (obj.method) {
-      case "GET":
-        obj.callback = afterRequest;
-        controller.doSelect(obj, false, isSuperUser);
-        break;
-      case "POST":
-        transaction = controller.doInsert;
-        break;
-      case "PATCH":
-        transaction = controller.doUpdate;
-        break;
-      case "DELETE":
-        transaction = controller.doDelete;
-        break;
-      default:
-        obj.callback("method \"" + obj.method + "\" unknown");
+        switch (obj.method) {
+        case "GET":
+          obj.callback = afterRequest;
+          controller.doSelect(obj, false, isSuperUser);
+          break;
+        case "POST":
+          transaction = controller.doInsert;
+          break;
+        case "PATCH":
+          transaction = controller.doUpdate;
+          break;
+        case "DELETE":
+          transaction = controller.doDelete;
+          break;
+        default:
+          obj.callback("method \"" + obj.method + "\" unknown");
+        }
       }
 
       if (transaction) {

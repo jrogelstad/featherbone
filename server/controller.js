@@ -1593,46 +1593,99 @@
             }
         }
 
-      @param {Object} Specificication
-      @param {String} [specification.model] Class name
-      @param {String} [specification.id] Object id
-      @param {Boolean} [specification.isMember] Indicates member privilege
+      @param {Object} Payload
+      @param {String} [payload.model] Class name
+      @param {String} [payload.id] Object id
+      @param {Boolean} [payload.isMember] Indicates member privilege
         of folder
-      @param {String} [specification.role] Role
-      @param {Object} [specification.actions] Required
-      @param {Boolean} [specification.actions.canCreate]
-      @param {Boolean} [specification.actions.canRead]
-      @param {Boolean} [specification.actions.canUpdate]
-      @param {Boolean} [specification.actions.canDelete]
+      @param {String} [payload.role] Role
+      @param {Object} [payload.actions] Required
+      @param {Boolean} [payload.actions.canCreate]
+      @param {Boolean} [payload.actions.canRead]
+      @param {Boolean} [payload.actions.canUpdate]
+      @param {Boolean} [payload.actions.canDelete]
     */
     saveAuthorization: function (obj) {
-      var result, sql, pk, err, model, params,
+      var result, sql, pk, model, params, objPk, rolePk,
+        afterGetObjKey, afterGetRoleKey, afterGetModelName,
+        afterGetModel, checkSuperUser, afterCheckSuperUser,
+        afterUpsertAuth, afterQueryAuth, done,
         id = obj.model ? obj.model.toSnakeCase() : obj.id,
-        objPk = that.getKey(id),
-        rolePk = that.getKey(obj.role),
         actions = obj.actions || {},
         isMember = false,
         hasAuth = false;
 
-      /* Validation */
-      if (!objPk) {
-        err = "Object \"" + id + "\" not found";
-      } else if (!rolePk) {
-        err = "Role \"" + id + "\" not found";
-      }
+      afterGetObjKey = function (err, resp) {
+        if (err) {
+          obj.callback(err);
+          return;
+        }
 
-      if (err) { throw err; }
+        objPk = resp;
 
-      if (obj.id && obj.isMember) {
-        sql = "SELECT tableoid::regclass::text AS model " +
-          "FROM object WHERE id=$1";
-        model = plv8.execute(sql, [id])[0].model.toCamelCase(true);
+        // Validation
+        if (!objPk) {
+          obj.callback("Object \"" + id + "\" not found");
+          return;
+        }
+
+        that.getKey({
+          id: obj.role,
+          client: obj.client,
+          callback: afterGetRoleKey
+        });
+      };
+
+      afterGetRoleKey = function (err, resp) {
+        if (err) {
+          obj.callback(err);
+          return;
+        }
+
+        rolePk = resp;
+
+        // Validation
+        if (!rolePk) {
+          obj.callback("Role \"" + id + "\" not found");
+          return;
+        }
+
+        if (obj.id && obj.isMember) {
+          sql = "SELECT tableoid::regclass::text AS model " +
+            "FROM object WHERE id=$1";
+          obj.client.query(sql, [id], afterGetModelName);
+          return;
+        }
+
+        checkSuperUser();
+      };
+
+      afterGetModelName = function (err, resp) {
+        if (err) {
+          obj.callback(err);
+          return;
+        }
+
+        model = resp.rows[0].model.toCamelCase(true);
 
         if (model === "Folder") {
           isMember = obj.isMember || false;
         }
 
-        model = that.getModel(model);
+        that.getModel({
+          name: model,
+          client: obj.client,
+          callback: afterGetModel
+        });
+      };
+
+      afterGetModel = function (err, resp) {
+        if (err) {
+          obj.callback(err);
+          return;
+        }
+
+        model = resp;
 
         if (isChildModel(model)) {
           err = "Can not set authorization on child models.";
@@ -1640,79 +1693,138 @@
           err = "Model must have owner property to set authorization";
         }
 
-        if (err) { throw err; }
-      }
-
-      if (!that.isSuperUser()) {
-        sql = "SELECT owner FROM %I WHERE _pk=$1"
-          .format(model.name.toSnakeCase());
-        result = plv8.execute(sql, [objPk]);
-
-        if (result[0].owner !== that.getCurrentUser()) {
-          err = "Must be super user or owner of \"" + id + "\" to set " +
-            "authorization.";
-          throw err;
+        if (err) {
+          obj.callback(err);
+          return;
         }
-      }
 
-      /* Determine whether any authorization has been granted */
-      hasAuth = actions.canCreate ||
-        actions.canRead ||
-        actions.canUpdate ||
-        actions.canDelete;
+        checkSuperUser();
+      };
 
-      /* Find an existing authorization record */
-      sql = "SELECT auth.* FROM \"$auth\" AS auth " +
-        "JOIN object ON object._pk=object_pk " +
-        "JOIN role ON role._pk=role_pk " +
-        "WHERE object.id=$1 AND role.id=$2 AND is_member_auth=$3 " +
-        " ORDER BY is_inherited";
-      result = plv8.execute(sql, [id, obj.role, isMember]);
-      result = result.length ? result[0] : false;
+      checkSuperUser = function () {
+        if (!that.isSuperUser()) {
+          sql = "SELECT owner FROM %I WHERE _pk=$1"
+            .format(model.name.toSnakeCase());
+          obj.client.query(sql, [objPk], function (err, resp) {
+            if (err) {
+              obj.callback(err);
+              return;
+            }
 
-      if (result && !result.is_inherited) {
-        pk = result.pk;
+            if (resp.rows[0].owner !== that.getCurrentUser()) {
+              err = "Must be super user or owner of \"" + id + "\" to set " +
+                "authorization.";
+              obj.callback(err);
+              return;
+            }
 
-        if (!hasAuth && isMember) {
-          sql = "DELETE FROM \"$auth\" WHERE pk=$1";
-          params = [pk];
-        } else {
-          sql = "UPDATE \"$auth\" SET can_create=$1, can_read=$2," +
-            "can_update=$3, can_delete=$4 WHERE pk=$5";
+            afterCheckSuperUser();
+          });
+          return;
+        }
+
+        afterCheckSuperUser();
+      };
+
+      afterCheckSuperUser = function () {
+        /* Determine whether any authorization has been granted */
+        hasAuth = actions.canCreate ||
+          actions.canRead ||
+          actions.canUpdate ||
+          actions.canDelete;
+
+        /* Find an existing authorization record */
+        sql = "SELECT auth.* FROM \"$auth\" AS auth " +
+          "JOIN object ON object._pk=object_pk " +
+          "JOIN role ON role._pk=role_pk " +
+          "WHERE object.id=$1 AND role.id=$2 AND is_member_auth=$3 " +
+          " ORDER BY is_inherited";
+        obj.client.query(sql, [id, obj.role, isMember], afterQueryAuth);
+      };
+
+      afterQueryAuth = function (err, resp) {
+        if (err) {
+          obj.callback(err);
+          return;
+        }
+
+        result = resp.rows[0] || false;
+
+        if (result && !result.is_inherited) {
+          pk = result.pk;
+
+          if (!hasAuth && isMember) {
+            sql = "DELETE FROM \"$auth\" WHERE pk=$1";
+            params = [pk];
+          } else {
+            sql = "UPDATE \"$auth\" SET can_create=$1, can_read=$2," +
+              "can_update=$3, can_delete=$4 WHERE pk=$5";
+            params = [
+              actions.canCreate === undefined ?
+                  result.can_create : actions.canCreate,
+              actions.canRead === undefined ?
+                  result.can_read : actions.canRead,
+              actions.canUpdate === undefined ?
+                  result.can_update : actions.canUpdate,
+              actions.canDelete === undefined ?
+                  result.can_delete : actions.canDelete,
+              pk
+            ];
+          }
+        } else if (hasAuth || (!isMember || result.is_inherited)) {
+          sql = "INSERT INTO \"$auth\" VALUES (" +
+            "nextval('$auth_pk_seq'), $1, $2, false," +
+            "$3, $4, $5, $6, $7)";
           params = [
-            actions.canCreate === undefined ?
-                result.can_create : actions.canCreate,
-            actions.canRead === undefined ?
-                result.can_read : actions.canRead,
-            actions.canUpdate === undefined ?
-                result.can_update : actions.canUpdate,
-            actions.canDelete === undefined ?
-                result.can_delete : actions.canDelete,
-            pk
+            objPk,
+            rolePk,
+            actions.canCreate === undefined ? false : actions.canCreate,
+            actions.canRead === undefined ? false : actions.canRead,
+            actions.canUpdate === undefined ? false : actions.canUpdate,
+            actions.canDelete === undefined ? false : actions.canDelete,
+            isMember
           ];
+        } else {
+          return;
         }
-      } else if (hasAuth || (!isMember || result.is_inherited)) {
-        sql = "INSERT INTO \"$auth\" VALUES (" +
-          "nextval('$auth_pk_seq'), $1, $2, false," +
-          "$3, $4, $5, $6, $7)";
-        params = [
-          objPk,
-          rolePk,
-          actions.canCreate === undefined ? false : actions.canCreate,
-          actions.canRead === undefined ? false : actions.canRead,
-          actions.canUpdate === undefined ? false : actions.canUpdate,
-          actions.canDelete === undefined ? false : actions.canDelete,
-          isMember
-        ];
-      } else {
-        return;
-      }
 
-      plv8.execute(sql, params);
+        obj.client.query(sql, params, afterUpsertAuth);
+      };
 
-      if (model === "Folder" && isMember) {
-        propagateAuth({folderId: obj.id, roleId: obj.role});
-      }
+      afterUpsertAuth = function (err, resp) {
+        if (err) {
+          obj.callback(err);
+          return;
+        }
+
+        if (model === "Folder" && isMember) {
+          propagateAuth({
+            folderId: obj.id,
+            roleId: obj.role,
+            client: obj.client,
+            callback: done
+          });
+          return;
+        }
+
+        done();
+      };
+
+      done = function (err, resp) {
+        if (err) {
+          obj.callback(err);
+          return;
+        }
+
+        obj.callback(null, true);
+      };
+
+      // Kick off query by getting object key, the rest falls through callbacks
+      that.getKey({
+        id: id,
+        client: obj.client,
+        callback: afterGetObjKey
+      });
     },
 
     /**
@@ -1744,308 +1856,333 @@
         }
       }
 
-     * @param {Object | Array} Model specification payload(s).
-     * @param {String} [specification.name] Name
-     * @param {String} [specification.description] Description
-     * @param {Object | Boolean} [specification.authorization] Authorization
-     *  spec. Defaults to grant all to everyone if undefined. Pass false to
-     *  grant no auth.
-     * @param {String} [specification.properties] Model properties
-     * @param {String} [specification.properties.description] Description
-     * @param {String} [specification.properties.default] Default value
+     * @param {Object} Payload
+     * @param {Object | Array} [payload.client] Database client.
+     * @param {Object | Array} [payload.callback] callback.
+     * @param {Object | Array} [payload.spec] Model specification(s).
+     * @param {String} [payload.spec.name] Name
+     * @param {String} [payload.spec.description] Description
+     * @param {Object | Boolean} [payload.spec.authorization]
+     *  Authorization spec. Defaults to grant all to everyone if undefined. Pass
+     *  false to grant no auth.
+     * @param {String} [payload.spec.properties] Model properties
+     * @param {String} [payload.spec.properties.description]
+     * Description
+     * @param {String} [spec.properties.default] Default value
      *  or function name.
-     * @param {String | Object} [specification.properties.type] Type. Standard
-     *  types are string, boolean, number, date. Object is used for relation
-     *  specs.
-     * @param {String} [specification.properties.relation] Model name of
+     * @param {String | Object} [payload.spec.properties.type]
+     *  Type. Standard types are string, boolean, number, date. Object is used
+     *  for relation specs.
+     * @param {String} [payload.spec.properties.relation] Model name of
      *  relation.
-     * @param {String} [specification.properties.childOf] Property name on
-     *  parent relation if one to many relation.
-     * @return {Boolean}
+     * @param {String} [payload.spec.properties.childOf] Property name
+     *  on parent relation if one to many relation.
+     * @return receiver
     */
-    saveModel: function (specs) {
-      specs = Array.isArray(specs) ? specs : [specs];
+    saveModel: function (obj) {
+      var getParentKey, nextSpec, parent,
+        specs = Array.isArray(obj.specs) ? obj.specs : [obj.specs],
+        c = 0,
+        len = specs.length;
 
-      var table, inherits, model, catalog, sql, sqlUpd, token, tokens, values,
-        adds, args, fns, cols, defaultValue, props, keys, recs, type, name,
-        parent, i, n, p, dropSql, changed, isChild, pk, authorization,
-        getParentKey = function (child) {
-          var cParent, cKeys, cProps;
+      getParentKey = function (child) {
+        var cParent, cKeys, cProps;
 
-          cProps = that.getModel(child).properties;
-          cKeys = Object.keys(cProps);
-          cKeys.forEach(function (cKey) {
-            if (typeof cProps[cKey].type === "object" &&
-                cProps[cKey].type.childOf) {
-              cParent = cProps[cKey].type.relation;
+        cProps = that.getModel(child).properties;
+        cKeys = Object.keys(cProps);
+        cKeys.forEach(function (cKey) {
+          if (typeof cProps[cKey].type === "object" &&
+              cProps[cKey].type.childOf) {
+            cParent = cProps[cKey].type.relation;
 
-              if (isChildModel(that.getModel(parent))) {
-                return getParentKey(cParent);
-              }
-
-              return that.getKey(cParent.toSnakeCase());
+            if (isChildModel(that.getModel(parent))) {
+              return getParentKey(cParent);
             }
-          });
 
+            return that.getKey(cParent.toSnakeCase());
+          }
+        });
+
+      };
+
+      nextSpec = function () {
+        var spec, sqlUpd, token, values, defaultValue, props, keys, recs, type,
+          name, isChild, pk, precision, scale, model, catalog,
+          afterGetModel, afterGetCatalog, afterUpdateSchema, updateCatalog,
+          afterUpdateCatalog, afterPropagateViews, afterNextVal,
+          afterInsertModel, afterSaveAuthorization,
+          table = spec.name ? spec.name.toSnakeCase() : false,
+          inherits = (spec.inherits || "Object").toSnakeCase(),
+          authorization = spec.authorization,
+          dropSql = "DROP VIEW IF EXISTS %I CASCADE;".format(["_" + table]),
+          changed = false,
+          sql = "",
+          tokens = [],
+          adds = [],
+          args = [],
+          fns = [],
+          cols = [],
+          i = 0,
+          n = 0,
+          p = 1;
+
+        afterGetModel = function (err, resp) {
+          if (err) {
+            obj.callback(err);
+            return;
+          }
+
+          model = resp;
+
+          that.getSettings({
+            name: catalog,
+            client: obj.client,
+            callback: afterGetCatalog
+          });
         };
 
-      specs.forEach(function (obj) {
-        var precision, scale;
+        afterGetCatalog = function (err, resp) {
+          if (err) {
+            obj.callback(err);
+            return;
+          }
 
-        table = obj.name ? obj.name.toSnakeCase() : false;
-        inherits = (obj.inherits || "Object").toSnakeCase();
-        model = that.getModel(obj.name, false);
-        catalog = that.getSettings("catalog");
-        authorization = obj.authorization;
-        dropSql = "DROP VIEW IF EXISTS %I CASCADE;".format(["_" + table]);
-        changed = false;
-        sql = "";
-        tokens = [];
-        adds = [];
-        args = [];
-        fns = [];
-        cols = [];
-        i = 0;
-        n = 0;
-        p = 1;
+          catalog = resp;
 
-        if (!table) { throw "No name defined"; }
+          /* Create table if applicable */
+          if (!model) {
+            sql = "CREATE TABLE %I( " +
+              "CONSTRAINT %I PRIMARY KEY (_pk), " +
+              "CONSTRAINT %I UNIQUE (id)) " +
+              "INHERITS (%I);";
+            tokens = tokens.concat([
+              table,
+              table + "_pkey",
+              table + "_id_key",
+              inherits
+            ]);
+          } else {
+            /* Drop non-inherited columns not included in properties */
+            props = model.properties;
+            keys = Object.keys(props);
+            keys.forEach(function (key) {
+              if (spec.properties && !spec.properties[key] &&
+                  !(typeof model.properties[key].type === "object" &&
+                  typeof model.properties[key].type.parentOf)) {
+                /* Drop views */
+                if (!changed) {
+                  sql += dropSql;
+                  changed = true;
+                }
 
-        /* Create table if applicable */
-        if (!model) {
-          sql = "CREATE TABLE %I( " +
-            "CONSTRAINT %I PRIMARY KEY (_pk), " +
-            "CONSTRAINT %I UNIQUE (id)) " +
-            "INHERITS (%I);";
-          tokens = tokens.concat([
-            table,
-            table + "_pkey",
-            table + "_id_key",
-            inherits
-          ]);
-        } else {
-          /* Drop non-inherited columns not included in properties */
-          props = model.properties;
-          keys = Object.keys(props);
-          keys.forEach(function (key) {
-            if (obj.properties && !obj.properties[key] &&
-                !(typeof model.properties[key].type === "object" &&
-                typeof model.properties[key].type.parentOf)) {
-              /* Drop views */
-              if (!changed) {
-                sql += dropSql;
-                changed = true;
-              }
+                /* Handle relations */
+                type = props[key].type;
 
-              /* Handle relations */
-              type = props[key].type;
+                if (typeof type === "object" && type.properties) {
+                  /* Drop associated view if applicable */
+                  sql += "DROP VIEW %I;";
+                  tokens = tokens.concat([
+                    "_" + table + "_" + key.toSnakeCase(),
+                    table,
+                    relationColumn(key, type.relation)
+                  ]);
+                } else {
+                  tokens = tokens.concat([table, key.toSnakeCase()]);
+                }
 
-              if (typeof type === "object" && type.properties) {
-                /* Drop associated view if applicable */
-                sql += "DROP VIEW %I;";
-                tokens = tokens.concat([
-                  "_" + table + "_" + key.toSnakeCase(),
-                  table,
-                  relationColumn(key, type.relation)
-                ]);
-              } else {
-                tokens = tokens.concat([table, key.toSnakeCase()]);
-              }
+                sql += "ALTER TABLE %I DROP COLUMN %I;";
 
-              sql += "ALTER TABLE %I DROP COLUMN %I;";
-
-              /* Unrelate parent if applicable */
-              if (type.childOf) {
-                parent = catalog[type.relation];
-                delete parent.properties[type.childOf];
-              }
-
-            // Parent properties need to be added back into spec so not lost
-            } else if (obj.properties && !obj.properties[key] &&
-                (typeof model.properties[key].type === "object" &&
-                typeof model.properties[key].type.parentOf)) {
-              obj.properties[key] = model.properties[key];
-            }
-          });
-        }
-
-        /* Add table description */
-        if (obj.description) {
-          sql += "COMMENT ON TABLE %I IS %L;";
-          tokens = tokens.concat([table, obj.description || ""]);
-        }
-
-        /* Add columns */
-        obj.properties = obj.properties || {};
-        props = obj.properties;
-        keys = Object.keys(props).filter(function (item) {
-          return !props[item].inheritedFrom;
-        });
-        keys.forEach(function (key) {
-          var prop = props[key];
-          type = typeof prop.type === "string" ?
-              types[prop.type] : prop.type;
-
-          if (type && key !== obj.discriminator) {
-            if (!model || !model.properties[key]) {
-              /* Drop views */
-              if (model && !changed) {
-                sql += dropSql;
-              }
-
-              changed = true;
-
-              sql += "ALTER TABLE %I ADD COLUMN %I ";
-
-              if (prop.isUnique) { sql += "UNIQUE "; }
-
-              /* Handle composite types */
-              if (type.relation) {
-                sql += "integer;";
-                token = relationColumn(key, type.relation);
-
-                /* Update parent class for children */
+                // Unrelate parent if applicable
                 if (type.childOf) {
                   parent = catalog[type.relation];
-                  if (!parent.properties[type.childOf]) {
-                    parent.properties[type.childOf] = {
-                      description: 'Parent of "' + key + '" on "' +
-                        obj.name + '"',
-                      type: {
-                        relation: obj.name,
-                        parentOf: key
-                      }
-                    };
-
-                  } else {
-                    throw 'Property "' + type.childOf +
-                      '" already exists on "' + type.relation + '"';
-                  }
-
-                } else if (type.parentOf) {
-                  throw 'Can not set parent directly for "' + key + '"';
+                  delete parent.properties[type.childOf];
                 }
 
-                if (type.properties) {
-                  cols = ["%I"];
-                  name = "_" + table + "$" + key.toSnakeCase();
-                  args = [name, "_pk"];
+              // Parent properties need to be added back into spec so not lost
+              } else if (spec.properties && !spec.properties[key] &&
+                  (typeof model.properties[key].type === "object" &&
+                  typeof model.properties[key].type.parentOf)) {
+                spec.properties[key] = model.properties[key];
+              }
+            });
+          }
 
-                  /* Always include "id" whether specified or not */
-                  if (type.properties.indexOf("id") === -1) {
-                    type.properties.unshift("id");
-                  }
+          // Add table description
+          if (spec.description) {
+            sql += "COMMENT ON TABLE %I IS %L;";
+            tokens = tokens.concat([table, spec.description || ""]);
+          }
 
-                  while (i < type.properties.length) {
-                    cols.push("%I");
-                    args.push(type.properties[i].toSnakeCase());
-                    i++;
-                  }
+          /* Add columns */
+          spec.properties = spec.properties || {};
+          props = spec.properties;
+          keys = Object.keys(props).filter(function (item) {
+            return !props[item].inheritedFrom;
+          });
+          keys.every(function (key) {
+            var prop = props[key];
+            type = typeof prop.type === "string" ?
+                types[prop.type] : prop.type;
 
-                  args.push(type.relation.toSnakeCase());
-                  sql += ("CREATE VIEW %I AS SELECT " + cols.join(",") +
-                    " FROM %I WHERE NOT is_deleted;").format(args);
+            if (type && key !== spec.discriminator) {
+              if (!model || !model.properties[key]) {
+                /* Drop views */
+                if (model && !changed) {
+                  sql += dropSql;
                 }
 
-              /* Handle standard types */
-              } else {
-                if (prop.format && formats[prop.format]) {
-                  sql += formats[prop.format].type;
+                changed = true;
+
+                sql += "ALTER TABLE %I ADD COLUMN %I ";
+
+                if (prop.isUnique) { sql += "UNIQUE "; }
+
+                /* Handle composite types */
+                if (type.relation) {
+                  sql += "integer;";
+                  token = relationColumn(key, type.relation);
+
+                  /* Update parent class for children */
+                  if (type.childOf) {
+                    parent = catalog[type.relation];
+                    if (!parent.properties[type.childOf]) {
+                      parent.properties[type.childOf] = {
+                        description: 'Parent of "' + key + '" on "' +
+                          spec.name + '"',
+                        type: {
+                          relation: spec.name,
+                          parentOf: key
+                        }
+                      };
+
+                    } else {
+                      err = 'Property "' + type.childOf +
+                        '" already exists on "' + type.relation + '"';
+                      return false;
+                    }
+
+                  } else if (type.parentOf) {
+                    err = 'Can not set parent directly for "' + key + '"';
+                    return false;
+                  }
+
+                  if (type.properties) {
+                    cols = ["%I"];
+                    name = "_" + table + "$" + key.toSnakeCase();
+                    args = [name, "_pk"];
+
+                    /* Always include "id" whether specified or not */
+                    if (type.properties.indexOf("id") === -1) {
+                      type.properties.unshift("id");
+                    }
+
+                    while (i < type.properties.length) {
+                      cols.push("%I");
+                      args.push(type.properties[i].toSnakeCase());
+                      i++;
+                    }
+
+                    args.push(type.relation.toSnakeCase());
+                    sql += ("CREATE VIEW %I AS SELECT " + cols.join(",") +
+                      " FROM %I WHERE NOT is_deleted;").format(args);
+                  }
+
+                /* Handle standard types */
                 } else {
-                  sql += type.type;
-                  if (type.type === "numeric") {
-                    precision = typeof prop.precision === "number" ?
-                        prop.precision : PRECISION_DEFAULT;
-                    scale = typeof prop.scale === "number" ?
-                        prop.scale : SCALE_DEFAULT;
-                    sql += "(" + precision + "," + scale + ")";
+                  if (prop.format && formats[prop.format]) {
+                    sql += formats[prop.format].type;
+                  } else {
+                    sql += type.type;
+                    if (type.type === "numeric") {
+                      precision = typeof prop.precision === "number" ?
+                          prop.precision : PRECISION_DEFAULT;
+                      scale = typeof prop.scale === "number" ?
+                          prop.scale : SCALE_DEFAULT;
+                      sql += "(" + precision + "," + scale + ")";
+                    }
                   }
+                  sql += ";";
+                  token = key.toSnakeCase();
                 }
-                sql += ";";
-                token = key.toSnakeCase();
+                adds.push(key);
+
+                tokens = tokens.concat([table, token]);
+
+                if (props[key].description) {
+                  sql += "COMMENT ON COLUMN %I.%I IS %L;";
+                  tokens = tokens.concat([
+                    table,
+                    token,
+                    props[key].description || ""
+                  ]);
+                }
               }
-              adds.push(key);
-
-              tokens = tokens.concat([table, token]);
-
-              if (props[key].description) {
-                sql += "COMMENT ON COLUMN %I.%I IS %L;";
-                tokens = tokens.concat([
-                  table,
-                  token,
-                  props[key].description || ""
-                ]);
-              }
-            }
-          } else {
-            throw 'Invalid type "' + props[key].type + '" for property "' +
-                key + '" on class "' + obj.name + '"';
-          }
-        });
-
-        /* Update schema */
-        sql = sql.format(tokens);
-        plv8.execute(sql);
-
-        /* Populate defaults */
-        if (adds.length) {
-          values = [];
-          tokens = [];
-          args = [table];
-          i = 0;
-
-          while (i < adds.length) {
-            type = props[adds[i]].type;
-            if (typeof type === "object") {
-              defaultValue = -1;
             } else {
-              defaultValue = props[adds[i]].default ||
-                types[type].default;
+              err = 'Invalid type "' + props[key].type + '" for property "' +
+                key + '" on class "' + spec.name + '"';
+              return false;
             }
 
-            if (typeof defaultValue === "string" &&
-                defaultValue.match(/\(\)$/)) {
-              fns.push({
-                col: adds[i].toSnakeCase(),
-                default: defaultValue.replace(/\(\)$/, "")
+            return true;
+          });
+
+          if (err) {
+            obj.callback(err);
+            return;
+          }
+
+          /* Update schema */
+          sql = sql.format(tokens);
+          obj.client.query(sql, afterUpdateSchema);
+        };
+
+        afterUpdateSchema = function (err, resp) {
+          var afterPopulateDefaults, iterateDefaults;
+
+          if (err) {
+            obj.callback(err);
+            return;
+          }
+
+          afterPopulateDefaults = function (err, resp) {
+            if (err) {
+              obj.callback(err);
+              return;
+            }
+
+            // Update function based defaults (one by one)
+            if (fns.length) {
+              tokens = [];
+              args = [table];
+              i = 0;
+
+              fns.forEach(function (fn) {
+                tokens.push("%I=$" + (i + 2));
+                args.push(fn.col);
+                i++;
               });
-            } else {
-              values.push(defaultValue);
-              tokens.push("%I=$" + p);
-              if (typeof type === "object") {
-                args.push(relationColumn(adds[i], type.relation));
-              } else {
-                args.push(adds[i].toSnakeCase());
-              }
-              p++;
-            }
-            i++;
-          }
 
-          if (values.length) {
-            sql = ("UPDATE %I SET " + tokens.join(",") + ";").format(args);
-            plv8.execute(sql, values);
-          }
+              sql = "SELECT _pk FROM %I ORDER BY _pk OFFSET $1 LIMIT 1;"
+                .format([table]);
+              sqlUpd = ("UPDATE %I SET " + tokens.join(",") + " WHERE _pk = $1")
+                .format(args);
 
-          /* Update function based defaults (one by one) */
-          if (fns.length) {
-            sql = "SELECT _pk FROM %I ORDER BY _pk OFFSET $1 LIMIT 1;"
-              .format([table]);
-            recs = plv8.execute(sql, [n]);
-            tokens = [];
-            args = [table];
-            i = 0;
-
-            while (i < fns.length) {
-              tokens.push("%I=$" + (i + 2));
-              args.push(fns[i].col);
-              i++;
+              obj.client.query(sql, [n], iterateDefaults);
+              return;
             }
 
-            sqlUpd = ("UPDATE %I SET " + tokens.join(",") + " WHERE _pk = $1")
-              .format(args);
+            updateCatalog();
+          };
 
-            while (recs.length) {
+          iterateDefaults = function (err, resp) {
+            if (err) {
+              obj.callback(err);
+              return;
+            }
+
+            recs = resp.rows;
+
+            if (recs.length) {
               values = [recs[0]._pk];
               i = 0;
               n++;
@@ -2055,97 +2192,267 @@
                 i++;
               }
 
-              plv8.execute(sqlUpd, values);
-              recs = plv8.execute(sql, [n]);
+              obj.client.query(sqlUpd, values, function (err, resp) {
+                if (err) {
+                  obj.callback(err);
+                  return;
+                }
+
+                // Look for next record
+                obj.client.query(sql, [n], iterateDefaults);
+              });
+              return;
             }
+
+            updateCatalog();
+          };
+
+          // Populate defaults
+          if (adds.length) {
+            values = [];
+            tokens = [];
+            args = [table];
+
+            adds.forEach(function (add) {
+              type = props[add].type;
+              if (typeof type === "object") {
+                defaultValue = -1;
+              } else {
+                defaultValue = props[add].default ||
+                  types[type].default;
+              }
+
+              if (typeof defaultValue === "string" &&
+                  defaultValue.match(/\(\)$/)) {
+                fns.push({
+                  col: add.toSnakeCase(),
+                  default: defaultValue.replace(/\(\)$/, "")
+                });
+              } else {
+                values.push(defaultValue);
+                tokens.push("%I=$" + p);
+                if (typeof type === "object") {
+                  args.push(relationColumn(add, type.relation));
+                } else {
+                  args.push(add.toSnakeCase());
+                }
+                p++;
+              }
+            });
+
+            if (values.length) {
+              sql = ("UPDATE %I SET " + tokens.join(",") + ";").format(args);
+              obj.client.query(sql, values, afterPopulateDefaults);
+              return;
+            }
+
+            afterPopulateDefaults();
+            return;
           }
-        }
 
-        /* Update catalog settings */
-        name = obj.name;
-        catalog[name] = obj;
-        delete obj.name;
-        delete obj.authorization;
-        obj.isChild = isChildModel(obj);
-        that.saveSettings("catalog", catalog);
+          updateCatalog();
+        };
 
-        if (!model) {
-          isChild = isChildModel(that.getModel(name));
-          pk = plv8.execute("select nextval('object__pk_seq') as pk;")[0].pk;
+        updateCatalog = function (err, resp) {
+          if (err) {
+            obj.callback(err);
+            return;
+          }
+
+          /* Update catalog settings */
+          name = spec.name;
+          catalog[name] = spec;
+          delete spec.name;
+          delete spec.authorization;
+          spec.isChild = isChildModel(spec);
+          that.saveSettings({
+            name: "catalog",
+            data: catalog,
+            client: obj.client,
+            callback: afterUpdateCatalog
+          });
+        };
+
+        afterUpdateCatalog = function (err, resp) {
+          if (err) {
+            obj.callback(err);
+            return;
+          }
+
+          if (!model) {
+            isChild = isChildModel(that.getModel(name));
+            sql = "SELECT nextval('object__pk_seq') AS pk;";
+            obj.client.query(sql, afterNextVal);
+            return;
+          }
+
+          afterInsertModel();
+        };
+
+        afterNextVal = function (err, resp) {
+          if (err) {
+            obj.callback(err);
+            return;
+          }
+
+          pk = resp.rows[0].pk;
+
           sql = "INSERT INTO \"$model\" " +
-            "(_pk, id, created, created_by, updated, updated_by, is_deleted, " +
-            " is_child, parent_pk) VALUES " +
+            "(_pk, id, created, created_by, updated, updated_by, " +
+            "is_deleted, is_child, parent_pk) VALUES " +
             "($1, $2, now(), $3, now(), $4, false, $5, $6);";
           values = [pk, table, that.getCurrentUser(),
             that.getCurrentUser(), isChild,
             isChild ? getParentKey(name) : pk];
 
-          plv8.execute(sql, values);
+          obj.client.query(sql, values, afterInsertModel);
+        };
+
+        afterInsertModel = function (err, resp) {
+          if (err) {
+            obj.callback(err);
+            return;
+          }
+
+          /* Propagate views */
+          changed = changed || !model;
+          if (changed) {
+            propagateViews({
+              name: name,
+              client: obj.client,
+              callback: afterPropagateViews
+            });
+            return;
+          }
+
+          afterPropagateViews();
+        };
+
+        afterPropagateViews = function (err, resp) {
+          if (err) {
+            obj.callback(err);
+            return;
+          }
+
+          /* If no specific authorization, grant to all */
+          if (authorization === undefined) {
+            authorization = {
+              model: name,
+              role: "everyone",
+              actions: {
+                canCreate: true,
+                canRead: true,
+                canUpdate: true,
+                canDelete: true
+              }
+            };
+          }
+
+          if (typeof authorization === "object") {
+            authorization.client = obj.client;
+            authorization.callback = afterSaveAuthorization;
+          }
+
+          /* Set authorization */
+          if (authorization) {
+            that.saveAuthorization(authorization);
+            return;
+          }
+
+          afterSaveAuthorization();
+        };
+
+        afterSaveAuthorization = function (err, resp) {
+          if (err) {
+            obj.callback(err);
+            return;
+          }
+
+          if (c < len) {
+            nextSpec();
+            return;
+          }
+
+          obj.callback(null, true);
+        };
+
+        // Real work starts here
+        spec = specs[c];
+        c++;
+
+        if (!table) {
+          obj.callback("No name defined");
+          return;
         }
 
-        /* Propagate views */
-        changed = changed || !model;
-        if (changed) {
-          propagateViews(name);
-        }
+        that.getModel({
+          name: spec.name,
+          client: obj.client,
+          callback: afterGetModel
+        }, false);
+      };
 
-        /* If no specific authorization, grant to all */
-        if (authorization === undefined) {
-          authorization = {
-            model: name,
-            role: "everyone",
-            actions: {
-              canCreate: true,
-              canRead: true,
-              canUpdate: true,
-              canDelete: true
-            }
-          };
-        }
+      // Real work starts here
+      nextSpec();
 
-        /* Set authorization */
-        if (authorization) {
-          that.saveAuthorization(authorization);
-        }
-      });
-
-      return true;
+      return this;
     },
 
     /**
       Create or upate settings.
 
-      @param {String} Name of settings
-      @param {Object} Settings payload
+      @param {Object} Payload
+      @param {String} [payload.name] Name of settings
+      @param {Object} [payload.data] Settings data
+      @param {Object} [payload.client] Database client
+      @param {Function} [payload.callback] Callback
       @return {String}
     */
-    saveSettings: function (name, settings) {
-      var sql = "SELECT data FROM \"$settings\" WHERE name = $1;",
-        params = [name, settings],
-        result,
-        rec;
+    saveSettings: function (obj) {
+      var row, done,
+        sql = "SELECT data FROM \"$settings\" WHERE name = $1;",
+        name = obj.name,
+        data = obj.data,
+        params = [name, data];
 
-      result = plv8.execute(sql, [name]);
-
-      if (result.length) {
-        rec = result[0];
-
-        if (settings.etag !== rec.etag) {
-          throw 'Settings for "' + name +
-            '" changed by another user. Save failed.';
+      done = function (err) {
+        if (err) {
+          obj.callback(err);
+          return;
         }
 
-        sql = "UPDATE \"$settings\" SET data = $2 WHERE name = $1;";
+        settings[name] = data;
+        obj.callback(null, true);
+      };
 
-        plv8.execute(sql, params);
-      } else {
+      obj.client.query(sql, [name], function (err, resp) {
+        if (err) {
+          obj.callback(err);
+          return;
+        }
+
+        // If found existing, update
+        if (resp.rows.length) {
+          row = resp.rows[0];
+
+          if (data.etag !== row.etag) {
+            obj.callback('Settings for "' + name +
+              '" changed by another user. Save failed.');
+            return;
+          }
+
+          sql = "UPDATE \"$settings\" SET data = $2 WHERE name = $1;";
+
+          obj.client.query(sql, params, done);
+          return;
+        }
+
+        // otherwise create new
         sql = "INSERT INTO \"$settings\" (name, data) VALUES ($1, $2);";
-        plv8.execute(sql, params);
-      }
+        obj.client.query(sql, params, done);
+      });
 
-      settings[name] = settings;
-
-      return true;
+      return this;
     },
 
     /** Set the current user referenced by all other functions
@@ -2276,8 +2583,11 @@
   };
 
   /** private */
-  createView = function (name, dropFirst) {
+  createView = function (obj) {
     var parent, alias, type, view, sub, col,
+      afterGetModel,
+      name = obj.name,
+      dropFirst = obj.dropFirst,
       model = that.getModel(name),
       table = name.toSnakeCase(),
       args = ["_" + table, "_pk"],
@@ -2286,66 +2596,89 @@
       cols = ["%I"],
       sql = "";
 
-    keys.forEach(function (key) {
-      alias = key.toSnakeCase();
+    afterGetModel = function (err, resp) {
+      if (err) {
+        obj.callback(err);
+        return;
+      }
 
-      /* Handle discriminator */
-      if (key === "objectType") {
-        cols.push("%s");
-        args.push("to_camel_case(tableoid::regclass::text, true) AS " + alias);
+      model = resp;
 
-      /* Handle relations */
-      } else if (typeof props[key].type === "object") {
-        type = props[key].type;
-        parent =  props[key].inheritedFrom ?
-            props[key].inheritedFrom.toSnakeCase() : table;
+      keys.forEach(function (key) {
+        alias = key.toSnakeCase();
 
-        /* Handle to many */
-        if (type.parentOf) {
-          sub = "ARRAY(SELECT %I FROM %I WHERE %I.%I = %I._pk " +
-            "AND NOT %I.is_deleted ORDER BY %I._pk) AS %I";
-          view = "_" + props[key].type.relation.toSnakeCase();
-          col = "_" + type.parentOf.toSnakeCase() + "_" + parent + "_pk";
-          args = args.concat([view, view, view, col, table, view, view,
-            alias]);
+        /* Handle discriminator */
+        if (key === "objectType") {
+          cols.push("%s");
+          args.push("to_camel_case(tableoid::regclass::text, true) AS " +
+            alias);
 
-        /* Handle to one */
-        } else if (!type.childOf) {
-          col = "_" + key.toSnakeCase() + "_" +
-            props[key].type.relation.toSnakeCase() + "_pk";
-          sub = "(SELECT %I FROM %I WHERE %I._pk = %I) AS %I";
+        /* Handle relations */
+        } else if (typeof props[key].type === "object") {
+          type = props[key].type;
+          parent =  props[key].inheritedFrom ?
+              props[key].inheritedFrom.toSnakeCase() : table;
 
-          if (props[key].type.properties) {
-            view = "_" + parent + "$" + key.toSnakeCase();
-          } else {
+          /* Handle to many */
+          if (type.parentOf) {
+            sub = "ARRAY(SELECT %I FROM %I WHERE %I.%I = %I._pk " +
+              "AND NOT %I.is_deleted ORDER BY %I._pk) AS %I";
             view = "_" + props[key].type.relation.toSnakeCase();
+            col = "_" + type.parentOf.toSnakeCase() + "_" + parent + "_pk";
+            args = args.concat([view, view, view, col, table, view, view,
+              alias]);
+
+          /* Handle to one */
+          } else if (!type.childOf) {
+            col = "_" + key.toSnakeCase() + "_" +
+              props[key].type.relation.toSnakeCase() + "_pk";
+            sub = "(SELECT %I FROM %I WHERE %I._pk = %I) AS %I";
+
+            if (props[key].type.properties) {
+              view = "_" + parent + "$" + key.toSnakeCase();
+            } else {
+              view = "_" + props[key].type.relation.toSnakeCase();
+            }
+
+            args = args.concat([view, view, view, col, alias]);
+          } else {
+            sub = "_" + key.toSnakeCase() + "_" + type.relation.toSnakeCase() +
+               "_pk";
           }
 
-          args = args.concat([view, view, view, col, alias]);
+          cols.push(sub);
+
+        /* Handle regular types */
         } else {
-          sub = "_" + key.toSnakeCase() + "_" + type.relation.toSnakeCase() +
-             "_pk";
+          cols.push("%I");
+          args.push(alias);
+        }
+      });
+
+      args.push(table);
+
+      if (dropFirst) {
+        sql = "DROP VIEW %I;".format(["_" + table]);
+      }
+
+      sql += ("CREATE OR REPLACE VIEW %I AS SELECT " + cols.join(",") +
+        " FROM %I;").format(args);
+
+      obj.client.query(sql, function (err) {
+        if (err) {
+          obj.callback(err);
+          return;
         }
 
-        cols.push(sub);
+        obj.callback(null, true);
+      });
+    };
 
-      /* Handle regular types */
-      } else {
-        cols.push("%I");
-        args.push(alias);
-      }
+    that.getModel({
+      name: obj.name,
+      client: obj.client,
+      callback: afterGetModel
     });
-
-    args.push(table);
-
-    if (dropFirst) {
-      sql = "DROP VIEW %I;".format(["_" + table]);
-    }
-
-    sql += ("CREATE OR REPLACE VIEW %I AS SELECT " + cols.join(",") +
-      " FROM %I;").format(args);
-
-    plv8.execute(sql);
   };
 
   /** private */
@@ -2549,45 +2882,126 @@
   };
 
   /** private */
-  propagateViews = function (name) {
-    var props, key, cprops, ckey,
-      catalog = that.getSettings("catalog");
+  propagateViews = function (obj) {
+    var props, cprops, catalog,
+      afterGetCatalog, afterCreateView,
+      name = obj.name;
 
-    createView(name);
+    afterGetCatalog = function (err, resp) {
+      if (err) {
+        obj.callback(err);
+        return;
+      }
 
-    /* Propagate relations */
-    for (key in catalog) {
-      if (catalog.hasOwnProperty(key)) {
+      catalog = resp;
+      createView({
+        name: name,
+        client: obj.client,
+        callback: afterCreateView
+      });
+    };
+
+    afterCreateView = function (err, resp) {
+      var keys, next,
+        functions = [],
+        i = 0;
+
+      if (err) {
+        obj.callback(err);
+        return;
+      }
+
+      // Callback to process functions sequentially
+      next = function (err, resp) {
+        var o;
+
+        if (err) {
+          obj.callback(err);
+          return;
+        }
+
+        o = functions[i];
+        i++;
+
+        if (o) {
+          o.func(o.payload);
+          return;
+        }
+
+        obj.callback(null, true);
+      };
+
+      // Build object to propagate relations */
+      keys = Object.keys(catalog);
+      keys.forEach(function (key) {
+        var ckeys;
+
         cprops = catalog[key].properties;
+        ckeys = Object.keys(cprops);
 
-        for (ckey in cprops) {
+        ckeys.forEach(function (ckey) {
           if (cprops.hasOwnProperty(ckey) &&
               typeof cprops[ckey].type === "object" &&
               cprops[ckey].type.relation === name &&
               !cprops[ckey].type.childOf &&
               !cprops[ckey].type.parentOf) {
-            propagateViews(key);
+            functions.push({
+              func: propagateViews,
+              payload: {
+                name: key,
+                client: obj.client,
+                callback: next
+              }
+            });
           }
+        });
+      });
+
+      /* Propagate down */
+      keys = Object.keys(catalog);
+      keys.forEach(function (key) {
+        if (catalog[key].inherits === name) {
+          functions.push({
+            func: propagateViews,
+            payload: {
+              name: key,
+              client: obj.client,
+              callback: next
+            }
+          });
         }
-      }
-    }
+      });
 
-    /* Propagate down */
-    for (key in catalog) {
-      if (catalog.hasOwnProperty(key) && catalog[key].inherits === name) {
-        propagateViews(key);
-      }
-    }
-
-    /* Propagate up */
-    props = catalog[name].properties;
-    for (key in props) {
-      if (props.hasOwnProperty(key)) {
+      /* Propagate up */
+      props = catalog[name].properties;
+      keys = Object.keys(props);
+      keys.forEach(function (key) {
         if (typeof props[key].type === "object" && props[key].type.childOf) {
-          createView(props[key].type.relation);
+          functions.push({
+            func: createView,
+            payload: {
+              name: props[key].type.relation,
+              client: obj.client,
+              callback: next
+            }
+          });
         }
+      });
+
+      // Now execute the functions we built in sequential order
+      if (functions.length) {
+        next();
+        return;
       }
-    }
+
+      obj.callback(null, true);
+    };
+
+    that.getSettings({
+      name: "catalog",
+      client: obj.client,
+      callback: afterGetCatalog
+    });
   };
 
   /** private */
