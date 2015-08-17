@@ -1865,7 +1865,7 @@
         } else {
           return;
         }
-console.log(sql, params)
+
         obj.client.query(sql, params, afterUpsertAuth);
       };
 
