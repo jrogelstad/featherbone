@@ -17,7 +17,7 @@
 
 (function (exports) {
 
-  var client, done,
+  var conn,
     pg = require("pg"),
     controller = require("./controller"),
     readPgConfig = require("./pgconfig"),
@@ -62,8 +62,26 @@
   that.request = function (obj, isSuperUser) {
     isSuperUser = isSuperUser === undefined ? false : isSuperUser;
 
-    var transaction, doRequest, afterTransaction, afterRequest,
+    var client, done, transaction, connect,
+      doRequest, afterTransaction, afterRequest,
       callback = obj.callback;
+
+    connect = function () {
+      pg.connect(conn, function (err, c, d) {
+        client = c;
+        done = d;
+
+        // handle an error from the connection
+        if (err) {
+          controller.setCurrentUser(undefined);
+          console.error("Could not connect to server", err);
+          obj.callback(err);
+          return;
+        }
+
+        doRequest();
+      });
+    };
 
     doRequest = function (err) {
       if (err) {
@@ -134,6 +152,7 @@
 
     afterRequest = function (err, resp) {
       controller.setCurrentUser(undefined);
+      done();
 
       // Format errors into objects that can be handled by server
       if (err) {
@@ -150,37 +169,22 @@
 
       // Otherwise return response
       callback(null, resp);
-      done();
     };
 
     controller.setCurrentUser(obj.user);
-    if (client) {
-      doRequest();
+    if (conn) {
+      connect();
       return;
     }
 
-    // Initialize connection pool if necessary
+    // Read configuration if necessary
     readPgConfig(function (config) {
-      var conn = "postgres://" +
+      conn = "postgres://" +
         config.user + ":" +
         config.password + "@" +
         config.server + "/" +
         config.database;
-
-      pg.connect(conn, function (err, c, d) {
-        client = c;
-        done = d;
-
-        // handle an error from the connection
-        if (err) {
-          controller.setCurrentUser(undefined);
-          console.error("Could not connect to server", err);
-          obj.callback(err);
-          return;
-        }
-
-        doRequest();
-      });
+      connect();
     });
 
     return this;

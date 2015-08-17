@@ -1441,7 +1441,7 @@
         name = obj.name;
 
       callback = function (err, ok) {
-        var sql = "SELECT data FROM \"$settings\" WHERE name = $1";
+        var sql = "SELECT id, etag, data FROM \"$settings\" WHERE name = $1";
 
         if (err) {
           obj.callback(err);
@@ -1450,7 +1450,7 @@
 
         // If etag checks out, pass back cached
         if (ok) {
-          obj.callback(null, settings[name]);
+          obj.callback(null, settings[name].data);
           return;
         }
 
@@ -1466,7 +1466,6 @@
           // If we found something, cache it
           if (resp.rows.length) {
             rec = resp.rows[0];
-
             settings[name] = {
               id: rec.id,
               etag: rec.etag,
@@ -1487,7 +1486,6 @@
           client: obj.client,
           callback: callback
         });
-
         return;
       }
 
@@ -2485,9 +2483,10 @@
     */
     saveSettings: function (obj) {
       var row, done,
-        sql = "SELECT data FROM \"$settings\" WHERE name = $1;",
+        sql = "SELECT * FROM \"$settings\" WHERE name = $1;",
         name = obj.name,
         data = obj.data,
+        etag = f.createId(),
         params = [name, data];
 
       done = function (err) {
@@ -2496,7 +2495,11 @@
           return;
         }
 
-        settings[name] = data;
+        settings[name] = {
+          id: name,
+          data: data,
+          etag: etag
+        };
         obj.callback(null, true);
       };
 
@@ -2506,23 +2509,28 @@
           return;
         }
 
+        params.push(etag);
+
         // If found existing, update
         if (resp.rows.length) {
           row = resp.rows[0];
 
-          if (data.etag !== row.etag) {
+          if (settings[name].etag !== row.etag) {
             obj.callback('Settings for "' + name +
               '" changed by another user. Save failed.');
             return;
           }
 
-          sql = "UPDATE \"$settings\" SET data = $2 WHERE name = $1;";
+          sql = "UPDATE \"$settings\" SET data = $2, etag = $3 " +
+            "WHERE name = $1;";
           obj.client.query(sql, params, done);
           return;
         }
 
         // otherwise create new
-        sql = "INSERT INTO \"$settings\" (name, data) VALUES ($1, $2);";
+        sql = "INSERT INTO \"$settings\" (name, data, etag) " +
+          "VALUES ($1, $2, $3);";
+
         obj.client.query(sql, params, done);
       });
 
