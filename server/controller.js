@@ -15,7 +15,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-/*global plv8 */
 (function (exports) {
 
   require("../common/extend-string");
@@ -2568,38 +2567,79 @@
     },
 
     /**
-      Returns whether user is super user.
+      Sets a user as super user or not.
 
-      @param {String} User
-      @param {Boolean} Is super user. Default = true
+      @param {Object} Payload
+      @param {String} [payload.user] User
+      @param {Object} [payload.client] Database client
+      @param {String} [payload.callback] Callback
     */
-    setSuperUser: function (user, isSuper) {
-      isSuper = isSuper === undefined ? true : isSuper;
+    setSuperUser: function (obj, isSuper) {
+      isSuper = obj.isSuper === undefined ? true : obj.isSuper;
 
-      var sql = "SELECT * FROM pg_user WHERE usename=$1;",
-        params = [user, isSuper],
-        result;
+      var sql, afterCheckSuperUser, afterGetPgUser, afterGetUser, afterUpsert,
+        user = obj.user;
 
-      if (!that.isSuperUser(that.getCurrentUser())) {
-        throw "Only a super user can set another super user";
-      }
+      afterCheckSuperUser = function (err, ok) {
+        if (err) {
+          obj.callback(err);
+          return;
+        }
 
-      result = plv8.execute(sql, [user]);
+        if (!ok) {
+          obj.callback("Only a super user can set another super user");
+        }
 
-      if (!result.length) {
-        throw "User does not exist";
-      }
+        sql = "SELECT * FROM pg_user WHERE usename=$1;";
+        obj.client.query(sql, [user], afterGetUser);
+      };
 
-      sql = "SELECT * FROM \"$user\" WHERE username=$1;";
-      result = plv8.execute(sql, [user]);
+      afterGetPgUser = function (err, resp) {
+        if (err) {
+          obj.callback(err);
+          return;
+        }
 
-      if (result.length) {
-        sql = "UPDATE \"$user\" SET is_super=$2 WHERE username=$1";
-      } else {
-        sql = "INSERT INTO \"$user\" VALUES ($1, $2)";
-      }
+        if (!resp.rows.length) {
+          obj.callback("User does not exist");
+        }
 
-      plv8.execute(sql, params);
+        sql = "SELECT * FROM \"$user\" WHERE username=$1;";
+        obj.query(sql, [user], afterGetPgUser);
+      };
+
+      afterGetUser = function (err, resp) {
+        if (err) {
+          obj.callback(err);
+          return;
+        }
+
+        if (resp.rows.length) {
+          sql = "UPDATE \"$user\" SET is_super=$2 WHERE username=$1";
+        } else {
+          sql = "INSERT INTO \"$user\" VALUES ($1, $2)";
+        }
+
+        obj.query(sql, [user, isSuper], afterUpsert);
+      };
+
+      afterUpsert = function (err, resp) {
+        if (err) {
+          obj.callback(err);
+          return;
+        }
+
+        // Success. Return to callback.
+        obj.callback(null, true);
+      };
+
+      that.isSuperUser({
+        name: that.getCurrentUser(),
+        client: obj.client,
+        callback: afterCheckSuperUser
+      });
+
+      return this;
     }
   };
 
