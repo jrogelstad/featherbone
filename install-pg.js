@@ -19,7 +19,7 @@ require("./common/extend-string.js");
 
 var manifest, file, content, result, execute, name, createFunction, buildApi,
   saveModule, saveModels, rollback, connect, commit, begin, processFile, ext,
-  client, user, processProperties,
+  client, user, processProperties, executeSql,
   pg = require("pg"),
   fs = require("fs"),
   path = require("path"),
@@ -150,6 +150,9 @@ processFile = function (err) {
     case "model":
       saveModels(JSON.parse(content));
       break;
+    case "sql":
+      executeSql(content);
+      break;
     default:
       console.error("Unknown type.");
       rollback();
@@ -194,6 +197,18 @@ saveModels = function (models) {
     if (err) {
       console.error(err);
       rollback();
+      return;
+    }
+
+    processFile();
+  });
+};
+
+executeSql = function (sql) {
+  client.query(sql, function (err, result) {
+    if (err) {
+      rollback();
+      console.error(err);
       return;
     }
 

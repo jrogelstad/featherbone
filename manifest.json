@@ -20,19 +20,8 @@
             "returns": "json"
         },
         {
-            "type": "function",
-            "path": "pg/to_camel_case.js",
-            "args": {
-                "str": {
-                    "type": "text"
-                },
-                "upper": {
-                    "type": "boolean",
-                    "defaultValue": "false"
-                }
-            },
-            "volatility": "IMMUTABLE",
-            "returns": "text"
+            "type": "sql",
+            "path": "pg/to_camel_case.sql"
         },
         {
             "type": "execute",

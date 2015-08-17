@@ -2691,7 +2691,7 @@
         /* Handle discriminator */
         if (key === "objectType") {
           cols.push("%s");
-          args.push("to_camel_case(tableoid::regclass::text, true) AS " +
+          args.push("to_camel_case(tableoid::regclass::text) AS " +
             alias);
 
         /* Handle relations */
