@@ -20,9 +20,16 @@
 require('./common/extend-string.js');
 
 var catalog, init, resolveName, getCatalog, getCurrentUser,
-  doHandleOne, doGetSettings, doGetModel,
-  doGetMethod, doSaveModel, doDeleteModel,
-  datasource = require("./server/datasource");
+  doHandleOne, doGetSettings, doGetModel, doRequest,
+  doGetMethod, doSaveModel, doDeleteModel, registerDataRoutes,
+  datasource = require("./server/datasource"),
+  express = require('express'),
+  bodyParser = require('body-parser'),
+  app = express(),
+  port = process.env.PORT || 8080,
+  dataRouter = express.Router(),
+  modelRouter = express.Router(),
+  settingsRouter = express.Router();
 
 // ..........................................................
 // CONTROLLERS
@@ -92,7 +99,7 @@ resolveName = function (apiPath) {
   }
 };
 
-function doRequest(req, res) {
+doRequest = function (req, res) {
   var callback,
     params = req.params,
     name = resolveName(req.url),
@@ -132,18 +139,18 @@ function doRequest(req, res) {
   }
 
   datasource.request(payload);
-}
+};
 
-function doGetModel(req, res) {
+doGetModel = function (req, res) {
   req.params.name = req.params.name.toCamelCase(true);
   doGetMethod("getModel", req, res);
-}
+};
 
-function doGetSettings(req, res) {
+doGetSettings = function (req, res) {
   doGetMethod("getSettings", req, res);
-}
+};
 
-function doGetMethod(fn, req, res) {
+doGetMethod = function (fn, req, res) {
   var payload, callback,
     name = req.params.name;
 
@@ -169,9 +176,9 @@ function doGetMethod(fn, req, res) {
   };
 
   datasource.request(payload);
-}
+};
 
-function doSaveModel(req, res) {
+doSaveModel = function (req, res) {
   var payload, callback,
     name = req.params.name.toCamelCase(true),
     data = req.body;
@@ -182,7 +189,10 @@ function doSaveModel(req, res) {
       return;
     }
 
-    res.json(resp);
+    getCatalog(function () {
+      registerDataRoutes();
+      res.json(resp);
+    });
   };
 
   payload = {
@@ -197,9 +207,9 @@ function doSaveModel(req, res) {
   };
 
   datasource.request(payload);
-}
+};
 
-function doDeleteModel(req, res) {
+doDeleteModel = function (req, res) {
   var payload, callback,
     name = req.params.name.toCamelCase(true);
 
@@ -223,22 +233,31 @@ function doDeleteModel(req, res) {
   };
 
   datasource.request(payload);
-}
+};
+
+registerDataRoutes = function () {
+  var keys;
+
+  keys = Object.keys(catalog);
+  keys.forEach(function (key) {
+    dataRouter.route("/" + key.toSpinalCase() + "/:id")
+      .get(doRequest)
+      .patch(doRequest)
+      .delete(doRequest);
+
+    if (catalog[key].plural) {
+      dataRouter.route("/" + catalog[key].plural.toSpinalCase())
+        .get(doRequest)
+        .post(doRequest);
+    }
+  });
+};
 
 // ..........................................................
 // ROUTES
 //
 
 init(function () {
-  var express = require('express'),
-    bodyParser = require('body-parser'),
-    app = express(),
-    port = process.env.PORT || 8080,
-    dataRouter = express.Router(),
-    modelRouter = express.Router(),
-    settingsRouter = express.Router(),
-    keys;
-
   // configure app to use bodyParser()
   // this will let us get the data from a POST
   app.use(bodyParser.urlencoded({extended: true}));
@@ -261,19 +280,7 @@ init(function () {
   });
 
   // Create routes for each catalog object
-  keys = Object.keys(catalog);
-  keys.forEach(function (key) {
-    dataRouter.route("/" + key.toSpinalCase() + "/:id")
-      .get(doRequest)
-      .patch(doRequest)
-      .delete(doRequest);
-
-    if (catalog[key].plural) {
-      dataRouter.route("/" + catalog[key].plural.toSpinalCase())
-        .get(doRequest)
-        .post(doRequest);
-    }
-  });
+  registerDataRoutes();
 
   modelRouter.route('/:name')
     .get(doGetModel)

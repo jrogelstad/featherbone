@@ -141,13 +141,23 @@
             return;
           }
 
-          sql = "DELETE FROM \"$model\" WHERE id=$1;";
+          sql = "DELETE FROM \"$auth\" WHERE object_pk=" +
+            "(SELECT _pk FROM \"$model\" WHERE id=$1);";
           obj.client.query(sql, [table], function (err, resp) {
             if (err) {
               obj.callback(err);
               return;
             }
-            next();
+
+            sql = "DELETE FROM \"$model\" WHERE id=$1;";
+            obj.client.query(sql, [table], function (err, resp) {
+              if (err) {
+                obj.callback(err);
+                return;
+              }
+
+              next();
+            });
           });
         });
       };
@@ -1758,38 +1768,50 @@
       };
 
       checkSuperUser = function () {
-        if (!that.isSuperUser()) {
-          sql = "SELECT owner FROM %I WHERE _pk=$1"
-            .format(model.name.toSnakeCase());
-          obj.client.query(sql, [objPk], function (err, resp) {
+        that.isSuperUser({
+          client: obj.client,
+          callback: function (err, isSuper) {
             if (err) {
               obj.callback(err);
               return;
             }
 
-            if (resp.rows[0].owner !== that.getCurrentUser()) {
-              err = "Must be super user or owner of \"" + id + "\" to set " +
-                "authorization.";
-              obj.callback(err);
+            if (isSuper) {
+              afterCheckSuperUser();
               return;
             }
 
-            afterCheckSuperUser();
-          });
-          return;
-        }
+            sql = "SELECT owner FROM %I WHERE _pk=$1"
+              .format(model.name.toSnakeCase());
 
-        afterCheckSuperUser();
+            obj.client.query(sql, [objPk], function (err, resp) {
+              if (err) {
+                obj.callback(err);
+                return;
+              }
+
+              if (resp.rows[0].owner !== that.getCurrentUser()) {
+                err = "Must be super user or owner of \"" + id + "\" to set " +
+                  "authorization.";
+                obj.callback(err);
+                return;
+              }
+
+              afterCheckSuperUser();
+            });
+            return;
+          }
+        });
       };
 
       afterCheckSuperUser = function () {
-        /* Determine whether any authorization has been granted */
+        // Determine whether any authorization has been granted
         hasAuth = actions.canCreate ||
           actions.canRead ||
           actions.canUpdate ||
           actions.canDelete;
 
-        /* Find an existing authorization record */
+        // Find an existing authorization record
         sql = "SELECT auth.* FROM \"$auth\" AS auth " +
           "JOIN object ON object._pk=object_pk " +
           "JOIN role ON role._pk=role_pk " +
@@ -1843,7 +1865,7 @@
         } else {
           return;
         }
-
+console.log(sql, params)
         obj.client.query(sql, params, afterUpsertAuth);
       };
 
@@ -2398,29 +2420,29 @@
         };
 
         afterPropagateViews = function (err, resp) {
+          var canDo = authorization === undefined;
+
           if (err) {
             obj.callback(err);
             return;
           }
 
-          /* If no specific authorization, grant to all */
-          if (authorization === undefined) {
+          // If no specific authorization, grant to all or none
+          if (!authorization) {
             authorization = {
               model: name,
               role: "everyone",
               actions: {
-                canCreate: true,
-                canRead: true,
-                canUpdate: true,
-                canDelete: true
+                canCreate: canDo,
+                canRead: canDo,
+                canUpdate: canDo,
+                canDelete: canDo
               }
             };
           }
 
-          if (typeof authorization === "object") {
-            authorization.client = obj.client;
-            authorization.callback = afterSaveAuthorization;
-          }
+          authorization.client = obj.client;
+          authorization.callback = afterSaveAuthorization;
 
           /* Set authorization */
           if (authorization) {
