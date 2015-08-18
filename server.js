@@ -180,7 +180,6 @@ doGetMethod = function (fn, req, res) {
 
 doSaveModel = function (req, res) {
   var payload, callback,
-    name = req.params.name.toCamelCase(true),
     data = req.body;
 
   callback = function (err, resp) {
@@ -200,7 +199,6 @@ doSaveModel = function (req, res) {
     name: "saveModel",
     user: getCurrentUser(),
     data: {
-      name: name,
       specs: data,
       callback: callback
     }

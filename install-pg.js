@@ -24,9 +24,10 @@ var manifest, file, content, result, execute, name, createFunction, buildApi,
   fs = require("fs"),
   path = require("path"),
   yaml = require("js-yaml"),
-  pgConfig = require("./common/pgconfig.js"),
+  datasource = require("./server/datasource"),
+  pgConfig = require("./server/pgconfig"),
   f = require("./common/core.js"),
-  filename = path.format({root: "/", base: "manifest.json"}),
+  filename = path.format({root: "/", dir: __dirname, base: "manifest.json"}),
   i = 0;
 
 connect = function (callback) {
@@ -185,15 +186,9 @@ saveModule = function (name, script, version) {
 };
 
 saveModels = function (models) {
-  var payload = JSON.stringify({
-      method: "POST",
-      name: "saveModel",
-      user: user,
-      data: [models]
-    }),
-    sql = "SELECT request($$" + payload + "$$);";
+  var callback, payload;
 
-  client.query(sql, function (err) {
+  callback = function (err) {
     if (err) {
       console.error(err);
       rollback();
@@ -201,7 +196,20 @@ saveModels = function (models) {
     }
 
     processFile();
-  });
+  };
+
+  payload = {
+    method: "PUT",
+    name: "saveModel",
+    user: user,
+    data: {
+      specs: models,
+      client: client,
+      callback: callback
+    }
+  };
+
+  datasource.request(payload);
 };
 
 executeSql = function (sql) {
@@ -468,6 +476,7 @@ buildApi = function () {
 
           console.log("Install completed!");
           client.end();
+          process.exit();
         });
       });
     });

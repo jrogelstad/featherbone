@@ -55,7 +55,10 @@
     @param {String} [payload.method] Method to perform: "GET", "POST",
       "PUT", "PATCH" or "DELETE"
     @param {String} [payload.id] Identifier for "GET", "PATCH" ond "DELETE"
-    @param {String} [payload.data] Data for "POST" and "PATCH" or functions    
+    @param {String} [payload.data] Data for "POST" and "PATCH" or functions
+    @param {Object} [payload.client] Database client. If undefined one will
+      be intialized by default and wrapped in a transaction if necessary.
+    @param {String} [payload.callback] Callback  
     @param {Boolean} Bypass authorization checks. Default = false.
     @return receiver
   */
@@ -119,7 +122,8 @@
         }
       }
 
-      if (transaction) {
+      // Wrap transactions
+      if (transaction && !obj.client) {
         obj.callback = afterTransaction;
         obj.client.query("BEGIN;", function (err, resp) {
           if (err) {
@@ -128,7 +132,11 @@
 
           transaction(obj, false, isSuperUser);
         });
+        return;
       }
+
+      // Passed client must handle its own transaction wrapping
+      transaction(obj, false, isSuperUser);
     };
 
     afterTransaction = function (err, resp) {
@@ -152,7 +160,8 @@
 
     afterRequest = function (err, resp) {
       controller.setCurrentUser(undefined);
-      done();
+      // Passed client will handle it's own connection
+      if (!obj.client) { done(); }
 
       // Format errors into objects that can be handled by server
       if (err) {
@@ -172,7 +181,11 @@
     };
 
     controller.setCurrentUser(obj.user);
-    if (conn) {
+
+    if (obj.client) {
+      client = obj.client;
+      doRequest();
+    } else if (conn) {
       connect();
       return;
     }
