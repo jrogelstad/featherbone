@@ -133,8 +133,8 @@
           obj.client.query(sql, createObjectfolder);
           return;
         }
+        createObjectfolder();
       });
-      createObjectfolder();
     };
 
     // Create the object object folder table
@@ -155,6 +155,7 @@
           obj.client.query(sql, createModule);
           return;
         }
+
         createModule();
       });
     };
