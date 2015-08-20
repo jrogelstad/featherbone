@@ -107,7 +107,7 @@
         case "GET":
           obj.callback = afterRequest;
           controller.doSelect(obj, false, isSuperUser);
-          break;
+          return;
         case "POST":
           transaction = controller.doInsert;
           break;
@@ -185,7 +185,10 @@
     if (obj.client) {
       client = obj.client;
       doRequest();
-    } else if (conn) {
+      return;
+    }
+
+    if (conn) {
       connect();
       return;
     }

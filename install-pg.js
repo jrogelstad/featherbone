@@ -70,10 +70,19 @@ rollback = function () {
   });
 };
 
-execute = function (script) {
-  var sql = "DO $$" + script + "$$ LANGUAGE plv8;";
+execute = function (filename) {
+  var f = path.resolve(filename),
+    exp = require(f),
+    callback = function (err, resp) {
+      if (err) {
+        console.error(err);
+        rollback();
+      }
 
-  client.query(sql, processFile);
+      processFile();
+    };
+
+  exp.execute({client: client, callback: callback});
 };
 
 createFunction = function (name, args, returns, volatility, script) {
@@ -140,7 +149,7 @@ processFile = function (err) {
 
     switch (file.type) {
     case "execute":
-      execute(content);
+      execute(filename);
       break;
     case "function":
       createFunction(name, file.args, file.returns, file.volatility, content);
