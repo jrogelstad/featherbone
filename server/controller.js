@@ -1374,12 +1374,16 @@
       @return receiver
     */
     getModel: function (obj, includeInherited) {
-      var payload = {name: "catalog", client: obj.client},
-        name = obj.name;
+      var callback, name = obj.name;
 
-      payload.callback = function (err, catalog) {
+      callback = function (err, catalog) {
         var resultProps, modelProps, keys, appendParent,
           result = {name: name, inherits: "Object"};
+
+        if (err) {
+          obj.callback(err);
+          return;
+        }
 
         appendParent = function (child, parent) {
           var model = catalog[parent],
@@ -1433,7 +1437,11 @@
       };
 
       /* First, get catalog */
-      that.getSettings(payload);
+      that.getSettings({
+        name: "catalog",
+        client: obj.client,
+        callback: callback
+      });
     },
 
     /**
@@ -1487,6 +1495,7 @@
         });
       };
 
+      // Check if settings have been changed if we already have them
       if (settings[name]) {
         that.checkEtag({
           name: "$settings",
@@ -1498,6 +1507,7 @@
         return;
       }
 
+      // Request the settings from the database
       callback(null, false);
     },
 
@@ -1962,24 +1972,66 @@
         c = 0,
         len = specs.length;
 
-      getParentKey = function (child) {
-        var cParent, cKeys, cProps;
+      // Retrieve the primary key of the parent of a child
+      getParentKey = function (child, callback) {
+        var cParent, afterGetChildModel, afterGetParentModel, done;
 
-        cProps = that.getModel(child).properties;
-        cKeys = Object.keys(cProps);
-        cKeys.forEach(function (cKey) {
-          if (typeof cProps[cKey].type === "object" &&
-              cProps[cKey].type.childOf) {
-            cParent = cProps[cKey].type.relation;
+        afterGetChildModel = function (err, resp) {
+          var cKeys, cProps;
 
-            if (isChildModel(that.getModel(parent))) {
-              return getParentKey(cParent);
-            }
-
-            return that.getKey(cParent.toSnakeCase());
+          if (err) {
+            obj.callback(err);
+            return;
           }
-        });
 
+          cProps = resp.properties;
+          cKeys = Object.keys(cProps);
+          cKeys.every(function (cKey) {
+            if (typeof cProps[cKey].type === "object" &&
+                cProps[cKey].type.childOf) {
+              cParent = cProps[cKey].type.relation;
+
+              that.getModel({
+                name: parent,
+                client: obj.client,
+                callback: afterGetParentModel
+              });
+            }
+          });
+        };
+
+        afterGetParentModel = function (err, resp) {
+          if (err) {
+            obj.callback(err);
+            return;
+          }
+
+          if (resp.isChildModel) {
+            getParentKey(cParent, callback);
+            return;
+          }
+
+          that.getKey({
+            name: cParent.toSnakeCase(),
+            client: obj.client,
+            callback: done
+          });
+        };
+
+        done = function (err, resp) {
+          if (err) {
+            obj.callback(err);
+            return;
+          }
+
+          obj.callback(null, resp);
+        };
+
+        that.getModel({
+          name: child,
+          client: obj.client,
+          callback: afterGetChildModel
+        });
       };
 
       nextSpec = function () {
@@ -2035,6 +2087,7 @@
               table + "_id_key",
               inherits
             ]);
+
           } else {
             /* Drop non-inherited columns not included in properties */
             props = model.properties;
@@ -2184,6 +2237,7 @@
 
                 if (props[key].description) {
                   sql += "COMMENT ON COLUMN %I.%I IS %L;";
+
                   tokens = tokens.concat([
                     table,
                     token,
@@ -2207,6 +2261,7 @@
 
           /* Update schema */
           sql = sql.format(tokens);
+
           obj.client.query(sql, afterUpdateSchema);
         };
 
@@ -2380,6 +2435,8 @@
         };
 
         afterNextVal = function (err, resp) {
+          var callback;
+
           if (err) {
             obj.callback(err);
             return;
@@ -2387,15 +2444,33 @@
 
           pk = resp.rows[0].pk;
 
-          sql = "INSERT INTO \"$model\" " +
-            "(_pk, id, created, created_by, updated, updated_by, " +
-            "is_deleted, is_child, parent_pk) VALUES " +
-            "($1, $2, now(), $3, now(), $4, false, $5, $6);";
-          values = [pk, table, that.getCurrentUser(),
-            that.getCurrentUser(), isChild,
-            isChild ? getParentKey(name) : pk];
+          callback = function (err, resp) {
+            var key;
 
-          obj.client.query(sql, values, afterInsertModel);
+            if (err) {
+              obj.callback(err);
+              return;
+            }
+
+            key = resp;
+
+            sql = "INSERT INTO \"$model\" " +
+              "(_pk, id, created, created_by, updated, updated_by, " +
+              "is_deleted, is_child, parent_pk) VALUES " +
+              "($1, $2, now(), $3, now(), $4, false, $5, $6);";
+            values = [pk, table, that.getCurrentUser(),
+              that.getCurrentUser(), isChild,
+              key];
+
+            obj.client.query(sql, values, afterInsertModel);
+          };
+
+          if (isChild) {
+            getParentKey(name, callback);
+            return;
+          }
+
+          callback(null, pk);
         };
 
         afterInsertModel = function (err, resp) {
@@ -2419,29 +2494,26 @@
         };
 
         afterPropagateViews = function (err, resp) {
-          var canDo = authorization === undefined;
-
           if (err) {
             obj.callback(err);
             return;
           }
 
-          // If no specific authorization, grant to all or none
-          if (!authorization) {
+          // If no specific authorization, make one
+          if (authorization === undefined) {
             authorization = {
               model: name,
               role: "everyone",
               actions: {
-                canCreate: canDo,
-                canRead: canDo,
-                canUpdate: canDo,
-                canDelete: canDo
-              }
+                canCreate: true,
+                canRead: true,
+                canUpdate: true,
+                canDelete: true
+              },
+              client: obj.client,
+              callback: afterSaveAuthorization
             };
           }
-
-          authorization.client = obj.client;
-          authorization.callback = afterSaveAuthorization;
 
           /* Set authorization */
           if (authorization) {

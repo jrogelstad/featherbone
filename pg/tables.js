@@ -18,9 +18,9 @@
 /*jslint maxlen: 200 */
 (function (exports) {
   exports.execute = function (obj) {
-    var afterCurrentUser, createObject, createModel, createAuth, createObjectfolder,
+    var createCamelCase, createObject, createModel, createAuth, createObjectfolder,
       createModule, createSettings, createUser, sqlCheck, done,
-      user, sql, params;
+      sql, params;
 
     sqlCheck = function (table, callback) {
       var sqlChk = "SELECT * FROM pg_tables WHERE schemaname = 'public' AND tablename = $1;";
@@ -35,14 +35,12 @@
       });
     };
 
-    afterCurrentUser = function (err, resp) {
-      if (err) {
-        obj.callback(err);
-        return;
-      }
-
-      user = resp.rows[0].current_user;
-      createObject();
+    // Create a camel case function
+    createCamelCase = function (err) {
+      sql = "CREATE OR REPLACE FUNCTION to_camel_case(str text) RETURNS text AS $$" +
+        "SELECT replace(initcap($1), '_', '');" +
+        "$$ LANGUAGE SQL IMMUTABLE;";
+      obj.client.query(sql, createObject);
     };
 
     // Create the base object table
@@ -205,7 +203,7 @@
               return;
             }
 
-            obj.client.query("INSERT INTO \"$user\" VALUES ($1, true)", [user], createSettings);
+            obj.client.query("INSERT INTO \"$user\" VALUES ($1, true)", [obj.user], createSettings);
           });
           return;
         }
@@ -302,7 +300,8 @@
       obj.callback();
     };
 
-    obj.client.query("SELECT CURRENT_USER", afterCurrentUser);
+    // Real work starts here
+    createCamelCase();
   };
 
 }(exports));

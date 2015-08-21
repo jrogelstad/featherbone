@@ -2,56 +2,12 @@
     "version": "0.0.1",
     "files": [
         {
-            "type": "function",
-            "path": "pg/init.js"
-        },
-        {
-            "type": "function",
-            "path": "pg/request.js",
-            "args": {
-                "obj": {
-                    "type": "json"
-                },
-                "init": {
-                    "type": "boolean",
-                    "defaultValue": "false"
-                }
-            },
-            "returns": "json"
-        },
-        {
-            "type": "sql",
-            "path": "pg/to_camel_case.sql"
-        },
-        {
             "type": "execute",
             "path": "pg/tables.js"
         },
         {
-            "name": "extend-string",
-            "type": "module",
-            "path": "common/extend-string.js"
-        },
-        {
-            "type": "module",
-            "path": "common/core.js"
-        },
-        {
-            "name": "fast-json-patch",
-            "type": "module",
-            "path": "node_modules/fast-json-patch/src/json-patch-duplex.js"
-        },
-        {
-            "type": "module",
-            "path": "pg/postgres-datasource.js"
-        },
-        {
             "type": "model",
             "path": "pg/models.json"
-        },
-        {
-            "type": "execute",
-            "path": "pg/populate.js"
         }
     ]
 }

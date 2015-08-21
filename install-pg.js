@@ -65,8 +65,9 @@ commit = function (callback) {
 
 rollback = function () {
   client.query("ROLLBACK;", function () {
-    console.log("Install failed.");
+    console.error("Install failed.");
     client.end();
+    process.exit();
   });
 };
 
@@ -82,39 +83,7 @@ execute = function (filename) {
       processFile();
     };
 
-  exp.execute({client: client, callback: callback});
-};
-
-createFunction = function (name, args, returns, volatility, script) {
-  volatility = volatility || "VOLATILE";
-
-  var keys, arg, txt,
-    sql = "CREATE OR REPLACE function " + name + "(",
-    ary = [],
-    n = 0;
-
-  if (args) {
-    keys = Object.keys(args);
-
-    while (n < keys.length) {
-      arg = args[keys[n]];
-      txt = keys[n] + " " + arg.type;
-
-      if (arg.defaultValue) {
-        txt += " default " + arg.defaultValue;
-      }
-
-      ary.push(txt);
-      n++;
-    }
-
-    sql += ary.join(", ");
-  }
-
-  sql += ") RETURNS " + (returns || "void") + " AS $$" + script +
-    "$$ LANGUAGE plv8 " + volatility + ";";
-
-  client.query(sql, processFile);
+  exp.execute({user: user, client: client, callback: callback});
 };
 
 processFile = function (err) {
@@ -151,17 +120,11 @@ processFile = function (err) {
     case "execute":
       execute(filename);
       break;
-    case "function":
-      createFunction(name, file.args, file.returns, file.volatility, content);
-      break;
     case "module":
       saveModule(file.name || name, content, manifest.version);
       break;
     case "model":
       saveModels(JSON.parse(content));
-      break;
-    case "sql":
-      executeSql(content);
       break;
     default:
       console.error("Unknown type.");
@@ -211,26 +174,14 @@ saveModels = function (models) {
     method: "PUT",
     name: "saveModel",
     user: user,
+    client: client,
     data: {
       specs: models,
-      client: client,
       callback: callback
     }
   };
 
   datasource.request(payload);
-};
-
-executeSql = function (sql) {
-  client.query(sql, function (err, result) {
-    if (err) {
-      rollback();
-      console.error(err);
-      return;
-    }
-
-    processFile();
-  });
 };
 
 buildApi = function () {
