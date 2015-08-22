@@ -1,7 +1,6 @@
 /**
-    Featherbone is a JavaScript based persistence framework for building object
-    relational database applications
-    
+    Framework for building object relational database apps
+
     Copyright (C) 2015  John Rogelstad
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -14,7 +13,6 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-
 (function (exports) {
   exports.execute = function (obj) {
     var afterCurrentUser, getGlobalFolder, createGlobalFolder, getEveryone,
