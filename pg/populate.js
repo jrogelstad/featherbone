@@ -122,47 +122,53 @@
     };
 
     grantEveryoneGlobal = function (err, resp) {
-      var req;
+      var reqGlobal, reqGlobalContent, reqFolder, reqRole, reqLog,
+        req;
+
+      req = function () {
+        return {
+          method: "PUT",
+          name: "saveAuthorization",
+          user: user,
+          data: {
+            id: "global",
+            role: "everyone",
+            actions: {
+              canCreate: true,
+              canRead: true,
+              canUpdate: true,
+              canDelete: true
+            },
+            callback: doneGrants
+          },
+          client: obj.client
+        };
+      };
 
       if (err) {
         obj.callback(err);
         return;
       }
 
-      // Grant everyone access to global folder
-      req = {
-        method: "POST",
-        name: "saveAuthorization",
-        user: user,
-        data: {
-          id: "global",
-          role: "everyone",
-          isMember: true,
-          actions: {
-            canCreate: true,
-            canRead: true,
-            canUpdate: true,
-            canDelete: true
-          }
-        },
-        client: obj.client,
-        callback: doneGrants
-      };
-
       /* Access to folder contents */
-      datasource.request(req);
+      reqGlobalContent = req();
+      reqGlobalContent.data.isMember = true;
+      datasource.request(reqGlobalContent);
 
       /* Access to folder itself */
-      delete req.data.isMember;
-      datasource.request(req);
+      reqGlobal = req();
+      datasource.request(reqGlobal);
 
       /* Grant everyone access to other objects */
-      req.data.id = "role";
-      datasource.request(req);
-      req.data.id = "folder";
-      datasource.request(req);
-      req.data.id = "log";
-      datasource.request(req);
+      reqRole = req();
+      reqRole.data.id = "role";
+      datasource.request(reqRole);
+      reqFolder = req();
+      reqFolder.data.id = "folder";
+      datasource.request(reqFolder);
+      reqLog = req();
+      reqLog.data.id = "log";
+      datasource.request(reqLog);
     };
 
     doneGrants = function (err, resp) {

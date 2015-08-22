@@ -291,9 +291,16 @@
   });
 
   // Register certain functions
+  that.registerFunction("GET", "getAuthorization", controller.getAuthorization);
+  that.registerFunction("GET", "isAuthorized", controller.isAuthorized);
+  that.registerFunction("GET", "isSuperUser", controller.isSuperUser);
   that.registerFunction("GET", "getSettings", controller.getSettings);
   that.registerFunction("GET", "getModel", controller.getModel);
+  that.registerFunction("PUT", "saveAuthorization",
+    controller.saveAuthorization);
   that.registerFunction("PUT", "saveModel", controller.saveModel);
+  that.registerFunction("PUT", "saveSettings", controller.saveSettings);
+  that.registerFunction("PUT", "setSuperUser", controller.setSuperUser);
   that.registerFunction("DELETE", "deleteModel", controller.deleteModel);
 
 }(exports));

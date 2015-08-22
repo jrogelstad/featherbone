@@ -442,6 +442,7 @@
 
         if (!model) {
           obj.callback("Class \"" + obj.name + "\" not found");
+          return;
         }
 
         props = model.properties;
@@ -1669,7 +1670,6 @@
         }
 
       @param {Object} Payload
-      @param {String} [payload.model] Class name
       @param {String} [payload.id] Object id
       @param {Boolean} [payload.isMember] Indicates member privilege
         of folder
