@@ -23,7 +23,6 @@ var manifest, file, content, result, execute, name, createFunction, buildApi,
   pg = require("pg"),
   fs = require("fs"),
   path = require("path"),
-  yaml = require("js-yaml"),
   datasource = require("./server/datasource"),
   pgConfig = require("./server/pgconfig"),
   f = require("./common/core.js"),
@@ -185,261 +184,257 @@ saveModels = function (models) {
 };
 
 buildApi = function () {
-  var swagger, catalog, sql, payload, keys;
+  var swagger, catalog, payload, callback, keys;
 
-  console.log("Building swagger API");
+  callback = function (err, resp) {
+    var definitions = swagger.definitions;
 
-  // Load the baseline swagger file
-  fs.readFile("config/swagger-base.yaml", "utf8", function (err, data) {
     if (err) {
       console.error(err);
       return;
     }
 
-    swagger = yaml.safeLoad(data);
+    catalog = resp;
 
-    // Load the existing model catalog from postgres
-    connect(function (err) {
+    // Loop through each model and append to swagger api
+    keys = Object.keys(catalog);
+    keys.forEach(function (key) {
+      var definition, path,
+        model = catalog[key],
+        properties = {},
+        inherits = model.inherits || "Object",
+        pathName = "/" + key.toSpinalCase() + "/{id}",
+        name = key.toProperCase();
+
+      model.name = key; // For error trapping later
+
+      // Append singluar path
+      if (!model.isChild) {
+        path = {
+          "x-swagger-router-controller": "data",
+          get: {
+            summary: "Info for a specific " + name,
+            parameters: [
+              {
+                name: "id",
+                in: "path",
+                description: "The id of the " + name + " to retrieve",
+                type: "string"
+              }
+            ],
+            responses: {
+              200: {
+                description: "Expected response to a valid request",
+                schema: {
+                  $ref: "#/definitions/" + key
+                }
+              },
+              default: {
+                description: "unexpected error",
+                schema: {
+                  $ref: "#/definitions/ErrorResponse"
+                }
+              }
+            }
+          },
+          patch: {
+            summary: "Update an existing " + name,
+            parameters: [
+              {
+                name: "id",
+                in: "path",
+                description: "The id of the " + name + " to update",
+                type: "string"
+              }
+            ],
+            responses: {
+              200: {
+                description: "Expected response to a valid request",
+                schema: {
+                  $ref: "#/definitions/RequestResponse"
+                }
+              },
+              default: {
+                description: "unexpected error",
+                schema: {
+                  $ref: "#/definitions/ErrorResponse"
+                }
+              }
+            }
+          },
+          delete: {
+            summary: "Delete a " + name,
+            operationId: "doHandleOne",
+            parameters: [
+              {
+                name: "id",
+                in: "path",
+                description: "The id of the " + name + " to delete",
+                type: "string"
+              }
+            ],
+            responses: {
+              200: {
+                description: "Expected response to a valid request",
+                schema: {
+                  $ref: "#/definitions/RequestResponse"
+                }
+              },
+              default: {
+                description: "unexpected error",
+                schema: {
+                  $ref: "#/definitions/ErrorResponse"
+                }
+              }
+            }
+          },
+        };
+
+        swagger.paths[pathName] = path;
+
+        // Append list path
+        if (model.plural) {
+          path = {
+            "x-swagger-router-controller": "data",
+            get: {
+              description: key + " data",
+              operationId: "doGet",
+              parameters: [
+                {
+                  name: "offset",
+                  in: "query",
+                  description: "Offset from first item",
+                  required: false,
+                  type: "integer",
+                  format: "int32"
+                },
+                {
+                  name: "limit",
+                  in: "query",
+                  description: "How many items to return",
+                  required: false,
+                  type: "integer",
+                  format: "int32"
+                }
+              ],
+              responses: {
+                200: {
+                  description: "Array of " + model.plural.toProperCase(),
+                  schema: {
+                    $ref: "#/definitions/" + model.plural
+                  }
+                },
+                default: {
+                  description: "Error",
+                  schema: {
+                    $ref: "#/definitions/ErrorResponse"
+                  }
+                }
+              }
+            },
+            post: {
+              summary: "Add a new " + name + " to the database",
+              operationId: "doUpsert",
+              responses: {
+                200: {
+                  description: "Expected response to a valid request",
+                  schema: {
+                    $ref: "#/definitions/RequestResponse"
+                  }
+                },
+                default: {
+                  description: "unexpected error",
+                  schema: {
+                    $ref: "#/definitions/PgErrorResponse"
+                  }
+                }
+              }
+            }
+          };
+
+          pathName = "/" + model.plural.toSnakeCase();
+          swagger.paths[pathName] = path;
+        }
+      }
+
+      // Append singular model definition
+      definition = {};
+
+      if (model.description) {
+        definition.description = model.description;
+      }
+
+      if (model.discriminator) {
+        definition.discriminator = model.discriminator;
+      }
+
+      processProperties(model, properties);
+
+      if (key === "Object") {
+        definition.properties = properties;
+      } else {
+        definition.allOf = [
+          {$ref: "#/definitions/" + inherits},
+          {properties: properties}
+        ];
+      }
+
+      if (model.required) {
+        definition.required = model.required;
+      }
+
+      definitions[key] = definition;
+
+      // Append plural definition
+      if (model.plural) {
+        definitions[model.plural] = {
+          type: "array",
+          items: {
+            $ref: "#/definitions/" + key
+          }
+        };
+      }
+    });
+
+    swagger = JSON.stringify(swagger, null, 2);
+
+    // Save swagger file
+    fs.writeFile("swagger.json", swagger, function (err) {
       if (err) {
         console.error(err);
         return;
       }
 
-      payload = {
-        method: "POST",
-        name: "getSettings",
-        user: "postgres",
-        data: "catalog"
-      };
-      sql = "SELECT request($$" + JSON.stringify(payload) + "$$) as response;";
-
-      // ...execute query
-      client.query(sql, function (err, resp) {
-        var definitions = swagger.definitions;
-
-        if (err) {
-          console.error(err);
-          return;
-        }
-
-        catalog = resp.rows[0].response;
-
-        // Loop through each model and append to swagger api
-        keys = Object.keys(catalog);
-        keys.forEach(function (key) {
-          var definition, path,
-            model = catalog[key],
-            properties = {},
-            inherits = model.inherits || "Object",
-            pathName = "/" + key.toSpinalCase() + "/{id}",
-            name = key.toProperCase();
-
-          model.name = key; // For error trapping later
-
-          // Append singluar path
-          if (!model.isChild) {
-            path = {
-              "x-swagger-router-controller": "data",
-              get: {
-                summary: "Info for a specific " + name,
-                operationId: "doHandleOne",
-                parameters: [
-                  {
-                    name: "id",
-                    in: "path",
-                    description: "The id of the " + name + " to retrieve",
-                    type: "string"
-                  }
-                ],
-                responses: {
-                  200: {
-                    description: "Expected response to a valid request",
-                    schema: {
-                      $ref: "#/definitions/" + key
-                    }
-                  },
-                  default: {
-                    description: "unexpected error",
-                    schema: {
-                      $ref: "#/definitions/ErrorResponse"
-                    }
-                  }
-                }
-              },
-              patch: {
-                summary: "Update an existing " + name,
-                operationId: "doUpsert",
-                parameters: [
-                  {
-                    name: "id",
-                    in: "path",
-                    description: "The id of the " + name + " to update",
-                    type: "string"
-                  }
-                ],
-                responses: {
-                  200: {
-                    description: "Expected response to a valid request",
-                    schema: {
-                      $ref: "#/definitions/RequestResponse"
-                    }
-                  },
-                  default: {
-                    description: "unexpected error",
-                    schema: {
-                      $ref: "#/definitions/ErrorResponse"
-                    }
-                  }
-                }
-              },
-              delete: {
-                summary: "Delete a " + name,
-                operationId: "doHandleOne",
-                parameters: [
-                  {
-                    name: "id",
-                    in: "path",
-                    description: "The id of the " + name + " to delete",
-                    type: "string"
-                  }
-                ],
-                responses: {
-                  200: {
-                    description: "Expected response to a valid request",
-                    schema: {
-                      $ref: "#/definitions/RequestResponse"
-                    }
-                  },
-                  default: {
-                    description: "unexpected error",
-                    schema: {
-                      $ref: "#/definitions/ErrorResponse"
-                    }
-                  }
-                }
-              },
-            };
-
-            swagger.paths[pathName] = path;
-
-            // Append list path
-            if (model.plural) {
-              path = {
-                "x-swagger-router-controller": "data",
-                get: {
-                  description: key + " data",
-                  operationId: "doGet",
-                  parameters: [
-                    {
-                      name: "offset",
-                      in: "query",
-                      description: "Offset from first item",
-                      required: false,
-                      type: "integer",
-                      format: "int32"
-                    },
-                    {
-                      name: "limit",
-                      in: "query",
-                      description: "How many items to return",
-                      required: false,
-                      type: "integer",
-                      format: "int32"
-                    }
-                  ],
-                  responses: {
-                    200: {
-                      description: "Array of " + model.plural.toProperCase(),
-                      schema: {
-                        $ref: "#/definitions/" + model.plural
-                      }
-                    },
-                    default: {
-                      description: "Error",
-                      schema: {
-                        $ref: "#/definitions/ErrorResponse"
-                      }
-                    }
-                  }
-                },
-                post: {
-                  summary: "Add a new " + name + " to the database",
-                  operationId: "doUpsert",
-                  responses: {
-                    200: {
-                      description: "Expected response to a valid request",
-                      schema: {
-                        $ref: "#/definitions/RequestResponse"
-                      }
-                    },
-                    default: {
-                      description: "unexpected error",
-                      schema: {
-                        $ref: "#/definitions/PgErrorResponse"
-                      }
-                    }
-                  }
-                }
-              };
-
-              pathName = "/" + model.plural.toSnakeCase();
-              swagger.paths[pathName] = path;
-            }
-          }
-
-          // Append singular model definition
-          definition = {};
-
-          if (model.description) {
-            definition.description = model.description;
-          }
-
-          if (model.discriminator) {
-            definition.discriminator = model.discriminator;
-          }
-
-          processProperties(model, properties);
-
-          if (key === "Object") {
-            definition.properties = properties;
-          } else {
-            definition.allOf = [
-              {$ref: "#/definitions/" + inherits},
-              {properties: properties}
-            ];
-          }
-
-          if (model.required) {
-            definition.required = model.required;
-          }
-
-          definitions[key] = definition;
-
-          // Append plural definition
-          if (model.plural) {
-            definitions[model.plural] = {
-              type: "array",
-              items: {
-                $ref: "#/definitions/" + key
-              }
-            };
-          }
-        });
-
-        // Save swagger file
-        data = yaml.safeDump(swagger);
-        fs.writeFile("swagger.yaml", data, function (err) {
-          if (err) {
-            console.error(err);
-            return;
-          }
-
-          console.log("Install completed!");
-          client.end();
-          process.exit();
-        });
-      });
+      console.log("Install completed!");
+      client.end();
+      process.exit();
     });
+  };
+
+  // Real work starts here
+  console.log("Building swagger API");
+
+  // Load the baseline swagger file
+  fs.readFile("config/swagger-base.json", "utf8", function (err, data) {
+    if (err) {
+      console.error(err);
+      return;
+    }
+
+    swagger = JSON.parse(data);
+
+    // Load the existing model catalog from postgres
+    payload = {
+      method: "GET",
+      name: "getSettings",
+      user: "postgres",
+      data: {
+        name: "catalog",
+        callback: callback
+      }
+    };
+
+    datasource.request(payload);
   });
 };
 

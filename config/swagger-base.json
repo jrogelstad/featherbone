@@ -1,0 +1,212 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "0.0.1",
+    "title": "Featherbone data service",
+    "license": {
+      "name": "GPLv3"
+    }
+  },
+  "host": "localhost:10010",
+  "basePath": "/",
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/favicon.ico": {
+      "x-swagger-router-controller": "data",
+      "get": {
+        "description": "Placeholder for chrome. Returns nothing for now",
+        "operationId": "favicon",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "schema": {
+              "$ref": "#/definitions/FaviconResponse"
+            }
+          }
+        }
+      }
+    },
+    "/settings/{name}": {
+      "x-swagger-router-controller": "data",
+      "get": {
+        "summary": "Get settings by name",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "description": "The name of the settings to retrieve",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Expected response to a valid request",
+            "schema": {
+              "$ref": "#/definitions/Settings"
+            }
+          },
+          "default": {
+            "description": "unexpected error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Save new settings",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "description": "The name of the settings",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Expected response to a valid request",
+            "schema": {
+              "$ref": "#/definitions/RequestResponse"
+            }
+          },
+          "default": {
+            "description": "unexpected error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/model/{name}": {
+      "x-swagger-router-controller": "data",
+      "get": {
+        "summary": "Get model by name",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "description": "The name of the model to retrieve",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Expected response to a valid request",
+            "schema": {
+              "$ref": "#/definitions/Settings"
+            }
+          },
+          "default": {
+            "description": "unexpected error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Save model",
+        "operationId": "doSaveSattings",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "description": "The name of the settings",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Expected response to a valid request",
+            "schema": {
+              "$ref": "#/definitions/RequestResponse"
+            }
+          },
+          "default": {
+            "description": "unexpected error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete model",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "description": "The name of the settings",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Expected response to a valid request",
+            "schema": {
+              "$ref": "#/definitions/RequestResponse"
+            }
+          },
+          "default": {
+            "description": "unexpected error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "ErrorResponse": {
+      "required": [
+        "message"
+      ],
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "FaviconResponse": {
+      "required": [
+        "message"
+      ],
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "RequestResponse": {
+      "required": [
+        "message"
+      ],
+      "properties": {
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "Settings": {
+      "description": "Generic definition for settings",
+      "properties": {
+        "value": {
+          "description": "Surrogate key",
+          "type": "object"
+        }
+      }
+    }
+  }
+}
