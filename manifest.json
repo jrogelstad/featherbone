@@ -8,6 +8,10 @@
         {
             "type": "model",
             "path": "pg/models.json"
+        },
+        {
+            "type": "execute",
+            "path": "pg/populate.js"
         }
     ]
 }

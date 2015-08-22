@@ -19,7 +19,7 @@
 
   require("../common/extend-string");
 
-  var that, createView, curry, isChildModel,
+  var that, createView, curry, getParentKey, isChildModel,
     propagateViews, propagateAuth, currentUser, buildAuthSql,
     relationColumn, sanitize,
     f = require("../common/core"),
@@ -1967,72 +1967,10 @@
      * @return receiver
     */
     saveModel: function (obj) {
-      var spec, getParentKey, nextSpec, parent,
+      var spec, nextSpec, parent,
         specs = Array.isArray(obj.specs) ? obj.specs : [obj.specs],
         c = 0,
         len = specs.length;
-
-      // Retrieve the primary key of the parent of a child
-      getParentKey = function (child, callback) {
-        var cParent, afterGetChildModel, afterGetParentModel, done;
-
-        afterGetChildModel = function (err, resp) {
-          var cKeys, cProps;
-
-          if (err) {
-            obj.callback(err);
-            return;
-          }
-
-          cProps = resp.properties;
-          cKeys = Object.keys(cProps);
-          cKeys.every(function (cKey) {
-            if (typeof cProps[cKey].type === "object" &&
-                cProps[cKey].type.childOf) {
-              cParent = cProps[cKey].type.relation;
-
-              that.getModel({
-                name: parent,
-                client: obj.client,
-                callback: afterGetParentModel
-              });
-            }
-          });
-        };
-
-        afterGetParentModel = function (err, resp) {
-          if (err) {
-            obj.callback(err);
-            return;
-          }
-
-          if (resp.isChildModel) {
-            getParentKey(cParent, callback);
-            return;
-          }
-
-          that.getKey({
-            name: cParent.toSnakeCase(),
-            client: obj.client,
-            callback: done
-          });
-        };
-
-        done = function (err, resp) {
-          if (err) {
-            obj.callback(err);
-            return;
-          }
-
-          obj.callback(null, resp);
-        };
-
-        that.getModel({
-          name: child,
-          client: obj.client,
-          callback: afterGetChildModel
-        });
-      };
 
       nextSpec = function () {
         var sqlUpd, token, values, defaultValue, props, keys, recs, type,
@@ -2466,7 +2404,12 @@
           };
 
           if (isChild) {
-            getParentKey(name, callback);
+            getParentKey({
+              parent: parent,
+              child: name,
+              client: obj.client,
+              callback: callback
+            });
             return;
           }
 
@@ -2904,6 +2847,77 @@
   };
 
   /** private */
+  getParentKey = function (obj) {
+    var cParent, afterGetChildModel, afterGetParentModel, done;
+
+    afterGetChildModel = function (err, resp) {
+      var cKeys, cProps;
+
+      if (err) {
+        obj.callback(err);
+        return;
+      }
+
+      cProps = resp.properties;
+      cKeys = Object.keys(cProps);
+      cKeys.every(function (cKey) {
+        if (typeof cProps[cKey].type === "object" &&
+            cProps[cKey].type.childOf) {
+          cParent = cProps[cKey].type.relation;
+
+          that.getModel({
+            name: obj.parent,
+            client: obj.client,
+            callback: afterGetParentModel
+          });
+
+          return false;
+        }
+
+        return true;
+      });
+    };
+
+    afterGetParentModel = function (err, resp) {
+      if (err) {
+        obj.callback(err);
+        return;
+      }
+
+      if (resp.isChildModel) {
+        getParentKey({
+          child: cParent,
+          parent: obj.parent,
+          client: obj.client,
+          callback: obj.callback
+        });
+        return;
+      }
+
+      that.getKey({
+        name: cParent.toSnakeCase(),
+        client: obj.client,
+        callback: done
+      });
+    };
+
+    done = function (err, resp) {
+      if (err) {
+        obj.callback(err);
+        return;
+      }
+
+      obj.callback(null, resp);
+    };
+
+    that.getModel({
+      name: obj.child,
+      client: obj.client,
+      callback: afterGetChildModel
+    });
+  };
+
+  /** private */
   isChildModel = function (model) {
     var props = model.properties,
       key;
@@ -2929,10 +2943,8 @@
     @param {Function} [payload.callback] Callback
   */
   propagateAuth = function (obj) {
-    var auth, auths, children, child, n,
-      afterGetRoleId, getAuths, propagate, updateChild, recurse,
-      folderKey = that.getKey(obj.folderId),
-      params = [folderKey, false],
+    var auth, auths, children, child, n, folderKey, recurse, params,
+      afterGetFolderKey, afterGetRoleId, getAuths, propagate, updateChild,
       authSql = "SELECT object_pk, role_pk, can_create, can_read, " +
       " can_update, can_delete " +
       "FROM \"$auth\" AS auth" +
@@ -2952,6 +2964,29 @@
       "$1, $2, true, $3, $4, $5, $6, true)",
       roleSql = "SELECT id FROM role WHERE _pk=$1",
       i = 0;
+
+    afterGetFolderKey = function (err, resp) {
+      if (err) {
+        obj.callback(err);
+        return;
+      }
+
+      folderKey = resp;
+      params = [folderKey, false];
+
+      // Get the role key if necessary
+      if (obj.roleId) {
+        that.getKey({
+          id: obj.roleId,
+          client: obj.client,
+          callback: afterGetRoleId
+        });
+        return;
+      }
+
+      // Otherwise move on ahead
+      getAuths();
+    };
 
     afterGetRoleId = function (err, roleKey) {
       if (err) {
@@ -3084,16 +3119,11 @@
     };
 
     // Real work starts here
-    if (obj.roleId) {
-      that.getKey({
-        id: obj.roleId,
-        client: obj.client,
-        callback: afterGetRoleId
-      });
-      return;
-    }
-
-    getAuths();
+    that.getKey({
+      id: obj.folderId,
+      client: obj.client,
+      callback: afterGetFolderKey
+    });
   };
 
   /** private */
