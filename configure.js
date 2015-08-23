@@ -19,7 +19,7 @@ require("./common/extend-string.js");
 
 var manifest, file, content, result, execute, name, createFunction, buildApi,
   saveModule, saveModels, rollback, connect, commit, begin, processFile, ext,
-  client, user, processProperties, executeSql,
+  client, user, processProperties, executeSql, runBatch,
   pg = require("pg"),
   fs = require("fs"),
   path = require("path"),
@@ -65,7 +65,7 @@ commit = function (callback) {
 
 rollback = function () {
   client.query("ROLLBACK;", function () {
-    console.error("Coniguration failed.");
+    console.error("Configuration failed.");
     client.end();
     process.exit();
   });
@@ -129,6 +129,9 @@ processFile = function (err) {
     case "model":
       saveModels(JSON.parse(content));
       break;
+    case "batch":
+      runBatch(JSON.parse(content));
+      break;
     default:
       console.error("Unknown type.");
       rollback();
@@ -165,7 +168,6 @@ saveModels = function (models) {
 
   callback = function (err) {
     if (err) {
-      console.error(err);
       rollback();
       return;
     }
@@ -178,13 +180,45 @@ saveModels = function (models) {
     name: "saveModel",
     user: user,
     client: client,
+    callback: callback,
     data: {
-      specs: models,
-      callback: callback
+      specs: models
     }
   };
 
   datasource.request(payload);
+};
+
+runBatch = function (data) {
+  var nextItem,
+    len = data.length,
+    i = 0;
+
+  // Iterate recursively
+  nextItem = function (err, resp) {
+    var payload;
+
+    if (err) {
+      rollback();
+      return;
+    }
+
+    if (i < len) {
+      payload = data[i];
+      payload.user = user;
+      payload.client = client;
+      payload.callback = nextItem;
+      i++;
+      datasource.request(payload);
+      return;
+    }
+
+    // We're done here
+    processFile();
+  };
+
+  // Start processing
+  nextItem();
 };
 
 buildApi = function () {
@@ -431,10 +465,10 @@ buildApi = function () {
     payload = {
       method: "GET",
       name: "getSettings",
-      user: "postgres",
+      user: user,
+      callback: callback,
       data: {
-        name: "catalog",
-        callback: callback
+        name: "catalog"
       }
     };
 

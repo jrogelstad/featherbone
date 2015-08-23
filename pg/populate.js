@@ -137,9 +137,9 @@
               canUpdate: true,
               canDelete: true
             },
-            callback: doneGrants
           },
-          client: obj.client
+          client: obj.client,
+          callback: doneGrants
         };
       };
 

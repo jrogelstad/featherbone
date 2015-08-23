@@ -508,6 +508,7 @@
           msg = "Not authorized to create \"" + obj.name + "\" in folder \"" +
             folder + "\"";
           obj.callback({statusCode: 401, message: msg});
+          return;
         }
 
         // Get keys for properties of child arrays.
@@ -1777,6 +1778,7 @@
       };
 
       checkSuperUser = function () {
+
         that.isSuperUser({
           client: obj.client,
           callback: function (err, isSuper) {
@@ -1841,9 +1843,11 @@
           pk = result.pk;
 
           if (!hasAuth && isMember) {
+
             sql = "DELETE FROM \"$auth\" WHERE pk=$1";
             params = [pk];
           } else {
+
             sql = "UPDATE \"$auth\" SET can_create=$1, can_read=$2," +
               "can_update=$3, can_delete=$4 WHERE pk=$5";
             params = [
@@ -1859,6 +1863,7 @@
             ];
           }
         } else if (hasAuth || (!isMember || result.is_inherited)) {
+
           sql = "INSERT INTO \"$auth\" VALUES (" +
             "nextval('$auth_pk_seq'), $1, $2, false," +
             "$3, $4, $5, $6, $7)";
@@ -1872,6 +1877,8 @@
             isMember
           ];
         } else {
+
+          afterUpsertAuth(null, false);
           return;
         }
 

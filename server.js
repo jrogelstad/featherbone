@@ -51,9 +51,9 @@ getCatalog = function (callback) {
     method: "GET",
     name: "getSettings",
     user: "postgres",
+    callback: after,
     data: {
-      name: "catalog",
-      callback: after
+      name: "catalog"
     },
   };
 

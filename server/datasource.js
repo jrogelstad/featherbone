@@ -135,6 +135,7 @@
       }
 
       // Passed client must handle its own transaction wrapping
+      obj.callback = afterRequest;
       transaction(obj, false, isSuperUser);
     };
 
@@ -212,7 +213,7 @@
     can be used to calculate the result. The object should be passed
     as `data` on the request.
 
-    The data object should include a callback to forward a response on
+    The object should include a callback to forward a response on
     completion. The callback should accept an error as the first
     argument and a response as the second.
 
@@ -254,9 +255,9 @@
       datasource.request({
         method: "GET",
         name: "myQuery",
+        callback: callback,
         data: {
-          id: "HTJ28n",
-          callback: callback
+          id: "HTJ28n"
         }
       });
 
