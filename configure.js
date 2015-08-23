@@ -65,7 +65,7 @@ commit = function (callback) {
 
 rollback = function () {
   client.query("ROLLBACK;", function () {
-    console.error("Install failed.");
+    console.error("Coniguration failed.");
     client.end();
     process.exit();
   });
@@ -117,7 +117,7 @@ processFile = function (err) {
 
     content = data;
 
-    console.log("Installing " + filename);
+    console.log("Configuring " + filename);
 
     switch (file.type) {
     case "execute":
@@ -409,7 +409,7 @@ buildApi = function () {
         return;
       }
 
-      console.log("Install completed!");
+      console.log("Configuration completed!");
       client.end();
       process.exit();
     });
