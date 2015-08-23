@@ -26,7 +26,8 @@ var manifest, file, content, result, execute, name, createFunction, buildApi,
   datasource = require("./server/datasource"),
   pgConfig = require("./server/pgconfig"),
   f = require("./common/core.js"),
-  filename = path.format({root: "/", dir: __dirname, base: "manifest.json"}),
+  dir = path.resolve(__dirname, process.argv[2] || "."),
+  filename = path.format({root: "/", dir: dir, base: "manifest.json"}),
   i = 0;
 
 connect = function (callback) {
@@ -86,6 +87,8 @@ execute = function (filename) {
 };
 
 processFile = function (err) {
+  var filepath;
+
   if (err) {
     console.error(err);
     rollback();
@@ -104,8 +107,9 @@ processFile = function (err) {
   filename = file.path;
   ext = path.extname(filename);
   name = path.parse(filename).name;
+  filepath = path.format({root: "/", dir: dir, base: filename});
 
-  fs.readFile(filename, "utf8", function (err, data) {
+  fs.readFile(filepath, "utf8", function (err, data) {
     if (err) {
       console.error(err);
       return;
