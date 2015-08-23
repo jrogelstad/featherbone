@@ -168,9 +168,9 @@ doGetMethod = function (fn, req, res) {
     method: "GET",
     name: fn,
     user: getCurrentUser(),
+    callback: callback,
     data: {
-      name: name,
-      callback: callback
+      name: name
     }
   };
 
@@ -197,9 +197,9 @@ doSaveModel = function (req, res) {
     method: "PUT",
     name: "saveModel",
     user: getCurrentUser(),
+    callback: callback,
     data: {
-      specs: data,
-      callback: callback
+      specs: data
     }
   };
 
@@ -223,9 +223,9 @@ doDeleteModel = function (req, res) {
     method: "DELETE",
     name: "deleteModel",
     user: getCurrentUser(),
+    callback: callback,
     data: {
-      name: name,
-      callback: callback
+      name: name
     }
   };
 

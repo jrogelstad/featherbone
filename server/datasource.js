@@ -95,7 +95,6 @@
       // If registered function, execute it
       if (typeof registered[obj.method][obj.name] === "function") {
         obj.data.client = client;
-        callback = obj.data.callback;
         transaction = registered[obj.method][obj.name];
         obj = obj.data;
 
