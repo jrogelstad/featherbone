@@ -72,7 +72,7 @@ todo.view = function () {
 //initialize the application
 m.mount(document, {controller: todo.controller, view: todo.view});
 
-f.contact = function (data, model) {
+f.feathers.contact = function (data, model) {
   var shared = model || f.catalog.getModel("Contact"),
     that = f.object(data, shared);
 

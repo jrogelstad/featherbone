@@ -29,6 +29,38 @@
 
     that.data = f.prop();
 
+    /*
+      Send event to fetch data based on the current id from the server.
+    */
+    that.fetch = function () {
+      state.send("fetch");
+    };
+
+    /*
+      Add a fetched event binding to the object. Pass a callback
+      in and the object will be passed as an argument.
+
+        mySettings = function (data, model) {
+          var shared = model || f.catalog.getModel("Contact"),
+            that = f.settings(data, shared);
+
+          // Add a fetched event
+          that.onFetched(function (obj) {
+            console.log("Data fetched for this " + obj.name + "!");
+          });
+        }
+
+      @param {Function} Callback to execute on fetch
+      @return Reciever
+    */
+    that.onFetched = function (callback) {
+      var func = function () { callback(that); };
+
+      state.substateMap.Ready.substateMap.Fetched.enter(func);
+
+      return this;
+    };
+
     doFetch = function () {
       var ds = f.dataSource,
         payload = {method: "GET", path: "/settings/" + name},
@@ -48,7 +80,6 @@
       this.state("Ready", function () {
         this.state("New", function () {
           this.event("fetch", doFetch);
-          this.enter(function () { state.send("fetch"); });
         });
 
         this.state("Fetched", function () {
@@ -96,7 +127,8 @@
 
   // Invoke catalog settings as an object
   f.catalog = (function () {
-    var that = f.settings("catalog");
+    var processModels,
+      that = f.settings("catalog");
 
     /**
       Return a model definition, including inherited properties.
@@ -106,41 +138,40 @@
       @return {String}
     */
     that.getModel = function (name, includeInherited) {
-      var catalog = that.data(),
-        appendParent = function (child, parent) {
-          var model = catalog[parent],
-            modelProps = model.properties,
-            childProps = child.properties,
-            keys = Object.keys(modelProps);
+      var resultProps, modelProps, key, appendParent,
+        catalog = that.data(),
+        result = {name: name, inherits: "Object"};
 
-          if (parent !== "Object") {
-            appendParent(child, model.inherits || "Object");
+      appendParent = function (child, parent) {
+        var model = catalog[parent],
+          parentProps = model.properties,
+          childProps = child.properties,
+          keys = Object.keys(parentProps);
+
+        if (parent !== "Object") {
+          appendParent(child, model.inherits || "Object");
+        }
+
+        keys.forEach(function (key) {
+          if (childProps[key] === undefined) {
+            childProps[key] = parentProps[key];
+            childProps[key].inheritedFrom = parent;
           }
+        });
 
-          keys.forEach(function (key) {
-            if (childProps[key] === undefined) {
-              childProps[key] = modelProps[key];
-              childProps[key].inheritedFrom = parent;
-            }
-          });
-
-          return child;
-        },
-        result = {name: name, inherits: "Object"},
-        resultProps,
-        modelProps,
-        key;
+        return child;
+      };
 
       if (!catalog[name]) { return false; }
 
-      /* Add other attributes after name */
+      // Add other attributes after name
       for (key in catalog[name]) {
         if (catalog[name].hasOwnProperty(key)) {
           result[key] = catalog[name][key];
         }
       }
 
-      /* Want inherited properites before class properties */
+      // Want inherited properites before class properties
       if (includeInherited !== false && name !== "Object") {
         result.properties = {};
         result = appendParent(result, result.inherits);
@@ -148,7 +179,7 @@
         delete result.inherits;
       }
 
-      /* Now add local properties back in */
+      // Now add local properties back in
       modelProps = catalog[name].properties;
       resultProps = result.properties;
       for (key in modelProps) {
@@ -159,6 +190,36 @@
 
       return result;
     };
+
+    // ..........................................................
+    // PRIVATE
+    //
+
+    // Create an object for each model
+    processModels = function (obj) {
+      var keys,
+        data = obj.data();
+
+      keys = Object.keys(data);
+      keys.forEach(function (key) {
+        var prop = key.slice(0, 1).toLowerCase() + key.slice(1);
+
+        // Implement generic function to object from model
+        if (typeof f.feathers[prop] !== "function") {
+          f.feathers[prop] = function (data, model) {
+            var shared = model || that.getModel(key),
+              feather = f.object(data, shared);
+
+            return feather;
+          };
+        }
+      });
+    };
+
+
+    // Bind fetchh to model handling
+    that.onFetched(processModels);
+    that.fetch();
 
     return that;
   }());
