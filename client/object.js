@@ -126,7 +126,7 @@
     p.state = state;
 
     p.toJSON = function () {
-      return store;
+      return typeof store.toJSON === "function" ? store.toJSON() : store;
     };
 
     // Initialize state
@@ -182,6 +182,11 @@
     that.fetch = function () {
       state.send("fetch");
     };
+
+    /*
+      Property that indicates object is a feather (i.e. object class).
+    */
+    that.isFeather = true;
 
     /*
       Returns whether the object is in a valid state to save.
@@ -375,6 +380,11 @@
         result = {};
 
       keys.forEach(function (key) {
+        // If to-one relation only id is necessary
+        if (d[key]().isFeather) {
+          result[key] = {id: d[key].toJSON().id};
+          return;
+        }
         result[key] = d[key].toJSON();
       });
 
@@ -481,9 +491,26 @@
         keys = Object.keys(props || {});
 
       keys.forEach(function (key) {
-        var prop, func, defaultValue, formatter,
+        var prop, func, defaultValue, formatter, name,
           p = props[key],
           value = data[key];
+
+        // Define format for relations
+        if (typeof p.type === "object") {
+          name = p.type.relation.slice(0, 1).toLowerCase() +
+            p.type.relation.slice(1);
+
+          // Handle to one
+          if (!p.type.childOf && !p.type.parentOf) {
+            p.format = {};
+
+            // Create a feather instance if not already
+            p.format.toType = function (value) {
+              if (value.isFeather) { return value; }
+              return f.feathers[name](value);
+            };
+          }
+        }
 
         // Resolve formatter
         formatter = f.formats[p.format] || f.types[p.type] || {};

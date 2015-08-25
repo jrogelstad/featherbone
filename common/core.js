@@ -84,16 +84,7 @@ var f = (function () {
       "password": {
         default: "",
         fromType: function (value) { return "*****"; }
-      },
-      "opportunityContact": {
-        fromType: function (value) {
-          return f.opportunityContact(value);
-        },
-        toType: function (value) {
-          return value.toJSON();
-        }
-      },
-
+      }
     },
 
     /*
