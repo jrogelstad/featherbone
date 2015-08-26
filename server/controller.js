@@ -908,17 +908,20 @@
       @return receiver
     */
     doUpdate: function (obj, isChild, isSuperUser) {
-      var result, updRec, props, value, keys, sql, pk,
+      var result, updRec, props, value, sql, pk, relation, key, keys,
         oldRec, newRec, cpatches, model, tokens, find, noChildProps,
         afterGetModel, afterGetKey, afterAuthorization, afterDoSelect,
-        afterUpdate, afterSelectUpdated, done,
+        afterUpdate, afterSelectUpdated, done, nextProp, afterProperties,
+        afterGetRelKey,
         patches = obj.data || [],
         id = obj.id,
+        doList = [],
         params = [],
         ary = [],
         clen = 0,
         c = 0,
-        p = 1;
+        p = 1,
+        n = 0;
 
       find = function (ary, id) {
         return ary.filter(function (item) {
@@ -999,8 +1002,6 @@
       };
 
       afterDoSelect = function (err, resp) {
-        var doList = [];
-
         if (err) {
           obj.callback(err);
           return;
@@ -1032,11 +1033,17 @@
 
         // Process properties
         keys = Object.keys(props);
-        keys.forEach(function (key) {
-          var relation;
+        nextProp();
+      };
 
+      nextProp = function () {
+        key = keys[n];
+        n++;
+
+        if (n < keys.length) {
           /* Handle composite types */
           if (typeof props[key].type === "object") {
+
             /* Handle child records */
             if (Array.isArray(updRec[key])) {
               relation = props[key].type.relation;
@@ -1096,25 +1103,22 @@
                   });
                 }
               });
-            }
 
-          /* Handle to one relations */
-          } else if (!props[key].type.childOf &&
-              updRec[key].id !== oldRec[key].id) {
-            value = updRec[key].id ? that.getKey(updRec[key].id) : -1;
-            relation = props[key].type.relation;
+            /* Handle to one relations */
+            } else if (!props[key].type.childOf &&
+                updRec[key].id !== oldRec[key].id) {
 
-            if (value === undefined) {
-              obj.callback("Relation not found in \"" + relation +
-                "\" for \"" + key + "\" with id \"" + updRec[key].id + "\"");
+              if (updRec[key].id) {
+                that.getKey({
+                  id: updRec[key].id,
+                  client: obj.client,
+                  callback: afterGetRelKey
+                });
+              } else {
+                afterGetRelKey(null, -1);
+              }
               return;
             }
-
-            tokens.push(relationColumn(key, relation));
-            ary.push("%I = $" + p);
-            params.push(value);
-            p++;
-
           /* Handle regular data types */
           } else if (updRec[key] !== oldRec[key] && key !== "objectType") {
             tokens.push(key.toSnakeCase());
@@ -1122,13 +1126,45 @@
             params.push(updRec[key]);
             p++;
           }
-        });
 
+          nextProp();
+          return;
+        }
+
+        // Done, move on
+        afterProperties();
+      };
+
+      afterGetRelKey = function (err, resp) {
+        if (err) {
+          obj.callback(err);
+          return;
+        }
+
+        value = resp;
+        relation = props[key].type.relation;
+
+        if (value === undefined) {
+          obj.callback("Relation not found in \"" + relation +
+            "\" for \"" + key + "\" with id \"" + updRec[key].id + "\"");
+          return;
+        }
+
+        tokens.push(relationColumn(key, relation));
+        ary.push("%I = $" + p);
+        params.push(value);
+        p++;
+
+        nextProp();
+      };
+
+      afterProperties = function () {
         // Execute top level object change
         sql = ("UPDATE %I SET " + ary.join(",") + " WHERE _pk = $" + p)
           .format(tokens);
         params.push(pk);
         clen++;
+
         obj.client.query(sql, params, afterUpdate);
 
         // Execute child changes
@@ -1171,20 +1207,24 @@
         result = resp;
 
         // Handle change log
-        that.doInsert({
-          name: "Log",
-          data: {
-            objectId: id,
-            action: "PATCH",
-            created: updRec.updated,
-            createdBy: updRec.updatedBy,
-            updated: updRec.updated,
-            updatedBy: updRec.updatedBy,
-            change: JSON.stringify(jsonpatch.compare(oldRec, result))
-          },
-          client: obj.client,
-          callback: done
-        }, true);
+        if (updRec) {
+          that.doInsert({
+            name: "Log",
+            data: {
+              objectId: id,
+              action: "PATCH",
+              created: updRec.updated,
+              createdBy: updRec.updatedBy,
+              updated: updRec.updated,
+              updatedBy: updRec.updatedBy,
+              change: JSON.stringify(jsonpatch.compare(oldRec, result))
+            },
+            client: obj.client,
+            callback: done
+          }, true);
+          return;
+        }
+        done();
       };
 
       done = function (err) {
