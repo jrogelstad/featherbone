@@ -3331,7 +3331,7 @@
 
           /* Recursively sanitize objects */
           if (typeof newObj[newKey] === "object") {
-            newObj[newKey] = newObj[newKey] ? sanitize(newObj[newKey]) : {};
+            newObj[newKey] = sanitize(newObj[newKey]);
           }
         }
       }

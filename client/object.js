@@ -89,14 +89,18 @@
 
     // Private function that will be returned
     p = function (value) {
+      var proposed;
+
       if (arguments.length) {
-        if (formatter.toType(value) === store) { return; }
+        proposed = formatter.toType(value);
+
+        if (proposed === store) { return; }
 
         newValue = value;
         oldValue = store;
 
         p.state.send("change");
-        store = formatter.toType(newValue);
+        store = value === newValue ? proposed : formatter.toType(newValue);
         p.state.send("changed");
 
         newValue = undefined;
@@ -126,7 +130,11 @@
     p.state = state;
 
     p.toJSON = function () {
-      return typeof store.toJSON === "function" ? store.toJSON() : store;
+      if (typeof store === "object" && typeof store.toJSON === "function") {
+        return store.toJSON();
+      }
+
+      return store;
     };
 
     // Initialize state
@@ -380,9 +388,13 @@
         result = {};
 
       keys.forEach(function (key) {
+        var value = d[key](),
+          type = d[key].type;
+
         // If to-one relation only id is necessary
-        if (d[key]().isFeather) {
-          result[key] = {id: d[key].toJSON().id};
+        if (typeof type === "object" && !Array.isArray(value) &&
+            !type.isChild && !type.isParent) {
+          result[key] = value ? value.toJSON() : {};
           return;
         }
         result[key] = d[key].toJSON();
@@ -491,9 +503,10 @@
         keys = Object.keys(props || {});
 
       keys.forEach(function (key) {
-        var prop, func, defaultValue, formatter, name,
+        var prop, func, defaultValue, name,
           p = props[key],
-          value = data[key];
+          value = data[key],
+          formatter = {};
 
         // Define format for relations
         if (typeof p.type === "object") {
@@ -502,22 +515,24 @@
 
           // Handle to one
           if (!p.type.childOf && !p.type.parentOf) {
-            p.format = {};
 
             // Create a feather instance if not already
-            p.format.toType = function (value) {
-              if (value.isFeather) { return value; }
+            formatter.toType = function (value) {
+              if (value && value.isFeather) { return value; }
               return f.feathers[name](value);
             };
+
+            p.default = {};
           }
+
+        // Resolve formatter to standard type
+        } else {
+          formatter = f.formats[p.format] || f.types[p.type] || {};
         }
 
-        // Resolve formatter
-        formatter = f.formats[p.format] || f.types[p.type] || {};
-
         // Handle default
-        if (props[key].default !== undefined) {
-          defaultValue = props[key].default;
+        if (p.default !== undefined) {
+          defaultValue = p.default;
         } else if (typeof formatter.default === "function") {
           defaultValue = formatter.default();
         } else {
