@@ -18,7 +18,13 @@
 (function (f) {
   "use strict";
 
-  var statechart, jsonpatch;
+  var statechart, jsonpatch, isToOne;
+
+  /* private */
+  isToOne = function (p) {
+    return p.type && typeof p.type === "object" &&
+      !p.type.childOf && !p.type.parentOf;
+  };
 
   if (typeof require === 'function') {
     statechart = require("statechart");
@@ -123,6 +129,7 @@
 
       return newValue;
     };
+
     p.oldValue = function () {
       return formatter.fromType(oldValue);
     };
@@ -388,12 +395,10 @@
         result = {};
 
       keys.forEach(function (key) {
-        var value = d[key](),
-          type = d[key].type;
+        var value = d[key]();
 
         // If to-one relation only id is necessary
-        if (typeof type === "object" && !Array.isArray(value) &&
-            !type.isChild && !type.isParent) {
+        if (isToOne(d[key])) {
           result[key] = value ? value.toJSON() : {};
           return;
         }
@@ -503,27 +508,35 @@
         keys = Object.keys(props || {});
 
       keys.forEach(function (key) {
-        var prop, func, defaultValue, name,
+        var prop, func, defaultValue, name, cModel, cKeys, relation,
           p = props[key],
+          type = p.type,
           value = data[key],
           formatter = {};
 
-        // Define format for relations
-        if (typeof p.type === "object") {
-          name = p.type.relation.slice(0, 1).toLowerCase() +
-            p.type.relation.slice(1);
+        // Define format for to-one
+        if (isToOne(p)) {
+          relation = type.relation;
+          name = relation.slice(0, 1).toLowerCase() + relation.slice(1);
 
-          // Handle to one
-          if (!p.type.childOf && !p.type.parentOf) {
-
-            // Create a feather instance if not already
-            formatter.toType = function (value) {
-              if (value && value.isFeather) { return value; }
-              return f.feathers[name](value);
-            };
-
-            p.default = {};
+          // Need to to make sure transform knows to remove inapplicable props
+          if (type.properties && type.properties.length) {
+            cModel = JSON.parse(JSON.stringify(f.catalog.getModel(relation)));
+            cKeys = Object.keys(cModel.properties);
+            cKeys.forEach(function (key) {
+              if (type.properties.indexOf(key) === -1 && key !== "id") {
+                delete cModel.properties[key];
+              }
+            });
           }
+
+          // Create a feather instance if not already
+          formatter.toType = function (value) {
+            if (value && value.isFeather) { value = value.toJSON(); }
+            return f.feathers[name](value, cModel);
+          };
+
+          p.default = {};
 
         // Resolve formatter to standard type
         } else {
