@@ -867,7 +867,7 @@
           delete cache[cache.indexOf(value)];
         }
 
-        result = that.splice(idx, 1);
+        result = that.splice(idx, 1)[0];
         result.onChanged(prop.name, notify, false);
         parent.state.send("changed");
       }
@@ -876,12 +876,17 @@
     };
 
     that.toJSON = function () {
-      var result = [];
+      var item, value,
+        result = [],
+        len = cache.length,
+        i = 0;
 
-      cache.forEach(function (item) {
-        var value = item ? item.toJSON() : undefined;
+      while (i < len) {
+        item = cache[i];
+        value = item ? item.toJSON() : undefined;
         result.push(value);
-      });
+        i++;
+      }
 
       return result;
     };
