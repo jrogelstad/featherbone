@@ -81,17 +81,17 @@ f.feathers.contact = function (data, model) {
   //
 
   that.onChange("first", function (prop) {
-    console.log("First name changed from " +
+    console.log("First name changing from " +
       (prop.oldValue() || "nothing") + " to " + prop.newValue() + "!");
   });
 
   that.onChange("last", function (prop) {
-    console.log("Last name changed from " +
+    console.log("Last name changing from " +
       (prop.oldValue() || "nothing") + " to " + prop.newValue() + "!");
   });
 
   that.onChange("id", function (prop) {
-    console.log("Id changed from " +
+    console.log("Id changing from " +
       (prop.oldValue() || "nothing") + " to " + prop.newValue() + "!");
   });
 

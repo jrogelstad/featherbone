@@ -18,13 +18,7 @@
 (function (f) {
   "use strict";
 
-  var statechart, jsonpatch, isToOne;
-
-  /* private */
-  isToOne = function (p) {
-    return p.type && typeof p.type === "object" &&
-      !p.type.childOf && !p.type.parentOf;
-  };
+  var statechart, jsonpatch, childArray, isToOne, isToMany;
 
   if (typeof require === 'function') {
     statechart = require("statechart");
@@ -107,10 +101,9 @@
 
         p.state.send("change");
         store = value === newValue ? proposed : formatter.toType(newValue);
-        p.state.send("changed");
-
         newValue = undefined;
         oldValue = newValue;
+        p.state.send("changed");
       }
 
       return formatter.fromType(store);
@@ -165,12 +158,16 @@
     model = model || {};
 
     var  doClear, doDelete, doError, doFetch, doInit, doPatch, doPost,
-      lastError, lastFetched, path, state,
+      registerChangeEvent, lastError, lastFetched, path, state,
       that = {data: {}, name: model.name || "Object", plural: model.plural},
       d = that.data,
       errHandlers = [],
       validators = [],
-      stateMap = {};
+      stateMap = {},
+      bindings = {
+        onChange: {},
+        onChanged: {}
+      };
 
     // ..........................................................
     // PUBLIC
@@ -231,8 +228,9 @@
     };
 
     /*
-      Add a change event binding to a property. Pass a callback in
-      and the property will be passed to the callback.
+      Add an event binding to a property that will be triggered before a change.
+      Pass a callback in and the property will be passed to the callback. The
+      property will be passed to the callback as the first argument.
 
         contact = function (data, model) {
           var shared = model || f.catalog.getModel("Contact"),
@@ -240,21 +238,42 @@
 
           // Add a change event to a property
           that.onChange("first", function (prop) {
-            console.log("First name changed from " +
+            console.log("First name changing from " +
               (prop.oldValue() || "nothing") + " to " + prop.newValue() + "!");
           });
         }
 
       @param {String} Property name to call on cahnge
       @param {Function} Callback function to call on change
+      @param {Boolean} Enabled. Default  `true`.
       @return Reciever
     */
-    that.onChange = function (name, callback) {
-      var func = function () { callback(this); };
+    that.onChange = function (name, callback, enabled) {
+      return registerChangeEvent("onChange", "enter", name, callback, enabled);
+    };
 
-      stateMap[name].substateMap.Changing.enter(func.bind(d[name]));
+    /*
+      Add an event binding to a property that will be triggered after a change.
+      Pass a callback in and the property will be passed to the callback. The
+      property will be passed to the callback as the first argument.
 
-      return this;
+        contact = function (data, model) {
+          var shared = model || f.catalog.getModel("Contact"),
+            that = f.object(data, shared);
+
+          // Add a changed event to a property
+          that.onChanged("first", function (prop) {
+            console.log("First name is now " + prop() + "!");
+          });
+        }
+
+      @param {String} Property name to call on cahnge
+      @param {Function} Callback function to call on change
+      @param {Boolean} Enabled. Default  `true`.
+      @return Reciever
+    */
+    that.onChanged = function (name, callback, enabled) {
+      return registerChangeEvent("onChanged", "exit", name, callback, enabled);
     };
 
     /*
@@ -338,8 +357,8 @@
 
     /*
       Send the save event to persist current data to the server.
-      Only results in action in the "/ready/fetched/dirty" and
-      "/ready/new" states.
+      Only results in action in the "/Ready/Fetched/Dirty" and
+      "/Ready/New" states.
     */
     that.save = function () {
       state.send("save");
@@ -397,12 +416,24 @@
       keys.forEach(function (key) {
         var value = d[key]();
 
-        // If to-one relation only id is necessary
+        // Handle to-one
         if (isToOne(d[key])) {
-          result[key] = value ? value.toJSON() : {};
-          return;
+          result[key] = value.isFeather ? value.toJSON() : {};
+
+        // Handle to-many
+        } else if (isToMany(d[key])) {
+          if (Array.isArray(value)) {
+            result[key] = value.map(function (item) {
+              return item.toJSON();
+            });
+          } else {
+            result[key] = [];
+          }
+
+        // Everything else
+        } else {
+          result[key] = d[key].toJSON();
         }
-        result[key] = d[key].toJSON();
       });
 
       return result;
@@ -508,35 +539,57 @@
         keys = Object.keys(props || {});
 
       keys.forEach(function (key) {
-        var prop, func, defaultValue, name, cModel, cKeys, relation,
+        var prop, func, defaultValue, name, cModel, cKeys, cArray, relation,
           p = props[key],
           type = p.type,
           value = data[key],
           formatter = {};
 
         // Define format for to-one
-        if (isToOne(p)) {
+        if (p.type === "object") {
           relation = type.relation;
           name = relation.slice(0, 1).toLowerCase() + relation.slice(1);
 
-          // Need to to make sure transform knows to remove inapplicable props
-          if (type.properties && type.properties.length) {
-            cModel = JSON.parse(JSON.stringify(f.catalog.getModel(relation)));
-            cKeys = Object.keys(cModel.properties);
-            cKeys.forEach(function (key) {
-              if (type.properties.indexOf(key) === -1 && key !== "id") {
-                delete cModel.properties[key];
+          if (isToOne(p)) {
+
+            // Need to to make sure transform knows to ignore inapplicable props
+            if (type.properties && type.properties.length) {
+              cModel = JSON.parse(JSON.stringify(f.catalog.getModel(relation)));
+              cKeys = Object.keys(cModel.properties);
+              cKeys.forEach(function (key) {
+                if (type.properties.indexOf(key) === -1 && key !== "id") {
+                  delete cModel.properties[key];
+                }
+              });
+            }
+
+            // Create a feather instance if not already
+            formatter.toType = function (value) {
+              if (value && value.isFeather) { value = value.toJSON(); }
+              return f.feathers[name](value, cModel);
+            };
+
+            p.default = {};
+
+          // Define format for to-many
+          } else if (isToMany(p)) {
+            cArray = childArray(that, p, name);
+
+            // Create a feather each instance if not already
+            formatter.toType = function (value) {
+              if (!Array.isArray(value)) {
+                throw "Value assignment for " + key + " must be an array.";
               }
-            });
+
+              if (value !== cArray) { cArray.length = 0; }
+
+              value.forEach(function (item) { cArray.push(item); });
+
+              return cArray;
+            };
+
+            p.default = cArray;
           }
-
-          // Create a feather instance if not already
-          formatter.toType = function (value) {
-            if (value && value.isFeather) { value = value.toJSON(); }
-            return f.feathers[name](value, cModel);
-          };
-
-          p.default = {};
 
         // Resolve formatter to standard type
         } else {
@@ -566,14 +619,10 @@
         prop = f.prop(value, formatter);
 
         // Carry other property definitions forward
+        prop.key = key;
         prop.description = props[key].description;
         prop.type = props[key].type;
         prop.default = func || defaultValue;
-
-        // Report property changed event up to model
-        prop.state.substateMap.Changing.exit(function () {
-          state.send("changed");
-        });
 
         // Limit public access to state
         stateMap[key] = prop.state;
@@ -585,6 +634,9 @@
             return stateMap[key].send(str);
           }
         };
+
+        // Report property changed event up to model
+        that.onChanged(key, function () { state.send("changed"); });
 
         d[key] = prop;
       });
@@ -683,6 +735,45 @@
       });
     });
 
+    registerChangeEvent = function (e, action, name, callback, enabled) {
+      enabled = enabled === false ? false : true;
+
+      // No api in statechart to disable enter or exit, so handle it here
+      var func, idx, status,
+        events = bindings[e];
+
+      func = function () {
+        if (events[name].enabled.indexOf(callback) !== -1) { callback(this); }
+      };
+
+      // Handle case where event is already registered
+      if (events[name] && events[name].indexOf(callback) !== -1) {
+        // Add callback to applicable enabled status array
+        status = enabled ? "enabled" : "disabled";
+        events[name][status].push(callback);
+
+        // Remove callback from applicable enabled status array
+        status = enabled ? "disabled" : "enabled";
+        idx = events[name][status].indexOf(callback);
+        if (idx !== -1) { events[name][status].splice(idx, 1); }
+
+      // Register new event
+      } else {
+        if (enabled) {
+          if (!events[name]) {
+            events[name] = [];
+            events[name].enabled = [];
+            events[name].disabled = [];
+          }
+          events[name].push(callback);
+          events[name].enabled.push(callback);
+          stateMap[name].substateMap.Changing[action](func.bind(d[name]));
+        }
+      }
+
+      return this;
+    };
+
     // Expose specific state capabilities users can see and manipulate
     that.state = {
       send: function (str) {
@@ -698,6 +789,87 @@
 
     return that;
   };
+
+  // ..........................................................
+  // PRIVATE
+  //
+
+  /** private 
+    @param {Object} The parent array belongs to
+    @param {Object} The property the array belongs to
+    @param {String} The feather function name of the object
+    @return {Array}
+  */
+  childArray = function (parent, prop, name) {
+    var that = [], transform, notify,
+      nativePop = that.pop,
+      nativePush = that.push,
+      nativeShift = that.shift,
+      nativeUnshift = that.unshift;
+
+    notify = function () {
+      parent.send("changed");
+    };
+
+    transform = function (value) {
+      // Unwrap the data if already an instance
+      if (value && value.isFeather) { value = value.toJSON(); }
+
+      // Create an instance
+      value = f.feathers[name](value);
+
+      // Notify parent when properties change
+      parent.onChanged(prop.key, notify);
+
+      return value;
+    };
+
+    that.pop = function (value) {
+      var result = nativePop(value).bind(that);
+
+      result.onChanged(prop.key, notify, false);
+      parent.send("changed");
+
+      return result;
+    };
+
+    that.push = function (value) {
+      prop.send("change");
+      transform(value);
+      nativePush(value).bind(that);
+      prop.send("changed");
+    };
+
+    that.shift = function (value) {
+      var result = nativeShift(value).bind(that);
+
+      result.onChanged(prop.name, notify, false);
+      parent.send("changed");
+
+      return result;
+    };
+
+    that.unshift = function (value) {
+      prop.send("change");
+      value = transform(value);
+      nativeUnshift(value).bind(that);
+      prop.send("changed");
+    };
+
+    return that;
+  };
+
+  /** private */
+  isToOne = function (p) {
+    return p.type && typeof p.type === "object" &&
+      !p.type.childOf && !p.type.parentOf;
+  };
+
+  /** private */
+  isToMany = function (p) {
+    return p.type && typeof p.type === "object" && p.type.parentOf;
+  };
+
 
 }(f));
 
