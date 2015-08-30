@@ -18,7 +18,7 @@
 (function (f) {
   "use strict";
 
-  var statechart, jsonpatch, childArray, isToOne, isToMany;
+  var statechart, jsonpatch, childArray, isChild, isToOne, isToMany;
 
   if (typeof require === 'function') {
     statechart = require("statechart");
@@ -277,6 +277,31 @@
     };
 
     /*
+      Add a clear event binding to the object. Pass a callback
+      in and the object will be passed as an argument.
+
+        contact = function (data, model) {
+          var shared = model || f.catalog.getModel("Contact"),
+            that = f.object(data, shared);
+
+          // Add a fetched event
+          that.onClear(function (obj) {
+            console.log("Object cleared!");
+          });
+        }
+
+      @param {Function} Callback to execute on fetch
+      @return Reciever
+    */
+    that.onClear = function (callback) {
+      var func = function () { callback(that); };
+
+      state.substateMap.Ready.substateMap.New.enter(func);
+
+      return this;
+    };
+
+    /*
       Add an error handler binding to the object. Pass a callback
       in and the error will be passed as an argument.
 
@@ -414,26 +439,7 @@
         result = {};
 
       keys.forEach(function (key) {
-        var value = d[key]();
-
-        // Handle to-one
-        if (isToOne(d[key])) {
-          result[key] = value.isFeather ? value.toJSON() : {};
-
-        // Handle to-many
-        } else if (isToMany(d[key])) {
-          if (Array.isArray(value)) {
-            result[key] = value.map(function (item) {
-              return item.toJSON();
-            });
-          } else {
-            result[key] = [];
-          }
-
-        // Everything else
-        } else {
-          result[key] = d[key].toJSON();
-        }
+        result[key] = d[key].toJSON();
       });
 
       return result;
@@ -545,8 +551,10 @@
           value = data[key],
           formatter = {};
 
-        // Define format for to-one
-        if (p.type === "object") {
+        // Create properties for relations
+        if (typeof p.type === "object") {
+          if (isChild(p)) { return; } // Ignore child properties on client level
+
           relation = type.relation;
           name = relation.slice(0, 1).toLowerCase() + relation.slice(1);
 
@@ -569,54 +577,63 @@
               return f.feathers[name](value, cModel);
             };
 
-            p.default = {};
+            // Create property
+            prop = f.prop(value || {}, formatter);
 
           // Define format for to-many
           } else if (isToMany(p)) {
-            cArray = childArray(that, p, name);
+            cArray = [];
 
             // Create a feather each instance if not already
             formatter.toType = function (value) {
+              value = value || [];
+
               if (!Array.isArray(value)) {
                 throw "Value assignment for " + key + " must be an array.";
               }
 
-              if (value !== cArray) { cArray.length = 0; }
-
-              value.forEach(function (item) { cArray.push(item); });
+              if (value !== cArray) {
+                cArray.clear();
+                value.forEach(function (item) {
+                  cArray.add(item);
+                });
+              }
 
               return cArray;
             };
 
-            p.default = cArray;
+            // Create property
+            prop = f.prop(cArray, formatter);
+            childArray(that, prop, name); // Extend array
+            prop(value);
           }
 
         // Resolve formatter to standard type
         } else {
           formatter = f.formats[p.format] || f.types[p.type] || {};
-        }
 
-        // Handle default
-        if (p.default !== undefined) {
-          defaultValue = p.default;
-        } else if (typeof formatter.default === "function") {
-          defaultValue = formatter.default();
-        } else {
-          defaultValue = formatter.default;
-        }
+          // Handle default
+          if (p.default !== undefined) {
+            defaultValue = p.default;
+          } else if (typeof formatter.default === "function") {
+            defaultValue = formatter.default();
+          } else {
+            defaultValue = formatter.default;
+          }
 
-        // Handle default that is a function
-        if (typeof defaultValue === "string" &&
-            defaultValue.match(/\(\)$/)) {
-          func = f[defaultValue.replace(/\(\)$/, "")];
-        }
+          // Handle default that is a function
+          if (typeof defaultValue === "string" &&
+              defaultValue.match(/\(\)$/)) {
+            func = f[defaultValue.replace(/\(\)$/, "")];
+          }
 
-        if (value === undefined) {
-          value = func ? func() : defaultValue;
-        }
+          if (value === undefined) {
+            value = func ? func() : defaultValue;
+          }
 
-        // Create property
-        prop = f.prop(value, formatter);
+          // Create property
+          prop = f.prop(value, formatter);
+        }
 
         // Carry other property definitions forward
         prop.key = key;
@@ -801,18 +818,25 @@
     @return {Array}
   */
   childArray = function (parent, prop, name) {
-    var that = [], transform, notify,
-      nativePop = that.pop,
-      nativePush = that.push,
-      nativeShift = that.shift,
-      nativeUnshift = that.unshift;
+    var notify,
+      isNew = true,
+      cache = [],
+      that = prop();
 
     notify = function () {
-      parent.send("changed");
+      parent.state.send("changed");
     };
 
-    transform = function (value) {
-      // Unwrap the data if already an instance
+    parent.onClear(function () {
+      isNew = true;
+      that.clear();
+    });
+    parent.onFetched(function () {
+      isNew = false;
+    });
+
+    that.add = function (value) {
+      prop.state.send("change");
       if (value && value.isFeather) { value = value.toJSON(); }
 
       // Create an instance
@@ -820,43 +844,54 @@
 
       // Notify parent when properties change
       parent.onChanged(prop.key, notify);
-
-      return value;
+      that.push(value);
+      cache.push(value);
+      prop.state.send("changed");
     };
 
-    that.pop = function (value) {
-      var result = nativePop(value).bind(that);
+    that.clear = function () {
+      prop.state.send("change");
+      that.length = 0;
+      cache.length = 0;
+      prop.state.send("changed");
+    };
 
-      result.onChanged(prop.key, notify, false);
-      parent.send("changed");
+    that.remove = function (value) {
+      var result,
+        idx = that.indexOf(value);
+
+      if (idx !== -1) {
+        if (isNew) {
+          cache.splice(cache.indexOf(value), 1);
+        } else {
+          delete cache[cache.indexOf(value)];
+        }
+
+        result = that.splice(idx, 1);
+        result.onChanged(prop.name, notify, false);
+        parent.state.send("changed");
+      }
 
       return result;
     };
 
-    that.push = function (value) {
-      prop.send("change");
-      transform(value);
-      nativePush(value).bind(that);
-      prop.send("changed");
-    };
+    that.toJSON = function () {
+      var result = [];
 
-    that.shift = function (value) {
-      var result = nativeShift(value).bind(that);
-
-      result.onChanged(prop.name, notify, false);
-      parent.send("changed");
+      cache.forEach(function (item) {
+        var value = item ? item.toJSON() : undefined;
+        result.push(value);
+      });
 
       return result;
-    };
-
-    that.unshift = function (value) {
-      prop.send("change");
-      value = transform(value);
-      nativeUnshift(value).bind(that);
-      prop.send("changed");
     };
 
     return that;
+  };
+
+  /** private */
+  isChild = function (p) {
+    return p.type && typeof p.type === "object" && p.type.childOf;
   };
 
   /** private */
