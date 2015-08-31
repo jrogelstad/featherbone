@@ -18,7 +18,7 @@
 (function (f) {
   "use strict";
 
-  var statechart, jsonpatch, childArray, isChild, isToOne, isToMany;
+  var statechart, jsonpatch, isChild, isToOne, isToMany;
 
   if (typeof require === 'function') {
     statechart = require("statechart");
@@ -541,8 +541,85 @@
     };
 
     doInit = function () {
-      var props = model.properties,
+      var extendArray,
+        props = model.properties,
         keys = Object.keys(props || {});
+
+      // Function to extend child array if applicable
+      extendArray = function (prop, name) {
+        var notify,
+          isNew = true,
+          cache = [],
+          ary = prop();
+
+        notify = function () {
+          that.state.send("changed");
+        };
+
+        that.onClear(function () {
+          isNew = true;
+          ary.clear();
+        });
+        that.onFetched(function () {
+          isNew = false;
+        });
+
+        ary.add = function (value) {
+          prop.state.send("change");
+          if (value && value.isFeather) { value = value.toJSON(); }
+
+          // Create an instance
+          value = f.feathers[name](value);
+
+          // Notify parent when properties change
+          that.onChanged(prop.key, notify);
+          ary.push(value);
+          cache.push(value);
+          prop.state.send("changed");
+        };
+
+        ary.clear = function () {
+          prop.state.send("change");
+          ary.length = 0;
+          cache.length = 0;
+          prop.state.send("changed");
+        };
+
+        ary.remove = function (value) {
+          var result,
+            idx = ary.indexOf(value);
+
+          if (idx !== -1) {
+            if (isNew) {
+              cache.splice(cache.indexOf(value), 1);
+            } else {
+              delete cache[cache.indexOf(value)];
+            }
+
+            result = ary.splice(idx, 1)[0];
+            result.onChanged(prop.name, notify, false);
+            that.state.send("changed");
+          }
+
+          return result;
+        };
+
+        ary.toJSON = function () {
+          var item, value,
+            result = [],
+            len = cache.length,
+            i = 0;
+
+          while (i < len) {
+            item = cache[i];
+            value = item ? item.toJSON() : undefined;
+            result.push(value);
+            i++;
+          }
+
+          return result;
+        };
+      };
 
       keys.forEach(function (key) {
         var prop, func, defaultValue, name, cModel, cKeys, cArray, relation,
@@ -590,8 +667,8 @@
               state.resolve("/Ready/Fetched").enter(onFetched);
 
               // Disable save event on children
-              state.resolve("/Ready/New").event("save");
-              state.resolve("/Ready/Fetched/Dirty").event("save");
+              state.resolve("/Ready/New").event("save", undefined);
+              state.resolve("/Ready/Fetched/Dirty").event("save", undefined);
 
               return result;
             };
@@ -623,7 +700,7 @@
 
             // Create property
             prop = f.prop(cArray, formatter);
-            childArray(that, prop, name); // Extend array
+            extendArray(prop, name);
             prop(value);
           }
 
@@ -823,88 +900,6 @@
   // PRIVATE
   //
 
-  /** private 
-    @param {Object} The parent array belongs to
-    @param {Object} The property the array belongs to
-    @param {String} The feather function name of the object
-    @return {Array}
-  */
-  childArray = function (parent, prop, name) {
-    var notify,
-      isNew = true,
-      cache = [],
-      that = prop();
-
-    notify = function () {
-      parent.state.send("changed");
-    };
-
-    parent.onClear(function () {
-      isNew = true;
-      that.clear();
-    });
-    parent.onFetched(function () {
-      isNew = false;
-    });
-
-    that.add = function (value) {
-      prop.state.send("change");
-      if (value && value.isFeather) { value = value.toJSON(); }
-
-      // Create an instance
-      value = f.feathers[name](value);
-
-      // Notify parent when properties change
-      parent.onChanged(prop.key, notify);
-      that.push(value);
-      cache.push(value);
-      prop.state.send("changed");
-    };
-
-    that.clear = function () {
-      prop.state.send("change");
-      that.length = 0;
-      cache.length = 0;
-      prop.state.send("changed");
-    };
-
-    that.remove = function (value) {
-      var result,
-        idx = that.indexOf(value);
-
-      if (idx !== -1) {
-        if (isNew) {
-          cache.splice(cache.indexOf(value), 1);
-        } else {
-          delete cache[cache.indexOf(value)];
-        }
-
-        result = that.splice(idx, 1)[0];
-        result.onChanged(prop.name, notify, false);
-        parent.state.send("changed");
-      }
-
-      return result;
-    };
-
-    that.toJSON = function () {
-      var item, value,
-        result = [],
-        len = cache.length,
-        i = 0;
-
-      while (i < len) {
-        item = cache[i];
-        value = item ? item.toJSON() : undefined;
-        result.push(value);
-        i++;
-      }
-
-      return result;
-    };
-
-    return that;
-  };
 
   /** private */
   isChild = function (p) {
