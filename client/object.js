@@ -573,8 +573,27 @@
 
             // Create a feather instance if not already
             formatter.toType = function (value) {
+              var result, onFetching, onFetched;
+
+              onFetching = function () {
+                result.state.goto("/Busy/Fetching");
+              };
+              onFetched = function () {
+                result.state.goto("/Ready/Fetched");
+              };
+
               if (value && value.isFeather) { value = value.toJSON(); }
-              return f.feathers[name](value, cModel);
+              result =  f.feathers[name](value, cModel);
+
+              // Synchronize statechart
+              state.resolve("/Busy/Fetching").enter(onFetching);
+              state.resolve("/Ready/Fetched").enter(onFetched);
+
+              // Disable save event on children
+              state.resolve("/Ready/New").event("save");
+              state.resolve("/Ready/Fetched/Dirty").event("save");
+
+              return result;
             };
 
             // Create property
@@ -791,15 +810,8 @@
       return this;
     };
 
-    // Expose specific state capabilities users can see and manipulate
-    that.state = {
-      send: function (str) {
-        return state.send(str);
-      },
-      current: function () {
-        return state.current();
-      }
-    };
+    // Expose state
+    that.state = state;
 
     // Initialize
     state.goto();
