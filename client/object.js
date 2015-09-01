@@ -532,6 +532,7 @@
           data: {data: cache}},
         callback = function () {
           jsonpatch.apply(cache, result());
+          lastFetched = cache;
           that.set(cache, true);
           state.send('fetched');
         };
@@ -744,7 +745,7 @@
         }
 
         // Carry other property definitions forward
-        prop.key = key;
+        prop.key = key; // Use of 'name' property is not allow here
         prop.description = props[key].description;
         prop.type = props[key].type;
         prop.default = func || defaultValue;
@@ -873,6 +874,7 @@
 
       // Handle case where event is already registered
       if (events[name] && events[name].indexOf(callback) !== -1) {
+
         // Add callback to applicable enabled status array
         status = enabled ? "enabled" : "disabled";
         events[name][status].push(callback);
