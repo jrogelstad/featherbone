@@ -130,7 +130,8 @@
     p.state = state;
 
     p.toJSON = function () {
-      if (typeof store === "object" && typeof store.toJSON === "function") {
+      if (typeof store === "object" && store !== null &&
+          typeof store.toJSON === "function") {
         return store.toJSON();
       }
 
@@ -541,29 +542,34 @@
     };
 
     doInit = function () {
-      var extendArray,
+      var onFetching, onFetched, extendArray,
         props = model.properties,
         keys = Object.keys(props || {});
 
+      onFetching = function () {
+        this.state.goto("/Busy/Fetching");
+      };
+      onFetched = function () {
+        this.state.goto("/Ready/Fetched");
+      };
+
       // Function to extend child array if applicable
       extendArray = function (prop, name) {
-        var notify,
-          isNew = true,
+        var isNew = true,
           cache = [],
           ary = prop();
 
-        notify = function () {
-          that.state.send("changed");
-        };
-
+        // Bind parent events to array
         that.onClear(function () {
           isNew = true;
           ary.clear();
         });
+
         that.onFetched(function () {
           isNew = false;
         });
 
+        // Extend array
         ary.add = function (value) {
           prop.state.send("change");
           if (value && value.isFeather) { value = value.toJSON(); }
@@ -571,8 +577,20 @@
           // Create an instance
           value = f.feathers[name](value);
 
-          // Notify parent when properties change
-          that.onChanged(prop.key, notify);
+          // Synchronize statechart
+          state.resolve("/Busy/Fetching").enter(onFetching.bind(value));
+          state.resolve("/Ready/Fetched").enter(onFetched.bind(value));
+
+          // Disable save event on children
+          value.state.resolve("/Ready/New").event("save");
+          value.state.resolve("/Ready/Fetched/Dirty").event("save");
+
+          // Notify parent if child becomes dirty
+          value.state.resolve("/Ready/Fetched/Dirty").enter(function () {
+            state.send("changed");
+          });
+
+          // Notify parent properties changed
           ary.push(value);
           cache.push(value);
           prop.state.send("changed");
@@ -590,6 +608,7 @@
             idx = ary.indexOf(value);
 
           if (idx !== -1) {
+            prop.state.send("change");
             if (isNew) {
               cache.splice(cache.indexOf(value), 1);
             } else {
@@ -597,7 +616,6 @@
             }
 
             result = ary.splice(idx, 1)[0];
-            result.onChanged(prop.name, notify, false);
             that.state.send("changed");
           }
 
@@ -650,25 +668,19 @@
 
             // Create a feather instance if not already
             formatter.toType = function (value) {
-              var result, onFetching, onFetched;
+              var result;
 
-              onFetching = function () {
-                result.state.goto("/Busy/Fetching");
-              };
-              onFetched = function () {
-                result.state.goto("/Ready/Fetched");
-              };
-
+              if (value === undefined || value === null) { return null; }
               if (value && value.isFeather) { value = value.toJSON(); }
               result =  f.feathers[name](value, cModel);
 
               // Synchronize statechart
-              state.resolve("/Busy/Fetching").enter(onFetching);
-              state.resolve("/Ready/Fetched").enter(onFetched);
+              state.resolve("/Busy/Fetching").enter(onFetching.bind(result));
+              state.resolve("/Ready/Fetched").enter(onFetched.bind(result));
 
               // Disable save event on children
-              state.resolve("/Ready/New").event("save", undefined);
-              state.resolve("/Ready/Fetched/Dirty").event("save", undefined);
+              result.state.resolve("/Ready/New").event("save");
+              result.state.resolve("/Ready/Fetched/Dirty").event("save");
 
               return result;
             };

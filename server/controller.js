@@ -1106,9 +1106,9 @@
 
             /* Handle to one relations */
             } else if (!props[key].type.childOf &&
-                updRec[key].id !== oldRec[key].id) {
+                (updRec[key] || {}).id !== (oldRec[key] || {}).id) {
 
-              if (updRec[key].id) {
+              if ((updRec[key] || {}).id) {
                 that.getKey({
                   id: updRec[key].id,
                   client: obj.client,
@@ -3330,7 +3330,7 @@
           newObj[newKey] = oldObj[oldKey];
 
           /* Recursively sanitize objects */
-          if (typeof newObj[newKey] === "object") {
+          if (typeof newObj[newKey] === "object" && newObj[newKey] !== null) {
             newObj[newKey] = sanitize(newObj[newKey]);
           }
         }
