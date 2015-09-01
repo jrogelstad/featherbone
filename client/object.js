@@ -242,10 +242,9 @@
 
       @param {String} Property name to call on cahnge
       @param {Function} Callback function to call on change
-      @param {Boolean} Enabled. Default  `true`.
       @return Reciever
     */
-    that.onChange = function (name, callback, enabled) {
+    that.onChange = function (name, callback) {
       var func = function () { callback(this); };
 
       stateMap[name].substateMap.Changing.enter(func.bind(d[name]));
@@ -270,10 +269,9 @@
 
       @param {String} Property name to call on cahnge
       @param {Function} Callback function to call on change
-      @param {Boolean} Enabled. Default  `true`.
       @return Reciever
     */
-    that.onChanged = function (name, callback, enabled) {
+    that.onChanged = function (name, callback) {
       var func = function () { callback(this); };
 
       stateMap[name].substateMap.Changing.exit(func.bind(d[name]));
