@@ -145,11 +145,11 @@
   };
 
   /**
-    Returns a base model definition. Can be extended by modifying the return
-    object directly.
+    Returns a persisting object based on a model definition. Can be extended
+    by modifying the return object directly.
 
-    @param {Object} Default data.
-    @param {Object} "My" definition for subclass
+    @param {Object} Default data
+    @param {Object} Model definition
     @param {Array} [model.name] the class name of the object
     @param {Array} [model.properties] the properties to set on the data object
     return {Object}
@@ -159,16 +159,12 @@
     model = model || {};
 
     var  doClear, doDelete, doError, doFetch, doInit, doPatch, doPost,
-      registerChangeEvent, lastError, lastFetched, path, state,
+      lastError, lastFetched, path, state,
       that = {data: {}, name: model.name || "Object", plural: model.plural},
       d = that.data,
       errHandlers = [],
       validators = [],
-      stateMap = {},
-      bindings = {
-        onChange: {},
-        onChanged: {}
-      };
+      stateMap = {};
 
     // ..........................................................
     // PUBLIC
@@ -250,7 +246,11 @@
       @return Reciever
     */
     that.onChange = function (name, callback, enabled) {
-      return registerChangeEvent("onChange", "enter", name, callback, enabled);
+      var func = function () { callback(this); };
+
+      stateMap[name].substateMap.Changing.enter(func.bind(d[name]));
+
+      return this;
     };
 
     /*
@@ -274,7 +274,11 @@
       @return Reciever
     */
     that.onChanged = function (name, callback, enabled) {
-      return registerChangeEvent("onChanged", "exit", name, callback, enabled);
+      var func = function () { callback(this); };
+
+      stateMap[name].substateMap.Changing.exit(func.bind(d[name]));
+
+      return this;
     };
 
     /*
@@ -868,46 +872,6 @@
         });
       });
     });
-
-    registerChangeEvent = function (e, action, name, callback, enabled) {
-      enabled = enabled === false ? false : true;
-
-      // No api in statechart to disable enter or exit, so handle it here
-      var func, idx, status,
-        events = bindings[e];
-
-      func = function () {
-        if (events[name].enabled.indexOf(callback) !== -1) { callback(this); }
-      };
-
-      // Handle case where event is already registered
-      if (events[name] && events[name].indexOf(callback) !== -1) {
-
-        // Add callback to applicable enabled status array
-        status = enabled ? "enabled" : "disabled";
-        events[name][status].push(callback);
-
-        // Remove callback from applicable enabled status array
-        status = enabled ? "disabled" : "enabled";
-        idx = events[name][status].indexOf(callback);
-        if (idx !== -1) { events[name][status].splice(idx, 1); }
-
-      // Register new event
-      } else {
-        if (enabled) {
-          if (!events[name]) {
-            events[name] = [];
-            events[name].enabled = [];
-            events[name].disabled = [];
-          }
-          events[name].push(callback);
-          events[name].enabled.push(callback);
-          stateMap[name].substateMap.Changing[action](func.bind(d[name]));
-        }
-      }
-
-      return this;
-    };
 
     // Expose state
     that.state = state;
