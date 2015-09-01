@@ -138,7 +138,7 @@
       return store;
     };
 
-    // Initialize state
+    store = formatter.toType(store);
     state.goto();
 
     return p;
@@ -686,7 +686,7 @@
             };
 
             // Create property
-            prop = f.prop(value || {}, formatter);
+            prop = f.prop(value, formatter);
 
           // Define format for to-many
           } else if (isToMany(p)) {

@@ -577,7 +577,7 @@
             /* To one */
             } else {
               col = relationColumn(key, prop.type.relation);
-              if (data[key] === undefined) {
+              if (data[key] === null || data[key] === undefined) {
                 value = -1;
               } else {
                 that.getKey({
