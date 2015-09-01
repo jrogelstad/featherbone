@@ -595,6 +595,8 @@
           ary.push(value);
           cache.push(value);
           prop.state.send("changed");
+
+          return value;
         };
 
         ary.clear = function () {
@@ -605,18 +607,24 @@
         };
 
         ary.remove = function (value) {
-          var result,
-            idx = ary.indexOf(value);
+          var result, idx, find;
 
-          if (idx !== -1) {
-            prop.state.send("change");
-            if (isNew) {
-              cache.splice(cache.indexOf(value), 1);
-            } else {
-              delete cache[cache.indexOf(value)];
+          find = function (item, i) {
+            if (value.data.id() === item.data.id()) {
+              idx = i;
+              return true;
             }
+          };
 
+          if (ary.some(find)) {
+            prop.state.send("change");
             result = ary.splice(idx, 1)[0];
+            cache.some(find); // Find index on cache
+            if (isNew) {
+              cache.splice(idx, 1);
+            } else {
+              delete cache[idx];
+            }
             that.state.send("changed");
           }
 
