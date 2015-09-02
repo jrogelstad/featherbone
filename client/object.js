@@ -145,8 +145,8 @@
   };
 
   /**
-    Returns a persisting object based on a model definition. Can be extended
-    by modifying the return object directly.
+    A factory that returns a persisting object based on a model definition.
+    Can be extended by modifying the return object directly.
 
     @param {Object} Default data
     @param {Object} Model definition
@@ -650,6 +650,7 @@
         };
       };
 
+      // Loop through each model property and instantiate a data property
       keys.forEach(function (key) {
         var prop, func, defaultValue, name, cModel, cKeys, cArray, relation,
           p = props[key],
