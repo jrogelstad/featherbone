@@ -137,6 +137,7 @@ doRequest = function (req, res) {
     };
   }
 
+console.log(JSON.stringify(payload, null, 2));
   datasource.request(payload);
 };
 

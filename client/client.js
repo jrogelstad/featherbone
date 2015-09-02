@@ -1,4 +1,4 @@
-/*global m, f */
+/*global m, f, window */
 
 var app = {};
 
@@ -72,21 +72,13 @@ app.view = function () {
       m("button", {
         onclick: app.vm.fetch
       }, "Fetch"),
-      m("table", [
+      m("div", {style: {fontFamily: "arial", overflowY: "auto",
+        maxHeight: window.innerHeight - 30 + "px"}}, [
         app.vm.list.map(function (contact, index) {
-          return m("tr", [
-            m("td", [
-              m("input", {
-                onchange: m.withAttr("value", contact.data.first),
-                value: contact.data.first()
-              })
-            ]),
-            m("td", [
-              m("input", {
-                onchange: m.withAttr("value", contact.data.last),
-                value: contact.data.last()
-              })
-            ])
+          var d = contact.data;
+          return m("div", [
+            m("b", d.last()),
+            m("span", ", " + d.first())
           ]);
         })
       ])
@@ -95,4 +87,8 @@ app.view = function () {
 };
 
 m.mount(document, {controller: app.controller, view: app.view});
+
+window.onresize = function (event) {
+  m.redraw(true);
+};
 
