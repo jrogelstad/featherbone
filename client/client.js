@@ -2,7 +2,22 @@
 
 var app = {};
 
-app.contact = function (data, model) {
+app.home = {
+  controller: function () {
+    return {
+      onunload: function () {
+        console.log("unloading home component");
+      }
+    };
+  },
+  view: function () {
+    return m("div", "Home");
+  }
+};
+
+app.contacts = {};
+
+app.contacts.contact = function (data, model) {
   var shared = model || f.catalog.getModel("Contact"),
     that = f.object(data, shared);
 
@@ -38,7 +53,7 @@ app.contact = function (data, model) {
   return that;
 };
 
-app.contactList = Array;
+app.contacts.list = Array;
 
 app.vm = (function () {
   var vm = {};
@@ -49,7 +64,7 @@ app.vm = (function () {
       callback = function () {
         vm.list.length = 0;
         result().forEach(function (item) {
-          var obj = app.contact(item);
+          var obj = app.contacts.contact(item);
           vm.list.push(obj);
         });
       };
@@ -57,38 +72,42 @@ app.vm = (function () {
     ds.request(payload).then(result).then(callback);
   };
   vm.init = function () {
-    vm.list = new app.contactList();
+    vm.list = new app.contacts.list();
   };
   return vm;
 }());
 
-app.controller = function () {
+app.contacts.controller = function () {
   app.vm.init();
 };
 
-app.view = function () {
-  return m("html", [
-    m("body", [
-      m("button", {
-        onclick: app.vm.fetch
-      }, "Fetch"),
-      m("div", {style: {fontFamily: "arial", overflowY: "auto",
-        maxHeight: window.innerHeight - 30 + "px"}}, [
-        app.vm.list.map(function (contact, index) {
-          var d = contact.data;
-          return m("div", [
-            m("b", d.last()),
-            m("span", ", " + d.first())
-          ]);
-        })
-      ])
+app.contacts.view = function () {
+  return m("div", [
+    m("button", {
+      onclick: app.vm.fetch
+    }, "Fetch"),
+    m("div", {style: {fontFamily: "arial", overflowY: "auto",
+      maxHeight: window.innerHeight - 30 + "px"}}, [
+      app.vm.list.map(function (contact, index) {
+        var d = contact.data;
+        return m("div", [
+          m("b", d.last()),
+          m("span", ", " + d.first())
+        ]);
+      })
     ])
   ]);
 };
 
-m.mount(document, {controller: app.controller, view: app.view});
+m.route(document.body, "/home", {
+  "/home": app.home,
+  "/contacts": app.contacts
+});
 
 window.onresize = function (event) {
   m.redraw(true);
 };
+
+
+
 
