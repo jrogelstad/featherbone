@@ -1,4 +1,4 @@
-/**
+﻿/**
     Framework for building object relational database apps
 
     Copyright (C) 2015  John Rogelstad
@@ -312,7 +312,6 @@
   DROP TABLE "$objectfolder";
   DROP TABLE "$module";
   DROP TABLE "$user";
-  DROP FUNCTION init();
   DROP FUNCTION request(json, boolean);
   DROP FUNCTION to_camel_case(text);
 */
