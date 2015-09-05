@@ -14,7 +14,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-/*global window, f */
+/*global window, f, m */
 (function (f) {
   "use strict";
 
@@ -158,7 +158,7 @@
     data = data || {};
     model = model || {};
 
-    var  doClear, doDelete, doError, doFetch, doInit, doPatch, doPost,
+    var  doClear, doDelete, doError, doFetch, doInit, doPatch, doPost, doSend,
       lastError, lastFetched, path, state,
       that = {data: {}, name: model.name || "Object", plural: model.plural},
       d = that.data,
@@ -180,16 +180,22 @@
 
     /*
       Send event to delete the current object from the server.
+
+      Returns a deferred promise with a boolean passed back as the value.
     */
     that.delete = function () {
-      state.send("delete");
+      return doSend("delete");
     };
 
     /*
       Send event to fetch data based on the current id from the server.
+
+      Returns a deferred promise with model.data passed back as the value.
+
+      @return {Object} Deferred promise
     */
     that.fetch = function () {
-      state.send("fetch");
+      return doSend("fetch");
     };
 
     /*
@@ -225,9 +231,10 @@
     };
 
     /*
-      Add an event binding to a property that will be triggered before a change.
-      Pass a callback in and the property will be passed to the callback. The
-      property will be passed to the callback as the first argument.
+      Add an event binding to a property that will be triggered before a
+      property change. Pass a callback in and the property will be passed
+      to the callback. The property will be passed to the callback as the
+      first argument.
 
         contact = function (data, model) {
           var shared = model || f.catalog.getModel("Contact"),
@@ -253,9 +260,10 @@
     };
 
     /*
-      Add an event binding to a property that will be triggered after a change.
-      Pass a callback in and the property will be passed to the callback. The
-      property will be passed to the callback as the first argument.
+      Add an event binding to a property that will be triggered after a property
+      change. Pass a callback in and the property will be passed to the
+      callback. The property will be passed to the callback as the first
+      argument.
 
         contact = function (data, model) {
           var shared = model || f.catalog.getModel("Contact"),
@@ -280,31 +288,6 @@
     };
 
     /*
-      Add a clear event binding to the object. Pass a callback
-      in and the object will be passed as an argument.
-
-        contact = function (data, model) {
-          var shared = model || f.catalog.getModel("Contact"),
-            that = f.object(data, shared);
-
-          // Add a fetched event
-          that.onClear(function (obj) {
-            console.log("Object cleared!");
-          });
-        }
-
-      @param {Function} Callback to execute on fetch
-      @return Reciever
-    */
-    that.onClear = function (callback) {
-      var func = function () { callback(that); };
-
-      state.substateMap.Ready.substateMap.New.enter(func);
-
-      return this;
-    };
-
-    /*
       Add an error handler binding to the object. Pass a callback
       in and the error will be passed as an argument.
 
@@ -323,31 +306,6 @@
     */
     that.onError = function (callback) {
       errHandlers.push(callback);
-
-      return this;
-    };
-
-    /*
-      Add a fetched event binding to the object. Pass a callback
-      in and the object will be passed as an argument.
-
-        contact = function (data, model) {
-          var shared = model || f.catalog.getModel("Contact"),
-            that = f.object(data, shared);
-
-          // Add a fetched event
-          that.onFetched(function (obj) {
-            console.log("Data fetched for this " + obj.name + "!");
-          });
-        }
-
-      @param {Function} Callback to execute on fetch
-      @return Reciever
-    */
-    that.onFetched = function (callback) {
-      var func = function () { callback(that); };
-
-      state.substateMap.Ready.substateMap.Fetched.enter(func);
 
       return this;
     };
@@ -387,9 +345,13 @@
       Send the save event to persist current data to the server.
       Only results in action in the "/Ready/Fetched/Dirty" and
       "/Ready/New" states.
+
+      Returns a deferred promise with model.data as the value.
+
+      @return {Object} Deferred promise
     */
     that.save = function () {
-      state.send("save");
+      return doSend("save");
     };
 
     /*
@@ -471,7 +433,7 @@
       that.set(values, true); // Uses silent option
     };
 
-    doDelete = function () {
+    doDelete = function (context) {
       var ds = f.dataSource,
         result = f.prop({}),
         payload = {method: "DELETE", path: path(that.name, that.id)},
@@ -479,6 +441,7 @@
           lastFetched = result();
           that.set(result(), true);
           state.send('deleted');
+          context.deferred.resolve(true);
         };
 
       ds.request(payload).then(result).then(callback);
@@ -492,7 +455,7 @@
       state.send("error");
     };
 
-    doFetch = function () {
+    doFetch = function (context) {
       var ds = f.dataSource,
         result = f.prop({}),
         payload = {method: "GET", path: path(that.name, that.data.id())},
@@ -503,12 +466,13 @@
           lastFetched = result();
           that.set(result(), true);
           state.send('fetched');
+          context.deferred.resolve(d);
         };
 
       ds.request(payload).then(result, handleErr).then(callback);
     };
 
-    doPatch = function () {
+    doPatch = function (context) {
       var ds = f.dataSource,
         result = f.prop({}),
         patch = jsonpatch.compare(lastFetched, that.toJSON()),
@@ -519,6 +483,7 @@
           jsonpatch.apply(lastFetched, result()); // Update server side changes
           that.set(lastFetched, true);
           state.send('fetched');
+          context.deferred.resolve(d);
         };
 
       if (that.isValid()) {
@@ -526,7 +491,7 @@
       }
     };
 
-    doPost = function () {
+    doPost = function (context) {
       var ds = f.dataSource,
         result = f.prop({}),
         cache = that.toJSON(),
@@ -537,11 +502,18 @@
           lastFetched = cache;
           that.set(cache, true);
           state.send('fetched');
+          context.deferred.resolve(d);
         };
 
       if (that.isValid()) {
         ds.request(payload).then(result).then(callback);
       }
+    };
+
+    doSend = function (evt) {
+      var deferred = m.deferred();
+      state.send(evt, deferred);
+      return deferred.promise;
     };
 
     doInit = function () {
@@ -563,12 +535,12 @@
           ary = prop();
 
         // Bind parent events to array
-        that.onClear(function () {
+        state.resolve("/Ready/New").enter(function () {
           isNew = true;
           ary.clear();
         });
 
-        that.onFetched(function () {
+        state.resolve("/Ready/Fetched").enter(function () {
           isNew = false;
         });
 
@@ -789,8 +761,10 @@
       this.enter(doInit);
 
       this.state("Ready", {H: "*"}, function () {
-        this.event("fetch",  function () {
-          this.goto("/Busy");
+        this.event("fetch",  function (deferred) {
+          this.goto("/Busy", {
+            context: {deferred: deferred}
+          });
         });
 
         this.state("New", function () {
@@ -799,8 +773,10 @@
           this.event("clear",  function () {
             this.goto("/Ready/New", {force: true});
           });
-          this.event("save", function () {
-            this.goto("/Busy/Saving");
+          this.event("save", function (deferred) {
+            this.goto("/Busy/Saving", {
+              context: {deferred: deferred}
+            });
           });
           this.event("delete", function () {
             this.goto("/Deleted");
@@ -811,8 +787,10 @@
           this.event("clear",  function () {
             this.goto("/Ready/New");
           });
-          this.event("delete",  function () {
-            this.goto("/Busy/Deleting");
+          this.event("delete",  function (deferred) {
+            this.goto("/Busy/Deleting", {
+              context: {deferred: deferred}
+            });
           });
 
           this.state("Clean", function () {
@@ -822,8 +800,10 @@
           });
 
           this.state("Dirty", function () {
-            this.event("save", function () {
-              this.goto("/Busy/Saving/Patching");
+            this.event("save", function (deferred) {
+              this.goto("/Busy/Saving/Patching", {
+                context: {deferred: deferred}
+              });
             });
           });
         });
