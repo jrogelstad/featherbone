@@ -312,7 +312,6 @@
   DROP TABLE "$objectfolder";
   DROP TABLE "$module";
   DROP TABLE "$user";
-  DROP FUNCTION request(json, boolean);
   DROP FUNCTION to_camel_case(text);
 */
 

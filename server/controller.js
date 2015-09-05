@@ -1040,7 +1040,7 @@
         key = keys[n];
         n++;
 
-        if (n < keys.length) {
+        if (n <= keys.length) {
           /* Handle composite types */
           if (typeof props[key].type === "object") {
 
