@@ -92,6 +92,8 @@
         return;
       }
 
+      client.currentUser = obj.user;
+
       // If registered function, execute it
       if (typeof registered[obj.method][obj.name] === "function") {
         obj.data.client = client;
@@ -127,6 +129,7 @@
         obj.client.query("BEGIN;", function (err, resp) {
           if (err) {
             obj.callback(err);
+            return;
           }
 
           transaction(obj, false, isSuperUser);
@@ -159,7 +162,6 @@
     };
 
     afterRequest = function (err, resp) {
-      controller.setCurrentUser(undefined);
       // Passed client will handle it's own connection
       if (!obj.client) { done(); }
 
@@ -179,8 +181,6 @@
       // Otherwise return response
       callback(null, resp);
     };
-
-    controller.setCurrentUser(obj.user);
 
     if (obj.client) {
       client = obj.client;

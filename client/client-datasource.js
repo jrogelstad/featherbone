@@ -25,7 +25,7 @@
     */
     baseUrl: function () {
       //TODO: Make this configurable
-      return "http://localhost:8080";
+      return "http://localhost:10001";
     },
 
     request: function (options) {

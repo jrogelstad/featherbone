@@ -25,7 +25,7 @@ var catalog, init, resolveName, getCatalog, getCurrentUser,
   express = require('express'),
   bodyParser = require('body-parser'),
   app = express(),
-  port = process.env.PORT || 8080,
+  port = process.env.PORT || 10001,
   dataRouter = express.Router(),
   modelRouter = express.Router(),
   settingsRouter = express.Router();
@@ -272,7 +272,7 @@ init(function () {
   });
 
   // test route to make sure everything is working 
-  // (accessed at GET http://localhost:8080/api)
+  // (accessed at GET http://localhost:{port}/api)
   dataRouter.get('/', function (req, res) {
     res.json({ message: 'hooray! welcome to our api!' });
   });

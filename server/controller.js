@@ -20,7 +20,7 @@
   require("../common/extend-string");
 
   var that, createView, curry, getParentKey, isChildModel,
-    propagateViews, propagateAuth, currentUser, buildAuthSql,
+    propagateViews, propagateAuth, buildAuthSql,
     relationColumn, sanitize,
     f = require("../common/core"),
     jsonpatch = require("fast-json-patch"),
@@ -538,8 +538,8 @@
 
         // Set some system controlled values
         data.created = data.updated = f.now();
-        data.createdBy = that.getCurrentUser();
-        data.updatedBy = that.getCurrentUser();
+        data.createdBy = obj.client.currentUser;
+        data.updatedBy = obj.client.currentUser;
 
         // Get primary key
         sql = "select nextval('object__pk_seq')";
@@ -1026,7 +1026,7 @@
         updRec.created = oldRec.created;
         updRec.createdBy = oldRec.createdBy;
         updRec.updated = new Date().toJSON();
-        updRec.updatedBy = that.getCurrentUser();
+        updRec.updatedBy = obj.client.currentUser;
         if (props.etag) {
           updRec.etag = f.createId();
         }
@@ -1248,17 +1248,6 @@
     },
 
     /**
-      Return the current user.
-
-      @return {String}
-    */
-    getCurrentUser: function () {
-      if (currentUser) { return currentUser; }
-
-      throw "Current user undefined";
-    },
-
-    /**
       Get the primary key for a given id.
 
       @param {Object} Request payload
@@ -1321,7 +1310,7 @@
       if (isSuperUser === false) {
         sql += buildAuthSql("canRead", table, tokens);
 
-        params.push(that.getCurrentUser());
+        params.push(obj.client.currentUser);
         p++;
       }
 
@@ -1573,7 +1562,7 @@
     */
     isAuthorized: function (obj) {
       var table, pk, authSql, sql, callback, params,
-        user = obj.user || that.getCurrentUser(),
+        user = obj.user || obj.client.currentUser,
         model = obj.model,
         folder = obj.folder,
         action = obj.action,
@@ -1679,7 +1668,7 @@
     */
     isSuperUser: function (obj) {
       var sql = "SELECT is_super FROM \"$user\" WHERE username=$1;",
-        user = obj.user === undefined ? that.getCurrentUser() : obj.user;
+        user = obj.user === undefined ? obj.client.currentUser : obj.user;
 
       obj.client.query(sql, [user], function (err, resp) {
         if (err) {
@@ -1841,7 +1830,7 @@
                 return;
               }
 
-              if (resp.rows[0].owner !== that.getCurrentUser()) {
+              if (resp.rows[0].owner !== obj.client.currentUser) {
                 err = "Must be super user or owner of \"" + id + "\" to set " +
                   "authorization.";
                 obj.callback(err);
@@ -2443,8 +2432,8 @@
               "(_pk, id, created, created_by, updated, updated_by, " +
               "is_deleted, is_child, parent_pk) VALUES " +
               "($1, $2, now(), $3, now(), $4, false, $5, $6);";
-            values = [pk, table, that.getCurrentUser(),
-              that.getCurrentUser(), isChild,
+            values = [pk, table, obj.client.currentUser,
+              obj.client.currentUser, isChild,
               key];
 
             obj.client.query(sql, values, afterInsertModel);
@@ -2620,14 +2609,6 @@
       return this;
     },
 
-    /** Set the current user referenced by all other functions
-
-      @param {String} User
-    */
-    setCurrentUser: function (user) {
-      currentUser = user;
-    },
-
     /**
       Sets a user as super user or not.
 
@@ -2696,7 +2677,7 @@
       };
 
       that.isSuperUser({
-        name: that.getCurrentUser(),
+        name: obj.client.currentUser,
         client: obj.client,
         callback: afterCheckSuperUser
       });
