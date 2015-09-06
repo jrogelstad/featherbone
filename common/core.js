@@ -13,11 +13,12 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*global window */
+/*global m, window*/
 var f = (function () {
   "use strict";
 
-  var that,
+  var that, waiting,
+    queue = [], thenables = [],
     dateToString = function (value) {
       return value instanceof Date ? value.toJSON() : value;
     };
@@ -92,6 +93,85 @@ var f = (function () {
     */
     getCurrentUser: function () {
       return "admin";
+    },
+
+    /**
+      Add an asynchronous function call that should 
+      be executed when the application is intialized.
+      Functions are executed serially such that the
+      most recent isn't executed until all preceding
+      callbacks are executed.
+
+      Functions passed in should return a value using
+      deferred promises to ensure proper completion of the
+      queue.
+
+      Init itself returns a deferred promise that will be
+      resolved when all queued callbacks are complete.
+      As such  `init` can be called passing no callback
+      followed by `then` and another function to
+      be executed when the application is completetly
+      initialized.
+
+        var myAsync, report, i = 0;
+
+        // Define an async function
+        myAsync = function(msec) {
+          var deferred = m.deferred();
+          setTimeout(function() {
+            i++;
+            deferred.resolve(true);
+          }, msec || 1000);
+          return deferred.promise;
+        };
+
+        // A function that reports back results
+        report = function () {
+          console.log("myAsync ran " + i + " times!");
+        };
+
+        // Kick off first async (no argument)
+        f.init(myAsync);
+
+        // Kick off second async (includes argument)
+        f.init(myAsync.bind(this, 500));
+
+        // Report results after all are initializations are complete
+        f.init().then(report);  // "myAsync ran 2 times!"
+
+      @param {Function} Callback
+      returns {Object} Deferred promise
+    */
+    init: function (callback) {
+      var func, unwait,
+        deferred = m.deferred();
+
+      thenables.push(deferred);
+
+      if (typeof callback === "function") {
+        queue.push(callback);
+      }
+      if (waiting) {
+        return deferred.promise;
+      }
+      if (!queue.length) {
+        while (thenables.length) {
+          thenables.shift().resolve(true);
+        }
+        return deferred.promise;
+      }
+
+      waiting = true;
+      func = queue.shift();
+
+      unwait = function () {
+        waiting = false;
+        return true;
+      };
+
+      func().then(unwait).then(that.init);
+
+      return deferred.promise;
     },
 
     /**

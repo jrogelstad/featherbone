@@ -14,7 +14,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-/*global window, f */
+/*global window, f, m */
 (function (f) {
   "use strict";
 
@@ -33,39 +33,17 @@
       Send event to fetch data based on the current id from the server.
     */
     that.fetch = function () {
-      state.send("fetch");
+      var deferred = m.deferred();
+      state.send("fetch", deferred);
+      return deferred.promise;
     };
 
-    /*
-      Add a fetched event binding to the object. Pass a callback
-      in and the object will be passed as an argument.
-
-        mySettings = function (data, model) {
-          var shared = model || f.catalog.getModel("Contact"),
-            that = f.settings(data, shared);
-
-          // Add a fetched event
-          that.onFetched(function (obj) {
-            console.log("Data fetched for this " + obj.name + "!");
-          });
-        }
-
-      @param {Function} Callback to execute on fetch
-      @return Reciever
-    */
-    that.onFetched = function (callback) {
-      var func = function () { callback(that); };
-
-      state.substateMap.Ready.substateMap.Fetched.enter(func);
-
-      return this;
-    };
-
-    doFetch = function () {
+    doFetch = function (context) {
       var ds = f.dataSource,
         payload = {method: "GET", path: "/settings/" + name},
         callback = function () {
           state.send('fetched');
+          context.deferred.resolve(that.data);
         };
 
       state.goto("/Busy");
@@ -73,34 +51,50 @@
     };
 
     doPost = function () {
-      state.goto("/Busy/Saving");
+      // TODO: Finish this
+      console.error("Save settings not implemented yet.");
     };
 
     state = statechart.State.define(function () {
       this.state("Ready", function () {
-        this.state("New", function () {
-          this.event("fetch", doFetch);
+        this.event("fetch", function (deferred) {
+          this.goto("/Busy", {
+            context: {deferred: deferred}
+          });
         });
 
+        this.state("New");
         this.state("Fetched", function () {
           this.state("Clean", function () {
-            this.event("changed", function () { this.goto("../Dirty"); });
+            this.event("changed", function () {
+              this.goto("../Dirty");
+            });
           });
 
-          this.state("Dirty", function () {
-            this.event("save", doPost);
+          this.state("Dirty", function (deferred) {
+            this.event("save", function (deferred) {
+              this.goto("/Busy/Saving", {
+                context: {deferred: deferred}
+              });
+            });
           });
-
-          this.event("fetch", doFetch);
         });
       });
 
       this.state("Busy", function () {
-        this.state("Fetching");
-        this.state("Saving");
+        this.state("Fetching", function () {
+          this.enter(doFetch);
+        });
+        this.state("Saving", function () {
+          this.enter(doPost);
+        });
 
-        this.event("fetched", function () { this.goto("/Ready/Fetched"); });
-        this.event("error", function () { this.goto("/Error"); });
+        this.event("fetched", function () {
+          this.goto("/Ready/Fetched");
+        });
+        this.event("error", function () {
+          this.goto("/Error");
+        });
       });
 
       this.state("Error", function () {
@@ -196,11 +190,10 @@
     //
 
     // Create an object for each model
-    processModels = function (obj) {
-      var keys,
-        data = obj.data();
+    processModels = function (data) {
+      var keys;
 
-      keys = Object.keys(data);
+      keys = Object.keys(data());
       keys.forEach(function (key) {
         var prop = key.slice(0, 1).toLowerCase() + key.slice(1);
 
@@ -214,12 +207,15 @@
           };
         }
       });
+
+      return true;
     };
 
 
-    // Bind fetchh to model handling
-    that.onFetched(processModels);
-    that.fetch();
+    // Load catalog and process
+    f.init(function () {
+      return that.fetch().then(processModels);
+    });
 
     return that;
   }());
