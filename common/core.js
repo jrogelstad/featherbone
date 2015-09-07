@@ -47,7 +47,7 @@ var f = (function () {
     /**
       Objects for performing data manipulation.
     */
-    feathers: {},
+    models: {},
 
     formats: {
       "integer": {

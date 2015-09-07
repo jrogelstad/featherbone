@@ -125,13 +125,13 @@
       that = f.settings("catalog");
 
     /**
-      Return a model definition, including inherited properties.
+      Return a model specification (feather) including inherited properties.
 
       @param {String} Model name
       @param {Boolean} Include inherited or not. Defult = true.
       @return {String}
     */
-    that.getModel = function (name, includeInherited) {
+    that.getFeather = function (name, includeInherited) {
       var resultProps, modelProps, key, appendParent,
         catalog = that.data(),
         result = {name: name, inherits: "Object"};
@@ -198,12 +198,12 @@
         var prop = key.slice(0, 1).toLowerCase() + key.slice(1);
 
         // Implement generic function to object from model
-        if (typeof f.feathers[prop] !== "function") {
-          f.feathers[prop] = function (data, model) {
-            var shared = model || that.getModel(key),
-              feather = f.object(data, shared);
+        if (typeof f.models[prop] !== "function") {
+          f.models[prop] = function (data, model) {
+            var shared = model || that.getFeather(key),
+              obj = f.model(data, shared);
 
-            return feather;
+            return obj;
           };
         }
       });

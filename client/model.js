@@ -145,22 +145,22 @@
   };
 
   /**
-    A factory that returns a persisting object based on a model definition.
-    Can be extended by modifying the return object directly.
+    A factory that returns a persisting object based on a definition call a
+    `feather`. Can be extended by modifying the return object directly.
 
     @param {Object} Default data
-    @param {Object} Model definition
-    @param {Array} [model.name] the class name of the object
-    @param {Array} [model.properties] the properties to set on the data object
+    @param {Object} Feather
+    @param {Array} [feather.name] the class name of the object
+    @param {Array} [feather.properties] the properties to set on the data object
     return {Object}
   */
-  f.object = function (data, model) {
+  f.model = function (data, feather) {
     data = data || {};
-    model = model || {};
+    feather = feather || {};
 
     var  doClear, doDelete, doError, doFetch, doInit, doPatch, doPost, doSend,
       lastError, lastFetched, path, state,
-      that = {data: {}, name: model.name || "Object", plural: model.plural},
+      that = {data: {}, name: feather.name || "Object", plural: feather.plural},
       d = that.data,
       errHandlers = [],
       validators = [],
@@ -199,9 +199,9 @@
     };
 
     /*
-      Property that indicates object is a feather (i.e. object class).
+      Property that indicates object is a model (i.e. class).
     */
-    that.isFeather = true;
+    that.isModel = true;
 
     /*
       Returns whether the object is in a valid state to save.
@@ -236,9 +236,9 @@
       to the callback. The property will be passed to the callback as the
       first argument.
 
-        contact = function (data, model) {
-          var shared = model || f.catalog.getModel("Contact"),
-            that = f.object(data, shared);
+        contact = function (data, feather) {
+          var shared = feather || f.catalog.getFeather("Contact"),
+            that = f.model(data, shared);
 
           // Add a change event to a property
           that.onChange("first", function (prop) {
@@ -265,9 +265,9 @@
       callback. The property will be passed to the callback as the first
       argument.
 
-        contact = function (data, model) {
-          var shared = model || f.catalog.getModel("Contact"),
-            that = f.object(data, shared);
+        contact = function (data, feather) {
+          var shared = feather || f.catalog.getFeather("Contact"),
+            that = f.model(data, shared);
 
           // Add a changed event to a property
           that.onChanged("first", function (prop) {
@@ -291,9 +291,9 @@
       Add an error handler binding to the object. Pass a callback
       in and the error will be passed as an argument.
 
-        contact = function (data, model) {
-          var shared = model || f.catalog.getModel("Contact"),
-            that = f.object(data, shared);
+        contact = function (data, feather) {
+          var shared = feather || f.catalog.getFeather("Contact"),
+            that = f.model(data, shared);
 
           // Add an error handler
           that.onError(function (err) {
@@ -317,9 +317,9 @@
       callback(s). The most recent error may also be access via
       `lastError`.
 
-        contact = function (data, model) {
-          var shared = model || f.catalog.getModel("Contact"),
-            that = f.object(data, shared);
+        contact = function (data, feather) {
+          var shared = feather || f.catalog.getFeather("Contact"),
+            that = f.model(data, shared);
 
           // Add a fetched event
           that.onValidate(function (validator) {
@@ -518,7 +518,7 @@
 
     doInit = function () {
       var onFetching, onFetched, extendArray,
-        props = model.properties,
+        props = feather.properties,
         keys = Object.keys(props || {});
 
       onFetching = function () {
@@ -547,10 +547,10 @@
         // Extend array
         ary.add = function (value) {
           prop.state.send("change");
-          if (value && value.isFeather) { value = value.toJSON(); }
+          if (value && value.isModel) { value = value.toJSON(); }
 
           // Create an instance
-          value = f.feathers[name](value);
+          value = f.models[name](value);
 
           // Synchronize statechart
           state.resolve("/Busy/Fetching").enter(onFetching.bind(value));
@@ -624,7 +624,7 @@
 
       // Loop through each model property and instantiate a data property
       keys.forEach(function (key) {
-        var prop, func, defaultValue, name, cModel, cKeys, cArray, relation,
+        var prop, func, defaultValue, name, cFeather, cKeys, cArray, relation,
           p = props[key],
           type = p.type,
           value = data[key],
@@ -641,22 +641,24 @@
 
             // Need to to make sure transform knows to ignore inapplicable props
             if (type.properties && type.properties.length) {
-              cModel = JSON.parse(JSON.stringify(f.catalog.getModel(relation)));
-              cKeys = Object.keys(cModel.properties);
+              cFeather = JSON.parse(JSON.stringify(
+                f.catalog.getFeather(relation)
+              ));
+              cKeys = Object.keys(cFeather.properties);
               cKeys.forEach(function (key) {
                 if (type.properties.indexOf(key) === -1 && key !== "id") {
-                  delete cModel.properties[key];
+                  delete cFeather.properties[key];
                 }
               });
             }
 
-            // Create a feather instance if not already
+            // Create a model instance if not already
             formatter.toType = function (value) {
               var result;
 
               if (value === undefined || value === null) { return null; }
-              if (value && value.isFeather) { value = value.toJSON(); }
-              result =  f.feathers[name](value, cModel);
+              if (value && value.isModel) { value = value.toJSON(); }
+              result =  f.models[name](value, cFeather);
 
               // Synchronize statechart
               state.resolve("/Busy/Fetching").enter(onFetching.bind(result));
@@ -676,7 +678,7 @@
           } else if (isToMany(p)) {
             cArray = [];
 
-            // Create a feather each instance if not already
+            // Create an instance for each relation if not already
             formatter.toType = function (value) {
               value = value || [];
 
@@ -861,10 +863,32 @@
     return that;
   };
 
+  f.list = function (name) {
+    var that = [],
+      plural = f.catalog.getFeather(name).plural;
+
+    that.fetch = function (filter) {
+      filter = filter || {};
+      return m.request({
+        method: "GET",
+        url: "/data/" + plural,
+        data: {filter: filter}
+      }).then(function (models) {
+        that = models.map(function (data) {
+          var model = f.models[name](data);
+          model.state.goto("/Ready/Fetched");
+          return model;
+        });
+        return that;
+      });
+    };
+
+    return that;
+  };
+
   // ..........................................................
   // PRIVATE
   //
-
 
   /** private */
   isChild = function (p) {
@@ -881,7 +905,6 @@
   isToMany = function (p) {
     return p.type && typeof p.type === "object" && p.type.parentOf;
   };
-
 
 }(f));
 
