@@ -17,11 +17,13 @@
 var f = (function () {
   "use strict";
 
-  var that, waiting,
-    queue = [], thenables = [],
-    dateToString = function (value) {
-      return value instanceof Date ? value.toJSON() : value;
-    };
+  var that, waiting, dateToString,
+    callbacks = [], queue = [], thenables = [],
+    i = 0;
+
+  dateToString = function (value) {
+    return value instanceof Date ? value.toJSON() : value;
+  };
 
   that = {
     /**
@@ -113,22 +115,31 @@ var f = (function () {
       be executed when the application is completetly
       initialized.
 
-        var myAsync, report, i = 0;
+        var myAsync, reportProgress, reportFinish;
 
         // Define an async function
         myAsync = function(msec) {
           var deferred = m.deferred();
           setTimeout(function() {
-            i++;
             deferred.resolve(true);
           }, msec || 1000);
           return deferred.promise;
         };
 
-        // A function that reports back results
-        report = function () {
-          console.log("myAsync ran " + i + " times!");
+        // A function that reports back incremental progress
+        reportProgress = function () {
+          var n = f.initCount(),
+            i = n - f.initRemaining();
+          console.log("myAsync completed " + i + " of " + n + " calls.");
         };
+
+        // A function that reports back end results
+        reportFinish = function () {
+          console.log("myAsync complete!");
+        };
+
+        // Attached progress report
+        f.initEach(reportProgress);
 
         // Kick off first async (no argument)
         f.init(myAsync);
@@ -137,18 +148,26 @@ var f = (function () {
         f.init(myAsync.bind(this, 500));
 
         // Report results after all are initializations are complete
-        f.init().then(report);  // "myAsync ran 2 times!"
+        f.init().then(reportFinish);  
 
+        // "myAsync completed 1 of 2 calls."
+        // "myAsync completed 2 of 2 calls."
+        // "myAsync complete!"
+
+      @seealso initCount
+      @seealso initEach
+      @seealso initRemaining
       @param {Function} Callback
       returns {Object} Deferred promise
     */
     init: function (callback) {
-      var func, unwait,
+      var func, next,
         deferred = m.deferred();
 
       thenables.push(deferred);
 
       if (typeof callback === "function") {
+        i++;
         queue.push(callback);
       }
       if (waiting) {
@@ -164,14 +183,45 @@ var f = (function () {
       waiting = true;
       func = queue.shift();
 
-      unwait = function () {
+      next = function () {
         waiting = false;
+        callbacks.forEach(function (callback) {
+          callback();
+        });
         return true;
       };
 
-      func().then(unwait).then(that.init);
+      func().then(next).then(that.init);
 
       return deferred.promise;
+    },
+
+    /**
+      Return the total number of functions queued to
+      initialize.
+
+      @return {Number}
+    */
+    initCount: function () {
+      return i;
+    },
+
+    /*
+      Add a callback to be executed when each
+      initialization is complete.
+    */
+    initEach: function (callback) {
+      callbacks.push(callback);
+    },
+
+    /**
+      Return the remaining functions queued to
+      initialize.
+
+      @return {Number}
+    */
+    initRemaining: function () {
+      return queue.length;
     },
 
     /**
