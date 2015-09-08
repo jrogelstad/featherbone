@@ -863,29 +863,6 @@
     return that;
   };
 
-  f.list = function (name) {
-    var that = [],
-      plural = f.catalog.getFeather(name).plural;
-
-    that.fetch = function (filter) {
-      filter = filter || {};
-      return m.request({
-        method: "GET",
-        url: "/data/" + plural,
-        data: {filter: filter}
-      }).then(function (models) {
-        that = models.map(function (data) {
-          var model = f.models[name](data);
-          model.state.goto("/Ready/Fetched");
-          return model;
-        });
-        return that;
-      });
-    };
-
-    return that;
-  };
-
   // ..........................................................
   // PRIVATE
   //
