@@ -67,7 +67,8 @@
 
     var client, done, transaction, connect,
       doRequest, afterTransaction, afterRequest,
-      callback = obj.callback;
+      callback = obj.callback,
+      externalClient = false;
 
     connect = function () {
       pg.connect(conn, function (err, c, d) {
@@ -163,7 +164,7 @@
 
     afterRequest = function (err, resp) {
       // Passed client will handle it's own connection
-      if (!obj.client) { done(); }
+      if (!externalClient) { done(); }
 
       // Format errors into objects that can be handled by server
       if (err) {
@@ -183,6 +184,7 @@
     };
 
     if (obj.client) {
+      externalClient = true;
       client = obj.client;
       doRequest();
       return;
