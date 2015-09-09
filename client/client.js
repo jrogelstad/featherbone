@@ -1,113 +1,132 @@
 /*global m, f, window */
 
-var app = {};
+f.init().then(function () {
 
-app.home = {
-  controller: function () {
+  var Observable, ContactsWidget, ContactForm, ContactList, list;
+
+  list = function (data) {
+    return m.request({
+      method: "GET",
+      url: "/data/contacts",
+      data: data
+    }).then(function (contacts) {
+      return contacts.map(function (data) {
+        var model = f.models.contact(data);
+        model.state.goto("/Ready/Fetched");
+        return model;
+      });
+    });
+  };
+
+  Observable = function () {
+    var channels = {};
     return {
-      onunload: function () {
-        console.log("unloading home component");
+      register: function (subscriptions, controller) {
+        return function self() {
+          var ctrl = new controller,
+            reload = controller.bind(ctrl);
+          Observable.on(subscriptions, reload);
+          ctrl.onunload = function () {
+            Observable.off(reload);
+          };
+          return ctrl;
+        };
+      },
+      on: function (subscriptions, callback) {
+        subscriptions.forEach(function (subscription) {
+          if (!channels[subscription]) { channels[subscription] = []; }
+          channels[subscription].push(callback);
+        });
+      },
+      off: function (callback) {
+        var index, keys;
+        keys = Object.keys(channels);
+        keys.forEach(function (channel) {
+          index = channels[channel].indexOf(callback);
+          if (index > -1) { channels[channel].splice(index, 1); }
+        });
+      },
+      trigger: function (channel, args) {
+        console.log(channel);
+        channels[channel].map(function (callback) {
+          callback(args);
+        });
       }
     };
-  },
-  view: function () {
-    return m("div", "Home");
-  }
-};
+  }.call();
 
-app.contacts = {};
-
-app.contacts.contact = function (data, model) {
-  var shared = model || f.catalog.getModel("Contact"),
-    that = f.object(data, shared);
-
-  // ..........................................................
-  // EVENT BINDINGS
-  //
-
-  that.onChange("first", function (prop) {
-    console.log("First name changing from " +
-      (prop.oldValue() || "nothing") + " to " + prop.newValue() + "!");
+  //model layer observer
+  Observable.on(["saveContact"], function (model) {
+    model.save().then(Observable.trigger("updateContact"));
   });
 
-  that.onChange("last", function (prop) {
-    console.log("Last name changing from " +
-      (prop.oldValue() || "nothing") + " to " + prop.newValue() + "!");
-  });
-
-  that.onChange("id", function (prop) {
-    console.log("Id changing from " +
-      (prop.oldValue() || "nothing") + " to " + prop.newValue() + "!");
-  });
-
-  that.onValidate(function (validator) {
-    if (!that.data.first()) {
-      throw "First name must not be empty.";
+  ContactsWidget = {
+    controller: Observable.register(["updateContact"], function () {
+      this.contacts = list();
+    }),
+    view: function (ctrl) {
+      return [
+        m.component(ContactForm),
+        m.component(ContactList, {contacts: ctrl.contacts})
+      ];
     }
-  });
+  };
 
-  that.onError(function (err) {
-    console.log("Error->", err);
-  });
-
-  return that;
-};
-
-app.contacts.list = Array;
-
-app.vm = (function () {
-  var vm = {};
-  vm.fetch = function () {
-    var ds = f.dataSource,
-      result = f.prop({}),
-      payload = {method: "GET", path: "/data/contacts"},
-      callback = function () {
-        vm.list.length = 0;
-        result().forEach(function (item) {
-          var obj = app.contacts.contact(item);
-          vm.list.push(obj);
-        });
+  ContactForm = {
+    controller: function () {
+      var that = this;
+      this.contact = f.models.contact();
+      this.save = function () {
+        Observable.trigger("saveContact", that.contact);
       };
+    },
+    view: function (ctrl) {
+      var contact = ctrl.contact,
+        d = contact.data;
 
-    ds.request(payload).then(result).then(callback);
+      return m("form", [
+        m("label", "Name"),
+        m("input", {
+          oninput: m.withAttr("value", d.name),
+          value: d.name()
+        }),
+
+        m("label", "Email"),
+        m("input", {
+          oninput: m.withAttr("value", d.email),
+          value: d.email()
+        }),
+
+        m("button[type=button]", {
+          onclick: ctrl.save
+        }, "Save")
+      ]);
+    }
   };
-  vm.init = function () {
-    vm.list = new app.contacts.list();
+
+  ContactList = {
+    controller: Observable.register(["updateContact"], function () {
+      this.contacts = list();
+    }),
+    view: function (ctrl) {
+      return m("table", [
+        ctrl.contacts().map(function (contact) {
+          var d = contact.data;
+          return m("tr", [
+            m("td", d.id()),
+            m("td", d.name()),
+            m("td", d.email())
+          ]);
+        })
+      ]);
+    }
   };
-  return vm;
-}());
 
-app.contacts.controller = function () {
-  app.vm.init();
-};
+  m.mount(document.body, ContactsWidget);
 
-app.contacts.view = function () {
-  return m("div", [
-    m("button", {
-      onclick: app.vm.fetch
-    }, "Fetch"),
-    m("div", {style: {fontFamily: "arial", overflowY: "auto",
-      maxHeight: window.innerHeight - 30 + "px"}}, [
-      app.vm.list.map(function (contact, index) {
-        var d = contact.data;
-        return m("div", [
-          m("b", d.last()),
-          m("span", ", " + d.first())
-        ]);
-      })
-    ])
-  ]);
-};
-
-m.route(document.body, "/home", {
-  "/home": app.home,
-  "/contacts": app.contacts
 });
 
 window.onresize = function (event) {
   m.redraw(true);
 };
-
-
-
 
