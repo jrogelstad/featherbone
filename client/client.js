@@ -73,14 +73,14 @@ f.init().then(function () {
   };
 
   ContactForm = {
-    controller: function () {
+    controller: function (args) {
       var that = this;
       this.contact = f.models.contact();
       this.save = function () {
         Observable.trigger("saveContact", that.contact);
       };
     },
-    view: function (ctrl) {
+    view: function (ctrl, args) {
       var contact = ctrl.contact,
         d = contact.data;
 
@@ -105,12 +105,9 @@ f.init().then(function () {
   };
 
   ContactList = {
-    controller: Observable.register(["updateContact"], function () {
-      this.contacts = list();
-    }),
-    view: function (ctrl) {
+    view: function (ctrl, args) {
       return m("table", [
-        ctrl.contacts().map(function (contact) {
+        args.contacts().map(function (contact) {
           var d = contact.data;
           return m("tr", [
             m("td", d.id()),
