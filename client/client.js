@@ -2,33 +2,25 @@
 
 f.init().then(function () {
 
-  var Contact, ContactsWidget, ContactForm, ContactList;
+  var ContactsWidget, ContactForm, ContactList;
 
-  Contact = function (data) {
-    data = data || {};
-    this.id = m.prop(data.id);
-    this.name = m.prop(data.name);
-    this.email = m.prop(data.email);
-  };
-  Contact.list = function (data) {
-    return m.request({method: "GET", url: "/data/contacts", data: data});
-  };
-  Contact.save = function (model) {
-    /*
-    var contact = f.models.contact({
-      id: data.id(),
-      name: data.name(),
-      email: data.email()
+  f.models.contact.list = function (data) {
+    return m.request({
+      method: "GET",
+      url: "/data/contacts",
+      data: data
+    }).then(function (data) {
+      return data.map(function (item) {
+        return f.models.contact(item);
+      });
     });
-*/
-    return model.save();
   };
 
   ContactsWidget = {
     controller: function update() {
-      this.contacts = Contact.list();
+      this.contacts = f.models.contact.list();
       this.save = function (contact) {
-        Contact.save(contact).then(update.bind(this));
+        contact.save().then(update.bind(this));
       }.bind(this);
     },
     view: function (ctrl) {
@@ -41,7 +33,6 @@ f.init().then(function () {
 
   ContactForm = {
     controller: function (args) {
-      //this.contact = m.prop(args.contact || new Contact());
       this.contact = m.prop(args.contact || f.models.contact());
     },
     view: function (ctrl, args) {
@@ -71,11 +62,10 @@ f.init().then(function () {
     view: function (ctrl, args) {
       return m("table", [
         args.contacts().map(function (contact) {
-          contact = new Contact(contact);
           return m("tr", [
-            m("td", contact.id()),
-            m("td", contact.name()),
-            m("td", contact.email())
+            m("td", contact.data.id()),
+            m("td", contact.data.name()),
+            m("td", contact.data.email())
           ]);
         })
       ]);
