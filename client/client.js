@@ -70,6 +70,11 @@ f.init().then(function () {
           m.route("/contacts");
         });
       };
+      this.doSaveAndNew = function () {
+        model.save().then(function () {
+          model.clear();
+        });
+      };
       this.goContacts = function () {
         m.route("/contacts");
       };
@@ -83,15 +88,22 @@ f.init().then(function () {
         d = contact.data;
 
       return m("form", [
-        m("button[type=button]", {
+        m("button", {
+          type: "button",
           onclick: ctrl.goContacts
         }, "Done"),
-        m("button[type=button]", {
+        m("button", {
+          type: "button",
           onclick: ctrl.doApply
         }, "Apply"),
-        m("button[type=button]", {
+        m("button", {
+          type: "button",
           onclick: ctrl.doSave
         }, "Save"),
+        m("button", {
+          type: "button",
+          onclick: ctrl.doSaveAndNew
+        }, "Save & New"),
         m("table", [
           m("tr", [
             m("td", [
@@ -248,7 +260,7 @@ f.init().then(function () {
           disabled: ctrl.hasSelection()
         }, "Delete"),
         m("table", [
-          m("tr", [
+          m("tr", {style: {backgroundColor: "LightGrey"}}, [
             m("th", "Id"),
             m("th", "Name"),
             m("th", "Email")
