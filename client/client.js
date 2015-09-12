@@ -2,21 +2,89 @@
 
 f.init().then(function () {
 
-  var Observable, ContactsWidget, ContactForm, ContactList, list;
+  var Contact, ContactsWidget, ContactForm, ContactList;
 
-  list = function (data) {
-    return m.request({
-      method: "GET",
-      url: "/data/contacts",
-      data: data
-    }).then(function (contacts) {
-      return contacts.map(function (data) {
-        var model = f.models.contact(data);
-        model.state.goto("/Ready/Fetched");
-        return model;
-      });
-    });
+  Contact = function (data) {
+    data = data || {};
+    this.id = m.prop(data.id);
+    this.name = m.prop(data.name);
+    this.email = m.prop(data.email);
   };
+  Contact.list = function (data) {
+    return m.request({method: "GET", url: "/data/contacts", data: data});
+  };
+  Contact.save = function (model) {
+    /*
+    var contact = f.models.contact({
+      id: data.id(),
+      name: data.name(),
+      email: data.email()
+    });
+*/
+    return model.save();
+  };
+
+  ContactsWidget = {
+    controller: function update() {
+      this.contacts = Contact.list();
+      this.save = function (contact) {
+        Contact.save(contact).then(update.bind(this));
+      }.bind(this);
+    },
+    view: function (ctrl) {
+      return [
+        m.component(ContactForm, {onsave: ctrl.save}),
+        m.component(ContactList, {contacts: ctrl.contacts})
+      ];
+    }
+  };
+
+  ContactForm = {
+    controller: function (args) {
+      //this.contact = m.prop(args.contact || new Contact());
+      this.contact = m.prop(args.contact || f.models.contact());
+    },
+    view: function (ctrl, args) {
+      var contact = ctrl.contact();
+
+      return m("form", [
+        m("label", "Name"),
+        m("input", {
+          oninput: m.withAttr("value", contact.data.name),
+          value: contact.data.name()
+        }),
+
+        m("label", "Email"),
+        m("input", {
+          oninput: m.withAttr("value", contact.data.email),
+          value: contact.data.email()
+        }),
+
+        m("button[type=button]", {
+          onclick: args.onsave.bind(this, contact)
+        }, "Save")
+      ]);
+    }
+  };
+
+  ContactList = {
+    view: function (ctrl, args) {
+      return m("table", [
+        args.contacts().map(function (contact) {
+          contact = new Contact(contact);
+          return m("tr", [
+            m("td", contact.id()),
+            m("td", contact.name()),
+            m("td", contact.email())
+          ]);
+        })
+      ]);
+    }
+  };
+
+  m.mount(document.body, ContactsWidget);
+/*
+  var Observable, ContactsWidget, ContactForm, ContactList, list;
 
   Observable = function () {
     var channels = {};
@@ -57,12 +125,13 @@ f.init().then(function () {
 
   //model layer observer
   Observable.on(["saveContact"], function (model) {
-    model.save().then(Observable.trigger("updateContact"));
+    var data = {data: model.toJSON()};
+    Contact.save(data).then(Observable.trigger("updateContact"));
   });
 
   ContactsWidget = {
     controller: Observable.register(["updateContact"], function () {
-      this.contacts = list();
+      this.contacts = Contact.list();
     }),
     view: function (ctrl) {
       return [
@@ -108,7 +177,8 @@ f.init().then(function () {
     view: function (ctrl, args) {
       return m("table", [
         args.contacts().map(function (contact) {
-          var d = contact.data;
+          var model = f.models.contact(contact),
+            d = model.data;
           return m("tr", [
             m("td", d.id()),
             m("td", d.name()),
@@ -120,8 +190,9 @@ f.init().then(function () {
   };
 
   m.mount(document.body, ContactsWidget);
-
+*/
 });
+
 
 window.onresize = function (event) {
   m.redraw(true);
