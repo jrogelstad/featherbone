@@ -436,7 +436,7 @@
     doDelete = function (context) {
       var ds = f.dataSource,
         result = f.prop({}),
-        payload = {method: "DELETE", path: path(that.name, that.id)},
+        payload = {method: "DELETE", path: path(that.name, d.id())},
         callback = function () {
           lastFetched = result();
           that.set(result(), true);

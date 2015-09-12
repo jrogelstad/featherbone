@@ -6,6 +6,17 @@ f.init().then(function () {
     ary = [],
     idx = {};
 
+  ary.remove = function (model) {
+    var id = model.data.id(),
+      i = idx[id];
+    if (!isNaN(i)) {
+      ary.splice(i, 1);
+      Object.keys(idx).forEach(function (key) {
+        if (idx[key] > i) { idx[key] -= 1; }
+      });
+      delete idx[id];
+    }
+  };
   f.models.contact.list = function (data) {
     return m.request({
       method: "GET",
@@ -18,7 +29,8 @@ f.init().then(function () {
       while (i < len) {
         id = data[i].id;
         model = f.models.contact(data[i]);
-        if (idx[id]) {
+        model.state.goto("/Ready/Fetched");
+        if (!isNaN(idx[id])) {
           ary.splice(idx[id], 1, model);
         } else {
           idx[id] = ary.length;
@@ -32,17 +44,14 @@ f.init().then(function () {
 
   Home = {
     controller: function () {
-      this.doContact = function () {
-        m.route("/contact");
-      };
-      this.doContacts = function () {
+      this.goContacts = function () {
         m.route("/contacts");
       };
     },
     view: function (ctrl) {
       return m("div", [
         m("button[type=button]", {
-          onclick: ctrl.doContacts
+          onclick: ctrl.goContacts
         }, "Contacts")
       ]);
     }
@@ -50,18 +59,24 @@ f.init().then(function () {
 
   ContactForm = {
     controller: function () {
-      this.contact = m.prop(f.models.contact());
-      this.doApply = function (contact) {
-        contact.save();
+      var id = m.route.param("id"),
+        model = f.models.contact();
+      this.contact = m.prop(model);
+      this.doApply = function () {
+        model.save();
       };
-      this.doSave = function (contact) {
-        contact.save().then(function () {
+      this.doSave = function () {
+        model.save().then(function () {
           m.route("/contacts");
         });
       };
-      this.doContacts = function () {
+      this.goContacts = function () {
         m.route("/contacts");
       };
+      if (id) {
+        model.data.id(id);
+        model.fetch();
+      }
     },
     view: function (ctrl) {
       var contact = ctrl.contact(),
@@ -69,13 +84,13 @@ f.init().then(function () {
 
       return m("form", [
         m("button[type=button]", {
-          onclick: ctrl.doContacts
+          onclick: ctrl.goContacts
         }, "Done"),
         m("button[type=button]", {
-          onclick: ctrl.doApply.bind(this, contact)
+          onclick: ctrl.doApply
         }, "Apply"),
         m("button[type=button]", {
-          onclick: ctrl.doSave.bind(this, contact)
+          onclick: ctrl.doSave
         }, "Save"),
         m("table", [
           m("tr", [
@@ -178,35 +193,60 @@ f.init().then(function () {
 
   ContactList = {
     controller: function () {
-      var selections = [];
+      var selection,
+        that = this;
+
       this.contacts = f.models.contact.list();
-      this.doHome = function () {
+      this.hasSelection = function () {
+        return !selection;
+      };
+      this.deleteContact = function () {
+        selection.delete().then(function () {
+          that.contacts().remove(selection);
+          m.route("/contacts");
+        });
+      };
+      this.goHome = function () {
         m.route("/home");
       };
-      this.doContact = function () {
+      this.newContact = function () {
         m.route("/contact");
       };
-      this.toggleSelect = function (id) {
-        var sel = selections.indexOf(id);
-        if (sel === -1) {
-          selections.push(id);
-          return true;
-        }
-        selections.splice(sel, 1);
-        return false;
+      this.openContact = function () {
+        m.route("/contact/" + selection.data.id());
       };
-      this.selected = function (id) {
-        return selections.indexOf(id) !== -1;
+      this.selected = function (model) {
+        return selection === model;
+      };
+      this.toggleSelect = function (model) {
+        if (selection === model) {
+          selection = undefined;
+          return false;
+        }
+        selection = model;
+        return true;
       };
     },
     view: function (ctrl) {
       return m("div", [
-        m("button[type=button]", {
-          onclick: ctrl.doHome
+        m("button", {
+          type: "button",
+          onclick: ctrl.goHome
         }, "Home"),
-        m("button[type=button]", {
-          onclick: ctrl.doContact
+        m("button", {
+          type: "button",
+          onclick: ctrl.newContact
         }, "New"),
+        m("button", {
+          type: "button",
+          onclick: ctrl.openContact,
+          disabled: ctrl.hasSelection()
+        }, "Open"),
+        m("button", {
+          type: "button",
+          onclick: ctrl.deleteContact,
+          disabled: ctrl.hasSelection()
+        }, "Delete"),
         m("table", [
           m("tr", [
             m("th", "Id"),
@@ -214,12 +254,11 @@ f.init().then(function () {
             m("th", "Email")
           ]),
           ctrl.contacts().map(function (contact) {
-            var d = contact.data,
-              id = d.id();
+            var d = contact.data;
             return m("tr", {
-              onclick: ctrl.toggleSelect.bind(this, id),
+              onclick: ctrl.toggleSelect.bind(this, contact),
               style: {
-                backgroundColor: ctrl.selected(id) ? "LightBlue" : "White"
+                backgroundColor: ctrl.selected(contact) ? "LightBlue" : "White"
               }
             }, [
               m("td", d.id()),
@@ -235,7 +274,8 @@ f.init().then(function () {
   m.route(document.body, "/home", {
     "/home": Home,
     "/contacts": ContactList,
-    "/contact": ContactForm
+    "/contact": ContactForm,
+    "/contact/:id": ContactForm
   });
 });
 
