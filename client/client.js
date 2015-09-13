@@ -232,23 +232,24 @@ f.init().then(function () {
           disabled: ctrl.hasSelection()
         }, "Delete"),
         m("table", [
-          m("tr", {style: {backgroundColor: "LightGrey"}}, [
-            m("th", "Id"),
-            m("th", "Name"),
-            m("th", "Email")
-          ]),
+          (function () {
+            var feather = f.catalog.getFeather("Contact"),
+              tds = Object.keys(feather.properties).map(function (key) {
+                return m("td", key.toProperCase(true));
+              });
+            return m("tr", {style: {backgroundColor: "LightGrey"}}, tds);
+          }()),
           ctrl.contacts().map(function (contact) {
-            var d = contact.data;
+            var d = contact.data,
+              tds = Object.keys(d).map(function (key) {
+                return m("td", d[key]());
+              });
             return m("tr", {
               onclick: ctrl.toggleSelect.bind(this, contact),
               style: {
                 backgroundColor: ctrl.selected(contact) ? "LightBlue" : "White"
               }
-            }, [
-              m("td", d.id()),
-              m("td", d.name()),
-              m("td", d.email())
-            ]);
+            }, tds);
           })
         ])
       ]);

@@ -197,7 +197,7 @@
       keys.forEach(function (key) {
         var ary, idx,
           prop = key.slice(0, 1).toLowerCase() + key.slice(1),
-          plural = f.catalog.getFeather(key).plural;
+          plural = f.catalog.getFeather(key, false).plural;
 
         // Implement generic function to object from model
         if (typeof f.models[prop] !== "function") {
