@@ -120,12 +120,66 @@ f.init().then(function () {
           ]),
           m("tr", [
             m("td", [
+              m("label", {for: "birthDate"}, "Birth Date:")
+            ]),
+            m("td", [
+              m("input", {
+                id: "birthDate",
+                type: "date",
+                oninput: m.withAttr("value", d.birthDate),
+                value: d.birthDate()
+              })
+            ])
+          ]),
+          m("tr", [
+            m("td", [
+              m("label", {for: "workPhone"}, "Work Phone:")
+            ]),
+            m("td", [
+              m("input", {
+                id: "workPhone",
+                type: "tel",
+                oninput: m.withAttr("value", d.workPhone),
+                value: d.workPhone()
+              })
+            ])
+          ]),
+          m("tr", [
+            m("td", [
+              m("label", {for: "homePhone"}, "Home Phone:")
+            ]),
+            m("td", [
+              m("input", {
+                id: "homePhone",
+                type: "tel",
+                oninput: m.withAttr("value", d.homePhone),
+                value: d.homePhone()
+              })
+            ])
+          ]),
+          m("tr", [
+            m("td", [
+              m("label", {for: "creditScore"}, "Credit Score:")
+            ]),
+            m("td", [
+              m("input", {
+                id: "creditScore",
+                type: "number",
+                min: 0,
+                max: 800,
+                oninput: m.withAttr("value", d.creditScore),
+                value: d.creditScore()
+              })
+            ])
+          ]),
+          m("tr", [
+            m("td", [
               m("label", "Created:")
             ]),
             m("td", [
               m("input", {
-                type: "datetime",
-                readonly: true,
+                type: "datetime-local",
+                readonly: false,
                 oninput: m.withAttr("value", d.created),
                 value: d.created()
               })
@@ -150,8 +204,8 @@ f.init().then(function () {
             ]),
             m("td", [
               m("input", {
-                type: "datetime",
-                readonly: true,
+                type: "datetime-local",
+                readonly: false,
                 oninput: m.withAttr("value", d.updated),
                 value: d.updated()
               })
@@ -202,6 +256,10 @@ f.init().then(function () {
       this.selected = function (model) {
         return selection === model;
       };
+      this.toggleOpen = function (model) {
+        selection = model;
+        that.openContact();
+      };
       this.toggleSelect = function (model) {
         if (selection === model) {
           selection = undefined;
@@ -242,10 +300,14 @@ f.init().then(function () {
           ctrl.contacts().map(function (contact) {
             var d = contact.data,
               tds = Object.keys(d).map(function (key) {
-                return m("td", d[key]());
+                var value = d[key](),
+                  hasLocale = value !== null &&
+                    typeof value.toLocaleString === "function";
+                return m("td", hasLocale ? value.toLocaleString() : value);
               });
             return m("tr", {
               onclick: ctrl.toggleSelect.bind(this, contact),
+              ondblclick: ctrl.toggleOpen.bind(this, contact),
               style: {
                 backgroundColor: ctrl.selected(contact) ? "LightBlue" : "White"
               }
