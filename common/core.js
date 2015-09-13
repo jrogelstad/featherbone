@@ -17,13 +17,9 @@
 var f = (function () {
   "use strict";
 
-  var that, waiting, dateToString,
+  var that, waiting,
     callbacks = [], queue = [], thenables = [],
     i = 0;
-
-  dateToString = function (value) {
-    return value instanceof Date ? value.toJSON() : value;
-  };
 
   that = {
     /**
@@ -75,14 +71,18 @@ var f = (function () {
         toType: function (value) { return !!value; }
       },
       "date": {
-        default: function () { return that.today(); },
-        toType: dateToString,
-        fromType: function (value) { return that.midnight(new Date(value)); }
+        default: function () {
+          return that.today().toISOString().slice(0, 10);
+        }
       },
       "dateTime": {
-        default: function () { return that.now(); },
-        fromType: function (value) { return new Date(value); },
-        toType: dateToString
+        default: function () {
+          return that.now().toISOString().replace('Z', '');
+        },
+        fromType: function (value) {
+          var dt = new Date(value).toISOString().replace('Z', '');
+          return dt;
+        }
       },
       "password": {
         default: "",

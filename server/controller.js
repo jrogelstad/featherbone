@@ -32,7 +32,7 @@
       string: {type: "text", default: "''"},
       integer: {type: "integer", default: 0},
       number: {type: "numeric", default: 0},
-      date: {type: "date", default: "minDate()"},
+      date: {type: "date", default: "today()"},
       boolean: {type: "boolean", default: "false"}
     },
     formats = {
@@ -42,7 +42,7 @@
       double: {type: "double precision", default: 0},
       string: {type: "text", default: "''"},
       boolean: {type: "boolean", default: "false"},
-      date: {type: "date", default: "minDate()"},
+      date: {type: "date", default: "today()"},
       dateTime: {type: "timestamp with time zone", default: "minDate()"},
       password: {type: "text", default: ""}
     },
