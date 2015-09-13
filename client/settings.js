@@ -195,16 +195,63 @@
 
       keys = Object.keys(data());
       keys.forEach(function (key) {
-        var prop = key.slice(0, 1).toLowerCase() + key.slice(1);
+        var ary, idx,
+          prop = key.slice(0, 1).toLowerCase() + key.slice(1),
+          plural = f.catalog.getFeather(key).plural;
 
         // Implement generic function to object from model
         if (typeof f.models[prop] !== "function") {
+          // Model instance
           f.models[prop] = function (data, model) {
             var shared = model || that.getFeather(key),
               obj = f.model(data, shared);
 
             return obj;
           };
+
+          // List instance
+          if (plural) {
+            ary = [];
+            idx = {};
+
+            // Remove a model from the list
+            ary.remove = function (model) {
+              var id = model.data.id(),
+                i = idx[id];
+              if (!isNaN(i)) {
+                ary.splice(i, 1);
+                Object.keys(idx).forEach(function (key) {
+                  if (idx[key] > i) { idx[key] -= 1; }
+                });
+                delete idx[id];
+              }
+            };
+            // TODO: Make data do something. Options? Filter?
+            f.models[prop].list = function (data) {
+              return m.request({
+                method: "GET",
+                url: "/data/" + plural.toSpinalCase(),
+                data: data
+              }).then(function (data) {
+                var id, model,
+                  len = data.length,
+                  i = 0;
+                while (i < len) {
+                  id = data[i].id;
+                  model = f.models.contact(data[i]);
+                  model.state.goto("/Ready/Fetched");
+                  if (!isNaN(idx[id])) {
+                    ary.splice(idx[id], 1, model);
+                  } else {
+                    idx[id] = ary.length;
+                    ary.push(model);
+                  }
+                  i++;
+                }
+                return ary;
+              });
+            };
+          }
         }
       });
 

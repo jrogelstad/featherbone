@@ -2,45 +2,7 @@
 
 f.init().then(function () {
 
-  var Home, ContactForm, ContactList,
-    ary = [],
-    idx = {};
-
-  ary.remove = function (model) {
-    var id = model.data.id(),
-      i = idx[id];
-    if (!isNaN(i)) {
-      ary.splice(i, 1);
-      Object.keys(idx).forEach(function (key) {
-        if (idx[key] > i) { idx[key] -= 1; }
-      });
-      delete idx[id];
-    }
-  };
-  f.models.contact.list = function (data) {
-    return m.request({
-      method: "GET",
-      url: "/data/contacts",
-      data: data
-    }).then(function (data) {
-      var id, model,
-        len = data.length,
-        i = 0;
-      while (i < len) {
-        id = data[i].id;
-        model = f.models.contact(data[i]);
-        model.state.goto("/Ready/Fetched");
-        if (!isNaN(idx[id])) {
-          ary.splice(idx[id], 1, model);
-        } else {
-          idx[id] = ary.length;
-          ary.push(model);
-        }
-        i++;
-      }
-      return ary;
-    });
-  };
+  var Home, ContactForm, ContactList;
 
   Home = {
     controller: function () {
@@ -65,6 +27,9 @@ f.init().then(function () {
       this.doApply = function () {
         model.save();
       };
+      this.doNew = function () {
+        m.route("/contact");
+      };
       this.doSave = function () {
         model.save().then(function () {
           m.route("/contacts");
@@ -72,11 +37,16 @@ f.init().then(function () {
       };
       this.doSaveAndNew = function () {
         model.save().then(function () {
-          model.clear();
+          m.route("/contact");
         });
       };
       this.goContacts = function () {
         m.route("/contacts");
+      };
+      this.isDirty = function () {
+        var currentState = model.state.current()[0];
+        return currentState === "/Ready/New" ||
+          currentState === "/Ready/Fetched/Dirty";
       };
       if (id) {
         model.data.id(id);
@@ -94,16 +64,18 @@ f.init().then(function () {
         }, "Done"),
         m("button", {
           type: "button",
+          disabled: !ctrl.isDirty(),
           onclick: ctrl.doApply
         }, "Apply"),
         m("button", {
           type: "button",
+          disabled: !ctrl.isDirty(),
           onclick: ctrl.doSave
         }, "Save"),
         m("button", {
           type: "button",
-          onclick: ctrl.doSaveAndNew
-        }, "Save & New"),
+          onclick: ctrl.isDirty() ? ctrl.doSaveAndNew : ctrl.doNew
+        }, ctrl.isDirty() ? "Save & New" : "New"),
         m("table", [
           m("tr", [
             m("td", [
@@ -141,8 +113,8 @@ f.init().then(function () {
               m("input", {
                 id: "isActive",
                 type: "checkbox",
-                oninput: m.withAttr("value", d.isActive),
-                value: d.isActive()
+                onclick: m.withAttr("checked", d.isActive),
+                checked: d.isActive()
               })
             ])
           ]),
