@@ -599,8 +599,15 @@
             col = key.toSnakeCase();
 
             if (value === undefined) {
-              value = prop.default === undefined ?
-                  types[prop.type].default : prop.default;
+              if (prop.default !== undefined) {
+                value = prop.default;
+              } else if (prop.format &&
+                  formats[prop.format] &&
+                  formats[prop.format].default !== undefined) {
+                value = formats[prop.format].default;
+              } else {
+                value = types[prop.type].default;
+              }
 
               // If we have a class specific default that calls a function
               if (value && typeof value === "string" && value.match(/\(\)$/)) {
@@ -2235,7 +2242,6 @@
 
           /* Update schema */
           sql = sql.format(tokens);
-
           obj.client.query(sql, afterUpdateSchema);
         };
 
@@ -2317,14 +2323,16 @@
             args = [table];
 
             adds.forEach(function (add) {
+              var pformat = props[add].format;
               type = props[add].type;
               if (typeof type === "object") {
                 defaultValue = -1;
               } else {
                 defaultValue = props[add].default ||
+                  (pformat && formats[pformat] ?
+                      formats[pformat].default : false) ||
                   types[type].default;
               }
-
               if (typeof defaultValue === "string" &&
                   defaultValue.match(/\(\)$/)) {
                 fns.push({
@@ -2435,7 +2443,6 @@
             values = [pk, table, obj.client.currentUser,
               obj.client.currentUser, isChild,
               key];
-
             obj.client.query(sql, values, afterInsertModel);
           };
 
