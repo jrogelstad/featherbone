@@ -22,6 +22,11 @@ var f = (function () {
     i = 0;
 
   that = {
+
+    connect: function (source, signal, target, slot) {
+      source.connect(signal, target, slot);
+    },
+
     /**
       Return a unique identifier string.
 
@@ -225,15 +230,6 @@ var f = (function () {
     },
 
     /**
-      Return a date that is the highest system date.
-
-      @return {Date}
-    */
-    maxDate: function () {
-      return new Date("2100-01-01T00:00:00.000Z");
-    },
-
-    /**
       Return a date with the time set to midnight.
     */
     midnight: function (date) {
@@ -245,21 +241,138 @@ var f = (function () {
     },
 
     /**
-      Return a date that is the lowest system date.
-
-      @return {Date}
-    */
-    minDate: function () {
-      return new Date(0);
-    },
-
-    /**
       Return a date that is the current time.
 
       @return {Date}
     */
     now: function () {
       return new Date();
+    },
+
+    observable: function () {
+      var obsrv = {},
+        connections = {};
+
+      /**
+        Connects a `Signal` event to the execution of 
+        a function `slot` on object `target`. Example:
+
+            // Create a factory for objects that will emit signals
+            var createSource = function () {
+              var that = f.observable();
+
+              // Our processing function emits a signal
+              that.send = function (msg) {
+                msg = msg || "Hello World";
+                // Emit a signal passing along a payload in the
+                // context argument
+                that.emit("send", {message: msg});
+              }
+
+              return that;
+            }
+
+            // Create a factory for objects that can process changes
+            var createTarget = function () {
+              var that = {};
+
+              // Implement a generic notification function
+              that.notify = function (context) {
+                console.log(context.message);
+              }
+
+              return that;
+            }
+
+            // Instantiate objects
+            var source = createSource();
+            var target = createTarget();
+
+            source.connect("send", target, "notify");
+
+            source.send()
+            // Hello World
+
+            source.send("My dog has fleas.")
+            // My dog has fleas
+
+        @seealso disconnect
+        @seealso emit
+        @param {String} Signal
+        @param {Object} Target
+        @param {String} Slot
+        @returns Receiver
+      */
+      obsrv.connect = function (signal, target, slot) {
+        if (!connections[signal]) { connections[signal] = []; }
+        connections[signal].push({target: target, slot: slot});
+      };
+
+      /**
+        Connects a `Signal` event to the execution of 
+        a function `slot` on object `target`.
+
+        If `slot` is not passed all connections to the target
+        will be disconnected.
+
+        If `target` is not passed all signals will be disconnected.
+
+        @seealso connect
+        @seealso emit
+        @param {String} Signal
+        @param {Object} Target
+        @param {String} Slot
+        @returns Receiver
+      */
+      obsrv.disconnect = function (signal, target, slot) {
+        var bindings;
+
+        if (signal) {
+          if (target) {
+            bindings = connections[signal];
+            if (bindings && bindings.length) {
+              connections[signal] = bindings.filter(function (binding) {
+                if (slot) { return binding.target !== target; }
+                return binding.target !== target && binding.slot !== slot;
+              });
+            }
+
+          // Remove all connections for this signal
+          } else {
+            delete connections[signal];
+          }
+
+        // Remove all connections
+        } else {
+          connections = {};
+        }
+
+        return this;
+      };
+
+      /**
+        Emit an event that will trigger the execution of any
+        signal / slot connections on the object.
+
+        @seealso connect
+        @seealso disconnect
+        @param {String} Signal
+        @param {Object} Context
+        @returns Receiver
+      */
+      obsrv.emit = function (signal, context) {
+        var bindings = connections[signal];
+
+        if (bindings) {
+          bindings.forEach(function (binding) {
+            binding.target[binding.slot](context);
+          });
+        }
+
+        return this;
+      };
+
+      return obsrv;
     },
 
     /**
