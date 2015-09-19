@@ -21,11 +21,12 @@
      @returns {String}
   */
   String.prototype.toCamelCase = function (upper) {
-    var str = this.replace(/[_,-]+(.)?/g, function (match, chr) {
-      return chr ? chr.toUpperCase() : '';
-    });
+    var f = this.slice(0, 1),
+      str = this.replace(/[_,-]+(.)?/g, function (match, chr) {
+        return chr ? chr.toUpperCase() : '';
+      });
 
-    return upper ? str.slice(0, 1).toUpperCase() + str.slice(1) : str;
+    return (upper ? f.toUpperCase() : f.toLowerCase()) + str.slice(1);
   };
 
   /**

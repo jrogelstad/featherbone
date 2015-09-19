@@ -2,7 +2,7 @@
 
 f.init().then(function () {
 
-  var Home, ContactForm, ContactList;
+  var Home, ContactForm, ContactTable, ContactList;
 
   Home = {
     controller: function () {
@@ -47,6 +47,9 @@ f.init().then(function () {
         var currentState = model.state.current()[0];
         return currentState === "/Ready/New" ||
           currentState === "/Ready/Fetched/Dirty";
+      };
+      this.log = function (msg) {
+        console.log(msg);
       };
       if (id) {
         model.data.id(id);
@@ -174,6 +177,51 @@ f.init().then(function () {
           ]),
           m("tr", [
             m("td", [
+              m("label", {for: "role"}, "Role:")
+            ]),
+            m("td", [
+              m("input", {
+                id: "role",
+                type: "text",
+              }),
+              m("div", {
+                id: "roleList",
+                style: {
+                  position: "relative"
+                }
+              }, [
+                m("div", {
+                  id: "roleScroller",
+                  style: {
+                    display: "block",
+                    backgroundColor: "White",
+                    position: "absolute",
+                    zIndex: 9999,
+                    top: "1px",
+                    maxHeight: "100px",
+                    width: "172px",
+                    overflowY: "scroll",
+                    borderLeft: "1px solid lightgrey",
+                    borderRight: "1px solid lightgrey",
+                    borderBottom: "1px solid lightgrey"
+                  }
+                }, [
+                  m("div", "One"),
+                  m("div", "Two"),
+                  m("div", "Three"),
+                  m("div", "Four"),
+                  m("div", "Five"),
+                  m("div", "Six"),
+                  m("div", "Seven"),
+                  m("div", "Eight"),
+                  m("div", "Nine"),
+                  m("div", "Ten")
+                ])
+              ])
+            ])
+          ]),
+          m("tr", [
+            m("td", [
               m("label", "Created:")
             ]),
             m("td", [
@@ -229,92 +277,15 @@ f.init().then(function () {
     }
   };
 
-  ContactList = {
-    controller: function () {
-      var selection,
-        that = this;
+  ContactTable = f.components.tableDisplay({
+    feather: "Contact",
+    columns: ["name", "email", "isActive", "birthDate", "workPhone",
+      "homePhone", "creditScore"]
+  });
 
-      this.contacts = f.models.contact.list();
-      this.hasSelection = function () {
-        return !selection;
-      };
-      this.deleteContact = function () {
-        selection.delete().then(function () {
-          that.contacts().remove(selection);
-          m.route("/contacts");
-        });
-      };
-      this.goHome = function () {
-        m.route("/home");
-      };
-      this.newContact = function () {
-        m.route("/contact");
-      };
-      this.openContact = function () {
-        m.route("/contact/" + selection.data.id());
-      };
-      this.selected = function (model) {
-        return selection === model;
-      };
-      this.toggleOpen = function (model) {
-        selection = model;
-        that.openContact();
-      };
-      this.toggleSelect = function (model) {
-        if (selection === model) {
-          selection = undefined;
-          return false;
-        }
-        selection = model;
-        return true;
-      };
-    },
-    view: function (ctrl) {
-      return m("div", [
-        m("button", {
-          type: "button",
-          onclick: ctrl.goHome
-        }, "Home"),
-        m("button", {
-          type: "button",
-          onclick: ctrl.newContact
-        }, "New"),
-        m("button", {
-          type: "button",
-          onclick: ctrl.openContact,
-          disabled: ctrl.hasSelection()
-        }, "Open"),
-        m("button", {
-          type: "button",
-          onclick: ctrl.deleteContact,
-          disabled: ctrl.hasSelection()
-        }, "Delete"),
-        m("table", [
-          (function () {
-            var feather = f.catalog.getFeather("Contact"),
-              tds = Object.keys(feather.properties).map(function (key) {
-                return m("td", key.toProperCase(true));
-              });
-            return m("tr", {style: {backgroundColor: "LightGrey"}}, tds);
-          }()),
-          ctrl.contacts().map(function (contact) {
-            var d = contact.data,
-              tds = Object.keys(d).map(function (key) {
-                var value = d[key](),
-                  hasLocale = value !== null &&
-                    typeof value.toLocaleString === "function";
-                return m("td", hasLocale ? value.toLocaleString() : value);
-              });
-            return m("tr", {
-              onclick: ctrl.toggleSelect.bind(this, contact),
-              ondblclick: ctrl.toggleOpen.bind(this, contact),
-              style: {
-                backgroundColor: ctrl.selected(contact) ? "LightBlue" : "White"
-              }
-            }, tds);
-          })
-        ])
-      ]);
+  ContactList = {
+    view: function () {
+      return m.component(ContactTable);
     }
   };
 

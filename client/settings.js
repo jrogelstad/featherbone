@@ -196,7 +196,7 @@
       keys = Object.keys(data());
       keys.forEach(function (key) {
         var ary, idx,
-          prop = key.slice(0, 1).toLowerCase() + key.slice(1),
+          prop = key.toCamelCase(),
           plural = f.catalog.getFeather(key, false).plural;
 
         // Implement generic function to object from model
