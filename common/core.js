@@ -249,13 +249,10 @@ var f = (function () {
       return new Date();
     },
 
-    observable: function () {
-      var obsrv = {},
-        connections = {};
-
-      /**
-        Connects a `Signal` event to the execution of 
-        a function `slot` on object `target`. Example:
+    /**
+      Returns on observable object that can emits signals
+      other objects can subscribe to using the `connect` method.
+      Example:
 
             // Create a factory for objects that will emit signals
             var createSource = function () {
@@ -264,7 +261,7 @@ var f = (function () {
               // Our processing function emits a signal
               that.send = function (msg) {
                 msg = msg || "Hello World";
-                // Emit a signal passing along a payload in the
+                // Emit a signal passing along as payload in the
                 // context argument
                 that.emit("send", {message: msg});
               }
@@ -296,10 +293,27 @@ var f = (function () {
             source.send("My dog has fleas.")
             // My dog has fleas
 
+      @seealso connect
+      @param {Object} Optional object to extend with observable methods.
+      @returns {Object}
+    */
+    observable: function (spec) {
+      var obsrv = spec || {},
+        connections = {};
+
+      /**
+        Connects a `Signal` event to the execution of 
+        a function `slot` on object `target`. Where
+        slot is the name of a function on the target
+        object.
+
+        Alternately if `target` is a function, it will
+        server as the defacto slot.
+
         @seealso disconnect
         @seealso emit
         @param {String} Signal
-        @param {Object} Target
+        @param {Object | Function} Target
         @param {String} Slot
         @returns Receiver
       */
@@ -309,7 +323,7 @@ var f = (function () {
       };
 
       /**
-        Connects a `Signal` event to the execution of 
+        Disonnects a `Signal` event from execution of 
         a function `slot` on object `target`.
 
         If `slot` is not passed all connections to the target
@@ -365,6 +379,10 @@ var f = (function () {
 
         if (bindings) {
           bindings.forEach(function (binding) {
+            if (typeof binding.target === "function") {
+              binding.target(context);
+              return;
+            }
             binding.target[binding.slot](context);
           });
         }

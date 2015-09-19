@@ -37,6 +37,8 @@
     @param {Any} [formatter.default] Function or value returned by default.
     @param {Function} [formatter.toType] Converts input to internal type.
     @param {Function} [formatter.fromType] Formats internal value for output.
+    @event {Function} changing. Passes property as context.
+    @event {Function} changed. Passes property as context.
     @return {Function}
   */
   f.prop = function (store, formatter) {
@@ -62,6 +64,12 @@
         });
       });
       this.state("Changing", function () {
+        this.enter(function () {
+          p.emit("changing", p);
+        });
+        this.exit(function () {
+          p.emit("changed", p);
+        });
         this.event("changed", function () {
           this.goto("../Ready");
         });
@@ -138,6 +146,9 @@
       return store;
     };
 
+    // Make property observable
+    p = f.observable(p);
+
     store = formatter.toType(store);
     state.goto();
 
@@ -148,10 +159,29 @@
     A factory that returns a persisting object based on a definition call a
     `feather`. Can be extended by modifying the return object directly.
 
+    Model properties are observable and emit "changing" when a property is
+    being set and "changed" after the set is complete. Use this to extend
+    business logic on properties as required. Example:
+
+        contact = function (data, feather) {
+          var shared = feather || f.catalog.getFeather("Contact"),
+            that = f.model(data, shared);
+
+          // Add a change event to a property
+          that.data.name.connect("changing", function (prop) {
+            console.log("First name changing from " +
+              (prop.oldValue() || "nothing") + " to " + prop.newValue() + "!");
+          });
+
+          return that;
+        }
+
     @param {Object} Default data
     @param {Object} Feather
     @param {Array} [feather.name] the class name of the object
     @param {Array} [feather.properties] the properties to set on the data object
+    @event {Object} error. Passes error as context
+    @event {Object} stateChanged. Passes model as context
     return {Object}
   */
   f.model = function (data, feather) {
@@ -160,9 +190,9 @@
 
     var  doClear, doDelete, doError, doFetch, doInit, doPatch, doPost, doSend,
       lastError, lastFetched, path, state,
-      that = {data: {}, name: feather.name || "Object", plural: feather.plural},
+      that = f.observable({data: {}, name: feather.name || "Object",
+        plural: feather.plural}),
       d = that.data,
-      errHandlers = [],
       validators = [],
       stateMap = {};
 
@@ -231,86 +261,6 @@
     };
 
     /*
-      Add an event binding to a property that will be triggered before a
-      property change. Pass a callback in and the property will be passed
-      to the callback. The property will be passed to the callback as the
-      first argument.
-
-        contact = function (data, feather) {
-          var shared = feather || f.catalog.getFeather("Contact"),
-            that = f.model(data, shared);
-
-          // Add a change event to a property
-          that.onChange("first", function (prop) {
-            console.log("First name changing from " +
-              (prop.oldValue() || "nothing") + " to " + prop.newValue() + "!");
-          });
-        }
-
-      @param {String} Property name to call on cahnge
-      @param {Function} Callback function to call on change
-      @return Reciever
-    */
-    that.onChange = function (name, callback) {
-      var func = function () { callback(this); };
-
-      stateMap[name].substateMap.Changing.enter(func.bind(d[name]));
-
-      return this;
-    };
-
-    /*
-      Add an event binding to a property that will be triggered after a property
-      change. Pass a callback in and the property will be passed to the
-      callback. The property will be passed to the callback as the first
-      argument.
-
-        contact = function (data, feather) {
-          var shared = feather || f.catalog.getFeather("Contact"),
-            that = f.model(data, shared);
-
-          // Add a changed event to a property
-          that.onChanged("first", function (prop) {
-            console.log("First name is now " + prop() + "!");
-          });
-        }
-
-      @param {String} Property name to call on cahnge
-      @param {Function} Callback function to call on change
-      @return Reciever
-    */
-    that.onChanged = function (name, callback) {
-      var func = function () { callback(this); };
-
-      stateMap[name].substateMap.Changing.exit(func.bind(d[name]));
-
-      return this;
-    };
-
-    /*
-      Add an error handler binding to the object. Pass a callback
-      in and the error will be passed as an argument.
-
-        contact = function (data, feather) {
-          var shared = feather || f.catalog.getFeather("Contact"),
-            that = f.model(data, shared);
-
-          // Add an error handler
-          that.onError(function (err) {
-            console.log("Error->", err);
-          });
-        }
-
-      @param {Function} Callback to execute on error
-      @return Reciever
-    */
-    that.onError = function (callback) {
-      errHandlers.push(callback);
-
-      return this;
-    };
-
-    /*
       Add a validator to execute when the `isValid` function is
       called, which is also called after saving events. Errors thrown
       by the validator will be caught and passed through `onError`
@@ -330,7 +280,6 @@
         }
 
       @seealso isValid
-      @seealso onError
       @param {Function} Callback to execute when validating
       @return Reciever
     */
@@ -339,7 +288,6 @@
 
       return this;
     };
-
 
     /*
       Send the save event to persist current data to the server.
@@ -355,22 +303,6 @@
     };
 
     /*
-      Send an event to all properties.
-
-      @param {String} event name.
-      @returns receiver
-    */
-    that.sendToProperties = function (str) {
-      var keys = Object.keys(d);
-
-      keys.forEach(function (key) {
-        d[key].state.send(str);
-      });
-
-      return this;
-    };
-
-    /*
       Set properties to the values of a passed object
 
       @param {Object} Data to set
@@ -378,13 +310,23 @@
       @returns reciever
     */
     that.set = function (data, silent) {
-      var keys;
+      var keys, sendToProperties;
+
+      sendToProperties = function (str) {
+        var dkeys = Object.keys(d);
+
+        dkeys.forEach(function (key) {
+          d[key].state.send(str);
+        });
+
+        return this;
+      };
 
       if (typeof data === "object") {
         keys = Object.keys(data);
 
         // Silence events if applicable
-        if (silent) { that.sendToProperties("silence"); }
+        if (silent) { sendToProperties("silence"); }
 
         // Loop through each attribute and assign
         keys.forEach(function (key) {
@@ -393,7 +335,7 @@
           }
         });
 
-        that.sendToProperties("report"); // TODO: History?
+        sendToProperties("report"); // TODO: History?
       }
 
       return this;
@@ -449,10 +391,8 @@
 
     doError = function (err) {
       lastError = err;
-      errHandlers.forEach(function (handler) {
-        handler(err);
-      });
       state.send("error");
+      that.emit("error", err);
     };
 
     doFetch = function (context) {
@@ -747,7 +687,7 @@
         };
 
         // Report property changed event up to model
-        that.onChanged(key, function () { state.send("changed"); });
+        prop.connect("changed", function () { state.send("changed"); });
 
         d[key] = prop;
       });
@@ -760,9 +700,16 @@
     };
 
     state = statechart.State.define(function () {
+      var stateChanged = function () {
+          that.emit("stateChanged", that);
+          that.emit(state.current(), that);
+        };
+
       this.enter(doInit);
+      this.enter(stateChanged);
 
       this.state("Ready", {H: "*"}, function () {
+        this.enter(stateChanged);
         this.event("fetch",  function (deferred) {
           this.goto("/Busy", {
             context: {deferred: deferred}
@@ -770,8 +717,8 @@
         });
 
         this.state("New", function () {
+          this.enter(stateChanged);
           this.enter(doClear);
-
           this.event("clear",  function () {
             this.goto("/Ready/New", {force: true});
           });
@@ -786,6 +733,7 @@
         });
 
         this.state("Fetched", function () {
+          this.enter(stateChanged);
           this.event("clear",  function () {
             this.goto("/Ready/New");
           });
@@ -796,12 +744,14 @@
           });
 
           this.state("Clean", function () {
+            this.enter(stateChanged);
             this.event("changed", function () {
               this.goto("../Dirty");
             });
           });
 
           this.state("Dirty", function () {
+            this.enter(stateChanged);
             this.event("save", function (deferred) {
               this.goto("/Busy/Saving/Patching", {
                 context: {deferred: deferred}
@@ -812,20 +762,24 @@
       });
 
       this.state("Busy", function () {
+        this.enter(stateChanged);
         this.state("Fetching", function () {
+          this.enter(stateChanged);
           this.enter(doFetch);
         });
         this.state("Saving", function () {
+          this.enter(stateChanged);
           this.state("Posting", function () {
+            this.enter(stateChanged);
             this.enter(doPost);
           });
           this.state("Patching", function () {
+            this.enter(stateChanged);
             this.enter(doPatch);
           });
         });
         this.state("Deleting", function () {
           this.enter(doDelete);
-
           this.event("deleted", function () {
             this.goto("/Deleted");
           });
@@ -840,12 +794,14 @@
       });
 
       this.state("Deleted", function () {
+        this.enter(stateChanged);
         this.event("clear",  function () {
           this.goto("/Ready/New");
         });
       });
 
       this.state("Deleting", function () {
+        this.enter(stateChanged);
         this.enter(doDelete);
 
         this.event("deleted",  function () {
