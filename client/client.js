@@ -2,8 +2,7 @@
 
 f.init().then(function () {
 
-  var Home, ContactForm, ContactDisplay,
-    app = {};
+  var Home, ContactForm, ContactDisplay;
 
   Home = {
     controller: function () {
@@ -20,47 +19,9 @@ f.init().then(function () {
     }
   };
 
-  app.vm = function (feather, id) {
-    var vm = {},
-      name = feather.toCamelCase(),
-      plural = f.catalog.getFeather(feather).plural.toSpinalCase();
-
-    vm.model = f.models[name]({id: id});
-    vm.attrs = {};
-
-    if (id) { vm.model.fetch(); }
-
-    vm.doApply = function () {
-      vm.model.save();
-    };
-    vm.doList = function () {
-      m.route("/" + plural);
-    };
-    vm.doNew = function () {
-      m.route("/" + name);
-    };
-    vm.doSave = function () {
-      vm.model.save().then(function () {
-        m.route("/" + plural);
-      });
-    };
-    vm.doSaveAndNew = function () {
-      vm.model.save().then(function () {
-        m.route("/" + name);
-      });
-    };
-    vm.isDirty = function () {
-      var currentState = vm.model.state.current()[0];
-      return currentState === "/Ready/New" ||
-        currentState === "/Ready/Fetched/Dirty";
-    };
-
-    return vm;
-  };
-
   ContactForm = {
     controller: function () {
-      this.vm = app.vm("Contact", m.route.param("id"));
+      this.vm = f.viewModel("Contact", m.route.param("id"));
     },
     view: function (ctrl) {
       var model = ctrl.vm.model,
