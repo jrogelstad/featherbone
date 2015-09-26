@@ -18,12 +18,14 @@
 (function (f) {
   "use strict";
 
-  f.viewModels = {};
   f.viewModels.relationViewModel = function (options) {
     var vm = {},
+      hasFocus = false,
       parent = options.parent,
       parentProperty = options.parentProperty,
       valueProperty = options.valueProperty,
+      inputValue = m.prop(null),
+      modelValue = parent.model.data[parentProperty],
       matches = [
         {id: "accounting", name: "Accounting", description: "Finance team"},
         {id: "everyone", name: "Everyone", description: "All users"},
@@ -37,20 +39,50 @@
         return f.models[name](match);
       });
     };
+    vm.onblur = function () {
+      hasFocus = false;
+    };
     vm.onchange = function (value) {
       var models = vm.models(),
+        regexp = new RegExp("^" + value, "i"),
         match = function (model) {
-          if (Array.isArray(model.data[valueProperty]().match("^" + value))) {
-            parent.model.data[parentProperty](model);
+          var currentValue = model.data[valueProperty]();
+          if (Array.isArray(currentValue.match(regexp))) {
+            modelValue(model);
+            inputValue(currentValue);
             return true;
           }
           return false;
         };
 
       if (!models.some(match)) {
-        parent.model.data[parentProperty](null);
+        modelValue(null);
+        inputValue(null);
         console.log("No match");
       }
+    };
+    vm.onfocus = function () {
+      hasFocus = true;
+    };
+    vm.onkeypress = function (value) {
+      console.log(value);
+    };
+    vm.value = function (value) {
+      var result;
+      if (hasFocus) {
+        if (arguments.length) {
+          result = inputValue(value);
+        } else {
+          result = inputValue();
+        }
+        return result;
+      }
+
+      result = modelValue();
+      if (!result) {
+        return null;
+      }
+      return result.data[valueProperty]();
     };
 
     return vm;
@@ -65,13 +97,7 @@
     widget.view = function (ctrl, args) {
       var rvm, listOptions,
         vm = args.viewModel,
-        d = vm.model.data,
-        parentProp = d[parentProperty],
-        valueProp = function () {
-          if (parentProp() === null) { return null; }
-          return parentProp().data[valueProperty]();
-        },
-        feather = parentProp.type.relation;
+        feather = vm.model.data[parentProperty].type.relation;
 
       // Set up role viewModel if required
       if (!vm.attrs[parentProperty]) {
@@ -84,17 +110,22 @@
       }
       rvm = vm.attrs[parentProperty];
 
+      // Generate picker list
       listOptions = rvm.models(feather).map(function (model) {
         var content = {value: model.data[valueProperty]()};
         if (labelProperty) { content.label = model.data[labelProperty](); }
         return m("option", content);
       });
 
+      // Return the widget
       return m("div", [
         m("input", {
           list: "data",
           onchange: m.withAttr("value", rvm.onchange),
-          value: valueProp()
+          onfocus: rvm.onfocus,
+          onblur: rvm.onblur,
+          oninput: m.withAttr("value", rvm.value),
+          value: rvm.value() || ""
         }),
         m("datalist", {
           id: "data"
