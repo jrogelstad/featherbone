@@ -2,7 +2,8 @@
 
 f.init().then(function () {
 
-  var Home, ContactForm, ContactTable, ContactList;
+  var Home, ContactForm, ContactDisplay,
+    app = {};
 
   Home = {
     controller: function () {
@@ -19,66 +20,76 @@ f.init().then(function () {
     }
   };
 
+  app.vm = function (feather, id) {
+    var vm = {},
+      name = feather.toCamelCase(),
+      plural = f.catalog.getFeather(feather).plural.toSpinalCase();
+
+    vm.model = f.models[name]({id: id});
+    vm.attrs = {};
+
+    if (id) { vm.model.fetch(); }
+
+    vm.doApply = function () {
+      vm.model.save();
+    };
+    vm.doList = function () {
+      m.route("/" + plural);
+    };
+    vm.doNew = function () {
+      m.route("/" + name);
+    };
+    vm.doSave = function () {
+      vm.model.save().then(function () {
+        m.route("/" + plural);
+      });
+    };
+    vm.doSaveAndNew = function () {
+      vm.model.save().then(function () {
+        m.route("/" + name);
+      });
+    };
+    vm.isDirty = function () {
+      var currentState = vm.model.state.current()[0];
+      return currentState === "/Ready/New" ||
+        currentState === "/Ready/Fetched/Dirty";
+    };
+
+    return vm;
+  };
+
   ContactForm = {
     controller: function () {
-      var id = m.route.param("id"),
-        model = f.models.contact();
-      this.contact = m.prop(model);
-      this.doApply = function () {
-        model.save();
-      };
-      this.doNew = function () {
-        m.route("/contact");
-      };
-      this.doSave = function () {
-        model.save().then(function () {
-          m.route("/contacts");
-        });
-      };
-      this.doSaveAndNew = function () {
-        model.save().then(function () {
-          m.route("/contact");
-        });
-      };
-      this.goContacts = function () {
-        m.route("/contacts");
-      };
-      this.isDirty = function () {
-        var currentState = model.state.current()[0];
-        return currentState === "/Ready/New" ||
-          currentState === "/Ready/Fetched/Dirty";
-      };
-      this.log = function (msg) {
-        console.log(msg);
-      };
-      if (id) {
-        model.data.id(id);
-        model.fetch();
-      }
+      this.vm = app.vm("Contact", m.route.param("id"));
     },
     view: function (ctrl) {
-      var contact = ctrl.contact(),
-        d = contact.data;
+      var model = ctrl.vm.model,
+        d = model.data,
+        roleWidget = f.components.relationWidget({
+          parentProperty: "role",
+          valueProperty: "name",
+          labelProperty: "description"
+        });
 
       return m("form", [
         m("button", {
           type: "button",
-          onclick: ctrl.goContacts
+          onclick: ctrl.vm.doList
         }, "Done"),
         m("button", {
           type: "button",
-          disabled: !ctrl.isDirty(),
-          onclick: ctrl.doApply
+          disabled: !ctrl.vm.isDirty(),
+          onclick: ctrl.vm.doApply
         }, "Apply"),
         m("button", {
           type: "button",
-          disabled: !ctrl.isDirty(),
-          onclick: ctrl.doSave
+          disabled: !ctrl.vm.isDirty(),
+          onclick: ctrl.vm.doSave
         }, "Save"),
         m("button", {
           type: "button",
-          onclick: ctrl.isDirty() ? ctrl.doSaveAndNew : ctrl.doNew
-        }, ctrl.isDirty() ? "Save & New" : "New"),
+          onclick: ctrl.vm.isDirty() ? ctrl.vm.doSaveAndNew : ctrl.vm.doNew
+        }, ctrl.vm.isDirty() ? "Save & New" : "New"),
         m("table", [
           m("tr", [
             m("td", [
@@ -90,7 +101,7 @@ f.init().then(function () {
                 type: "text",
                 required: true,
                 autofocus: true,
-                oninput: m.withAttr("value", d.name),
+                onchange: m.withAttr("value", d.name),
                 value: d.name()
               })
             ]),
@@ -103,7 +114,7 @@ f.init().then(function () {
               m("input", {
                 id: "email",
                 type: "email",
-                oninput: m.withAttr("value", d.email),
+                onchange: m.withAttr("value", d.email),
                 value: d.email()
               })
             ])
@@ -129,7 +140,7 @@ f.init().then(function () {
               m("input", {
                 id: "birthDate",
                 type: "date",
-                oninput: m.withAttr("value", d.birthDate),
+                onchange: m.withAttr("value", d.birthDate),
                 value: d.birthDate()
               })
             ])
@@ -142,7 +153,7 @@ f.init().then(function () {
               m("input", {
                 id: "workPhone",
                 type: "tel",
-                oninput: m.withAttr("value", d.workPhone),
+                onchange: m.withAttr("value", d.workPhone),
                 value: d.workPhone()
               })
             ])
@@ -155,7 +166,7 @@ f.init().then(function () {
               m("input", {
                 id: "homePhone",
                 type: "tel",
-                oninput: m.withAttr("value", d.homePhone),
+                onchange: m.withAttr("value", d.homePhone),
                 value: d.homePhone()
               })
             ])
@@ -170,7 +181,7 @@ f.init().then(function () {
                 type: "number",
                 min: 0,
                 max: 800,
-                oninput: m.withAttr("value", d.creditScore),
+                onchange: m.withAttr("value", d.creditScore),
                 value: d.creditScore()
               })
             ])
@@ -180,44 +191,9 @@ f.init().then(function () {
               m("label", {for: "role"}, "Role:")
             ]),
             m("td", [
-              m("input", {
-                id: "role",
-                type: "text",
-              }),
-              m("div", {
-                id: "roleList",
-                style: {
-                  position: "relative"
-                }
-              }, [
-                m("div", {
-                  id: "roleScroller",
-                  style: {
-                    display: "block",
-                    backgroundColor: "White",
-                    position: "absolute",
-                    zIndex: 9999,
-                    top: "1px",
-                    maxHeight: "100px",
-                    width: "172px",
-                    overflowY: "scroll",
-                    borderLeft: "1px solid lightgrey",
-                    borderRight: "1px solid lightgrey",
-                    borderBottom: "1px solid lightgrey"
-                  }
-                }, [
-                  m("div", "One"),
-                  m("div", "Two"),
-                  m("div", "Three"),
-                  m("div", "Four"),
-                  m("div", "Five"),
-                  m("div", "Six"),
-                  m("div", "Seven"),
-                  m("div", "Eight"),
-                  m("div", "Nine"),
-                  m("div", "Ten")
-                ])
-              ])
+              m.component(roleWidget, {
+                viewModel: ctrl.vm
+              })
             ])
           ]),
           m("tr", [
@@ -227,8 +203,7 @@ f.init().then(function () {
             m("td", [
               m("input", {
                 type: "datetime-local",
-                readonly: false,
-                oninput: m.withAttr("value", d.created),
+                readonly: true,
                 value: d.created()
               })
             ]),
@@ -241,7 +216,6 @@ f.init().then(function () {
               m("input", {
                 type: "text",
                 readonly: true,
-                oninput: m.withAttr("value", d.createdBy),
                 value: d.createdBy()
               })
             ]),
@@ -253,8 +227,7 @@ f.init().then(function () {
             m("td", [
               m("input", {
                 type: "datetime-local",
-                readonly: false,
-                oninput: m.withAttr("value", d.updated),
+                readonly: true,
                 value: d.updated()
               })
             ])
@@ -267,7 +240,6 @@ f.init().then(function () {
               m("input", {
                 type: "text",
                 readonly: true,
-                oninput: m.withAttr("value", d.updatedBy),
                 value: d.updatedBy()
               })
             ])
@@ -277,21 +249,15 @@ f.init().then(function () {
     }
   };
 
-  ContactTable = f.components.tableDisplay({
+  ContactDisplay = f.components.tableDisplay({
     feather: "Contact",
     columns: ["name", "email", "isActive", "birthDate", "workPhone",
       "homePhone", "creditScore"]
   });
 
-  ContactList = {
-    view: function () {
-      return m.component(ContactTable);
-    }
-  };
-
   m.route(document.body, "/home", {
     "/home": Home,
-    "/contacts": ContactList,
+    "/contacts": ContactDisplay,
     "/contact": ContactForm,
     "/contact/:id": ContactForm
   });

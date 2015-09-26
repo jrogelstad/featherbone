@@ -18,8 +18,6 @@
 (function (f) {
   "use strict";
 
-  f.components = {};
-
   f.components.tableDisplay = function (options) {
     var component = {};
 
@@ -31,8 +29,8 @@
         pathName = feather.toSpinalCase(),
         plural = f.catalog.getFeather(feather).plural.toSpinalCase();
 
-      that.models = f.models[name].list();
-      that.columns = options.columns || ["id"];
+      this.models = f.models[name].list();
+      this.columns = options.columns || ["id"];
       this.goHome = function () {
         m.route("/home");
       };
