@@ -22,8 +22,9 @@ var catalog, init, resolveName, getCatalog, getCurrentUser,
   doHandleOne, doGetSettings, doGetModel, doRequest,
   doGetMethod, doSaveModel, doDeleteModel, registerDataRoutes,
   datasource = require("./server/datasource"),
-  express = require('express'),
-  bodyParser = require('body-parser'),
+  express = require("express"),
+  bodyParser = require("body-parser"),
+  qs = require("qs"),
   app = express(),
   port = process.env.PORT || 10001,
   dataRouter = express.Router(),
@@ -104,8 +105,7 @@ doRequest = function (req, res) {
     name = resolveName(req.url),
     payload = req.body || {},
     id = params.id,
-    limit = params.limit,
-    offset = params.offset || 0;
+    filter = params.filter ? qs.parse(params.filter) : {};
 
   // Handle response
   callback = function (err, resp) {
@@ -131,10 +131,8 @@ doRequest = function (req, res) {
   if (id) {
     payload.id = id;
   } else {
-    payload.filter = {
-      limit: limit,
-      offset: offset
-    };
+    payload.filter = filter;
+    filter.offset = filter.offset || 0;
   }
 
 console.log(JSON.stringify(payload, null, 2));
@@ -234,19 +232,23 @@ doDeleteModel = function (req, res) {
 };
 
 registerDataRoutes = function () {
-  var keys;
+  var keys, name;
 
   keys = Object.keys(catalog);
   keys.forEach(function (key) {
-    dataRouter.route("/" + key.toSpinalCase() + "/:id")
+    name = key.toSpinalCase();
+    dataRouter.route("/" + name + "/:id")
       .get(doRequest)
       .patch(doRequest)
       .delete(doRequest);
 
     if (catalog[key].plural) {
-      dataRouter.route("/" + catalog[key].plural.toSpinalCase())
+      name = catalog[key].plural.toSpinalCase();
+      dataRouter.route("/" + name)
         .get(doRequest)
         .post(doRequest);
+      dataRouter.route("/" + name + "/:filter")
+        .get(doRequest);
     }
   });
 };

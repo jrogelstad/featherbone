@@ -26,18 +26,14 @@
       valueProperty = options.valueProperty,
       inputValue = m.prop(null),
       modelValue = parent.model.data[parentProperty],
-      matches = [
-        {id: "accounting", name: "Accounting", description: "Finance team"},
-        {id: "everyone", name: "Everyone", description: "All users"},
-        {id: "sales", name: "Sales", description: "Sales team"},
-        {id: "shop", name: "Shop Floor", description: "Production team"}
-      ];
+      modelName = modelValue.type.relation.toCamelCase(),
+      modelList = f.models[modelName].list({
+        sort: [{property: valueProperty}],
+        limit: 10
+      });
 
     vm.models = function () {
-      var name = parent.model.data[parentProperty].type.relation.toCamelCase();
-      return matches.map(function (match) {
-        return f.models[name](match);
-      });
+      return modelList() || [];
     };
     vm.onblur = function () {
       hasFocus = false;
@@ -64,8 +60,8 @@
     vm.onfocus = function () {
       hasFocus = true;
     };
-    vm.onkeypress = function (value) {
-      console.log(value);
+    vm.oninput = function (value) {
+      inputValue(value);
     };
     vm.value = function (value) {
       var result;
@@ -96,8 +92,7 @@
 
     widget.view = function (ctrl, args) {
       var rvm, listOptions,
-        vm = args.viewModel,
-        feather = vm.model.data[parentProperty].type.relation;
+        vm = args.viewModel;
 
       // Set up role viewModel if required
       if (!vm.attrs[parentProperty]) {
@@ -111,7 +106,7 @@
       rvm = vm.attrs[parentProperty];
 
       // Generate picker list
-      listOptions = rvm.models(feather).map(function (model) {
+      listOptions = rvm.models().map(function (model) {
         var content = {value: model.data[valueProperty]()};
         if (labelProperty) { content.label = model.data[labelProperty](); }
         return m("option", content);
@@ -124,7 +119,7 @@
           onchange: m.withAttr("value", rvm.onchange),
           onfocus: rvm.onfocus,
           onblur: rvm.onblur,
-          oninput: m.withAttr("value", rvm.value),
+          oninput: m.withAttr("value", rvm.oninput),
           value: rvm.value() || ""
         }),
         m("datalist", {

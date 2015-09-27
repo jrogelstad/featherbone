@@ -14,7 +14,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-/*global window, f, m */
+/*global window, f, m, Qs */
 (function (f) {
   "use strict";
 
@@ -227,18 +227,22 @@
               }
             };
             // TODO: Make data do something. Options? Filter?
-            f.models[prop].list = function (data) {
+            f.models[prop].list = function (filter) {
+              console.log(filter);
+              filter = Qs.stringify(filter);
+              var name = plural.toSpinalCase(),
+                url = "/data/" + name + "/" + filter;
+              console.log(url);
               return m.request({
                 method: "GET",
-                url: "/data/" + plural.toSpinalCase(),
-                data: data
+                url: url
               }).then(function (data) {
                 var id, model,
                   len = data.length,
                   i = 0;
                 while (i < len) {
                   id = data[i].id;
-                  model = f.models.contact(data[i]);
+                  model = f.models[prop](data[i]);
                   model.state.goto("/Ready/Fetched");
                   if (!isNaN(idx[id])) {
                     ary.splice(idx[id], 1, model);

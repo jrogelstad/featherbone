@@ -20,7 +20,7 @@
   require("../common/extend-string");
 
   var that, createView, curry, getParentKey, isChildModel,
-    propagateViews, propagateAuth, buildAuthSql,
+    propagateViews, propagateAuth, buildAuthSql, processSort,
     relationColumn, sanitize,
     f = require("../common/core"),
     jsonpatch = require("fast-json-patch"),
@@ -868,6 +868,12 @@
 
           sql += " WHERE _pk IN (" + tokens.toString(",") + ")";
 
+          if (obj.filter && obj.filter.sort) {
+            tokens = [];
+            sql += processSort(obj.filter.sort, tokens);
+            sql = sql.format(tokens);
+          }
+
           obj.client.query(sql, keys, function (err, resp) {
             if (err) {
               obj.callback(err);
@@ -1298,7 +1304,7 @@
       @return receiver
     */
     getKeys: function (obj, isSuperUser) {
-      var part, order, op, err, n,
+      var part, op, err, n,
         name = obj.name,
         filter = obj.filter,
         ops = ["=", "!=", "<", ">", "<>", "~", "*~", "!~", "!~*"],
@@ -1355,21 +1361,7 @@
         }
 
         /* Process sort */
-        i = 0;
-        parts = [];
-        while (sort[i]) {
-          order = (sort[i].order || "ASC").toUpperCase();
-          if (order !== "ASC" && order !== "DESC") {
-            throw 'Unknown operator "' + order + '"';
-          }
-          tokens.push(sort[i].property);
-          parts.push(" %I " + order);
-          i++;
-        }
-
-        if (parts.length) {
-          sql += " ORDER BY " + parts.join(",");
-        }
+        sql += processSort(sort, tokens);
 
         /* Process offset and limit */
         if (filter.offset) {
@@ -2967,6 +2959,28 @@
     }
 
     return false;
+  };
+
+  /** private */
+  processSort = function (sort, tokens) {
+    var order, clause = "",
+      i = 0,
+      parts = [];
+    while (sort[i]) {
+      order = (sort[i].order || "ASC").toUpperCase();
+      if (order !== "ASC" && order !== "DESC") {
+        throw 'Unknown operator "' + order + '"';
+      }
+      tokens.push(sort[i].property);
+      parts.push(" %I " + order);
+      i++;
+    }
+
+    if (parts.length) {
+      clause = " ORDER BY " + parts.join(",");
+    }
+
+    return clause;
   };
 
   /** private 
