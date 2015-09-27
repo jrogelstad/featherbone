@@ -128,11 +128,13 @@ doRequest = function (req, res) {
   payload.user = getCurrentUser();
   payload.callback = callback;
 
-  if (id) {
-    payload.id = id;
-  } else {
-    payload.filter = filter;
-    filter.offset = filter.offset || 0;
+  if (req.method !== "POST") {
+    if (id) {
+      payload.id = id;
+    } else {
+      payload.filter = filter;
+      filter.offset = filter.offset || 0;
+    }
   }
 
 console.log(JSON.stringify(payload, null, 2));

@@ -27,12 +27,12 @@
       inputValue = m.prop(null),
       modelValue = parent.model.data[parentProperty],
       modelName = modelValue.type.relation.toCamelCase(),
-      modelList = f.models[modelName].list({
-        filter: {
-          sort: [{property: valueProperty}],
-          limit: 10
-        }
-      });
+      filter = {
+        sort: [{property: valueProperty}],
+        limit: 10
+      },
+      list =  f.models[modelName].list,
+      modelList = list({filter: filter});
 
     vm.models = function () {
       return modelList() || [];
@@ -56,14 +56,29 @@
       if (!models.some(match)) {
         modelValue(null);
         inputValue(null);
-        console.log("No match");
       }
     };
     vm.onfocus = function () {
       hasFocus = true;
     };
     vm.oninput = function (value) {
+      var fetch = false;
+      if (value.length <= (inputValue() || "").length ||
+          modelList().length === 10) {
+        fetch = true;
+      }
       inputValue(value);
+      if (fetch) {
+        filter.criteria = [{
+          property: valueProperty,
+          operator: "~*",
+          value: "^" + value
+        }];
+        list({
+          value: modelList(),
+          filter: filter
+        });
+      }
     };
     vm.value = function (value) {
       var result;

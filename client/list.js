@@ -17,26 +17,32 @@
 (function (f) {
   "use strict";
 
+  /**
+    Return a function that when called will return an array of models
+    based on the feather name passed. The function accepts an object supporting
+    the following options:
+
+      fetch: Boolean flags whether to automatically fetch a list of models.
+      filter: A filter object definition
+
+    The model array includes support for the following two functions:
+
+      remave(model): Removes the passed model frome the array.
+      fetch (filter): Requeries the server for new results.
+
+
+    @param {String} Feather name
+    @return {Function}
+  */
   f.list = function (feather) {
-    var plural = f.catalog.getFeather(feather).plural.toSpinalCase(),
+    var fetch,
+      plural = f.catalog.getFeather(feather).plural.toSpinalCase(),
       name = feather.toCamelCase(),
       ary = [],
-      idx = {};
+      idx = {},
+      value = m.prop(ary);
 
-    // Remove a model from the list
-    ary.remove = function (model) {
-      var id = model.data.id(),
-        i = idx[id];
-      if (!isNaN(i)) {
-        ary.splice(i, 1);
-        Object.keys(idx).forEach(function (key) {
-          if (idx[key] > i) { idx[key] -= 1; }
-        });
-        delete idx[id];
-      }
-    };
-
-    ary.fetch = function (filter) {
+    fetch = function (filter) {
       filter = Qs.stringify(filter);
       var url = "/data/" + plural + "/" + filter;
       return m.request({
@@ -58,16 +64,31 @@
           }
           i++;
         }
-        return ary;
+        console.log("Got list");
       });
+    };
+
+    // Remove a model from the list
+    ary.remove = function (model) {
+      var id = model.data.id(),
+        i = idx[id];
+      if (!isNaN(i)) {
+        ary.splice(i, 1);
+        Object.keys(idx).forEach(function (key) {
+          if (idx[key] > i) { idx[key] -= 1; }
+        });
+        delete idx[id];
+      }
     };
 
     return function (options) {
       options = options || {};
+      ary = options.value || ary;
       var filter = options.filter,
-        fetch = options.fetch === undefined ? true : options.fetch;
+        doFetch = options.fetch === undefined ? true : options.fetch;
 
-      return fetch ? ary.fetch(filter) : ary;
+      if (doFetch) { fetch(filter); }
+      return value;
     };
   };
 

@@ -1307,7 +1307,7 @@
       var part, op, err, n,
         name = obj.name,
         filter = obj.filter,
-        ops = ["=", "!=", "<", ">", "<>", "~", "*~", "!~", "!~*"],
+        ops = ["=", "!=", "<", ">", "<>", "~", "~*", "!~", "!~*"],
         table = name.toSnakeCase(),
         clause = obj.showDeleted ? "true" : "NOT is_deleted",
         sql = "SELECT _pk FROM %I WHERE " + clause,
@@ -1349,7 +1349,7 @@
               throw err;
             }
             params.push(criteria[i].value);
-            part = " %I" + op + "$" + p++;
+            part = " %I " + op + " $" + p++;
             i++;
           }
           parts.push(part);
