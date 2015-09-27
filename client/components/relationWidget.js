@@ -24,8 +24,9 @@
       parent = options.parent,
       parentProperty = options.parentProperty,
       valueProperty = options.valueProperty,
-      inputValue = m.prop(null),
       modelValue = parent.model.data[parentProperty],
+      current = modelValue() ? modelValue().data[valueProperty]() : null,
+      inputValue = m.prop(current),
       modelName = modelValue.type.relation.toCamelCase(),
       filter = {
         sort: [{property: valueProperty}],
@@ -34,8 +35,15 @@
       list =  f.models[modelName].list,
       modelList = list({filter: filter});
 
+    vm.fetch = function () {
+      list({
+        value: modelList(),
+        filter: filter,
+        merge: false
+      });
+    };
     vm.models = function () {
-      return modelList() || [];
+      return modelList();
     };
     vm.onblur = function () {
       hasFocus = false;
@@ -53,9 +61,11 @@
           return false;
         };
 
-      if (!models.some(match)) {
+      if (!value.length || !models.some(match)) {
         modelValue(null);
         inputValue(null);
+        delete filter.criteria;
+        vm.fetch();
       }
     };
     vm.onfocus = function () {
@@ -74,10 +84,7 @@
           operator: "~*",
           value: "^" + value
         }];
-        list({
-          value: modelList(),
-          filter: filter
-        });
+        vm.fetch();
       }
     };
     vm.value = function (value) {

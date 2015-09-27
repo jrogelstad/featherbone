@@ -64,7 +64,6 @@
           }
           i++;
         }
-        console.log("Got list");
       });
     };
 
@@ -87,6 +86,7 @@
       var filter = options.filter,
         doFetch = options.fetch === undefined ? true : options.fetch;
 
+      if (options.merge === false) { ary.length = 0; }
       if (doFetch) { fetch(filter); }
       return value;
     };
