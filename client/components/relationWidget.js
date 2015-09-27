@@ -28,8 +28,10 @@
       modelValue = parent.model.data[parentProperty],
       modelName = modelValue.type.relation.toCamelCase(),
       modelList = f.models[modelName].list({
-        sort: [{property: valueProperty}],
-        limit: 10
+        filter: {
+          sort: [{property: valueProperty}],
+          limit: 10
+        }
       });
 
     vm.models = function () {
