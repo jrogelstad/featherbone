@@ -29,7 +29,7 @@
     types = {
       object: {type: "json", default: {}},
       array: {type: "json", default: []},
-      string: {type: "text", default: "''"},
+      string: {type: "text", default: ""},
       integer: {type: "integer", default: 0},
       number: {type: "numeric", default: 0},
       date: {type: "date", default: "today()"},
