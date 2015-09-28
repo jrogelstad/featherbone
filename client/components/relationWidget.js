@@ -21,9 +21,11 @@
   f.viewModels.relationViewModel = function (options) {
     var vm = {},
       hasFocus = false,
+      showMenu = false,
       parent = options.parent,
       parentProperty = options.parentProperty,
       valueProperty = options.valueProperty,
+      labelProperty = options.labelProperty,
       modelValue = parent.model.data[parentProperty],
       current = modelValue() ? modelValue().data[valueProperty]() : null,
       inputValue = m.prop(current),
@@ -42,11 +44,24 @@
         merge: false
       });
     };
+    vm.label = function () {
+      var model = modelValue();
+      return labelProperty && model ? model.data[labelProperty]() : "";
+    };
     vm.models = function () {
       return modelList();
     };
     vm.onblur = function () {
       hasFocus = false;
+    };
+    vm.onclicknew = function () {
+      console.log("search new");
+    };
+    vm.onclickopen = function () {
+      console.log("open clicked");
+    };
+    vm.onclicksearch = function () {
+      console.log("search clicked");
     };
     vm.onchange = function (value) {
       var models = vm.models(),
@@ -87,6 +102,15 @@
         vm.fetch();
       }
     };
+    vm.onmouseovermenu = function () {
+      showMenu = true;
+    };
+    vm.onmouseoutmenu = function () {
+      showMenu = false;
+    };
+    vm.showMenu = function () {
+      return showMenu;
+    };
     vm.value = function (value) {
       var result;
       if (hasFocus) {
@@ -95,12 +119,12 @@
         } else {
           result = inputValue();
         }
-        return result;
+        return result || "";
       }
 
       result = modelValue();
       if (!result) {
-        return null;
+        return "";
       }
       return result.data[valueProperty]();
     };
@@ -144,8 +168,51 @@
           onfocus: rvm.onfocus,
           onblur: rvm.onblur,
           oninput: m.withAttr("value", rvm.oninput),
-          value: rvm.value() || ""
+          value: rvm.value()
         }),
+        m("div", {
+          style: {
+            position: "relative",
+            display: "inline"
+          }
+        }, [
+          m("div", {
+            onmouseover: rvm.onmouseovermenu,
+            onmouseout: rvm.onmouseoutmenu,
+            style: {
+              position: "absolute",
+              display: "inline"
+            }
+          }, [
+            m("button", {
+              type: "button"
+            }, "..."),
+            m("div", {
+              style: {
+                display: rvm.showMenu() ? "block" : "none",
+                backgroundColor: "White",
+                position: "absolute",
+                zIndex: 9999,
+                border: "1px solid lightgrey"
+              }
+            }, [
+              m("div", {
+                onclick: rvm.onclicksearch
+              }, "Search"),
+              m("div", {
+                onclick: rvm.onclickopen
+              }, "Open"),
+              m("div", {
+                onclick: rvm.onclicknew
+              }, "New")
+            ])
+          ])
+        ]),
+        m("div", {
+          style: {display: labelProperty ? "inline" : "none"}
+        }, [
+          m("div", rvm.label()),
+        ]),
         m("datalist", {
           id: "data"
         }, listOptions)
