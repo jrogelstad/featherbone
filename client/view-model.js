@@ -17,7 +17,8 @@
 (function (f) {
   "use strict";
 
-  f.viewModel = function (feather, id) {
+  f.viewModels = {};
+  f.viewModels.formViewModel = function (feather, id) {
     var vm = {},
       name = feather.toCamelCase(),
       plural = f.catalog.getFeather(feather).plural.toSpinalCase();

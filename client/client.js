@@ -21,7 +21,7 @@ f.init().then(function () {
 
   ContactForm = {
     controller: function () {
-      this.vm = f.viewModel("Contact", m.route.param("id"));
+      this.vm = f.viewModels.formViewModel("Contact", m.route.param("id"));
     },
     view: function (ctrl) {
       var model = ctrl.vm.model,

@@ -19,7 +19,6 @@
   "use strict";
 
   f.components = {};
-  f.viewModels = {};
 
 }(f));
 
