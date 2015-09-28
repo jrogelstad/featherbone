@@ -50,18 +50,6 @@ var f = (function () {
         default: 0,
         toType: function (value) { return parseInt(value, 10); }
       },
-      "long": {
-        default: 0,
-        toType: Number
-      },
-      "float": {
-        default: 0,
-        toType: Number
-      },
-      "double": {
-        default: 0,
-        toType: Number
-      },
       "string": {
         default: "",
         toType: function (value) { return value.toString(); }

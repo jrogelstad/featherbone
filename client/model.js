@@ -134,6 +134,15 @@
 
       return store;
     };
+    p.isToOne = function () {
+      return isToOne(p);
+    };
+    p.isToMany = function () {
+      return isToMany(p);
+    };
+    p.isChild = function () {
+      return isChild(p);
+    };
 
     store = formatter.toType(store);
     state.goto();

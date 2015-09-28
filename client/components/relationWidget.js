@@ -222,6 +222,12 @@
     return widget;
   };
 
+  f.components.roleWidget = f.components.relationWidget({
+    parentProperty: "role",
+    valueProperty: "name",
+    labelProperty: "description"
+  });
+
 }(f));
 
 
