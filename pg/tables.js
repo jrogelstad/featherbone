@@ -1,4 +1,4 @@
-﻿/**
+/**
     Framework for building object relational database apps
 
     Copyright (C) 2015  John Rogelstad
@@ -247,43 +247,48 @@
                     "id": {
                       "description": "Surrogate key",
                       "type": "string",
-                      "default": "createId()"
+                      "default": "createId()",
+                      "isRequired": true,
+                      "isReadOnly": true
                     },
                     "created": {
                       "description": "Create time of the record",
                       "type": "string",
                       "format": "dateTime",
-                      "default": "now()"
+                      "default": "now()",
+                      "isReadOnly": true
                     },
                     "createdBy": {
                       "description": "User who created the record",
                       "type": "string",
-                      "default": "getCurrentUser()"
+                      "default": "getCurrentUser()",
+                      "isReadOnly": true
                     },
                     "updated": {
                       "description": "Last time the record was updated",
                       "type": "string",
                       "format": "dateTime",
-                      "default": "now()"
+                      "default": "now()",
+                      "isReadOnly": true
                     },
                     "updatedBy": {
                       "description": "User who created the record",
                       "type": "string",
-                      "default": "getCurrentUser()"
+                      "default": "getCurrentUser()",
+                      "isReadOnly": true
                     },
                     "isDeleted": {
                       "description": "Indicates the record is no longer active",
-                      "type": "boolean"
+                      "type": "boolean",
+                      "isReadOnly": true
                     },
                     "objectType": {
                       "description": "Discriminates which inherited object type the object represents",
-                      "type": "string"
+                      "type": "string",
+                      "isRequired": true,
+                      "isReadOnly": true
                     }
-                  },
-                  "required": [
-                    "id",
-                    "objectType"
-                  ]
+                  }
                 }
               })
             ];

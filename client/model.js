@@ -41,6 +41,8 @@
     formatter = formatter || {};
 
     var newValue, oldValue, p, state, revert,
+      isReadOnly = false,
+      isRequired = false,
       defaultTransform = function (value) { return value; };
 
     formatter.toType = formatter.toType || defaultTransform;
@@ -133,6 +135,26 @@
       }
 
       return store;
+    };
+    /**
+      @param {Boolean} Is read only
+      @returns {Boolean}
+    */
+    p.isReadOnly = function (value) {
+      if (value !== undefined) {
+        isReadOnly = !!value;
+      }
+      return isReadOnly;
+    };
+    /**
+      @param {Boolean} Is required
+      @returns {Boolean}
+    */
+    p.isRequired = function (value) {
+      if (value !== undefined) {
+        isRequired = !!value;
+      }
+      return isRequired;
     };
     p.isToOne = function () {
       return isToOne(p);
@@ -718,6 +740,8 @@
         prop.description = props[key].description;
         prop.type = props[key].type;
         prop.default = func || defaultValue;
+        prop.isRequired(props[key].isRequired);
+        prop.isReadOnly(props[key].isReadOnly);
 
         // Limit public access to state
         stateMap[key] = prop.state;

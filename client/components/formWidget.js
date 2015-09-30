@@ -65,8 +65,9 @@
     };
 
     widget.view = function (ctrl) {
-      var attrs, keys, findComponent,
+      var attrs, findComponent,
         model = ctrl.vm.model,
+        props = f.catalog.getFeather(feather).properties,
         d = model.data,
         isFirst = true,
         inputMap = {
@@ -80,19 +81,24 @@
         };
 
       findComponent = function (prop) {
-        var rel, w, opts;
+        var rel, w, opts,
+          p = props[prop],
+          format = p.format || p.type;
 
-        if (prop === "id") { return; }
-        if (typeof d[prop].type === "string") {
+        if (typeof p.type === "string") {
           opts = {
             id: prop,
-            type: inputMap[d[prop].type],
-            required: d[prop].isRequired,
-            readonly: d[prop].isReadOnly,
+            type: inputMap[format],
             autofocus: isFirst
           };
 
-          if (d[prop].type === "boolean") {
+          if (d[prop].isReadOnly()) {
+            opts.disabled = true;
+          }
+          if (d[prop].isRequired()) {
+            opts.required = true;
+          }
+          if (p.type === "boolean") {
             opts.onclick = m.withAttr("checked", d[prop]);
             opts.checked = d[prop]();
           } else {
@@ -113,11 +119,7 @@
         console.log("Widget for property '" + prop + "' is unknown");
       };
 
-      keys = Object.keys(d);
-      keys = keys.filter(function (key) {
-        return findComponent(key) !== undefined;
-      });
-      attrs = keys.map(function (key) {
+      attrs = options.attrs.map(function (key) {
         var result = m("tr", [
             m("td", [
               m("label", {for: key}, key.toProperCase() + ":")

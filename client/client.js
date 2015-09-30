@@ -20,7 +20,9 @@ f.init().then(function () {
   };
 
   ContactForm = f.components.formWidget({
-    feather: "Contact"
+    feather: "Contact",
+    attrs: ["name", "isActive", "email", "birthDate", "workPhone", "homePhone",
+      "creditScore", "role", "created", "createdBy", "updated", "updatedBy"]
   });
 
   ContactDisplay = f.components.tableDisplay({
