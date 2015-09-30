@@ -111,7 +111,7 @@
         }
 
        // Handle relations
-        rel = d[prop].type.relation;
+        rel = d[prop].type.relation.toCamelCase();
         w = f.components[rel + "Widget"];
 
         if (d[prop].isToOne() && w) {
@@ -121,7 +121,7 @@
         console.log("Widget for property '" + prop + "' is unknown");
       };
 
-      attrs = options.properties.map(function (key) {
+      attrs = options.attrs.map(function (key) {
         var result = m("tr", [
             m("td", [
               m("label", {for: key}, key.toProperCase() + ":")

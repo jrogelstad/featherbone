@@ -2,7 +2,7 @@
 
 f.init().then(function () {
 
-  var Home, ContactForm, ContactDisplay;
+  var Home, ContactFormDisplay, ContactTableDisplay;
 
   Home = {
     controller: function () {
@@ -19,24 +19,24 @@ f.init().then(function () {
     }
   };
 
-  ContactForm = f.components.formDisplay({
+  ContactFormDisplay = f.components.formDisplay({
     feather: "Contact",
-    properties: ["name", "isActive", "email", "birthDate", "workPhone",
+    attrs: ["name", "isActive", "email", "birthDate", "workPhone",
       "homePhone", "creditScore", "role", "created", "createdBy", "updated",
       "updatedBy"]
   });
 
-  ContactDisplay = f.components.tableDisplay({
+  ContactTableDisplay = f.components.tableDisplay({
     feather: "Contact",
-    properties: ["name", "email", "isActive", "birthDate", "workPhone",
+    attrs: ["name", "email", "isActive", "birthDate", "workPhone",
       "homePhone", "creditScore"]
   });
 
   m.route(document.body, "/home", {
     "/home": Home,
-    "/contacts": ContactDisplay,
-    "/contact": ContactForm,
-    "/contact/:id": ContactForm
+    "/contacts": ContactTableDisplay,
+    "/contact": ContactFormDisplay,
+    "/contact/:id": ContactFormDisplay
   });
 });
 
