@@ -30,7 +30,7 @@
         plural = f.catalog.getFeather(feather).plural.toSpinalCase();
 
       this.models = f.models[name].list();
-      this.columns = options.columns || ["id"];
+      this.properties = options.properties || ["id"];
       this.goHome = function () {
         m.route("/home");
       };
@@ -105,14 +105,14 @@
         }),
         m("table", [
           (function () {
-            var tds = ctrl.columns.map(function (key) {
+            var tds = ctrl.properties.map(function (key) {
                 return m("td", key.toProperCase(true));
               });
             return m("tr", {style: {backgroundColor: "LightGrey"}}, tds);
           }()),
           ctrl.models().map(function (model) {
             var d = model.data,
-              tds = ctrl.columns.map(function (col) {
+              tds = ctrl.properties.map(function (col) {
                 var value = d[col](),
                   hasLocale = value !== null &&
                     typeof value.toLocaleString === "function";

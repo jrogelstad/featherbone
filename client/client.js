@@ -21,13 +21,14 @@ f.init().then(function () {
 
   ContactForm = f.components.formDisplay({
     feather: "Contact",
-    attrs: ["name", "isActive", "email", "birthDate", "workPhone", "homePhone",
-      "creditScore", "role", "created", "createdBy", "updated", "updatedBy"]
+    properties: ["name", "isActive", "email", "birthDate", "workPhone",
+      "homePhone", "creditScore", "role", "created", "createdBy", "updated",
+      "updatedBy"]
   });
 
   ContactDisplay = f.components.tableDisplay({
     feather: "Contact",
-    columns: ["name", "email", "isActive", "birthDate", "workPhone",
+    properties: ["name", "email", "isActive", "birthDate", "workPhone",
       "homePhone", "creditScore"]
   });
 

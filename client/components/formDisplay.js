@@ -85,6 +85,7 @@
           p = props[prop],
           format = p.format || p.type;
 
+        // Handle input types
         if (typeof p.type === "string") {
           opts = {
             id: prop,
@@ -109,6 +110,7 @@
           return m("input", opts);
         }
 
+       // Handle relations
         rel = d[prop].type.relation;
         w = f.components[rel + "Widget"];
 
@@ -119,7 +121,7 @@
         console.log("Widget for property '" + prop + "' is unknown");
       };
 
-      attrs = options.attrs.map(function (key) {
+      attrs = options.properties.map(function (key) {
         var result = m("tr", [
             m("td", [
               m("label", {for: key}, key.toProperCase() + ":")
