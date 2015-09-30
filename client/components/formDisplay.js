@@ -56,7 +56,7 @@
     return vm;
   };
 
-  f.components.formWidget = function (options) {
+  f.components.formDisplay = function (options) {
     var widget = {},
       feather = options.feather;
 
