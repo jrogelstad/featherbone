@@ -72,7 +72,7 @@
         isFirst = true,
         inputMap = {
           integer: "number",
-          number: "number",
+          number: "text",
           string: "text",
           date: "date",
           dateTime: "datetime-local",

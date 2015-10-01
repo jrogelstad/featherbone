@@ -253,7 +253,13 @@ var f = (function () {
       },
       "number": {
         default: 0,
-        toType: Number
+        fromType: function (value) { return value.toLocaleString(); },
+        toType: function (value) {
+          if (typeof value === "string") {
+            return Number(value.replace(/[^\d\.\-eE+]/g, ""));
+          }
+          return Number(value);
+        }
       },
       "object": { default: function () { return {}; } },
       "string": {

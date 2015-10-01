@@ -22,8 +22,8 @@ f.init().then(function () {
   ContactFormDisplay = f.components.formDisplay({
     feather: "Contact",
     attrs: ["name", "isActive", "email", "birthDate", "workPhone",
-      "homePhone", "creditScore", "role", "created", "createdBy", "updated",
-      "updatedBy"]
+      "homePhone", "annualIncome", "creditScore", "role", "created",
+      "createdBy", "updated", "updatedBy"]
   });
 
   ContactTableDisplay = f.components.tableDisplay({
