@@ -28,9 +28,6 @@
 
     if (id) { vm.model.fetch(); }
 
-    vm.autofocus = function () {
-      console.log("autofocus");
-    };
     vm.doApply = function () {
       vm.model.save();
     };
@@ -55,6 +52,7 @@
       return currentState === "/Ready/New" ||
         currentState === "/Ready/Fetched/Dirty";
     };
+    vm.isFirstLoad = m.prop(true);
 
     return vm;
   };
@@ -137,7 +135,10 @@
 
       return m("form", {
         config: function (e) {
-          document.getElementById(focusAttr).focus();
+          if (ctrl.vm.isFirstLoad()) {
+            document.getElementById(focusAttr).focus();
+            ctrl.vm.isFirstLoad(false);
+          }
         }
       }, [
         m("button", {
