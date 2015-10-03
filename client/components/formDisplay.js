@@ -28,6 +28,9 @@
 
     if (id) { vm.model.fetch(); }
 
+    vm.autofocus = function () {
+      console.log("autofocus");
+    };
     vm.doApply = function () {
       vm.model.save();
     };
@@ -65,11 +68,10 @@
     };
 
     widget.view = function (ctrl) {
-      var attrs, findComponent,
+      var attrs, findComponent, focusAttr,
         model = ctrl.vm.model,
         props = f.catalog.getFeather(feather).properties,
         d = model.data,
-        isFirst = true,
         inputMap = {
           integer: "number",
           number: "text",
@@ -89,8 +91,7 @@
         if (typeof p.type === "string") {
           opts = {
             id: prop,
-            type: inputMap[format],
-            autofocus: isFirst
+            type: inputMap[format]
           };
 
           if (d[prop].isReadOnly()) {
@@ -122,6 +123,7 @@
       };
 
       attrs = options.attrs.map(function (key) {
+        if (!focusAttr) { focusAttr = key; }
         var result = m("tr", [
             m("td", [
               m("label", {for: key}, key.toProperCase() + ":")
@@ -130,11 +132,14 @@
               findComponent(key)
             ])
           ]);
-        isFirst = false;
         return result;
       });
 
-      return m("form", [
+      return m("form", {
+        config: function (e) {
+          document.getElementById(focusAttr).focus();
+        }
+      }, [
         m("button", {
           type: "button",
           onclick: ctrl.vm.doList
