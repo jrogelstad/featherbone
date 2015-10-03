@@ -631,6 +631,7 @@
       // Loop through each model property and instantiate a data property
       keys.forEach(function (key) {
         var prop, func, defaultValue, name, cFeather, cKeys, cArray, relation,
+          toType, scale,
           p = props[key],
           type = p.type,
           value = data[key],
@@ -712,6 +713,20 @@
         } else {
           formatter = f.formats[p.format] || f.types[p.type] || {};
 
+          if (p.type === "number") {
+            scale = p.scale === undefined ? f.SCALE_DEFAULT : p.scale;
+            toType = formatter.toType;
+            formatter.fromType = function (value) {
+              return value.toLocaleString(undefined, {
+                maximumFractionDigits: scale
+              });
+            };
+            formatter.toType = function (value) {
+              var result = toType(value);
+              return f.round(result, scale);
+            };
+          }
+
           // Handle default
           if (p.default !== undefined) {
             defaultValue = p.default;
@@ -736,7 +751,7 @@
         }
 
         // Carry other property definitions forward
-        prop.key = key; // Use of 'name' property is not allow here
+        prop.key = key; // Use of 'name' property is not allowed here
         prop.description = props[key].description;
         prop.type = props[key].type;
         prop.default = func || defaultValue;

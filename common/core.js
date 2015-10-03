@@ -22,6 +22,9 @@ var f = (function () {
     i = 0;
 
   that = {
+    PRECISION_DEFAULT: 18,
+    SCALE_DEFAULT: 6,
+
     /**
       Return a unique identifier string.
 
@@ -233,6 +236,19 @@ var f = (function () {
     },
 
     /**
+      Round
+
+      @param {Number} Number
+      @param {Number} Scale
+      @returns {Number}
+    */
+    round: function (value, scale) {
+      scale =  scale || 0;
+      var power = Math.pow(10, scale);
+      return Math.round(value * power) / power;
+    },
+
+    /**
       Return a date that is the current date at midnight.
 
       @return {Date}
@@ -253,12 +269,17 @@ var f = (function () {
       },
       "number": {
         default: 0,
-        fromType: function (value) { return value.toLocaleString(); },
+        fromType: function (value) {
+          return value === null ? null : value.toLocaleString();
+        },
         toType: function (value) {
+          var result;
           if (typeof value === "string") {
-            return Number(value.replace(/[^\d\.\-eE+]/g, ""));
+            result = Number(value.replace(/[^\d\.\-eE+]/g, ""));
+          } else {
+            result = Number(value);
           }
-          return Number(value);
+          return isNaN(result) ? null : result;
         }
       },
       "object": { default: function () { return {}; } },

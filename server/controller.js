@@ -45,9 +45,7 @@
       date: {type: "date", default: "today()"},
       dateTime: {type: "timestamp with time zone", default: "minDate()"},
       password: {type: "text", default: ""}
-    },
-    PRECISION_DEFAULT = 18,
-    SCALE_DEFAULT = 6;
+    };
 
   /**
     * Escape strings to prevent sql injection
@@ -2195,9 +2193,9 @@
                     sql += type.type;
                     if (type.type === "numeric") {
                       precision = typeof prop.precision === "number" ?
-                          prop.precision : PRECISION_DEFAULT;
+                          prop.precision : f.PRECISION_DEFAULT;
                       scale = typeof prop.scale === "number" ?
-                          prop.scale : SCALE_DEFAULT;
+                          prop.scale : f.SCALE_DEFAULT;
                       sql += "(" + precision + "," + scale + ")";
                     }
                   }
