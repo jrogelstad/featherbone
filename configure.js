@@ -18,7 +18,7 @@
 require("./common/extend-string.js");
 
 var manifest, file, content, result, execute, name, createFunction, buildApi,
-  saveModule, saveModels, rollback, connect, commit, begin, processFile, ext,
+  saveModule, saveFeathers, rollback, connect, commit, begin, processFile, ext,
   client, user, processProperties, executeSql, runBatch,
   pg = require("pg"),
   fs = require("fs"),
@@ -126,8 +126,8 @@ processFile = function (err) {
     case "module":
       saveModule(file.name || name, content, manifest.version);
       break;
-    case "model":
-      saveModels(JSON.parse(content));
+    case "feather":
+      saveFeathers(JSON.parse(content));
       break;
     case "batch":
       runBatch(JSON.parse(content));
@@ -163,7 +163,7 @@ saveModule = function (name, script, version) {
   });
 };
 
-saveModels = function (models) {
+saveFeathers = function (feathers) {
   var callback, payload;
 
   callback = function (err) {
@@ -177,12 +177,12 @@ saveModels = function (models) {
 
   payload = {
     method: "PUT",
-    name: "saveModel",
+    name: "saveFeather",
     user: user,
     client: client,
     callback: callback,
     data: {
-      specs: models
+      specs: feathers
     }
   };
 
@@ -234,20 +234,20 @@ buildApi = function () {
 
     catalog = resp;
 
-    // Loop through each model and append to swagger api
+    // Loop through each feather and append to swagger api
     keys = Object.keys(catalog);
     keys.forEach(function (key) {
       var definition, path,
-        model = catalog[key],
+        feather = catalog[key],
         properties = {},
-        inherits = model.inherits || "Object",
+        inherits = feather.inherits || "Object",
         pathName = "/" + key.toSpinalCase() + "/{id}",
         name = key.toProperCase();
 
-      model.name = key; // For error trapping later
+      feather.name = key; // For error trapping later
 
       // Append singluar path
-      if (!model.isChild) {
+      if (!feather.isChild) {
         path = {
           "x-swagger-router-controller": "data",
           get: {
@@ -331,7 +331,7 @@ buildApi = function () {
         swagger.paths[pathName] = path;
 
         // Append list path
-        if (model.plural) {
+        if (feather.plural) {
           path = {
             "x-swagger-router-controller": "data",
             get: {
@@ -357,9 +357,9 @@ buildApi = function () {
               ],
               responses: {
                 200: {
-                  description: "Array of " + model.plural.toProperCase(),
+                  description: "Array of " + feather.plural.toProperCase(),
                   schema: {
-                    $ref: "#/definitions/" + model.plural
+                    $ref: "#/definitions/" + feather.plural
                   }
                 },
                 default: {
@@ -390,23 +390,23 @@ buildApi = function () {
             }
           };
 
-          pathName = "/" + model.plural.toSnakeCase();
+          pathName = "/" + feather.plural.toSnakeCase();
           swagger.paths[pathName] = path;
         }
       }
 
-      // Append singular model definition
+      // Append singular feather definition
       definition = {};
 
-      if (model.description) {
-        definition.description = model.description;
+      if (feather.description) {
+        definition.description = feather.description;
       }
 
-      if (model.discriminator) {
-        definition.discriminator = model.discriminator;
+      if (feather.discriminator) {
+        definition.discriminator = feather.discriminator;
       }
 
-      processProperties(model, properties);
+      processProperties(feather, properties);
 
       if (key === "Object") {
         definition.properties = properties;
@@ -417,15 +417,15 @@ buildApi = function () {
         ];
       }
 
-      if (model.required) {
-        definition.required = model.required;
+      if (feather.required) {
+        definition.required = feather.required;
       }
 
       definitions[key] = definition;
 
       // Append plural definition
-      if (model.plural) {
-        definitions[model.plural] = {
+      if (feather.plural) {
+        definitions[feather.plural] = {
           type: "array",
           items: {
             $ref: "#/definitions/" + key
@@ -461,7 +461,7 @@ buildApi = function () {
 
     swagger = JSON.parse(data);
 
-    // Load the existing model catalog from postgres
+    // Load the existing feather catalog from postgres
     payload = {
       method: "GET",
       name: "getSettings",
@@ -476,11 +476,11 @@ buildApi = function () {
   });
 };
 
-processProperties = function (model, properties) {
-  var keys = Object.keys(model.properties);
+processProperties = function (feather, properties) {
+  var keys = Object.keys(feather.properties);
 
   keys.forEach(function (key) {
-    var property = model.properties[key], newProperty,
+    var property = feather.properties[key], newProperty,
       primitives = Object.keys(f.types),
       formats = Object.keys(f.formats);
 
@@ -503,7 +503,7 @@ processProperties = function (model, properties) {
         newProperty.type = property.type;
       } else {
         console.error("Property type " + property.type +
-          " not supported on " + key + " for model " + model.name);
+          " not supported on " + key + " for feather " + feather.name);
         process.exit(1);
       }
 
@@ -512,7 +512,7 @@ processProperties = function (model, properties) {
           newProperty.format = property.format.toSpinalCase();
         } else {
           console.error("Property format " + property.format +
-            " not supported on " + key + " for model " + model.name);
+            " not supported on " + key + " for feather " + feather.name);
           process.exit(1);
         }
       }

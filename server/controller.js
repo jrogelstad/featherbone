@@ -19,7 +19,7 @@
 
   require("../common/extend-string");
 
-  var that, createView, curry, getParentKey, isChildModel,
+  var that, createView, curry, getParentKey, isChildFeather,
     propagateViews, propagateAuth, buildAuthSql, processSort,
     relationColumn, sanitize,
     f = require("../common/core"),
@@ -106,12 +106,12 @@
       Remove a class from the database.
 
         @param {Object} Request payload
-        @param {Object | Array} [payload.name] Name(s) of model(s) to delete
+        @param {Object | Array} [payload.name] Name(s) of feather(s) to delete
         @param {Object} [payload.client] Database client
         @param {Function} [payload.callback] Callback
         @return {Boolean}
     */
-    deleteModel: function (obj) {
+    deleteFeather: function (obj) {
       var name, table, catalog, sql, rels, props, view, type, keys,
         afterGetCatalog, next, createViews, dropTables,
         names = Array.isArray(obj.name) ? obj.name : [obj.name],
@@ -139,14 +139,14 @@
           }
 
           sql = "DELETE FROM \"$auth\" WHERE object_pk=" +
-            "(SELECT _pk FROM \"$model\" WHERE id=$1);";
+            "(SELECT _pk FROM \"$feather\" WHERE id=$1);";
           obj.client.query(sql, [table], function (err, resp) {
             if (err) {
               obj.callback(err);
               return;
             }
 
-            sql = "DELETE FROM \"$model\" WHERE id=$1;";
+            sql = "DELETE FROM \"$feather\" WHERE id=$1;";
             obj.client.query(sql, [table], function (err, resp) {
               if (err) {
                 obj.callback(err);
@@ -246,7 +246,7 @@
     @return receiver
     */
     doDelete: function (obj, isChild, isSuperUser) {
-      var oldRec, keys, props, noChildProps, afterGetModel,
+      var oldRec, keys, props, noChildProps, afterGetFeather,
         afterAuthorization, afterDoSelect, afterDelete, afterLog,
         sql = "UPDATE object SET is_deleted = true WHERE id=$1;",
         clen = 1,
@@ -259,15 +259,15 @@
         }
       };
 
-      afterGetModel = function (err, model) {
+      afterGetFeather = function (err, feather) {
         if (err) {
           obj.callback(err);
           return;
         }
 
-        props = model.properties;
+        props = feather.properties;
 
-        if (!isChild && model.isChild) {
+        if (!isChild && feather.isChild) {
           obj.callback("Can not directly delete a child class");
         }
 
@@ -394,11 +394,11 @@
         obj.callback(null, true);
       };
 
-      // Kick off query by getting model, the rest falls through callbacks
-      that.getModel({
+      // Kick off query by getting feather, the rest falls through callbacks
+      that.getFeather({
         name: obj.name,
         client: obj.client,
-        callback: afterGetModel
+        callback: afterGetFeather
       });
     },
 
@@ -417,7 +417,7 @@
     */
     doInsert: function (obj, isChild, isSuperUser) {
       var sql, col, key, child, pk, n, dkeys, fkeys, len, msg, props, prop,
-        value, result, afterGetModel, afterIdCheck, afterNextVal,
+        value, result, afterGetFeather, afterIdCheck, afterNextVal,
         afterAuthorized, buildInsert, afterGetPk, afterHandleRelations,
         afterInsert, afterDoSelect, afterLog, insertFolder, afterHandleFolder,
         done,
@@ -432,18 +432,18 @@
         c = 0,
         p = 2;
 
-      afterGetModel = function (err, model) {
+      afterGetFeather = function (err, feather) {
         if (err) {
           obj.callback(err);
           return;
         }
 
-        if (!model) {
+        if (!feather) {
           obj.callback("Class \"" + obj.name + "\" not found");
           return;
         }
 
-        props = model.properties;
+        props = feather.properties;
         fkeys = Object.keys(props);
         dkeys = Object.keys(data);
 
@@ -451,7 +451,7 @@
         len = dkeys.length;
         for (n = 0; n < len; n++) {
           if (fkeys.indexOf(dkeys[n]) === -1) {
-            obj.callback("Model \"" + obj.name +
+            obj.callback("Feather \"" + obj.name +
               "\" does not contain property \"" + dkeys[n] + "\"");
             return;
           }
@@ -483,7 +483,7 @@
         if (!isChild && isSuperUser === false) {
           that.isAuthorized({
             action: "canCreate",
-            model: obj.name,
+            feather: obj.name,
             folder: folder,
             client: obj.client,
             callback: afterAuthorized
@@ -762,9 +762,9 @@
         obj.callback(null, result);
       };
 
-      // Kick off query by getting model, the rest falls through callbacks
-      payload.callback = afterGetModel;
-      that.getModel(payload);
+      // Kick off query by getting feather, the rest falls through callbacks
+      payload.callback = afterGetFeather;
+      that.getFeather(payload);
     },
 
     /**
@@ -781,22 +781,22 @@
     */
     doSelect: function (obj, isChild, isSuperUser) {
       var sql, table, keys,
-        afterGetModel, afterGetKey, afterGetKeys, mapKeys,
+        afterGetFeather, afterGetKey, afterGetKeys, mapKeys,
         payload = {name: obj.name, client: obj.client},
         tokens = [],
         cols = [];
 
-      afterGetModel = function (err, model) {
+      afterGetFeather = function (err, feather) {
         if (err) {
           obj.callback(err);
           return;
         }
 
-        table = "_" + model.name.toSnakeCase();
-        keys = obj.properties || Object.keys(model.properties);
+        table = "_" + feather.name.toSnakeCase();
+        keys = obj.properties || Object.keys(feather.properties);
 
         /* Validate */
-        if (!isChild && model.isChild) {
+        if (!isChild && feather.isChild) {
           obj.callback("Can not query directly on a child class");
           return;
         }
@@ -900,9 +900,9 @@
         return ret;
       };
 
-      // Kick off query by getting model, the rest falls through callbacks
-      payload.callback = afterGetModel;
-      that.getModel(payload);
+      // Kick off query by getting feather, the rest falls through callbacks
+      payload.callback = afterGetFeather;
+      that.getFeather(payload);
 
       return this;
     },
@@ -920,8 +920,8 @@
     */
     doUpdate: function (obj, isChild, isSuperUser) {
       var result, updRec, props, value, sql, pk, relation, key, keys,
-        oldRec, newRec, cpatches, model, tokens, find, noChildProps,
-        afterGetModel, afterGetKey, afterAuthorization, afterDoSelect,
+        oldRec, newRec, cpatches, feather, tokens, find, noChildProps,
+        afterGetFeather, afterGetKey, afterAuthorization, afterDoSelect,
         afterUpdate, afterSelectUpdated, done, nextProp, afterProperties,
         afterGetRelKey,
         patches = obj.data || [],
@@ -941,24 +941,24 @@
       };
 
       noChildProps = function (key) {
-        if (typeof model.properties[key].type !== "object" ||
-            !model.properties[key].type.childOf) {
+        if (typeof feather.properties[key].type !== "object" ||
+            !feather.properties[key].type.childOf) {
           return true;
         }
       };
 
-      afterGetModel = function (err, resp) {
+      afterGetFeather = function (err, resp) {
         if (err) {
           obj.callback(err);
           return;
         }
 
-        model = resp;
-        tokens = [model.name.toSnakeCase()];
-        props = model.properties;
+        feather = resp;
+        tokens = [feather.name.toSnakeCase()];
+        props = feather.properties;
 
         /* Validate */
-        if (!isChild && model.isChild) {
+        if (!isChild && feather.isChild) {
           obj.callback("Can not directly update a child class");
           return;
         }
@@ -1202,7 +1202,7 @@
 
         // If a top level record, return patch of what changed
         that.doSelect({
-          name: model.name,
+          name: feather.name,
           id: id,
           client: obj.client,
           callback: afterSelectUpdated
@@ -1248,11 +1248,11 @@
         obj.callback(null, jsonpatch.compare(newRec, result));
       };
 
-      // Kick off query by getting model, the rest falls through callbacks
-      that.getModel({
+      // Kick off query by getting feather, the rest falls through callbacks
+      that.getFeather({
         name: obj.name,
         client: obj.client,
-        callback: afterGetModel
+        callback: afterGetFeather
       });
 
       return this;
@@ -1282,6 +1282,7 @@
         }
 
         obj.callback(null, keys.length ? keys[0] : undefined);
+        return;
       };
 
       that.getKeys(payload, isSuperUser);
@@ -1291,11 +1292,11 @@
 
 
     /**
-      Get an array of primary keys for a given model and filter criteria.
+      Get an array of primary keys for a given feather and filter criteria.
 
       @param {Object} Request payload
-      @param {Object} [payload.name] Model name
-      @param {Object} [payload.filter] Model name
+      @param {Object} [payload.name] Feather name
+      @param {Object} [payload.filter] Feather name
       @param {Object} [payload.client] Database client
       @param {Function} [payload.callback] callback
       @param {Boolean} Request as super user. Default false.
@@ -1374,7 +1375,6 @@
       }
 
       sql = sql.format(tokens);
-
       obj.client.query(sql, params, function (err, resp) {
         var keys;
 
@@ -1395,17 +1395,17 @@
       Return a class definition, including inherited properties.
 
       @param {Object} Request payload
-      @param {Object} [payload.name] Model name
+      @param {Object} [payload.name] Feather name
       @param {Object} [payload.client] Database client
       @param {Function} [payload.callback] callback
       @param {Boolean} Include inherited or not. Defult = true.
       @return receiver
     */
-    getModel: function (obj, includeInherited) {
+    getFeather: function (obj, includeInherited) {
       var callback, name = obj.name;
 
       callback = function (err, catalog) {
-        var resultProps, modelProps, keys, appendParent,
+        var resultProps, featherProps, keys, appendParent,
           result = {name: name, inherits: "Object"};
 
         if (err) {
@@ -1414,13 +1414,13 @@
         }
 
         appendParent = function (child, parent) {
-          var model = catalog[parent],
-            parentProps = model.properties,
+          var feather = catalog[parent],
+            parentProps = feather.properties,
             childProps = child.properties,
             ckeys = Object.keys(parentProps);
 
           if (parent !== "Object") {
-            appendParent(child, model.inherits || "Object");
+            appendParent(child, feather.inherits || "Object");
           }
 
           ckeys.forEach(function (key) {
@@ -1454,11 +1454,11 @@
         }
 
         /* Now add local properties back in */
-        modelProps = catalog[name].properties;
+        featherProps = catalog[name].properties;
         resultProps = result.properties;
-        keys = Object.keys(modelProps);
+        keys = Object.keys(featherProps);
         keys.forEach(function (key) {
-          resultProps[key] = modelProps[key];
+          resultProps[key] = featherProps[key];
         });
 
         obj.callback(null, result);
@@ -1541,15 +1541,15 @@
 
     /**
       Check whether a user is authorized to perform an action on a
-      particular model (class) or object.
+      particular feather (class) or object.
 
       Allowable actions: "canCreate", "canRead", "canUpdate", "canDelete"
 
-      "canCreate" will only check model names.
+      "canCreate" will only check feather names.
 
       @param {Object} Payload
       @param {String} [payload.action] Required
-      @param {String} [payload.model] Class
+      @param {String} [payload.feather] Class
       @param {String} [payload.id] Object id
       @param {String} [payload.user] User. Defaults to current user
       @param {String} [payload.folder] Folder. Applies to "canCreate"
@@ -1560,7 +1560,7 @@
     isAuthorized: function (obj) {
       var table, pk, authSql, sql, callback, params,
         user = obj.user || obj.client.currentUser,
-        model = obj.model,
+        feather = obj.feather,
         folder = obj.folder,
         action = obj.action,
         id = obj.id,
@@ -1597,15 +1597,15 @@
         obj.callback(null, result);
       };
 
-      /* If model, check class authorization */
-      if (model) {
-        params = [model.toSnakeCase(), user];
+      /* If feather, check class authorization */
+      if (feather) {
+        params = [feather.toSnakeCase(), user];
         sql =
           "SELECT pk FROM \"$auth\" AS auth " +
-          "  JOIN \"$model\" AS model ON model._pk=auth.object_pk " +
+          "  JOIN \"$feather\" AS feather ON feather._pk=auth.object_pk " +
           "  JOIN role ON role._pk=auth.role_pk " +
           "  JOIN role_member ON role_member._parent_role_pk=role._pk " +
-          "WHERE model.id=$1" +
+          "WHERE feather.id=$1" +
           "  AND role_member.member=$2" +
           "  AND %I";
         sql = sql.format([action.toSnakeCase()]);
@@ -1708,11 +1708,11 @@
       @param {Boolean} [payload.actions.canDelete]
     */
     saveAuthorization: function (obj) {
-      var result, sql, pk, model, params, objPk, rolePk,
-        afterGetObjKey, afterGetRoleKey, afterGetModelName,
-        afterGetModel, checkSuperUser, afterCheckSuperUser,
+      var result, sql, pk, feather, params, objPk, rolePk,
+        afterGetObjKey, afterGetRoleKey, afterGetFeatherName,
+        afterGetFeather, checkSuperUser, afterCheckSuperUser,
         afterUpsertAuth, afterQueryAuth, done,
-        id = obj.model ? obj.model.toSnakeCase() : obj.id,
+        id = obj.feather ? obj.feather.toSnakeCase() : obj.id,
         actions = obj.actions || {},
         isMember = false,
         hasAuth = false;
@@ -1753,46 +1753,46 @@
         }
 
         if (obj.id && obj.isMember) {
-          sql = "SELECT tableoid::regclass::text AS model " +
+          sql = "SELECT tableoid::regclass::text AS feather " +
             "FROM object WHERE id=$1";
-          obj.client.query(sql, [id], afterGetModelName);
+          obj.client.query(sql, [id], afterGetFeatherName);
           return;
         }
 
         checkSuperUser();
       };
 
-      afterGetModelName = function (err, resp) {
+      afterGetFeatherName = function (err, resp) {
         if (err) {
           obj.callback(err);
           return;
         }
 
-        model = resp.rows[0].model.toCamelCase(true);
+        feather = resp.rows[0].feather.toCamelCase(true);
 
-        if (model === "Folder") {
+        if (feather === "Folder") {
           isMember = obj.isMember || false;
         }
 
-        that.getModel({
-          name: model,
+        that.getFeather({
+          name: feather,
           client: obj.client,
-          callback: afterGetModel
+          callback: afterGetFeather
         });
       };
 
-      afterGetModel = function (err, resp) {
+      afterGetFeather = function (err, resp) {
         if (err) {
           obj.callback(err);
           return;
         }
 
-        model = resp;
+        feather = resp;
 
-        if (isChildModel(model)) {
-          err = "Can not set authorization on child models.";
-        } else if (!model.properties.owner) {
-          err = "Model must have owner property to set authorization";
+        if (isChildFeather(feather)) {
+          err = "Can not set authorization on child feathers.";
+        } else if (!feather.properties.owner) {
+          err = "Feather must have owner property to set authorization";
         }
 
         if (err) {
@@ -1819,7 +1819,7 @@
             }
 
             sql = "SELECT owner FROM %I WHERE _pk=$1"
-              .format(model.name.toSnakeCase());
+              .format(feather.name.toSnakeCase());
 
             obj.client.query(sql, [objPk], function (err, resp) {
               if (err) {
@@ -1917,7 +1917,7 @@
           return;
         }
 
-        if (model === "Folder" && isMember) {
+        if (feather === "Folder" && isMember) {
           propagateAuth({
             folderId: obj.id,
             roleId: obj.role,
@@ -1979,13 +1979,13 @@
      * @param {Object} Payload
      * @param {Object | Array} [payload.client] Database client.
      * @param {Object | Array} [payload.callback] callback.
-     * @param {Object | Array} [payload.spec] Model specification(s).
+     * @param {Object | Array} [payload.spec] Feather specification(s).
      * @param {String} [payload.spec.name] Name
      * @param {String} [payload.spec.description] Description
      * @param {Object | Boolean} [payload.spec.authorization]
      *  Authorization spec. Defaults to grant all to everyone if undefined. Pass
      *  false to grant no auth.
-     * @param {String} [payload.spec.properties] Model properties
+     * @param {String} [payload.spec.properties] Feather properties
      * @param {String} [payload.spec.properties.description]
      * Description
      * @param {String} [spec.properties.default] Default value
@@ -1993,13 +1993,13 @@
      * @param {String | Object} [payload.spec.properties.type]
      *  Type. Standard types are string, boolean, number, date. Object is used
      *  for relation specs.
-     * @param {String} [payload.spec.properties.relation] Model name of
+     * @param {String} [payload.spec.properties.relation] Feather name of
      *  relation.
      * @param {String} [payload.spec.properties.childOf] Property name
      *  on parent relation if one to many relation.
      * @return receiver
     */
-    saveModel: function (obj) {
+    saveFeather: function (obj) {
       var spec, nextSpec, parent,
         specs = Array.isArray(obj.specs) ? obj.specs : [obj.specs],
         c = 0,
@@ -2007,10 +2007,10 @@
 
       nextSpec = function () {
         var sqlUpd, token, values, defaultValue, props, keys, recs, type,
-          name, isChild, pk, precision, scale, model, catalog,
-          afterGetModel, afterGetCatalog, afterUpdateSchema, updateCatalog,
+          name, isChild, pk, precision, scale, feather, catalog,
+          afterGetFeather, afterGetCatalog, afterUpdateSchema, updateCatalog,
           afterUpdateCatalog, afterPropagateViews, afterNextVal,
-          afterInsertModel, afterSaveAuthorization,
+          afterInsertFeather, afterSaveAuthorization,
           table, inherits, authorization, dropSql, createDropSql,
           changed = false,
           sql = "",
@@ -2047,13 +2047,13 @@
           return statements.join(";") + ";";
         };
 
-        afterGetModel = function (err, resp) {
+        afterGetFeather = function (err, resp) {
           if (err) {
             obj.callback(err);
             return;
           }
 
-          model = resp;
+          feather = resp;
 
           that.getSettings({
             name: "catalog",
@@ -2073,7 +2073,7 @@
           dropSql = createDropSql(spec.name);
 
           /* Create table if applicable */
-          if (!model) {
+          if (!feather) {
             sql = "CREATE TABLE %I( " +
               "CONSTRAINT %I PRIMARY KEY (_pk), " +
               "CONSTRAINT %I UNIQUE (id)) " +
@@ -2087,12 +2087,12 @@
 
           } else {
             /* Drop non-inherited columns not included in properties */
-            props = model.properties;
+            props = feather.properties;
             keys = Object.keys(props);
             keys.forEach(function (key) {
               if (spec.properties && !spec.properties[key] &&
-                  !(typeof model.properties[key].type === "object" &&
-                  typeof model.properties[key].type.parentOf)) {
+                  !(typeof feather.properties[key].type === "object" &&
+                  typeof feather.properties[key].type.parentOf)) {
                 /* Drop views */
                 if (!changed) {
                   sql += dropSql;
@@ -2124,9 +2124,9 @@
 
               // Parent properties need to be added back into spec so not lost
               } else if (spec.properties && !spec.properties[key] &&
-                  (typeof model.properties[key].type === "object" &&
-                  typeof model.properties[key].type.parentOf)) {
-                spec.properties[key] = model.properties[key];
+                  (typeof feather.properties[key].type === "object" &&
+                  typeof feather.properties[key].type.parentOf)) {
+                spec.properties[key] = feather.properties[key];
               }
             });
           }
@@ -2149,10 +2149,10 @@
                 types[prop.type] : prop.type;
 
             if (type && key !== spec.discriminator) {
-              if (!model || !model.properties[key]) {
+              if (!feather || !feather.properties[key]) {
 
                 /* Drop views */
-                if (model && !changed) {
+                if (feather && !changed) {
                   sql += dropSql;
                 }
 
@@ -2392,7 +2392,7 @@
           catalog[name] = spec;
           delete spec.name;
           delete spec.authorization;
-          spec.isChild = isChildModel(spec);
+          spec.isChild = isChildFeather(spec);
 
           that.saveSettings({
             name: "catalog",
@@ -2416,13 +2416,13 @@
               return;
             }
 
-            isChild = isChildModel(resp);
+            isChild = isChildFeather(resp);
             sql = "SELECT nextval('object__pk_seq') AS pk;";
             obj.client.query(sql, afterNextVal);
           };
 
-          if (!model) {
-            that.getModel({
+          if (!feather) {
+            that.getFeather({
               name: name,
               client: obj.client,
               callback: callback
@@ -2430,7 +2430,7 @@
             return;
           }
 
-          afterInsertModel();
+          afterInsertFeather();
         };
 
         afterNextVal = function (err, resp) {
@@ -2453,14 +2453,14 @@
 
             key = resp;
 
-            sql = "INSERT INTO \"$model\" " +
+            sql = "INSERT INTO \"$feather\" " +
               "(_pk, id, created, created_by, updated, updated_by, " +
               "is_deleted, is_child, parent_pk) VALUES " +
               "($1, $2, now(), $3, now(), $4, false, $5, $6);";
             values = [pk, table, obj.client.currentUser,
               obj.client.currentUser, isChild,
               key];
-            obj.client.query(sql, values, afterInsertModel);
+            obj.client.query(sql, values, afterInsertFeather);
           };
 
           if (isChild) {
@@ -2476,14 +2476,14 @@
           callback(null, pk);
         };
 
-        afterInsertModel = function (err, resp) {
+        afterInsertFeather = function (err, resp) {
           if (err) {
             obj.callback(err);
             return;
           }
 
           /* Propagate views */
-          changed = changed || !model;
+          changed = changed || !feather;
           if (changed) {
             propagateViews({
               name: name,
@@ -2505,7 +2505,7 @@
           // If no specific authorization, make one
           if (authorization === undefined) {
             authorization = {
-              model: name,
+              feather: name,
               role: "everyone",
               actions: {
                 canCreate: true,
@@ -2553,10 +2553,10 @@
           return;
         }
 
-        that.getModel({
+        that.getFeather({
           name: spec.name,
           client: obj.client,
-          callback: afterGetModel
+          callback: afterGetFeather
         }, false);
       };
 
@@ -2740,7 +2740,7 @@
     return " AND _pk IN (" +
         "SELECT %I._pk " +
         "FROM %I " +
-        "  JOIN \"$model\" ON \"$model\".id::regclass::oid=%I.tableoid " +
+        "  JOIN \"$feather\" ON \"$feather\".id::regclass::oid=%I.tableoid " +
         "WHERE EXISTS (" +
         "  SELECT " + action + " FROM ( " +
         "    SELECT " + action +
@@ -2749,7 +2749,7 @@
         "      JOIN \"role_member\"" +
         "        ON \"role\".\"_pk\"=\"role_member\".\"_parent_role_pk\"" +
         "    WHERE member=$1" +
-        "      AND object_pk=\"$model\".parent_pk" +
+        "      AND object_pk=\"$feather\".parent_pk" +
         "    ORDER BY " + action + " DESC" +
         "    LIMIT 1" +
         "  ) AS data" +
@@ -2794,8 +2794,8 @@
 
   /** private */
   createView = function (obj) {
-    var parent, alias, type, view, sub, col, model, props, keys,
-      afterGetModel,
+    var parent, alias, type, view, sub, col, feather, props, keys,
+      afterGetFeather,
       name = obj.name,
       execute = obj.execute !== false,
       dropFirst = obj.dropFirst,
@@ -2804,14 +2804,14 @@
       cols = ["%I"],
       sql = "";
 
-    afterGetModel = function (err, resp) {
+    afterGetFeather = function (err, resp) {
       if (err) {
         obj.callback(err);
         return;
       }
 
-      model = resp;
-      props = model.properties;
+      feather = resp;
+      props = feather.properties;
       keys = Object.keys(props);
 
       keys.forEach(function (key) {
@@ -2891,10 +2891,10 @@
       obj.callback(null, sql);
     };
 
-    that.getModel({
+    that.getFeather({
       name: obj.name,
       client: obj.client,
-      callback: afterGetModel
+      callback: afterGetFeather
     });
   };
 
@@ -2907,9 +2907,9 @@
 
   /** private */
   getParentKey = function (obj) {
-    var cParent, afterGetChildModel, afterGetParentModel, done;
+    var cParent, afterGetChildFeather, afterGetParentFeather, done;
 
-    afterGetChildModel = function (err, resp) {
+    afterGetChildFeather = function (err, resp) {
       var cKeys, cProps;
 
       if (err) {
@@ -2924,10 +2924,10 @@
             cProps[cKey].type.childOf) {
           cParent = cProps[cKey].type.relation;
 
-          that.getModel({
+          that.getFeather({
             name: obj.parent,
             client: obj.client,
-            callback: afterGetParentModel
+            callback: afterGetParentFeather
           });
 
           return false;
@@ -2937,13 +2937,13 @@
       });
     };
 
-    afterGetParentModel = function (err, resp) {
+    afterGetParentFeather = function (err, resp) {
       if (err) {
         obj.callback(err);
         return;
       }
 
-      if (resp.isChildModel) {
+      if (resp.isChildFeather) {
         getParentKey({
           child: cParent,
           parent: obj.parent,
@@ -2969,16 +2969,16 @@
       obj.callback(null, resp);
     };
 
-    that.getModel({
+    that.getFeather({
       name: obj.child,
       client: obj.client,
-      callback: afterGetChildModel
+      callback: afterGetChildFeather
     });
   };
 
   /** private */
-  isChildModel = function (model) {
-    var props = model.properties,
+  isChildFeather = function (feather) {
+    var props = feather.properties,
       key;
 
     for (key in props) {
@@ -3356,13 +3356,7 @@
         }
       });
 
-      // Now execute the functions we built in sequential order
-      if (functions.length) {
-        next();
-        return;
-      }
-
-      obj.callback(null, true);
+      next();
     };
 
     that.getSettings({

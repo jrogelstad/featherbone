@@ -6,8 +6,8 @@
             "path": "pg/tables.js"
         },
         {
-            "type": "model",
-            "path": "pg/models.json"
+            "type": "feather",
+            "path": "pg/feathers.json"
         },
         {
             "type": "execute",

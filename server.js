@@ -19,8 +19,8 @@
 require('./common/extend-string.js');
 
 var catalog, init, resolveName, getCatalog, getCurrentUser,
-  doHandleOne, doGetSettings, doGetModel, doRequest,
-  doGetMethod, doSaveModel, doDeleteModel, registerDataRoutes,
+  doHandleOne, doGetSettings, doGetFeather, doRequest,
+  doGetMethod, doSaveFeather, doDeleteFeather, registerDataRoutes,
   datasource = require("./server/datasource"),
   express = require("express"),
   bodyParser = require("body-parser"),
@@ -28,7 +28,7 @@ var catalog, init, resolveName, getCatalog, getCurrentUser,
   app = express(),
   port = process.env.PORT || 10001,
   dataRouter = express.Router(),
-  modelRouter = express.Router(),
+  featherRouter = express.Router(),
   settingsRouter = express.Router();
 
 // ..........................................................
@@ -82,7 +82,7 @@ resolveName = function (apiPath) {
   }
 
   if (catalog) {
-    // Look for model with same name
+    // Look for feather with same name
     if (catalog[name]) { return name; }
 
     // Look for plural version
@@ -141,9 +141,9 @@ console.log(JSON.stringify(payload, null, 2));
   datasource.request(payload);
 };
 
-doGetModel = function (req, res) {
+doGetFeather = function (req, res) {
   req.params.name = req.params.name.toCamelCase(true);
-  doGetMethod("getModel", req, res);
+  doGetMethod("getFeather", req, res);
 };
 
 doGetSettings = function (req, res) {
@@ -178,7 +178,7 @@ doGetMethod = function (fn, req, res) {
   datasource.request(payload);
 };
 
-doSaveModel = function (req, res) {
+doSaveFeather = function (req, res) {
   var payload, callback,
     data = req.body;
 
@@ -196,7 +196,7 @@ doSaveModel = function (req, res) {
 
   payload = {
     method: "PUT",
-    name: "saveModel",
+    name: "saveFeather",
     user: getCurrentUser(),
     callback: callback,
     data: {
@@ -207,7 +207,7 @@ doSaveModel = function (req, res) {
   datasource.request(payload);
 };
 
-doDeleteModel = function (req, res) {
+doDeleteFeather = function (req, res) {
   var payload, callback,
     name = req.params.name.toCamelCase(true);
 
@@ -222,7 +222,7 @@ doDeleteModel = function (req, res) {
 
   payload = {
     method: "DELETE",
-    name: "deleteModel",
+    name: "deleteFeather",
     user: getCurrentUser(),
     callback: callback,
     data: {
@@ -284,17 +284,17 @@ init(function () {
   // Create routes for each catalog object
   registerDataRoutes();
 
-  modelRouter.route('/:name')
-    .get(doGetModel)
-    .put(doSaveModel)
-    .delete(doDeleteModel);
+  featherRouter.route('/:name')
+    .get(doGetFeather)
+    .put(doSaveFeather)
+    .delete(doDeleteFeather);
   settingsRouter.route('/:name')
     .get(doGetSettings);
 
   // REGISTER OUR ROUTES -------------------------------
   // all of our routes will be prefixed with /data
   app.use('/data', dataRouter);
-  app.use('/model', modelRouter);
+  app.use('/feather', featherRouter);
   app.use('/settings', settingsRouter);
 
   // START THE SERVER

@@ -52,7 +52,6 @@
         obj.callback(err);
         return;
       }
-
       if (!resp) {
         datasource.request({
           name: "Folder",

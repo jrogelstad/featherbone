@@ -1,4 +1,4 @@
-/**
+﻿/**
     Framework for building object relational database apps
 
     Copyright (C) 2015  John Rogelstad
@@ -17,7 +17,7 @@
 /*jslint maxlen: 200 */
 (function (exports) {
   exports.execute = function (obj) {
-    var createCamelCase, createObject, createModel, createAuth, createObjectfolder,
+    var createCamelCase, createObject, createFeather, createAuth, createObjectfolder,
       createModule, createSettings, createUser, sqlCheck, done,
       sql, params;
 
@@ -105,28 +105,28 @@
             "COMMENT ON COLUMN \"$auth\".can_update IS 'Can update the object';" +
             "COMMENT ON COLUMN \"$auth\".can_delete IS 'Can delete the object';" +
             "COMMENT ON COLUMN \"$auth\".is_member_auth IS 'Is authorization for members of a parent';";
-          obj.client.query(sql, createModel);
+          obj.client.query(sql, createFeather);
           return;
         }
-        createModel();
+        createFeather();
       });
     };
 
-    // Create the model table
-    createModel = function (err) {
-      sqlCheck('$model', function (err, exists) {
+    // Create the feather table
+    createFeather = function (err) {
+      sqlCheck('$feather', function (err, exists) {
         if (err) {
           obj.callback(err);
           return;
         }
 
         if (!exists) {
-          sql = "CREATE TABLE \"$model\" (" +
+          sql = "CREATE TABLE \"$feather\" (" +
             "is_child boolean," +
             "parent_pk bigint," +
-            "CONSTRAINT model_pkey PRIMARY KEY (_pk), " +
-            "CONSTRAINT model_id_key UNIQUE (id)) INHERITS (object);" +
-            "COMMENT ON TABLE \"$model\" is 'Internal table for storing class names';";
+            "CONSTRAINT feather_pkey PRIMARY KEY (_pk), " +
+            "CONSTRAINT feather_id_key UNIQUE (id)) INHERITS (object);" +
+            "COMMENT ON TABLE \"$feather\" is 'Internal table for storing class names';";
           obj.client.query(sql, createObjectfolder);
           return;
         }
@@ -240,7 +240,7 @@
               "catalog",
               JSON.stringify({
                 "Object": {
-                  "description": "Abstract object class from which all models will inherit",
+                  "description": "Abstract object class from which all feathers will inherit",
                   "discriminator": "objectType",
                   "plural": "Objects",
                   "properties": {

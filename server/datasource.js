@@ -51,7 +51,7 @@
         }
 
     @param {Object} Payload
-    @param {String} [payload.name] Name of model or function
+    @param {String} [payload.name] Name of feather or function
     @param {String} [payload.method] Method to perform: "GET", "POST",
       "PUT", "PATCH" or "DELETE"
     @param {String} [payload.id] Identifier for "GET", "PATCH" ond "DELETE"
@@ -297,13 +297,13 @@
   that.registerFunction("GET", "isAuthorized", controller.isAuthorized);
   that.registerFunction("GET", "isSuperUser", controller.isSuperUser);
   that.registerFunction("GET", "getSettings", controller.getSettings);
-  that.registerFunction("GET", "getModel", controller.getModel);
+  that.registerFunction("GET", "getFeather", controller.getFeather);
   that.registerFunction("PUT", "saveAuthorization",
     controller.saveAuthorization);
-  that.registerFunction("PUT", "saveModel", controller.saveModel);
+  that.registerFunction("PUT", "saveFeather", controller.saveFeather);
   that.registerFunction("PUT", "saveSettings", controller.saveSettings);
   that.registerFunction("PUT", "setSuperUser", controller.setSuperUser);
-  that.registerFunction("DELETE", "deleteModel", controller.deleteModel);
+  that.registerFunction("DELETE", "deleteFeather", controller.deleteFeather);
 
 }(exports));
 
