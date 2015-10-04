@@ -2011,7 +2011,7 @@
           afterGetModel, afterGetCatalog, afterUpdateSchema, updateCatalog,
           afterUpdateCatalog, afterPropagateViews, afterNextVal,
           afterInsertModel, afterSaveAuthorization,
-          table, inherits, authorization, dropSql,
+          table, inherits, authorization, dropSql, createDropSql,
           changed = false,
           sql = "",
           tokens = [],
@@ -2022,6 +2022,30 @@
           i = 0,
           n = 0,
           p = 1;
+
+        createDropSql = function (name) {
+          var statements, buildDeps,
+            feathers = [];
+          buildDeps = function (name) {
+            var dkeys = Object.keys(catalog);
+
+            feathers.push(name);
+            dkeys.forEach(function (key) {
+              if (key !== name && catalog[key].inherits === name) {
+                buildDeps(key);
+              }
+            });
+          };
+
+          buildDeps(name);
+
+          statements = feathers.map(function (feather) {
+            return "DROP VIEW IF EXISTS %I CASCADE"
+              .format(["_" + feather.toSnakeCase()]);
+          });
+
+          return statements.join(";") + ";";
+        };
 
         afterGetModel = function (err, resp) {
           if (err) {
@@ -2045,6 +2069,8 @@
           }
 
           catalog = resp;
+
+          dropSql = createDropSql(spec.name);
 
           /* Create table if applicable */
           if (!model) {
@@ -2124,6 +2150,7 @@
 
             if (type && key !== spec.discriminator) {
               if (!model || !model.properties[key]) {
+
                 /* Drop views */
                 if (model && !changed) {
                   sql += dropSql;
@@ -2520,7 +2547,6 @@
         table = spec.name ? spec.name.toSnakeCase() : false;
         inherits = (spec.inherits || "Object").toSnakeCase();
         authorization = spec.authorization;
-        dropSql = "DROP VIEW IF EXISTS %I CASCADE;".format(["_" + table]);
 
         if (!table) {
           obj.callback("No name defined");
@@ -2771,6 +2797,7 @@
     var parent, alias, type, view, sub, col, model, props, keys,
       afterGetModel,
       name = obj.name,
+      execute = obj.execute !== false,
       dropFirst = obj.dropFirst,
       table = name.toSnakeCase(),
       args = ["_" + table, "_pk"],
@@ -2841,20 +2868,27 @@
       args.push(table);
 
       if (dropFirst) {
-        sql = "DROP VIEW %I;".format(["_" + table]);
+        sql = "DROP VIEW IF EXISTS %I CASCADE;".format(["_" + table]);
       }
 
       sql += ("CREATE OR REPLACE VIEW %I AS SELECT " + cols.join(",") +
         " FROM %I;").format(args);
 
-      obj.client.query(sql, function (err) {
-        if (err) {
-          obj.callback(err);
-          return;
-        }
+      // If execute, run the sql now
+      if (execute) {
+        obj.client.query(sql, function (err) {
+          if (err) {
+            obj.callback(err);
+            return;
+          }
 
-        obj.callback(null, true);
-      });
+          obj.callback(null, true);
+          return;
+        });
+      }
+
+      // Otherwise send the sql back
+      obj.callback(null, sql);
     };
 
     that.getModel({
@@ -3177,7 +3211,10 @@
   propagateViews = function (obj) {
     var props, cprops, catalog,
       afterGetCatalog, afterCreateView,
-      name = obj.name;
+      name = obj.name,
+      statements = obj.statements || [],
+      level = obj.level || 0,
+      sql = "";
 
     afterGetCatalog = function (err, resp) {
       if (err) {
@@ -3189,7 +3226,9 @@
       createView({
         name: name,
         client: obj.client,
-        callback: afterCreateView
+        callback: afterCreateView,
+        dropFirst: true,
+        execute: false
       });
     };
 
@@ -3203,6 +3242,8 @@
         return;
       }
 
+      statements.push({level: level, sql: resp});
+
       // Callback to process functions sequentially
       next = function (err, resp) {
         var o;
@@ -3210,6 +3251,11 @@
         if (err) {
           obj.callback(err);
           return;
+        }
+
+        // Responses that are result of createView get appended
+        if (typeof resp === "string") {
+          statements.push({level: level, sql: resp});
         }
 
         o = functions[i];
@@ -3220,7 +3266,32 @@
           return;
         }
 
-        obj.callback(null, true);
+        // Only top level will actually execute statements
+        if (level > 0) {
+          obj.callback(null, true);
+          return;
+        }
+
+        // Sort by level
+        statements.sort(function (a, b) {
+          if (a.level === b.level || a.level < b.level) {
+            return 0;
+          }
+          return 1;
+        });
+
+        statements.forEach(function (statement) {
+          sql += statement.sql;
+        });
+
+        obj.client.query(sql, function (err, resp) {
+          if (err) {
+            obj.callback(err);
+            return;
+          }
+
+          obj.callback(null, true);
+        });
       };
 
       // Build object to propagate relations */
@@ -3242,7 +3313,9 @@
               payload: {
                 name: key,
                 client: obj.client,
-                callback: next
+                callback: next,
+                statements: statements,
+                level: level + 1
               }
             });
           }
@@ -3258,7 +3331,9 @@
             payload: {
               name: key,
               client: obj.client,
-              callback: next
+              callback: next,
+              statements: statements,
+              level: level + 1
             }
           });
         }
@@ -3274,7 +3349,8 @@
             payload: {
               name: props[key].type.relation,
               client: obj.client,
-              callback: next
+              callback: next,
+              execute: false
             }
           });
         }
