@@ -78,6 +78,9 @@ var f = (function () {
       "password": {
         default: "",
         fromType: function (value) { return "*****"; }
+      },
+      "tel": {
+        default: ""
       }
     },
 

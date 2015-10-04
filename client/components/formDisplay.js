@@ -77,7 +77,8 @@
           date: "date",
           dateTime: "datetime-local",
           boolean: "checkbox",
-          password: "text"
+          password: "text",
+          tel: "tel"
         };
 
       findComponent = function (prop) {
