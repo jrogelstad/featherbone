@@ -77,55 +77,71 @@
 
     component.view = function (ctrl) {
       return m("div", [
-        m("button", {
-          type: "button",
-          onclick: ctrl.goHome
-        }, "Home"),
-        m("button", {
-          type: "button",
-          onclick: ctrl.modelNew
-        }, "New"),
-        m("button", {
-          type: "button",
-          onclick: ctrl.modelOpen,
-          disabled: ctrl.hasSelection()
-        }, "Open"),
-        m("button", {
-          type: "button",
-          onclick: ctrl.modelDelete,
-          disabled: ctrl.hasSelection()
-        }, "Delete"),
-        m("input", {
-          type: "search",
-          value: "Search",
+        m("div", {id: "toolbar"}, [
+          m("button", {
+            type: "button",
+            onclick: ctrl.goHome
+          }, "Home"),
+          m("button", {
+            type: "button",
+            onclick: ctrl.modelNew
+          }, "New"),
+          m("button", {
+            type: "button",
+            onclick: ctrl.modelOpen,
+            disabled: ctrl.hasSelection()
+          }, "Open"),
+          m("button", {
+            type: "button",
+            onclick: ctrl.modelDelete,
+            disabled: ctrl.hasSelection()
+          }, "Delete"),
+          m("input", {
+            type: "search",
+            value: "Search",
+            style: {
+              color: "LightGrey",
+              fontStyle: "italic"
+            }
+          }),
+        ]),
+        m("div", {
           style: {
-            color: "LightGrey",
-            fontStyle: "italic"
+            overflow: "auto"
+          },
+          config: function (e) {
+            var tb = document.getElementById("toolbar");
+
+            // Set fields table to scroll and toolbar to stay put
+            document.documentElement.style.overflow = 'hidden';
+            e.style.maxHeight = (window.innerHeight - tb.clientHeight) + "px";
           }
-        }),
-        m("table", [
-          (function () {
-            var tds = ctrl.attrs.map(function (key) {
-                return m("td", key.toProperCase(true));
-              });
-            return m("tr", {style: {backgroundColor: "LightGrey"}}, tds);
-          }()),
-          ctrl.models().map(function (model) {
-            var d = model.data,
-              tds = ctrl.attrs.map(function (col) {
-                var value = d[col](),
-                  hasLocale = value !== null &&
-                    typeof value.toLocaleString === "function";
-                return m("td", hasLocale ? value.toLocaleString() : value);
-              });
-            return m("tr", {
-              onclick: ctrl.toggleSelection.bind(this, model),
-              ondblclick: ctrl.toggleOpen.bind(this, model),
-              style: {
-                backgroundColor: ctrl.isSelected(model) ? "LightBlue" : "White"
-              }
-            }, tds);
-          })
+        }, [
+          m("table", [
+            (function () {
+              var tds = ctrl.attrs.map(function (key) {
+                  return m("td", key.toProperCase(true));
+                });
+              return m("tr", {style: {backgroundColor: "LightGrey"}}, tds);
+            }()),
+            ctrl.models().map(function (model) {
+              var d = model.data,
+                tds = ctrl.attrs.map(function (col) {
+                  var value = d[col](),
+                    hasLocale = value !== null &&
+                      typeof value.toLocaleString === "function";
+                  return m("td", hasLocale ? value.toLocaleString() : value);
+                });
+              return m("tr", {
+                onclick: ctrl.toggleSelection.bind(this, model),
+                ondblclick: ctrl.toggleOpen.bind(this, model),
+                style: {
+                  backgroundColor: ctrl.isSelected(model) ?
+                      "LightBlue" : "White"
+                }
+              }, tds);
+            })
+          ])
         ])
       ]);
     };

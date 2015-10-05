@@ -142,25 +142,40 @@
           }
         }
       }, [
-        m("button", {
-          type: "button",
-          onclick: ctrl.vm.doList
-        }, "Done"),
-        m("button", {
-          type: "button",
-          disabled: !ctrl.vm.isDirty(),
-          onclick: ctrl.vm.doApply
-        }, "Apply"),
-        m("button", {
-          type: "button",
-          disabled: !ctrl.vm.isDirty(),
-          onclick: ctrl.vm.doSave
-        }, "Save"),
-        m("button", {
-          type: "button",
-          onclick: ctrl.vm.isDirty() ? ctrl.vm.doSaveAndNew : ctrl.vm.doNew
-        }, ctrl.vm.isDirty() ? "Save & New" : "New"),
-        m("table", attrs)
+        m("div", {id: "toolbar"}, [
+          m("button", {
+            type: "button",
+            onclick: ctrl.vm.doList
+          }, "Done"),
+          m("button", {
+            type: "button",
+            disabled: !ctrl.vm.isDirty(),
+            onclick: ctrl.vm.doApply
+          }, "Apply"),
+          m("button", {
+            type: "button",
+            disabled: !ctrl.vm.isDirty(),
+            onclick: ctrl.vm.doSave
+          }, "Save"),
+          m("button", {
+            type: "button",
+            onclick: ctrl.vm.isDirty() ? ctrl.vm.doSaveAndNew : ctrl.vm.doNew
+          }, ctrl.vm.isDirty() ? "Save & New" : "New"),
+        ]),
+        m("div", {
+          style: {
+            overflow: "auto"
+          },
+          config: function (e) {
+            var tb = document.getElementById("toolbar");
+
+            // Set fields table to scroll and toolbar to stay put
+            document.documentElement.style.overflow = 'hidden';
+            e.style.maxHeight = (window.innerHeight - tb.clientHeight) + "px";
+          }
+        }, [
+          m("table", attrs)
+        ])
       ]);
     };
 
