@@ -11,11 +11,59 @@ f.init().then(function () {
       form: {
         attrs: ["name", "isActive", "email", "birthDate", "workPhone",
           "homePhone", "annualIncome", "creditScore", "role", "created",
-          "createdBy", "updated", "updatedBy"]
+          "createdBy", "updated", "updatedBy", "objectType"]
       },
       list: {
         attrs: ["name", "email", "isActive", "birthDate", "workPhone",
-          "homePhone", "creditScore"]
+          "homePhone", "creditScore", "objectType"]
+      },
+    },
+    Lead: {
+      form: {
+        attrs: ["company", "name", "isActive", "email", "birthDate",
+          "workPhone", "homePhone", "annualIncome", "creditScore", "role",
+          "probability", "remarks", "created", "createdBy", "updated",
+          "updatedBy"]
+      },
+      list: {
+        attrs: ["company", "name", "email", "isActive", "birthDate",
+          "workPhone", "probability", "homePhone", "creditScore"]
+      }
+    },
+    Activity: {
+      form: {
+        attrs: ["name", "description", "startDate", "dueDate",
+          "priority", "isCompleted", "objectType",
+          "created", "createdBy", "updated", "updatedBy"]
+      },
+      list: {
+        attrs: ["name", "description", "startDate", "dueDate",
+          "priority", "isCompleted", "objectType",
+          "created", "createdBy", "updated", "updatedBy"]
+      }
+    },
+    Task: {
+      form: {
+        attrs: ["name", "description", "startDate", "dueDate",
+          "priority", "isCompleted",
+          "created", "createdBy", "updated", "updatedBy"]
+      },
+      list: {
+        attrs: ["name", "description", "startDate", "dueDate",
+          "priority", "isCompleted",
+          "created", "createdBy", "updated", "updatedBy"]
+      }
+    },
+    Opportunity: {
+      form: {
+        attrs: ["name", "description", "startDate", "dueDate",
+          "amount", "stage", "priority", "isCompleted",
+          "created", "createdBy", "updated", "updatedBy"]
+      },
+      list: {
+        attrs: ["name", "description", "startDate", "dueDate",
+          "amount", "stage", "priority", "isCompleted",
+          "created", "createdBy", "updated", "updatedBy"]
       }
     }
   };
