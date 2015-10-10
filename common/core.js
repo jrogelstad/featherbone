@@ -65,12 +65,12 @@ var f = (function () {
       },
       "date": {
         default: function () {
-          return that.today().toISOString().slice(0, 10);
+          return that.today();
         }
       },
       "dateTime": {
         default: function () {
-          return that.now().toISOString().replace('Z', '');
+          return that.now();
         },
         fromType: function (value) {
           var dt = new Date(value).toISOString().replace('Z', '');
@@ -221,23 +221,12 @@ var f = (function () {
     },
 
     /**
-      Return a date with the time set to midnight.
-    */
-    midnight: function (date) {
-      date.setHours(0);
-      date.setMinutes(0);
-      date.setMilliseconds(0);
+      Return a time in string format that is the current time.
 
-      return date;
-    },
-
-    /**
-      Return a date that is the current time.
-
-      @return {Date}
+      @return {String}
     */
     now: function () {
-      return new Date();
+      return (new Date()).toISOString().replace('Z', '');
     },
 
     /**
@@ -254,12 +243,17 @@ var f = (function () {
     },
 
     /**
-      Return a date that is the current date at midnight.
+      Return a date in string format that is the current date.
 
-      @return {Date}
+      @return {String}
     */
     today: function () {
-      return that.midnight(that.now());
+      var d = new Date();
+      d.setHours(0);
+      d.setMinutes(0);
+      d.setMilliseconds(0);
+
+      return d.toISOString().slice(0, 10);
     },
 
     types: {
