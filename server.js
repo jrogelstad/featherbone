@@ -19,7 +19,7 @@
 require('./common/extend-string.js');
 
 var catalog, init, resolveName, getCatalog, getCurrentUser,
-  doHandleOne, doGetSettings, doGetFeather, doRequest,
+  doHandleOne, doGetSettings, doGetFeather, doGetModules, doRequest,
   doGetMethod, doSaveFeather, doDeleteFeather, registerDataRoutes,
   datasource = require("./server/datasource"),
   express = require("express"),
@@ -29,6 +29,7 @@ var catalog, init, resolveName, getCatalog, getCurrentUser,
   port = process.env.PORT || 10001,
   dataRouter = express.Router(),
   featherRouter = express.Router(),
+  moduleRouter = express.Router(),
   settingsRouter = express.Router();
 
 // ..........................................................
@@ -144,6 +145,10 @@ console.log(JSON.stringify(payload, null, 2));
 doGetFeather = function (req, res) {
   req.params.name = req.params.name.toCamelCase(true);
   doGetMethod("getFeather", req, res);
+};
+
+doGetModules = function (req, res) {
+  doGetMethod("getModules", req, res);
 };
 
 doGetSettings = function (req, res) {
@@ -284,17 +289,21 @@ init(function () {
   // Create routes for each catalog object
   registerDataRoutes();
 
-  featherRouter.route('/:name')
+  featherRouter.route("/:name")
     .get(doGetFeather)
     .put(doSaveFeather)
     .delete(doDeleteFeather);
-  settingsRouter.route('/:name')
+  moduleRouter.route("/")
+    .get(doGetModules);
+  settingsRouter.route("/:name")
     .get(doGetSettings);
 
   // REGISTER OUR ROUTES -------------------------------
   // all of our routes will be prefixed with /data
   app.use('/data', dataRouter);
   app.use('/feather', featherRouter);
+  app.use('/module', moduleRouter);
+  app.use('/modules', moduleRouter);
   app.use('/settings', settingsRouter);
 
   // START THE SERVER

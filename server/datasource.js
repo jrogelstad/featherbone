@@ -294,10 +294,11 @@
 
   // Register certain functions
   that.registerFunction("GET", "getAuthorization", controller.getAuthorization);
+  that.registerFunction("GET", "getFeather", controller.getFeather);
+  that.registerFunction("GET", "getModules", controller.getModules);
+  that.registerFunction("GET", "getSettings", controller.getSettings);
   that.registerFunction("GET", "isAuthorized", controller.isAuthorized);
   that.registerFunction("GET", "isSuperUser", controller.isSuperUser);
-  that.registerFunction("GET", "getSettings", controller.getSettings);
-  that.registerFunction("GET", "getFeather", controller.getFeather);
   that.registerFunction("PUT", "saveAuthorization",
     controller.saveAuthorization);
   that.registerFunction("PUT", "saveFeather", controller.saveFeather);

@@ -168,7 +168,7 @@
         if (!exists) {
           sql = "CREATE TABLE \"$module\" (" +
             "name text PRIMARY KEY," +
-            "script text," +
+            "script json," +
             "version text);" +
             "COMMENT ON TABLE \"$module\" IS 'Internal table for storing JavaScript';" +
             "COMMENT ON COLUMN \"$module\".name IS 'Primary key';" +
