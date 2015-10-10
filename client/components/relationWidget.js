@@ -37,6 +37,7 @@
       list =  f.models[modelName].list,
       modelList = list({filter: filter});
 
+    vm.listId = m.prop(f.createId());
     vm.fetch = function () {
       list({
         value: modelList(),
@@ -163,7 +164,7 @@
       // Return the widget
       return m("div", [
         m("input", {
-          list: "data",
+          list: rvm.listId(),
           onchange: m.withAttr("value", rvm.onchange),
           onfocus: rvm.onfocus,
           onblur: rvm.onblur,
@@ -214,7 +215,7 @@
           m("div", rvm.label()),
         ]),
         m("datalist", {
-          id: "data"
+          id: rvm.listId()
         }, listOptions)
       ]);
     };
