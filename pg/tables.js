@@ -1,4 +1,4 @@
-﻿/**
+/**
     Framework for building object relational database apps
 
     Copyright (C) 2015  John Rogelstad
@@ -168,11 +168,11 @@
         if (!exists) {
           sql = "CREATE TABLE \"$module\" (" +
             "name text PRIMARY KEY," +
-            "script json," +
+            "modules json," +
             "version text);" +
             "COMMENT ON TABLE \"$module\" IS 'Internal table for storing JavaScript';" +
             "COMMENT ON COLUMN \"$module\".name IS 'Primary key';" +
-            "COMMENT ON COLUMN \"$module\".script IS 'JavaScript content';" +
+            "COMMENT ON COLUMN \"$module\".modules IS 'Array of modules';" +
             "COMMENT ON COLUMN \"$module\".version IS 'Version number';";
           obj.client.query(sql, createUser);
           return;

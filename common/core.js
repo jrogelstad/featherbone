@@ -48,6 +48,8 @@ var f = (function () {
     */
     models: {},
 
+    modules: {},
+
     formats: {
       "integer": {
         default: 0,
