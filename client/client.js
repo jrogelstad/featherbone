@@ -56,7 +56,6 @@
 
   // When all intialization done, construct app.
   f.init().then(function () {
-
     var keys,
       app = {},
       routes = {};
@@ -88,6 +87,26 @@
       }
     };
     routes["/home"] = app.Home;
+
+    // Build relation widget for module if applicable
+    keys.forEach(function (key) {
+      var name,
+        relopts = f.modules[key].relation;
+
+      if (relopts) {
+        name = key.toCamelCase();
+        f.components[name + "Relation"] = function (options) {
+          options = options || {};
+          var w = f.components.relationWidget({
+            parentProperty: options.parentProperty || relopts.parentProperty,
+            valueProperty: options.valueProperty || relopts.valueProperty,
+            labelProperty: options.labelProperty || relopts.labelProperty
+          });
+
+          return w;
+        };
+      }
+    });
 
     // Build app for each configured object
     keys.forEach(function (key) {

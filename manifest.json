@@ -12,6 +12,10 @@
         {
             "type": "execute",
             "path": "pg/populate.js"
+        },
+        {
+            "type": "module",
+            "path": "client/core.json"
         }
     ]
 }

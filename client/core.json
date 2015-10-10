@@ -1,0 +1,14 @@
+{
+  "Role": {
+    "form": {
+      "attrs": ["name", "description", "createdBy", "updated", "updatedBy"]
+    },
+    "list": {
+      "attrs": ["name", "description", "createdBy", "updated", "updatedBy"]
+    },
+    "relation": {
+      "valueProperty": "name",
+      "labelProperty": "description"
+    }
+  }
+}

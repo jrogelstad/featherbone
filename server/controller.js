@@ -2180,10 +2180,7 @@
                 }
 
                 changed = true;
-
                 sql += "ALTER TABLE %I ADD COLUMN %I ";
-
-                if (prop.isUnique) { sql += "UNIQUE "; }
 
                 /* Handle composite types */
                 if (type.relation) {
@@ -2252,9 +2249,18 @@
                   sql += ";";
                   token = key.toSnakeCase();
                 }
-                adds.push(key);
 
+                adds.push(key);
                 tokens = tokens.concat([table, token]);
+
+                if (prop.isUnique) {
+                  sql += "ALTER TABLE %I ADD CONSTRAINT %I UNIQUE (%I);";
+                  tokens = tokens.concat([
+                    table,
+                    table + "_unique_" + key.toSnakeCase(),
+                    key.toSnakeCase()
+                  ]);
+                }
 
                 if (props[key].description) {
                   sql += "COMMENT ON COLUMN %I.%I IS %L;";

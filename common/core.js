@@ -290,8 +290,10 @@ var f = (function () {
       "object": { default: function () { return {}; } },
       "string": {
         default: "",
-        toType: function (value) { return value.toString(); }
-      },
+        toType: function (value) {
+          return value === null ? null : value.toString();
+        }
+      }
     }
   };
 

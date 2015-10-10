@@ -112,7 +112,7 @@
 
        // Handle relations
         rel = d[prop].type.relation.toCamelCase();
-        w = f.components[rel + "Widget"];
+        w = f.components[rel + "Relation"]({parentProperty: prop});
 
         if (d[prop].isToOne() && w) {
           return m.component(w, {viewModel: ctrl.vm});

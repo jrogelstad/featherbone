@@ -140,7 +140,7 @@ processFile = function (err) {
   });
 };
 
-saveModule = function (name, script, version) {
+saveModule = function (name, modules, version) {
   var sql = "SELECT * FROM \"$module\" WHERE name='" + name + "';";
 
   client.query(sql, function (err, result) {
@@ -151,12 +151,12 @@ saveModule = function (name, script, version) {
     }
     if (result.rows.length) {
       sql = "UPDATE \"$module\" SET " +
-        "script=$$" + script + "$$," +
+        "modules=$$" + modules + "$$," +
         "version='" + version + "' " +
         "WHERE name='" + name + "';";
     } else {
       sql = "INSERT INTO \"$module\" VALUES ('" + name +
-        "',$$" + script + "$$, '" + version + "');";
+        "',$$" + modules + "$$, '" + version + "');";
     }
 
     client.query(sql, processFile);

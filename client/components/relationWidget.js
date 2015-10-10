@@ -142,7 +142,7 @@
       var rvm, listOptions,
         vm = args.viewModel;
 
-      // Set up role viewModel if required
+      // Set up viewModel if required
       if (!vm.attrs[parentProperty]) {
         vm.attrs[parentProperty] = f.viewModels.relationViewModel({
           parent: vm,
@@ -221,12 +221,6 @@
 
     return widget;
   };
-
-  f.components.roleWidget = f.components.relationWidget({
-    parentProperty: "role",
-    valueProperty: "name",
-    labelProperty: "description"
-  });
 
 }(f));
 

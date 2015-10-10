@@ -121,8 +121,7 @@
 
   // Invoke catalog settings as an object
   f.catalog = (function () {
-    var processModels,
-      that = f.settings("catalog");
+    var that = f.settings("catalog");
 
     /**
       Return a model specification (feather) including inherited properties.
@@ -184,45 +183,6 @@
 
       return result;
     };
-
-    // ..........................................................
-    // PRIVATE
-    //
-
-    // Create an object for each model
-    processModels = function (data) {
-      var feathers;
-
-      feathers = Object.keys(data());
-      feathers.forEach(function (feather) {
-        var name = feather.toCamelCase(),
-          plural = f.catalog.getFeather(feather, false).plural;
-
-        // Implement generic function to object from model
-        if (typeof f.models[name] !== "function") {
-          // Model instance
-          f.models[name] = function (data, model) {
-            var shared = model || that.getFeather(feather),
-              obj = f.model(data, shared);
-
-            return obj;
-          };
-
-          // List instance
-          if (plural) {
-            f.models[name].list = f.list(feather);
-          }
-        }
-      });
-
-      return true;
-    };
-
-
-    // Load catalog and process
-    f.init(function () {
-      return that.fetch().then(processModels);
-    });
 
     return that;
   }());
