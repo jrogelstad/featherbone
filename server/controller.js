@@ -650,6 +650,11 @@
 
       afterHandleRelations = function () {
         if (!child) {
+          if (prop.isRequired === true &&
+              value === null) {
+            obj.callback(key + "\" is required.\"");
+            return;
+          }
           args.push(col);
           tokens.push("%I");
           values.push(value);
