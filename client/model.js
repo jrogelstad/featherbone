@@ -186,7 +186,7 @@
     feather = feather || {};
 
     var  doClear, doDelete, doError, doFetch, doInit, doPatch, doPost, doSend,
-      lastError, lastFetched, path, state,
+      validator, lastError, lastFetched, path, state,
       that = {data: {}, name: feather.name || "Object", plural: feather.plural},
       d = that.data,
       errHandlers = [],
@@ -331,13 +331,14 @@
       `lastError`.
         contact = function (data, feather) {
           var shared = feather || f.catalog.getFeather("Contact"),
-            that = f.model(data, shared);
-          // Add a fetched event
-          that.onValidate(function (validator) {
-            if (!that.data.first()) {
-              throw "First name must not be empty.";
-            }
-          });
+            that = f.model(data, shared),
+            validator function () {
+              if (!that.data.first()) {
+                throw "First name must not be empty.";
+              }
+            };
+          // Add a validator
+          that.onValidate(validator);
         }
       @seealso isValid
       @seealso onError
@@ -420,9 +421,12 @@
     // PRIVATE
     //
 
-    doClear = function () {
+    doClear = function (context) {
       var keys = Object.keys(that.data),
         values = {};
+
+      // Bail if event that sent us here doesn't want to clear
+      if (context && context.clear === false) { return; }
 
       // If first entry here with user data, clear for next time and bail
       if (data) {
@@ -541,7 +545,8 @@
           ary = prop();
 
         // Bind parent events to array
-        state.resolve("/Ready/New").enter(function () {
+        state.resolve("/Ready/New").enter(function (context) {
+          if (context && context.clear === false) { return; }
           isNew = true;
           ary.clear();
         });
@@ -785,7 +790,7 @@
     state = statechart.State.define(function () {
       this.enter(doInit);
 
-      this.state("Ready", {H: "*"}, function () {
+      this.state("Ready", {H: "*"}, function (opts) {
         this.event("fetch",  function (deferred) {
           this.goto("/Busy", {
             context: {deferred: deferred}
@@ -858,7 +863,9 @@
           this.goto("/Ready/Fetched/Clean");
         });
         this.event("error", function () {
-          this.goto("/Ready");
+          this.goto("/Ready", {
+            context: {clear: false}
+          });
         });
       });
 
@@ -879,6 +886,25 @@
 
     // Expose state
     that.state = state;
+
+    // Add standard validator
+    validator = function () {
+      var name,
+        keys = Object.keys(d),
+        requiredIsNull = function (key) {
+          if (d[key].isRequired && d[key]() === null) {
+            name = key;
+            return true;
+          }
+        };
+
+      // Validate required values
+      if (keys.some(requiredIsNull)) {
+        throw "\"" + name + "\" is required";
+      }
+
+    };
+    that.onValidate(validator);
 
     // Initialize
     state.goto();
