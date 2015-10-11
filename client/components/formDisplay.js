@@ -110,7 +110,7 @@
           return m("input", opts);
         }
 
-       // Handle relations
+        // Handle relations
         rel = d[prop].type.relation.toCamelCase();
         w = f.components[rel + "Relation"]({parentProperty: prop});
 
@@ -123,14 +123,21 @@
 
       attrs = options.attrs.map(function (key) {
         if (!focusAttr) { focusAttr = key; }
-        var result = m("tr", [
-            m("td", [
-              m("label", {for: key}, key.toProperCase() + ":")
-            ]),
-            m("td", [
-              findComponent(key)
-            ])
-          ]);
+        var color, result;
+        color = d[key].isRequired() && d[key]() === null ? "Red" : "Black";
+        result = m("tr", [
+          m("td", [
+            m("label", {
+              for: key,
+              style: {
+                color: color // TODO: Handle this with CSS
+              }
+            }, key.toProperCase() + ":")
+          ]),
+          m("td", [
+            findComponent(key)
+          ])
+        ]);
         return result;
       });
 
