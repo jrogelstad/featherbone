@@ -596,6 +596,28 @@
             value = data[key];
             col = key.toSnakeCase();
 
+            // Handle autonumber
+            if (prop.autonumber && (value === undefined || prop.isReadOnly)) {
+              obj.client.query("SELECT nextval($1) AS seq",
+                [prop.autonumber.sequence],
+                function (err, resp) {
+                  if (err) {
+                    obj.callback(err);
+                    return;
+                  }
+                  if (prop.autonumber.prefix) {
+                    value = prop.autonumber.prefix;
+                  }
+                  value += resp.rows[0].seq;
+                  if (prop.autonumber.suffix) {
+                    value += prop.autonumber.suffix;
+                  }
+                  afterHandleRelations();
+                });
+              return;
+            }
+
+            // Handle other types of defaults
             if (value === undefined) {
               if (prop.default !== undefined) {
                 value = prop.default;
