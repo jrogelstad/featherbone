@@ -650,9 +650,8 @@
 
       afterHandleRelations = function () {
         if (!child) {
-          if (prop.isRequired === true &&
-              value === null) {
-            obj.callback(key + "\" is required.\"");
+          if (prop.isRequired && value === null) {
+            obj.callback("\"" + key + "\" is required.\"");
             return;
           }
           args.push(col);
@@ -1006,18 +1005,26 @@
         }
 
         pk = resp;
+        keys = Object.keys(props);
 
         // Get existing record
         that.doSelect({
           name: obj.name,
           id: obj.id,
-          properties: Object.keys(props).filter(noChildProps),
+          properties: keys.filter(noChildProps),
           client: obj.client,
           callback: afterDoSelect
         }, isChild);
       };
 
       afterDoSelect = function (err, resp) {
+        var requiredIsNull = function (fkey) {
+            if (props[fkey].isRequired && updRec[fkey] === null) {
+              key = fkey;
+              return true;
+            }
+          };
+
         if (err) {
           obj.callback(err);
           return;
@@ -1047,8 +1054,13 @@
           updRec.etag = f.createId();
         }
 
+        // Check required properties
+        if (keys.some(requiredIsNull)) {
+          obj.callback("\"" + key + "\" is required.");
+          return;
+        }
+
         // Process properties
-        keys = Object.keys(props);
         nextProp();
       };
 
