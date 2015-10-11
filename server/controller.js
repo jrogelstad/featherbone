@@ -2040,7 +2040,7 @@
      * @return receiver
     */
     saveFeather: function (obj) {
-      var spec, nextSpec, parent,
+      var spec, nextSpec, parent, sequence,
         specs = Array.isArray(obj.specs) ? obj.specs : [obj.specs],
         c = 0,
         len = specs.length;
@@ -2050,7 +2050,7 @@
           name, isChild, pk, precision, scale, feather, catalog,
           afterGetFeather, afterGetCatalog, afterUpdateSchema, updateCatalog,
           afterUpdateCatalog, afterPropagateViews, afterNextVal,
-          afterInsertFeather, afterSaveAuthorization,
+          afterInsertFeather, afterSaveAuthorization, createSequence, done,
           table, inherits, authorization, dropSql, createDropSql,
           changed = false,
           sql = "",
@@ -2198,6 +2198,10 @@
 
                 changed = true;
                 sql += "ALTER TABLE %I ADD COLUMN %I ";
+
+                if (prop.autonumber) {
+                  sequence = prop.autonumber.sequence;
+                }
 
                 /* Handle composite types */
                 if (type.relation) {
@@ -2584,6 +2588,43 @@
             return;
           }
 
+          if (sequence) {
+            createSequence();
+            return;
+          }
+
+          done();
+        };
+
+        createSequence = function () {
+          sql = "SELECT relname FROM pg_class " +
+            "JOIN pg_namespace ON relnamespace=pg_namespace.oid " +
+            "WHERE relkind = 'S' AND relname = $1 AND nspname = 'public'";
+
+          obj.client.query(sql, [sequence], function (err, resp) {
+            if (err) {
+              obj.callback(err);
+              return;
+            }
+
+            if (!resp.rows.length) {
+              sql = "CREATE SEQUENCE %I;".format([sequence]);
+              obj.client.query(sql, function (err, resp) {
+                if (err) {
+                  obj.callback(err);
+                  return;
+                }
+
+                done();
+              });
+              return;
+            }
+
+            done();
+          });
+        };
+
+        done = function () {
           obj.callback(null, true);
         };
 
