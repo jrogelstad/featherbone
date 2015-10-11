@@ -892,7 +892,7 @@
       var name,
         keys = Object.keys(d),
         requiredIsNull = function (key) {
-          if (d[key].isRequired && d[key]() === null) {
+          if (d[key].isRequired() && d[key]() === null) {
             name = key;
             return true;
           }

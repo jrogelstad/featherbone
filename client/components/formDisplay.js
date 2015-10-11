@@ -28,6 +28,12 @@
 
     if (id) { vm.model.fetch(); }
 
+    vm.canSave = function () {
+      var currentState = vm.model.state.current()[0];
+      return (currentState === "/Ready/New" ||
+        currentState === "/Ready/Fetched/Dirty") &&
+        vm.model.isValid();
+    };
     vm.doApply = function () {
       vm.model.save();
     };
@@ -46,11 +52,6 @@
       vm.model.save().then(function () {
         m.route("/" + name);
       });
-    };
-    vm.isDirty = function () {
-      var currentState = vm.model.state.current()[0];
-      return currentState === "/Ready/New" ||
-        currentState === "/Ready/Fetched/Dirty";
     };
     vm.isFirstLoad = m.prop(true);
 
@@ -156,18 +157,18 @@
           }, "Done"),
           m("button", {
             type: "button",
-            disabled: !ctrl.vm.isDirty(),
+            disabled: !ctrl.vm.canSave(),
             onclick: ctrl.vm.doApply
           }, "Apply"),
           m("button", {
             type: "button",
-            disabled: !ctrl.vm.isDirty(),
+            disabled: !ctrl.vm.canSave(),
             onclick: ctrl.vm.doSave
           }, "Save"),
           m("button", {
             type: "button",
-            onclick: ctrl.vm.isDirty() ? ctrl.vm.doSaveAndNew : ctrl.vm.doNew
-          }, ctrl.vm.isDirty() ? "Save & New" : "New"),
+            onclick: ctrl.vm.canSave() ? ctrl.vm.doSaveAndNew : ctrl.vm.doNew
+          }, ctrl.vm.canSave() ? "Save & New" : "New"),
         ]),
         m("div", {
           style: {
