@@ -601,14 +601,21 @@
               obj.client.query("SELECT nextval($1) AS seq",
                 [prop.autonumber.sequence],
                 function (err, resp) {
+                  var lpad = function (str, length) {
+                    str += "";
+                    length = length || 0;
+                    while (str.length < length) { str = "0" + str; }
+                    return str;
+                  };
                   if (err) {
                     obj.callback(err);
                     return;
                   }
+
                   if (prop.autonumber.prefix) {
                     value = prop.autonumber.prefix;
                   }
-                  value += resp.rows[0].seq;
+                  value += lpad(resp.rows[0].seq, prop.autonumber.length);
                   if (prop.autonumber.suffix) {
                     value += prop.autonumber.suffix;
                   }
