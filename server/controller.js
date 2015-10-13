@@ -612,13 +612,9 @@
                     return;
                   }
 
-                  if (prop.autonumber.prefix) {
-                    value = prop.autonumber.prefix;
-                  }
+                  value = prop.autonumber.prefix || "";
                   value += lpad(resp.rows[0].seq, prop.autonumber.length);
-                  if (prop.autonumber.suffix) {
-                    value += prop.autonumber.suffix;
-                  }
+                  value += prop.autonumber.suffix || "";
                   afterHandleRelations();
                 });
               return;
@@ -2069,17 +2065,17 @@
      * @return receiver
     */
     saveFeather: function (obj) {
-      var spec, nextSpec, parent, sequence,
+      var spec, nextSpec, parent,
         specs = Array.isArray(obj.specs) ? obj.specs : [obj.specs],
         c = 0,
         len = specs.length;
 
       nextSpec = function () {
         var sqlUpd, token, values, defaultValue, props, keys, recs, type,
-          name, isChild, pk, precision, scale, feather, catalog,
+          name, isChild, pk, precision, scale, feather, catalog, autonumber,
           afterGetFeather, afterGetCatalog, afterUpdateSchema, updateCatalog,
           afterUpdateCatalog, afterPropagateViews, afterNextVal,
-          afterInsertFeather, afterSaveAuthorization, createSequence, done,
+          afterInsertFeather, afterSaveAuthorization, createSequence,
           table, inherits, authorization, dropSql, createDropSql,
           changed = false,
           sql = "",
@@ -2229,7 +2225,8 @@
                 sql += "ALTER TABLE %I ADD COLUMN %I ";
 
                 if (prop.autonumber) {
-                  sequence = prop.autonumber.sequence;
+                  autonumber = prop.autonumber;
+                  autonumber.key = key;
                 }
 
                 /* Handle composite types */
@@ -2338,7 +2335,41 @@
 
           /* Update schema */
           sql = sql.format(tokens);
-          obj.client.query(sql, afterUpdateSchema);
+          obj.client.query(sql, createSequence);
+        };
+
+        createSequence = function () {
+          if (!autonumber) {
+            afterUpdateSchema();
+            return;
+          }
+          var sequence = autonumber.sequence;
+
+          sql = "SELECT relname FROM pg_class " +
+            "JOIN pg_namespace ON relnamespace=pg_namespace.oid " +
+            "WHERE relkind = 'S' AND relname = $1 AND nspname = 'public'";
+
+          obj.client.query(sql, [sequence], function (err, resp) {
+            if (err) {
+              obj.callback(err);
+              return;
+            }
+
+            if (!resp.rows.length) {
+              sql = "CREATE SEQUENCE %I;".format([sequence]);
+              obj.client.query(sql, function (err, resp) {
+                if (err) {
+                  obj.callback(err);
+                  return;
+                }
+
+                afterUpdateSchema();
+              });
+              return;
+            }
+
+            afterUpdateSchema();
+          });
         };
 
         afterUpdateSchema = function (err, resp) {
@@ -2356,7 +2387,7 @@
             }
 
             // Update function based defaults (one by one)
-            if (fns.length) {
+            if (fns.length || autonumber) {
               tokens = [];
               args = [table];
               i = 0;
@@ -2367,11 +2398,18 @@
                 i++;
               });
 
+              if (autonumber) {
+                tokens.push("%I='" + (autonumber.prefix || "") +
+                  "' || lpad(nextval('" + autonumber.sequence + "')::text, " +
+                  (autonumber.length || 0) + ", '0') || '" +
+                  (autonumber.suffix || "") + "'");
+                args.push(autonumber.key);
+              }
+
               sql = "SELECT _pk FROM %I ORDER BY _pk OFFSET $1 LIMIT 1;"
                 .format([table]);
               sqlUpd = ("UPDATE %I SET " + tokens.join(",") + " WHERE _pk = $1")
                 .format(args);
-
               obj.client.query(sql, [n], iterateDefaults);
               return;
             }
@@ -2617,43 +2655,6 @@
             return;
           }
 
-          if (sequence) {
-            createSequence();
-            return;
-          }
-
-          done();
-        };
-
-        createSequence = function () {
-          sql = "SELECT relname FROM pg_class " +
-            "JOIN pg_namespace ON relnamespace=pg_namespace.oid " +
-            "WHERE relkind = 'S' AND relname = $1 AND nspname = 'public'";
-
-          obj.client.query(sql, [sequence], function (err, resp) {
-            if (err) {
-              obj.callback(err);
-              return;
-            }
-
-            if (!resp.rows.length) {
-              sql = "CREATE SEQUENCE %I;".format([sequence]);
-              obj.client.query(sql, function (err, resp) {
-                if (err) {
-                  obj.callback(err);
-                  return;
-                }
-
-                done();
-              });
-              return;
-            }
-
-            done();
-          });
-        };
-
-        done = function () {
           obj.callback(null, true);
         };
 
