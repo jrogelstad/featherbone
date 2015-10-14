@@ -110,26 +110,30 @@
               fontStyle: "italic"
             }
           }),
+          m("table", {id: "header"}, [
+            (function () {
+              var tds = vm.attrs.map(function (key) {
+                  return m("td", key.toProperCase(true));
+                });
+              return m("tr", {style: {backgroundColor: "LightGrey"}}, tds);
+            }())
+          ])
         ]),
         m("div", {
           style: {
             overflow: "auto"
           },
           config: function (e) {
-            var tb = document.getElementById("toolbar");
+            var tb = document.getElementById("toolbar"),
+              hd = document.getElementById("header"),
+              mh = window.innerHeight - tb.clientHeight - hd.clientHeight + 15;
 
             // Set fields table to scroll and toolbar to stay put
             document.documentElement.style.overflow = 'hidden';
-            e.style.maxHeight = (window.innerHeight - tb.clientHeight) + "px";
+            e.style.maxHeight = mh + "px";
           }
         }, [
           m("table", [
-            (function () {
-              var tds = vm.attrs.map(function (key) {
-                  return m("td", key.toProperCase(true));
-                });
-              return m("tr", {style: {backgroundColor: "LightGrey"}}, tds);
-            }()),
             vm.models().map(function (model) {
               var d = model.data,
                 tds = vm.attrs.map(function (col) {
