@@ -18,83 +18,89 @@
 (function (f) {
   "use strict";
 
+  f.viewModels.tableViewModel = function (options) {
+    var vm = {},
+      selection,
+      feather = options.feather,
+      name = feather.toCamelCase(),
+      pathName = feather.toSpinalCase(),
+      plural = f.catalog.getFeather(feather).plural.toSpinalCase();
+
+    vm.models = f.models[name].list();
+    vm.attrs = options.attrs || ["id"];
+    vm.goHome = function () {
+      m.route("/home");
+    };
+    vm.hasSelection = function () {
+      return !selection;
+    };
+    vm.isSelected = function (model) {
+      return selection === model;
+    };
+    vm.modelDelete = function () {
+      selection.delete().then(function () {
+        vm.models().remove(selection);
+        m.route("/" + plural);
+      });
+    };
+    vm.modelNew = function () {
+      m.route("/" + pathName);
+    };
+    vm.modelOpen = function () {
+      m.route("/" + pathName + "/" + selection.data.id());
+    };
+    vm.select = function (model) {
+      if (selection !== model) {
+        selection = model;
+      }
+      return selection;
+    };
+    vm.selection = function () {
+      return selection;
+    };
+    vm.toggleOpen = function (model) {
+      selection = model;
+      vm.modelOpen();
+    };
+    vm.toggleSelection = function (model) {
+      if (selection === model) {
+        vm.select(undefined);
+        return false;
+      }
+      vm.select(model);
+      return true;
+    };
+    return vm;
+  };
+
   f.components.tableDisplay = function (options) {
     var component = {};
 
     component.controller = function () {
-      var selection,
-        that = this,
-        feather = options.feather,
-        name = feather.toCamelCase(),
-        pathName = feather.toSpinalCase(),
-        plural = f.catalog.getFeather(feather).plural.toSpinalCase();
-
-      this.models = f.models[name].list();
-      this.attrs = options.attrs || ["id"];
-      this.goHome = function () {
-        m.route("/home");
-      };
-      this.hasSelection = function () {
-        return !selection;
-      };
-      this.isSelected = function (model) {
-        return selection === model;
-      };
-      this.modelDelete = function () {
-        selection.delete().then(function () {
-          that.models().remove(selection);
-          m.route("/" + plural);
-        });
-      };
-      this.modelNew = function () {
-        m.route("/" + pathName);
-      };
-      this.modelOpen = function () {
-        m.route("/" + pathName + "/" + selection.data.id());
-      };
-      this.select = function (model) {
-        if (selection !== model) {
-          selection = model;
-        }
-        return selection;
-      };
-      this.selection = function () {
-        return selection;
-      };
-      this.toggleOpen = function (model) {
-        selection = model;
-        that.modelOpen();
-      };
-      this.toggleSelection = function (model) {
-        if (selection === model) {
-          that.select(undefined);
-          return false;
-        }
-        that.select(model);
-        return true;
-      };
+      this.vm = f.viewModels.tableViewModel(options);
     };
 
     component.view = function (ctrl) {
+      var vm = ctrl.vm;
       return m("div", [
         m("div", {id: "toolbar"}, [
           m("button", {
             type: "button",
-            onclick: ctrl.goHome
+            onclick: vm.goHome
           }, "Home"),
           m("button", {
             type: "button",
-            onclick: ctrl.modelNew
+            onclick: vm.modelNew
           }, "New"),
           m("button", {
             type: "button",
-            onclick: ctrl.modelOpen,
-            disabled: ctrl.hasSelection()
+            onclick: vm.modelOpen,
+            disabled: vm.hasSelection()
           }, "Open"),
           m("button", {
             type: "button",
-            onclick: ctrl.modelDelete,
-            disabled: ctrl.hasSelection()
+            onclick: vm.modelDelete,
+            disabled: vm.hasSelection()
           }, "Delete"),
           m("input", {
             type: "search",
@@ -119,24 +125,24 @@
         }, [
           m("table", [
             (function () {
-              var tds = ctrl.attrs.map(function (key) {
+              var tds = vm.attrs.map(function (key) {
                   return m("td", key.toProperCase(true));
                 });
               return m("tr", {style: {backgroundColor: "LightGrey"}}, tds);
             }()),
-            ctrl.models().map(function (model) {
+            vm.models().map(function (model) {
               var d = model.data,
-                tds = ctrl.attrs.map(function (col) {
+                tds = vm.attrs.map(function (col) {
                   var value = d[col](),
                     hasLocale = value !== null &&
                       typeof value.toLocaleString === "function";
                   return m("td", hasLocale ? value.toLocaleString() : value);
                 });
               return m("tr", {
-                onclick: ctrl.toggleSelection.bind(this, model),
-                ondblclick: ctrl.toggleOpen.bind(this, model),
+                onclick: vm.toggleSelection.bind(this, model),
+                ondblclick: vm.toggleOpen.bind(this, model),
                 style: {
-                  backgroundColor: ctrl.isSelected(model) ?
+                  backgroundColor: vm.isSelected(model) ?
                       "LightBlue" : "White"
                 }
               }, tds);
