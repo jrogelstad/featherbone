@@ -109,38 +109,73 @@
               color: "LightGrey",
               fontStyle: "italic"
             }
-          }),
-          m("table", {id: "header"}, [
-            (function () {
-              var tds = vm.attrs.map(function (key) {
-                  return m("td", key.toProperCase(true));
-                });
-              return m("tr", {style: {backgroundColor: "LightGrey"}}, tds);
-            }())
-          ])
+          })
         ]),
-        m("div", {
+        m("table", {
           style: {
-            overflow: "auto"
-          },
-          config: function (e) {
-            var tb = document.getElementById("toolbar"),
-              hd = document.getElementById("header"),
-              mh = window.innerHeight - tb.clientHeight - hd.clientHeight + 15;
-
-            // Set fields table to scroll and toolbar to stay put
-            document.documentElement.style.overflow = 'hidden';
-            e.style.maxHeight = mh + "px";
+            tableLayout: "fixed",
+            width: "100%"
           }
         }, [
-          m("table", [
+            m("thead", {
+            id: "header",
+            style: {
+              display: "inline-block",
+              width: "100%"
+            }
+          }, [
+            (function () {
+              var ths = vm.attrs.map(function (key) {
+                  return m("th", {
+                    style: {
+                      minWidth: "100px",
+                      maxWidth: "100px",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis"
+                    }
+                  },
+                    key.toProperCase(true));
+                });
+              return m("tr", {
+                style: {
+                  backgroundColor: "LightGrey"
+                }
+              }, ths);
+            }())
+          ]),
+          m("tbody", {
+            style: {
+              display: "inline-block",
+              width: "100%",
+              overflowY: "auto",
+              overflowX: "hidden"
+            },
+            config: function (e) {
+              var tb = document.getElementById("toolbar"),
+                hd = document.getElementById("header"),
+                mh = window.innerHeight - tb.clientHeight - hd.clientHeight - 10;
+
+              // Set fields table to scroll and toolbar to stay put
+              document.documentElement.style.overflow = 'hidden';
+              e.style.height = mh + "px";
+            }
+          }, [
             vm.models().map(function (model) {
               var d = model.data,
                 tds = vm.attrs.map(function (col) {
                   var value = d[col](),
                     hasLocale = value !== null &&
                       typeof value.toLocaleString === "function";
-                  return m("td", hasLocale ? value.toLocaleString() : value);
+                  return m("td", {
+                    style: {
+                      minWidth: "100px",
+                      maxWidth: "100px",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis"
+                    }
+                  }, hasLocale ? value.toLocaleString() : value);
                 });
               return m("tr", {
                 onclick: vm.toggleSelection.bind(this, model),

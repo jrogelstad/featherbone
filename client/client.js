@@ -2,6 +2,8 @@
 
 (function () {
 
+  "strict";
+
   // Load catalog and process models
   f.init(function () {
     return f.catalog.fetch().then(function (data) {
