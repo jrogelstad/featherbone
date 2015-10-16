@@ -148,8 +148,7 @@
             style: {
               display: "inline-block",
               width: "100%",
-              overflowY: "auto",
-              overflowX: "hidden"
+              overflowY: "auto"
             },
             config: function (e) {
               var tb = document.getElementById("toolbar"),

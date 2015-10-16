@@ -135,7 +135,7 @@
     m.route(document.body, "/home", routes);
   });
 
-  window.onresize = function (event) {
+  window.onresize = function () {
     m.redraw(true);
   };
 
