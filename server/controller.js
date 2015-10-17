@@ -16,6 +16,7 @@
 **/
 
 (function (exports) {
+  "strict";
 
   require("../common/extend-string");
 
@@ -26,6 +27,7 @@
     jsonpatch = require("fast-json-patch"),
     format = require("pg-format"),
     settings = {},
+    pkcol = "_pk",
     types = {
       object: {type: "json", default: {}},
       array: {type: "json", default: []},
@@ -63,7 +65,7 @@
     ary.unshift(this);
 
     while (ary[i]) {
-      i++;
+      i += 1;
       params.push("$" + i);
     }
 
@@ -84,8 +86,8 @@
     */
 
     checkEtag: function (obj) {
-      var sql = "SELECT etag FROM %I WHERE id = $1"
-          .format([obj.name.toSnakeCase()]);
+      var sql = "SELECT etag FROM %I WHERE id = $1";
+      sql = sql.format([obj.name.toSnakeCase()]);
 
       obj.client.query(sql, [obj.id], function (err, resp) {
         var result;
@@ -128,11 +130,16 @@
         next();
       };
 
-      dropTables = function (err, resp) {
+      dropTables = function (err) {
+        if (err) {
+          obj.callback(err);
+          return;
+        }
+
         // Drop table(s)
-        sql = ("DROP VIEW %I; DROP TABLE %I;")
-          .format(["_" + table, table]);
-        obj.client.query(sql, function (err, resp) {
+        sql = ("DROP VIEW %I; DROP TABLE %I;");
+        sql = sql.format(["_" + table, table]);
+        obj.client.query(sql, function (err) {
           if (err) {
             obj.callback(err);
             return;
@@ -140,14 +147,14 @@
 
           sql = "DELETE FROM \"$auth\" WHERE object_pk=" +
             "(SELECT _pk FROM \"$feather\" WHERE id=$1);";
-          obj.client.query(sql, [table], function (err, resp) {
+          obj.client.query(sql, [table], function (err) {
             if (err) {
               obj.callback(err);
               return;
             }
 
             sql = "DELETE FROM \"$feather\" WHERE id=$1;";
-            obj.client.query(sql, [table], function (err, resp) {
+            obj.client.query(sql, [table], function (err) {
               if (err) {
                 obj.callback(err);
                 return;
@@ -159,12 +166,17 @@
         });
       };
 
-      createViews = function (err, resp) {
+      createViews = function (err) {
+         if (err) {
+          obj.callback(err);
+          return;
+        }
+       
         var rel;
 
         if (c < rels.length) {
           rel = rels[c];
-          c++;
+          c += 1;
 
           // Update views
           createView({
@@ -182,7 +194,7 @@
       next = function () {
         if (o < names.length) {
           name = names[o];
-          o++;
+          o += 1;
           table = name.toSnakeCase();
           rels = [];
 
@@ -200,7 +212,8 @@
 
               if (type.properties) {
                 view = "_" + name.toSnakeCase() + "$" + key.toSnakeCase();
-                sql += "DROP VIEW %I;".format([view]);
+                sql += "DROP VIEW %I;";
+                sql = sql.format([view]);
               }
 
               if (type.childOf && catalog[type.relation]) {
@@ -361,7 +374,7 @@
         }
 
         // Move on only after all callbacks report back
-        c++;
+        c += 1;
         if (c < clen) { return; }
 
         if (isChild) {
@@ -385,7 +398,7 @@
         }, true);
       };
 
-      afterLog = function (err, resp) {
+      afterLog = function (err) {
         if (err) {
           obj.callback(err);
           return;
@@ -449,7 +462,7 @@
 
         /* Validate properties are valid */
         len = dkeys.length;
-        for (n = 0; n < len; n++) {
+        for (n = 0; n < len; n += 1) {
           if (fkeys.indexOf(dkeys[n]) === -1) {
             obj.callback("Feather \"" + obj.name +
               "\" does not contain property \"" + dkeys[n] + "\"");
@@ -535,7 +548,8 @@
         });
 
         // Set some system controlled values
-        data.created = data.updated = f.now();
+        data.updated = f.now();
+        data.created = data.updated;
         data.createdBy = obj.client.currentUser;
         data.updatedBy = obj.client.currentUser;
 
@@ -564,7 +578,7 @@
           key = fkeys[n];
           child = false;
           prop = props[key];
-          n++;
+          n += 1;
 
           /* Handle relations */
           if (typeof prop.type === "object") {
@@ -644,7 +658,8 @@
         }
 
         sql = ("INSERT INTO %I (_pk, " + tokens.toString(",") +
-          ") VALUES ($1," + params.toString(",") + ");").format(args);
+          ") VALUES ($1," + params.toString(",") + ");");
+        sql = sql.format(args);
 
         // Perform the insert
         obj.client.query(sql, values, afterInsert);
@@ -683,20 +698,20 @@
           tokens.push("%I");
           values.push(value);
           params.push("$" + p);
-          p++;
+          p += 1;
         }
 
         buildInsert();
       };
 
-      afterInsert = function (err, resp) {
+      afterInsert = function (err) {
         if (err) {
           obj.callback(err);
           return;
         }
 
         // Done only when all callbacks report back
-        c++;
+        c += 1;
         if (c < clen) { return; }
 
         // We're done here if child
@@ -732,11 +747,16 @@
       };
 
       insertFolder = function (err, resp) {
+        if (err) {
+          obj.callback(err);
+          return;
+        }
+
         sql = "INSERT INTO \"$objectfolder\" VALUES ($1, $2);";
         obj.client.query(sql, [pk, resp], afterHandleFolder);
       };
 
-      afterHandleFolder = function (err, resp) {
+      afterHandleFolder = function (err) {
         if (err) {
           obj.callback(err);
           return;
@@ -759,7 +779,7 @@
         }, true);
       };
 
-      afterLog = function (err, resp) {
+      afterLog = function (err) {
         if (err) {
           obj.callback(err);
           return;
@@ -781,7 +801,7 @@
         done();
       };
 
-      done = function (err, resp) {
+      done = function (err) {
         if (err) {
           obj.callback(err);
           return;
@@ -837,7 +857,8 @@
 
         cols.push(table);
         sql = ("SELECT to_json((" +  tokens.toString(",") +
-          ")) AS result FROM %I").format(cols);
+          ")) AS result FROM %I");
+        sql = sql.format(cols);
 
         /* Get one result by key */
         if (obj.id) {
@@ -882,6 +903,11 @@
       };
 
       afterGetKeys = function (err, keys) {
+        if (err) {
+          obj.callback(err);
+          return;
+        }
+
         var result,
           i = 0;
 
@@ -889,7 +915,7 @@
           tokens = [];
 
           while (keys[i]) {
-            i++;
+            i += 1;
             tokens.push("$" + i);
           }
 
@@ -923,7 +949,7 @@
 
         rkeys.forEach(function (key) {
           ret[keys[i]] = result[key];
-          i++;
+          i += 1;
         });
 
         return ret;
@@ -1090,12 +1116,16 @@
       };
 
       nextProp = function () {
+        var updProp, oldProp;
+
         key = keys[n];
-        n++;
+        n += 1;
 
         if (n <= keys.length) {
           /* Handle composite types */
           if (typeof props[key].type === "object") {
+            updProp = updRec[key] || {};
+            oldProp = oldRec[key] || {};
 
             /* Handle child records */
             if (Array.isArray(updRec[key])) {
@@ -1106,7 +1136,7 @@
                 var cid = row.id;
 
                 if (!find(updRec[key], cid)) {
-                  clen++;
+                  clen += 1;
                   doList.push({
                     func: that.doDelete,
                     payload: {
@@ -1130,7 +1160,7 @@
                   cpatches = jsonpatch.compare(cOldRec, cNewRec);
 
                   if (cpatches.length) {
-                    clen++;
+                    clen += 1;
                     doList.push({
                       func: that.doUpdate,
                       payload: {
@@ -1144,7 +1174,7 @@
                   }
                 } else {
                   cNewRec[props[key].type.parentOf] = {id: updRec.id};
-                  clen++;
+                  clen += 1;
                   doList.push({
                     func: that.doInsert,
                     payload: {
@@ -1159,9 +1189,9 @@
 
             /* Handle to one relations */
             } else if (!props[key].type.childOf &&
-                (updRec[key] || {}).id !== (oldRec[key] || {}).id) {
+                updProp.id !== oldProp.id) {
 
-              if ((updRec[key] || {}).id) {
+              if (updProp.id) {
                 that.getKey({
                   id: updRec[key].id,
                   client: obj.client,
@@ -1177,7 +1207,7 @@
             tokens.push(key.toSnakeCase());
             ary.push("%I = $" + p);
             params.push(updRec[key]);
-            p++;
+            p += 1;
           }
 
           nextProp();
@@ -1206,17 +1236,17 @@
         tokens.push(relationColumn(key, relation));
         ary.push("%I = $" + p);
         params.push(value);
-        p++;
+        p += 1;
 
         nextProp();
       };
 
       afterProperties = function () {
         // Execute top level object change
-        sql = ("UPDATE %I SET " + ary.join(",") + " WHERE _pk = $" + p)
-          .format(tokens);
+        sql = ("UPDATE %I SET " + ary.join(",") + " WHERE _pk = $" + p);
+        sql = sql.format(tokens);
         params.push(pk);
-        clen++;
+        clen += 1;
 
         obj.client.query(sql, params, afterUpdate);
 
@@ -1226,14 +1256,14 @@
         });
       };
 
-      afterUpdate = function (err, resp) {
+      afterUpdate = function (err) {
         if (err) {
           obj.callback(err);
           return;
         }
 
         // Don't proceed until all callbacks report back
-        c++;
+        c += 1;
         if (c < clen) { return; }
 
         // If child, we're done here
@@ -1365,7 +1395,7 @@
         sql += buildAuthSql("canRead", table, tokens);
 
         params.push(obj.client.currentUser);
-        p++;
+        p += 1;
       }
 
       /* Process filter */
@@ -1379,9 +1409,11 @@
           if (op === "IN") {
             n = criteria[i].value.length;
             part = [];
-            while (n--) {
+            while (n) {
+              i -= 1;
               params.push(criteria[i].value[n]);
-              part.push("$" + p++);
+              part.push("$" + p);
+              p += 1;
             }
             part = " %I IN (" + part.join(",") + ")";
           } else {
@@ -1390,11 +1422,12 @@
               throw err;
             }
             params.push(criteria[i].value);
-            part = " %I " + op + " $" + p++;
-            i++;
+            part = " %I " + op + " $" + p;
+            p += 1;
+            i += 1;
           }
           parts.push(part);
-          i++;
+          i += 1;
         }
 
         if (parts.length) {
@@ -1406,7 +1439,8 @@
 
         /* Process offset and limit */
         if (filter.offset) {
-          sql += " OFFSET $" + p++;
+          sql += " OFFSET $" + p;
+          p += 1;
           params.push(filter.offset);
         }
 
@@ -1426,7 +1460,7 @@
         }
 
         keys = resp.rows.map(function (rec) {
-          return rec._pk;
+          return rec[pkcol];
         });
 
         obj.callback(null, keys);
@@ -1698,7 +1732,7 @@
           /* If object found, check authorization */
           if (resp.rows.length > 0) {
             table = resp.rows[0].table;
-            pk = resp.rows[0]._pk;
+            pk = resp.rows[0][pkcol];
 
             tokens.push(table);
             authSql =  buildAuthSql(action, table, tokens);
@@ -1883,8 +1917,8 @@
               return;
             }
 
-            sql = "SELECT owner FROM %I WHERE _pk=$1"
-              .format(feather.name.toSnakeCase());
+            sql = "SELECT owner FROM %I WHERE _pk=$1";
+            sql = sql.format(feather.name.toSnakeCase());
 
             obj.client.query(sql, [objPk], function (err, resp) {
               if (err) {
@@ -1976,7 +2010,7 @@
         obj.client.query(sql, params, afterUpsertAuth);
       };
 
-      afterUpsertAuth = function (err, resp) {
+      afterUpsertAuth = function (err) {
         if (err) {
           obj.callback(err);
           return;
@@ -1995,7 +2029,7 @@
         done();
       };
 
-      done = function (err, resp) {
+      done = function (err) {
         if (err) {
           obj.callback(err);
           return;
@@ -2106,8 +2140,8 @@
           buildDeps(name);
 
           statements = feathers.map(function (feather) {
-            return "DROP VIEW IF EXISTS %I CASCADE"
-              .format(["_" + feather.toSnakeCase()]);
+            var stmt = "DROP VIEW IF EXISTS %I CASCADE";
+            return stmt.format(["_" + feather.toSnakeCase()]);
           });
 
           return statements.join(";") + ";";
@@ -2272,12 +2306,13 @@
                     while (i < type.properties.length) {
                       cols.push("%I");
                       args.push(type.properties[i].toSnakeCase());
-                      i++;
+                      i += 1;
                     }
 
                     args.push(type.relation.toSnakeCase());
                     sql += ("CREATE VIEW %I AS SELECT " + cols.join(",") +
-                      " FROM %I WHERE NOT is_deleted;").format(args);
+                      " FROM %I WHERE NOT is_deleted;");
+                    sql = sql.format(args);
                   }
 
                 /* Handle standard types */
@@ -2352,8 +2387,9 @@
             }
 
             if (!resp.rows.length) {
-              sql = "CREATE SEQUENCE %I;".format([sequence]);
-              obj.client.query(sql, function (err, resp) {
+              sql = "CREATE SEQUENCE %I;";
+              sql = sql.format([sequence]);
+              obj.client.query(sql, function (err) {
                 if (err) {
                   obj.callback(err);
                   return;
@@ -2368,7 +2404,7 @@
           });
         };
 
-        afterUpdateSchema = function (err, resp) {
+        afterUpdateSchema = function (err) {
           var afterPopulateDefaults, iterateDefaults;
 
           if (err) {
@@ -2376,7 +2412,7 @@
             return;
           }
 
-          afterPopulateDefaults = function (err, resp) {
+          afterPopulateDefaults = function (err) {
             if (err) {
               obj.callback(err);
               return;
@@ -2391,7 +2427,7 @@
               fns.forEach(function (fn) {
                 tokens.push("%I=$" + (i + 2));
                 args.push(fn.col);
-                i++;
+                i += 1;
               });
 
               if (autonumber) {
@@ -2402,10 +2438,10 @@
                 args.push(autonumber.key);
               }
 
-              sql = "SELECT _pk FROM %I ORDER BY _pk OFFSET $1 LIMIT 1;"
-                .format([table]);
-              sqlUpd = ("UPDATE %I SET " + tokens.join(",") + " WHERE _pk = $1")
-                .format(args);
+              sql = "SELECT _pk FROM %I ORDER BY _pk OFFSET $1 LIMIT 1;";
+              sql = sql.format([table]);
+              sqlUpd = "UPDATE %I SET " + tokens.join(",") + " WHERE _pk = $1";
+              sqlUpd = sqlUpd.format(args);
               obj.client.query(sql, [n], iterateDefaults);
               return;
             }
@@ -2422,16 +2458,16 @@
             recs = resp.rows;
 
             if (recs.length) {
-              values = [recs[0]._pk];
+              values = [recs[0][pkcol]];
               i = 0;
-              n++;
+              n += 1;
 
               while (i < fns.length) {
                 values.push(f[fns[i].default]());
-                i++;
+                i += 1;
               }
 
-              obj.client.query(sqlUpd, values, function (err, resp) {
+              obj.client.query(sqlUpd, values, function (err) {
                 if (err) {
                   obj.callback(err);
                   return;
@@ -2459,7 +2495,7 @@
                 defaultValue = -1;
               } else {
                 defaultValue = props[add].default ||
-                  (pformat && formats[pformat] ?
+                  ((pformat && formats[pformat]) ?
                       formats[pformat].default : false) ||
                   types[type].default;
               }
@@ -2477,12 +2513,13 @@
                 } else {
                   args.push(add.toSnakeCase());
                 }
-                p++;
+                p += 1;
               }
             });
 
             if (values.length) {
-              sql = ("UPDATE %I SET " + tokens.join(",") + ";").format(args);
+              sql = ("UPDATE %I SET " + tokens.join(",") + ";");
+              sql = sql.format(args);
               obj.client.query(sql, values, afterPopulateDefaults);
               return;
             }
@@ -2494,7 +2531,12 @@
           createUnique();
         };
 
-        createUnique = function (err, resp) {
+        createUnique = function (err) {
+          if (err) {
+            obj.callback(err);
+            return;
+          }
+
           if (unique.length) {
             sql = "";
             tokens = [];
@@ -2514,7 +2556,7 @@
           updateCatalog();
         };
 
-        updateCatalog = function (err, resp) {
+        updateCatalog = function (err) {
           if (err) {
             obj.callback(err);
             return;
@@ -2535,7 +2577,7 @@
           });
         };
 
-        afterUpdateCatalog = function (err, resp) {
+        afterUpdateCatalog = function (err) {
           var callback;
 
           if (err) {
@@ -2609,7 +2651,7 @@
           callback(null, pk);
         };
 
-        afterInsertFeather = function (err, resp) {
+        afterInsertFeather = function (err) {
           if (err) {
             obj.callback(err);
             return;
@@ -2629,7 +2671,7 @@
           afterPropagateViews();
         };
 
-        afterPropagateViews = function (err, resp) {
+        afterPropagateViews = function (err) {
           if (err) {
             obj.callback(err);
             return;
@@ -2660,7 +2702,7 @@
           afterSaveAuthorization();
         };
 
-        afterSaveAuthorization = function (err, resp) {
+        afterSaveAuthorization = function (err) {
           if (err) {
             obj.callback(err);
             return;
@@ -2676,9 +2718,10 @@
 
         // Real work starts here
         spec = specs[c];
-        c++;
+        c += 1;
         table = spec.name ? spec.name.toSnakeCase() : false;
-        inherits = (spec.inherits || "Object").toSnakeCase();
+        inherits = (spec.inherits || "Object");
+        inherits = inherits.toSnakeCase();
         authorization = spec.authorization;
 
         if (!table) {
@@ -2822,7 +2865,7 @@
         obj.query(sql, [user, isSuper], afterUpsert);
       };
 
-      afterUpsert = function (err, resp) {
+      afterUpsert = function (err) {
         if (err) {
           obj.callback(err);
           return;
@@ -2864,7 +2907,8 @@
       throw "Invalid authorization action for object \"" + action + "\"";
     }
 
-    while (i--) {
+    while (i) {
+      i -= 1;
       tokens.push(table);
     }
 
@@ -3001,11 +3045,12 @@
       args.push(table);
 
       if (dropFirst) {
-        sql = "DROP VIEW IF EXISTS %I CASCADE;".format(["_" + table]);
+        sql = "DROP VIEW IF EXISTS %I CASCADE;";
+        sql = sql.format(["_" + table]);
       }
 
-      sql += ("CREATE OR REPLACE VIEW %I AS SELECT " + cols.join(",") +
-        " FROM %I;").format(args);
+      sql += "CREATE OR REPLACE VIEW %I AS SELECT " + cols.join(",") + " FROM %I;";
+      sql = sql.format(args);
 
       // If execute, run the sql now
       if (execute) {
@@ -3033,8 +3078,9 @@
 
   /** private */
   curry = function (fn, args) {
+    var ary = [];
     return function () {
-      return fn.apply(this, args.concat([].slice.call(arguments)));
+      return fn.apply(this, args.concat(ary.slice.call(arguments)));
     };
   };
 
@@ -3111,17 +3157,16 @@
 
   /** private */
   isChildFeather = function (feather) {
-    var props = feather.properties,
-      key;
+    var props = feather.properties;
 
-    for (key in props) {
+    Object.keys(props).forEach(function (key) {
       if (props.hasOwnProperty(key)) {
         if (typeof props[key].type === "object" &&
             props[key].type.childOf) {
           return true;
         }
       }
-    }
+    });
 
     return false;
   };
@@ -3132,13 +3177,14 @@
       i = 0,
       parts = [];
     while (sort[i]) {
-      order = (sort[i].order || "ASC").toUpperCase();
+      order = (sort[i].order || "ASC");
+      order = order.toUpperCase();
       if (order !== "ASC" && order !== "DESC") {
         throw 'Unknown operator "' + order + '"';
       }
       tokens.push(sort[i].property);
       parts.push(" %I " + order);
-      i++;
+      i += 1;
     }
 
     if (parts.length) {
@@ -3235,11 +3281,16 @@
     propagate = function () {
       if (i < auths.length) {
         auth = auths[i];
-        i++;
+        i += 1;
 
         // Only process if auth has no manual over-ride
         params = [folderKey, false, auth.role_pk];
         obj.client.query(authSql, params, function (err, resp) {
+          if (err) {
+            obj.callback(err);
+            return;
+          }
+
           if (!resp.rows.length) {
             // Find child folders
             obj.client.query(childSql, [auth.object_pk], function (err, resp) {
@@ -3271,10 +3322,10 @@
     updateChild = function () {
       if (n < children.length) {
         child = children[n];
-        n++;
+        n += 1;
 
         // Delete old authorizations
-        params = [child._pk, auth.role_pk];
+        params = [child[pkcol], auth.role_pk];
         obj.client.query(delSql, params, function (err) {
           if (err) {
             obj.callback(err);
@@ -3282,7 +3333,7 @@
           }
 
           // Insert new authorizations
-          params = [child._pk, auth.role_pk, auth.can_create, auth.can_read,
+          params = [child[pkcol], auth.role_pk, auth.can_create, auth.can_read,
             auth.can_update, auth.can_delete];
           if (!obj.isDeleted) {
             obj.client.query(insSql, params, function (err) {
@@ -3392,7 +3443,7 @@
         }
 
         o = functions[i];
-        i++;
+        i += 1;
 
         if (o) {
           o.func(o.payload);
@@ -3417,7 +3468,7 @@
           sql += statement.sql;
         });
 
-        obj.client.query(sql, function (err, resp) {
+        obj.client.query(sql, function (err) {
           if (err) {
             obj.callback(err);
             return;
@@ -3522,7 +3573,7 @@
 
       while (n < klen) {
         oldKey = keys[n];
-        n++;
+        n += 1;
 
         /* Remove internal properties */
         if (oldKey.match("^_")) {
@@ -3540,7 +3591,7 @@
       }
 
       ary[i] = newObj;
-      i++;
+      i += 1;
     }
 
     return isArray ? ary : ary[0];
