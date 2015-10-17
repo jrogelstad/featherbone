@@ -20,12 +20,42 @@
 
   f.viewModels.tableViewModel = function (options) {
     var vm = {},
-      selection,
+      selection, scrWidth,
       feather = options.feather,
       name = feather.toCamelCase(),
       pathName = feather.toSpinalCase(),
       plural = f.catalog.getFeather(feather).plural.toSpinalCase();
 
+    vm.scrollbarWidth = function getScrollbarWidth() {
+      if (!scrWidth) {
+        // http://stackoverflow.com/questions/13382516/getting-scroll-bar-width-using-javascript
+        var inner, widthNoScroll, widthWithScroll,
+          outer = document.createElement("div");
+
+        outer.style.visibility = "hidden";
+        outer.style.width = "100px";
+        outer.style.msOverflowStyle = "scrollbar"; // needed for WinJS apps
+
+        document.body.appendChild(outer);
+
+        widthNoScroll = outer.offsetWidth;
+        // force scrollbars
+        outer.style.overflow = "scroll";
+
+        // add innerdiv
+        inner = document.createElement("div");
+        inner.style.width = "100%";
+        outer.appendChild(inner);        
+
+        widthWithScroll = inner.offsetWidth;
+
+        // remove divs
+        outer.parentNode.removeChild(outer);
+
+        scrWidth = widthNoScroll - widthWithScroll;
+      }
+      return scrWidth;
+    };
     vm.models = f.models[name].list();
     vm.attrs = options.attrs || ["id"];
     vm.goHome = function () {
@@ -48,6 +78,12 @@
     };
     vm.modelOpen = function () {
       m.route("/" + pathName + "/" + selection.data.id());
+    };
+    vm.onscroll = function () {
+      var rows = document.getElementById("rows"),
+        header = document.getElementById("header");
+
+      header.scrollLeft = rows.scrollLeft;
     };
     vm.select = function (model) {
       if (selection !== model) {
@@ -121,7 +157,8 @@
             id: "header",
             style: {
               display: "inline-block",
-              width: "100%"
+              width: "100%",
+              overflow: "hidden"
             }
           }, [
             (function () {
@@ -137,6 +174,13 @@
                   },
                     key.toProperCase(true));
                 });
+              // End cap on header for scrollbar
+              ths.push(m("th", {
+                style: {
+                  minWidth: vm.scrollbarWidth() + "px",
+                  maxWidth: vm.scrollbarWidth() + "px"
+                }
+              }));
               return m("tr", {
                 style: {
                   backgroundColor: "LightGrey"
@@ -145,6 +189,8 @@
             }())
           ]),
           m("tbody", {
+            id: "rows",
+            onscroll: vm.onscroll,
             style: {
               display: "inline-block",
               width: "100%",
