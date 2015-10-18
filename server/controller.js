@@ -249,6 +249,31 @@
     },
 
     /**
+      Remove a class from the database.
+
+        @param {Object} Request payload
+        @param {Object | Array} [payload.name] Name of workbook to delete
+        @param {Object} [payload.client] Database client
+        @param {Function} [payload.callback] Callback
+        @return {Boolean}
+    */
+    deleteWorkbook: function (obj) {
+      var sql = "DELETE FROM \"$workbook\" WHERE name=$1;";
+
+      obj.client.query(sql, [obj.name], function (err) {
+        if (err) {
+          obj.callback(err);
+          return;
+        }
+
+        obj.callback(null, true);
+      });
+
+      return this;
+    },
+
+
+    /**
     Perform soft delete on object records.
 
     @param {Object} Request payload
@@ -1588,6 +1613,49 @@
 
       // Request the settings from the database
       callback(null, false);
+    },
+
+    /**
+      Return a workbook definition(s). If name is passed in payload
+      only that workbook will be returned.
+
+      @param {Object} Request payload
+      @param {Object} [payload.name] Workbook name
+      @param {Object} [payload.client] Database client
+      @param {Function} [payload.callback] callback
+      @return receiver
+    */
+    getWorkbooks: function (obj) {
+      var params = [obj.client.currentUser],
+        sql = "SELECT name, description, default_config AS \"defaultConfig\", local_config AS \"localConfig\" " +
+          "FROM \"$workbook\"" +
+          "WHERE EXISTS (" +
+          "  SELECT can_read FROM ( " +
+          "    SELECT can_read " +
+          "    FROM \"$auth\"" +
+          "      JOIN \"role\" on \"$auth\".\"role_pk\"=\"role\".\"_pk\"" +
+          "      JOIN \"role_member\"" +
+          "        ON \"role\".\"_pk\"=\"role_member\".\"_parent_role_pk\"" +
+          "    WHERE member=$1" +
+          "      AND object_pk=\"$workbook\"._pk" +
+          "    ORDER BY can_read DESC" +
+          "    LIMIT 1" +
+          "  ) AS data " +
+          "  WHERE can_read)";
+
+      if (obj.name) {
+        sql += " AND name=$2";
+        params.push(obj.name);
+      }
+
+      obj.client.query(sql, params, function (err, resp) {
+        if (err) {
+          obj.callback(err);
+          return;
+        }
+
+        obj.callback(null, resp.rows);
+      });
     },
 
     /**

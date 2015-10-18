@@ -297,6 +297,7 @@
   that.registerFunction("GET", "getFeather", controller.getFeather);
   that.registerFunction("GET", "getModules", controller.getModules);
   that.registerFunction("GET", "getSettings", controller.getSettings);
+  that.registerFunction("GET", "getWorkbooks", controller.getWorkbooks);
   that.registerFunction("GET", "isAuthorized", controller.isAuthorized);
   that.registerFunction("GET", "isSuperUser", controller.isSuperUser);
   that.registerFunction("PUT", "saveAuthorization",
@@ -306,6 +307,7 @@
   that.registerFunction("PUT", "setSuperUser", controller.setSuperUser);
   that.registerFunction("PUT", "saveWorkbook", controller.saveWorkbook);
   that.registerFunction("DELETE", "deleteFeather", controller.deleteFeather);
+  that.registerFunction("DELETE", "deleteWorkbook", controller.deleteWorkbook);
 
 }(exports));
 
