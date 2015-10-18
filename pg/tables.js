@@ -16,10 +16,12 @@
 
 /*jslint maxlen: 200 */
 (function (exports) {
+  "strict";
+
   exports.execute = function (obj) {
     var createCamelCase, createObject, createFeather, createAuth, createObjectfolder,
-      createModule, createSettings, createUser, sqlCheck, done,
-      sql, params;
+      createModule, createWorkbook, createSheet, createSettings, createUser, sqlCheck,
+      done, sql, params;
 
     sqlCheck = function (table, callback) {
       var sqlChk = "SELECT * FROM pg_tables WHERE schemaname = 'public' AND tablename = $1;";
@@ -35,7 +37,7 @@
     };
 
     // Create a camel case function
-    createCamelCase = function (err) {
+    createCamelCase = function () {
       sql = "CREATE OR REPLACE FUNCTION to_camel_case(str text) RETURNS text AS $$" +
         "SELECT replace(initcap($1), '_', '');" +
         "$$ LANGUAGE SQL IMMUTABLE;";
@@ -43,7 +45,7 @@
     };
 
     // Create the base object table
-    createObject = function (err) {
+    createObject = function () {
       sqlCheck('object', function (err, exists) {
         if (err) {
           obj.callback(err);
@@ -76,7 +78,7 @@
     };
 
     // Create the object auth table
-    createAuth = function (err) {
+    createAuth = function () {
       sqlCheck('$auth', function (err, exists) {
         if (err) {
           obj.callback(err);
@@ -113,7 +115,7 @@
     };
 
     // Create the feather table
-    createFeather = function (err) {
+    createFeather = function () {
       sqlCheck('$feather', function (err, exists) {
         if (err) {
           obj.callback(err);
@@ -135,7 +137,7 @@
     };
 
     // Create the object object folder table
-    createObjectfolder = function (err) {
+    createObjectfolder = function () {
       sqlCheck('$objectfolder', function (err, exists) {
         if (err) {
           obj.callback(err);
@@ -158,7 +160,7 @@
     };
 
     // Create the module table
-    createModule = function (err) {
+    createModule = function () {
       sqlCheck('$module', function (err, exists) {
         if (err) {
           obj.callback(err);
@@ -168,12 +170,68 @@
         if (!exists) {
           sql = "CREATE TABLE \"$module\" (" +
             "name text PRIMARY KEY," +
-            "modules json," +
+            "script text," +
             "version text);" +
             "COMMENT ON TABLE \"$module\" IS 'Internal table for storing JavaScript';" +
             "COMMENT ON COLUMN \"$module\".name IS 'Primary key';" +
-            "COMMENT ON COLUMN \"$module\".modules IS 'Array of modules';" +
+            "COMMENT ON COLUMN \"$module\".script IS 'JavaScript';" +
             "COMMENT ON COLUMN \"$module\".version IS 'Version number';";
+          obj.client.query(sql, createWorkbook());
+          return;
+        }
+        createWorkbook();
+      });
+    };
+
+    // Create the workbook table
+    createWorkbook = function () {
+      sqlCheck('$workbook', function (err, exists) {
+        if (err) {
+          obj.callback(err);
+          return;
+        }
+
+        if (!exists) {
+          sql = "CREATE TABLE \"$workbook\" (" +
+            "name text UNIQUE," +
+            "description text," +
+            "default_config json," +
+            "local_config json," +
+            "module text REFERENCES \"$module\" (name)," +
+            "CONSTRAINT workbook_pkey PRIMARY KEY (_pk), " +
+            "CONSTRAINT workbook_id_key UNIQUE (id)) INHERITS (object);" +
+            "COMMENT ON TABLE \"$workbook\" IS 'Internal table for storing workbook';" +
+            "COMMENT ON COLUMN \"$workbook\".name IS 'Primary key';" +
+            "COMMENT ON COLUMN \"$workbook\".description IS 'Description';" +
+            "COMMENT ON COLUMN \"$workbook\".default_config IS 'Default configuration';" +
+            "COMMENT ON COLUMN \"$workbook\".local_config IS 'Local configuration';" +
+            "COMMENT ON COLUMN \"$workbook\".module IS 'Foreign key to module';";
+          obj.client.query(sql, createSheet);
+          return;
+        }
+        createSheet();
+      });
+    };
+
+    // Create the sheet table
+    createSheet = function () {
+      sqlCheck('$sheet', function (err, exists) {
+        if (err) {
+          obj.callback(err);
+          return;
+        }
+
+        if (!exists) {
+          sql = "CREATE TABLE \"$sheet\" (" +
+            "name text," +
+            "feather_pk integer REFERENCES \"$feather\" (_pk)," +
+            "workbook text REFERENCES \"$workbook\" (name)," +
+            "CONSTRAINT sheet_pkey PRIMARY KEY (_pk), " +
+            "CONSTRAINT sheet_id_key UNIQUE (id)) INHERITS (object);" +
+            "COMMENT ON TABLE \"$sheet\" IS 'Internal table for storing workbook sheets';" +
+            "COMMENT ON COLUMN \"$sheet\".name IS 'Primary key';" +
+            "COMMENT ON COLUMN \"$sheet\".feather_pk IS 'Foreign key to feather';" +
+            "COMMENT ON COLUMN \"$sheet\".workbook IS 'Foreign key to workbook';";
           obj.client.query(sql, createUser);
           return;
         }
@@ -182,7 +240,7 @@
     };
 
     // Create the user table
-    createUser = function (err) {
+    createUser = function () {
       sqlCheck('$user', function (err, exists) {
         if (err) {
           obj.callback(err);
@@ -211,7 +269,7 @@
     };
 
     // Create the settings table
-    createSettings = function (err) {
+    createSettings = function () {
       sqlCheck('$settings', function (err, exists) {
         if (err) {
           obj.callback(err);
@@ -228,7 +286,7 @@
             "COMMENT ON TABLE \"$settings\" IS 'Internal table for storing system settings';" +
             "COMMENT ON COLUMN \"$settings\".name IS 'Name of settings';" +
             "COMMENT ON COLUMN \"$settings\".data IS 'Object containing settings';";
-          obj.client.query(sql, function (err, resp) {
+          obj.client.query(sql, function (err) {
             if (err) {
               obj.callback(err);
               return;
@@ -239,54 +297,54 @@
               "catalog",
               "catalog",
               JSON.stringify({
-                "Object": {
-                  "description": "Abstract object class from which all feathers will inherit",
-                  "discriminator": "objectType",
-                  "plural": "Objects",
-                  "properties": {
-                    "id": {
-                      "description": "Surrogate key",
-                      "type": "string",
-                      "default": "createId()",
-                      "isRequired": true,
-                      "isReadOnly": true
+                Object: {
+                  description: "Abstract object class from which all feathers will inherit",
+                  discriminator: "objectType",
+                  plural: "Objects",
+                  properties: {
+                    id: {
+                      description: "Surrogate key",
+                      type: "string",
+                      default: "createId()",
+                      isRequired: true,
+                      isReadOnly: true
                     },
-                    "created": {
-                      "description": "Create time of the record",
-                      "type": "string",
-                      "format": "dateTime",
-                      "default": "now()",
-                      "isReadOnly": true
+                    created: {
+                      description: "Create time of the record",
+                      type: "string",
+                      format: "dateTime",
+                      default: "now()",
+                      isReadOnly: true
                     },
-                    "createdBy": {
-                      "description": "User who created the record",
-                      "type": "string",
-                      "default": "getCurrentUser()",
-                      "isReadOnly": true
+                    createdBy: {
+                      description: "User who created the record",
+                      type: "string",
+                      default: "getCurrentUser()",
+                      isReadOnly: true
                     },
-                    "updated": {
-                      "description": "Last time the record was updated",
-                      "type": "string",
-                      "format": "dateTime",
-                      "default": "now()",
-                      "isReadOnly": true
+                    updated: {
+                      description: "Last time the record was updated",
+                      type: "string",
+                      format: "dateTime",
+                      default: "now()",
+                      isReadOnly: true
                     },
-                    "updatedBy": {
-                      "description": "User who created the record",
-                      "type": "string",
-                      "default": "getCurrentUser()",
-                      "isReadOnly": true
+                    updatedBy: {
+                      description: "User who created the record",
+                      type: "string",
+                      default: "getCurrentUser()",
+                      isReadOnly: true
                     },
-                    "isDeleted": {
-                      "description": "Indicates the record is no longer active",
-                      "type": "boolean",
-                      "isReadOnly": true
+                    isDeleted: {
+                      description: "Indicates the record is no longer active",
+                      type: "boolean",
+                      isReadOnly: true
                     },
-                    "objectType": {
-                      "description": "Discriminates which inherited object type the object represents",
-                      "type": "string",
-                      "isRequired": true,
-                      "isReadOnly": true
+                    objectType: {
+                      description: "Discriminates which inherited object type the object represents",
+                      type: "string",
+                      isRequired: true,
+                      isReadOnly: true
                     }
                   }
                 }

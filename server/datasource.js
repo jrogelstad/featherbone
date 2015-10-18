@@ -16,7 +16,7 @@
 **/
 
 (function (exports) {
-
+  "strict";
   var conn,
     pg = require("pg"),
     controller = require("./controller"),
@@ -127,7 +127,7 @@
       // Wrap transactions
       if (transaction && !obj.client) {
         obj.callback = afterTransaction;
-        obj.client.query("BEGIN;", function (err, resp) {
+        obj.client.query("BEGIN;", function (err) {
           if (err) {
             obj.callback(err);
             return;
@@ -145,7 +145,7 @@
 
     afterTransaction = function (err, resp) {
       if (err) {
-        obj.client.query("ROLLBACK;", function (e, resp) {
+        obj.client.query("ROLLBACK;", function () {
           afterRequest(err);
         });
 
@@ -304,6 +304,7 @@
   that.registerFunction("PUT", "saveFeather", controller.saveFeather);
   that.registerFunction("PUT", "saveSettings", controller.saveSettings);
   that.registerFunction("PUT", "setSuperUser", controller.setSuperUser);
+  that.registerFunction("PUT", "saveWorkbook", controller.saveWorkbook);
   that.registerFunction("DELETE", "deleteFeather", controller.deleteFeather);
 
 }(exports));
