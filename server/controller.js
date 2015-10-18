@@ -2244,7 +2244,7 @@
             return !props[item].inheritedFrom;
           });
           keys.every(function (key) {
-            var prop = props[key];
+            var vSql, prop = props[key];
             type = typeof prop.type === "string" ?
                 types[prop.type] : prop.type;
 
@@ -2310,9 +2310,9 @@
                     }
 
                     args.push(type.relation.toSnakeCase());
-                    sql += ("CREATE VIEW %I AS SELECT " + cols.join(",") +
-                      " FROM %I WHERE NOT is_deleted;");
-                    sql = sql.format(args);
+                    vSql = "CREATE VIEW %I AS SELECT " + cols.join(",") +
+                      " FROM %I WHERE NOT is_deleted;";
+                    sql += vSql.format(args);
                   }
 
                 /* Handle standard types */
@@ -2375,7 +2375,6 @@
             return;
           }
           var sequence = autonumber.sequence;
-
           sql = "SELECT relname FROM pg_class " +
             "JOIN pg_namespace ON relnamespace=pg_namespace.oid " +
             "WHERE relkind = 'S' AND relname = $1 AND nspname = 'public'";
@@ -2809,6 +2808,82 @@
     },
 
     /**
+      Create or upate settings.
+
+      @param {Object} Payload
+      @param {Object | Array} [payload.spec] Workbook specification(s).
+      @param {Object} [payload.client] Database client
+      @param {Function} [payload.callback] Callback
+      @return {String}
+    */
+    saveWorkbook: function (obj) {
+      var row, next, wb, sql, params,
+        findSql = "SELECT * FROM \"$workbook\" WHERE name = $1;",
+        workbooks = Array.isArray(obj.specs) ? obj.specs : [obj.specs],
+        len = workbooks.length,
+        n = 0;
+
+      next = function () {
+        if (n < len) {
+          wb = workbooks[n];
+          n += 1;
+
+          obj.client.query(findSql, [wb.name], function (err, resp) {
+            if (err) {
+              obj.callback(err);
+              return;
+            }
+
+            row = resp.rows[0];
+            if (row) {
+              sql = "UPDATE \"$workbook\" SET " +
+                "updated_by=$1, updated=now(), " +
+                "name=$2, description=$3, default_config=$4," +
+                "local_config=$5, module=$6 WHERE id=$7;";
+              params = [
+                obj.client.currentUser,
+                wb.name || row.name,
+                wb.description || row.description,
+                wb.defaultConfig || row.defaultConfig,
+                wb.localConfig || row.localConfig,
+                wb.module,
+                wb.name
+              ];
+            } else {
+              sql = "INSERT INTO \"$workbook\" VALUES (" +
+                "nextval('object__pk_seq'), $1, now(), " +
+                "$2, now(), $3, false, $4, $5, $6, $7, $8);";
+              params = [
+                f.createId(),
+                obj.client.currentUser,
+                obj.client.currentUser,
+                wb.name,
+                wb.description || "",
+                wb.defaultConfig || {},
+                wb.localConfig || {},
+                wb.module
+              ];
+            }
+
+            obj.client.query(sql, params, function (err) {
+              if (err) {
+                obj.callback(err);
+                return;
+              }
+
+              next();
+            });
+          });
+          return;
+        }
+
+        obj.callback(null, true);
+      };
+
+      next();
+    },
+
+    /**
       Sets a user as super user or not.
 
       @param {Object} Payload
@@ -2847,7 +2922,7 @@
         }
 
         sql = "SELECT * FROM \"$user\" WHERE username=$1;";
-        obj.query(sql, [user], afterGetPgUser);
+        obj.client.query(sql, [user], afterGetPgUser);
       };
 
       afterGetUser = function (err, resp) {
@@ -2862,7 +2937,7 @@
           sql = "INSERT INTO \"$user\" VALUES ($1, $2)";
         }
 
-        obj.query(sql, [user, isSuper], afterUpsert);
+        obj.client.query(sql, [user, isSuper], afterUpsert);
       };
 
       afterUpsert = function (err) {

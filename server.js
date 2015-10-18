@@ -299,7 +299,6 @@ init(function () {
     .get(doGetSettings);
 
   // REGISTER OUR ROUTES -------------------------------
-  // all of our routes will be prefixed with /data
   app.use('/data', dataRouter);
   app.use('/feather', featherRouter);
   app.use('/module', moduleRouter);
