@@ -21,7 +21,7 @@
   require("../common/extend-string");
 
   var that, createView, curry, getParentKey, isChildFeather,
-    propagateViews, propagateAuth, buildAuthSql, processSort,
+    propagateViews, buildAuthSql, processSort,
     relationColumn, sanitize,
     f = require("../common/core"),
     jsonpatch = require("fast-json-patch"),
@@ -433,10 +433,9 @@
       var sql, col, key, child, pk, n, dkeys, fkeys, len, msg, props, prop,
         value, result, afterGetFeather, afterIdCheck, afterNextVal,
         afterAuthorized, buildInsert, afterGetPk, afterHandleRelations,
-        afterInsert, afterDoSelect, afterLog, done,
+        afterInsert, afterDoSelect, afterLog,
         payload = {name: obj.name, client: obj.client},
         data = JSON.parse(JSON.stringify(obj.data)),
-        folder = obj.folder !== false ? obj.folder || ROOT : false,
         args = [obj.name.toSnakeCase()],
         tokens = [],
         params = [],
@@ -497,7 +496,6 @@
           that.isAuthorized({
             action: "canCreate",
             feather: obj.name,
-            folder: folder,
             client: obj.client,
             callback: afterAuthorized
           });
@@ -509,15 +507,13 @@
 
       afterAuthorized = function (err, authorized) {
         var ckeys;
-
         if (err) {
           obj.callback(err);
           return;
         }
 
         if (!authorized) {
-          msg = "Not authorized to create \"" + obj.name + "\" in folder \"" +
-            folder + "\"";
+          msg = "Not authorized to create \"" + obj.name + "\"";
           obj.callback({statusCode: 401, message: msg});
           return;
         }
@@ -716,7 +712,7 @@
 
         // We're done here if child
         if (isChild) {
-          done();
+          obj.callback(null, result);
           return;
         }
 
@@ -762,25 +758,6 @@
 
         // We're geing to return the changes
         result = jsonpatch.compare(obj.data, result);
-
-        /* Handle folder authorization propagation */
-        if (obj.name === "Folder") {
-          propagateAuth({
-            folderId: obj.folder,
-            client: obj.client,
-            callback: done
-          });
-          return;
-        }
-
-        done();
-      };
-
-      done = function (err) {
-        if (err) {
-          obj.callback(err);
-          return;
-        }
 
         // Report back result
         obj.callback(null, result);
@@ -1626,50 +1603,18 @@
       @param {String} [payload.feather] Class
       @param {String} [payload.id] Object id
       @param {String} [payload.user] User. Defaults to current user
-      @param {String} [payload.folder] Folder. Applies to "canCreate"
       @param {String} [payload.client] Datobase client
       @param {String} [payload.callback] Callback
         action
     */
     isAuthorized: function (obj) {
-      var table, pk, authSql, sql, callback, params,
+      var table, pk, authSql, sql, params,
         user = obj.user || obj.client.currentUser,
         feather = obj.feather,
-        folder = obj.folder,
         action = obj.action,
         id = obj.id,
         tokens = [],
         result = false;
-
-      callback = function () {
-        /* Check target location for create */
-        if (action === "canCreate" && result) {
-          if (!folder) { return false; }
-          sql =
-            "SELECT can_create FROM \"$auth\" AS auth " +
-            "  JOIN folder ON folder._pk=auth.object_pk " +
-            "  JOIN role ON role._pk=auth.role_pk " +
-            "  JOIN role_member ON role_member._parent_role_pk=role._pk " +
-            "WHERE role_member.member=$1" +
-            "  AND folder.id=$2" +
-            "  AND is_member_auth " +
-            "ORDER BY is_inherited, can_create DESC " +
-            "LIMIT 1";
-
-          obj.client.query(sql, [user, folder], function (err, resp) {
-            if (err) {
-              obj.callback(err);
-              return;
-            }
-
-            result = resp.rows.length > 0 ? resp.rows[0].can_create : false;
-            obj.callback(null, result);
-          });
-          return;
-        }
-
-        obj.callback(null, result);
-      };
 
       /* If feather, check class authorization */
       if (feather) {
@@ -1689,8 +1634,8 @@
             return;
           }
 
-          result = resp.rows;
-          callback();
+          result = resp.rows.length > 0;
+          obj.callback(null, result);
         });
 
       /* Otherwise check object authorization */
@@ -1721,7 +1666,7 @@
               }
 
               result = resp.rows.length > 0;
-              callback();
+              obj.callback(null, result);
             });
           }
         });
@@ -1772,8 +1717,6 @@
 
       @param {Object} Payload
       @param {String} [payload.id] Object id
-      @param {Boolean} [payload.isMember] Indicates member privilege
-        of folder
       @param {String} [payload.role] Role
       @param {Object} [payload.actions] Required
       @param {Boolean} [payload.actions.canCreate]
@@ -1785,7 +1728,7 @@
       var result, sql, pk, feather, params, objPk, rolePk,
         afterGetObjKey, afterGetRoleKey, afterGetFeatherName,
         afterGetFeather, checkSuperUser, afterCheckSuperUser,
-        afterUpsertAuth, afterQueryAuth, done,
+        afterQueryAuth, done,
         id = obj.feather ? obj.feather.toSnakeCase() : obj.id,
         actions = obj.actions || {},
         isMember = false,
@@ -1844,10 +1787,6 @@
 
         feather = resp.rows[0].feather.toCamelCase(true);
 
-        if (feather === "Folder") {
-          isMember = obj.isMember || false;
-        }
-
         that.getFeather({
           name: feather,
           client: obj.client,
@@ -1878,7 +1817,6 @@
       };
 
       checkSuperUser = function () {
-
         that.isSuperUser({
           client: obj.client,
           callback: function (err, isSuper) {
@@ -1978,30 +1916,11 @@
           ];
         } else {
 
-          afterUpsertAuth(null, false);
+          done(null, false);
           return;
         }
 
-        obj.client.query(sql, params, afterUpsertAuth);
-      };
-
-      afterUpsertAuth = function (err) {
-        if (err) {
-          obj.callback(err);
-          return;
-        }
-
-        if (feather === "Folder" && isMember) {
-          propagateAuth({
-            folderId: obj.id,
-            roleId: obj.role,
-            client: obj.client,
-            callback: done
-          });
-          return;
-        }
-
-        done();
+        obj.client.query(sql, params, done);
       };
 
       done = function (err) {
@@ -2792,8 +2711,8 @@
       @return {String}
     */
     saveWorkbook: function (obj) {
-      var row, nextWorkbook, nextSheet, wb, sql, params,
-        sheets, skeys, slen, s, pk, folder,
+      var row, nextWorkbook, nextSheet, wb, sql, params, authorization,
+        sheets, skeys, slen, s, pk, folder, id,
         findSql = "SELECT * FROM \"$workbook\" WHERE name = $1;",
         workbooks = Array.isArray(obj.specs) ? obj.specs : [obj.specs],
         len = workbooks.length,
@@ -2803,6 +2722,7 @@
         if (n < len) {
           wb = workbooks[n];
           folder = wb.folder || ROOT;
+          authorization = wb.authorization;
           n += 1;
 
           // Upsert workbook
@@ -2815,12 +2735,13 @@
 
             row = resp.rows[0];
             if (row) {
+              pk = row[PKCOL];
               // Update workbook
               sql = "UPDATE \"$workbook\" SET " +
                 "updated_by=$2, updated=now(), " +
                 "name=$3, description=$4, default_config=$5," +
-                "local_config=$6, module=$7 WHERE id=$1 " +
-                "RETURNING _pk;";
+                "local_config=$6, module=$7 WHERE id=$1;";
+              id = wb.id;
               localConfig = wb.localConfig || row.local_config;
               defaultConfig = wb.defaultConfig || row.default_config;
               params = [
@@ -2838,11 +2759,12 @@
                 "nextval('object__pk_seq'), $2, now(), " +
                 "$2, now(), $3, false, $1, $4, $5, $6, $7) " +
                 "RETURNING _pk;";
+              id = f.createId();
               localConfig = wb.localConfig || {};
               defaultConfig = wb.defaultConfig || {};
               params = [
                 wb.name,
-                f.createId(),
+                id,
                 obj.client.currentUser,
                 wb.description || "",
                 defaultConfig,
@@ -2859,7 +2781,7 @@
               }
 
               //Handle folder
-              pk = resp.rows[0][PKCOL];
+              pk = pk || resp.rows[0][PKCOL];
               sql = "DELETE FROM \"$objectfolder\" WHERE object_pk=$1;";
               params = [pk];
               obj.client.query(sql, params, function (err) {
@@ -2896,6 +2818,29 @@
                     skeys = Object.keys(sheets);
                     slen = skeys.length;
                     s = 0;
+
+
+                    // If no specific authorization, make one
+                    if (authorization === undefined) {
+                      authorization = {
+                        id: id,
+                        role: "everyone",
+                        actions: {
+                          canCreate: true,
+                          canRead: true,
+                          canUpdate: true,
+                          canDelete: true
+                        },
+                        client: obj.client,
+                        callback: nextSheet
+                      };
+                    }
+
+                    /* Set authorization */
+                    if (authorization) {
+                      that.saveAuthorization(authorization);
+                      return;
+                    }
 
                     // Insert sheets
                     nextSheet();
@@ -3060,25 +3005,6 @@
         "    WHERE member=$1" +
         "      AND object_pk=\"$feather\".parent_pk" +
         "    ORDER BY " + action + " DESC" +
-        "    LIMIT 1" +
-        "  ) AS data" +
-        "  WHERE " + action +
-        ") " +
-        "INTERSECT " +
-        "SELECT %I._pk " +
-        "FROM %I" +
-        "  JOIN \"$objectfolder\" ON _pk=object_pk " +
-        "WHERE EXISTS (" +
-        "  SELECT " + action + " FROM (" +
-        "    SELECT " + action +
-        "    FROM \"$auth\"" +
-        "      JOIN \"role\" on \"$auth\".\"role_pk\"=\"role\".\"_pk\"" +
-        "      JOIN \"role_member\"" +
-        "        ON \"role\".\"_pk\"=\"role_member\".\"_parent_role_pk\"" +
-        "    WHERE member=$1" +
-        "      AND object_pk=folder_pk" +
-        "      AND is_member_auth" +
-        "    ORDER BY is_inherited, " + action + " DESC" +
         "    LIMIT 1" +
         "  ) AS data" +
         "  WHERE " + action +
@@ -3324,203 +3250,6 @@
     }
 
     return clause;
-  };
-
-  /** private 
-    @param {Object} Payload
-    @param {String} [payload.folderId] Folder id. Required.
-    @param {String} [payload.roleId] Role id.
-    @param {String} [payload.isDeleted] Folder is hard deleted.
-    @param {Object} [payload.client] Database client
-    @param {Function} [payload.callback] Callback
-  */
-  propagateAuth = function (obj) {
-    var auth, auths, children, child, n, folderKey, recurse, params,
-      afterGetFolderKey, afterGetRoleId, getAuths, propagate, updateChild,
-      authSql = "SELECT object_pk, role_pk, can_create, can_read, " +
-      " can_update, can_delete " +
-      "FROM \"$auth\" AS auth" +
-      "  JOIN role ON role_pk=_pk " +
-      "WHERE object_pk=$1 " +
-      "  AND is_member_auth " +
-      "  AND is_inherited= $2",
-      childSql = "SELECT _pk, id " +
-      "FROM \"$objectfolder\"" +
-      " JOIN folder ON object_pk=_pk " +
-      "WHERE folder_pk=$1 ",
-      delSql = "DELETE FROM \"$auth\"" +
-      "WHERE object_pk=$1 AND role_pk=$2 " +
-      "  AND is_inherited " +
-      "  AND is_member_auth",
-      insSql = "INSERT INTO \"$auth\" VALUES (nextval('$auth_pk_seq')," +
-      "$1, $2, true, $3, $4, $5, $6, true)",
-      roleSql = "SELECT id FROM role WHERE _pk=$1",
-      i = 0;
-
-    afterGetFolderKey = function (err, resp) {
-      if (err) {
-        obj.callback(err);
-        return;
-      }
-
-      folderKey = resp;
-      params = [folderKey, false];
-
-      // Get the role key if necessary
-      if (obj.roleId) {
-        that.getKey({
-          id: obj.roleId,
-          client: obj.client,
-          callback: afterGetRoleId
-        });
-        return;
-      }
-
-      // Otherwise move on ahead
-      getAuths();
-    };
-
-    afterGetRoleId = function (err, roleKey) {
-      if (err) {
-        obj.callback(err);
-        return;
-      }
-
-      authSql += " AND role.id=$3";
-      params.push(roleKey);
-      getAuths();
-    };
-
-    // Get all authorizations for this folder
-    getAuths = function () {
-      obj.client.query(authSql, params, function (err, resp) {
-        if (err) {
-          obj.callback(err);
-          return;
-        }
-
-        auths = resp.rows;
-
-        if (!obj.roleId) {
-          authSql += " AND role.id=$3";
-        }
-
-        propagate();
-      });
-    };
-
-    // Propagate each authorization to children
-    propagate = function () {
-      if (i < auths.length) {
-        auth = auths[i];
-        i += 1;
-
-        // Only process if auth has no manual over-ride
-        params = [folderKey, false, auth.role_pk];
-        obj.client.query(authSql, params, function (err, resp) {
-          if (err) {
-            obj.callback(err);
-            return;
-          }
-
-          if (!resp.rows.length) {
-            // Find child folders
-            obj.client.query(childSql, [auth.object_pk], function (err, resp) {
-              if (err) {
-                obj.callback(err);
-                return;
-              }
-
-              children = resp.rows;
-              n = 0;
-
-              // Kick off update child loop
-              updateChild();
-            });
-
-            return;
-          }
-
-          propagate();
-        });
-
-        return;
-      }
-
-      // All done
-      obj.callback();
-    };
-
-    updateChild = function () {
-      if (n < children.length) {
-        child = children[n];
-        n += 1;
-
-        // Delete old authorizations
-        params = [child[PKCOL], auth.role_pk];
-        obj.client.query(delSql, params, function (err) {
-          if (err) {
-            obj.callback(err);
-            return;
-          }
-
-          // Insert new authorizations
-          params = [child[PKCOL], auth.role_pk, auth.can_create, auth.can_read,
-            auth.can_update, auth.can_delete];
-          if (!obj.isDeleted) {
-            obj.client.query(insSql, params, function (err) {
-              if (err) {
-                obj.callback(err);
-                return;
-              }
-
-              // Propagate recursively
-              if (obj.roleId) {
-                recurse(obj.roleId);
-                return;
-              }
-
-              obj.client.query(roleSql, [auth.role_pk], function (err, resp) {
-                if (err) {
-                  obj.callback(err);
-                  return;
-                }
-
-                recurse(resp.rows[0].id);
-              });
-            });
-
-            return;
-          }
-
-          // Move to next child
-          updateChild();
-        });
-
-        return;
-      }
-
-      // Loop to next authorization
-      propagate();
-    };
-
-    // Propagate recursively
-    recurse = function (roleId) {
-      propagateAuth({
-        folderId: child.id,
-        roleId: roleId,
-        isDeleted: obj.isDeleted,
-        client: obj.client,
-        callback: propagate
-      });
-    };
-
-    // Real work starts here
-    that.getKey({
-      id: obj.folderId,
-      client: obj.client,
-      callback: afterGetFolderKey
-    });
   };
 
   /** private */
