@@ -48,27 +48,25 @@ var f = (function () {
     */
     models: {},
 
-    modules: {},
-
     formats: {
-      "integer": {
+      integer: {
         default: 0,
         toType: function (value) { return parseInt(value, 10); }
       },
-      "string": {
+      string: {
         default: "",
         toType: function (value) { return value.toString(); }
       },
-      "boolean": {
+      boolean: {
         default: false,
         toType: function (value) { return !!value; }
       },
-      "date": {
+      date: {
         default: function () {
           return that.today();
         }
       },
-      "dateTime": {
+      dateTime: {
         default: function () {
           return that.now();
         },
@@ -77,11 +75,11 @@ var f = (function () {
           return dt;
         }
       },
-      "password": {
+      password: {
         default: "",
-        fromType: function (value) { return "*****"; }
+        fromType: function () { return "*****"; }
       },
-      "tel": {
+      tel: {
         default: ""
       }
     },
@@ -163,7 +161,7 @@ var f = (function () {
       thenables.push(deferred);
 
       if (typeof callback === "function") {
-        i++;
+        i += 1;
         queue.push(callback);
       }
       if (waiting) {
@@ -257,16 +255,16 @@ var f = (function () {
     },
 
     types: {
-      "array": { default: function () {return []; } },
-      "boolean": {
+      array: { default: function () {return []; } },
+      boolean: {
         default: false,
         toType: function (value) { return !!value; }
       },
-      "integer": {
+      integer: {
         default: 0,
         toType: function (value) { return parseInt(value, 10); }
       },
-      "number": {
+      number: {
         default: 0,
         fromType: function (value) {
           return value === null ? null : value.toLocaleString();
@@ -281,8 +279,8 @@ var f = (function () {
           return isNaN(result) ? null : result;
         }
       },
-      "object": { default: function () { return {}; } },
-      "string": {
+      object: { default: function () { return {}; } },
+      string: {
         default: "",
         toType: function (value) {
           return value === null ? null : value.toString();
