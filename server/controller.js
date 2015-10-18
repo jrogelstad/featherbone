@@ -27,7 +27,8 @@
     jsonpatch = require("fast-json-patch"),
     format = require("pg-format"),
     settings = {},
-    pkcol = "_pk",
+    PKCOL = "_pk",
+    ROOT = "global",
     types = {
       object: {type: "json", default: {}},
       array: {type: "json", default: []},
@@ -432,11 +433,10 @@
       var sql, col, key, child, pk, n, dkeys, fkeys, len, msg, props, prop,
         value, result, afterGetFeather, afterIdCheck, afterNextVal,
         afterAuthorized, buildInsert, afterGetPk, afterHandleRelations,
-        afterInsert, afterDoSelect, afterLog, insertFolder, afterHandleFolder,
-        done,
+        afterInsert, afterDoSelect, afterLog, done,
         payload = {name: obj.name, client: obj.client},
         data = JSON.parse(JSON.stringify(obj.data)),
-        folder = obj.folder !== false ? obj.folder || "global" : false,
+        folder = obj.folder !== false ? obj.folder || ROOT : false,
         args = [obj.name.toSnakeCase()],
         tokens = [],
         params = [],
@@ -736,31 +736,6 @@
         }
 
         result = resp;
-
-        /* Handle folder */
-        if (folder) {
-          that.getKey({id: folder, client: obj.client, callback: insertFolder});
-          return;
-        }
-
-        afterHandleFolder();
-      };
-
-      insertFolder = function (err, resp) {
-        if (err) {
-          obj.callback(err);
-          return;
-        }
-
-        sql = "INSERT INTO \"$objectfolder\" VALUES ($1, $2);";
-        obj.client.query(sql, [pk, resp], afterHandleFolder);
-      };
-
-      afterHandleFolder = function (err) {
-        if (err) {
-          obj.callback(err);
-          return;
-        }
 
         /* Handle change log */
         that.doInsert({
@@ -1460,7 +1435,7 @@
         }
 
         keys = resp.rows.map(function (rec) {
-          return rec[pkcol];
+          return rec[PKCOL];
         });
 
         obj.callback(null, keys);
@@ -1732,7 +1707,7 @@
           /* If object found, check authorization */
           if (resp.rows.length > 0) {
             table = resp.rows[0].table;
-            pk = resp.rows[0][pkcol];
+            pk = resp.rows[0][PKCOL];
 
             tokens.push(table);
             authSql =  buildAuthSql(action, table, tokens);
@@ -2457,7 +2432,7 @@
             recs = resp.rows;
 
             if (recs.length) {
-              values = [recs[0][pkcol]];
+              values = [recs[0][PKCOL]];
               i = 0;
               n += 1;
 
@@ -2818,7 +2793,7 @@
     */
     saveWorkbook: function (obj) {
       var row, nextWorkbook, nextSheet, wb, sql, params,
-        sheets, skeys, slen, s,
+        sheets, skeys, slen, s, pk, folder,
         findSql = "SELECT * FROM \"$workbook\" WHERE name = $1;",
         workbooks = Array.isArray(obj.specs) ? obj.specs : [obj.specs],
         len = workbooks.length,
@@ -2827,6 +2802,7 @@
       nextWorkbook = function () {
         if (n < len) {
           wb = workbooks[n];
+          folder = wb.folder || ROOT;
           n += 1;
 
           // Upsert workbook
@@ -2843,9 +2819,10 @@
               sql = "UPDATE \"$workbook\" SET " +
                 "updated_by=$2, updated=now(), " +
                 "name=$3, description=$4, default_config=$5," +
-                "local_config=$6, module=$7 WHERE id=$1;";
-              localConfig = wb.localConfig || row.localConfig;
-              defaultConfig = wb.defaultConfig || row.defaultConfig;
+                "local_config=$6, module=$7 WHERE id=$1 " +
+                "RETURNING _pk;";
+              localConfig = wb.localConfig || row.local_config;
+              defaultConfig = wb.defaultConfig || row.default_config;
               params = [
                 wb.name,
                 obj.client.currentUser,
@@ -2859,7 +2836,8 @@
               // Insert new workbook
               sql = "INSERT INTO \"$workbook\" VALUES (" +
                 "nextval('object__pk_seq'), $2, now(), " +
-                "$2, now(), $3, false, $1, $4, $5, $6, $7);";
+                "$2, now(), $3, false, $1, $4, $5, $6, $7) " +
+                "RETURNING _pk;";
               localConfig = wb.localConfig || {};
               defaultConfig = wb.defaultConfig || {};
               params = [
@@ -2867,40 +2845,62 @@
                 f.createId(),
                 obj.client.currentUser,
                 wb.description || "",
-                localConfig,
                 defaultConfig,
+                localConfig,
                 wb.module
               ];
             }
 
             // Execute
-            obj.client.query(sql, params, function (err) {
+            obj.client.query(sql, params, function (err, resp) {
               if (err) {
                 obj.callback(err);
                 return;
               }
 
-              // Delete old sheets
-              sql = "DELETE FROM \"$sheet\" WHERE workbook=$1;";
-              params = [wb.name];
+              //Handle folder
+              pk = resp.rows[0][PKCOL];
+              sql = "DELETE FROM \"$objectfolder\" WHERE object_pk=$1;";
+              params = [pk];
               obj.client.query(sql, params, function (err) {
                 if (err) {
                   obj.callback(err);
                   return;
                 }
 
-                // Decide whether to use original or modified sheet definition
-                if (Object.keys(localConfig).length) {
-                  sheets = localConfig;
-                } else {
-                  sheets = defaultConfig;
-                }
-                skeys = Object.keys(sheets);
-                slen = skeys.length;
-                s = 0;
+                sql = "INSERT INTO \"$objectfolder\" VALUES " +
+                  "($1, (SELECT _pk FROM folder WHERE id=$2));";
 
-                // Insert sheets
-                nextSheet();
+                params = [pk, folder];
+                obj.client.query(sql, params, function (err) {
+                  if (err) {
+                    obj.callback(err);
+                    return;
+                  }
+
+                  // Delete old sheets
+                  sql = "DELETE FROM \"$sheet\" WHERE workbook=$1;";
+                  params = [wb.name];
+                  obj.client.query(sql, params, function (err) {
+                    if (err) {
+                      obj.callback(err);
+                      return;
+                    }
+
+                    // Decide whether to use original or modified sheet definition
+                    if (Object.keys(localConfig).length) {
+                      sheets = localConfig;
+                    } else {
+                      sheets = defaultConfig;
+                    }
+                    skeys = Object.keys(sheets);
+                    slen = skeys.length;
+                    s = 0;
+
+                    // Insert sheets
+                    nextSheet();
+                  });
+                });
               });
             });
           });
@@ -3457,7 +3457,7 @@
         n += 1;
 
         // Delete old authorizations
-        params = [child[pkcol], auth.role_pk];
+        params = [child[PKCOL], auth.role_pk];
         obj.client.query(delSql, params, function (err) {
           if (err) {
             obj.callback(err);
@@ -3465,7 +3465,7 @@
           }
 
           // Insert new authorizations
-          params = [child[pkcol], auth.role_pk, auth.can_create, auth.can_read,
+          params = [child[PKCOL], auth.role_pk, auth.can_create, auth.can_read,
             auth.can_update, auth.can_delete];
           if (!obj.isDeleted) {
             obj.client.query(insSql, params, function (err) {

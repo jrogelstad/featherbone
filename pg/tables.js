@@ -225,7 +225,7 @@
           sql = "CREATE TABLE \"$sheet\" (" +
             "name text," +
             "feather_pk integer REFERENCES \"$feather\" (_pk)," +
-            "workbook text REFERENCES \"$workbook\" (name)," +
+            "workbook text REFERENCES \"$workbook\" (name) ON DELETE CASCADE," +
             "CONSTRAINT sheet_pkey PRIMARY KEY (name, workbook));" +
             "COMMENT ON TABLE \"$sheet\" IS 'Internal table for storing workbook sheets';" +
             "COMMENT ON COLUMN \"$sheet\".name IS 'Sheet name';" +
