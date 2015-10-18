@@ -226,10 +226,9 @@
             "name text," +
             "feather_pk integer REFERENCES \"$feather\" (_pk)," +
             "workbook text REFERENCES \"$workbook\" (name)," +
-            "CONSTRAINT sheet_pkey PRIMARY KEY (_pk), " +
-            "CONSTRAINT sheet_id_key UNIQUE (id)) INHERITS (object);" +
+            "CONSTRAINT sheet_pkey PRIMARY KEY (name, workbook));" +
             "COMMENT ON TABLE \"$sheet\" IS 'Internal table for storing workbook sheets';" +
-            "COMMENT ON COLUMN \"$sheet\".name IS 'Primary key';" +
+            "COMMENT ON COLUMN \"$sheet\".name IS 'Sheet name';" +
             "COMMENT ON COLUMN \"$sheet\".feather_pk IS 'Foreign key to feather';" +
             "COMMENT ON COLUMN \"$sheet\".workbook IS 'Foreign key to workbook';";
           obj.client.query(sql, createUser);
@@ -374,6 +373,7 @@
   DROP TABLE "$auth";
   DROP TABLE "$objectfolder";
   DROP TABLE "$module";
+  DROP TABLE "$sheet";
   DROP TABLE "$user";
   DROP FUNCTION to_camel_case(text);
 */

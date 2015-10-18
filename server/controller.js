@@ -2817,18 +2817,21 @@
       @return {String}
     */
     saveWorkbook: function (obj) {
-      var row, next, wb, sql, params,
+      var row, nextWorkbook, nextSheet, wb, sql, params,
+        sheets, skeys, slen, s,
         findSql = "SELECT * FROM \"$workbook\" WHERE name = $1;",
         workbooks = Array.isArray(obj.specs) ? obj.specs : [obj.specs],
         len = workbooks.length,
         n = 0;
 
-      next = function () {
+      nextWorkbook = function () {
         if (n < len) {
           wb = workbooks[n];
           n += 1;
 
+          // Upsert workbook
           obj.client.query(findSql, [wb.name], function (err, resp) {
+            var localConfig, defaultConfig;
             if (err) {
               obj.callback(err);
               return;
@@ -2836,42 +2839,69 @@
 
             row = resp.rows[0];
             if (row) {
+              // Update workbook
               sql = "UPDATE \"$workbook\" SET " +
-                "updated_by=$1, updated=now(), " +
-                "name=$2, description=$3, default_config=$4," +
-                "local_config=$5, module=$6 WHERE id=$7;";
+                "updated_by=$2, updated=now(), " +
+                "name=$3, description=$4, default_config=$5," +
+                "local_config=$6, module=$7 WHERE id=$1;";
+              localConfig = wb.localConfig || row.localConfig;
+              defaultConfig = wb.defaultConfig || row.defaultConfig;
               params = [
+                wb.name,
                 obj.client.currentUser,
                 wb.name || row.name,
                 wb.description || row.description,
-                wb.defaultConfig || row.defaultConfig,
-                wb.localConfig || row.localConfig,
-                wb.module,
-                wb.name
+                defaultConfig,
+                localConfig,
+                wb.module
               ];
             } else {
+              // Insert new workbook
               sql = "INSERT INTO \"$workbook\" VALUES (" +
-                "nextval('object__pk_seq'), $1, now(), " +
-                "$2, now(), $3, false, $4, $5, $6, $7, $8);";
+                "nextval('object__pk_seq'), $2, now(), " +
+                "$2, now(), $3, false, $1, $4, $5, $6, $7);";
+              localConfig = wb.localConfig || {};
+              defaultConfig = wb.defaultConfig || {};
               params = [
+                wb.name,
                 f.createId(),
                 obj.client.currentUser,
-                obj.client.currentUser,
-                wb.name,
                 wb.description || "",
-                wb.defaultConfig || {},
-                wb.localConfig || {},
+                localConfig,
+                defaultConfig,
                 wb.module
               ];
             }
 
+            // Execute
             obj.client.query(sql, params, function (err) {
               if (err) {
                 obj.callback(err);
                 return;
               }
 
-              next();
+              // Delete old sheets
+              sql = "DELETE FROM \"$sheet\" WHERE workbook=$1;";
+              params = [wb.name];
+              obj.client.query(sql, params, function (err) {
+                if (err) {
+                  obj.callback(err);
+                  return;
+                }
+
+                // Decide whether to use original or modified sheet definition
+                if (Object.keys(localConfig).length) {
+                  sheets = localConfig;
+                } else {
+                  sheets = defaultConfig;
+                }
+                skeys = Object.keys(sheets);
+                slen = skeys.length;
+                s = 0;
+
+                // Insert sheets
+                nextSheet();
+              });
             });
           });
           return;
@@ -2880,7 +2910,34 @@
         obj.callback(null, true);
       };
 
-      next();
+      nextSheet = function () {
+        var sheet, feather;
+        if (s < slen) {
+          sheet = skeys[s];
+          s += 1;
+
+          feather = sheets[sheet].feather || sheet;
+          feather = feather.toSnakeCase();
+          sql = "INSERT INTO \"$sheet\" VALUES ($1, (SELECT _pk FROM \"$feather\" WHERE id=$2), $3);";
+          params = [sheet, feather, wb.name];
+
+          obj.client.query(sql, params, function (err) {
+            if (err) {
+              obj.callback(err);
+              return;
+            }
+
+            // Insert next sheet
+            nextSheet();
+          });
+
+          return;
+        }
+
+        nextWorkbook();
+      };
+
+      nextWorkbook();
     },
 
     /**
