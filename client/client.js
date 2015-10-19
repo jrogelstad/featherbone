@@ -20,6 +20,15 @@
 
   "strict";
 
+  var workbooks = m.prop(),
+    getConfig = function (workbook) {
+      var config = workbook.defaultConfig;
+      if (Object.keys(workbook.localConfig).length) {
+        config = workbook.localConfig;
+      }
+      return config;
+    };
+
   // Load catalog and process models
   f.init(function () {
     return f.catalog.fetch().then(function (data) {
@@ -54,39 +63,42 @@
   // Load modules
   f.init(function () {
     var ds = f.dataSource,
-      results = m.prop([]),
+      modules = m.prop([]),
       payload = {method: "GET", path: "/modules/"};
 
-    return ds.request(payload).then(results).then(function () {
-      // Loop through each module record and load modules
-      results().forEach(function (result) {
-        var keys = Object.keys(result.modules);
-
-        // Loop through each module definition and append
-        keys.forEach(function (key) {
-          f.modules[key] = result.modules[key];
-        });
+    return ds.request(payload).then(modules).then(function () {
+      // Loop through each module record and run script
+      modules().forEach(function (module) {
+        eval(module.script);
       });
 
       return true;
     });
   });
 
+  // Load workbooks
+  f.init(function () {
+    var ds = f.dataSource,
+      payload = {method: "GET", path: "/workbooks/"};
+
+    return ds.request(payload).then(workbooks);
+  });
+
   // When all intialization done, construct app.
   f.init().then(function () {
-    var keys,
-      app = {},
+    var app = {},
       routes = {};
-
-    keys = Object.keys(f.modules);
 
     // Build home navigation page
     app.Home = {
       controller: function () {
         var that = this;
 
-        keys.forEach(function (key) {
-          var plural = f.catalog.getFeather(key).plural;
+        workbooks().forEach(function (workbook) {
+          var config = getConfig(workbook),
+            sheet = Object.keys(config)[0],
+            feather = config[sheet].feather || sheet,
+            plural = workbook.name + f.catalog.data()[feather].plural;
 
           that["go" + plural] = function () {
             m.route("/" + plural.toSpinalCase());
@@ -94,58 +106,48 @@
         });
       },
       view: function (ctrl) {
-        var buttons = keys.map(function (key) {
-            var plural = f.catalog.getFeather(key).plural;
-
+        var buttons = workbooks().map(function (workbook) {
+            var config = getConfig(workbook),
+              sheet = Object.keys(config)[0],
+              feather = config[sheet].feather || sheet,
+              plural = workbook.name + f.catalog.data()[feather].plural;
             return m("button[type=button]", {
               onclick: ctrl["go" + plural]
-            }, plural);
+            }, workbook.name);
           });
         return m("div", buttons);
       }
     };
     routes["/home"] = app.Home;
 
-    // Build relation widget for module if applicable
-    keys.forEach(function (key) {
-      var name,
-        relopts = f.modules[key].relation;
-
-      if (relopts) {
-        name = key.toCamelCase();
-        f.components[name + "Relation"] = function (options) {
-          options = options || {};
-          var w = f.components.relationWidget({
-            parentProperty: options.parentProperty || relopts.parentProperty,
-            valueProperty: options.valueProperty || relopts.valueProperty,
-            labelProperty: options.labelProperty || relopts.labelProperty
-          });
-
-          return w;
-        };
-      }
-    });
-
     // Build app for each configured object
-    keys.forEach(function (key) {
-      var plural = f.catalog.data()[key].plural.toSpinalCase(),
-        name = key.toSpinalCase();
+    workbooks().forEach(function (workbook) {
+      var config = getConfig(workbook),
+        keys = Object.keys(config);
 
-      // Build UI
-      app[key + "TableDisplay"] = f.components.tableDisplay({
-        feather: key,
-        attrs: f.modules[key].list.attrs
+      keys.forEach(function (sheet) {
+        var sname = workbook.name + sheet,
+          feather = config[sheet].feather || sheet,
+          plural = workbook.name + f.catalog.data()[feather].plural,
+          name = sname.toSpinalCase();
+        plural = plural.toSpinalCase();
+
+        // Build UI
+        app[sname + "TableDisplay"] = f.components.tableDisplay({
+          feather: feather,
+          attrs: config[sheet].list.attrs
+        });
+
+        app[sname + "FormDisplay"] = f.components.formDisplay({
+          feather: feather,
+          attrs: config[sheet].form.attrs
+        });
+
+        // Build routes
+        routes["/" + plural] = app[sname + "TableDisplay"];
+        routes["/" + name] = app[sname + "FormDisplay"];
+        routes["/" + name + "/:id"] = app[sname + "FormDisplay"];
       });
-
-      app[key + "FormDisplay"] = f.components.formDisplay({
-        feather: key,
-        attrs: f.modules[key].form.attrs
-      });
-
-      // Build routes
-      routes["/" + plural] = app[key + "TableDisplay"];
-      routes["/" + name] = app[key + "FormDisplay"];
-      routes["/" + name + "/:id"] = app[key + "FormDisplay"];
     });
 
     m.route(document.body, "/home", routes);
