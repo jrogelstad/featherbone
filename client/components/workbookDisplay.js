@@ -94,8 +94,11 @@
     vm.selection = function () {
       return selection;
     };
+    vm.config = function () {
+      return options.config || {};
+    };
     vm.sheets = function () {
-      Object.keys(options.conifg || {});
+      return Object.keys(options.config || {});
     };
     vm.toggleOpen = function (model) {
       selection = model;
@@ -120,8 +123,19 @@
     };
 
     component.view = function (ctrl) {
-      var vm = ctrl.vm;
-      return m("div", [
+      var vm = ctrl.vm, tabs;
+
+      tabs = vm.sheets().map(function (sheet) {
+        var  sconfig = vm.config()[sheet],
+          label = sconfig.feather ? sheet : f.catalog.getFeather(sheet).plural;
+        return m("button[type=button]", {
+            class: "pure-button"
+          }, label);
+      });
+
+      return m("form", {
+        class: "pure-form"
+      }, [
         m("div", {id: "toolbar"}, [
           m("button", {
             type: "button",
@@ -207,8 +221,8 @@
             config: function (e) {
               var tb = document.getElementById("toolbar"),
                 hd = document.getElementById("header"),
-                sb = document.getElementById("sheetButtons"),
-                mh = window.innerHeight - tb.clientHeight - hd.clientHeight - sb.clientHeight- 12;
+                ts = document.getElementById("tabs"),
+                mh = window.innerHeight - tb.clientHeight - hd.clientHeight - ts.clientHeight- 12;
 
               // Set fields table to scroll and toolbar to stay put
               document.documentElement.style.overflow = 'hidden';
@@ -242,13 +256,9 @@
             })
           ])
         ]),
-        m("form", {
-            id: "sheetButtons"
-          }, [
-          m("button[type=button]", {class: "pure-button"}, "Contacts"),
-          m("button[type=button]", {class: "pure-button"}, "Leads"),
-          m("button[type=button]", {class: "pure-button"}, "Opportunities")
-        ])
+        m("div", {
+            id: "tabs"
+          }, tabs)
       ]);
     };
 

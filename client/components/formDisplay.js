@@ -125,26 +125,24 @@
       attrs = options.attrs.map(function (key) {
         if (!focusAttr) { focusAttr = key; }
         var color, result;
-        color = d[key].isRequired() && d[key]() === null ? "Red" : "Black";
-        result = m("tr", [
-          m("td", [
-            m("label", {
-              for: key,
-              style: {
-                color: color // TODO: Handle this with CSS
-              }
-            }, key.toProperCase() + ":")
-          ]),
-          m("td", [
-            findComponent(key)
-          ])
+        color = (d[key].isRequired() && d[key]()) === null ? "Red" : "Black";
+        result = m("div", {
+          class: "pure-control-group"
+        }, [
+          m("label", {
+            for: key,
+            style: {
+              color: color
+            }
+          }, key.toProperCase() + ":"),
+          findComponent(key)
         ]);
         return result;
       });
 
       return m("form", {
-        class: "pure-form",
-        config: function (e) {
+        class: "pure-form pure-form-aligned",
+        config: function () {
           if (ctrl.vm.isFirstLoad()) {
             document.getElementById(focusAttr).focus();
             ctrl.vm.isFirstLoad(false);
@@ -173,7 +171,7 @@
             type: "button",
             class: "pure-button",
             onclick: ctrl.vm.canSave() ? ctrl.vm.doSaveAndNew : ctrl.vm.doNew
-          }, ctrl.vm.canSave() ? "Save & New" : "New"),
+          }, ctrl.vm.canSave() ? "Save & New" : "New")
         ]),
         m("div", {
           style: {
@@ -187,7 +185,7 @@
             e.style.maxHeight = (window.innerHeight - tb.clientHeight) + "px";
           }
         }, [
-          m("table", attrs)
+          m("fieldset", attrs)
         ])
       ]);
     };
