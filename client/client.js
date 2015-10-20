@@ -98,10 +98,11 @@
           var config = getConfig(workbook),
             sheet = Object.keys(config)[0],
             feather = config[sheet].feather || sheet,
-            plural = workbook.name + f.catalog.data()[feather].plural;
+            plural = workbook.name + f.catalog.data()[feather].plural,
+            proute = workbook.name + "/" + f.catalog.data()[feather].plural;
 
           that["go" + plural] = function () {
-            m.route("/" + plural.toSpinalCase());
+            m.route("/" + proute.toSpinalCase());
           };
         });
       },
@@ -112,6 +113,7 @@
               feather = config[sheet].feather || sheet,
               plural = workbook.name + f.catalog.data()[feather].plural;
             return m("button[type=button]", {
+              class: "pure-button",
               onclick: ctrl["go" + plural]
             }, workbook.name);
           });
@@ -129,13 +131,18 @@
         var sname = workbook.name + sheet,
           feather = config[sheet].feather || sheet,
           plural = workbook.name + f.catalog.data()[feather].plural,
-          name = sname.toSpinalCase();
+          proute = workbook.name + "/" + f.catalog.data()[feather].plural,
+          sroute = workbook.name + "/" + sheet;
         plural = plural.toSpinalCase();
+        proute = proute.toSpinalCase();
+        sroute = sroute.toSpinalCase();
 
         // Build UI
-        app[sname + "TableDisplay"] = f.components.tableDisplay({
+        app[sname + "WorkbookDisplay"] = f.components.workbookDisplay({
           feather: feather,
-          attrs: config[sheet].list.attrs
+          attrs: config[sheet].list.attrs,
+          config: config,
+          selected: sheet
         });
 
         app[sname + "FormDisplay"] = f.components.formDisplay({
@@ -144,9 +151,9 @@
         });
 
         // Build routes
-        routes["/" + plural] = app[sname + "TableDisplay"];
-        routes["/" + name] = app[sname + "FormDisplay"];
-        routes["/" + name + "/:id"] = app[sname + "FormDisplay"];
+        routes["/" + proute] = app[sname + "WorkbookDisplay"];
+        routes["/" + sroute] = app[sname + "FormDisplay"];
+        routes["/" + sroute + "/:id"] = app[sname + "FormDisplay"];
       });
     });
 

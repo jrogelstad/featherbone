@@ -18,7 +18,7 @@
 (function (f) {
   "use strict";
 
-  f.viewModels.tableViewModel = function (options) {
+  f.viewModels.workbookViewModel = function (options) {
     var vm = {},
       selection, scrWidth,
       feather = options.feather,
@@ -94,6 +94,9 @@
     vm.selection = function () {
       return selection;
     };
+    vm.sheets = function () {
+      Object.keys(options.conifg || {});
+    };
     vm.toggleOpen = function (model) {
       selection = model;
       vm.modelOpen();
@@ -109,11 +112,11 @@
     return vm;
   };
 
-  f.components.tableDisplay = function (options) {
+  f.components.workbookDisplay = function (options) {
     var component = {};
 
     component.controller = function () {
-      this.vm = f.viewModels.tableViewModel(options);
+      this.vm = f.viewModels.workbookViewModel(options);
     };
 
     component.view = function (ctrl) {
@@ -122,19 +125,23 @@
         m("div", {id: "toolbar"}, [
           m("button", {
             type: "button",
+            class: "pure-button",
             onclick: vm.goHome
           }, "Home"),
           m("button", {
             type: "button",
+            class: "pure-button",
             onclick: vm.modelNew
           }, "New"),
           m("button", {
             type: "button",
+            class: "pure-button",
             onclick: vm.modelOpen,
             disabled: vm.hasSelection()
           }, "Open"),
           m("button", {
             type: "button",
+            class: "pure-button",
             onclick: vm.modelDelete,
             disabled: vm.hasSelection()
           }, "Delete"),
@@ -148,6 +155,7 @@
           })
         ]),
         m("table", {
+          class: "pure-table",
           style: {
             tableLayout: "fixed",
             width: "100%"
@@ -199,7 +207,8 @@
             config: function (e) {
               var tb = document.getElementById("toolbar"),
                 hd = document.getElementById("header"),
-                mh = window.innerHeight - tb.clientHeight - hd.clientHeight - 10;
+                sb = document.getElementById("sheetButtons"),
+                mh = window.innerHeight - tb.clientHeight - hd.clientHeight - sb.clientHeight- 12;
 
               // Set fields table to scroll and toolbar to stay put
               document.documentElement.style.overflow = 'hidden';
@@ -232,6 +241,13 @@
               }, tds);
             })
           ])
+        ]),
+        m("form", {
+            id: "sheetButtons"
+          }, [
+          m("button[type=button]", {class: "pure-button"}, "Contacts"),
+          m("button[type=button]", {class: "pure-button"}, "Leads"),
+          m("button[type=button]", {class: "pure-button"}, "Opportunities")
         ])
       ]);
     };

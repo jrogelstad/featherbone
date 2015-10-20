@@ -143,6 +143,7 @@
       });
 
       return m("form", {
+        class: "pure-form",
         config: function (e) {
           if (ctrl.vm.isFirstLoad()) {
             document.getElementById(focusAttr).focus();
@@ -153,20 +154,24 @@
         m("div", {id: "toolbar"}, [
           m("button", {
             type: "button",
+             class: "pure-button",
             onclick: ctrl.vm.doList
           }, "Done"),
           m("button", {
             type: "button",
+            class: "pure-button",
             disabled: !ctrl.vm.canSave(),
             onclick: ctrl.vm.doApply
           }, "Apply"),
           m("button", {
             type: "button",
+            class: "pure-button",
             disabled: !ctrl.vm.canSave(),
             onclick: ctrl.vm.doSave
           }, "Save"),
           m("button", {
             type: "button",
+            class: "pure-button",
             onclick: ctrl.vm.canSave() ? ctrl.vm.doSaveAndNew : ctrl.vm.doNew
           }, ctrl.vm.canSave() ? "Save & New" : "New"),
         ]),
