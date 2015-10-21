@@ -139,10 +139,11 @@
 
         // Build UI
         app[sname + "WorkbookDisplay"] = f.components.workbookDisplay({
+          name: workbook.name,
           feather: feather,
           attrs: config[sheet].list.attrs,
           config: config,
-          selected: sheet
+          selectedTab: sheet
         });
 
         app[sname + "FormDisplay"] = f.components.formDisplay({

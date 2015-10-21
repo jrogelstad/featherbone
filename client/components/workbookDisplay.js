@@ -18,42 +18,40 @@
 (function (f) {
   "use strict";
 
+  // Calculate scroll bar width
+  // http://stackoverflow.com/questions/13382516/getting-scroll-bar-width-using-javascript
+  var scrWidth, inner, widthNoScroll, widthWithScroll,
+    outer = document.createElement("div");
+
+  outer.style.visibility = "hidden";
+  outer.style.width = "100px";
+  outer.style.msOverflowStyle = "scrollbar"; // needed for WinJS apps
+
+  document.body.appendChild(outer);
+
+  widthNoScroll = outer.offsetWidth;
+  // force scrollbars
+  outer.style.overflow = "scroll";
+
+  // add innerdiv
+  inner = document.createElement("div");
+  inner.style.width = "100%";
+  outer.appendChild(inner);        
+
+  widthWithScroll = inner.offsetWidth;
+
+  // remove divs
+  outer.parentNode.removeChild(outer);
+  scrWidth = widthNoScroll - widthWithScroll;
+
   f.viewModels.workbookViewModel = function (options) {
     var vm = {},
-      selection, scrWidth,
-      feather = options.feather,
-      name = feather.toCamelCase(),
-      pathName = feather.toSpinalCase(),
-      plural = f.catalog.getFeather(feather).plural.toSpinalCase();
+      selection,
+      name = options.feather.toCamelCase(),
+      pathName = options.feather.toSpinalCase(),
+      plural = f.catalog.getFeather(options.feather).plural.toSpinalCase();
 
-    vm.scrollbarWidth = function getScrollbarWidth() {
-      if (!scrWidth) {
-        // http://stackoverflow.com/questions/13382516/getting-scroll-bar-width-using-javascript
-        var inner, widthNoScroll, widthWithScroll,
-          outer = document.createElement("div");
-
-        outer.style.visibility = "hidden";
-        outer.style.width = "100px";
-        outer.style.msOverflowStyle = "scrollbar"; // needed for WinJS apps
-
-        document.body.appendChild(outer);
-
-        widthNoScroll = outer.offsetWidth;
-        // force scrollbars
-        outer.style.overflow = "scroll";
-
-        // add innerdiv
-        inner = document.createElement("div");
-        inner.style.width = "100%";
-        outer.appendChild(inner);        
-
-        widthWithScroll = inner.offsetWidth;
-
-        // remove divs
-        outer.parentNode.removeChild(outer);
-
-        scrWidth = widthNoScroll - widthWithScroll;
-      }
+    vm.scrollbarWidth = function () {
       return scrWidth;
     };
     vm.models = f.models[name].list();
@@ -94,11 +92,20 @@
     vm.selection = function () {
       return selection;
     };
+    vm.selectedTab = m.prop(options.selectedTab);
     vm.config = function () {
       return options.config || {};
     };
     vm.sheets = function () {
       return Object.keys(options.config || {});
+    };
+    vm.tabClicked = function (sheet) {
+      var sconfig = options.config[sheet],
+        feather = sconfig.feather || sheet,
+        route = "/" + options.name.toSpinalCase() + "/" +
+          f.catalog.data()[feather].plural.toSpinalCase();
+
+      m.route(route);
     };
     vm.toggleOpen = function (model) {
       selection = model;
@@ -112,6 +119,7 @@
       vm.select(model);
       return true;
     };
+
     return vm;
   };
 
@@ -123,15 +131,7 @@
     };
 
     component.view = function (ctrl) {
-      var vm = ctrl.vm, tabs;
-
-      tabs = vm.sheets().map(function (sheet) {
-        var  sconfig = vm.config()[sheet],
-          label = sconfig.feather ? sheet : f.catalog.getFeather(sheet).plural;
-        return m("button[type=button]", {
-            class: "pure-button"
-          }, label);
-      });
+      var vm = ctrl.vm;
 
       return m("form", {
         class: "pure-form"
@@ -258,7 +258,23 @@
         ]),
         m("div", {
             id: "tabs"
-          }, tabs)
+          }, 
+          vm.sheets().map(function (sheet) {
+            var  sconfig = vm.config()[sheet],
+              label = sconfig.feather ?
+                sheet : f.catalog.getFeather(sheet).plural;
+            return m("button[type=button]", {
+                class: vm.selectedTab() === sheet ?
+                  "pure-button pure-button-active" : "pure-button",
+                style: {
+                  borderTopLeftRadius: "0px",
+                  borderTopRightRadius: "0px",
+                  fontSize: "85%"
+                },
+                onclick: vm.tabClicked.bind(this, sheet)
+              }, label);
+          })
+        )
       ]);
     };
 
