@@ -136,35 +136,42 @@
       return m("form", {
         class: "pure-form"
       }, [
-        m("div", {id: "toolbar"}, [
+        m("div", {
+            id: "toolbar"
+          }, [
           m("button", {
             type: "button",
             class: "pure-button",
+            style: { margin: "1px" },
             onclick: vm.goHome
-          }, "Home"),
+          }, [m("i", {class:"fa fa-home"})], " Home"),
           m("button", {
             type: "button",
             class: "pure-button",
+            style: { margin: "1px" },
             onclick: vm.modelNew
-          }, "New"),
+          }, [m("i", {class:"fa fa-plus-circle"})], " New"),
           m("button", {
             type: "button",
             class: "pure-button",
+            style: { margin: "1px" },
             onclick: vm.modelOpen,
             disabled: vm.hasSelection()
-          }, "Open"),
+          }, [m("i", {class:"fa fa-folder-open"})], " Open"),
           m("button", {
             type: "button",
             class: "pure-button",
+            style: { margin: "1px" },
             onclick: vm.modelDelete,
             disabled: vm.hasSelection()
-          }, "Delete"),
+          }, [m("i", {class:"fa fa-remove"})], " Delete"),
           m("input", {
             type: "search",
             value: "Search",
             style: {
               color: "LightGrey",
-              fontStyle: "italic"
+              fontStyle: "italic",
+              margin: "2px"
             }
           })
         ]),

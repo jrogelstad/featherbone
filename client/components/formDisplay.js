@@ -149,29 +149,38 @@
           }
         }
       }, [
-        m("div", {id: "toolbar"}, [
-          m("button", {
-            type: "button",
-             class: "pure-button",
-            onclick: ctrl.vm.doList
-          }, "Done"),
+        m("div", {id: "toolbar",
+          style: {
+            margin: "2px"
+          }
+        }, [
           m("button", {
             type: "button",
             class: "pure-button",
+            style: { margin: "1px" },
+            onclick: ctrl.vm.doList
+          }, [m("i", {class:"fa fa-arrow-left"})], " Done"),
+          m("button", {
+            type: "button",
+            class: "pure-button",
+            style: { margin: "1px" },
             disabled: !ctrl.vm.canSave(),
             onclick: ctrl.vm.doApply
           }, "Apply"),
           m("button", {
             type: "button",
             class: "pure-button",
+            style: { margin: "1px" },
             disabled: !ctrl.vm.canSave(),
             onclick: ctrl.vm.doSave
-          }, "Save"),
+          }, [m("i", {class:"fa fa-save"})], " Save"),
           m("button", {
             type: "button",
             class: "pure-button",
+            style: { margin: "1px" },
             onclick: ctrl.vm.canSave() ? ctrl.vm.doSaveAndNew : ctrl.vm.doNew
-          }, ctrl.vm.canSave() ? "Save & New" : "New")
+          }, [m("i", {class:"fa fa-asterisk"})],
+          ctrl.vm.canSave() ? " Save & New" : " New")
         ]),
         m("div", {
           style: {
