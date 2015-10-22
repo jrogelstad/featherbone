@@ -97,12 +97,14 @@
         workbooks().forEach(function (workbook) {
           var config = getConfig(workbook),
             sheet = Object.keys(config)[0],
-            feather = config[sheet].feather || sheet,
-            plural = workbook.name + f.catalog.data()[feather].plural,
-            proute = workbook.name + "/" + f.catalog.data()[feather].plural;
+            feather = config[sheet].feather,
+            name = workbook.name + sheet,
+            plural = f.catalog.data()[feather].plural,
+            route = "/" + workbook.name + "/" + plural;
+          route = route.toSpinalCase();
 
-          that["go" + plural] = function () {
-            m.route("/" + proute.toSpinalCase());
+          that["go" + name] = function () {
+            m.route(route);
           };
         });
       },
@@ -110,11 +112,10 @@
         var buttons = workbooks().map(function (workbook) {
             var config = getConfig(workbook),
               sheet = Object.keys(config)[0],
-              feather = config[sheet].feather || sheet,
-              plural = workbook.name + f.catalog.data()[feather].plural;
+              name = workbook.name + sheet;
             return m("button[type=button]", {
               class: "pure-button",
-              onclick: ctrl["go" + plural]
+              onclick: ctrl["go" + name]
             }, workbook.name);
           });
         return m("div", buttons);
@@ -128,17 +129,17 @@
         keys = Object.keys(config);
 
       keys.forEach(function (sheet) {
-        var sname = workbook.name + sheet,
-          feather = config[sheet].feather || sheet,
-          plural = workbook.name + f.catalog.data()[feather].plural,
-          proute = workbook.name + "/" + f.catalog.data()[feather].plural,
-          sroute = workbook.name + "/" + sheet;
-        plural = plural.toSpinalCase();
-        proute = proute.toSpinalCase();
-        sroute = sroute.toSpinalCase();
+        var name = workbook.name + sheet,
+          feather = config[sheet].feather,
+          plural = f.catalog.data()[feather].plural,
+          wbkroute = "/" + workbook.name + "/" + plural,
+          frmroute = "/" + workbook.name + "/" + feather;
+        name = name.toCamelCase();
+        wbkroute = wbkroute.toSpinalCase();
+        frmroute = frmroute.toSpinalCase();
 
         // Build UI
-        app[sname + "WorkbookDisplay"] = f.components.workbookDisplay({
+        app[name + "WorkbookDisplay"] = f.components.workbookDisplay({
           name: workbook.name,
           feather: feather,
           attrs: config[sheet].list.attrs,
@@ -146,15 +147,15 @@
           selectedTab: sheet
         });
 
-        app[sname + "FormDisplay"] = f.components.formDisplay({
+        app[name + "FormDisplay"] = f.components.formDisplay({
           feather: feather,
           attrs: config[sheet].form.attrs
         });
 
         // Build routes
-        routes["/" + proute] = app[sname + "WorkbookDisplay"];
-        routes["/" + sroute] = app[sname + "FormDisplay"];
-        routes["/" + sroute + "/:id"] = app[sname + "FormDisplay"];
+        routes[wbkroute] = app[name + "WorkbookDisplay"];
+        routes[frmroute] = app[name + "FormDisplay"];
+        routes[frmroute + "/:id"] = app[name + "FormDisplay"];
       });
     });
 
