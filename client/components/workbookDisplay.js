@@ -44,6 +44,7 @@
   outer.parentNode.removeChild(outer);
   scrWidth = widthNoScroll - widthWithScroll;
 
+  // Define workbook view model
   f.viewModels.workbookViewModel = function (options) {
     var vm = {},
       selection,
@@ -123,6 +124,7 @@
     return vm;
   };
 
+  // Define workbook component
   f.components.workbookDisplay = function (options) {
     var component = {};
 
@@ -131,9 +133,91 @@
     };
 
     component.view = function (ctrl) {
-      var vm = ctrl.vm;
+      var tbodyConfig, header, rows, tabs, view,
+        vm = ctrl.vm;
 
-      return m("form", {
+      // Define scrolling behavior for table body
+      tbodyConfig = function (e) {
+        var tb = document.getElementById("toolbar"),
+          hd = document.getElementById("header"),
+          ts = document.getElementById("tabs"),
+          mh = window.innerHeight - tb.clientHeight - hd.clientHeight - ts.clientHeight- 12;
+
+        // Set fields table to scroll and toolbar to stay put
+        document.documentElement.style.overflow = 'hidden';
+        e.style.height = mh + "px";
+      };
+
+      // Build header
+      header = (function () {
+        var ths = vm.attrs.map(function (key) {
+            return m("th", {
+              style: {
+                minWidth: "100px",
+                maxWidth: "100px",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis"
+              }
+            },
+              key.toProperCase(true));
+          });
+        // End cap on header for scrollbar
+        ths.push(m("th", {
+          style: {
+            minWidth: vm.scrollbarWidth() + "px",
+            maxWidth: vm.scrollbarWidth() + "px"
+          }
+        }));
+        return m("tr", ths);
+      }());
+
+      // Build rows
+      rows = vm.models().map(function (model) {
+        var d = model.data,
+          tds = vm.attrs.map(function (col) {
+            var value = d[col](),
+              hasLocale = value !== null &&
+                typeof value.toLocaleString === "function";
+            return m("td", {
+              style: {
+                minWidth: "100px",
+                maxWidth: "100px",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis"
+              }
+            }, hasLocale ? value.toLocaleString() : value);
+          });
+        return m("tr", {
+          onclick: vm.toggleSelection.bind(this, model),
+          ondblclick: vm.toggleOpen.bind(this, model),
+          style: {
+            backgroundColor: vm.isSelected(model) ?
+                "LightBlue" : "White"
+          }
+        }, tds);
+      });
+
+      // Build tabs
+      tabs = vm.sheets().map(function (sheet) {
+        var  sconfig = vm.config()[sheet],
+          label = sconfig.feather ?
+            sheet : f.catalog.getFeather(sheet).plural;
+        return m("button[type=button]", {
+            class: vm.selectedTab() === sheet ?
+              "pure-button pure-button-active" : "pure-button",
+            style: {
+              borderTopLeftRadius: "0px",
+              borderTopRightRadius: "0px",
+              fontSize: "85%"
+            },
+            onclick: vm.tabClicked.bind(this, sheet)
+          }, label);
+      });
+
+      // Finally assemble the whole view
+      view = m("form", {
         class: "pure-form"
       }, [
         m("div", {
@@ -189,34 +273,7 @@
               width: "100%",
               overflow: "hidden"
             }
-          }, [
-            (function () {
-              var ths = vm.attrs.map(function (key) {
-                  return m("th", {
-                    style: {
-                      minWidth: "100px",
-                      maxWidth: "100px",
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis"
-                    }
-                  },
-                    key.toProperCase(true));
-                });
-              // End cap on header for scrollbar
-              ths.push(m("th", {
-                style: {
-                  minWidth: vm.scrollbarWidth() + "px",
-                  maxWidth: vm.scrollbarWidth() + "px"
-                }
-              }));
-              return m("tr", {
-                style: {
-                  backgroundColor: "LightGrey"
-                }
-              }, ths);
-            }())
-          ]),
+          }, [ header ]),
           m("tbody", {
             id: "rows",
             onscroll: vm.onscroll,
@@ -225,64 +282,16 @@
               width: "100%",
               overflow: "auto"
             },
-            config: function (e) {
-              var tb = document.getElementById("toolbar"),
-                hd = document.getElementById("header"),
-                ts = document.getElementById("tabs"),
-                mh = window.innerHeight - tb.clientHeight - hd.clientHeight - ts.clientHeight- 12;
-
-              // Set fields table to scroll and toolbar to stay put
-              document.documentElement.style.overflow = 'hidden';
-              e.style.height = mh + "px";
-            }
-          }, [
-            vm.models().map(function (model) {
-              var d = model.data,
-                tds = vm.attrs.map(function (col) {
-                  var value = d[col](),
-                    hasLocale = value !== null &&
-                      typeof value.toLocaleString === "function";
-                  return m("td", {
-                    style: {
-                      minWidth: "100px",
-                      maxWidth: "100px",
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis"
-                    }
-                  }, hasLocale ? value.toLocaleString() : value);
-                });
-              return m("tr", {
-                onclick: vm.toggleSelection.bind(this, model),
-                ondblclick: vm.toggleOpen.bind(this, model),
-                style: {
-                  backgroundColor: vm.isSelected(model) ?
-                      "LightBlue" : "White"
-                }
-              }, tds);
-            })
-          ])
+            config: tbodyConfig
+          }, [rows])
         ]),
         m("div", {
             id: "tabs"
-          }, 
-          vm.sheets().map(function (sheet) {
-            var  sconfig = vm.config()[sheet],
-              label = sconfig.feather ?
-                sheet : f.catalog.getFeather(sheet).plural;
-            return m("button[type=button]", {
-                class: vm.selectedTab() === sheet ?
-                  "pure-button pure-button-active" : "pure-button",
-                style: {
-                  borderTopLeftRadius: "0px",
-                  borderTopRightRadius: "0px",
-                  fontSize: "85%"
-                },
-                onclick: vm.tabClicked.bind(this, sheet)
-              }, label);
-          })
+          }, tabs
         )
       ]);
+
+      return view;
     };
 
     return component;
