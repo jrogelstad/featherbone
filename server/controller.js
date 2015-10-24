@@ -865,7 +865,6 @@
         }
 
         sql +=  " WHERE _pk = $1";
-
         obj.client.query(sql, [key], function (err, resp) {
           var result;
 
@@ -1352,7 +1351,7 @@
       @return receiver
     */
     getKeys: function (obj, isSuperUser) {
-      var part, op, err, n,
+      var part, op, err, n, where,
         name = obj.name,
         filter = obj.filter,
         ops = ["=", "!=", "<", ">", "<>", "~", "~*", "!~", "!~*"],
@@ -1377,28 +1376,28 @@
 
       /* Process filter */
       if (filter) {
-
         /* Process criteria */
         while (criteria[i]) {
-          op = criteria[i].operator || "=";
-          tokens.push(criteria[i].property.toSnakeCase());
+          where = criteria[i];
+          op = where.operator || "=";
+          tokens.push(where.property.toSnakeCase());
 
           if (op === "IN") {
-            n = criteria[i].value.length;
+            n = where.value.length;
             part = [];
             while (n) {
               i -= 1;
-              params.push(criteria[i].value[n]);
+              params.push(where.value[n]);
               part.push("$" + p);
               p += 1;
             }
             part = " %I IN (" + part.join(",") + ")";
           } else {
             if (ops.indexOf(op) === -1) {
-              err = 'Unknown operator "' + criteria[i].operator + '"';
+              err = 'Unknown operator "' + op + '"';
               throw err;
             }
-            params.push(criteria[i].value);
+            params.push(where.value);
             part = " %I " + op + " $" + p;
             p += 1;
             i += 1;
@@ -1426,7 +1425,6 @@
           params.push(filter.limit);
         }
       }
-
       sql = sql.format(tokens);
       obj.client.query(sql, params, function (err, resp) {
         var keys;
@@ -2807,15 +2805,14 @@
               // Update workbook
               sql = "UPDATE \"$workbook\" SET " +
                 "updated_by=$2, updated=now(), " +
-                "name=$3, description=$4, default_config=$5," +
-                "local_config=$6, module=$7 WHERE id=$1;";
+                "description=$3, default_config=$4," +
+                "local_config=$5, module=$6 WHERE name=$1;";
               id = wb.id;
               localConfig = wb.localConfig || row.local_config;
               defaultConfig = wb.defaultConfig || row.default_config;
               params = [
                 wb.name,
                 obj.client.currentUser,
-                wb.name || row.name,
                 wb.description || row.description,
                 defaultConfig,
                 localConfig,
@@ -3046,7 +3043,7 @@
         "canUpdate",
         "canDelete"
       ],
-      i = 8;
+      i = 6;
 
     if (actions.indexOf(action) === -1) {
       throw "Invalid authorization action for object \"" + action + "\"";
