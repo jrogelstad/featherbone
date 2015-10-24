@@ -181,6 +181,7 @@
           }
         }, [
           m("div", {
+            class: "pure-menu custom-restricted-width",
             onmouseover: rvm.onmouseovermenu,
             onmouseout: rvm.onmouseoutmenu,
             style: {
@@ -188,13 +189,12 @@
               display: "inline"
             }
           }, [
-            m("button", {
-              class: "pure-button",
-              style: {margin: "1px", marginLeft: "2px"},
-              type: "button"
-            }, [m("i", {class:"fa fa-bars"})]),
-            m("div", {
-              class: "pure-menu",
+            m("span", {
+              class:"pure-button fa fa-bars",
+              style: {margin: "2px"}
+            }),
+            m("ul", {
+              class: "pure-menu-list",
               style: {
                 display: rvm.showMenu() ? "block" : "none",
                 backgroundColor: "White",
@@ -203,13 +203,16 @@
                 border: "1px solid lightgrey"
               }
             }, [
-              m("div", {
+              m("li", {
+                class: "pure-menu-link",
                 onclick: rvm.onclicksearch
               }, "Search"),
-              m("div", {
+              m("li", {
+                class: "pure-menu-link",
                 onclick: rvm.onclickopen
               }, "Open"),
-              m("div", {
+              m("li", {
+                class: "pure-menu-link",
                 onclick: rvm.onclicknew
               }, "New")
             ])
