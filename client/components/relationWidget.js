@@ -47,7 +47,7 @@
     };
     vm.label = function () {
       var model = modelValue();
-      return labelProperty && model ? model.data[labelProperty]() : "";
+      return (labelProperty && model) ? model.data[labelProperty]() : "";
     };
     vm.models = function () {
       return modelList();
@@ -88,8 +88,9 @@
       hasFocus = true;
     };
     vm.oninput = function (value) {
-      var fetch = false;
-      if (value.length <= (inputValue() || "").length ||
+      var fetch = false,
+        inputVal = inputValue() || "";
+      if (value.length <= inputVal.length ||
           modelList().length === 10) {
         fetch = true;
       }
@@ -139,8 +140,8 @@
       valueProperty = options.valueProperty,
       labelProperty = options.labelProperty;
 
-    widget.view = function (ctrl, args) {
-      var rvm, listOptions,
+    widget.view = function (ignore, args) {
+      var rvm, listOptions, view,
         vm = args.viewModel;
 
       // Set up viewModel if required
@@ -161,8 +162,10 @@
         return m("option", content);
       });
 
-      // Return the widget
-      return m("div", [
+      // Build the view
+      view = m("div", {
+        style: {display: "inline-block"}
+      },[
         m("input", {
           list: rvm.listId(),
           onchange: m.withAttr("value", rvm.onchange),
@@ -186,9 +189,12 @@
             }
           }, [
             m("button", {
+              class: "pure-button",
+              style: {margin: "1px", marginLeft: "2px"},
               type: "button"
-            }, "..."),
+            }, [m("i", {class:"fa fa-bars"})]),
             m("div", {
+              class: "pure-menu",
               style: {
                 display: rvm.showMenu() ? "block" : "none",
                 backgroundColor: "White",
@@ -212,12 +218,14 @@
         m("div", {
           style: {display: labelProperty ? "inline" : "none"}
         }, [
-          m("div", rvm.label()),
+          m("div", rvm.label())
         ]),
         m("datalist", {
           id: rvm.listId()
         }, listOptions)
       ]);
+ 
+      return view;
     };
 
     return widget;
