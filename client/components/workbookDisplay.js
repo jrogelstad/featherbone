@@ -46,17 +46,20 @@
 
   // Define workbook view model
   f.viewModels.workbookViewModel = function (options) {
-    var vm = {},
-      selection,
+    var selection,
+      feather = options.feather,
+      sheet = options.sheet,
+      plural = f.catalog.getFeather(feather).plural.toSpinalCase(),
+      frmroute = "/" + options.name + "/" + options.config[sheet].form.name,
       name = options.feather.toCamelCase(),
-      pathName = options.feather.toSpinalCase(),
-      plural = f.catalog.getFeather(options.feather).plural.toSpinalCase();
+      vm = {};
+    frmroute = frmroute.toSpinalCase();
 
     vm.scrollbarWidth = function () {
       return scrWidth;
     };
     vm.models = f.models[name].list();
-    vm.attrs = options.attrs || ["id"];
+    vm.attrs = options.config[sheet].list.attrs || ["id"];
     vm.goHome = function () {
       m.route("/home");
     };
@@ -73,10 +76,10 @@
       });
     };
     vm.modelNew = function () {
-      m.route("/" + pathName);
+      m.route(frmroute);
     };
     vm.modelOpen = function () {
-      m.route("/" + pathName + "/" + selection.data.id());
+      m.route(frmroute + "/" + selection.data.id());
     };
     vm.onscroll = function () {
       var rows = document.getElementById("rows"),
@@ -93,7 +96,7 @@
     vm.selection = function () {
       return selection;
     };
-    vm.selectedTab = m.prop(options.selectedTab);
+    vm.selectedTab = m.prop(options.sheet);
     vm.config = function () {
       return options.config || {};
     };
@@ -101,11 +104,8 @@
       return Object.keys(options.config || {});
     };
     vm.tabClicked = function (sheet) {
-      var sconfig = options.config[sheet],
-        feather = sconfig.feather || sheet,
-        route = "/" + options.name.toSpinalCase() + "/" +
-          f.catalog.data()[feather].plural.toSpinalCase();
-
+      var route = "/" + options.name + "/" + sheet;
+      route = route.toSpinalCase();
       m.route(route);
     };
     vm.toggleOpen = function (model) {
@@ -209,8 +209,7 @@
               "pure-button pure-button-active" : "pure-button",
             style: {
               borderTopLeftRadius: "0px",
-              borderTopRightRadius: "0px",
-              fontSize: "85%"
+              borderTopRightRadius: "0px"
             },
             onclick: vm.tabClicked.bind(this, sheet)
           }, label);
@@ -226,26 +225,26 @@
           m("button", {
             type: "button",
             class: "pure-button",
-            style: { margin: "1px" },
+            style: { radius: "0px" },
             onclick: vm.goHome
           }, [m("i", {class:"fa fa-home"})], " Home"),
           m("button", {
             type: "button",
             class: "pure-button",
-            style: { margin: "1px" },
+            style: { radius: "0px"},
             onclick: vm.modelNew
           }, [m("i", {class:"fa fa-plus-circle"})], " New"),
           m("button", {
             type: "button",
             class: "pure-button",
-            style: { margin: "1px" },
+            style: { radius: "0px"},
             onclick: vm.modelOpen,
             disabled: vm.hasSelection()
           }, [m("i", {class:"fa fa-folder-open"})], " Open"),
           m("button", {
             type: "button",
             class: "pure-button",
-            style: { margin: "1px" },
+            style: { radius: "0px" },
             onclick: vm.modelDelete,
             disabled: vm.hasSelection()
           }, [m("i", {class:"fa fa-remove"})], " Delete"),

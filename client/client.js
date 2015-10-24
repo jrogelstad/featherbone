@@ -97,10 +97,8 @@
         workbooks().forEach(function (workbook) {
           var config = getConfig(workbook),
             sheet = Object.keys(config)[0],
-            feather = config[sheet].feather,
             name = workbook.name + sheet,
-            plural = f.catalog.data()[feather].plural,
-            route = "/" + workbook.name + "/" + plural;
+            route = "/" + workbook.name + "/" + sheet;
           route = route.toSpinalCase();
 
           that["go" + name] = function () {
@@ -123,39 +121,43 @@
     };
     routes["/home"] = app.Home;
 
-    // Build app for each configured object
+    // Build workbook for each configured object
     workbooks().forEach(function (workbook) {
       var config = getConfig(workbook),
         keys = Object.keys(config);
 
       keys.forEach(function (sheet) {
-        var name = workbook.name + sheet,
+        var form = config[sheet].form.name,
+          sheetname = workbook.name + sheet,
+          formname = workbook.name + form,
           feather = config[sheet].feather,
-          plural = f.catalog.data()[feather].plural,
-          wbkroute = "/" + workbook.name + "/" + plural,
-          frmroute = "/" + workbook.name + "/" + feather;
-        name = name.toCamelCase();
+          wbkroute = "/" + workbook.name + "/" + sheet,
+          frmroute = "/" + workbook.name + "/" + form;
+        sheetname = sheetname.toCamelCase();
+        formname = formname.toCamelCase();
         wbkroute = wbkroute.toSpinalCase();
         frmroute = frmroute.toSpinalCase();
 
         // Build UI
-        app[name + "WorkbookDisplay"] = f.components.workbookDisplay({
+        app[sheetname + "WorkbookDisplay"] = f.components.workbookDisplay({
           name: workbook.name,
           feather: feather,
-          attrs: config[sheet].list.attrs,
           config: config,
-          selectedTab: sheet
+          sheet: sheet
         });
 
-        app[name + "FormDisplay"] = f.components.formDisplay({
+        app[formname + "FormDisplay"] = f.components.formDisplay({
+          workbook: workbook.name,
+          sheet: sheet,
+          form: form,
           feather: feather,
           attrs: config[sheet].form.attrs
         });
 
         // Build routes
-        routes[wbkroute] = app[name + "WorkbookDisplay"];
-        routes[frmroute] = app[name + "FormDisplay"];
-        routes[frmroute + "/:id"] = app[name + "FormDisplay"];
+        routes[wbkroute] = app[sheetname + "WorkbookDisplay"];
+        routes[frmroute] = app[formname + "FormDisplay"];
+        routes[frmroute + "/:id"] = app[formname + "FormDisplay"];
       });
     });
 

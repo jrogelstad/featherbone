@@ -18,11 +18,16 @@
 (function (f) {
   "use strict";
 
-  f.viewModels.formViewModel = function (feather, id) {
+  f.viewModels.formViewModel = function (options) {
     var vm = {},
+      wbkroute = "/" + options.workbook + "/" + options.sheet,
+      frmroute = "/" + options.workbook + "/" + options.form,
+      feather = options.feather,
       name = feather.toCamelCase(),
-      plural = f.catalog.getFeather(feather).plural.toSpinalCase();
+      id = options.id;
 
+    wbkroute = wbkroute.toSpinalCase();
+    frmroute = frmroute.toSpinalCase();
     vm.model = f.models[name]({id: id});
     vm.attrs = {};
 
@@ -38,19 +43,19 @@
       vm.model.save();
     };
     vm.doList = function () {
-      m.route("/" + plural);
+      m.route(wbkroute);
     };
     vm.doNew = function () {
-      m.route("/" + name);
+      m.route(frmroute);
     };
     vm.doSave = function () {
       vm.model.save().then(function () {
-        m.route("/" + plural);
+        m.route(wbkroute);
       });
     };
     vm.doSaveAndNew = function () {
       vm.model.save().then(function () {
-        m.route("/" + name);
+        m.route(frmroute);
       });
     };
     vm.isFirstLoad = m.prop(true);
@@ -63,11 +68,17 @@
       feather = options.feather;
 
     widget.controller = function () {
-      this.vm = f.viewModels.formViewModel(feather, m.route.param("id"));
+      this.vm = f.viewModels.formViewModel({
+        workbook: options.workbook,
+        sheet: options.sheet,
+        form: options.form,
+        feather: feather,
+        id: m.route.param("id")
+      });
     };
 
     widget.view = function (ctrl) {
-      var attrs, findComponent, focusAttr,
+      var attrs, findComponent, focusAttr, view,
         model = ctrl.vm.model,
         props = f.catalog.getFeather(feather).properties,
         d = model.data,
@@ -82,6 +93,7 @@
           tel: "tel"
         };
 
+      // Helper function for building elements
       findComponent = function (prop) {
         var rel, w, opts,
           p = props[prop],
@@ -122,6 +134,7 @@
         console.log("Widget for property '" + prop + "' is unknown");
       };
 
+      // Build elements
       attrs = options.attrs.map(function (key) {
         if (!focusAttr) { focusAttr = key; }
         var color, result;
@@ -140,7 +153,8 @@
         return result;
       });
 
-      return m("form", {
+      // Build view
+      view = m("form", {
         class: "pure-form pure-form-aligned",
         config: function () {
           if (ctrl.vm.isFirstLoad()) {
@@ -197,6 +211,8 @@
           m("fieldset", attrs)
         ])
       ]);
+
+      return view;
     };
 
     return widget;
