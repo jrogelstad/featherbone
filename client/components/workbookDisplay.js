@@ -225,26 +225,26 @@
           m("button", {
             type: "button",
             class: "pure-button",
-            style: { radius: "0px" },
+            style: { margin: "1px" },
             onclick: vm.goHome
           }, [m("i", {class:"fa fa-home"})], " Home"),
           m("button", {
             type: "button",
             class: "pure-button",
-            style: { radius: "0px"},
+            style: { margin: "1px"},
             onclick: vm.modelNew
           }, [m("i", {class:"fa fa-plus-circle"})], " New"),
           m("button", {
             type: "button",
             class: "pure-button",
-            style: { radius: "0px"},
+            style: { margin: "1px"},
             onclick: vm.modelOpen,
             disabled: vm.hasSelection()
           }, [m("i", {class:"fa fa-folder-open"})], " Open"),
           m("button", {
             type: "button",
             class: "pure-button",
-            style: { radius: "0px" },
+            style: { margin: "1px" },
             onclick: vm.modelDelete,
             disabled: vm.hasSelection()
           }, [m("i", {class:"fa fa-remove"})], " Delete"),

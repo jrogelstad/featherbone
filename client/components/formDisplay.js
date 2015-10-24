@@ -193,7 +193,7 @@
             class: "pure-button",
             style: { margin: "1px" },
             onclick: ctrl.vm.canSave() ? ctrl.vm.doSaveAndNew : ctrl.vm.doNew
-          }, [m("i", {class:"fa fa-asterisk"})],
+          }, [m("i", {class:"fa fa-plus-circle"})],
           ctrl.vm.canSave() ? " Save & New" : " New")
         ]),
         m("div", {
