@@ -221,7 +221,9 @@
         m("div", {
           style: {display: labelProperty ? "inline" : "none"}
         }, [
-          m("div", rvm.label())
+          m("div", {
+            style: {marginLeft: "12px", marginTop: rvm.label() ? "6px" : ""} // Hack
+          }, rvm.label())
         ]),
         m("datalist", {
           id: rvm.listId()

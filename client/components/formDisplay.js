@@ -145,7 +145,9 @@
           m("label", {
             for: key,
             style: {
-              color: color
+              color: color,
+              verticalAlign: "top", // Hack (relation widget)
+              marginTop: "9px" // Hack (relation widget)
             }
           }, key.toProperCase() + ":"),
           findComponent(key)
