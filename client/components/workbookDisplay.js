@@ -18,6 +18,9 @@
 (function (f) {
   "use strict";
 
+  var EDIT_MODE = 2,
+    LIST_MODE = 1;
+
   // Calculate scroll bar width
   // http://stackoverflow.com/questions/13382516/getting-scroll-bar-width-using-javascript
   var scrWidth, inner, widthNoScroll, widthWithScroll,
@@ -75,6 +78,7 @@
         m.route("/" + plural);
       });
     };
+    vm.mode = m.prop(LIST_MODE);
     vm.modelNew = function () {
       m.route(frmroute);
     };
@@ -107,6 +111,10 @@
       var route = "/" + options.name + "/" + sheet;
       route = route.toSpinalCase();
       m.route(route);
+    };
+    vm.toggleMode = function () {
+      var mode = vm.mode() === LIST_MODE ? EDIT_MODE : LIST_MODE;
+      vm.mode(mode);
     };
     vm.toggleOpen = function (model) {
       selection = model;
@@ -162,6 +170,7 @@
             },
               key.toProperCase(true));
           });
+
         // End cap on header for scrollbar
         ths.push(m("th", {
           style: {
@@ -174,45 +183,62 @@
 
       // Build rows
       rows = vm.models().map(function (model) {
-        var d = model.data,
-          tds = vm.attrs.map(function (col) {
-            var value = d[col](),
-              hasLocale = value !== null &&
-                typeof value.toLocaleString === "function";
-            return m("td", {
-              style: {
-                minWidth: "100px",
-                maxWidth: "100px",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis"
-              }
-            }, hasLocale ? value.toLocaleString() : value);
-          });
-        return m("tr", {
+        var tds, row,
+          isSelected = vm.isSelected(model),
+          d = model.data;
+
+        // Build cells
+        tds = vm.attrs.map(function (col) {
+          var cell,
+            value = d[col](),
+            hasLocale = value !== null &&
+              typeof value.toLocaleString === "function";
+
+          // Build cell
+          cell = m("td", {
+            style: {
+              minWidth: "100px",
+              maxWidth: "100px",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis"
+            }
+          }, hasLocale ? value.toLocaleString() : value);
+
+          return cell;
+        });
+
+        // Build row
+        row = m("tr", {
           onclick: vm.toggleSelection.bind(this, model),
           ondblclick: vm.toggleOpen.bind(this, model),
           style: {
-            backgroundColor: vm.isSelected(model) ?
-                "LightBlue" : "White"
+            backgroundColor: isSelected ? "LightBlue" : "White"
           }
         }, tds);
+
+        return row;
       });
 
       // Build tabs
       tabs = vm.sheets().map(function (sheet) {
-        var  sconfig = vm.config()[sheet],
+        var tab,
+          sconfig = vm.config()[sheet],
           label = sconfig.feather ?
             sheet : f.catalog.getFeather(sheet).plural;
-        return m("button[type=button]", {
-            class: vm.selectedTab() === sheet ?
-              "pure-button pure-button-active" : "pure-button",
-            style: {
-              borderTopLeftRadius: "0px",
-              borderTopRightRadius: "0px"
-            },
-            onclick: vm.tabClicked.bind(this, sheet)
-          }, label);
+
+        // Build tab
+        tab = m("button[type=button]", {
+          class: vm.selectedTab() === sheet ?
+            "pure-button pure-button-active" : "pure-button",
+          style: {
+            borderTopLeftRadius: "0px",
+            borderTopRightRadius: "0px"
+          },
+          onclick: vm.tabClicked.bind(this, sheet)
+        }, label);
+
+        return tab;
       });
 
       // Finally assemble the whole view
@@ -231,16 +257,47 @@
           m("button", {
             type: "button",
             class: "pure-button",
-            style: { margin: "1px"},
-            onclick: vm.modelNew
-          }, [m("i", {class:"fa fa-plus-circle"})], " New"),
+            style: {
+              margin: "1px",
+              display: vm.mode() === EDIT_MODE ? "none" : "inline-block"
+            },
+            onclick: vm.toggleMode
+          }, [m("i", {class:"fa fa-pencil"})], " Edit"),
+          m("button", {
+            type: "button",
+            class: "pure-button",
+            style: {
+              margin: "1px",
+              display: vm.mode() === LIST_MODE ? "none" : "inline-block"
+            },
+            onclick: vm.toggleMode
+          }, [m("i", {class:"fa fa-th-list"})], " List"),
+            m("button", {
+            type: "button",
+            class: "pure-button",
+            style: {
+              margin: "1px",
+              display: vm.mode() === LIST_MODE ? "none" : "inline-block"
+            },
+            onclick: vm.saveAll,
+            disabled: vm.hasSelection()
+          }, [m("i", {class:"fa fa-save"})], " Save"),
+          m("button", {
+            type: "button",
+            class: "pure-button",
+            style: {
+              margin: "1px",
+              display: vm.mode() === EDIT_MODE ? "none" : "inline-block"
+            },
+            onclick: vm.modelOpen,
+            disabled: vm.hasSelection()
+          }, [m("i", {class:"fa fa-folder-open"})], " Open"),
           m("button", {
             type: "button",
             class: "pure-button",
             style: { margin: "1px"},
-            onclick: vm.modelOpen,
-            disabled: vm.hasSelection()
-          }, [m("i", {class:"fa fa-folder-open"})], " Open"),
+            onclick: vm.modelNew
+          }, [m("i", {class:"fa fa-plus-circle"})], " New"),
           m("button", {
             type: "button",
             class: "pure-button",
