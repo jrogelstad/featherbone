@@ -58,14 +58,31 @@
       vm = {};
     frmroute = frmroute.toSpinalCase();
 
-    vm.scrollbarWidth = function () {
-      return scrWidth;
+    vm.config = function () {
+      return options.config || {};
     };
     vm.models = f.models[name].list();
     vm.attrs = options.config[sheet].list.attrs || ["id"];
     vm.goHome = function () {
       m.route("/home");
     };
+    vm.goNextRow = function () {
+      var list = vm.models(),
+        model = vm.selection(),
+        idx = list.indexOf(model) + 1;
+      if (list.length >= idx) {
+        vm.select(list[idx]);
+      }
+    };
+    vm.goPrevRow = function () {
+      var list = vm.models(),
+        model = vm.selection(),
+        idx = list.indexOf(model) - 1;
+      if (idx >= 0) {
+        vm.select(list[idx]);
+      }
+    };
+    vm.focusColumn = m.prop(vm.attrs[0]);
     vm.hasSelection = function () {
       return !selection;
     };
@@ -85,11 +102,28 @@
     vm.modelOpen = function () {
       m.route(frmroute + "/" + selection.data.id());
     };
+    vm.onfocusCell = function (column) {
+      vm.focusColumn(column);
+    };
+    vm.onkeydownCell = function (e) {
+      switch (e.keyIdentifier)
+      {
+      case "Up":
+        vm.goPrevRow();
+        break;
+      case "Down":
+        vm.goNextRow();
+        break;
+      }
+    };
     vm.onscroll = function () {
       var rows = document.getElementById("rows"),
         header = document.getElementById("header");
 
       header.scrollLeft = rows.scrollLeft;
+    };
+    vm.scrollbarWidth = function () {
+      return scrWidth;
     };
     vm.select = function (model) {
       if (selection !== model) {
@@ -101,9 +135,6 @@
       return selection;
     };
     vm.selectedTab = m.prop(options.sheet);
-    vm.config = function () {
-      return options.config || {};
-    };
     vm.sheets = function () {
       return Object.keys(options.config || {});
     };
@@ -121,7 +152,7 @@
       vm.modelOpen();
     };
     vm.toggleSelection = function (model) {
-      if (selection === model) {
+      if (selection === model && vm.mode() === LIST_MODE) {
         vm.select(undefined);
         return false;
       }
@@ -142,7 +173,8 @@
 
     component.view = function (ctrl) {
       var tbodyConfig, header, rows, tabs, view,
-        vm = ctrl.vm;
+        vm = ctrl.vm,
+        focusColumn = vm.focusColumn();
 
       // Define scrolling behavior for table body
       tbodyConfig = function (e) {
@@ -184,38 +216,85 @@
       // Build rows
       rows = vm.models().map(function (model) {
         var tds, row,
+          mode = vm.mode(),
+          color = "White",
           isSelected = vm.isSelected(model),
           d = model.data;
 
-        // Build cells
-        tds = vm.attrs.map(function (col) {
-          var cell,
-            value = d[col](),
-            hasLocale = value !== null &&
-              typeof value.toLocaleString === "function";
+        // Build view row
+        if (mode === LIST_MODE || !isSelected) {
+          // Build cells
+          tds = vm.attrs.map(function (col) {
+            var cell,
+              value = d[col](),
+              hasLocale = value !== null &&
+                typeof value.toLocaleString === "function";
 
-          // Build cell
-          cell = m("td", {
-            style: {
-              minWidth: "100px",
-              maxWidth: "100px",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis"
-            }
-          }, hasLocale ? value.toLocaleString() : value);
+            // Build cell
+            cell = m("td", {
+                style: {
+                  minWidth: "100px",
+                  maxWidth: "100px",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis"
+                }
+              },
+              hasLocale ? value.toLocaleString() : value);
 
-          return cell;
-        });
+            return cell;
+          });
 
-        // Build row
-        row = m("tr", {
-          onclick: vm.toggleSelection.bind(this, model),
-          ondblclick: vm.toggleOpen.bind(this, model),
-          style: {
-            backgroundColor: isSelected ? "LightBlue" : "White"
+          // Build row
+          if (isSelected) {
+            color = "LightBlue";
           }
-        }, tds);
+
+          row = m("tr", {
+            onclick: vm.toggleSelection.bind(this, model),
+            ondblclick: vm.toggleOpen.bind(this, model),
+            style: { backgroundColor: color }
+          }, tds);
+
+        // Build editable row
+        } else {
+          // Build cells
+          tds = vm.attrs.map(function (col) {
+            var cell, opts,
+              id = "input" + col.toCamelCase(true);
+
+            opts = {
+              id: id,
+              onchange: m.withAttr("value", d[col]),
+              onkeydown: vm.onkeydownCell.bind(this),
+              onfocus: vm.onfocusCell.bind(this, col),
+              value: d[col](),
+              style: {
+                minWidth: "100px",
+                maxWidth: "100px"
+              }
+            };
+
+            if (focusColumn === col) {
+              opts.config = function () {
+                document.getElementById(id).focus();
+              };
+            }
+
+            // Build cell
+            cell = m("td", [
+              m("input", opts)
+            ]);
+
+            return cell;
+          });
+
+          row = m("tr", {
+            onclick: vm.toggleSelection.bind(this, model),
+            ondblclick: vm.toggleOpen.bind(this, model),
+            style: { backgroundColor: color }
+          }, tds);
+        }
 
         return row;
       });
