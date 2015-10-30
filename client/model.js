@@ -626,7 +626,7 @@
             item = cache[i];
             value = item ? item.toJSON() : undefined;
             result.push(value);
-            i++;
+            i += 1;
           }
 
           return result;
@@ -790,7 +790,7 @@
     state = statechart.State.define(function () {
       this.enter(doInit);
 
-      this.state("Ready", {H: "*"}, function (opts) {
+      this.state("Ready", {H: "*"}, function () {
         this.event("fetch",  function (deferred) {
           this.goto("/Busy", {
             context: {deferred: deferred}

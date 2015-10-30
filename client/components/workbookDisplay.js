@@ -63,24 +63,34 @@
     };
     vm.models = f.models[name].list();
     vm.attrs = options.config[sheet].list.attrs || ["id"];
+    vm.canSave = function (model) {
+      var currentState = model.state.current()[0];
+      return (currentState === "/Ready/New" ||
+        currentState === "/Ready/Fetched/Dirty") &&
+        model.isValid();
+    };
     vm.goHome = function () {
       m.route("/home");
     };
     vm.goNextRow = function () {
+      m.startComputation();
       var list = vm.models(),
         model = vm.selection(),
         idx = list.indexOf(model) + 1;
-      if (list.length >= idx) {
+      if (list.length > idx) {
         vm.select(list[idx]);
       }
+      m.endComputation();
     };
     vm.goPrevRow = function () {
+      m.startComputation();
       var list = vm.models(),
         model = vm.selection(),
         idx = list.indexOf(model) - 1;
       if (idx >= 0) {
         vm.select(list[idx]);
       }
+      m.endComputation();
     };
     vm.focusColumn = m.prop(vm.attrs[0]);
     vm.hasSelection = function () {
@@ -105,7 +115,7 @@
     vm.onfocusCell = function (column) {
       vm.focusColumn(column);
     };
-    vm.onkeydownCell = function (e) {
+    vm.onkeydown = function (e) {
       switch (e.keyIdentifier)
       {
       case "Up":
@@ -186,6 +196,9 @@
         // Set fields table to scroll and toolbar to stay put
         document.documentElement.style.overflow = 'hidden';
         e.style.height = mh + "px";
+
+        // Key down handler for up down movement
+        e.addEventListener('keydown', vm.onkeydown);
       };
 
       // Build header
@@ -203,6 +216,9 @@
               key.toProperCase(true));
           });
 
+        // Front cap header navigation
+        ths.unshift(m("th", {style: {minWidth: "16px"}}));
+
         // End cap on header for scrollbar
         ths.push(m("th", {
           style: {
@@ -215,7 +231,7 @@
 
       // Build rows
       rows = vm.models().map(function (model) {
-        var tds, row,
+        var tds, row, thContent,
           mode = vm.mode(),
           color = "White",
           isSelected = vm.isSelected(model),
@@ -250,12 +266,6 @@
             color = "LightBlue";
           }
 
-          row = m("tr", {
-            onclick: vm.toggleSelection.bind(this, model),
-            ondblclick: vm.toggleOpen.bind(this, model),
-            style: { backgroundColor: color }
-          }, tds);
-
         // Build editable row
         } else {
           // Build cells
@@ -266,7 +276,6 @@
             opts = {
               id: id,
               onchange: m.withAttr("value", d[col]),
-              onkeydown: vm.onkeydownCell.bind(this),
               onfocus: vm.onfocusCell.bind(this, col),
               value: d[col](),
               style: {
@@ -288,13 +297,25 @@
 
             return cell;
           });
-
-          row = m("tr", {
-            onclick: vm.toggleSelection.bind(this, model),
-            ondblclick: vm.toggleOpen.bind(this, model),
-            style: { backgroundColor: color }
-          }, tds);
         }
+
+        // Front cap header navigation
+        if (vm.canSave(model)) {
+          thContent = [m("i", {class:"fa fa-check"})];
+        } else {
+          thContent = {
+            style: {
+              minWidth: "16px"
+            }
+          };
+        }
+        tds.unshift(m("th", thContent));
+
+        row = m("tr", {
+          onclick: vm.toggleSelection.bind(this, model),
+          ondblclick: vm.toggleOpen.bind(this, model),
+          style: { backgroundColor: color }
+        }, tds);
 
         return row;
       });
@@ -387,6 +408,7 @@
           m("input", {
             type: "search",
             value: "Search",
+            id: "search",
             style: {
               color: "LightGrey",
               fontStyle: "italic",
