@@ -108,21 +108,27 @@
     vm.modelOpen = function () {
       m.route(frmroute + "/" + selection.data.id());
     };
-    vm.onfocusCell = function (column) {
-      vm.focusColumn(column);
-    };
     vm.onkeydown = function (e) {
+      var id, 
+        nav = function (name) {
+          id = e.srcElement.id;
+          // Navigate in desired direction
+          m.startComputation();
+          vm[name]();
+          m.endComputation();
+          // Set focus on the same cell we left
+          m.startComputation();
+          document.getElementById(id).focus();
+          m.endComputation();
+        };
+
       switch (e.key || e.keyIdentifier)
       {
       case "Up":
-        m.startComputation();
-        vm.goPrevRow();
-        m.endComputation();
+        nav("goPrevRow");
         break;
       case "Down":
-        m.startComputation();
-        vm.goNextRow();
-        m.endComputation();
+        nav("goNextRow");
         break;
       }
     };
@@ -183,8 +189,7 @@
 
     component.view = function (ctrl) {
       var tbodyConfig, header, rows, tabs, view,
-        vm = ctrl.vm,
-        focusColumn = vm.focusColumn();
+        vm = ctrl.vm;
 
       // Define scrolling behavior for table body
       tbodyConfig = function (e) {
@@ -276,19 +281,12 @@
             opts = {
               id: id,
               onchange: m.withAttr("value", d[col]),
-              onfocus: vm.onfocusCell.bind(this, col),
               value: d[col](),
               style: {
                 minWidth: "100px",
                 maxWidth: "100px"
               }
             };
-
-            if (focusColumn === col) {
-              opts.config = function () {
-                document.getElementById(id).focus();
-              };
-            }
 
             // Build cell
             cell = m("td", [
