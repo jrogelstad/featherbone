@@ -201,7 +201,8 @@
     that.canSave = function () {
       var currentState = state.current()[0];
       return (currentState === "/Ready/New" ||
-        currentState === "/Ready/Fetched/Dirty") &&
+        currentState === "/Ready/Fetched/Dirty" ||
+        currentState === "/Delete") &&
         that.isValid();
     };
 
@@ -216,9 +217,16 @@
     /*
       Send event to delete the current object from the server.
       Returns a deferred promise with a boolean passed back as the value.
+
+      @param {Boolean} Automatically commit. Default false.
     */
-    that.delete = function () {
-      return doSend("delete");
+    that.delete = function (autoSave) {
+      var result = m.deferred();
+      state.send("delete");
+      if (autoSave) {
+        result = doSend("save");
+      }
+      return result;
     };
 
     /*
@@ -427,6 +435,10 @@
       });
 
       return result;
+    };
+
+    that.undo = function () {
+      that.state.send("undo");
     };
 
     // ..........................................................
@@ -826,10 +838,8 @@
           this.event("clear",  function () {
             this.goto("/Ready/New");
           });
-          this.event("delete",  function (deferred) {
-            this.goto("/Busy/Deleting", {
-              context: {deferred: deferred}
-            });
+          this.event("delete",  function () {
+            this.goto("/Delete");
           });
 
           this.state("Clean", function () {
@@ -875,6 +885,18 @@
           this.goto("/Ready", {
             context: {clear: false}
           });
+        });
+      });
+
+      this.state("Delete", function () {
+        this.event("save",  function (deferred) {
+          this.goto("/Busy/Deleting", {
+            context: {deferred: deferred}
+          });
+        });
+
+        this.event("undo",  function () {
+          this.goto("/Ready");
         });
       });
 

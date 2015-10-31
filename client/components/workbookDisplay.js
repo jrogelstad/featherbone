@@ -92,16 +92,23 @@
         return model.canSave();
       });
     };
-    vm.hasSelection = function () {
+    vm.hasNoSelection = function () {
       return !selection;
     };
     vm.isSelected = function (model) {
       return selection === model;
     };
     vm.modelDelete = function () {
-      selection.delete().then(function () {
-        vm.models().remove(selection);
-      });
+      // Delete now in list mode
+      if (vm.mode() === LIST_MODE) {
+        selection.delete(true).then(function () {
+          vm.models().remove(selection);
+        });
+        return;
+      }
+
+      // Mork for deletion in edit mode
+      selection.delete();
     };
     vm.mode = m.prop(LIST_MODE);
     vm.modelNew = function () {
@@ -145,7 +152,13 @@
       return scrWidth;
     };
     vm.saveAll = function () {
-      vm.models().forEach(function (model) { model.save(); });
+      vm.models().forEach(function (model) {
+        model.save().then(function() {
+          if (model.state.current()[0] === "/Deleted") {
+            vm.models().remove(model);
+          }
+        });
+      });
     };
     vm.select = function (model) {
       if (selection !== model) {
@@ -180,6 +193,9 @@
       }
       vm.select(model);
       return true;
+    };
+    vm.undo = function () {
+      if (selection) { selection.undo(); }
     };
 
     return vm;
@@ -310,7 +326,9 @@
         }
 
         // Front cap header navigation
-        if (model.canSave()) {
+        if (model.state.current()[0] === "/Delete") {
+          thContent = [m("i", {class:"fa fa-remove"})];
+        } else if (model.canSave()) {
           thContent = [m("i", {class:"fa fa-check"})];
         } else {
           thContent = {
@@ -399,7 +417,7 @@
               display: vm.mode() === EDIT_MODE ? "none" : "inline-block"
             },
             onclick: vm.modelOpen,
-            disabled: vm.hasSelection()
+            disabled: vm.hasNoSelection()
           }, [m("i", {class:"fa fa-folder-open"})], " Open"),
           m("button", {
             type: "button",
@@ -410,10 +428,24 @@
           m("button", {
             type: "button",
             class: "pure-button",
-            style: { margin: "1px" },
+            style: {
+              margin: "1px",
+              display: (vm.selection() && vm.selection().canSave()) ?
+                "none" : "inline-block"
+            },
             onclick: vm.modelDelete,
-            disabled: vm.hasSelection()
+            disabled: vm.hasNoSelection()
           }, [m("i", {class:"fa fa-remove"})], " Delete"),
+          m("button", {
+            type: "button",
+            class: "pure-button",
+            style: {
+              margin: "1px",
+              display: (vm.selection() && vm.selection().canSave()) ?
+                "inline-block" : "none"
+            },
+            onclick: vm.undo
+          }, [m("i", {class:"fa fa-undo"})], " Undo"),
           m("input", {
             type: "search",
             value: "Search",
