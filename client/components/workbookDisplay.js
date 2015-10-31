@@ -50,9 +50,7 @@
   // Define workbook view model
   f.viewModels.workbookViewModel = function (options) {
     var selection,
-      feather = options.feather,
       sheet = options.sheet,
-      plural = f.catalog.getFeather(feather).plural.toSpinalCase(),
       frmroute = "/" + options.name + "/" + options.config[sheet].form.name,
       name = options.feather.toCamelCase(),
       vm = {};
@@ -103,7 +101,6 @@
     vm.modelDelete = function () {
       selection.delete().then(function () {
         vm.models().remove(selection);
-        m.route("/" + plural);
       });
     };
     vm.mode = m.prop(LIST_MODE);
@@ -141,6 +138,7 @@
       var rows = document.getElementById("rows"),
         header = document.getElementById("header");
 
+      // Sync header position with table body position
       header.scrollLeft = rows.scrollLeft;
     };
     vm.scrollbarWidth = function () {
@@ -248,7 +246,8 @@
           mode = vm.mode(),
           color = "White",
           isSelected = vm.isSelected(model),
-          d = model.data;
+          d = model.data,
+          rowOpts = {};
 
         // Build view row
         if (mode === LIST_MODE || !isSelected) {
@@ -279,14 +278,19 @@
             color = "LightBlue";
           }
 
+          rowOpts = {
+            ondblclick: vm.toggleOpen.bind(this, model)
+          };
+
+
         // Build editable row
         } else {
           // Build cells
           tds = vm.attrs.map(function (col) {
-            var cell, opts,
+            var cell, cellOpts,
               id = "input" + col.toCamelCase(true);
 
-            opts = {
+            cellOpts = {
               id: id,
               onchange: m.withAttr("value", d[col]),
               value: d[col](),
@@ -298,7 +302,7 @@
 
             // Build cell
             cell = m("td", [
-              m("input", opts)
+              m("input", cellOpts)
             ]);
 
             return cell;
@@ -317,11 +321,10 @@
         }
         tds.unshift(m("th", thContent));
 
-        row = m("tr", {
-          onclick: vm.toggleSelection.bind(this, model),
-          ondblclick: vm.toggleOpen.bind(this, model),
-          style: { backgroundColor: color }
-        }, tds);
+        // Build row
+        rowOpts.onclick = vm.toggleSelection.bind(this, model);
+        rowOpts.style = { backgroundColor: color };
+        row = m("tr", rowOpts, tds);
 
         return row;
       });
