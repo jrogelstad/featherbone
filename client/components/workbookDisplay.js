@@ -73,24 +73,20 @@
       m.route("/home");
     };
     vm.goNextRow = function () {
-      m.startComputation();
       var list = vm.models(),
         model = vm.selection(),
         idx = list.indexOf(model) + 1;
       if (list.length > idx) {
         vm.select(list[idx]);
       }
-      m.endComputation();
     };
     vm.goPrevRow = function () {
-      m.startComputation();
       var list = vm.models(),
         model = vm.selection(),
         idx = list.indexOf(model) - 1;
       if (idx >= 0) {
         vm.select(list[idx]);
       }
-      m.endComputation();
     };
     vm.focusColumn = m.prop(vm.attrs[0]);
     vm.hasSelection = function () {
@@ -116,13 +112,17 @@
       vm.focusColumn(column);
     };
     vm.onkeydown = function (e) {
-      switch (e.keyIdentifier)
+      switch (e.key || e.keyIdentifier)
       {
       case "Up":
+        m.startComputation();
         vm.goPrevRow();
+        m.endComputation();
         break;
       case "Down":
+        m.startComputation();
         vm.goNextRow();
+        m.endComputation();
         break;
       }
     };
