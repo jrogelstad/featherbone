@@ -186,16 +186,24 @@
     feather = feather || {};
 
     var  doClear, doDelete, doError, doFetch, doInit, doPatch, doPost, doSend,
-      validator, lastError, lastFetched, path, state,
+      validator, lastError, path, state,
       that = {data: {}, name: feather.name || "Object", plural: feather.plural},
       d = that.data,
       errHandlers = [],
       validators = [],
-      stateMap = {};
+      stateMap = {},
+      lastFetched = {};
 
     // ..........................................................
     // PUBLIC
     //
+
+    that.canSave = function () {
+      var currentState = state.current()[0];
+      return (currentState === "/Ready/New" ||
+        currentState === "/Ready/Fetched/Dirty") &&
+        that.isValid();
+    };
 
     /*
       Send event to clear properties on the object and set it to
@@ -384,8 +392,12 @@
       @param {Boolean} Silence change events
       @returns reciever
     */
-    that.set = function (data, silent) {
+    that.set = function (data, silent, lastFetched) {
       var keys;
+
+      if (lastFetched) {
+        lastFetched = data;
+      }
 
       if (typeof data === "object") {
         keys = Object.keys(data);
@@ -400,7 +412,7 @@
           }
         });
 
-        that.sendToProperties("report"); // TODO: History?
+        that.sendToProperties("report");
       }
 
       return this;
@@ -448,8 +460,7 @@
         result = f.prop({}),
         payload = {method: "DELETE", path: path(that.name, d.id())},
         callback = function () {
-          lastFetched = result();
-          that.set(result(), true);
+          that.set(result(), true, true);
           state.send('deleted');
           context.deferred.resolve(true);
         };
@@ -473,8 +484,7 @@
           console.log(err);
         },
         callback = function () {
-          lastFetched = result();
-          that.set(result(), true);
+          that.set(result(), true, true);
           state.send('fetched');
           context.deferred.resolve(d);
         };
@@ -509,8 +519,7 @@
           data: {data: cache}},
         callback = function () {
           jsonpatch.apply(cache, result());
-          lastFetched = cache;
-          that.set(cache, true);
+          that.set(cache, true, true);
           state.send('fetched');
           context.deferred.resolve(d);
         };

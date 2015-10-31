@@ -33,12 +33,6 @@
 
     if (id) { vm.model.fetch(); }
 
-    vm.canSave = function () {
-      var currentState = vm.model.state.current()[0];
-      return (currentState === "/Ready/New" ||
-        currentState === "/Ready/Fetched/Dirty") &&
-        vm.model.isValid();
-    };
     vm.doApply = function () {
       vm.model.save();
     };
@@ -180,23 +174,23 @@
             type: "button",
             class: "pure-button",
             style: { margin: "1px" },
-            disabled: !ctrl.vm.canSave(),
+            disabled: !ctrl.vm.model.canSave(),
             onclick: ctrl.vm.doApply
           }, "Apply"),
           m("button", {
             type: "button",
             class: "pure-button",
             style: { margin: "1px" },
-            disabled: !ctrl.vm.canSave(),
+            disabled: !ctrl.vm.model.canSave(),
             onclick: ctrl.vm.doSave
           }, [m("i", {class:"fa fa-save"})], " Save"),
           m("button", {
             type: "button",
             class: "pure-button",
             style: { margin: "1px" },
-            onclick: ctrl.vm.canSave() ? ctrl.vm.doSaveAndNew : ctrl.vm.doNew
+            onclick: ctrl.vm.model.canSave() ? ctrl.vm.doSaveAndNew : ctrl.vm.doNew
           }, [m("i", {class:"fa fa-plus-circle"})],
-          ctrl.vm.canSave() ? " Save & New" : " New")
+          ctrl.vm.model.canSave() ? " Save & New" : " New")
         ]),
         m("div", {
           style: {

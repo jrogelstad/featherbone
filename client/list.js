@@ -54,7 +54,8 @@
           i = 0;
         while (i < len) {
           id = data[i].id;
-          model = f.models[name](data[i]);
+          model = f.models[name]();
+          model.set(data[i], true, true);
           model.state.goto("/Ready/Fetched");
           if (!isNaN(idx[id])) {
             ary.splice(idx[id], 1, model);
@@ -62,7 +63,7 @@
             idx[id] = ary.length;
             ary.push(model);
           }
-          i++;
+          i += 1;
         }
       });
     };

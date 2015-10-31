@@ -89,6 +89,11 @@
       }
     };
     vm.focusColumn = m.prop(vm.attrs[0]);
+    vm.canSave = function () {
+      return vm.models().some(function (model) {
+        return model.canSave();
+      });
+    };
     vm.hasSelection = function () {
       return !selection;
     };
@@ -140,6 +145,9 @@
     };
     vm.scrollbarWidth = function () {
       return scrWidth;
+    };
+    vm.saveAll = function () {
+      vm.models().forEach(function (model) { model.save(); });
     };
     vm.select = function (model) {
       if (selection !== model) {
@@ -298,7 +306,7 @@
         }
 
         // Front cap header navigation
-        if (vm.canSave(model)) {
+        if (model.canSave()) {
           thContent = [m("i", {class:"fa fa-check"})];
         } else {
           thContent = {
@@ -378,7 +386,7 @@
               display: vm.mode() === LIST_MODE ? "none" : "inline-block"
             },
             onclick: vm.saveAll,
-            disabled: vm.hasSelection()
+            disabled: !vm.canSave()
           }, [m("i", {class:"fa fa-save"})], " Save"),
           m("button", {
             type: "button",
