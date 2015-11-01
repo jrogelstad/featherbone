@@ -58,75 +58,23 @@
   };
 
   f.components.formDisplay = function (options) {
-    var widget = {},
-      feather = options.feather;
+    var widget = {};
 
     widget.controller = function () {
       this.vm = f.viewModels.formViewModel({
         workbook: options.workbook,
         sheet: options.sheet,
         form: options.form,
-        feather: feather,
+        feather: options.feather,
         id: m.route.param("id")
       });
     };
 
     widget.view = function (ctrl) {
-      var attrs, findComponent, focusAttr, view,
+      var attrs, focusAttr, view,
         model = ctrl.vm.model,
-        props = f.catalog.getFeather(feather).properties,
-        d = model.data,
-        inputMap = {
-          integer: "number",
-          number: "text",
-          string: "text",
-          date: "date",
-          dateTime: "datetime-local",
-          boolean: "checkbox",
-          password: "text",
-          tel: "tel"
-        };
-
-      // Helper function for building elements
-      findComponent = function (prop) {
-        var rel, w, opts,
-          p = props[prop],
-          format = p.format || p.type;
-
-        // Handle input types
-        if (typeof p.type === "string") {
-          opts = {
-            id: prop,
-            type: inputMap[format]
-          };
-
-          if (d[prop].isReadOnly()) {
-            opts.disabled = true;
-          }
-          if (d[prop].isRequired()) {
-            opts.required = true;
-          }
-          if (p.type === "boolean") {
-            opts.onclick = m.withAttr("checked", d[prop]);
-            opts.checked = d[prop]();
-          } else {
-            opts.onchange = m.withAttr("value", d[prop]);
-            opts.value = d[prop]();
-          }
-
-          return m("input", opts);
-        }
-
-        // Handle relations
-        rel = d[prop].type.relation.toCamelCase();
-        w = f.components[rel + "Relation"]({parentProperty: prop});
-
-        if (d[prop].isToOne() && w) {
-          return m.component(w, {viewModel: ctrl.vm});
-        }
-
-        console.log("Widget for property '" + prop + "' is unknown");
-      };
+        feather = f.catalog.getFeather(options.feather),
+        d = model.data;
 
       // Build elements
       attrs = options.attrs.map(function (key) {
@@ -144,7 +92,12 @@
               marginTop: "9px" // Hack (relation widget)
             }
           }, key.toProperCase() + ":"),
-          findComponent(key)
+          f.buildInputComponent({
+            feather: feather,
+            model: model,
+            key: key,
+            controller: ctrl
+          })
         ]);
         return result;
       });

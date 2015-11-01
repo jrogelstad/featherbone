@@ -21,6 +21,72 @@
   f.components = {};
   f.viewModels = {};
 
+  /**
+    Object to define what input type to use for data
+  */
+  f.inputMap = {
+    integer: "number",
+    number: "text",
+    string: "text",
+    date: "date",
+    dateTime: "datetime-local",
+    boolean: "checkbox",
+    password: "text",
+    tel: "tel"
+  };
+
+  /**
+    Helper function for building input elements
+
+    @param {Object} Arguments object
+    @param {Object} [obj.feather] Model's feather
+    @param {Object} [obj.model] Model
+    @param {String} [obj.key] Property key
+    @param {Object} {obj.controller} Controller
+    @param {object} Properties specification
+  */
+  f.buildInputComponent = function (obj) {
+    var rel, w, opts,
+      key = obj.key,
+      d = obj.model.data,
+      p = obj.feather.properties[obj.key],
+      format = p.format || p.type;
+
+    // Handle input types
+    if (typeof p.type === "string") {
+      opts = {
+        id: key,
+        type: f.inputMap[format]
+      };
+
+      if (d[key].isReadOnly()) {
+        opts.disabled = true;
+      }
+      if (d[key].isRequired()) {
+        opts.required = true;
+      }
+      if (p.type === "boolean") {
+        opts.onclick = m.withAttr("checked", d[key]);
+        opts.checked = d[key]();
+      } else {
+        opts.onchange = m.withAttr("value", d[key]);
+        opts.value = d[key]();
+      }
+
+      return m("input", opts);
+    }
+
+    // Handle relations
+    rel = d[key].type.relation.toCamelCase();
+    w = f.components[rel + "Relation"]({parentProperty: key});
+
+    if (d[key].isToOne() && w) {
+      return m.component(w, {viewModel: obj.controller.vm});
+    }
+
+    console.log("Widget for property '" + key + "' is unknown");
+  };
+
 }(f));
 
 
