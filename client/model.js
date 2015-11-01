@@ -186,7 +186,7 @@
     feather = feather || {};
 
     var  doClear, doDelete, doError, doFetch, doInit, doPatch, doPost, doSend,
-      doFreeze, doThaw, validator, lastError, path, state,
+      doFreeze, doThaw, doRevert, validator, lastError, path, state,
       that = {data: {}, name: feather.name || "Object", plural: feather.plural},
       d = that.data,
       errHandlers = [],
@@ -198,7 +198,6 @@
     // ..........................................................
     // PUBLIC
     //
-
     that.canSave = function () {
       var currentState = state.current()[0];
       return (currentState === "/Ready/New" ||
@@ -401,10 +400,10 @@
       @param {Boolean} Silence change events
       @returns reciever
     */
-    that.set = function (data, silent, lastFetched) {
+    that.set = function (data, silent, islastFetched) {
       var keys;
 
-      if (lastFetched) {
+      if (islastFetched) {
         lastFetched = data;
       }
 
@@ -510,8 +509,11 @@
 
       // Make all props read only, but remember previous state
       keys.forEach(function(key) {
-        freezeCache[key] = d[key].isReadOnly();
+        freezeCache[key] = {};
+        freezeCache[key].isReadOnly = d[key].isReadOnly();
+        freezeCache[key].prevState = d[key].state.current()[0];
         d[key].isReadOnly(true);
+        d[key].state.goto("/Disabled");
       });
     };
 
@@ -552,6 +554,11 @@
       }
     };
 
+    doRevert = function () {
+      that.set(lastFetched, true);
+      this.goto("/Ready/Fetched/Clean");
+    };
+
     doSend = function (evt) {
       var deferred = m.deferred();
       state.send(evt, deferred);
@@ -563,7 +570,8 @@
 
       // Return read only props to previous state
       keys.forEach(function(key) {
-        d[key].isReadOnly(freezeCache[key]);
+        d[key].state.goto(freezeCache[key].prevState);
+        d[key].isReadOnly(freezeCache[key].isReadOnly);
       });
 
       freezeCache = {};
@@ -871,6 +879,8 @@
           });
 
           this.state("Dirty", function () {
+            this.event("undo", doRevert);
+
             this.event("save", function (deferred) {
               this.goto("/Busy/Saving/Patching", {
                 context: {deferred: deferred}
