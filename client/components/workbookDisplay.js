@@ -117,6 +117,7 @@
     vm.modelOpen = function () {
       m.route(frmroute + "/" + selection.data.id());
     };
+    vm.nextFocus = m.prop();
     vm.onkeydown = function (e) {
       var id, 
         nav = function (name) {
@@ -186,12 +187,23 @@
       selection = model;
       vm.modelOpen();
     };
-    vm.toggleSelection = function (model) {
-      if (selection === model && vm.mode() === LIST_MODE) {
+    vm.toggleSelection = function (model, col) {
+      var mode = vm.mode(),
+        isSelected = selection === model;
+
+      // Toggle row off
+      if (isSelected && mode === LIST_MODE) {
         vm.select(undefined);
         return false;
       }
+
+      // Select new row
       vm.select(model);
+
+      // If editing, focus on clicked cell
+      if (!isSelected && mode === EDIT_MODE) {
+        vm.nextFocus("input" + col.toCamelCase(true));
+      }
       return true;
     };
     vm.undo = function () {
@@ -276,6 +288,7 @@
 
             // Build cell
             cell = m("td", {
+                onclick: vm.toggleSelection.bind(this, model, col),
                 style: {
                   minWidth: "100px",
                   maxWidth: "100px",
@@ -308,8 +321,15 @@
 
             cellOpts = {
               id: id,
+              onclick: vm.toggleSelection.bind(this, model, col),
               onchange: m.withAttr("value", d[col]),
               value: d[col](),
+              config: function (e) {
+                if (vm.nextFocus() === id) {
+                  e.focus();
+                  vm.nextFocus(undefined);
+                }
+              },
               style: {
                 minWidth: "100px",
                 maxWidth: "100px"
@@ -340,7 +360,6 @@
         tds.unshift(m("th", thContent));
 
         // Build row
-        rowOpts.onclick = vm.toggleSelection.bind(this, model);
         rowOpts.style = { backgroundColor: color };
         row = m("tr", rowOpts, tds);
 
