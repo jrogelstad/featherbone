@@ -200,10 +200,9 @@
       // Select new row
       vm.select(model);
 
-      // If editing, focus on clicked cell
-      if (!isSelected && mode === EDIT_MODE) {
-        vm.nextFocus("input" + col.toCamelCase(true));
-      }
+      // Set next focus on clicked cell when editing
+      vm.nextFocus("input" + col.toCamelCase(true));
+
       return true;
     };
     vm.undo = function () {
@@ -270,7 +269,7 @@
 
       // Build rows
       rows = vm.models().map(function (model) {
-        var tds, row, thContent,
+        var tds, row, thContent, onclick,
           mode = vm.mode(),
           color = "White",
           isSelected = vm.isSelected(model),
@@ -346,12 +345,20 @@
         }
 
         // Front cap header navigation
+        onclick = vm.toggleSelection.bind(this, model, vm.attrs[0]);
         if (model.state.current()[0] === "/Delete") {
-          thContent = [m("i", {class:"fa fa-remove"})];
+          thContent = [m("i", {
+            onclick: onclick,
+            class:"fa fa-remove"
+          })];
         } else if (model.canSave()) {
-          thContent = [m("i", {class:"fa fa-check"})];
+          thContent = [m("i", {
+            onclick: onclick,
+            class:"fa fa-check"
+          })];
         } else {
           thContent = {
+            onclick: onclick,
             style: {
               minWidth: "16px"
             }
