@@ -48,6 +48,10 @@
     formatter.toType = formatter.toType || defaultTransform;
     formatter.fromType = formatter.fromType || defaultTransform;
 
+    revert = function () {
+      store = oldValue;
+    };
+
     // Initialize state
     state = statechart.State.define(function () {
       this.state("Ready", function () {
@@ -70,7 +74,7 @@
         this.event("report", function () {
           this.goto("../Ready");
         });
-        this.event("Disable", function () {
+        this.event("disable", function () {
           this.goto("../Disabled");
         });
       });
@@ -82,10 +86,6 @@
         });
       });
     });
-
-    revert = function () {
-      store = oldValue;
-    };
 
     // Private function that will be returned
     p = function (value) {
@@ -101,9 +101,9 @@
 
         p.state.send("change");
         store = value === newValue ? proposed : formatter.toType(newValue);
-        newValue = undefined;
-        oldValue = newValue;
         p.state.send("changed");
+        newValue = undefined;
+        oldValue = undefined;
       }
 
       return formatter.fromType(store);
@@ -511,9 +511,11 @@
       keys.forEach(function(key) {
         freezeCache[key] = {};
         freezeCache[key].isReadOnly = d[key].isReadOnly();
-        freezeCache[key].prevState = d[key].state.current()[0];
         d[key].isReadOnly(true);
-        d[key].state.goto("/Disabled");
+        if (d[key].state.current()[0] !== "/Disabled") {
+          d[key].state.send("disable");
+          d[key].isDisabled = true;
+        }
       });
     };
 
@@ -570,8 +572,11 @@
 
       // Return read only props to previous state
       keys.forEach(function(key) {
-        d[key].state.goto(freezeCache[key].prevState);
+        d[key].state.send("enable");
         d[key].isReadOnly(freezeCache[key].isReadOnly);
+        if (freezeCache[key].isDisabled) {
+          d[key].state.send("enable");
+        }
       });
 
       freezeCache = {};
