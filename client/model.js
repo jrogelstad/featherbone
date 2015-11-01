@@ -186,13 +186,14 @@
     feather = feather || {};
 
     var  doClear, doDelete, doError, doFetch, doInit, doPatch, doPost, doSend,
-      validator, lastError, path, state,
+      doFreeze, doThaw, validator, lastError, path, state,
       that = {data: {}, name: feather.name || "Object", plural: feather.plural},
       d = that.data,
       errHandlers = [],
       validators = [],
       stateMap = {},
-      lastFetched = {};
+      lastFetched = {},
+      freezeCache = {};
 
     // ..........................................................
     // PUBLIC
@@ -504,6 +505,16 @@
       ds.request(payload).then(result, handleErr).then(callback);
     };
 
+    doFreeze = function () {
+      var keys = Object.keys(d);
+
+      // Make all props read only, but remember previous state
+      keys.forEach(function(key) {
+        freezeCache[key] = d[key].isReadOnly();
+        d[key].isReadOnly(true);
+      });
+    };
+
     doPatch = function (context) {
       var ds = f.dataSource,
         result = f.prop({}),
@@ -545,6 +556,17 @@
       var deferred = m.deferred();
       state.send(evt, deferred);
       return deferred.promise;
+    };
+
+    doThaw = function () {
+      var keys = Object.keys(d);
+
+      // Return read only props to previous state
+      keys.forEach(function(key) {
+        d[key].isReadOnly(freezeCache[key]);
+      });
+
+      freezeCache = {};
     };
 
     doInit = function () {
@@ -889,6 +911,8 @@
       });
 
       this.state("Delete", function () {
+        this.enter(doFreeze);
+
         this.event("save",  function (deferred) {
           this.goto("/Busy/Deleting", {
             context: {deferred: deferred}
@@ -896,6 +920,7 @@
         });
 
         this.event("undo",  function () {
+          doThaw();
           this.goto("/Ready");
         });
       });
