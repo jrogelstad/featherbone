@@ -19,7 +19,7 @@
   "use strict";
 
   f.viewModels.formViewModel = function (options) {
-    var vm = {},
+    var vm = {}, model,
       wbkroute = "/" + options.workbook + "/" + options.sheet,
       frmroute = "/" + options.workbook + "/" + options.form,
       feather = options.feather,
@@ -28,13 +28,16 @@
 
     wbkroute = wbkroute.toSpinalCase();
     frmroute = frmroute.toSpinalCase();
-    vm.model = f.models[name]({id: id});
-    vm.attrs = {};
+    model = f.models[name]({id: id});
 
-    if (id) { vm.model.fetch(); }
+    if (id) { model.fetch(); }
 
+    vm.relations = m.prop({});
+    vm.model = function () {
+      return model;
+    };
     vm.doApply = function () {
-      vm.model.save();
+      model.save();
     };
     vm.doList = function () {
       m.route(wbkroute);
@@ -43,12 +46,12 @@
       m.route(frmroute);
     };
     vm.doSave = function () {
-      vm.model.save().then(function () {
+      model.save().then(function () {
         m.route(wbkroute);
       });
     };
     vm.doSaveAndNew = function () {
-      vm.model.save().then(function () {
+      model.save().then(function () {
         m.route(frmroute);
       });
     };
@@ -72,7 +75,8 @@
 
     widget.view = function (ctrl) {
       var attrs, focusAttr, view,
-        model = ctrl.vm.model,
+        vm = ctrl.vm,
+        model = vm.model(),
         feather = f.catalog.getFeather(options.feather),
         d = model.data;
 
@@ -96,7 +100,7 @@
             feather: feather,
             model: model,
             key: key,
-            controller: ctrl
+            viewModel: vm
           })
         ]);
         return result;
@@ -106,9 +110,9 @@
       view = m("form", {
         class: "pure-form pure-form-aligned",
         config: function () {
-          if (ctrl.vm.isFirstLoad()) {
+          if (vm.isFirstLoad()) {
             document.getElementById(focusAttr).focus();
-            ctrl.vm.isFirstLoad(false);
+            vm.isFirstLoad(false);
           }
         }
       }, [
@@ -121,29 +125,29 @@
             type: "button",
             class: "pure-button",
             style: { margin: "1px" },
-            onclick: ctrl.vm.doList
+            onclick: vm.doList
           }, [m("i", {class:"fa fa-arrow-left"})], " Done"),
           m("button", {
             type: "button",
             class: "pure-button",
             style: { margin: "1px" },
-            disabled: !ctrl.vm.model.canSave(),
-            onclick: ctrl.vm.doApply
+            disabled: !model.canSave(),
+            onclick: vm.doApply
           }, "Apply"),
           m("button", {
             type: "button",
             class: "pure-button",
             style: { margin: "1px" },
-            disabled: !ctrl.vm.model.canSave(),
-            onclick: ctrl.vm.doSave
+            disabled: !model.canSave(),
+            onclick: vm.doSave
           }, [m("i", {class:"fa fa-save"})], " Save"),
           m("button", {
             type: "button",
             class: "pure-button",
             style: { margin: "1px" },
-            onclick: ctrl.vm.model.canSave() ? ctrl.vm.doSaveAndNew : ctrl.vm.doNew
+            onclick: model.canSave() ? vm.doSaveAndNew : vm.doNew
           }, [m("i", {class:"fa fa-plus-circle"})],
-          ctrl.vm.model.canSave() ? " Save & New" : " New")
+          model.canSave() ? " Save & New" : " New")
         ]),
         m("div", {
           style: {

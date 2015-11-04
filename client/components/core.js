@@ -46,18 +46,17 @@
     @param {object} Properties specification
   */
   f.buildInputComponent = function (obj) {
-    var rel, w, opts,
+    var rel, w,
       key = obj.key,
       d = obj.model.data,
       p = obj.feather.properties[obj.key],
-      format = p.format || p.type;
+      format = p.format || p.type,
+      opts = obj.options || {};
 
     // Handle input types
     if (typeof p.type === "string") {
-      opts = {
-        id: key,
-        type: f.inputMap[format]
-      };
+      opts.id = key;
+      opts.type = f.inputMap[format];
 
       if (d[key].isReadOnly()) {
         opts.disabled = true;
@@ -81,7 +80,7 @@
     w = f.components[rel + "Relation"]({parentProperty: key});
 
     if (d[key].isToOne() && w) {
-      return m.component(w, {viewModel: obj.controller.vm});
+      return m.component(w, {viewModel: obj.viewModel});
     }
 
     console.log("Widget for property '" + key + "' is unknown");

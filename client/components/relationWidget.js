@@ -26,7 +26,7 @@
       parentProperty = options.parentProperty,
       valueProperty = options.valueProperty,
       labelProperty = options.labelProperty,
-      modelValue = parent.model.data[parentProperty],
+      modelValue = parent.model().data[parentProperty],
       current = modelValue() ? modelValue().data[valueProperty]() : null,
       inputValue = m.prop(current),
       modelName = modelValue.type.relation.toCamelCase(),
@@ -142,18 +142,19 @@
 
     widget.view = function (ignore, args) {
       var rvm, listOptions, view,
-        vm = args.viewModel;
+        vm = args.viewModel,
+        relations = vm.relations();
 
       // Set up viewModel if required
-      if (!vm.attrs[parentProperty]) {
-        vm.attrs[parentProperty] = f.viewModels.relationViewModel({
+      if (!relations[parentProperty]) {
+        relations[parentProperty] = f.viewModels.relationViewModel({
           parent: vm,
           parentProperty: parentProperty,
           valueProperty: valueProperty,
           labelProperty: labelProperty
         });
       }
-      rvm = vm.attrs[parentProperty];
+      rvm = relations[parentProperty];
 
       // Generate picker list
       listOptions = rvm.models().map(function (model) {
