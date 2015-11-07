@@ -218,9 +218,7 @@
     component.view = function (ctrl) {
       var tbodyConfig, header, rows, tabs, view,
         vm = ctrl.vm,
-        activeSheet = vm.activeSheet(),
-        name = vm.config()[activeSheet].feather,
-        feather = f.catalog.getFeather(name);
+        activeSheet = vm.activeSheet();
 
       // Define scrolling behavior for table body
       tbodyConfig = function (e) {
@@ -370,8 +368,7 @@
             };
 
             cell = m("td", cellOpts, [
-                f.buildInputComponent({
-                feather: feather,
+              f.buildInputComponent({
                 model: model,
                 key: col,
                 viewModel: vm,

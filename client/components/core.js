@@ -39,7 +39,6 @@
     Helper function for building input elements
 
     @param {Object} Arguments object
-    @param {Object} [obj.feather] Model's feather
     @param {Object} [obj.model] Model
     @param {String} [obj.key] Property key
     @param {Object} {obj.controller} Controller
@@ -49,7 +48,7 @@
     var rel, w,
       key = obj.key,
       d = obj.model.data,
-      p = obj.feather.properties[obj.key],
+      p = d[obj.key],
       format = p.format || p.type,
       opts = obj.options || {};
 

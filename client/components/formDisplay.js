@@ -77,7 +77,6 @@
       var attrs, focusAttr, view,
         vm = ctrl.vm,
         model = vm.model(),
-        feather = f.catalog.getFeather(options.feather),
         d = model.data;
 
       // Build elements
@@ -97,7 +96,6 @@
             }
           }, key.toProperCase() + ":"),
           f.buildInputComponent({
-            feather: feather,
             model: model,
             key: key,
             viewModel: vm
