@@ -328,7 +328,6 @@
             inputOpts = {
               id: id,
               onclick: vm.toggleSelection.bind(this, model, col),
-              onchange: m.withAttr("value", d[col]),
               value: d[col](),
               config: function (e) {
                 if (vm.nextFocus() === id) {
@@ -373,12 +372,17 @@
             class:"fa fa-check"
           })];
         } else {
-          thContent = {
+          cellOpts = {
             onclick: onclick,
             style: {
               minWidth: "16px"
             }
           };
+          if (mode === EDIT_MODE && isSelected) {
+            cellOpts.style.borderColor = "blue";
+            cellOpts.style.borderWidth = "thin";
+            cellOpts.style.borderStyle = "solid";
+          }
         }
         tds.unshift(m("th", cellOpts, thContent));
 
