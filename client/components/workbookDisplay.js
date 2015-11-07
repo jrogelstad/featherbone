@@ -59,20 +59,22 @@
     vm.config = function () {
       return options.config || {};
     };
+    vm.model = function () {
+      return selection;
+    };
     vm.models = f.models[name].list();
     vm.attrs = options.config[sheet].list.attrs || ["id"];
-    vm.canSave = function (model) {
-      var currentState = model.state.current()[0];
-      return (currentState === "/Ready/New" ||
-        currentState === "/Ready/Fetched/Dirty") &&
-        model.isValid();
-    };
+    vm.canSave = function () {
+      return vm.models().some(function (model) {
+        return model.canSave();
+      });
+    };  
     vm.goHome = function () {
       m.route("/home");
     };
     vm.goNextRow = function () {
       var list = vm.models(),
-        model = vm.selection(),
+        model = vm.model(),
         idx = list.indexOf(model) + 1;
       if (list.length > idx) {
         vm.select(list[idx]);
@@ -80,18 +82,13 @@
     };
     vm.goPrevRow = function () {
       var list = vm.models(),
-        model = vm.selection(),
+        model = vm.model(),
         idx = list.indexOf(model) - 1;
       if (idx >= 0) {
         vm.select(list[idx]);
       }
     };
     vm.focusColumn = m.prop(vm.attrs[0]);
-    vm.canSave = function () {
-      return vm.models().some(function (model) {
-        return model.canSave();
-      });
-    };
     vm.hasNoSelection = function () {
       return !selection;
     };
@@ -167,9 +164,6 @@
       }
       return selection;
     };
-    vm.selection = function () {
-      return selection;
-    };
     vm.selectedTab = m.prop(options.sheet);
     vm.sheets = function () {
       return Object.keys(options.config || {});
@@ -222,7 +216,9 @@
 
     component.view = function (ctrl) {
       var tbodyConfig, header, rows, tabs, view,
-        vm = ctrl.vm;
+        vm = ctrl.vm,
+        selectedSheet = vm.selectedTab(),
+        feather = f.catalog.getFeather(selectedSheet);
 
       // Define scrolling behavior for table body
       tbodyConfig = function (e) {
@@ -382,7 +378,7 @@
 
         // Build tab
         tab = m("button[type=button]", {
-          class: vm.selectedTab() === sheet ?
+          class: selectedSheet === sheet ?
             "pure-button pure-button-active" : "pure-button",
           style: {
             borderTopLeftRadius: "0px",
@@ -456,7 +452,7 @@
             class: "pure-button",
             style: {
               margin: "1px",
-              display: (vm.selection() && vm.selection().canSave()) ?
+              display: (vm.model() && vm.model().canSave()) ?
                 "none" : "inline-block"
             },
             onclick: vm.modelDelete,
@@ -467,7 +463,7 @@
             class: "pure-button",
             style: {
               margin: "1px",
-              display: (vm.selection() && vm.selection().canSave()) ?
+              display: (vm.model() && vm.model().canSave()) ?
                 "inline-block" : "none"
             },
             onclick: vm.undo
