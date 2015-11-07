@@ -32,10 +32,6 @@
 
     if (id) { model.fetch(); }
 
-    vm.relations = m.prop({});
-    vm.model = function () {
-      return model;
-    };
     vm.doApply = function () {
       model.save();
     };
@@ -56,6 +52,10 @@
       });
     };
     vm.isFirstLoad = m.prop(true);
+    vm.model = function () {
+      return model;
+    };
+    vm.relations = m.prop({});
 
     return vm;
   };

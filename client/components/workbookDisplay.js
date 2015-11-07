@@ -56,19 +56,16 @@
       vm = {};
     frmroute = frmroute.toSpinalCase();
 
-    vm.config = function () {
-      return options.config || {};
-    };
-    vm.model = function () {
-      return selection;
-    };
-    vm.models = f.models[name].list();
+    vm.activeSheet = m.prop(options.sheet);
     vm.attrs = options.config[sheet].list.attrs || ["id"];
     vm.canSave = function () {
       return vm.models().some(function (model) {
         return model.canSave();
       });
-    };  
+    };
+    vm.config = function () {
+      return options.config || {};
+    }; 
     vm.goHome = function () {
       m.route("/home");
     };
@@ -95,6 +92,10 @@
     vm.isSelected = function (model) {
       return selection === model;
     };
+    vm.mode = m.prop(LIST_MODE);
+    vm.model = function () {
+      return selection;
+    };
     vm.modelDelete = function () {
       // Delete now in list mode
       if (vm.mode() === LIST_MODE) {
@@ -107,13 +108,13 @@
       // Mork for deletion in edit mode
       selection.delete();
     };
-    vm.mode = m.prop(LIST_MODE);
     vm.modelNew = function () {
       m.route(frmroute);
     };
     vm.modelOpen = function () {
       m.route(frmroute + "/" + selection.data.id());
     };
+    vm.models = f.models[name].list();
     vm.nextFocus = m.prop();
     vm.onkeydown = function (e) {
       var id, 
@@ -146,6 +147,7 @@
       // Sync header position with table body position
       header.scrollLeft = rows.scrollLeft;
     };
+    vm.relations = m.prop({});
     vm.scrollbarWidth = function () {
       return scrWidth;
     };
@@ -164,7 +166,6 @@
       }
       return selection;
     };
-    vm.selectedTab = m.prop(options.sheet);
     vm.sheets = function () {
       return Object.keys(options.config || {});
     };
@@ -217,8 +218,9 @@
     component.view = function (ctrl) {
       var tbodyConfig, header, rows, tabs, view,
         vm = ctrl.vm,
-        selectedSheet = vm.selectedTab(),
-        feather = f.catalog.getFeather(selectedSheet);
+        activeSheet = vm.activeSheet(),
+        name = vm.config()[activeSheet].feather,
+        feather = f.catalog.getFeather(name);
 
       // Define scrolling behavior for table body
       tbodyConfig = function (e) {
@@ -240,8 +242,8 @@
         var ths = vm.attrs.map(function (key) {
             return m("th", {
               style: {
-                minWidth: "100px",
-                maxWidth: "100px",
+                minWidth: "150px",
+                maxWidth: "150px",
                 whiteSpace: "nowrap",
                 overflow: "hidden",
                 textOverflow: "ellipsis"
@@ -270,7 +272,13 @@
           color = "White",
           isSelected = vm.isSelected(model),
           d = model.data,
+          cellOpts = {},
           rowOpts = {};
+
+        // Build row
+        if (isSelected) {
+          color = "AliceBlue";
+        }
 
         // Build view row
         if (mode === LIST_MODE || !isSelected) {
@@ -285,8 +293,8 @@
             cell = m("td", {
                 onclick: vm.toggleSelection.bind(this, model, col),
                 style: {
-                  minWidth: "100px",
-                  maxWidth: "100px",
+                  minWidth: "150px",
+                  maxWidth: "150px",
                   whiteSpace: "nowrap",
                   overflow: "hidden",
                   textOverflow: "ellipsis"
@@ -297,11 +305,6 @@
             return cell;
           });
 
-          // Build row
-          if (isSelected) {
-            color = "LightBlue";
-          }
-
           rowOpts = {
             ondblclick: vm.toggleOpen.bind(this, model)
           };
@@ -309,12 +312,20 @@
 
         // Build editable row
         } else {
+          cellOpts = {
+            style: {
+              borderColor: "blue",
+              borderWidth: "thin",
+              borderStyle: "solid"
+            }
+          };
+
           // Build cells
           tds = vm.attrs.map(function (col) {
-            var cell, cellOpts,
+            var cell, inputOpts,
               id = "input" + col.toCamelCase(true);
 
-            cellOpts = {
+            inputOpts = {
               id: id,
               onclick: vm.toggleSelection.bind(this, model, col),
               onchange: m.withAttr("value", d[col]),
@@ -326,14 +337,23 @@
                 }
               },
               style: {
-                minWidth: "100px",
-                maxWidth: "100px"
+                minWidth: "150px",
+                maxWidth: "150px",
+                boxShadow: "none",
+                border: "none",
+                padding: "0px",
+                backgroundColor: color
               }
             };
 
-            // Build cell
-            cell = m("td", [
-              m("input", cellOpts)
+            cell = m("td", cellOpts, [
+                f.buildInputComponent({
+                feather: feather,
+                model: model,
+                key: col,
+                viewModel: vm,
+                options: inputOpts
+              })
             ]);
 
             return cell;
@@ -360,7 +380,7 @@
             }
           };
         }
-        tds.unshift(m("th", thContent));
+        tds.unshift(m("th", cellOpts, thContent));
 
         // Build row
         rowOpts.style = { backgroundColor: color };
@@ -371,21 +391,18 @@
 
       // Build tabs
       tabs = vm.sheets().map(function (sheet) {
-        var tab,
-          sconfig = vm.config()[sheet],
-          label = sconfig.feather ?
-            sheet : f.catalog.getFeather(sheet).plural;
+        var tab;
 
         // Build tab
         tab = m("button[type=button]", {
-          class: selectedSheet === sheet ?
+          class: activeSheet === sheet ?
             "pure-button pure-button-active" : "pure-button",
           style: {
             borderTopLeftRadius: "0px",
             borderTopRightRadius: "0px"
           },
           onclick: vm.tabClicked.bind(this, sheet)
-        }, label);
+        }, sheet);
 
         return tab;
       });
