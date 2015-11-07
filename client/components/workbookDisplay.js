@@ -284,13 +284,10 @@
         if (mode === LIST_MODE || !isSelected) {
           // Build cells
           tds = vm.attrs.map(function (col) {
-            var cell,
+            var cell, content,
               value = d[col](),
-              hasLocale = value !== null &&
-                typeof value.toLocaleString === "function";
-
-            // Build cell
-            cell = m("td", {
+              format = d[col].format || d[col].type,
+              tdOpts = {
                 onclick: vm.toggleSelection.bind(this, model, col),
                 style: {
                   minWidth: "150px",
@@ -299,8 +296,36 @@
                   overflow: "hidden",
                   textOverflow: "ellipsis"
                 }
-              },
-              hasLocale ? value.toLocaleString() : value);
+              };
+
+            // Build cell
+            switch (format)
+            {
+            case "number":
+            case "integer":
+              content = value.toLocaleString();
+              break;
+            case "boolean":
+              if (value) {
+                content = m("i", {
+                  onclick: onclick,
+                  class: "fa fa-check"
+                });
+              }
+              break;
+            case "date":
+              value = value ? new Date(value) : "";
+              content = value ? value.toLocaleDateString() : "";
+              break;
+            case "dateTime":
+              value = value ? new Date(value) : "";
+              content = value ? value.toLocaleString() : "";
+              break;
+            default:
+              content = value;
+            }
+
+            cell = m("td", tdOpts, content);
 
             return cell;
           });
@@ -308,7 +333,6 @@
           rowOpts = {
             ondblclick: vm.toggleOpen.bind(this, model)
           };
-
 
         // Build editable row
         } else {
@@ -362,21 +386,19 @@
         // Front cap header navigation
         onclick = vm.toggleSelection.bind(this, model, vm.attrs[0]);
         if (model.state.current()[0] === "/Delete") {
-          thContent = [m("i", {
+          thContent = m("i", {
             onclick: onclick,
             class:"fa fa-remove"
-          })];
+          });
         } else if (model.canSave()) {
-          thContent = [m("i", {
+          thContent = m("i", {
             onclick: onclick,
             class:"fa fa-check"
-          })];
+          });
         } else {
           cellOpts = {
             onclick: onclick,
-            style: {
-              minWidth: "16px"
-            }
+            style: {minWidth: "16px"}
           };
           if (mode === EDIT_MODE && isSelected) {
             cellOpts.style.borderColor = "blue";

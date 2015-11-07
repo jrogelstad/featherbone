@@ -815,6 +815,7 @@
         prop.key = key; // Use of 'name' property is not allowed here
         prop.description = props[key].description;
         prop.type = props[key].type;
+        prop.format = props[key].format;
         prop.default = func || defaultValue;
         prop.isRequired(props[key].isRequired);
         prop.isReadOnly(props[key].isReadOnly);
