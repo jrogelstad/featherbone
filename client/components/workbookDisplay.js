@@ -344,7 +344,7 @@
 
           // Build cells
           tds = vm.attrs.map(function (col) {
-            var cell, inputOpts,
+            var cell, inputOpts, format,
               id = "input" + col.toCamelCase(true);
 
             inputOpts = {
@@ -367,11 +367,16 @@
               }
             };
 
+            if (d[col].type === "integer") {
+              format = "number"; // Spin box interferes with up/down navigation
+            }
+  
             cell = m("td", cellOpts, [
               f.buildInputComponent({
                 model: model,
                 key: col,
                 viewModel: vm,
+                format: format,
                 options: inputOpts
               })
             ]);
