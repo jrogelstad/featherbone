@@ -117,13 +117,15 @@
     vm.models = f.models[name].list();
     vm.nextFocus = m.prop();
     vm.onkeydown = function (e) {
-      var id, 
+      var id, step,
+        key = e.key || e.keyIdentifier,
         nav = function (name) {
           id = e.srcElement.id;
-          // Ignore changes made by this keystroke
-          if (e.srcElement.type === "date" ||
-            e.srcElement.type === "number") {
-              vm.model().data[id].silence(1);
+          // Counter potential data changes made by this keystroke
+          if (typeof e.srcElement[step] === "function") {
+            try {
+              e.srcElement[step]();
+            } catch (ignore) {}
           }
           // Navigate in desired direction
           m.startComputation();
@@ -135,12 +137,14 @@
           m.endComputation();
         };
 
-      switch (e.key || e.keyIdentifier)
+      switch (key)
       {
       case "Up":
+        step = "stepDown";
         nav("goPrevRow");
         break;
       case "Down":
+        step = "stepUp";
         nav("goNextRow");
         break;
       }
