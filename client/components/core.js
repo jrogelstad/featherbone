@@ -45,7 +45,7 @@
     @param {object} Properties specification
   */
   f.buildInputComponent = function (obj) {
-    var rel, w,
+    var rel, w, component,
       key = obj.key,
       d = obj.model.data,
       p = d[obj.key],
@@ -60,18 +60,47 @@
       if (d[key].isReadOnly()) {
         opts.disabled = true;
       }
+
       if (d[key].isRequired()) {
         opts.required = true;
       }
+
       if (p.type === "boolean") {
         opts.onclick = m.withAttr("checked", d[key]);
         opts.checked = d[key]();
+        opts.style = opts.style || {};
+        opts.style.position = "absolute";
+        opts.style.left = "-999px";
+
+        component = m("div", {
+          style: {display: "inline-block"}
+        }, [
+          m("input", opts),
+          m("label", {
+            for: key,
+            style: {
+              borderWidth: "thin",
+              borderStyle: "solid",
+              borderRadius: "4px",
+              borderColor: "#ccc",
+              boxShadow: "inset 0 1px 3px #ddd",
+              padding: "7px",
+              maxWidth: "15px",
+              minWidth: "15px"
+            }
+          }, m("i", {
+            class:"fa fa-check",
+            style: {visibility: d[key]() ? "visible" : "hidden"}
+          }))
+        ]);
+
       } else {
         opts.onchange = m.withAttr("value", d[key]);
         opts.value = d[key]();
+        component = m("input", opts);
       }
 
-      return m("input", opts);
+      return component;
     }
 
     // Handle relations
