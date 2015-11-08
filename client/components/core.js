@@ -49,7 +49,7 @@
       key = obj.key,
       d = obj.model.data,
       p = d[obj.key],
-      format = obj.format || p.format || p.type,
+      format = p.format || p.type,
       opts = obj.options || {};
 
     // Handle input types

@@ -120,6 +120,8 @@
       var id, 
         nav = function (name) {
           id = e.srcElement.id;
+          // Ignore changes made by this keystroke
+          vm.model().data[id].silence(1);
           // Navigate in desired direction
           m.startComputation();
           vm[name]();
@@ -344,7 +346,7 @@
 
           // Build cells
           tds = vm.attrs.map(function (col) {
-            var cell, inputOpts, format,
+            var cell, inputOpts,
               id = "input" + col.toCamelCase(true);
 
             inputOpts = {
@@ -367,16 +369,11 @@
               }
             };
 
-            if (d[col].type === "integer") {
-              format = "number"; // Spin box interferes with up/down navigation
-            }
-  
             cell = m("td", cellOpts, [
               f.buildInputComponent({
                 model: model,
                 key: col,
                 viewModel: vm,
-                format: format,
                 options: inputOpts
               })
             ]);

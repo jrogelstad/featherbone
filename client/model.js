@@ -41,6 +41,7 @@
     formatter = formatter || {};
 
     var newValue, oldValue, p, state, revert,
+      silence = 0,
       isReadOnly = false,
       isRequired = false,
       defaultTransform = function (value) { return value; };
@@ -104,9 +105,26 @@
         p.state.send("changed");
         newValue = undefined;
         oldValue = undefined;
+        if (silence) {
+          silence -= 1;
+          if (!silence) {
+            state.send("enable");
+          }
+        }
       }
 
       return formatter.fromType(store);
+    };
+
+    /*
+      Disables property for the next number of changes. Helpful to intercept
+      unwanted events.
+
+      @param {Number} Number of events to silences
+    */
+    p.silence = function (num) {
+      silence = silence + num;
+      state.send("disable");
     };
 
     /*
@@ -127,6 +145,8 @@
     };
 
     p.state = state;
+
+    p.ignore = 0;
 
     p.toJSON = function () {
       if (typeof store === "object" && store !== null &&
