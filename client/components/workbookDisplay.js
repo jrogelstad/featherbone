@@ -121,7 +121,10 @@
         nav = function (name) {
           id = e.srcElement.id;
           // Ignore changes made by this keystroke
-          vm.model().data[id].silence(1);
+          if (e.srcElement.type === "date" ||
+            e.srcElement.type === "number") {
+              vm.model().data[id].silence(1);
+          }
           // Navigate in desired direction
           m.startComputation();
           vm[name]();
@@ -314,8 +317,11 @@
               }
               break;
             case "date":
-              value = value ? new Date(value) : "";
-              content = value ? value.toLocaleDateString() : "";
+              if (value) {
+                // Turn into date adjusting time for current timezone
+                value = new Date(value + f.now().slice(10));
+                content = value.toLocaleDateString();
+              }
               break;
             case "dateTime":
               value = value ? new Date(value) : "";
