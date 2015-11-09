@@ -19,7 +19,24 @@
   "use strict";
 
   var EDIT_MODE = 2,
-    LIST_MODE = 1;
+    LIST_MODE = 1,
+    resolve;
+
+  /** @private  Helper function to resolve property dot notation */
+  resolve = function (model, property) {
+    var prefix, suffix,
+      idx = property.indexOf(".");
+
+    if (!model) { return m.prop(null); }
+
+    if (idx > -1) {
+      prefix = property.slice(0, idx);
+      suffix = property.slice(idx + 1, property.length);
+      return resolve(model.data[prefix](), suffix);
+    }
+
+    return model.data[property];
+  };
 
   // Calculate scroll bar width
   // http://stackoverflow.com/questions/13382516/getting-scroll-bar-width-using-javascript
@@ -255,8 +272,7 @@
                 overflow: "hidden",
                 textOverflow: "ellipsis"
               }
-            },
-              key.toProperCase(true));
+            }, key.replace(/\./g,' _').toCamelCase().toProperCase(true));
           });
 
         // Front cap header navigation
@@ -269,6 +285,7 @@
             maxWidth: vm.scrollbarWidth() + "px"
           }
         }));
+
         return m("tr", ths);
       }());
 
@@ -292,8 +309,9 @@
           // Build cells
           tds = vm.attrs.map(function (col) {
             var cell, content,
-              value = d[col](),
-              format = d[col].format || d[col].type,
+              prop = resolve(model, col),
+              value = prop(),
+              format = prop.format || prop.type,
               tdOpts = {
                 onclick: vm.toggleSelection.bind(this, model, col),
                 style: {
