@@ -19,24 +19,7 @@
   "use strict";
 
   var EDIT_MODE = 2,
-    LIST_MODE = 1,
-    resolve;
-
-  /** @private  Helper function to resolve property dot notation */
-  resolve = function (model, property) {
-    var prefix, suffix,
-      idx = property.indexOf(".");
-
-    if (!model) { return m.prop(null); }
-
-    if (idx > -1) {
-      prefix = property.slice(0, idx);
-      suffix = property.slice(idx + 1, property.length);
-      return resolve(model.data[prefix](), suffix);
-    }
-
-    return model.data[property];
-  };
+    LIST_MODE = 1;
 
   // Calculate scroll bar width
   // http://stackoverflow.com/questions/13382516/getting-scroll-bar-width-using-javascript
@@ -242,7 +225,7 @@
     };
 
     component.view = function (ctrl) {
-      var tbodyConfig, header, rows, tabs, view,
+      var tbodyConfig, header, rows, tabs, view, rel,
         vm = ctrl.vm,
         activeSheet = vm.activeSheet();
 
@@ -309,7 +292,7 @@
           // Build cells
           tds = vm.attrs.map(function (col) {
             var cell, content,
-              prop = resolve(model, col),
+              prop = f.resolveProperty(model, col),
               value = prop(),
               format = prop.format || prop.type,
               tdOpts = {
@@ -349,7 +332,15 @@
               value = value ? new Date(value) : "";
               content = value ? value.toLocaleString() : "";
               break;
+            case "string":
+              content = value;
+              break;
             default:
+              if (typeof format === "object" && d[col]()) {
+                // If relation, use relation widget to find display property
+                rel = f.components[format.relation.toCamelCase() + "Relation"];
+                if (rel) { value = d[col]().data[rel.valueProperty](); }
+              }
               content = value;
             }
 
@@ -375,12 +366,13 @@
           // Build cells
           tds = vm.attrs.map(function (col) {
             var cell, inputOpts,
+              prop = f.resolveProperty(model, col),
               id = "input" + col.toCamelCase(true);
 
             inputOpts = {
               id: id,
               onclick: vm.toggleSelection.bind(this, model, col),
-              value: d[col](),
+              value: prop(),
               config: function (e) {
                 if (vm.nextFocus() === id) {
                   e.focus();

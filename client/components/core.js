@@ -47,27 +47,26 @@
   f.buildInputComponent = function (obj) {
     var rel, w, component,
       key = obj.key,
-      d = obj.model.data,
-      p = d[obj.key],
-      format = p.format || p.type,
+      prop = f.resolveProperty(obj.model, key),
+      format = prop.format || prop.type,
       opts = obj.options || {};
 
     // Handle input types
-    if (typeof p.type === "string") {
+    if (typeof prop.type === "string") {
       opts.id = key;
       opts.type = f.inputMap[format];
 
-      if (d[key].isReadOnly()) {
+      if (prop.isReadOnly() || key.indexOf(".") !== -1) {
         opts.disabled = true;
       }
 
-      if (d[key].isRequired()) {
+      if (prop.isRequired()) {
         opts.required = true;
       }
 
-      if (p.type === "boolean") {
-        opts.onclick = m.withAttr("checked", d[key]);
-        opts.checked = d[key]();
+      if (prop.type === "boolean") {
+        opts.onclick = m.withAttr("checked", prop);
+        opts.checked = prop();
         opts.style = opts.style || {};
         opts.style.position = "absolute";
         opts.style.left = "-999px";
@@ -90,13 +89,13 @@
             }
           }, m("i", {
             class:"fa fa-check",
-            style: {visibility: d[key]() ? "visible" : "hidden"}
+            style: {visibility: prop() ? "visible" : "hidden"}
           }))
         ]);
 
       } else {
-        opts.onchange = m.withAttr("value", d[key]);
-        opts.value = d[key]();
+        opts.onchange = m.withAttr("value", prop);
+        opts.value = prop();
         component = m("input", opts);
       }
 
@@ -104,14 +103,30 @@
     }
 
     // Handle relations
-    rel = d[key].type.relation.toCamelCase();
+    rel = prop.type.relation.toCamelCase();
     w = f.components[rel + "Relation"]({parentProperty: key});
 
-    if (d[key].isToOne() && w) {
+    if (prop.isToOne() && w) {
       return m.component(w, {viewModel: obj.viewModel});
     }
 
     console.log("Widget for property '" + key + "' is unknown");
+  };
+
+  /** @private  Helper function to resolve property dot notation */
+  f.resolveProperty = function (model, property) {
+    var prefix, suffix,
+      idx = property.indexOf(".");
+
+    if (!model) { return m.prop(null); }
+
+    if (idx > -1) {
+      prefix = property.slice(0, idx);
+      suffix = property.slice(idx + 1, property.length);
+      return f.resolveProperty(model.data[prefix](), suffix);
+    }
+
+    return model.data[property];
   };
 
 }(f));
