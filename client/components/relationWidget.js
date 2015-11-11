@@ -134,11 +134,19 @@
     return vm;
   };
 
+  /**
+    @param {Object} Options
+    @param {String} [options.parentProperty] Name of the relation
+      in view model to attached to
+    @param {String} [options.valueProperty] Value property
+    @params {String} [options.showLabel] Show label below input
+  */
   f.components.relationWidget = function (options) {
     var widget = {},
       parentProperty = options.parentProperty,
       valueProperty = options.valueProperty,
-      labelProperty = options.labelProperty;
+      labelProperty = options.labelProperty,
+      showLabel = options.showLabel;
 
     widget.view = function (ignore, args) {
       var rvm, listOptions, view,
@@ -146,14 +154,13 @@
         relations = vm.relations();
 
       // Set up viewModel if required
-      if (!relations[parentProperty]) {
-        relations[parentProperty] = f.viewModels.relationViewModel({
-          parent: vm,
-          parentProperty: parentProperty,
-          valueProperty: valueProperty,
-          labelProperty: labelProperty
-        });
-      }
+      relations[parentProperty] = f.viewModels.relationViewModel({
+        parent: vm,
+        parentProperty: parentProperty,
+        valueProperty: valueProperty,
+        labelProperty: labelProperty
+      });
+
       rvm = relations[parentProperty];
 
       // Generate picker list
@@ -220,7 +227,7 @@
           ])
         ]),
         m("div", {
-          style: {display: labelProperty ? "inline" : "none"}
+          style: {display: (labelProperty && showLabel !== false)  ? "inline" : "none"}
         }, [
           m("div", {
             style: {marginLeft: "12px", marginTop: rvm.label() ? "6px" : ""} // Hack

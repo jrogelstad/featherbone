@@ -339,7 +339,7 @@
               if (typeof format === "object" && d[col]()) {
                 // If relation, use relation widget to find display property
                 rel = f.components[format.relation.toCamelCase() + "Relation"];
-                if (rel) { value = d[col]().data[rel.valueProperty](); }
+                if (rel) { value = d[col]().data[rel.valueProperty()](); }
               }
               content = value;
             }
@@ -386,7 +386,8 @@
                 border: "none",
                 padding: "0px",
                 backgroundColor: color
-              }
+              },
+              showLabel: false
             };
 
             cell = m("td", cellOpts, [

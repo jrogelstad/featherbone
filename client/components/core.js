@@ -104,7 +104,10 @@
 
     // Handle relations
     rel = prop.type.relation.toCamelCase();
-    w = f.components[rel + "Relation"]({parentProperty: key});
+    w = f.components[rel + "Relation"]({
+      parentProperty: key,
+      showLabel: opts.showLabel
+    });
 
     if (prop.isToOne() && w) {
       return m.component(w, {viewModel: obj.viewModel});
