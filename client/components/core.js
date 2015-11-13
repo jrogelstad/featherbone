@@ -47,20 +47,21 @@
   f.buildInputComponent = function (obj) {
     var rel, w, component,
       key = obj.key,
+      isPath = key.indexOf(".") !== -1,
       prop = f.resolveProperty(obj.model, key),
       format = prop.format || prop.type,
       opts = obj.options || {};
 
     // Handle input types
-    if (typeof prop.type === "string") {
+    if (typeof prop.type === "string" || isPath) {
       opts.id = key;
       opts.type = f.inputMap[format];
 
-      if (prop.isReadOnly() || key.indexOf(".") !== -1) {
+      if (isPath || prop.isReadOnly()) {
         opts.disabled = true;
       }
 
-      if (prop.isRequired()) {
+      if (isPath || prop.isRequired()) {
         opts.required = true;
       }
 

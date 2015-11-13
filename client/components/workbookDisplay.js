@@ -171,6 +171,7 @@
     };
     vm.select = function (model) {
       if (selection !== model) {
+        vm.relations({});
         selection = model;
       }
       return selection;
@@ -284,7 +285,7 @@
 
         // Build row
         if (isSelected) {
-          color = "AliceBlue";
+          color = mode === LIST_MODE ? "LightSkyBlue" : "Azure";
         }
 
         // Build view row

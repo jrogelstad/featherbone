@@ -154,12 +154,14 @@
         relations = vm.relations();
 
       // Set up viewModel if required
-      relations[parentProperty] = f.viewModels.relationViewModel({
-        parent: vm,
-        parentProperty: parentProperty,
-        valueProperty: valueProperty,
-        labelProperty: labelProperty
-      });
+      if (!relations[parentProperty]) {
+        relations[parentProperty] = f.viewModels.relationViewModel({
+          parent: vm,
+          parentProperty: parentProperty,
+          valueProperty: valueProperty,
+          labelProperty: labelProperty
+        });
+      }
 
       rvm = relations[parentProperty];
 
