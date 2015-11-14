@@ -2777,8 +2777,8 @@
       @return {String}
     */
     saveWorkbook: function (obj) {
-      var row, nextWorkbook, nextSheet, wb, sql, params, authorization,
-        sheets, skeys, slen, s, pk, folder, id,
+      var row, nextWorkbook, wb, sql, params, authorization,
+        pk, folder, id,
         findSql = "SELECT * FROM \"$workbook\" WHERE name = $1;",
         workbooks = Array.isArray(obj.specs) ? obj.specs : [obj.specs],
         len = workbooks.length,
@@ -2865,51 +2865,32 @@
                     return;
                   }
 
-                  // Delete old sheets
-                  sql = "DELETE FROM \"$sheet\" WHERE workbook=$1;";
-                  params = [wb.name];
-                  obj.client.query(sql, params, function (err) {
-                    if (err) {
-                      obj.callback(err);
-                      return;
-                    }
+                  // If no specific authorization, make one
+                  if (authorization === undefined) {
+                    authorization = {
+                      role: "everyone",
+                      actions: {
+                        canCreate: true,
+                        canRead: true,
+                        canUpdate: true,
+                        canDelete: true
+                      },
+                      client: obj.client,
+                      callback: nextWorkbook
+                    };
+                  }
+                  authorization.id = id;
+                  authorization.client = obj.client;
+                  authorization.callback = nextWorkbook;
 
-                    // Decide whether to use original or modified sheet definition
-                    if (Object.keys(localConfig).length) {
-                      sheets = localConfig;
-                    } else {
-                      sheets = defaultConfig;
-                    }
-                    skeys = Object.keys(sheets);
-                    slen = skeys.length;
-                    s = 0;
+                  // Set authorization
+                  if (authorization) {
+                    that.saveAuthorization(authorization);
+                    return;
+                  }
 
-
-                    // If no specific authorization, make one
-                    if (authorization === undefined) {
-                      authorization = {
-                        id: id,
-                        role: "everyone",
-                        actions: {
-                          canCreate: true,
-                          canRead: true,
-                          canUpdate: true,
-                          canDelete: true
-                        },
-                        client: obj.client,
-                        callback: nextSheet
-                      };
-                    }
-
-                    /* Set authorization */
-                    if (authorization) {
-                      that.saveAuthorization(authorization);
-                      return;
-                    }
-
-                    // Insert sheets
-                    nextSheet();
-                  });
+                  // Only come here if authorization was false
+                  nextWorkbook();
                 });
               });
             });
@@ -2918,33 +2899,6 @@
         }
 
         obj.callback(null, true);
-      };
-
-      nextSheet = function () {
-        var sheet, feather;
-        if (s < slen) {
-          sheet = skeys[s];
-          s += 1;
-
-          feather = sheets[sheet].feather || sheet;
-          feather = feather.toSnakeCase();
-          sql = "INSERT INTO \"$sheet\" VALUES ($1, (SELECT _pk FROM \"$feather\" WHERE id=$2), $3);";
-          params = [sheet, feather, wb.name];
-
-          obj.client.query(sql, params, function (err) {
-            if (err) {
-              obj.callback(err);
-              return;
-            }
-
-            // Insert next sheet
-            nextSheet();
-          });
-
-          return;
-        }
-
-        nextWorkbook();
       };
 
       nextWorkbook();

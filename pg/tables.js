@@ -20,7 +20,7 @@
 
   exports.execute = function (obj) {
     var createCamelCase, createObject, createFeather, createAuth, createObjectfolder,
-      createModule, createWorkbook, createSheet, createSettings, createUser, sqlCheck,
+      createModule, createWorkbook, createSettings, createUser, sqlCheck,
       done, sql, params;
 
     sqlCheck = function (table, callback) {
@@ -206,31 +206,6 @@
             "COMMENT ON COLUMN \"$workbook\".default_config IS 'Default configuration';" +
             "COMMENT ON COLUMN \"$workbook\".local_config IS 'Local configuration';" +
             "COMMENT ON COLUMN \"$workbook\".module IS 'Foreign key to module';";
-          obj.client.query(sql, createSheet);
-          return;
-        }
-        createSheet();
-      });
-    };
-
-    // Create the sheet table
-    createSheet = function () {
-      sqlCheck('$sheet', function (err, exists) {
-        if (err) {
-          obj.callback(err);
-          return;
-        }
-
-        if (!exists) {
-          sql = "CREATE TABLE \"$sheet\" (" +
-            "name text," +
-            "feather_pk integer REFERENCES \"$feather\" (_pk)," +
-            "workbook text REFERENCES \"$workbook\" (name) ON DELETE CASCADE," +
-            "CONSTRAINT sheet_pkey PRIMARY KEY (name, workbook));" +
-            "COMMENT ON TABLE \"$sheet\" IS 'Internal table for storing workbook sheets';" +
-            "COMMENT ON COLUMN \"$sheet\".name IS 'Sheet name';" +
-            "COMMENT ON COLUMN \"$sheet\".feather_pk IS 'Foreign key to feather';" +
-            "COMMENT ON COLUMN \"$sheet\".workbook IS 'Foreign key to workbook';";
           obj.client.query(sql, createUser);
           return;
         }
