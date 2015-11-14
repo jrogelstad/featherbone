@@ -388,7 +388,7 @@
                 padding: "0px",
                 backgroundColor: color
               },
-              showLabel: false
+              isCell: true
             };
 
             cell = m("td", cellOpts, [

@@ -42,6 +42,7 @@
     @param {Object} [obj.model] Model
     @param {String} [obj.key] Property key
     @param {Object} {obj.controller} Controller
+    @param {Object} {obj.options} Options
     @param {object} Properties specification
   */
   f.buildInputComponent = function (obj) {
@@ -107,7 +108,7 @@
     rel = prop.type.relation.toCamelCase();
     w = f.components[rel + "Relation"]({
       parentProperty: key,
-      showLabel: opts.showLabel
+      isCell: opts.isCell
     });
 
     if (prop.isToOne() && w) {

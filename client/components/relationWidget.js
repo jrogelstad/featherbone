@@ -139,19 +139,24 @@
     @param {String} [options.parentProperty] Name of the relation
       in view model to attached to
     @param {String} [options.valueProperty] Value property
-    @params {String} [options.showLabel] Show label below input
+    @params {Object} [options.isCell] Style for cell in table
   */
   f.components.relationWidget = function (options) {
     var widget = {},
       parentProperty = options.parentProperty,
       valueProperty = options.valueProperty,
-      labelProperty = options.labelProperty,
-      showLabel = options.showLabel;
+      labelProperty = options.labelProperty;
 
     widget.view = function (ignore, args) {
-      var rvm, listOptions, view,
+      var rvm, listOptions, view, inputStyle, menuStyle,
         vm = args.viewModel,
-        relations = vm.relations();
+        relations = vm.relations(),
+        buttonStyle = {
+          margin: "2px"
+        },
+        labelStyle = {
+          display: "inline"
+        };
 
       // Set up viewModel if required
       if (!relations[parentProperty]) {
@@ -165,6 +170,33 @@
 
       rvm = relations[parentProperty];
 
+      menuStyle = {
+        display: rvm.showMenu() ? "block" : "none",
+        backgroundColor: "White",
+        position: "absolute",
+        zIndex: 9999,
+        border: "1px solid lightgrey"
+      };
+
+      if (options.isCell) {
+        inputStyle = {
+          minWidth: "100px",
+          maxWidth: "100px",
+          boxShadow: "none",
+          border: "none",
+          padding: "0px",
+          backgroundColor: "Azure"
+        };
+        buttonStyle = {
+          position: "absolute",
+          top: "-7px",
+          right: "-65px"
+        };
+        menuStyle.top = "26px";
+        menuStyle.right = "-100px";
+        labelStyle.display = "none";
+      }
+
       // Generate picker list
       listOptions = rvm.models().map(function (model) {
         var content = {value: model.data[valueProperty]()};
@@ -177,6 +209,7 @@
         style: {display: "inline-block"}
       },[
         m("input", {
+          style: inputStyle,
           list: rvm.listId(),
           onchange: m.withAttr("value", rvm.onchange),
           onfocus: rvm.onfocus,
@@ -201,17 +234,11 @@
           }, [
             m("span", {
               class:"pure-button fa fa-bars",
-              style: {margin: "2px"}
+              style: buttonStyle
             }),
             m("ul", {
               class: "pure-menu-list",
-              style: {
-                display: rvm.showMenu() ? "block" : "none",
-                backgroundColor: "White",
-                position: "absolute",
-                zIndex: 9999,
-                border: "1px solid lightgrey"
-              }
+              style: menuStyle
             }, [
               m("li", {
                 class: "pure-menu-link",
@@ -229,7 +256,7 @@
           ])
         ]),
         m("div", {
-          style: {display: (labelProperty && showLabel !== false)  ? "inline" : "none"}
+          style: labelStyle
         }, [
           m("div", {
             style: {marginLeft: "12px", marginTop: rvm.label() ? "6px" : ""} // Hack
