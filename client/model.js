@@ -188,7 +188,7 @@
     feather = feather || {};
 
     var  doClear, doDelete, doError, doFetch, doInit, doPatch, doPost, doSend,
-      doFreeze, doThaw, doRevert, validator, lastError, path, state,
+      doFreeze, doThaw, doRevert, validator, lastError, path, state, noSave,
       that = {data: {}, name: feather.name || "Object", plural: feather.plural},
       d = that.data,
       errHandlers = [],
@@ -201,11 +201,14 @@
     // PUBLIC
     //
     that.canSave = function () {
+      var currentState = state.resolve(state.current()[0]);
+      return currentState.canSave();
+    };
+
+    that.canDelete = function () {
       var currentState = state.current()[0];
-      return (currentState === "/Ready/New" ||
-        currentState === "/Ready/Fetched/Dirty" ||
-        currentState === "/Delete") &&
-        that.isValid();
+      return currentState === "/Ready/New" ||
+        currentState === "/Ready/Fetched/Clean";
     };
 
     /*
@@ -846,6 +849,8 @@
       return ret;
     };
 
+    noSave = function () {return false; };
+
     state = statechart.State.define(function () {
       this.enter(doInit);
 
@@ -870,6 +875,7 @@
           this.event("delete", function () {
             this.goto("/Deleted");
           });
+          this.canSave = that.isValid;
         });
 
         this.state("Fetched", function () {
@@ -884,6 +890,7 @@
             this.event("changed", function () {
               this.goto("../Dirty");
             });
+            this.canSave = noSave;
           });
 
           this.state("Dirty", function () {
@@ -894,6 +901,7 @@
                 context: {deferred: deferred}
               });
             });
+            this.canSave = that.isValid;
           });
         });
       });
@@ -901,14 +909,18 @@
       this.state("Busy", function () {
         this.state("Fetching", function () {
           this.enter(doFetch);
+          this.canSave = noSave;
         });
         this.state("Saving", function () {
           this.state("Posting", function () {
             this.enter(doPost);
+            this.canSave = noSave;
           });
           this.state("Patching", function () {
             this.enter(doPatch);
+            this.canSave = noSave;
           });
+          this.canSave = noSave;
         });
         this.state("Deleting", function () {
           this.enter(doDelete);
@@ -916,6 +928,7 @@
           this.event("deleted", function () {
             this.goto("/Deleted");
           });
+          this.canSave = noSave;
         });
 
         this.event("fetched", function () {
@@ -941,12 +954,14 @@
           doThaw();
           this.goto("/Ready");
         });
+        this.canSave = function () { return true; };
       });
 
       this.state("Deleted", function () {
         this.event("clear",  function () {
           this.goto("/Ready/New");
         });
+        this.canSave = noSave;
       });
 
       this.state("Deleting", function () {
@@ -955,6 +970,7 @@
         this.event("deleted",  function () {
           this.goto("/Deleted");
         });
+        this.canSave = noSave;
       });
     });
 
