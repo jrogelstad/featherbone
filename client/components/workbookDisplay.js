@@ -70,7 +70,7 @@
       var col = vm.attrs.find(function (attr) {
         return !model.data[attr].isReadOnly();
       });
-      return "input" + col.toCamelCase(true);
+      return col ? "input" + col.toCamelCase(true) : undefined;
     };
     vm.goHome = function () {
       m.route("/home");
