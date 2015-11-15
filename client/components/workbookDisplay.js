@@ -386,7 +386,7 @@
 
           // Build cells
           tds = vm.attrs.map(function (col) {
-            var cell, inputOpts,
+            var cell, tdOpts, inputOpts,
               prop = f.resolveProperty(model, col),
               id = "input" + col.toCamelCase(true);
 
@@ -411,7 +411,20 @@
               isCell: true
             };
 
-            cell = m("td", cellOpts, [
+            if (prop.isRequired && prop.isRequired() && 
+              (prop() === null || prop() === undefined)) {
+              tdOpts = {
+                style: {
+                  borderColor: "red",
+                  borderWidth: "thin",
+                  borderStyle: "ridge"
+                }
+              };
+            } else {
+              tdOpts = cellOpts;
+            }
+
+            cell = m("td", tdOpts, [
               f.buildInputComponent({
                 model: model,
                 key: col,

@@ -25,9 +25,10 @@
       fetch: Boolean flags whether to automatically fetch a list of models.
       filter: A filter object definition
 
-    The model array includes support for the following two functions:
+    The model array includes support for the following three functions:
 
-      remave(model): Removes the passed model frome the array.
+      add(model): Adds the passed model to the array.
+      remave(model): Removes the passed model from the array.
       fetch (filter): Requeries the server for new results.
 
 
