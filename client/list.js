@@ -40,7 +40,7 @@
       name = feather.toCamelCase(),
       ary = [],
       idx = {},
-      value = m.prop(ary);
+      prop = m.prop(ary);
 
     fetch = function (filter) {
       filter = Qs.stringify(filter);
@@ -49,23 +49,29 @@
         method: "GET",
         url: url
       }).then(function (data) {
-        var id, model,
+        var model,
           len = data.length,
           i = 0;
         while (i < len) {
-          id = data[i].id;
           model = f.models[name]();
           model.set(data[i], true, true);
           model.state.goto("/Ready/Fetched");
-          if (!isNaN(idx[id])) {
-            ary.splice(idx[id], 1, model);
-          } else {
-            idx[id] = ary.length;
-            ary.push(model);
-          }
+          ary.add(model);
           i += 1;
         }
       });
+    };
+
+    // Add a model to the list. Will replace existing
+    // if model with same id is already found in array
+    ary.add = function (model) {
+      var id = model.data.id();
+      if (!isNaN(idx[id])) {
+        ary.splice(idx[id], 1, model);
+      } else {
+        idx[id] = ary.length;
+        ary.push(model);
+      }
     };
 
     // Remove a model from the list
@@ -89,7 +95,7 @@
 
       if (options.merge === false) { ary.length = 0; }
       if (doFetch) { fetch(filter); }
-      return value;
+      return prop;
     };
   };
 

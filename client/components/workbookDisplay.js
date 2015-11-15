@@ -102,6 +102,7 @@
       return selection;
     };
     vm.modelDelete = function () {
+      var state;
       // Delete now in list mode
       if (vm.mode() === LIST_MODE) {
         selection.delete(true).then(function () {
@@ -111,7 +112,11 @@
       }
 
       // Mork for deletion in edit mode
+      state = selection.state.current()[0];
       selection.delete();
+      if (state === "/Ready/New") {
+        vm.models().remove(selection);
+      }
     };
     vm.modelNew = function () {
       var model;
@@ -121,7 +126,7 @@
       }
 
       model = f.models[name]();
-      vm.models().push(model);
+      vm.models().add(model);
       vm.nextFocus(vm.defaultFocus(model));
       vm.select(model);
     };
