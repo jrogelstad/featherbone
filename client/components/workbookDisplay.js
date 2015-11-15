@@ -66,6 +66,12 @@
     vm.config = function () {
       return options.config || {};
     }; 
+    vm.defaultFocus = function (model) {
+      var col = vm.attrs.find(function (attr) {
+        return !model.data[attr].isReadOnly();
+      });
+      return "input" + col.toCamelCase(true);
+    };
     vm.goHome = function () {
       m.route("/home");
     };
@@ -85,7 +91,6 @@
         vm.select(list[idx]);
       }
     };
-    vm.focusColumn = m.prop(vm.attrs[0]);
     vm.hasNoSelection = function () {
       return !selection;
     };
@@ -109,7 +114,16 @@
       selection.delete();
     };
     vm.modelNew = function () {
-      m.route(frmroute);
+      var model;
+      if (vm.mode() === LIST_MODE) {
+        m.route(frmroute);
+        return;
+      }
+
+      model = f.models[name]();
+      vm.models().push(model);
+      vm.nextFocus(vm.defaultFocus(model));
+      vm.select(model);
     };
     vm.modelOpen = function () {
       m.route(frmroute + "/" + selection.data.id());
@@ -192,7 +206,7 @@
       selection = model;
       vm.modelOpen();
     };
-    vm.toggleSelection = function (model, col) {
+    vm.toggleSelection = function (model, input) {
       var mode = vm.mode(),
         isSelected = selection === model;
 
@@ -206,7 +220,7 @@
       vm.select(model);
 
       // Set next focus on clicked cell when editing
-      vm.nextFocus("input" + col.toCamelCase(true));
+      vm.nextFocus(input);
 
       return true;
     };
@@ -279,6 +293,7 @@
           mode = vm.mode(),
           color = "White",
           isSelected = vm.isSelected(model),
+          currentState = model.state.current()[0],
           d = model.data,
           cellOpts = {},
           rowOpts = {};
@@ -405,11 +420,16 @@
         }
 
         // Front cap header navigation
-        onclick = vm.toggleSelection.bind(this, model, vm.attrs[0]);
-        if (model.state.current()[0] === "/Delete") {
+        onclick = vm.toggleSelection.bind(this, model, vm.defaultFocus(model));
+        if (currentState === "/Delete") {
           thContent = m("i", {
             onclick: onclick,
             class:"fa fa-remove"
+          });
+        } else if (currentState === "/Ready/New") {
+          thContent = m("i", {
+            onclick: onclick,
+            class:"fa fa-asterisk"
           });
         } else if (model.canSave()) {
           thContent = m("i", {
@@ -494,7 +514,7 @@
             },
             onclick: vm.saveAll,
             disabled: !vm.canSave()
-          }, [m("i", {class:"fa fa-save"})], " Save"),
+          }, [m("i", {class:"fa fa-cloud-upload"})], " Save"),
           m("button", {
             type: "button",
             class: "pure-button",

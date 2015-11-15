@@ -138,7 +138,7 @@
             style: { margin: "1px" },
             disabled: !model.canSave(),
             onclick: vm.doSave
-          }, [m("i", {class:"fa fa-save"})], " Save"),
+          }, [m("i", {class:"fa fa-cloud-upload"})], " Save"),
           m("button", {
             type: "button",
             class: "pure-button",
