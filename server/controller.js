@@ -885,6 +885,7 @@
         }
 
         var result,
+          sort = obj.filter ? obj.filter.sort || [] : [],
           i = 0;
 
         if (keys.length) {
@@ -897,11 +898,9 @@
 
           sql += " WHERE _pk IN (" + tokens.toString(",") + ")";
 
-          if (obj.filter && obj.filter.sort) {
-            tokens = [];
-            sql += processSort(obj.filter.sort, tokens);
-            sql = sql.format(tokens);
-          }
+          tokens = [];
+          sql += processSort(sort, tokens);
+          sql = sql.format(tokens);
 
           obj.client.query(sql, keys, function (err, resp) {
             if (err) {
@@ -1360,13 +1359,13 @@
         sql = "SELECT _pk FROM %I WHERE " + clause,
         tokens = [table],
         criteria = filter ? filter.criteria || [] : false,
-        sort = filter ? filter.sort || [] : false,
+        sort = filter ? filter.sort || [] : [],
         params = [],
         parts = [],
         i = 0,
         p = 1;
 
-      /* Add authorization criteria */
+      // Add authorization criteria
       if (isSuperUser === false) {
         sql += buildAuthSql("canRead", table, tokens);
 
@@ -1374,9 +1373,9 @@
         p += 1;
       }
 
-      /* Process filter */
+      // Process filter
       if (filter) {
-        /* Process criteria */
+        // Process criteria
         while (criteria[i]) {
           where = criteria[i];
           op = where.operator || "=";
@@ -1409,11 +1408,13 @@
         if (parts.length) {
           sql += " AND " + parts.join(" AND ");
         }
+      }
 
-        /* Process sort */
-        sql += processSort(sort, tokens);
+      // Process sort
+      sql += processSort(sort, tokens);
 
-        /* Process offset and limit */
+      if (filter) {
+        // Process offset and limit
         if (filter.offset) {
           sql += " OFFSET $" + p;
           p += 1;
@@ -1426,6 +1427,7 @@
         }
       }
       sql = sql.format(tokens);
+
       obj.client.query(sql, params, function (err, resp) {
         var keys;
 
@@ -3253,6 +3255,10 @@
     var order, clause = "",
       i = 0,
       parts = [];
+
+    // Always sort on primary key as final tie breaker
+    sort.push({property: PKCOL});
+
     while (sort[i]) {
       order = (sort[i].order || "ASC");
       order = order.toUpperCase();
@@ -3260,7 +3266,7 @@
         throw 'Unknown operator "' + order + '"';
       }
       tokens.push(sort[i].property);
-      parts.push(" %I " + order);
+      parts.push("%I " + order);
       i += 1;
     }
 
