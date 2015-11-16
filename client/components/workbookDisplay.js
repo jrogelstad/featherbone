@@ -18,8 +18,7 @@
 (function (f) {
   "use strict";
 
-  var EDIT_MODE = 2,
-    LIST_MODE = 1;
+  var statechart = window.statechart;
 
   // Calculate scroll bar width
   // http://stackoverflow.com/questions/13382516/getting-scroll-bar-width-using-javascript
@@ -49,12 +48,83 @@
 
   // Define workbook view model
   f.viewModels.workbookViewModel = function (options) {
-    var selection,
+    var selection, state,
       sheet = options.sheet,
       frmroute = "/" + options.name + "/" + options.config[sheet].form.name,
       name = options.feather.toCamelCase(),
       vm = {};
     frmroute = frmroute.toSpinalCase();
+
+    state = statechart.State.define({concurrent: true}, function () {
+      this.state("Mode", function () {
+        this.state("View", function () {
+          this.event("toggleMode", function () {
+            this.goto("../Edit");
+          });
+          this.displayEditButton = function () {
+            return "none";
+          };
+          this.displayListButton = function () {
+            return "inline-block";
+          };
+          this.modelDelete = function () {
+            selection.delete(true).then(function () {
+              vm.models().remove(selection);
+            });
+          };
+          this.modelNew = function () {
+            m.route(frmroute);
+          };
+          this.selectedColor = function () {
+            return "LightSkyBlue";
+          };
+          this.toggleSelection = function (model, col) {
+            if (selection === model) {
+              vm.select(undefined);
+              return false;
+            }
+
+            vm.select(model);
+            vm.nextFocus("input" + col.toCamelCase(true));
+            return true;
+          };
+        });
+        this.state("Edit", function () {
+          this.event("toggleMode", function () {
+            this.goto("../View");
+          });
+          this.displayEditButton = function () {
+            return "inline-block";
+          };
+          this.displayListButton = function () {
+            return "none";
+          };
+          this.modelDelete = function () {
+            var prevState = selection.state.current()[0];
+            selection.delete();
+            if (prevState === "/Ready/New") {
+              vm.models().remove(selection);
+            }
+          };
+          this.modelNew = function () {
+            var  model = f.models[name](),
+              input = "input" + vm.defaultFocus(model).toCamelCase(true);
+            vm.models().add(model);
+            vm.nextFocus(input);
+            vm.select(model);
+          };
+          this.selectedColor = function () {
+            return "Azure";
+          };
+          this.toggleSelection = function (model, col) {
+            vm.select(model);
+            vm.nextFocus("input" + col.toCamelCase(true));
+            return true;
+          };
+        });
+      });
+    });
+    state.goto();
 
     vm.activeSheet = m.prop(options.sheet);
     vm.attrs = options.config[sheet].list.attrs || ["id"];
@@ -68,9 +138,15 @@
     }; 
     vm.defaultFocus = function (model) {
       var col = vm.attrs.find(function (attr) {
-        return !model.data[attr].isReadOnly();
+        return !model.data[attr] || !model.data[attr].isReadOnly();
       });
-      return col ? "input" + col.toCamelCase(true) : undefined;
+      return col ? col.toCamelCase(true) : undefined;
+    };
+    vm.displayEditButton = function () {
+      return vm.mode().displayEditButton();
+    };
+    vm.displayListButton = function () {
+      return vm.mode().displayListButton();
     };
     vm.goHome = function () {
       m.route("/home");
@@ -97,38 +173,18 @@
     vm.isSelected = function (model) {
       return selection === model;
     };
-    vm.mode = m.prop(LIST_MODE);
+    vm.mode = function () {
+      var substate = state.resolve("/Mode");
+      return state.resolve(substate.current()[0]);
+    };
     vm.model = function () {
       return selection;
     };
     vm.modelDelete = function () {
-      var state;
-      // Delete now in list mode
-      if (vm.mode() === LIST_MODE) {
-        selection.delete(true).then(function () {
-          vm.models().remove(selection);
-        });
-        return;
-      }
-
-      // Mork for deletion in edit mode
-      state = selection.state.current()[0];
-      selection.delete();
-      if (state === "/Ready/New") {
-        vm.models().remove(selection);
-      }
+      return vm.mode().modelDelete();
     };
     vm.modelNew = function () {
-      var model;
-      if (vm.mode() === LIST_MODE) {
-        m.route(frmroute);
-        return;
-      }
-
-      model = f.models[name]();
-      vm.models().add(model);
-      vm.nextFocus(vm.defaultFocus(model));
-      vm.select(model);
+      return vm.mode().modelNew();
     };
     vm.modelOpen = function () {
       m.route(frmroute + "/" + selection.data.id());
@@ -176,6 +232,9 @@
       header.scrollLeft = rows.scrollLeft;
     };
     vm.relations = m.prop({});
+    vm.selectedColor = function () {
+      return vm.mode().selectedColor();
+    };
     vm.scrollbarWidth = function () {
       return scrWidth;
     };
@@ -204,30 +263,14 @@
       m.route(route);
     };
     vm.toggleMode = function () {
-      var mode = vm.mode() === LIST_MODE ? EDIT_MODE : LIST_MODE;
-      vm.mode(mode);
+      state.send("toggleMode");
     };
     vm.toggleOpen = function (model) {
       selection = model;
       vm.modelOpen();
     };
-    vm.toggleSelection = function (model, input) {
-      var mode = vm.mode(),
-        isSelected = selection === model;
-
-      // Toggle row off
-      if (isSelected && mode === LIST_MODE) {
-        vm.select(undefined);
-        return false;
-      }
-
-      // Select new row
-      vm.select(model);
-
-      // Set next focus on clicked cell when editing
-      vm.nextFocus(input);
-
-      return true;
+    vm.toggleSelection = function (model, col) {
+      return vm.mode().toggleSelection(model, col);
     };
     vm.undo = function () {
       if (selection) { selection.undo(); }
@@ -295,7 +338,7 @@
       // Build rows
       rows = vm.models().map(function (model) {
         var tds, row, thContent, onclick,
-          mode = vm.mode(),
+          currentMode = vm.mode().current()[0],
           color = "White",
           isSelected = vm.isSelected(model),
           currentState = model.state.current()[0],
@@ -305,11 +348,11 @@
 
         // Build row
         if (isSelected) {
-          color = mode === LIST_MODE ? "LightSkyBlue" : "Azure";
+          color = vm.selectedColor();
         }
 
         // Build view row
-        if (mode === LIST_MODE || !isSelected) {
+        if (currentMode === "/Mode/View" || !isSelected) {
           // Build cells
           tds = vm.attrs.map(function (col) {
             var cell, content,
@@ -459,7 +502,7 @@
             onclick: onclick,
             style: {minWidth: "16px"}
           };
-          if (mode === EDIT_MODE && isSelected) {
+          if (currentMode === "/Mode/Edit" && isSelected) {
             cellOpts.style.borderColor = "blue";
             cellOpts.style.borderWidth = "thin";
             cellOpts.style.borderStyle = "solid";
@@ -510,7 +553,7 @@
             class: "pure-button",
             style: {
               margin: "1px",
-              display: vm.mode() === EDIT_MODE ? "none" : "inline-block"
+              display: vm.displayEditButton()
             },
             onclick: vm.toggleMode
           }, [m("i", {class:"fa fa-pencil"})], " Edit"),
@@ -519,7 +562,7 @@
             class: "pure-button",
             style: {
               margin: "1px",
-              display: vm.mode() === LIST_MODE ? "none" : "inline-block"
+              display: vm.displayListButton()
             },
             onclick: vm.toggleMode
           }, [m("i", {class:"fa fa-th-list"})], " List"),
@@ -528,7 +571,7 @@
             class: "pure-button",
             style: {
               margin: "1px",
-              display: vm.mode() === LIST_MODE ? "none" : "inline-block"
+              display: vm.displayEditButton()
             },
             onclick: vm.saveAll,
             disabled: !vm.canSave()
@@ -538,7 +581,7 @@
             class: "pure-button",
             style: {
               margin: "1px",
-              display: vm.mode() === EDIT_MODE ? "none" : "inline-block"
+              display: vm.displayListButton()
             },
             onclick: vm.modelOpen,
             disabled: vm.hasNoSelection()
