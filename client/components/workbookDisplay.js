@@ -23,7 +23,9 @@
   // Calculate scroll bar width
   // http://stackoverflow.com/questions/13382516/getting-scroll-bar-width-using-javascript
   var scrWidth, inner, widthNoScroll, widthWithScroll,
-    outer = document.createElement("div");
+    outer = document.createElement("div"),
+    MODE = 0,
+    SEARCH = 1;
 
   outer.style.visibility = "hidden";
   outer.style.width = "100px";
@@ -55,6 +57,7 @@
       vm = {};
     frmroute = frmroute.toSpinalCase();
 
+    // Statechart
     state = statechart.State.define({concurrent: true}, function () {
       this.state("Mode", function () {
         this.state("View", function () {
@@ -123,8 +126,41 @@
           };
         });
       });
+      this.state("Search", function () {
+        this.state("Off", function () {
+          this.enter(function () {
+            vm.searchValue("Search");
+          });
+          this.event("searchStart", function () {
+            this.goto("../On");
+          });
+          this.style = function () {
+            return {
+              color: "LightGrey",
+              fontStyle: "italic",
+              margin: "2px"
+            };
+          };
+        });
+        this.state("On", function () {
+          this.enter(function () {
+            vm.searchValue("");
+          });
+          this.canExit = function () {
+            return !vm.searchValue();
+          };
+          this.event("searchEnd", function () {
+            this.goto("../Off");
+          });
+          this.style = function () {
+            return {
+              color: "Black",
+              margin: "2px"
+            };
+          };
+        });
+      });
     });
-    state.goto();
 
     vm.activeSheet = m.prop(options.sheet);
     vm.attrs = options.config[sheet].list.attrs || ["id"];
@@ -142,11 +178,19 @@
       });
       return col ? col.toCamelCase(true) : undefined;
     };
+    vm.displayDeleteButton = function () {
+      return (vm.model() && vm.model().canSave()) ?
+        "none" : "inline-block";
+    };
     vm.displayEditButton = function () {
       return vm.mode().displayEditButton();
     };
     vm.displayListButton = function () {
       return vm.mode().displayListButton();
+    };
+    vm.displayUndoButton = function () {
+      return (vm.model() && vm.model().canSave()) ?
+        "inline-block" : "none";
     };
     vm.goHome = function () {
       m.route("/home");
@@ -174,8 +218,7 @@
       return selection === model;
     };
     vm.mode = function () {
-      var substate = state.resolve("/Mode");
-      return state.resolve(substate.current()[0]);
+      return state.resolve(state.current()[MODE]);
     };
     vm.model = function () {
       return selection;
@@ -232,12 +275,6 @@
       header.scrollLeft = rows.scrollLeft;
     };
     vm.relations = m.prop({});
-    vm.selectedColor = function () {
-      return vm.mode().selectedColor();
-    };
-    vm.scrollbarWidth = function () {
-      return scrWidth;
-    };
     vm.saveAll = function () {
       vm.models().forEach(function (model) {
         model.save().then(function() {
@@ -247,6 +284,26 @@
         });
       });
     };
+    vm.scrollbarWidth = function () {
+      return scrWidth;
+    };
+    vm.searchClear = function () {
+      vm.searchValue("");
+      state.send("searchEnd");
+    };
+    vm.searchClearButtonDisabled = function () {
+      return state.current()[SEARCH] === "/Search/Off";
+    };
+    vm.searchEnd = function () {
+      state.send("searchEnd");
+    };
+    vm.searchStart = function () {
+      state.send("searchStart");
+    };
+    vm.searchStyle = function () {
+      return state.resolve(state.current()[SEARCH]).style();
+    };
+    vm.searchValue = m.prop();
     vm.select = function (model) {
       if (selection !== model) {
         vm.relations({});
@@ -254,8 +311,14 @@
       }
       return selection;
     };
+    vm.selectedColor = function () {
+      return vm.mode().selectedColor();
+    };
     vm.sheets = function () {
       return Object.keys(options.config || {});
+    };
+    vm.startSearch = function () {
+      state.send("startSearch");
     };
     vm.tabClicked = function (sheet) {
       var route = "/" + options.name + "/" + sheet;
@@ -275,6 +338,8 @@
     vm.undo = function () {
       if (selection) { selection.undo(); }
     };
+
+    state.goto();
 
     return vm;
   };
@@ -597,8 +662,7 @@
             class: "pure-button",
             style: {
               margin: "1px",
-              display: (vm.model() && vm.model().canSave()) ?
-                "none" : "inline-block"
+              display: vm.displayDeleteButton()
             },
             onclick: vm.modelDelete,
             disabled: vm.hasNoSelection()
@@ -608,21 +672,28 @@
             class: "pure-button",
             style: {
               margin: "1px",
-              display: (vm.model() && vm.model().canSave()) ?
-                "inline-block" : "none"
+              display: vm.displayUndoButton()
             },
             onclick: vm.undo
           }, [m("i", {class:"fa fa-undo"})], " Undo"),
           m("input", {
             type: "search",
-            value: "Search",
-            id: "search",
+            id: "toolbarSearch",
+            value: vm.searchValue(),
+            style: vm.searchStyle(),
+            onfocus: vm.searchStart,
+            onblur: vm.searchEnd,
+            onchange:  m.withAttr("value", vm.searchValue)
+          }),
+          m("button", {
+            type: "button",
+            class: "pure-button",
+            disabled: vm.searchClearButtonDisabled(),
             style: {
-              color: "LightGrey",
-              fontStyle: "italic",
-              margin: "2px"
-            }
-          })
+              margin: "1px"
+            },
+            onclick: vm.searchClear
+          }, [m("i", {class:"fa fa-recycle"})])
         ]),
         m("table", {
           class: "pure-table",
