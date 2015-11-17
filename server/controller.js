@@ -1350,98 +1350,115 @@
       @return receiver
     */
     getKeys: function (obj, isSuperUser) {
-      var part, op, err, n, where,
-        name = obj.name,
-        filter = obj.filter,
-        ops = ["=", "!=", "<", ">", "<>", "~", "~*", "!~", "!~*"],
-        table = name.toSnakeCase(),
-        clause = obj.showDeleted ? "true" : "NOT is_deleted",
-        sql = "SELECT _pk FROM %I WHERE " + clause,
-        tokens = [table],
-        criteria = filter ? filter.criteria || [] : false,
-        sort = filter ? filter.sort || [] : [],
-        params = [],
-        parts = [],
-        i = 0,
-        p = 1;
+      try {
+        var part, op, err, or,
+          name = obj.name,
+          filter = obj.filter,
+          ops = ["=", "!=", "<", ">", "<>", "~", "~*", "!~", "!~*", "IN"],
+          table = name.toSnakeCase(),
+          clause = obj.showDeleted ? "true" : "NOT is_deleted",
+          sql = "SELECT _pk FROM %I WHERE " + clause,
+          tokens = [table],
+          criteria = filter ? filter.criteria || [] : false,
+          sort = filter ? filter.sort || [] : [],
+          params = [],
+          parts = [],
+          p = 1;
 
-      // Add authorization criteria
-      if (isSuperUser === false) {
-        sql += buildAuthSql("canRead", table, tokens);
+        // Add authorization criteria
+        if (isSuperUser === false) {
+          sql += buildAuthSql("canRead", table, tokens);
 
-        params.push(obj.client.currentUser);
-        p += 1;
-      }
+          params.push(obj.client.currentUser);
+          p += 1;
+        }
 
-      // Process filter
-      if (filter) {
-        // Process criteria
-        while (criteria[i]) {
-          where = criteria[i];
-          op = where.operator || "=";
-          tokens.push(where.property.toSnakeCase());
+        // Process filter
+        if (filter) {
+          // Process criteria
+          criteria.forEach(function (where) {
+            op = where.operator || "=";
 
-          if (op === "IN") {
-            n = where.value.length;
-            part = [];
-            while (n) {
-              i -= 1;
-              params.push(where.value[n]);
-              part.push("$" + p);
-              p += 1;
-            }
-            part = " %I IN (" + part.join(",") + ")";
-          } else {
             if (ops.indexOf(op) === -1) {
               err = 'Unknown operator "' + op + '"';
               throw err;
             }
-            params.push(where.value);
-            part = " %I " + op + " $" + p;
-            p += 1;
-            i += 1;
+
+            // Value in array ("Andy" IN ["Ann", "Amy", "Andy"])
+            if (op === "IN") {
+              part = [];
+              tokens.push(where.property.toSnakeCase());
+              where.value.forEach(function (val) {
+                params.push(val);
+                part.push("$" + p);
+                p += 1;
+              });
+              part = " %I IN (" + part.join(",") + ")";
+
+            // Value compared to many propreties (["name","email"]="Andy")
+            } else if (Array.isArray(where.property)) {
+              or = [];
+              where.property.forEach(function (prop) {
+                tokens.push(prop.toSnakeCase());
+                params.push(where.value);
+                or.push(" %I " + op + " $" + p);
+                p += 1;
+              });
+              part = "(" + or.join(" OR ") + ")";
+
+            // Regular comparison ("name"="Andy")
+            } else {
+              tokens.push(where.property.toSnakeCase());
+              params.push(where.value);
+              part = " %I " + op + " $" + p;
+              p += 1;
+            }
+            parts.push(part);
+          });
+
+          if (parts.length) {
+            sql += " AND " + parts.join(" AND ");
           }
-          parts.push(part);
-          i += 1;
         }
 
-        if (parts.length) {
-          sql += " AND " + parts.join(" AND ");
+
+        // Process sort
+        sql += processSort(sort, tokens);
+
+        if (filter) {
+          // Process offset and limit
+          if (filter.offset) {
+            sql += " OFFSET $" + p;
+            p += 1;
+            params.push(filter.offset);
+          }
+
+          if (filter.limit) {
+            sql += " LIMIT $" + p;
+            params.push(filter.limit);
+          }
         }
-      }
+        sql = sql.format(tokens);
 
-      // Process sort
-      sql += processSort(sort, tokens);
+        obj.client.query(sql, params, function (err, resp) {
+          var keys;
 
-      if (filter) {
-        // Process offset and limit
-        if (filter.offset) {
-          sql += " OFFSET $" + p;
-          p += 1;
-          params.push(filter.offset);
-        }
+          if (err) {
+            obj.callback(err);
+            return;
+          }
 
-        if (filter.limit) {
-          sql += " LIMIT $" + p;
-          params.push(filter.limit);
-        }
-      }
-      sql = sql.format(tokens);
+          keys = resp.rows.map(function (rec) {
+            return rec[PKCOL];
+          });
 
-      obj.client.query(sql, params, function (err, resp) {
-        var keys;
-
-        if (err) {
-          obj.callback(err);
-          return;
-        }
-
-        keys = resp.rows.map(function (rec) {
-          return rec[PKCOL];
+          obj.callback(null, keys);
         });
 
-        obj.callback(null, keys);
-      });
+      } catch (ignore) {
+        obj.callback("Syntax error");
+        return;
+      }
     },
 
     /**
