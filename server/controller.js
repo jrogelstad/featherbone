@@ -1351,19 +1351,36 @@
     */
     getKeys: function (obj, isSuperUser) {
       try {
-        var part, op, err, or,
+        var part, op, err, or, transform,
           name = obj.name,
           filter = obj.filter,
           ops = ["=", "!=", "<", ">", "<>", "~", "~*", "!~", "!~*", "IN"],
           table = name.toSnakeCase(),
           clause = obj.showDeleted ? "true" : "NOT is_deleted",
           sql = "SELECT _pk FROM %I WHERE " + clause,
-          tokens = [table],
+          tokens = ["_" + table],
           criteria = filter ? filter.criteria || [] : false,
           sort = filter ? filter.sort || [] : [],
           params = [],
           parts = [],
           p = 1;
+
+        // Helper to transform path to composite syntax
+        transform = function (col, tokens) {
+          var prefix, suffix, ret,
+            idx = col.lastIndexOf(".");
+
+          if (idx > -1) {
+            prefix = col.slice(0, idx);
+            suffix = col.slice(idx + 1, col.length).toSnakeCase();
+            ret = "(" + transform(prefix, tokens) + ").%I";
+            tokens.push(suffix);
+            return ret;
+          }
+
+          tokens.push(col.toSnakeCase());
+          return "%I";
+        };
 
         // Add authorization criteria
         if (isSuperUser === false) {
@@ -1384,33 +1401,32 @@
               throw err;
             }
 
-            // Value in array ("Andy" IN ["Ann", "Amy", "Andy"])
+            // Value "IN" array ("Andy" IN ["Ann","Andy"])
+            // Whether "Andy"="Ann" OR "Andy"="Andy"
             if (op === "IN") {
               part = [];
-              tokens.push(where.property.toSnakeCase());
               where.value.forEach(function (val) {
                 params.push(val);
                 part.push("$" + p);
                 p += 1;
               });
-              part = " %I IN (" + part.join(",") + ")";
+              part = transform(where.property, tokens) +  " IN (" + part.join(",") + ")";
 
-            // Value compared to many propreties (["name","email"]="Andy")
+            // Property "OR" array compared to value (["name","email"]="Andy")
+            // Whether "name"="Andy" OR "email"="Andy"
             } else if (Array.isArray(where.property)) {
               or = [];
               where.property.forEach(function (prop) {
-                tokens.push(prop.toSnakeCase());
                 params.push(where.value);
-                or.push(" %I " + op + " $" + p);
+                or.push(transform(prop, tokens) + " "  + op + " $" + p);
                 p += 1;
               });
               part = "(" + or.join(" OR ") + ")";
 
             // Regular comparison ("name"="Andy")
             } else {
-              tokens.push(where.property.toSnakeCase());
               params.push(where.value);
-              part = " %I " + op + " $" + p;
+              part = transform(where.property, tokens) + " " + op + " $" + p;
               p += 1;
             }
             parts.push(part);
@@ -1438,6 +1454,7 @@
             params.push(filter.limit);
           }
         }
+
         sql = sql.format(tokens);
 
         obj.client.query(sql, params, function (err, resp) {
@@ -1455,8 +1472,8 @@
           obj.callback(null, keys);
         });
 
-      } catch (ignore) {
-        obj.callback("Syntax error");
+      } catch (e) {
+        obj.callback(e);
         return;
       }
     },
