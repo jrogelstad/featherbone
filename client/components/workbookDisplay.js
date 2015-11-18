@@ -243,7 +243,7 @@
     };
     vm.models = f.models[name].list();
     vm.nextFocus = m.prop();
-    vm.onkeydown = function (e) {
+    vm.onkeydownCell = function (e) {
       var id, step,
         key = e.key || e.keyIdentifier,
         nav = function (name) {
@@ -275,6 +275,10 @@
         nav("goNextRow");
         break;
       }
+    };
+    vm.onkeydownSearch = function (e) {
+      var key = e.key || e.keyIdentifier;
+      if (key === "Enter") { vm.refresh(); }
     };
     vm.onscroll = function () {
       var rows = document.getElementById("rows"),
@@ -419,7 +423,7 @@
         e.style.height = mh + "px";
 
         // Key down handler for up down movement
-        e.addEventListener('keydown', vm.onkeydown);
+        e.addEventListener('keydown', vm.onkeydownCell);
       };
 
       // Build header
@@ -651,7 +655,7 @@
       });
 
       // Finally assemble the whole view
-      view = m("form", {
+      view = m("div", {
         class: "pure-form"
       }, [
         m("div", {
@@ -727,13 +731,13 @@
             onclick: vm.undo
           }, [m("i", {class:"fa fa-undo"})], " Undo"),
           m("input", {
-            type: "search",
             id: "toolbarSearch",
             value: vm.searchValue(),
             style: vm.searchStyle(),
             onfocus: vm.searchStart,
             onblur: vm.searchEnd,
-            onchange:  m.withAttr("value", vm.searchValue)
+            oninput:  m.withAttr("value", vm.searchValue),
+            onkeydown: vm.onkeydownSearch
           }),
           m("button", {
             type: "button",
