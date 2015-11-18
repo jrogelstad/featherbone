@@ -66,10 +66,10 @@
             this.goto("../Edit");
           });
           this.displayEditButton = function () {
-            return "none";
+            return "inline-block";
           };
           this.displayListButton = function () {
-            return "inline-block";
+            return "none";
           };
           this.modelDelete = function () {
             selection.delete(true).then(function () {
@@ -98,10 +98,10 @@
             this.goto("../View");
           });
           this.displayEditButton = function () {
-            return "inline-block";
+            return "none";
           };
           this.displayListButton = function () {
-            return "none";
+            return "inline-block";
           };
           this.modelDelete = function () {
             var prevState = selection.state.current()[0];
@@ -239,7 +239,9 @@
       return vm.mode().modelNew();
     };
     vm.modelOpen = function () {
-      m.route(frmroute + "/" + selection.data.id());
+      if (selection) {
+        m.route(frmroute + "/" + selection.data.id());
+      }
     };
     vm.models = f.models[name].list();
     vm.nextFocus = m.prop();
@@ -274,6 +276,35 @@
         step = "stepUp";
         nav("goNextRow");
         break;
+      }
+    };
+    vm.onkeydownPage = function (e) {
+      if (e.altKey) {
+        switch (e.which)
+        {
+        case 72: // h (home)
+          vm.goHome();
+          break;
+        case 77: // m (mode)
+          m.startComputation();
+          vm.toggleMode();
+          m.endComputation();
+          break;
+        case 78: // n (new)
+          m.startComputation();
+          vm.modelNew();
+          m.endComputation();
+          break;
+        case 79: // o (open)
+          vm.modelOpen();
+          break;
+        case 82: // r (refresh)
+          vm.refresh();
+          break;
+        case 83: // s (save)
+          vm.saveAll();
+          break;
+        }
       }
     };
     vm.onkeydownSearch = function (e) {
@@ -656,7 +687,10 @@
 
       // Finally assemble the whole view
       view = m("div", {
-        class: "pure-form"
+        class: "pure-form",
+        config: function () {
+          document.addEventListener("keydown", vm.onkeydownPage, false);
+        }
       }, [
         m("div", {
             id: "toolbar"
@@ -664,12 +698,14 @@
           m("button", {
             type: "button",
             class: "pure-button",
+            title: "Alt+H",
             style: { margin: "1px" },
             onclick: vm.goHome
           }, [m("i", {class:"fa fa-home"})], " Home"),
           m("button", {
             type: "button",
             class: "pure-button",
+            title: "Altl+M",
             style: {
               margin: "1px",
               display: vm.displayEditButton()
@@ -679,6 +715,7 @@
           m("button", {
             type: "button",
             class: "pure-button",
+            title: "Alt+M",
             style: {
               margin: "1px",
               display: vm.displayListButton()
@@ -690,7 +727,7 @@
             class: "pure-button",
             style: {
               margin: "1px",
-              display: vm.displayEditButton()
+              display: vm.displayListButton()
             },
             onclick: vm.saveAll,
             disabled: !vm.canSave()
@@ -698,9 +735,10 @@
           m("button", {
             type: "button",
             class: "pure-button",
+            title: "Alt+O",
             style: {
               margin: "1px",
-              display: vm.displayListButton()
+              display: vm.displayEditButton()
             },
             onclick: vm.modelOpen,
             disabled: vm.hasNoSelection()
@@ -708,6 +746,7 @@
           m("button", {
             type: "button",
             class: "pure-button",
+            title: "Alt+N",
             style: { margin: "1px"},
             onclick: vm.modelNew
           }, [m("i", {class:"fa fa-plus-circle"})], " New"),
@@ -742,7 +781,7 @@
           m("button", {
             type: "button",
             class: "pure-button",
-            title: "Refresh",
+            title: "Alt+R Refresh",
             style: {
               margin: "1px"
             },
