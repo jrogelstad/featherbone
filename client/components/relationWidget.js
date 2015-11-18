@@ -243,15 +243,15 @@
               m("li", {
                 class: "pure-menu-link",
                 onclick: rvm.onclicksearch
-              }, "Search"),
+              },  [m("i", {class:"fa fa-search"})], " Search"),
               m("li", {
                 class: "pure-menu-link",
                 onclick: rvm.onclickopen
-              }, "Open"),
+              },  [m("i", {class:"fa fa-folder-open"})], " Open"),
               m("li", {
                 class: "pure-menu-link",
                 onclick: rvm.onclicknew
-              }, "New")
+              },  [m("i", {class:"fa fa-plus-circle"})], " New")
             ])
           ])
         ]),

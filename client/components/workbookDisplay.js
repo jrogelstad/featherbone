@@ -55,6 +55,7 @@
       frmroute = "/" + options.name + "/" + options.config[sheet].form.name,
       name = options.feather.toCamelCase(),
       feather = f.catalog.getFeather(options.feather),
+      showMenu = false,
       vm = {};
     frmroute = frmroute.toSpinalCase();
 
@@ -311,6 +312,12 @@
       var key = e.key || e.keyIdentifier;
       if (key === "Enter") { vm.refresh(); }
     };
+    vm.onmouseovermenu = function () {
+      showMenu = true;
+    };
+    vm.onmouseoutmenu = function () {
+      showMenu = false;
+    };
     vm.onscroll = function () {
       var rows = document.getElementById("rows"),
         header = document.getElementById("header");
@@ -402,6 +409,13 @@
     vm.sheets = function () {
       return Object.keys(options.config || {});
     };
+    vm.showMenu = function () {
+      return showMenu;
+    };
+    vm.sortDialogShow = function () {
+      var dlg = document.getElementById('sortDialog');
+      dlg.showModal();
+    };
     vm.startSearch = function () {
       state.send("startSearch");
     };
@@ -440,6 +454,7 @@
     component.view = function (ctrl) {
       var tbodyConfig, header, rows, tabs, view, rel,
         vm = ctrl.vm,
+        sortDialog = f.components.sortDialog(),
         activeSheet = vm.activeSheet();
 
       // Define scrolling behavior for table body
@@ -695,6 +710,7 @@
         m("div", {
             id: "toolbar"
           }, [
+          m.component(sortDialog, {id: "sortDialog"}),
           m("button", {
             type: "button",
             class: "pure-button",
@@ -796,7 +812,44 @@
               margin: "1px"
             },
             onclick: vm.searchClear
-          }, [m("i", {class:"fa fa-eraser"})])
+          }, [m("i", {class:"fa fa-eraser"})]),
+          m("div", {
+            class: "pure-menu custom-restricted-width",
+            onmouseover: vm.onmouseovermenu,
+            onmouseout: vm.onmouseoutmenu,
+            style: {
+              position: "absolute",
+              display: "inline-block",
+              top: "2px"
+            }
+          }, [
+            m("span", {
+              class:"pure-button fa fa-bars",
+              style: {
+                margin: "2px",
+                minHeight: "34px"
+              }
+            }),
+            m("ul", {
+              class: "pure-menu-list",
+              style: {
+                display: vm.showMenu() ? "block" : "none",
+                backgroundColor: "White",
+                position: "absolute",
+                zIndex: 9999,
+                border: "1px solid lightgrey"
+              }
+            }, [
+              m("li", {
+                class: "pure-menu-link",
+                onclick: vm.sortDialogShow
+              }, [m("i", {class:"fa fa-sort-alpha-asc"})], " Sort"),
+              m("li", {
+                class: "pure-menu-link"
+                //onclick: rvm.onclickopen
+              }, [m("i", {class:"fa fa-filter"})], " Filter")
+            ])
+          ])     
         ]),
         m("table", {
           class: "pure-table",
