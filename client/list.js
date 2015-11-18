@@ -36,14 +36,13 @@
     @return {Function}
   */
   f.list = function (feather) {
-    var fetch,
-      plural = f.catalog.getFeather(feather).plural.toSpinalCase(),
+    var plural = f.catalog.getFeather(feather).plural.toSpinalCase(),
       name = feather.toCamelCase(),
       ary = [],
       idx = {},
       prop = m.prop(ary);
 
-    fetch = function (filter) {
+    ary.fetch = function (filter, merge) {
       filter = Qs.stringify(filter);
       var url = "/data/" + plural + "/" + filter;
       return m.request({
@@ -53,6 +52,10 @@
         var model,
           len = data.length,
           i = 0;
+        if (merge === false) { 
+          ary.length = 0;
+          idx = {};
+        }
         while (i < len) {
           model = f.models[name]();
           model.set(data[i], true, true);
@@ -94,8 +97,7 @@
       var filter = options.filter,
         doFetch = options.fetch === undefined ? true : options.fetch;
 
-      if (options.merge === false) { ary.length = 0; }
-      if (doFetch) { fetch(filter); }
+      if (doFetch) { ary.fetch(filter, options.merge); }
       return prop;
     };
   };

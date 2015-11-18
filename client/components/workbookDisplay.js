@@ -54,6 +54,7 @@
       sheet = options.sheet,
       frmroute = "/" + options.name + "/" + options.config[sheet].form.name,
       name = options.feather.toCamelCase(),
+      feather = f.catalog.getFeather(options.feather),
       vm = {};
     frmroute = frmroute.toSpinalCase();
 
@@ -137,14 +138,19 @@
           this.style = function () {
             return {
               color: "LightGrey",
-              fontStyle: "italic",
               margin: "2px"
             };
+          };
+          this.value = function () {
+            return "";
           };
         });
         this.state("On", function () {
           this.enter(function () {
             vm.searchValue("");
+          });
+          this.exit(function () {
+            vm.refresh();
           });
           this.canExit = function () {
             return !vm.searchValue();
@@ -157,6 +163,9 @@
               color: "Black",
               margin: "2px"
             };
+          };
+          this.value = function () {
+            return vm.searchValue();
           };
         });
       });
@@ -274,6 +283,44 @@
       // Sync header position with table body position
       header.scrollLeft = rows.scrollLeft;
     };
+    vm.refresh = function () {
+      var attrs, formatOf,
+        value = state.resolve(state.current()[SEARCH]).value(),
+        filter = {};
+
+      // Recursively resolve type
+      formatOf = function (feather, property) {
+        var prefix, suffix, rel, prop,
+          idx = property.indexOf(".");
+
+        if (idx > -1) {
+          prefix = property.slice(0, idx);
+          suffix = property.slice(idx + 1, property.length);
+          rel = feather.properties[prefix].type.relation;
+          return formatOf(f.catalog.getFeather(rel), suffix);
+        }
+
+        prop = feather.properties[property];
+        return prop.format || prop.type;
+      };
+
+      // Only search on text attributes
+      if (value) {
+        attrs = vm.attrs.filter(function (attr) {
+          return formatOf(feather, attr) === "string";
+        });
+
+        if (attrs.length) {
+          filter.criteria = [{
+            property: attrs,
+            operator: "~*",
+            value: value
+          }];
+        }
+      }
+
+      vm.models().fetch(filter, false);
+    };
     vm.relations = m.prop({});
     vm.saveAll = function () {
       vm.models().forEach(function (model) {
@@ -291,11 +338,14 @@
       vm.searchValue("");
       state.send("searchEnd");
     };
-    vm.searchClearButtonDisabled = function () {
+    vm.searchDisabled = function () {
       return state.current()[SEARCH] === "/Search/Off";
     };
     vm.searchEnd = function () {
       state.send("searchEnd");
+    };
+    vm.searchOff = function () {
+      return state.current()[SEARCH] === "/Search/Off";
     };
     vm.searchStart = function () {
       state.send("searchStart");
@@ -688,12 +738,22 @@
           m("button", {
             type: "button",
             class: "pure-button",
-            disabled: vm.searchClearButtonDisabled(),
+            title: "Refresh",
+            style: {
+              margin: "1px"
+            },
+            onclick: vm.refresh
+          }, [m("i", {class:"fa fa-refresh"})]),
+          m("button", {
+            type: "button",
+            class: "pure-button",
+            disabled: vm.searchDisabled(),
+            title: "Clear search",
             style: {
               margin: "1px"
             },
             onclick: vm.searchClear
-          }, [m("i", {class:"fa fa-recycle"})])
+          }, [m("i", {class:"fa fa-eraser"})])
         ]),
         m("table", {
           class: "pure-table",
