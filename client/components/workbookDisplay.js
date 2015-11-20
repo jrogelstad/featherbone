@@ -68,10 +68,16 @@
           this.event("toggleMode", function () {
             this.goto("../Edit");
           });
-          this.displayEditButton = function () {
+          this.classEditButton = function () {
+            return "pure-button";
+          };
+          this.classListButton = function () {
+            return "pure-button pure-button-active";
+          };
+          this.displayOpenButton = function () {
             return "inline-block";
           };
-          this.displayListButton = function () {
+          this.displaySaveButton = function () {
             return "none";
           };
           this.modelDelete = function () {
@@ -100,10 +106,16 @@
           this.event("toggleMode", function () {
             this.goto("../View");
           });
-          this.displayEditButton = function () {
+          this.classEditButton = function () {
+            return "pure-button pure-button-active";
+          };
+          this.classListButton = function () {
+            return "pure-button";
+          };
+          this.displayOpenButton = function () {
             return "none";
           };
-          this.displayListButton = function () {
+          this.displaySaveButton = function () {
             return "inline-block";
           };
           this.modelDelete = function () {
@@ -183,6 +195,12 @@
         return model.canSave();
       });
     };
+    vm.classEditButton = function () {
+      return vm.mode().classEditButton();
+    };
+    vm.classListButton = function () {
+      return vm.mode().classListButton();
+    };
     vm.config = function () {
       return options.config || {};
     }; 
@@ -196,11 +214,11 @@
       return (vm.model() && vm.model().canSave()) ?
         "none" : "inline-block";
     };
-    vm.displayEditButton = function () {
-      return vm.mode().displayEditButton();
+    vm.displayOpenButton = function () {
+      return vm.mode().displayOpenButton();
     };
-    vm.displayListButton = function () {
-      return vm.mode().displayListButton();
+    vm.displaySaveButton = function () {
+      return vm.mode().displaySaveButton();
     };
     vm.displayUndoButton = function () {
       return (vm.model() && vm.model().canSave()) ?
@@ -723,32 +741,12 @@
             style: { margin: "1px" },
             onclick: vm.goHome
           }, [m("i", {class:"fa fa-home"})], " Home"),
-          m("button", {
-            type: "button",
-            class: "pure-button",
-            title: "Altl+M",
-            style: {
-              margin: "1px",
-              display: vm.displayEditButton()
-            },
-            onclick: vm.toggleMode
-          }, [m("i", {class:"fa fa-pencil"})], " Edit"),
-          m("button", {
-            type: "button",
-            class: "pure-button",
-            title: "Alt+M",
-            style: {
-              margin: "1px",
-              display: vm.displayListButton()
-            },
-            onclick: vm.toggleMode
-          }, [m("i", {class:"fa fa-th-list"})], " List"),
             m("button", {
             type: "button",
             class: "pure-button",
             style: {
               margin: "1px",
-              display: vm.displayListButton()
+              display: vm.displaySaveButton()
             },
             onclick: vm.saveAll,
             disabled: !vm.canSave()
@@ -759,7 +757,7 @@
             title: "Alt+O",
             style: {
               margin: "1px",
-              display: vm.displayEditButton()
+              display: vm.displayOpenButton()
             },
             onclick: vm.modelOpen,
             disabled: vm.hasNoSelection()
@@ -790,6 +788,24 @@
             },
             onclick: vm.undo
           }, [m("i", {class:"fa fa-undo"})], " Undo"),
+          m("button", {
+            type: "button",
+            class: vm.classEditButton(),
+            title: "Altl+M Edit mode",
+            style: {
+              margin: "1px"
+            },
+            onclick: vm.toggleMode
+          }, [m("i", {class:"fa fa-pencil"})]),
+          m("button", {
+            type: "button",
+            class: vm.classListButton(),
+            title: "Alt+M List mode",
+            style: {
+              margin: "1px"
+            },
+            onclick: vm.toggleMode
+          }, [m("i", {class:"fa fa-th-list"})]),
           m("input", {
             id: "toolbarSearch",
             value: vm.searchValue(),
