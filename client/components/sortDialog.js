@@ -50,9 +50,28 @@
 
       view = m("dialog", {
           id: "sortDialog",
-          style: {borderRadius: "10px"}
+          style: {
+            borderRadius: "10px"
+          }
         }, [
-        m("p", "Hi, I'm modal!"),
+        m("div", {class: "pure-menu custom-restricted-width"}, [
+            m("span", {class: "pure-menu-heading"}, "Columns"),
+            m("ul", {
+              class: "pure-menu-list",
+              style: {
+                maxHeight: "150px",
+                overflow: "auto"
+              }
+            }, [
+              m("li", {class: "pure-menu-link"}, "Name"),
+              m("li", {class: "pure-menu-link"}, "Is Active"),
+              m("li", {class: "pure-menu-link"}, "Birth Date"),
+              m("li", {class: "pure-menu-link"}, "Email"),
+              m("li", {class: "pure-menu-link"}, "Work Phone"),
+              m("li", {class: "pure-menu-link"}, "Home Phone")
+            ])
+          ]
+        ),
         m("button", {
           id: "sortDialogOk",
           class: "pure-button  pure-button-primary",

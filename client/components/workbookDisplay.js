@@ -55,6 +55,8 @@
       frmroute = "/" + options.name + "/" + options.config[sheet].form.name,
       name = options.feather.toCamelCase(),
       feather = f.catalog.getFeather(options.feather),
+      columns = options.config[sheet].list.columns || [{attr: "id"}],
+      filter = JSON.parse(JSON.stringify(options.config[sheet].list.filter || {})),
       showMenu = false,
       vm = {};
     frmroute = frmroute.toSpinalCase();
@@ -173,7 +175,9 @@
     });
 
     vm.activeSheet = m.prop(options.sheet);
-    vm.attrs = options.config[sheet].list.attrs || ["id"];
+    vm.attrs = columns.map(function(column) {
+      return column.attr;
+    });
     vm.canSave = function () {
       return vm.models().some(function (model) {
         return model.canSave();
@@ -244,7 +248,7 @@
         m.route(frmroute + "/" + selection.data.id());
       }
     };
-    vm.models = f.models[name].list();
+    vm.models = f.models[name].list({filter: filter});
     vm.nextFocus = m.prop();
     vm.onkeydownCell = function (e) {
       var id, step,
@@ -327,8 +331,9 @@
     };
     vm.refresh = function () {
       var attrs, formatOf,
-        value = state.resolve(state.current()[SEARCH]).value(),
-        filter = {};
+        value = state.resolve(state.current()[SEARCH]).value();
+      
+      filter = JSON.parse(JSON.stringify(options.config[sheet].list.filter || {}));
 
       // Recursively resolve type
       formatOf = function (feather, property) {
