@@ -116,33 +116,37 @@
       }, [
         m("div", {id: "toolbar",
           style: {
+            backgroundColor: "snow",
+            borderBottomColor: "lightgrey",
+            borderBottomStyle: "solid",
+            borderBottomWidth: "thin",
             margin: "2px"
           }
         }, [
           m("button", {
             type: "button",
             class: "pure-button",
-            style: { margin: "1px" },
+            style: { backgroundColor: "snow" },
             onclick: vm.doList
           }, [m("i", {class:"fa fa-arrow-left"})], " Done"),
           m("button", {
             type: "button",
             class: "pure-button",
-            style: { margin: "1px" },
+            style: { backgroundColor: "snow" },
             disabled: !model.canSave(),
             onclick: vm.doApply
           }, "Apply"),
           m("button", {
             type: "button",
             class: "pure-button",
-            style: { margin: "1px" },
+            style: { backgroundColor: "snow" },
             disabled: !model.canSave(),
             onclick: vm.doSave
           }, [m("i", {class:"fa fa-cloud-upload"})], " Save"),
           m("button", {
             type: "button",
             class: "pure-button",
-            style: { margin: "1px" },
+            style: { backgroundColor: "snow" },
             onclick: model.canSave() ? vm.doSaveAndNew : vm.doNew
           }, [m("i", {class:"fa fa-plus-circle"})],
           model.canSave() ? " Save & New" : " New")

@@ -731,21 +731,44 @@
         }
       }, [
         m("div", {
-            id: "toolbar"
+            id: "toolbar",
+            style: {
+              backgroundColor: "snow"
+            }
           }, [
           m.component(sortDialog, {id: "sortDialog"}),
           m("button", {
             type: "button",
             class: "pure-button",
             title: "Alt+H",
-            style: { margin: "1px" },
+            style: { 
+              backgroundColor: "snow"
+            },
             onclick: vm.goHome
           }, [m("i", {class:"fa fa-home"})], " Home"),
+          m("button", {
+            type: "button",
+            class: vm.classListButton(),
+            title: "Alt+M List mode",
+            style: {
+              backgroundColor: "snow"
+            },
+            onclick: vm.toggleMode
+          }, [m("i", {class:"fa fa-th-list"})]),
+          m("button", {
+            type: "button",
+            class: vm.classEditButton(),
+            title: "Altl+M Edit mode",
+            style: {
+              backgroundColor: "snow"
+            },
+            onclick: vm.toggleMode
+          }, [m("i", {class:"fa fa-pencil"})]),
             m("button", {
             type: "button",
             class: "pure-button",
             style: {
-              margin: "1px",
+              backgroundColor: "snow",
               display: vm.displaySaveButton()
             },
             onclick: vm.saveAll,
@@ -756,7 +779,7 @@
             class: "pure-button",
             title: "Alt+O",
             style: {
-              margin: "1px",
+              backgroundColor: "snow",
               display: vm.displayOpenButton()
             },
             onclick: vm.modelOpen,
@@ -766,14 +789,16 @@
             type: "button",
             class: "pure-button",
             title: "Alt+N",
-            style: { margin: "1px"},
+            style: { 
+              backgroundColor: "snow"
+            },
             onclick: vm.modelNew
           }, [m("i", {class:"fa fa-plus-circle"})], " New"),
           m("button", {
             type: "button",
             class: "pure-button",
             style: {
-              margin: "1px",
+              backgroundColor: "snow",
               display: vm.displayDeleteButton()
             },
             onclick: vm.modelDelete,
@@ -788,24 +813,6 @@
             },
             onclick: vm.undo
           }, [m("i", {class:"fa fa-undo"})], " Undo"),
-          m("button", {
-            type: "button",
-            class: vm.classEditButton(),
-            title: "Altl+M Edit mode",
-            style: {
-              margin: "1px"
-            },
-            onclick: vm.toggleMode
-          }, [m("i", {class:"fa fa-pencil"})]),
-          m("button", {
-            type: "button",
-            class: vm.classListButton(),
-            title: "Alt+M List mode",
-            style: {
-              margin: "1px"
-            },
-            onclick: vm.toggleMode
-          }, [m("i", {class:"fa fa-th-list"})]),
           m("input", {
             id: "toolbarSearch",
             value: vm.searchValue(),
@@ -820,7 +827,7 @@
             class: "pure-button",
             title: "Alt+R Refresh",
             style: {
-              margin: "1px"
+              backgroundColor: "snow"
             },
             onclick: vm.refresh
           }, [m("i", {class:"fa fa-refresh"})]),
@@ -830,7 +837,7 @@
             disabled: vm.searchDisabled(),
             title: "Clear search",
             style: {
-              margin: "1px"
+              backgroundColor: "snow"
             },
             onclick: vm.searchClear
           }, [m("i", {class:"fa fa-eraser"})]),
@@ -847,6 +854,7 @@
             m("span", {
               class:"pure-button fa fa-bars",
               style: {
+                backgroundColor: "snow",
                 margin: "2px",
                 minHeight: "34px"
               }
@@ -855,7 +863,6 @@
               class: "pure-menu-list",
               style: {
                 display: vm.showMenu() ? "block" : "none",
-                backgroundColor: "White",
                 position: "absolute",
                 zIndex: 9999,
                 border: "1px solid lightgrey"

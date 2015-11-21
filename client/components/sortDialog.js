@@ -28,9 +28,15 @@
     //state.goto();
 
     vm = {};
+    vm.add = function () {
+
+    };
     vm.close = function () {
       var dlg = document.getElementById(options.id);
       dlg.close();
+    };
+    vm.remove = function () {
+
     };
 
     return vm;
@@ -54,24 +60,38 @@
             borderRadius: "10px"
           }
         }, [
-        m("div", {class: "pure-menu custom-restricted-width"}, [
-            m("span", {class: "pure-menu-heading"}, "Columns"),
-            m("ul", {
-              class: "pure-menu-list",
-              style: {
-                maxHeight: "150px",
-                overflow: "auto"
-              }
-            }, [
-              m("li", {class: "pure-menu-link"}, "Name"),
-              m("li", {class: "pure-menu-link"}, "Is Active"),
-              m("li", {class: "pure-menu-link"}, "Birth Date"),
-              m("li", {class: "pure-menu-link"}, "Email"),
-              m("li", {class: "pure-menu-link"}, "Work Phone"),
-              m("li", {class: "pure-menu-link"}, "Home Phone")
-            ])
-          ]
-        ),
+        m("h3", "Sort"),
+        m("button", {
+          id: "add",
+          class: "pure-button",
+          style: {
+            backgroundColor: "white"
+          },
+          title: "Add",
+          onclick: vm.add
+        }, [m("i", {class:"fa fa-plus-circle"})]),
+        m("button", {
+          id: "remove",
+          class: "pure-button",
+          style: {
+            backgroundColor: "white"
+          },
+          title: "Remove",
+          onclick: vm.remove
+        }, [m("i", {class:"fa fa-remove"})]),
+        m("table", {
+          class: "pure-table"
+        }, [
+          m("thead", [
+            m("th", "Column"),
+            m("th", "Order")
+          ]),
+          m("tr", [
+            m("td", "value"),
+            m("td", "asc")
+          ])
+        ]),
+        m("br"),
         m("button", {
           id: "sortDialogOk",
           class: "pure-button  pure-button-primary",
