@@ -195,6 +195,7 @@
           sql = "CREATE TABLE \"$workbook\" (" +
             "name text UNIQUE," +
             "description text," +
+            "launch_config," +
             "default_config json," +
             "local_config json," +
             "module text REFERENCES \"$module\" (name)," +
@@ -203,6 +204,7 @@
             "COMMENT ON TABLE \"$workbook\" IS 'Internal table for storing workbook';" +
             "COMMENT ON COLUMN \"$workbook\".name IS 'Primary key';" +
             "COMMENT ON COLUMN \"$workbook\".description IS 'Description';" +
+            "COMMENT ON COLUMN \"$workbook\".launch_config IS 'Launcher configuration';" +
             "COMMENT ON COLUMN \"$workbook\".default_config IS 'Default configuration';" +
             "COMMENT ON COLUMN \"$workbook\".local_config IS 'Local configuration';" +
             "COMMENT ON COLUMN \"$workbook\".module IS 'Foreign key to module';";

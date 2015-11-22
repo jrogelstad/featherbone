@@ -110,13 +110,44 @@
         var buttons = workbooks().map(function (workbook) {
             var config = getConfig(workbook),
               sheet = Object.keys(config)[0],
-              name = workbook.name + sheet;
+              name = workbook.name + sheet,
+              launchConfig = workbook.launchConfig,
+              className = "fa fa-" + launchConfig.icon || "gear";
             return m("button[type=button]", {
               class: "pure-button",
+              style: { 
+                backgroundColor: launchConfig.backgroundColor,
+                color: launchConfig.color,
+                margin: "3px"
+              },
               onclick: ctrl["go" + name]
-            }, workbook.name);
+            }, [m("i", {
+              class: className, 
+              style: {
+                display: "block",
+                fontSize: "xx-large",
+                margin: "8px"
+              }
+            })], workbook.name.toCamelCase().toProperCase());
           });
-        return m("div", buttons);
+        return m("div", [
+          m("h2", {
+            style: {
+              backgroundColor: "snow",
+              borderBottomColor: "lightgrey",
+              borderBottomStyle: "solid",
+              borderBottomWidth: "thin",
+              margin: "2px",
+              padding: "6px"
+            }
+          }, "Suite Sheets"),
+          m("div", {
+            style: {
+              margin: "2px",
+              padding: "4px"
+            }
+          }, buttons)
+        ]);
       }
     };
     routes["/home"] = app.Home;

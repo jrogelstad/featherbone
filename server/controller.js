@@ -1661,7 +1661,8 @@
     */
     getWorkbooks: function (obj) {
       var params = [obj.client.currentUser],
-        sql = "SELECT name, description, default_config AS \"defaultConfig\", local_config AS \"localConfig\" " +
+        sql = "SELECT name, description, launch_config AS \"launchConfig\", " +
+          "default_config AS \"defaultConfig\", local_config AS \"localConfig\" " +
           "FROM \"$workbook\"" +
           "WHERE EXISTS (" +
           "  SELECT can_read FROM ( " +
@@ -2829,7 +2830,7 @@
 
           // Upsert workbook
           obj.client.query(findSql, [wb.name], function (err, resp) {
-            var localConfig, defaultConfig;
+            var launchConfig, localConfig, defaultConfig;
             if (err) {
               obj.callback(err);
               return;
@@ -2841,26 +2842,33 @@
               // Update workbook
               sql = "UPDATE \"$workbook\" SET " +
                 "updated_by=$2, updated=now(), " +
-                "description=$3, default_config=$4," +
-                "local_config=$5, module=$6 WHERE name=$1;";
+                "description=$3, launch_config=$4, default_config=$5," +
+                "local_config=$6, module=$7 WHERE name=$1;";
               id = wb.id;
+              launchConfig = wb.launchConfig || row.launch_config;
               localConfig = wb.localConfig || row.local_config;
               defaultConfig = wb.defaultConfig || row.default_config;
               params = [
                 wb.name,
                 obj.client.currentUser,
                 wb.description || row.description,
+                launchConfig,
                 defaultConfig,
                 localConfig,
                 wb.module
               ];
             } else {
               // Insert new workbook
-              sql = "INSERT INTO \"$workbook\" VALUES (" +
+              sql = "INSERT INTO \"$workbook\" (_pk, id, created, " +
+                " created_by, updated, updated_by, is_deleted, name, " +
+                "description, launch_config, default_config, " +
+                "local_config, module) " +
+                "VALUES (" +
                 "nextval('object__pk_seq'), $2, now(), " +
-                "$2, now(), $3, false, $1, $4, $5, $6, $7) " +
+                "$2, now(), $3, false, $1, $4, $5, $6, $7, $8) " +
                 "RETURNING _pk;";
               id = f.createId();
+              launchConfig = wb.launchConfig || {};
               localConfig = wb.localConfig || {};
               defaultConfig = wb.defaultConfig || {};
               params = [
@@ -2868,6 +2876,7 @@
                 id,
                 obj.client.currentUser,
                 wb.description || "",
+                launchConfig,
                 defaultConfig,
                 localConfig,
                 wb.module

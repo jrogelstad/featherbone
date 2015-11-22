@@ -740,16 +740,16 @@
           m("button", {
             type: "button",
             class: "pure-button",
-            title: "Alt+H",
+            title: "Home (Alt+H)",
             style: { 
               backgroundColor: "snow"
             },
             onclick: vm.goHome
-          }, [m("i", {class:"fa fa-home"})], " Home"),
+          }, [m("i", {class:"fa fa-home"})]),
           m("button", {
             type: "button",
             class: vm.classListButton(),
-            title: "Alt+M List mode",
+            title: "List mode (Alt+M)",
             style: {
               backgroundColor: "snow"
             },
@@ -758,7 +758,7 @@
           m("button", {
             type: "button",
             class: vm.classEditButton(),
-            title: "Altl+M Edit mode",
+            title: "Edit mode (Alt+M)",
             style: {
               backgroundColor: "snow"
             },
@@ -767,6 +767,7 @@
             m("button", {
             type: "button",
             class: "pure-button",
+            title: "Save (Alt+S)",
             style: {
               backgroundColor: "snow",
               display: vm.displaySaveButton()
@@ -777,7 +778,7 @@
           m("button", {
             type: "button",
             class: "pure-button",
-            title: "Alt+O",
+            title: "Open (Alt+O)",
             style: {
               backgroundColor: "snow",
               display: vm.displayOpenButton()
@@ -788,7 +789,7 @@
           m("button", {
             type: "button",
             class: "pure-button",
-            title: "Alt+N",
+            title: "New (Alt+N)",
             style: { 
               backgroundColor: "snow"
             },
@@ -807,8 +808,9 @@
           m("button", {
             type: "button",
             class: "pure-button",
+            title: "Delete",
             style: {
-              margin: "1px",
+              backgroundColor: "snow",
               display: vm.displayUndoButton()
             },
             onclick: vm.undo
@@ -825,7 +827,7 @@
           m("button", {
             type: "button",
             class: "pure-button",
-            title: "Alt+R Refresh",
+            title: "Refresh (Alt+R)",
             style: {
               backgroundColor: "snow"
             },
@@ -863,6 +865,7 @@
               class: "pure-menu-list",
               style: {
                 display: vm.showMenu() ? "block" : "none",
+                backgroundColor: "white",
                 position: "absolute",
                 zIndex: 9999,
                 border: "1px solid lightgrey"
@@ -870,12 +873,19 @@
             }, [
               m("li", {
                 class: "pure-menu-link",
+                title: "Change sheet sort",
                 onclick: vm.sortDialogShow
               }, [m("i", {class:"fa fa-sort-alpha-asc"})], " Sort"),
               m("li", {
-                class: "pure-menu-link"
+                class: "pure-menu-link",
+                title: "Change sheet filter"
                 //onclick: rvm.onclickopen
-              }, [m("i", {class:"fa fa-filter"})], " Filter")
+              }, [m("i", {class:"fa fa-filter"})], " Filter"),
+              m("li", {
+                class: "pure-menu-link",
+                title: "Store workbook configuration"
+                //onclick: rvm.onclickopen
+              }, [m("i", {class:"fa fa-upload"})], " Store")
             ])
           ])     
         ]),
