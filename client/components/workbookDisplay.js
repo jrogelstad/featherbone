@@ -48,7 +48,8 @@
 
   // Define workbook view model
   f.viewModels.workbookViewModel = function (options) {
-    var selection, state, buttonHome,
+    var selection, state,
+      buttonHome, buttonList, buttonEdit,
       sheet = options.sheet,
       frmroute = "/" + options.name + "/" + options.config[sheet].form.name,
       name = options.feather.toCamelCase(),
@@ -66,12 +67,6 @@
           this.event("toggleMode", function () {
             this.goto("../Edit");
           });
-          this.classEditButton = function () {
-            return "pure-button";
-          };
-          this.classListButton = function () {
-            return "pure-button pure-button-active";
-          };
           this.displayOpenButton = function () {
             return "inline-block";
           };
@@ -104,12 +99,6 @@
           this.event("toggleMode", function () {
             this.goto("../View");
           });
-          this.classEditButton = function () {
-            return "pure-button pure-button-active";
-          };
-          this.classListButton = function () {
-            return "pure-button";
-          };
           this.displayOpenButton = function () {
             return "none";
           };
@@ -188,17 +177,11 @@
     vm.attrs = columns.map(function(column) {
       return column.attr;
     });
-    vm.buttonHome = function () {
-      return buttonHome;
-    };
+    vm.buttonEdit = function () { return buttonEdit; };
+    vm.buttonHome = function () { return buttonHome; };
+    vm.buttonList = function () { return buttonList; };
     vm.canSave = function () {
       return vm.models().state().current()[0] === "/Fetched/Dirty";
-    };
-    vm.classEditButton = function () {
-      return vm.mode().classEditButton();
-    };
-    vm.classListButton = function () {
-      return vm.mode().classListButton();
     };
     vm.config = function () {
       return options.config || {};
@@ -454,8 +437,6 @@
       if (selection) { selection.undo(); }
     };
 
-    state.goto();
-
     // ..........................................................
     // PRIVATE
     //
@@ -465,6 +446,29 @@
       title: "Home (Alt+H)",
       icon: "home"
     });
+
+    buttonList = f.viewModels.buttonViewModel({
+      onclick: vm.toggleMode,
+      title: "List mode (Alt+M)",
+      icon: "list"
+    });
+
+    buttonEdit = f.viewModels.buttonViewModel({
+      onclick: vm.toggleMode,
+      title: "Edit mode (Alt+M)",
+      icon: "pencil"
+    });
+
+    state.resolve("/Mode/View").enter(function () {
+      buttonEdit.state().send("deactivate");
+      buttonList.state().send("activate");
+    });
+    state.resolve("/Mode/Edit").enter(function () {
+      buttonEdit.state().send("activate");
+      buttonList.state().send("deactivate");
+    });
+
+    state.goto();
 
     return vm;
   };
@@ -741,25 +745,9 @@
           }, [
           m.component(sortDialog, {id: "sortDialog"}),
           m.component(f.components.button({viewModel: vm.buttonHome()})),
+          m.component(f.components.button({viewModel: vm.buttonList()})),
+          m.component(f.components.button({viewModel: vm.buttonEdit()})),
           m("button", {
-            type: "button",
-            class: vm.classListButton(),
-            title: "List mode (Alt+M)",
-            style: {
-              backgroundColor: "snow"
-            },
-            onclick: vm.toggleMode
-          }, [m("i", {class:"fa fa-th-list"})]),
-          m("button", {
-            type: "button",
-            class: vm.classEditButton(),
-            title: "Edit mode (Alt+M)",
-            style: {
-              backgroundColor: "snow"
-            },
-            onclick: vm.toggleMode
-          }, [m("i", {class:"fa fa-pencil"})]),
-            m("button", {
             type: "button",
             class: "pure-button",
             title: "Save (Alt+S)",
