@@ -48,7 +48,7 @@
 
   // Define workbook view model
   f.viewModels.workbookViewModel = function (options) {
-    var selection, state,
+    var selection, state, buttonHome,
       sheet = options.sheet,
       frmroute = "/" + options.name + "/" + options.config[sheet].form.name,
       name = options.feather.toCamelCase(),
@@ -188,6 +188,9 @@
     vm.attrs = columns.map(function(column) {
       return column.attr;
     });
+    vm.buttonHome = function () {
+      return buttonHome;
+    };
     vm.canSave = function () {
       return vm.models().state().current()[0] === "/Fetched/Dirty";
     };
@@ -452,6 +455,16 @@
     };
 
     state.goto();
+
+    // ..........................................................
+    // PRIVATE
+    //
+
+    buttonHome = f.viewModels.buttonViewModel({
+      onclick: vm.goHome,
+      title: "Home (Alt+H)",
+      icon: "home"
+    });
 
     return vm;
   };
@@ -727,15 +740,7 @@
             }
           }, [
           m.component(sortDialog, {id: "sortDialog"}),
-          m("button", {
-            type: "button",
-            class: "pure-button",
-            title: "Home (Alt+H)",
-            style: { 
-              backgroundColor: "snow"
-            },
-            onclick: vm.goHome
-          }, [m("i", {class:"fa fa-home"})]),
+          m.component(f.components.button({viewModel: vm.buttonHome()})),
           m("button", {
             type: "button",
             class: vm.classListButton(),
