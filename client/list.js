@@ -107,7 +107,7 @@
     };
 
     ary.save = function () {
-      state.send("fetch");
+      state.send("save");
     };
 
     ary.state = function () {
@@ -142,7 +142,13 @@
     };
 
     doSave = function () {
-
+      dirty.forEach(function (model) {
+        model.save().then(function() {
+          if (model.state().current()[0] === "/Deleted") {
+            ary.remove(model);
+          }
+        });
+      });
     };
 
     // Define statechart

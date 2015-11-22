@@ -117,7 +117,7 @@
             return "inline-block";
           };
           this.modelDelete = function () {
-            var prevState = selection.state.current()[0];
+            var prevState = selection.state().current()[0];
             selection.delete();
             if (prevState === "/Ready/New") {
               vm.models().remove(selection);
@@ -384,13 +384,7 @@
     };
     vm.relations = m.prop({});
     vm.saveAll = function () {
-      vm.models().forEach(function (model) {
-        model.save().then(function() {
-          if (model.state().current()[0] === "/Deleted") {
-            vm.models().remove(model);
-          }
-        });
-      });
+      vm.models().save();
     };
     vm.scrollbarWidth = function () {
       return scrWidth;
