@@ -18,8 +18,6 @@
 (function (f) {
   "use strict";
 
-  var statechart = window.statechart;
-
   // Calculate scroll bar width
   // http://stackoverflow.com/questions/13382516/getting-scroll-bar-width-using-javascript
   var scrWidth, inner, widthNoScroll, widthWithScroll,
@@ -62,7 +60,7 @@
     frmroute = frmroute.toSpinalCase();
 
     // Statechart
-    state = statechart.State.define({concurrent: true}, function () {
+    state = f.statechart.State.define({concurrent: true}, function () {
       this.state("Mode", function () {
         this.state("View", function () {
           this.event("toggleMode", function () {
@@ -390,7 +388,7 @@
     vm.saveAll = function () {
       vm.models().forEach(function (model) {
         model.save().then(function() {
-          if (model.state.current()[0] === "/Deleted") {
+          if (model.state().current()[0] === "/Deleted") {
             vm.models().remove(model);
           }
         });
@@ -529,7 +527,7 @@
           currentMode = vm.mode().current()[0],
           color = "White",
           isSelected = vm.isSelected(model),
-          currentState = model.state.current()[0],
+          currentState = model.state().current()[0],
           d = model.data,
           cellOpts = {},
           rowOpts = {};
@@ -712,7 +710,7 @@
         // Build tab
         tab = m("button[type=button]", {
           class: activeSheet === sheet ?
-            "pure-button pure-button-active" : "pure-button",
+            "pure-button pure-button-primary" : "pure-button",
           style: {
             borderTopLeftRadius: "0px",
             borderTopRightRadius: "0px"

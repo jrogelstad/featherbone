@@ -59,7 +59,7 @@
         while (i < len) {
           model = f.models[name]();
           model.set(data[i], true, true);
-          model.state.goto("/Ready/Fetched");
+          model.state().goto("/Ready/Fetched");
           ary.add(model);
           i += 1;
         }

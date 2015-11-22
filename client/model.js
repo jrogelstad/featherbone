@@ -17,15 +17,7 @@
 (function (f) {
   "use strict";
 
-  var statechart, jsonpatch, isChild, isToOne, isToMany;
-
-  if (typeof require === 'function') {
-    statechart = require("statechart");
-    jsonpatch = require("fast-json-patch");
-  } else {
-    statechart = window.statechart;
-    jsonpatch = window.jsonpatch;
-  }
+  var isChild, isToOne, isToMany;
 
   /**
     Creates a property getter setter function with a default value.
@@ -53,7 +45,7 @@
     };
 
     // Initialize state
-    state = statechart.State.define(function () {
+    state = f.statechart.State.define(function () {
       this.state("Ready", function () {
         this.event("change", function () {
           this.goto("../Changing");
@@ -190,6 +182,7 @@
     var  doClear, doDelete, doError, doFetch, doInit, doPatch, doPost, doSend,
       doFreeze, doThaw, doRevert, validator, lastError, path, state, noSave,
       that = {data: {}, name: feather.name || "Object", plural: feather.plural},
+      jsonpatch = f.jsonpatch,
       d = that.data,
       errHandlers = [],
       validators = [],
@@ -431,6 +424,10 @@
       return this;
     };
 
+    that.state = function () {
+      return state;
+    };
+
     that.toJSON = function () {
       var keys = Object.keys(d),
         result = {};
@@ -593,10 +590,10 @@
         keys = Object.keys(props || {});
 
       onFetching = function () {
-        this.state.goto("/Busy/Fetching");
+        state.goto("/Busy/Fetching");
       };
       onFetched = function () {
-        this.state.goto("/Ready/Fetched");
+        state.goto("/Ready/Fetched");
       };
 
       // Function to extend child array if applicable
@@ -629,11 +626,11 @@
           state.resolve("/Ready/Fetched").enter(onFetched.bind(value));
 
           // Disable save event on children
-          value.state.resolve("/Ready/New").event("save");
-          value.state.resolve("/Ready/Fetched/Dirty").event("save");
+          value.state().resolve("/Ready/New").event("save");
+          value.state().resolve("/Ready/Fetched/Dirty").event("save");
 
           // Notify parent if child becomes dirty
-          value.state.resolve("/Ready/Fetched/Dirty").enter(function () {
+          value.state().resolve("/Ready/Fetched/Dirty").enter(function () {
             state.send("changed");
           });
 
@@ -738,8 +735,8 @@
               state.resolve("/Ready/Fetched").enter(onFetched.bind(result));
 
               // Disable save event on children
-              result.state.resolve("/Ready/New").event("save");
-              result.state.resolve("/Ready/Fetched/Dirty").event("save");
+              result.state().resolve("/Ready/New").event("save");
+              result.state().resolve("/Ready/Fetched/Dirty").event("save");
 
               return result;
             };
@@ -849,9 +846,9 @@
       return ret;
     };
 
+    // Statechart
     noSave = function () {return false; };
-
-    state = statechart.State.define(function () {
+    state = f.statechart.State.define(function () {
       this.enter(doInit);
 
       this.state("Ready", {H: "*"}, function () {
@@ -973,9 +970,6 @@
         this.canSave = noSave;
       });
     });
-
-    // Expose state
-    that.state = state;
 
     // Add standard validator
     validator = function () {

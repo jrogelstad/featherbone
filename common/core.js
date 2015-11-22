@@ -289,6 +289,14 @@ var f = (function () {
     }
   };
 
+  if (typeof require === 'function') {
+    that.statechart = require("statechart");
+    that.jsonpatch = require("fast-json-patch");
+  } else {
+    that.statechart = window.statechart;
+    that.jsonpatch = window.jsonpatch;
+  }
+
   return that;
 }());
 
