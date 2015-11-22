@@ -44,7 +44,7 @@
       store = oldValue;
     };
 
-    // Initialize state
+    // Define state
     state = f.statechart.State.define(function () {
       this.state("Ready", function () {
         this.event("change", function () {
@@ -846,7 +846,7 @@
       return ret;
     };
 
-    // Statechart
+    // Define state
     noSave = function () {return false; };
     state = f.statechart.State.define(function () {
       this.enter(doInit);

@@ -36,35 +36,19 @@
     @return {Function}
   */
   f.list = function (feather) {
-    var plural = f.catalog.getFeather(feather).plural.toSpinalCase(),
+    var state, doFetch, doSave,
+      plural = f.catalog.getFeather(feather).plural.toSpinalCase(),
       name = feather.toCamelCase(),
       ary = [],
       idx = {},
       prop = m.prop(ary);
 
     ary.fetch = function (filter, merge) {
-      filter = Qs.stringify(filter);
-      var url = "/data/" + plural + "/" + filter;
-      return m.request({
-        method: "GET",
-        url: url
-      }).then(function (data) {
-        var model,
-          len = data.length,
-          i = 0;
-        if (merge === false) { 
-          ary.length = 0;
-          idx = {};
-        }
-        while (i < len) {
-          model = f.models[name]();
-          model.set(data[i], true, true);
-          model.state().goto("/Ready/Fetched");
-          ary.add(model);
-          i += 1;
-        }
-      });
+      ary.filter(filter || {});
+      state.send("fetch", merge);
     };
+
+    ary.filter = m.prop({});
 
     // Add a model to the list. Will replace existing
     // if model with same id is already found in array
@@ -91,13 +75,98 @@
       }
     };
 
+    ary.save = function () {
+      state.send("fetch");
+    };
+
+    ary.state = function () {
+      return state;
+    };
+
+    // ..........................................................
+    // PRIVATE
+    //
+
+    doFetch = function (context) {
+      var filter = Qs.stringify(ary.filter()),
+        url = "/data/" + plural + "/" + filter;
+
+      return m.request({
+        method: "GET",
+        url: url
+      }).then(function (data) {
+        var model,
+          len = data.length,
+          i = 0;
+        if (context.merge === false) { 
+          ary.length = 0;
+          idx = {};
+        }
+        while (i < len) {
+          model = f.models[name]();
+          model.set(data[i], true, true);
+          model.state().goto("/Ready/Fetched");
+          ary.add(model);
+          i += 1;
+        }
+      });
+    };
+
+    doSave = function () {
+
+    };
+
+    // Define statechart
+    state = f.statechart.State.define(function () {
+      this.state("Unitialized", function () {
+        this.event("fetch", function (merge) {
+          this.goto("/Busy", {context: {merge: merge}});
+        });
+      });
+
+      this.state("Busy", function () {
+        this.state("Fetching", function () {
+          this.enter(doFetch);
+        });
+        this.state("Saving", function () {
+          this.enter(doSave);
+        });
+
+        this.event("fetched", function () {
+          this.goto("/Fetched");
+        });
+      });
+
+      this.state("Fetched", function () {
+        this.event("fetch", function (merge) {
+          this.goto("/Busy", {context: {merge: merge}});
+        });
+        this.state("Clean", function () {
+          this.event("changed", function () {
+            this.goto("../Dirty");
+          });
+        });
+
+        this.state("Dirty", function () {
+          this.event("save", function () {
+            this.goto("/Busy/Saving");
+          });
+        });
+      });
+    });
+
     return function (options) {
       options = options || {};
       ary = options.value || ary;
-      var filter = options.filter,
-        doFetch = options.fetch === undefined ? true : options.fetch;
+      ary.filter(options.filter || {});
 
-      if (doFetch) { ary.fetch(filter, options.merge); }
+      // Initialize state
+      ary.state().goto();
+
+      if (options.fetch !== false) {
+        ary.fetch(options.merge);
+      }
+
       return prop;
     };
   };
