@@ -36,12 +36,28 @@
     @return {Function}
   */
   f.list = function (feather) {
-    var state, doFetch, doSave,
+    var state, doFetch, doSave, onClean, onDirty,
       plural = f.catalog.getFeather(feather).plural.toSpinalCase(),
       name = feather.toCamelCase(),
       ary = [],
       idx = {},
+      dirty = [],
       prop = m.prop(ary);
+
+    onClean = function () {
+      dirty.remove(this);
+      state.send("changed");
+    };
+
+    onDirty = function () {
+      dirty.push(this);
+      state.send("changed");
+    };
+
+    dirty.remove = function (model) {
+      var i = dirty.indexOf(model);
+      if (i > -1) { dirty.splice(i, 1); }
+    };
 
     ary.fetch = function (filter, merge) {
       ary.filter(filter || {});
@@ -53,12 +69,26 @@
     // Add a model to the list. Will replace existing
     // if model with same id is already found in array
     ary.add = function (model) {
-      var id = model.data.id();
-      if (!isNaN(idx[id])) {
-        ary.splice(idx[id], 1, model);
+      var  mstate,
+        id = model.data.id(),
+        oid = idx[id];
+
+      if (!isNaN(oid)) {
+        dirty.remove(ary[oid]);
+        ary.splice(oid, 1, model);
       } else {
         idx[id] = ary.length;
         ary.push(model);
+      }
+
+      mstate = model.state();
+      mstate.resolve("/Delete").enter(onDirty.bind(model));
+      mstate.resolve("/Ready/Fetched/Dirty").enter(onDirty.bind(model));
+      mstate.resolve("/Ready/Fetched/Clean").enter(onClean.bind(model));
+
+      if (model.state().current()[0] === "/Ready/New") {
+        dirty.push(model);
+        state.send("changed");
       }
     };
 
@@ -73,6 +103,7 @@
         });
         delete idx[id];
       }
+      dirty.remove(model);
     };
 
     ary.save = function () {
@@ -95,20 +126,18 @@
         method: "GET",
         url: url
       }).then(function (data) {
-        var model,
-          len = data.length,
-          i = 0;
         if (context.merge === false) { 
           ary.length = 0;
+          dirty.length = 0;
           idx = {};
         }
-        while (i < len) {
-          model = f.models[name]();
-          model.set(data[i], true, true);
+        data.forEach(function (item) {
+          var model = f.models[name]();
+          model.set(item, true, true);
           model.state().goto("/Ready/Fetched");
           ary.add(model);
-          i += 1;
-        }
+        });
+        state.send("fetched");
       });
     };
 
@@ -131,22 +160,29 @@
         this.state("Saving", function () {
           this.enter(doSave);
         });
-
         this.event("fetched", function () {
           this.goto("/Fetched");
         });
       });
 
       this.state("Fetched", function () {
+        this.event("changed", function () {
+          this.goto("/Fetched");
+        });
+        this.C(function() {
+          if (dirty.length) { 
+            return "./Dirty";
+          }
+          return './Clean';
+        });
         this.event("fetch", function (merge) {
           this.goto("/Busy", {context: {merge: merge}});
         });
         this.state("Clean", function () {
-          this.event("changed", function () {
-            this.goto("../Dirty");
+          this.enter(function () {
+            dirty.length = 0;
           });
         });
-
         this.state("Dirty", function () {
           this.event("save", function () {
             this.goto("/Busy/Saving");
@@ -154,14 +190,12 @@
         });
       });
     });
+    state.goto();
 
     return function (options) {
       options = options || {};
       ary = options.value || ary;
       ary.filter(options.filter || {});
-
-      // Initialize state
-      ary.state().goto();
 
       if (options.fetch !== false) {
         ary.fetch(options.merge);

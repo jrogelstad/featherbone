@@ -440,7 +440,7 @@
     };
 
     that.undo = function () {
-      that.state.send("undo");
+      state.send("undo");
     };
 
     // ..........................................................
@@ -668,7 +668,7 @@
             } else {
               delete cache[idx];
             }
-            that.state.send("changed");
+            state.send("changed");
           }
 
           return result;

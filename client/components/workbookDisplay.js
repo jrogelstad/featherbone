@@ -189,9 +189,7 @@
       return column.attr;
     });
     vm.canSave = function () {
-      return vm.models().some(function (model) {
-        return model.canSave();
-      });
+      return vm.models().state().current()[0] === "/Fetched/Dirty";
     };
     vm.classEditButton = function () {
       return vm.mode().classEditButton();
