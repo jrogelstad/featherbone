@@ -28,6 +28,32 @@
     options = options || {};
     var vm, state, display, primary, mode;
 
+    // ..........................................................
+    // PUBLIC
+    //
+
+    vm = {};
+    vm.activate = function () { state.send("activate"); };
+    vm.isDisabled = function () { return mode().isDisabled(); };
+    vm.deactivate = function () { state.send("deactivate"); };
+    vm.disable = function () { state.send("disable"); };
+    vm.display = function () { return display().value(); };
+    vm.enable = function () { state.send("enable"); };
+    vm.class = function () { return mode().class(); };
+    vm.hide = function () { state.send("hide"); };
+    vm.icon = m.prop(options.icon || "");
+    vm.label = m.prop(options.label || "");
+    vm.onclick = m.prop(options.onclick);
+    vm.primary = function () { return primary().class(); };
+    vm.show = function () { state.send("show"); };
+    vm.state = function () { return state; };
+    vm.style = function () { return options.style || {}; };
+    vm.title = m.prop(options.title || "");
+
+    // ..........................................................
+    // PRIVATE
+    //
+
     // Define statechart
     state = f.statechart.State.define({concurrent: true}, function () {
       this.state("Mode", function () {
@@ -125,29 +151,6 @@
       return state.resolve(state.resolve("/Primary").current()[0]);
     };
 
-    // ..........................................................
-    // PUBLIC
-    //
-
-    vm = {};
-    vm.activate = function () { state.send("activate"); };
-    vm.isDisabled = function () { return mode().isDisabled(); };
-    vm.deactivate = function () { state.send("deactivate"); };
-    vm.disable = function () { state.send("disable"); };
-    vm.display = function () { return display().value(); };
-    vm.enable = function () { state.send("enable"); };
-    vm.class = function () { return mode().class(); };
-    vm.hide = function () { state.send("hide"); };
-    vm.icon = m.prop(options.icon || "");
-    vm.id = m.prop(f.createId());
-    vm.label = m.prop(options.label || "");
-    vm.onclick = m.prop(options.onclick);
-    vm.primary = function () { return primary().class(); };
-    vm.show = function () { state.send("show"); };
-    vm.state = function () { return state; };
-    vm.style = function () { return options.style || {}; };
-    vm.title = m.prop(options.title || "");
-
     return vm;
   };
 
@@ -177,7 +180,6 @@
       if (vm.primary()) { classes.push(vm.primary()); }
 
       opts = {
-        id: vm.id(),
         type: "button",
         class: classes.join(" "),
         style: style,

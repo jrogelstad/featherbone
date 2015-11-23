@@ -21,9 +21,7 @@
   // Calculate scroll bar width
   // http://stackoverflow.com/questions/13382516/getting-scroll-bar-width-using-javascript
   var scrWidth, inner, widthNoScroll, widthWithScroll,
-    outer = document.createElement("div"),
-    MODE = 0,
-    SEARCH = 1;
+    outer = document.createElement("div");
 
   outer.style.visibility = "hidden";
   outer.style.width = "100px";
@@ -50,7 +48,7 @@
   f.viewModels.workbookViewModel = function (options) {
     var selection, state, listState, createButton, buttonHome, buttonList,
       buttonEdit, buttonSave, buttonOpen, buttonNew, buttonDelete, buttonUndo,
-      buttonRefresh, buttonClear,
+      buttonRefresh, buttonClear, searchInput, searchState,
       sheet = options.sheet,
       frmroute = "/" + options.name + "/" + options.config[sheet].form.name,
       name = options.feather.toCamelCase(),
@@ -110,7 +108,7 @@
       return selection === model;
     };
     vm.mode = function () {
-      return state.resolve(state.current()[MODE]);
+      return state.resolve(state.current()[0]);
     };
     vm.model = function () {
       return selection;
@@ -190,10 +188,6 @@
         }
       }
     };
-    vm.onkeydownSearch = function (e) {
-      var key = e.key || e.keyIdentifier;
-      if (key === "Enter") { vm.refresh(); }
-    };
     vm.onmouseovermenu = function () {
       showMenu = true;
     };
@@ -207,9 +201,10 @@
       // Sync header position with table body position
       header.scrollLeft = rows.scrollLeft;
     };
+    vm.searchInput = function () { return searchInput; };
     vm.refresh = function () {
       var attrs, formatOf,
-        value = state.resolve(state.current()[SEARCH]).value();
+        value = searchInput.value();
       
       filter = JSON.parse(JSON.stringify(options.config[sheet].list.filter || {}));
 
@@ -253,26 +248,6 @@
     vm.scrollbarWidth = function () {
       return scrWidth;
     };
-    vm.searchClear = function () {
-      vm.searchValue("");
-      state.send("searchEnd");
-    };
-    vm.searchDisabled = function () {
-      return state.current()[SEARCH] === "/Search/Off";
-    };
-    vm.searchEnd = function () {
-      state.send("searchEnd");
-    };
-    vm.searchOff = function () {
-      return state.current()[SEARCH] === "/Search/Off";
-    };
-    vm.searchStart = function () {
-      state.send("searchStart");
-    };
-    vm.searchStyle = function () {
-      return state.resolve(state.current()[SEARCH]).style();
-    };
-    vm.searchValue = m.prop();
     vm.select = function (model) {
       if (selection !== model) {
         vm.relations({});
@@ -383,6 +358,10 @@
       icon: "undo"
     });
 
+    searchInput = f.viewModels.searchInputViewModel({
+      refresh: vm.refresh
+    });
+
     buttonRefresh = createButton({
       onclick: vm.refresh,
       title: "Refresh (Alt+R)",
@@ -390,12 +369,12 @@
     });
 
     buttonClear = createButton({
-      onclick: vm.searchClear,
+      onclick: vm.searchInput().clear,
       title: "Clear search",
       icon: "eraser"
     });
 
-    // Bind button states to model list statechart events
+    // Bind button states to list statechart events
     listState = vm.models().state();
     listState.resolve("/Fetched").enter(function () {
       if (selection && vm.model().canUndo()) {
@@ -412,6 +391,18 @@
     });
     listState.state().resolve("/Fetched/Dirty").enter(function () {
       buttonSave.enable();
+    });
+
+    // Bind button states to search statechart events
+    searchState = vm.searchInput().state();
+    searchState.resolve("/Search/On").enter(function () {
+      buttonClear.enable();
+    });
+    searchState.resolve("/Search/On").exit(function () {
+      vm.refresh();
+    });
+    searchState.resolve("/Search/Off").enter(function () {
+      buttonClear.disable();
     });
 
     // Create statechart
@@ -480,50 +471,6 @@
             vm.select(model);
             vm.nextFocus("input" + col.toCamelCase(true));
             return true;
-          };
-        });
-      });
-      this.state("Search", function () {
-        this.state("Off", function () {
-          this.enter(function () {
-            vm.searchValue("Search");
-            buttonClear.disable();
-          });
-          this.event("searchStart", function () {
-            this.goto("../On");
-          });
-          this.style = function () {
-            return {
-              color: "LightGrey",
-              margin: "2px"
-            };
-          };
-          this.value = function () {
-            return "";
-          };
-        });
-        this.state("On", function () {
-          this.enter(function () {
-            vm.searchValue("");
-            buttonClear.enable();
-          });
-          this.exit(function () {
-            vm.refresh();
-          });
-          this.canExit = function () {
-            return !vm.searchValue();
-          };
-          this.event("searchEnd", function () {
-            this.goto("../Off");
-          });
-          this.style = function () {
-            return {
-              color: "Black",
-              margin: "2px"
-            };
-          };
-          this.value = function () {
-            return vm.searchValue();
           };
         });
       });
@@ -855,15 +802,7 @@
           m.component(button({viewModel: vm.buttonNew()})),
           m.component(button({viewModel: vm.buttonDelete()})),
           m.component(button({viewModel: vm.buttonUndo()})),
-          m("input", {
-            id: "toolbarSearch",
-            value: vm.searchValue(),
-            style: vm.searchStyle(),
-            onfocus: vm.searchStart,
-            onblur: vm.searchEnd,
-            oninput:  m.withAttr("value", vm.searchValue),
-            onkeydown: vm.onkeydownSearch
-          }),
+          m.component(f.components.searchInput({viewModel: vm.searchInput()})),
           m.component(button({viewModel: vm.buttonRefresh()})),
           m.component(button({viewModel: vm.buttonClear()})),
           m("div", {
