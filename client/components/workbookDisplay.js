@@ -49,7 +49,8 @@
   // Define workbook view model
   f.viewModels.workbookViewModel = function (options) {
     var selection, state, createButton, buttonHome, buttonList, buttonEdit,
-      buttonSave, buttonOpen, buttonNew, buttonDelete, buttonUndo,
+      buttonSave, buttonOpen, buttonNew, buttonDelete, buttonUndo, buttonRefresh,
+      buttonClear,
       sheet = options.sheet,
       frmroute = "/" + options.name + "/" + options.config[sheet].form.name,
       name = options.feather.toCamelCase(),
@@ -58,138 +59,23 @@
       filter = JSON.parse(JSON.stringify(options.config[sheet].list.filter || {})),
       showMenu = false,
       vm = {};
-    frmroute = frmroute.toSpinalCase();
 
-    // Statechart
-    state = f.statechart.State.define({concurrent: true}, function () {
-      this.state("Mode", function () {
-        this.state("View", function () {
-          this.event("edit", function () {
-            this.goto("../Edit");
-          });
-          this.modelDelete = function () {
-            selection.delete(true).then(function () {
-              vm.models().remove(selection);
-            });
-          };
-          this.modelNew = function () {
-            m.route(frmroute);
-          };
-          this.selectedColor = function () {
-            return "LightSkyBlue";
-          };
-          this.toggleSelection = function (model, col) {
-            if (selection === model) {
-              vm.select(undefined);
-              return false;
-            }
-
-            vm.select(model);
-            vm.nextFocus("input" + col.toCamelCase(true));
-            return true;
-          };
-        });
-        this.state("Edit", function () {
-          this.event("view", function () {
-            this.goto("../View");
-          });
-          this.modelDelete = function () {
-            var prevState = selection.state().current()[0];
-            selection.delete();
-            if (prevState === "/Ready/New") {
-              vm.models().remove(selection);
-            }
-          };
-          this.modelNew = function () {
-            var  model = f.models[name](),
-              input = "input" + vm.defaultFocus(model).toCamelCase(true);
-            vm.models().add(model);
-            vm.nextFocus(input);
-            vm.select(model);
-          };
-          this.selectedColor = function () {
-            return "Azure";
-          };
-          this.toggleSelection = function (model, col) {
-            vm.select(model);
-            vm.nextFocus("input" + col.toCamelCase(true));
-            return true;
-          };
-        });
-      });
-      this.state("Search", function () {
-        this.state("Off", function () {
-          this.enter(function () {
-            vm.searchValue("Search");
-          });
-          this.event("searchStart", function () {
-            this.goto("../On");
-          });
-          this.style = function () {
-            return {
-              color: "LightGrey",
-              margin: "2px"
-            };
-          };
-          this.value = function () {
-            return "";
-          };
-        });
-        this.state("On", function () {
-          this.enter(function () {
-            vm.searchValue("");
-          });
-          this.exit(function () {
-            vm.refresh();
-          });
-          this.canExit = function () {
-            return !vm.searchValue();
-          };
-          this.event("searchEnd", function () {
-            this.goto("../Off");
-          });
-          this.style = function () {
-            return {
-              color: "Black",
-              margin: "2px"
-            };
-          };
-          this.value = function () {
-            return vm.searchValue();
-          };
-        });
-      });
-      this.state("Selection", function () {
-        this.event("selected", function () {
-          this.goto("./On", {force: true});
-        });
-        this.state("Off");
-        this.state("On", function () {
-          this.event("unselected", function () {
-            this.goto("../Off");
-          });
-          this.C(function() {
-            if (selection.canUndo()) { 
-              return "./Dirty";
-            }
-            return "./Clean";
-          });
-          this.state("Clean");
-          this.state("Dirty");
-        });
-      });
-    });
+    // ..........................................................
+    // PUBLIC
+    //
 
     vm.activeSheet = m.prop(options.sheet);
     vm.attrs = columns.map(function(column) {
       return column.attr;
     });
+    vm.buttonClear = function () { return buttonClear; };
     vm.buttonDelete = function () { return buttonDelete; };
     vm.buttonEdit = function () { return buttonEdit; };
     vm.buttonHome = function () { return buttonHome; };
     vm.buttonList = function () { return buttonList; };
     vm.buttonNew = function () { return buttonNew; };
     vm.buttonOpen = function () { return buttonOpen; };
+    vm.buttonRefresh = function () { return buttonRefresh; };
     vm.buttonSave = function () { return buttonSave; };
     vm.buttonUndo = function () { return buttonUndo; };
     vm.config = function () {
@@ -219,9 +105,6 @@
       if (idx >= 0) {
         vm.select(list[idx]);
       }
-    };
-    vm.hasNoSelection = function () {
-      return !selection;
     };
     vm.isSelected = function (model) {
       return selection === model;
@@ -443,6 +326,128 @@
     // PRIVATE
     //
 
+    frmroute = frmroute.toSpinalCase();
+
+    // Create statechart
+    state = f.statechart.State.define({concurrent: true}, function () {
+      this.state("Mode", function () {
+        this.state("View", function () {
+          this.event("edit", function () {
+            this.goto("../Edit");
+          });
+          this.modelDelete = function () {
+            selection.delete(true).then(function () {
+              vm.models().remove(selection);
+            });
+          };
+          this.modelNew = function () {
+            m.route(frmroute);
+          };
+          this.selectedColor = function () {
+            return "LightSkyBlue";
+          };
+          this.toggleSelection = function (model, col) {
+            if (selection === model) {
+              vm.select(undefined);
+              return false;
+            }
+
+            vm.select(model);
+            vm.nextFocus("input" + col.toCamelCase(true));
+            return true;
+          };
+        });
+        this.state("Edit", function () {
+          this.event("view", function () {
+            this.goto("../View");
+          });
+          this.modelDelete = function () {
+            var prevState = selection.state().current()[0];
+            selection.delete();
+            if (prevState === "/Ready/New") {
+              vm.models().remove(selection);
+            }
+          };
+          this.modelNew = function () {
+            var  model = f.models[name](),
+              input = "input" + vm.defaultFocus(model).toCamelCase(true);
+            vm.models().add(model);
+            vm.nextFocus(input);
+            vm.select(model);
+          };
+          this.selectedColor = function () {
+            return "Azure";
+          };
+          this.toggleSelection = function (model, col) {
+            vm.select(model);
+            vm.nextFocus("input" + col.toCamelCase(true));
+            return true;
+          };
+        });
+      });
+      this.state("Search", function () {
+        this.state("Off", function () {
+          this.enter(function () {
+            vm.searchValue("Search");
+          });
+          this.event("searchStart", function () {
+            this.goto("../On");
+          });
+          this.style = function () {
+            return {
+              color: "LightGrey",
+              margin: "2px"
+            };
+          };
+          this.value = function () {
+            return "";
+          };
+        });
+        this.state("On", function () {
+          this.enter(function () {
+            vm.searchValue("");
+          });
+          this.exit(function () {
+            vm.refresh();
+          });
+          this.canExit = function () {
+            return !vm.searchValue();
+          };
+          this.event("searchEnd", function () {
+            this.goto("../Off");
+          });
+          this.style = function () {
+            return {
+              color: "Black",
+              margin: "2px"
+            };
+          };
+          this.value = function () {
+            return vm.searchValue();
+          };
+        });
+      });
+      this.state("Selection", function () {
+        this.event("selected", function () {
+          this.goto("./On", {force: true});
+        });
+        this.state("Off");
+        this.state("On", function () {
+          this.event("unselected", function () {
+            this.goto("../Off");
+          });
+          this.C(function() {
+            if (selection.canUndo()) { 
+              return "./Dirty";
+            }
+            return "./Clean";
+          });
+          this.state("Clean");
+          this.state("Dirty");
+        });
+      });
+    });
+
     // Create button view models
     createButton = f.viewModels.buttonViewModel;
     buttonHome = createButton({
@@ -498,16 +503,28 @@
       icon: "undo"
     });
 
-    // Link button states to workbook events
+    buttonRefresh = createButton({
+      onclick: vm.refresh,
+      title: "Refresh (Alt+R)",
+      icon: "refresh"
+    });
+
+    buttonClear = createButton({
+      onclick: vm.searchClear,
+      title: "Clear search",
+      icon: "eraser"
+    });
+
+    // Bind button states to workbook state change events
     state.resolve("/Mode/View").enter(function () {
-      buttonEdit.state().send("deactivate");
-      buttonList.state().send("activate");
+      buttonEdit.deactivate();
+      buttonList.activate();
       buttonSave.hide();
       buttonOpen.show();
     });
     state.resolve("/Mode/Edit").enter(function () {
-      buttonEdit.state().send("activate");
-      buttonList.state().send("deactivate");
+      buttonEdit.activate();
+      buttonList.deactivate();
       buttonSave.show();
       buttonOpen.hide();
     });
@@ -545,7 +562,14 @@
     vm.models().state().resolve("/Fetched/Dirty").enter(function () {
       buttonSave.enable();
     });
+    state.resolve("/Search/On").enter(function () {
+      buttonClear.enable();
+    });
+    state.resolve("/Search/Off").enter(function () {
+      buttonClear.disable();
+    });
 
+    // Initialize statechart
     state.goto();
 
     return vm;
@@ -840,25 +864,8 @@
             oninput:  m.withAttr("value", vm.searchValue),
             onkeydown: vm.onkeydownSearch
           }),
-          m("button", {
-            type: "button",
-            class: "pure-button",
-            title: "Refresh (Alt+R)",
-            style: {
-              backgroundColor: "snow"
-            },
-            onclick: vm.refresh
-          }, [m("i", {class:"fa fa-refresh"})]),
-          m("button", {
-            type: "button",
-            class: "pure-button",
-            disabled: vm.searchDisabled(),
-            title: "Clear search",
-            style: {
-              backgroundColor: "snow"
-            },
-            onclick: vm.searchClear
-          }, [m("i", {class:"fa fa-eraser"})]),
+          m.component(button({viewModel: vm.buttonRefresh()})),
+          m.component(button({viewModel: vm.buttonClear()})),
           m("div", {
             class: "pure-menu custom-restricted-width",
             onmouseover: vm.onmouseovermenu,

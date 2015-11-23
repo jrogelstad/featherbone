@@ -130,7 +130,9 @@
     //
 
     vm = {};
+    vm.activate = function () { state.send("activate"); };
     vm.isDisabled = function () { return mode().isDisabled(); };
+    vm.deactivate = function () { state.send("deactivate"); };
     vm.disable = function () { state.send("disable"); };
     vm.display = function () { return display().value(); };
     vm.enable = function () { state.send("enable"); };
