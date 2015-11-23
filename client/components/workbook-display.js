@@ -398,9 +398,6 @@
     searchState.resolve("/Search/On").enter(function () {
       buttonClear.enable();
     });
-    searchState.resolve("/Search/On").exit(function () {
-      vm.refresh();
-    });
     searchState.resolve("/Search/Off").enter(function () {
       buttonClear.disable();
     });

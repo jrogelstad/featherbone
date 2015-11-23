@@ -82,6 +82,9 @@
           this.enter(function () {
             vm.value("");
           });
+          this.exit(function () {
+            vm.refresh();
+          });
           this.canExit = function () {
             return !vm.value();
           };
