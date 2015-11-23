@@ -173,13 +173,13 @@
 
       this.state("Fetched", function () {
         this.event("changed", function () {
-          this.goto("/Fetched");
+          this.goto("/Fetched", {force: true});
         });
         this.C(function() {
           if (dirty.length) { 
             return "./Dirty";
           }
-          return './Clean';
+          return "./Clean";
         });
         this.event("fetch", function (merge) {
           this.goto("/Busy", {context: {merge: merge}});

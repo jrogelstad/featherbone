@@ -48,8 +48,8 @@
 
   // Define workbook view model
   f.viewModels.workbookViewModel = function (options) {
-    var selection, state, createButton,
-      buttonHome, buttonList, buttonEdit, buttonSave, buttonOpen,
+    var selection, state, createButton, buttonHome, buttonList, buttonEdit,
+      buttonSave, buttonOpen, buttonNew, buttonDelete, buttonUndo,
       sheet = options.sheet,
       frmroute = "/" + options.name + "/" + options.config[sheet].form.name,
       name = options.feather.toCamelCase(),
@@ -160,21 +160,22 @@
         });
       });
       this.state("Selection", function () {
-        this.state("Off", function () {
-          this.event("selected", function () {
-            this.goto("../On");
-          });
-          this.value = function () {
-            return false;
-          };
+        this.event("selected", function () {
+          this.goto("./On", {force: true});
         });
+        this.state("Off");
         this.state("On", function () {
           this.event("unselected", function () {
             this.goto("../Off");
           });
-          this.value = function () {
-            return true;
-          };
+          this.C(function() {
+            if (selection.canSave()) { 
+              return "./Dirty";
+            }
+            return "./Clean";
+          });
+          this.state("Clean");
+          this.state("Dirty");
         });
       });
     });
@@ -183,11 +184,14 @@
     vm.attrs = columns.map(function(column) {
       return column.attr;
     });
+    vm.buttonDelete = function () { return buttonDelete; };
     vm.buttonEdit = function () { return buttonEdit; };
     vm.buttonHome = function () { return buttonHome; };
     vm.buttonList = function () { return buttonList; };
+    vm.buttonNew = function () { return buttonNew; };
     vm.buttonOpen = function () { return buttonOpen; };
     vm.buttonSave = function () { return buttonSave; };
+    vm.buttonUndo = function () { return buttonUndo; };
     vm.canSave = function () {
       return vm.models().state().current()[0] === "/Fetched/Dirty";
     };
@@ -484,30 +488,73 @@
       icon: "folder-open"
     });
 
+    buttonNew = createButton({
+      onclick: vm.modelNew,
+      title: "New (Alt+N)",
+      label: "New",
+      icon: "circle-plus"
+    });
+
+    buttonDelete = createButton({
+      onclick: vm.modelDelete,
+      title: "Delete",
+      label: "Delete",
+      icon: "remove"
+    });
+
+    buttonUndo = createButton({
+      onclick: vm.undo,
+      title: "Undo",
+      label: "Undo",
+      icon: "undo"
+    });
+
     // Link button states to workbook events
     state.resolve("/Mode/View").enter(function () {
       buttonEdit.state().send("deactivate");
       buttonList.state().send("activate");
-      buttonSave.state().send("displayOff");
-      buttonOpen.state().send("displayOn");
+      buttonSave.hide();
+      buttonOpen.show();
     });
     state.resolve("/Mode/Edit").enter(function () {
       buttonEdit.state().send("activate");
       buttonList.state().send("deactivate");
-      buttonSave.state().send("displayOn");
-      buttonOpen.state().send("displayOff");
+      buttonSave.show();
+      buttonOpen.hide();
     });
     state.resolve("/Selection/On").enter(function () {
-      buttonOpen.state().send("enable");
+      buttonOpen.enable();
+      buttonDelete.enable();
+    });
+    state.resolve("/Selection/On/Clean").enter(function () {
+      buttonDelete.show();
+      buttonUndo.hide();
+    });
+    state.resolve("/Selection/On/Dirty").enter(function () {
+      buttonDelete.hide();
+      buttonUndo.show();
     });
     state.resolve("/Selection/Off").enter(function () {
-      buttonOpen.state().send("disable");
+      buttonOpen.disable();
+      buttonDelete.disable();
+      buttonDelete.show();
+      buttonUndo.hide();
+    });
+    vm.models().state().resolve("/Fetched").enter(function () {
+      if (selection && vm.model().canSave()) {
+        buttonDelete.hide();
+        buttonUndo.show();
+        return;
+      }
+
+      buttonDelete.show();
+      buttonUndo.hide();
     });
     vm.models().state().resolve("/Fetched/Clean").enter(function () {
-      buttonSave.state().send("disable");
+      buttonSave.disable();
     });
     vm.models().state().resolve("/Fetched/Dirty").enter(function () {
-      buttonSave.state().send("enable");
+      buttonSave.enable();
     });
 
     state.goto();
@@ -792,35 +839,9 @@
           m.component(button({viewModel: vm.buttonEdit()})),
           m.component(button({viewModel: vm.buttonSave()})),
           m.component(button({viewModel: vm.buttonOpen()})),
-          m("button", {
-            type: "button",
-            class: "pure-button",
-            title: "New (Alt+N)",
-            style: { 
-              backgroundColor: "snow"
-            },
-            onclick: vm.modelNew
-          }, [m("i", {class:"fa fa-plus-circle"})], " New"),
-          m("button", {
-            type: "button",
-            class: "pure-button",
-            style: {
-              backgroundColor: "snow",
-              display: vm.displayDeleteButton()
-            },
-            onclick: vm.modelDelete,
-            disabled: vm.hasNoSelection()
-          }, [m("i", {class:"fa fa-remove"})], " Delete"),
-          m("button", {
-            type: "button",
-            class: "pure-button",
-            title: "Delete",
-            style: {
-              backgroundColor: "snow",
-              display: vm.displayUndoButton()
-            },
-            onclick: vm.undo
-          }, [m("i", {class:"fa fa-undo"})], " Undo"),
+          m.component(button({viewModel: vm.buttonNew()})),
+          m.component(button({viewModel: vm.buttonDelete()})),
+          m.component(button({viewModel: vm.buttonUndo()})),
           m("input", {
             id: "toolbarSearch",
             value: vm.searchValue(),

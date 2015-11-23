@@ -26,7 +26,7 @@
   */
   f.viewModels.buttonViewModel = function (options) {
     options = options || {};
-    var vm, state;
+    var vm, state, display, primary, mode;
 
     // Define statechart
     state = f.statechart.State.define({concurrent: true}, function () {
@@ -75,14 +75,6 @@
         });
       });
       this.state("Primary", function () {
-        this.state("On", function () {
-          this.event("primaryOff", function () {
-            this.goto("../Off");
-          });
-          this.class = function () {
-            return "pure-button-primary";
-          };
-        });
         this.state("Off", function () {
           this.event("primaryOn", function () {
             this.goto("../On");
@@ -91,10 +83,18 @@
             return "";
           };
         });
+        this.state("On", function () {
+          this.event("primaryOff", function () {
+            this.goto("../Off");
+          });
+          this.class = function () {
+            return "pure-button-primary";
+          };
+        });
       });
       this.state("Display", function () {
         this.state("On", function () {
-          this.event("displayOff", function () {
+          this.event("hide", function () {
             this.goto("../Off");
           });
           this.value = function () {
@@ -102,7 +102,7 @@
           };
         });
         this.state("Off", function () {
-          this.event("displayOn", function () {
+          this.event("show", function () {
             this.goto("../On");
           });
           this.value = function () {
@@ -113,33 +113,37 @@
     });
     state.goto();
 
+    display = function () {
+      return state.resolve(state.resolve("/Display").current()[0]);
+    };
+
+    mode = function () {
+      return state.resolve(state.resolve("/Mode").current()[0]);
+    };
+
+    primary = function () {
+      return state.resolve(state.resolve("/Primary").current()[0]);
+    };
+
     // ..........................................................
     // PUBLIC
     //
 
     vm = {};
-    vm.display = function () {
-      return state.resolve(state.resolve("/Display").current()[0]);
-    };
-    vm.disabled = function () {
-      return vm.mode().isDisabled();
-    };
+    vm.isDisabled = function () { return mode().isDisabled(); };
+    vm.disable = function () { state.send("disable"); };
+    vm.display = function () { return display().value(); };
+    vm.enable = function () { state.send("enable"); };
+    vm.class = function () { return mode().class(); };
+    vm.hide = function () { state.send("hide"); };
     vm.icon = m.prop(options.icon || "");
     vm.id = m.prop(f.createId());
     vm.label = m.prop(options.label || "");
     vm.onclick = m.prop(options.onclick);
-    vm.mode = function () {
-      return state.resolve(state.resolve("/Mode").current()[0]);
-    };
-    vm.primary = function () {
-      return state.resolve(state.resolve("/Primary").current()[0]);
-    };
-    vm.state = function () {
-      return state;
-    };
-    vm.style = function () {
-      return options.style || {};
-    };
+    vm.primary = function () { return primary().class(); };
+    vm.show = function () { state.send("show"); };
+    vm.state = function () { return state; };
+    vm.style = function () { return options.style || {}; };
     vm.title = m.prop(options.title || "");
 
     return vm;
@@ -159,23 +163,27 @@
     };
 
     component.view = function (ctrl) {
-      var view, iconView,
+      var opts, view, iconView,
         vm = ctrl.vm,
+        classes = ["pure-button"],
         style = vm.style(),
         title = vm.title(),
         icon = vm.icon(),
-        label = vm.label() ? " " + vm.label() : undefined,
-        opts = {
-          id: vm.id(),
-          type: "button",
-          class: "pure-button " + vm.mode().class(),
-          style: style,
-          disabled: vm.disabled(),
-          onclick: vm.onclick()
-        };
+        label = vm.label() ? " " + vm.label() : undefined;
 
+      if (vm.class()) { classes.push(vm.class()); }
+      if (vm.primary()) { classes.push(vm.primary()); }
+
+      opts = {
+        id: vm.id(),
+        type: "button",
+        class: classes.join(" "),
+        style: style,
+        disabled: vm.isDisabled(),
+        onclick: vm.onclick()
+      };
       style.backgroundColor = style.backgroundColor || "snow";
-      style.display = vm.display().value();
+      style.display = vm.display();
 
       if (icon) {
         iconView = [m("i", {class: "fa fa-" + icon})];
