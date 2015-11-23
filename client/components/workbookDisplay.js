@@ -48,8 +48,8 @@
 
   // Define workbook view model
   f.viewModels.workbookViewModel = function (options) {
-    var selection, state,
-      buttonHome, buttonList, buttonEdit,
+    var selection, state, createButton,
+      buttonHome, buttonList, buttonEdit, buttonSave, buttonOpen,
       sheet = options.sheet,
       frmroute = "/" + options.name + "/" + options.config[sheet].form.name,
       name = options.feather.toCamelCase(),
@@ -64,15 +64,9 @@
     state = f.statechart.State.define({concurrent: true}, function () {
       this.state("Mode", function () {
         this.state("View", function () {
-          this.event("toggleMode", function () {
+          this.event("edit", function () {
             this.goto("../Edit");
           });
-          this.displayOpenButton = function () {
-            return "inline-block";
-          };
-          this.displaySaveButton = function () {
-            return "none";
-          };
           this.modelDelete = function () {
             selection.delete(true).then(function () {
               vm.models().remove(selection);
@@ -96,15 +90,9 @@
           };
         });
         this.state("Edit", function () {
-          this.event("toggleMode", function () {
+          this.event("view", function () {
             this.goto("../View");
           });
-          this.displayOpenButton = function () {
-            return "none";
-          };
-          this.displaySaveButton = function () {
-            return "inline-block";
-          };
           this.modelDelete = function () {
             var prevState = selection.state().current()[0];
             selection.delete();
@@ -171,6 +159,24 @@
           };
         });
       });
+      this.state("Selection", function () {
+        this.state("Off", function () {
+          this.event("selected", function () {
+            this.goto("../On");
+          });
+          this.value = function () {
+            return false;
+          };
+        });
+        this.state("On", function () {
+          this.event("unselected", function () {
+            this.goto("../Off");
+          });
+          this.value = function () {
+            return true;
+          };
+        });
+      });
     });
 
     vm.activeSheet = m.prop(options.sheet);
@@ -180,6 +186,8 @@
     vm.buttonEdit = function () { return buttonEdit; };
     vm.buttonHome = function () { return buttonHome; };
     vm.buttonList = function () { return buttonList; };
+    vm.buttonOpen = function () { return buttonOpen; };
+    vm.buttonSave = function () { return buttonSave; };
     vm.canSave = function () {
       return vm.models().state().current()[0] === "/Fetched/Dirty";
     };
@@ -195,12 +203,6 @@
     vm.displayDeleteButton = function () {
       return (vm.model() && vm.model().canSave()) ?
         "none" : "inline-block";
-    };
-    vm.displayOpenButton = function () {
-      return vm.mode().displayOpenButton();
-    };
-    vm.displaySaveButton = function () {
-      return vm.mode().displaySaveButton();
     };
     vm.displayUndoButton = function () {
       return (vm.model() && vm.model().canSave()) ?
@@ -400,6 +402,13 @@
         vm.relations({});
         selection = model;
       }
+
+      if (selection) {
+        state.send("selected");
+      } else {
+        state.send("unselected");
+      }
+
       return selection;
     };
     vm.selectedColor = function () {
@@ -415,16 +424,16 @@
       var dlg = document.getElementById('sortDialog');
       dlg.showModal();
     };
-    vm.startSearch = function () {
-      state.send("startSearch");
-    };
     vm.tabClicked = function (sheet) {
       var route = "/" + options.name + "/" + sheet;
       route = route.toSpinalCase();
       m.route(route);
     };
-    vm.toggleMode = function () {
-      state.send("toggleMode");
+    vm.toggleEdit = function () {
+      state.send("edit");
+    };
+    vm.toggleView = function () {
+      state.send("view");
     };
     vm.toggleOpen = function (model) {
       selection = model;
@@ -441,31 +450,64 @@
     // PRIVATE
     //
 
-    buttonHome = f.viewModels.buttonViewModel({
+    // Create button view models
+    createButton = f.viewModels.buttonViewModel;
+    buttonHome = createButton({
       onclick: vm.goHome,
       title: "Home (Alt+H)",
       icon: "home"
     });
 
-    buttonList = f.viewModels.buttonViewModel({
-      onclick: vm.toggleMode,
+    buttonList = createButton({
+      onclick: vm.toggleView,
       title: "List mode (Alt+M)",
       icon: "list"
     });
 
-    buttonEdit = f.viewModels.buttonViewModel({
-      onclick: vm.toggleMode,
+    buttonEdit = createButton({
+      onclick: vm.toggleEdit,
       title: "Edit mode (Alt+M)",
       icon: "pencil"
     });
 
+    buttonSave = createButton({
+      onclick: vm.saveAll,
+      title: "Save (Alt+S)",
+      label: "Save",
+      icon: "cloud-upload"
+    });
+
+    buttonOpen = createButton({
+      onclick: vm.modelOpen,
+      title: "Open (Alt+O)",
+      label: "Open",
+      icon: "folder-open"
+    });
+
+    // Link button states to workbook events
     state.resolve("/Mode/View").enter(function () {
       buttonEdit.state().send("deactivate");
       buttonList.state().send("activate");
+      buttonSave.state().send("displayOff");
+      buttonOpen.state().send("displayOn");
     });
     state.resolve("/Mode/Edit").enter(function () {
       buttonEdit.state().send("activate");
       buttonList.state().send("deactivate");
+      buttonSave.state().send("displayOn");
+      buttonOpen.state().send("displayOff");
+    });
+    state.resolve("/Selection/On").enter(function () {
+      buttonOpen.state().send("enable");
+    });
+    state.resolve("/Selection/Off").enter(function () {
+      buttonOpen.state().send("disable");
+    });
+    vm.models().state().resolve("/Fetched/Clean").enter(function () {
+      buttonSave.state().send("disable");
+    });
+    vm.models().state().resolve("/Fetched/Dirty").enter(function () {
+      buttonSave.state().send("enable");
     });
 
     state.goto();
@@ -484,6 +526,7 @@
     component.view = function (ctrl) {
       var tbodyConfig, header, rows, tabs, view, rel,
         vm = ctrl.vm,
+        button = f.components.button,
         sortDialog = f.components.sortDialog(),
         activeSheet = vm.activeSheet();
 
@@ -744,31 +787,11 @@
             }
           }, [
           m.component(sortDialog, {id: "sortDialog"}),
-          m.component(f.components.button({viewModel: vm.buttonHome()})),
-          m.component(f.components.button({viewModel: vm.buttonList()})),
-          m.component(f.components.button({viewModel: vm.buttonEdit()})),
-          m("button", {
-            type: "button",
-            class: "pure-button",
-            title: "Save (Alt+S)",
-            style: {
-              backgroundColor: "snow",
-              display: vm.displaySaveButton()
-            },
-            onclick: vm.saveAll,
-            disabled: !vm.canSave()
-          }, [m("i", {class:"fa fa-cloud-upload"})], " Save"),
-          m("button", {
-            type: "button",
-            class: "pure-button",
-            title: "Open (Alt+O)",
-            style: {
-              backgroundColor: "snow",
-              display: vm.displayOpenButton()
-            },
-            onclick: vm.modelOpen,
-            disabled: vm.hasNoSelection()
-          }, [m("i", {class:"fa fa-folder-open"})], " Open"),
+          m.component(button({viewModel: vm.buttonHome()})),
+          m.component(button({viewModel: vm.buttonList()})),
+          m.component(button({viewModel: vm.buttonEdit()})),
+          m.component(button({viewModel: vm.buttonSave()})),
+          m.component(button({viewModel: vm.buttonOpen()})),
           m("button", {
             type: "button",
             class: "pure-button",
