@@ -180,7 +180,7 @@
     feather = feather || {};
 
     var  doClear, doDelete, doError, doFetch, doInit, doPatch, doPost, doSend,
-      doFreeze, doThaw, doRevert, validator, lastError, path, state, noSave,
+      doFreeze, doThaw, doRevert, validator, lastError, path, state, noUndo,
       that = {data: {}, name: feather.name || "Object", plural: feather.plural},
       jsonpatch = f.jsonpatch,
       d = that.data,
@@ -193,9 +193,9 @@
     // ..........................................................
     // PUBLIC
     //
-    that.canSave = function () {
+    that.canUndo = function () {
       var currentState = state.resolve(state.current()[0]);
-      return currentState.canSave();
+      return currentState.canUndo();
     };
 
     that.canDelete = function () {
@@ -847,7 +847,7 @@
     };
 
     // Define state
-    noSave = function () {return false; };
+    noUndo = function () {return false; };
     state = f.statechart.State.define(function () {
       this.enter(doInit);
 
@@ -872,7 +872,7 @@
           this.event("delete", function () {
             this.goto("/Deleted");
           });
-          this.canSave = that.isValid;
+          this.canUndo = noUndo;
         });
 
         this.state("Fetched", function () {
@@ -887,7 +887,7 @@
             this.event("changed", function () {
               this.goto("../Dirty");
             });
-            this.canSave = noSave;
+            this.canUndo = noUndo;
           });
 
           this.state("Dirty", function () {
@@ -898,7 +898,7 @@
                 context: {deferred: deferred}
               });
             });
-            this.canSave = that.isValid;
+            this.canUndo = function () { return true; };
           });
         });
       });
@@ -906,18 +906,18 @@
       this.state("Busy", function () {
         this.state("Fetching", function () {
           this.enter(doFetch);
-          this.canSave = noSave;
+          this.canUndo = noUndo;
         });
         this.state("Saving", function () {
           this.state("Posting", function () {
             this.enter(doPost);
-            this.canSave = noSave;
+            this.canUndo = noUndo;
           });
           this.state("Patching", function () {
             this.enter(doPatch);
-            this.canSave = noSave;
+            this.canUndo = noUndo;
           });
-          this.canSave = noSave;
+          this.canUndo = noUndo;
         });
         this.state("Deleting", function () {
           this.enter(doDelete);
@@ -925,7 +925,7 @@
           this.event("deleted", function () {
             this.goto("/Deleted");
           });
-          this.canSave = noSave;
+          this.canUndo = noUndo;
         });
 
         this.event("fetched", function () {
@@ -951,14 +951,14 @@
           doThaw();
           this.goto("/Ready");
         });
-        this.canSave = function () { return true; };
+        this.canUndo = function () { return true; };
       });
 
       this.state("Deleted", function () {
         this.event("clear",  function () {
           this.goto("/Ready/New");
         });
-        this.canSave = noSave;
+        this.canUndo = noUndo;
       });
 
       this.state("Deleting", function () {
@@ -967,7 +967,7 @@
         this.event("deleted",  function () {
           this.goto("/Deleted");
         });
-        this.canSave = noSave;
+        this.canUndo = noUndo;
       });
     });
 

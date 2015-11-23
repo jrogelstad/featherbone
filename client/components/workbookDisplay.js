@@ -169,7 +169,7 @@
             this.goto("../Off");
           });
           this.C(function() {
-            if (selection.canSave()) { 
+            if (selection.canUndo()) { 
               return "./Dirty";
             }
             return "./Clean";
@@ -192,9 +192,6 @@
     vm.buttonOpen = function () { return buttonOpen; };
     vm.buttonSave = function () { return buttonSave; };
     vm.buttonUndo = function () { return buttonUndo; };
-    vm.canSave = function () {
-      return vm.models().state().current()[0] === "/Fetched/Dirty";
-    };
     vm.config = function () {
       return options.config || {};
     }; 
@@ -203,14 +200,6 @@
         return !model.data[attr] || !model.data[attr].isReadOnly();
       });
       return col ? col.toCamelCase(true) : undefined;
-    };
-    vm.displayDeleteButton = function () {
-      return (vm.model() && vm.model().canSave()) ?
-        "none" : "inline-block";
-    };
-    vm.displayUndoButton = function () {
-      return (vm.model() && vm.model().canSave()) ?
-        "inline-block" : "none";
     };
     vm.goHome = function () {
       m.route("/home");
@@ -541,7 +530,7 @@
       buttonUndo.hide();
     });
     vm.models().state().resolve("/Fetched").enter(function () {
-      if (selection && vm.model().canSave()) {
+      if (selection && vm.model().canUndo()) {
         buttonDelete.hide();
         buttonUndo.show();
         return;
@@ -777,7 +766,7 @@
             onclick: onclick,
             class:"fa fa-asterisk"
           });
-        } else if (model.canSave()) {
+        } else if (model.canUndo()) {
           thContent = m("i", {
             onclick: onclick,
             class:"fa fa-check"

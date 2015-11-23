@@ -133,23 +133,23 @@
             type: "button",
             class: "pure-button",
             style: { backgroundColor: "snow" },
-            disabled: !model.canSave(),
+            disabled: !model.canUndo() || !model.isValid(),
             onclick: vm.doApply
           }, "Apply"),
           m("button", {
             type: "button",
             class: "pure-button",
             style: { backgroundColor: "snow" },
-            disabled: !model.canSave(),
+            disabled: !model.canUndo() || !model.isValid(),
             onclick: vm.doSave
           }, [m("i", {class:"fa fa-cloud-upload"})], " Save"),
           m("button", {
             type: "button",
             class: "pure-button",
             style: { backgroundColor: "snow" },
-            onclick: model.canSave() ? vm.doSaveAndNew : vm.doNew
+            onclick: (model.canUndo() && model.isValid()) ? vm.doSaveAndNew : vm.doNew
           }, [m("i", {class:"fa fa-plus-circle"})],
-          model.canSave() ? " Save & New" : " New")
+          (model.canUndo() && model.isValid()) ? " Save & New" : " New")
         ]),
         m("div", {
           style: {
