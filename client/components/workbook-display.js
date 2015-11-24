@@ -54,7 +54,6 @@
       name = options.feather.toCamelCase(),
       feather = f.catalog.getFeather(options.feather),
       columns = options.config[sheet].list.columns || [{attr: "id"}],
-      filter = JSON.parse(JSON.stringify(options.config[sheet].list.filter || {})),
       showMenu = false,
       vm = {};
 
@@ -87,6 +86,7 @@
       });
       return col ? col.toCamelCase(true) : undefined;
     };
+    vm.filter = f.prop(JSON.parse(JSON.stringify(options.config[sheet].list.filter || {})));
     vm.goHome = function () {
       m.route("/home");
     };
@@ -126,7 +126,7 @@
         m.route(frmroute + "/" + selection.data.id());
       }
     };
-    vm.models = f.models[name].list({filter: filter});
+    vm.models = f.models[name].list({filter: vm.filter()});
     vm.nextFocus = m.prop();
     vm.onkeydownCell = function (e) {
       var id, step,
@@ -205,10 +205,9 @@
     };
     vm.searchInput = function () { return searchInput; };
     vm.refresh = function () {
-      var attrs, formatOf,
-        value = searchInput.value();
-      
-      filter = JSON.parse(JSON.stringify(options.config[sheet].list.filter || {}));
+      var attrs, formatOf, criterion,
+        value = searchInput.value(),
+        filter = JSON.parse(JSON.stringify(vm.filter()));
 
       // Recursively resolve type
       formatOf = function (feather, property) {
@@ -233,11 +232,13 @@
         });
 
         if (attrs.length) {
-          filter.criteria = [{
+          criterion = {
             property: attrs,
             operator: "~*",
             value: value
-          }];
+          };
+          filter.criteria = filter.criteria || [];
+          filter.criteria.push(criterion);
         }
       }
 
@@ -305,6 +306,7 @@
     frmroute = frmroute.toSpinalCase();
     sortDialog = f.viewModels.sortDialogViewModel({
       attrs: vm.attrs(),
+      filter: vm.filter,
       list: vm.models()
     });
 
@@ -407,7 +409,12 @@
       buttonClear.disable();
     });
 
-    // Create statechart
+    // Bind refresh to filter change event
+    vm.filter.state().resolve("/Ready").enter(function () {
+      vm.refresh();
+    });
+
+    // Create workbook statechart
     state = f.statechart.State.define({concurrent: true}, function () {
       this.state("Mode", function () {
         this.state("View", function () {

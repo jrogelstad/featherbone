@@ -21,7 +21,7 @@
   require("../common/extend-string");
 
   var that, createView, curry, getParentKey, isChildFeather,
-    propagateViews, buildAuthSql, processSort,
+    propagateViews, buildAuthSql, processSort, resolvePath,
     relationColumn, sanitize,
     f = require("../common/core"),
     jsonpatch = require("fast-json-patch"),
@@ -1351,7 +1351,7 @@
     */
     getKeys: function (obj, isSuperUser) {
       try {
-        var part, op, err, or, transform,
+        var part, op, err, or,
           name = obj.name,
           filter = obj.filter,
           ops = ["=", "!=", "<", ">", "<>", "~", "~*", "!~", "!~*", "IN"],
@@ -1364,23 +1364,6 @@
           params = [],
           parts = [],
           p = 1;
-
-        // Helper to transform path to composite syntax
-        transform = function (col, tokens) {
-          var prefix, suffix, ret,
-            idx = col.lastIndexOf(".");
-
-          if (idx > -1) {
-            prefix = col.slice(0, idx);
-            suffix = col.slice(idx + 1, col.length).toSnakeCase();
-            ret = "(" + transform(prefix, tokens) + ").%I";
-            tokens.push(suffix);
-            return ret;
-          }
-
-          tokens.push(col.toSnakeCase());
-          return "%I";
-        };
 
         // Add authorization criteria
         if (isSuperUser === false) {
@@ -1410,7 +1393,7 @@
                 part.push("$" + p);
                 p += 1;
               });
-              part = transform(where.property, tokens) +  " IN (" + part.join(",") + ")";
+              part = resolvePath(where.property, tokens) +  " IN (" + part.join(",") + ")";
 
             // Property "OR" array compared to value (["name","email"]="Andy")
             // Whether "name"="Andy" OR "email"="Andy"
@@ -1418,7 +1401,7 @@
               or = [];
               where.property.forEach(function (prop) {
                 params.push(where.value);
-                or.push(transform(prop, tokens) + " "  + op + " $" + p);
+                or.push(resolvePath(prop, tokens) + " "  + op + " $" + p);
                 p += 1;
               });
               part = "(" + or.join(" OR ") + ")";
@@ -1426,7 +1409,7 @@
             // Regular comparison ("name"="Andy")
             } else {
               params.push(where.value);
-              part = transform(where.property, tokens) + " " + op + " $" + p;
+              part = resolvePath(where.property, tokens) + " " + op + " $" + p;
               p += 1;
             }
             parts.push(part);
@@ -3295,7 +3278,7 @@
 
   /** private */
   processSort = function (sort, tokens) {
-    var order, clause = "",
+    var order, part, clause = "",
       i = 0,
       parts = [];
 
@@ -3308,8 +3291,8 @@
       if (order !== "ASC" && order !== "DESC") {
         throw 'Unknown operator "' + order + '"';
       }
-      tokens.push(sort[i].property);
-      parts.push("%I " + order);
+      part = resolvePath(sort[i].property, tokens);
+      parts.push(part + " " + order);
       i += 1;
     }
 
@@ -3479,11 +3462,29 @@
     });
   };
 
-  /** private */
+  /** @private */
   relationColumn = function (key, relation) {
     return "_" + key.toSnakeCase() + "_" + relation.toSnakeCase() + "_pk";
   };
 
+  /** @private Helper to transform path to composite syntax */
+  resolvePath = function (col, tokens) {
+    var prefix, suffix, ret,
+      idx = col.lastIndexOf(".");
+
+    if (idx > -1) {
+      prefix = col.slice(0, idx);
+      suffix = col.slice(idx + 1, col.length).toSnakeCase();
+      ret = "(" + resolvePath(prefix, tokens) + ").%I";
+      tokens.push(suffix);
+      return ret;
+    }
+
+    tokens.push(col.toSnakeCase());
+    return "%I";
+  };
+
+  /** @private */
   sanitize = function (obj) {
     var oldObj, newObj, oldKey, newKey, keys, klen, n,
       isArray = Array.isArray(obj),

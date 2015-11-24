@@ -20,6 +20,14 @@
 
   var statechart = window.statechart;
 
+  /**
+    View model for sort dialog.
+
+    @param {Object} Options
+    @param {Array} [options.attrs] Attributes
+    @param {Array} [options.list] Model list
+    @param {Function} [options.filter] Filter property
+  */
   f.viewModels.sortDialogViewModel = function (options) {
     options = options || {};
     var vm, state;
@@ -35,19 +43,45 @@
     vm.attrs = function () {
       return options.attrs;
     };
-    vm.id = m.prop(options.id || f.createId());
-    vm.close = function () {
+    vm.cancel = function () {
+      vm.reset();
       state.send("close");
     };
-    vm.filter = m.prop(options.list.filter() || {});
+    vm.id = m.prop(options.id || f.createId());
+    vm.itemValueChanged = function (index, value) {
+      var sort = vm.filter().sort;
+      sort[index].property = value;
+    };
+    vm.items = function () {
+      var i = 0,
+        items = vm.filter().sort.map(function (item) {
+          var ret = JSON.parse(JSON.stringify(item));
+          ret.index = i;
+          i += 1;
+          return ret;
+        });
+
+      return items;
+    };
+    vm.filter = m.prop();
     vm.list = m.prop(options.list);
-    vm.sort = m.prop(vm.filter() ? vm.filter().sort || [] : []);
+    vm.ok = function () {
+      options.filter(vm.filter()); // Kicks off refresh
+      state.send("close");
+    };
     vm.remove = function () {
 
+    };
+    vm.reset = function () {
+      var filter = JSON.parse(JSON.stringify(options.filter()));
+      filter.sort = filter.sort || [];
+      vm.filter(filter);
     };
     vm.show = function () {
       state.send("show");
     };
+
+    vm.reset();
 
     // ..........................................................
     // PRIVATE
@@ -70,6 +104,7 @@
           this.enter(function () {
             var id = vm.id(),
               dlg = document.getElementById(id);
+            vm.reset();
             if (dlg) { dlg.showModal(); }
           });
           this.event("close", function () {
@@ -93,8 +128,7 @@
 
     component.view = function (ctrl) {
       var view,
-        vm = ctrl.vm,
-        sort = vm.sort();
+        vm = ctrl.vm;
 
       view = m("dialog", {
           id: vm.id(),
@@ -137,10 +171,12 @@
               m("th", "Column"),
               m("th", "Order")
             ]),
-            vm.sort().map(function (item) {
+            vm.items().map(function (item) {
               return m("tr", [
                 m("td",
-                  m("select",
+                  m("select", {
+                    onchange: m.withAttr("value", vm.itemValueChanged.bind(this, item.index))
+                  },
                     vm.attrs().map(function (attr) {
                       return m("option", {value: attr}, attr.toName());
                     }), 
@@ -160,11 +196,11 @@
           m("button", {
             class: "pure-button  pure-button-primary",
             style: {marginRight: "5px"},
-            onclick: vm.close
+            onclick: vm.ok
           }, "Ok"),
           m("button", {
             class: "pure-button",
-            onclick: vm.close
+            onclick: vm.cancel
           }, "Cancel")
         ])
       ]);
