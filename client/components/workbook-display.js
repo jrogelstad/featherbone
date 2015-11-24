@@ -597,6 +597,7 @@
                   color: "grey"
                 }
               }));
+
               if (sort.length > 1) {
                 icon.push(m("span", {
                    style: {

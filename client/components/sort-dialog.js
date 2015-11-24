@@ -30,7 +30,8 @@
   */
   f.viewModels.sortDialogViewModel = function (options) {
     options = options || {};
-    var vm, state, createButton, buttonAdd, buttonRemove;
+    var vm, state, createButton, buttonAdd, buttonRemove,
+      selection = m.prop();
 
     // ..........................................................
     // PUBLIC
@@ -54,6 +55,10 @@
       };
 
       attrs.some(addAttr);
+
+      if (!vm.isSelected()) {
+        vm.selection(sort.length - 1);
+      }
     };
     vm.attrs = function () {
       return options.attrs;
@@ -69,6 +74,9 @@
       state.send("close");
     };
     vm.id = m.prop(options.id || f.createId());
+    vm.isSelected = function () {
+      return state.resolve(state.resolve("/Selection").current()[0]).isSelected();
+    };
     vm.itemOrderChanged = function (index, value) {
       var sort = vm.filter().sort;
       sort[index].order = value;
@@ -101,12 +109,19 @@
       var filter = JSON.parse(JSON.stringify(options.filter()));
       filter.sort = filter.sort || [];
       vm.filter(filter);
+      if (!filter.sort.length) { vm.add(); }
+      vm.selection(0);
+    };
+    vm.selection = function (index, select) {
+      if (select) { state.send("selected"); }
+      if (arguments.length) {
+        return selection(index);
+      }
+      return selection();
     };
     vm.show = function () {
       state.send("show");
     };
-
-    vm.reset();
 
     // ..........................................................
     // PRIVATE
@@ -152,8 +167,30 @@
           });
         });
       });
+      this.state("Selection", function () {
+        this.state("Off", function () {
+          this.enter(function () {
+            buttonRemove.disable();
+          });
+          this.event("selected", function () {
+            this.goto("../On");
+          });
+          this.isSelected = function () { return false; };
+        });
+        this.state("On", function () {
+          this.enter(function () {
+            buttonRemove.enable();
+          });
+          this.event("unselected", function () {
+            this.goto("../Off");
+          });
+          this.isSelected = function () { return true; };
+        });
+      });
     });
     state.goto();
+
+    vm.reset();
 
     return vm;
   };
@@ -197,7 +234,22 @@
               m("th", "Order")
             ]),
             vm.items().map(function (item) {
-              return m("tr", [
+              var color = "White";
+
+              if (vm.selection() === item.index) {
+                if (vm.isSelected()) {
+                  color = "LightSkyBlue" ;
+                } else {
+                  color = "AliceBlue";
+                }
+              }
+
+              return m("tr", {
+                onclick: vm.selection.bind(this, item.index, true),
+                style: {
+                  backgroundColor: color
+                }
+              },[
                 m("td",
                   m("select", {
                     value: item.property,
