@@ -91,9 +91,9 @@
         newValue = value;
         oldValue = store;
 
-        p.state.send("change");
+        p.state().send("change");
         store = value === newValue ? proposed : formatter.toType(newValue);
-        p.state.send("changed");
+        p.state().send("changed");
         newValue = undefined;
         oldValue = undefined;
       }
@@ -107,7 +107,7 @@
       @return {Any}
     */
     p.newValue = function (value) {
-      if (arguments.length && p.state.current() === "/Changing") {
+      if (arguments.length && p.state().current() === "/Changing") {
         newValue = value;
       }
 
@@ -118,7 +118,9 @@
       return formatter.fromType(oldValue);
     };
 
-    p.state = state;
+    p.state = function () {
+      return state;
+    };
 
     p.ignore = 0;
 
@@ -386,7 +388,7 @@
       var keys = Object.keys(d);
 
       keys.forEach(function (key) {
-        d[key].state.send(str);
+        d[key].state().send(str);
       });
 
       return this;
@@ -511,12 +513,13 @@
 
       // Make all props read only, but remember previous state
       keys.forEach(function(key) {
+        var prop = d[key];
         freezeCache[key] = {};
-        freezeCache[key].isReadOnly = d[key].isReadOnly();
-        d[key].isReadOnly(true);
-        if (d[key].state.current()[0] !== "/Disabled") {
-          d[key].state.send("disable");
-          d[key].isDisabled = true;
+        freezeCache[key].isReadOnly = prop.isReadOnly();
+        prop.isReadOnly(true);
+        if (prop.state().current()[0] !== "/Disabled") {
+          prop.state().send("disable");
+          prop.isDisabled = true;
         }
       });
     };
@@ -574,10 +577,11 @@
 
       // Return read only props to previous state
       keys.forEach(function(key) {
-        d[key].state.send("enable");
-        d[key].isReadOnly(freezeCache[key].isReadOnly);
+        var prop = d[key];
+        prop.state().send("enable");
+        prop.isReadOnly(freezeCache[key].isReadOnly);
         if (freezeCache[key].isDisabled) {
-          d[key].state.send("enable");
+          prop.state().send("enable");
         }
       });
 
@@ -615,7 +619,7 @@
 
         // Extend array
         ary.add = function (value) {
-          prop.state.send("change");
+          prop.state().send("change");
           if (value && value.isModel) { value = value.toJSON(); }
 
           // Create an instance
@@ -637,16 +641,16 @@
           // Notify parent properties changed
           ary.push(value);
           cache.push(value);
-          prop.state.send("changed");
+          prop.state().send("changed");
 
           return value;
         };
 
         ary.clear = function () {
-          prop.state.send("change");
+          prop.state().send("change");
           ary.length = 0;
           cache.length = 0;
-          prop.state.send("changed");
+          prop.state().send("changed");
         };
 
         ary.remove = function (value) {
@@ -660,7 +664,7 @@
           };
 
           if (ary.some(find)) {
-            prop.state.send("change");
+            prop.state().send("change");
             result = ary.splice(idx, 1)[0];
             cache.some(find); // Find index on cache
             if (isNew) {
@@ -823,14 +827,16 @@
         prop.isReadOnly(props[key].isReadOnly);
 
         // Limit public access to state
-        stateMap[key] = prop.state;
-        prop.state = {
-          current: function () {
-            return stateMap[key].current();
-          },
-          send: function (str) {
-            return stateMap[key].send(str);
-          }
+        stateMap[key] = prop.state();
+        prop.state = function () {
+          return {
+            current: function () {
+              return stateMap[key].current();
+            },
+            send: function (str) {
+              return stateMap[key].send(str);
+            }
+          };
         };
 
         // Report property changed event up to model
