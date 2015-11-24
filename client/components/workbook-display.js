@@ -540,11 +540,25 @@
     };
 
     component.view = function (ctrl) {
-      var tbodyConfig, header, rows, tabs, view, rel,
+      var tbodyConfig, findSortIndex,
+        header, rows, tabs, view, rel,
         vm = ctrl.vm,
         button = f.components.button,
         sortDialog = f.components.sortDialog,
-        activeSheet = vm.activeSheet();
+        activeSheet = vm.activeSheet(),
+        sort = vm.filter().sort || [];
+
+      findSortIndex = function (col) {
+        var hasCol, i = 0;
+
+        hasCol = function (item) {
+          if (item.property === col) { return true; }
+          i +=1;
+        };
+
+        if (sort.some(hasCol)) { return i; }
+        return false;
+      };
 
       // Define scrolling behavior for table body
       tbodyConfig = function (e) {
@@ -564,7 +578,38 @@
       // Build header
       header = (function () {
         var ths = vm.attrs().map(function (key) {
-            return m("th", {
+            var hview, order, name,
+              icon = [],
+              idx = findSortIndex(key);
+
+            if (idx !== false) {
+              order = sort[idx].order || "ASC";
+              if (order.toUpperCase() === "ASC") {
+                name = "fa fa-sort-asc";
+              } else {
+                name= "fa fa-sort-desc";
+              }
+
+              icon.push(m("i", {
+                class: name, 
+                style: {
+                  float: "right",
+                  color: "grey"
+                }
+              }));
+              if (sort.length > 1) {
+                icon.push(m("span", {
+                   style: {
+                    float: "right",
+                    color: "grey",
+                    fontSize: "xx-small",
+                    marginRight: "3px"
+                  }
+                }, idx + 1));
+              }
+
+            }
+            hview = m("th", {
               style: {
                 minWidth: "150px",
                 maxWidth: "150px",
@@ -572,7 +617,9 @@
                 overflow: "hidden",
                 textOverflow: "ellipsis"
               }
-            }, key.toName());
+            }, icon, key.toName());
+
+            return hview;
           });
 
         // Front cap header navigation

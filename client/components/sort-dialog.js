@@ -30,7 +30,7 @@
   */
   f.viewModels.sortDialogViewModel = function (options) {
     options = options || {};
-    var vm, state;
+    var vm, state, createButton, buttonAdd, buttonRemove;
 
     // ..........................................................
     // PUBLIC
@@ -38,16 +38,41 @@
 
     vm = {};
     vm.add = function () {
+      var addAttr, hasAttr,
+       sort = vm.filter().sort,
+       attrs = vm.attrs();
 
+      addAttr = function (attr) {
+        if (!sort.some(hasAttr.bind(attr))) {
+          sort.push({property: attr});
+          return true;
+        }
+      };
+
+      hasAttr = function (item) { 
+        return item.property === this;
+      };
+
+      attrs.some(addAttr);
     };
     vm.attrs = function () {
       return options.attrs;
+    };
+    vm.buttonAdd = function () {
+      return buttonAdd;
+    };
+    vm.buttonRemove = function () {
+      return buttonRemove;
     };
     vm.cancel = function () {
       vm.reset();
       state.send("close");
     };
     vm.id = m.prop(options.id || f.createId());
+    vm.itemOrderChanged = function (index, value) {
+      var sort = vm.filter().sort;
+      sort[index].order = value;
+    };
     vm.itemValueChanged = function (index, value) {
       var sort = vm.filter().sort;
       sort[index].property = value;
@@ -86,6 +111,21 @@
     // ..........................................................
     // PRIVATE
     //
+
+    createButton = f.viewModels.buttonViewModel;
+    buttonAdd = createButton({
+      onclick: vm.add,
+      label: "Add",
+      icon: "plus-circle",
+      style: {backgroundColor: "white"}
+    });
+
+    buttonRemove = createButton({
+      onclick: vm.remove,
+      label: "Remove",
+      icon: "remove",
+      style: {backgroundColor: "white"}
+    });
 
     // Statechart
     state = statechart.State.define({concurrent: true}, function () {
@@ -128,6 +168,7 @@
 
     component.view = function (ctrl) {
       var view,
+        button = f.components.button,
         vm = ctrl.vm;
 
       view = m("dialog", {
@@ -148,25 +189,9 @@
           }
         }, "Sort"),
         m("div", {style: {padding: "1em"}}, [
-          m("button", {
-            class: "pure-button",
-            style: {
-              backgroundColor: "white"
-            },
-            title: "Add",
-            onclick: vm.add
-          }, [m("i", {class:"fa fa-plus-circle"})], " Add"),
-          m("button", {
-            class: "pure-button",
-            style: {
-              backgroundColor: "white"
-            },
-            title: "Remove",
-            onclick: vm.remove
-          }, [m("i", {class:"fa fa-remove"})], " Remove"),
-          m("table", {
-            class: "pure-table"
-          }, [
+          m.component(button({viewModel: vm.buttonAdd()})),
+          m.component(button({viewModel: vm.buttonRemove()})),
+          m("table", {class: "pure-table"}, [
             m("thead", [
               m("th", "Column"),
               m("th", "Order")
@@ -175,19 +200,21 @@
               return m("tr", [
                 m("td",
                   m("select", {
+                    value: item.property,
                     onchange: m.withAttr("value", vm.itemValueChanged.bind(this, item.index))
                   },
                     vm.attrs().map(function (attr) {
                       return m("option", {value: attr}, attr.toName());
-                    }), 
-                    item.property
+                    })
                   )
                 ),
                 m("td", [
-                  m("select", [
+                  m("select", {
+                    onchange: m.withAttr("value", vm.itemOrderChanged.bind(this, item.index))
+                  },[
                     m("option", {value: "ASC"}, "Ascending"),
                     m("option", {value: "DESC"}, "Descending")
-                  ])
+                  ], item.order || "ASC")
                 ])
               ]);
             })
