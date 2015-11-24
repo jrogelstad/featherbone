@@ -48,7 +48,7 @@
   f.viewModels.workbookViewModel = function (options) {
     var selection, state, listState, createButton, buttonHome, buttonList,
       buttonEdit, buttonSave, buttonOpen, buttonNew, buttonDelete, buttonUndo,
-      buttonRefresh, buttonClear, searchInput, searchState,
+      buttonRefresh, buttonClear, searchInput, searchState, sortDialog,
       sheet = options.sheet,
       frmroute = "/" + options.name + "/" + options.config[sheet].form.name,
       name = options.feather.toCamelCase(),
@@ -63,9 +63,11 @@
     //
 
     vm.activeSheet = m.prop(options.sheet);
-    vm.attrs = columns.map(function(column) {
-      return column.attr;
-    });
+    vm.attrs = function () {
+      return columns.map(function(column) {
+        return column.attr;
+      });
+    };
     vm.buttonClear = function () { return buttonClear; };
     vm.buttonDelete = function () { return buttonDelete; };
     vm.buttonEdit = function () { return buttonEdit; };
@@ -80,7 +82,7 @@
       return options.config || {};
     }; 
     vm.defaultFocus = function (model) {
-      var col = vm.attrs.find(function (attr) {
+      var col = vm.attrs().find(function (attr) {
         return !model.data[attr] || !model.data[attr].isReadOnly();
       });
       return col ? col.toCamelCase(true) : undefined;
@@ -226,7 +228,7 @@
 
       // Only search on text attributes
       if (value) {
-        attrs = vm.attrs.filter(function (attr) {
+        attrs = vm.attrs().filter(function (attr) {
           return formatOf(feather, attr) === "string";
         });
 
@@ -271,9 +273,8 @@
     vm.showMenu = function () {
       return showMenu;
     };
-    vm.sortDialogShow = function () {
-      var dlg = document.getElementById('sortDialog');
-      dlg.showModal();
+    vm.sortDialog = function () {
+      return sortDialog;
     };
     vm.tabClicked = function (sheet) {
       var route = "/" + options.name + "/" + sheet;
@@ -302,6 +303,10 @@
     //
 
     frmroute = frmroute.toSpinalCase();
+    sortDialog = f.viewModels.sortDialogViewModel({
+      attrs: vm.attrs(),
+      list: vm.models()
+    });
 
     // Create button view models
     createButton = f.viewModels.buttonViewModel;
@@ -531,7 +536,7 @@
       var tbodyConfig, header, rows, tabs, view, rel,
         vm = ctrl.vm,
         button = f.components.button,
-        sortDialog = f.components.sortDialog(),
+        sortDialog = f.components.sortDialog,
         activeSheet = vm.activeSheet();
 
       // Define scrolling behavior for table body
@@ -546,12 +551,12 @@
         e.style.height = mh + "px";
 
         // Key down handler for up down movement
-        e.addEventListener('keydown', vm.onkeydownCell);
+        e.addEventListener("keydown", vm.onkeydownCell);
       };
 
       // Build header
       header = (function () {
-        var ths = vm.attrs.map(function (key) {
+        var ths = vm.attrs().map(function (key) {
             return m("th", {
               style: {
                 minWidth: "150px",
@@ -560,7 +565,7 @@
                 overflow: "hidden",
                 textOverflow: "ellipsis"
               }
-            }, key.replace(/\./g,' _').toCamelCase().toProperCase(true));
+            }, key.toName());
           });
 
         // Front cap header navigation
@@ -596,7 +601,7 @@
         // Build view row
         if (currentMode === "/Mode/View" || !isSelected) {
           // Build cells
-          tds = vm.attrs.map(function (col) {
+          tds = vm.attrs().map(function (col) {
             var cell, content,
               prop = f.resolveProperty(model, col),
               value = prop(),
@@ -670,7 +675,7 @@
           };
 
           // Build cells
-          tds = vm.attrs.map(function (col) {
+          tds = vm.attrs().map(function (col) {
             var cell, tdOpts, inputOpts,
               prop = f.resolveProperty(model, col),
               id = "input" + col.toCamelCase(true);
@@ -786,11 +791,9 @@
       }, [
         m("div", {
             id: "toolbar",
-            style: {
-              backgroundColor: "snow"
-            }
+            style: {backgroundColor: "snow"}
           }, [
-          m.component(sortDialog, {id: "sortDialog"}),
+          m.component(sortDialog({viewModel: vm.sortDialog()})),
           m.component(button({viewModel: vm.buttonHome()})),
           m.component(button({viewModel: vm.buttonList()})),
           m.component(button({viewModel: vm.buttonEdit()})),
@@ -833,7 +836,7 @@
               m("li", {
                 class: "pure-menu-link",
                 title: "Change sheet sort",
-                onclick: vm.sortDialogShow
+                onclick: vm.sortDialog().show
               }, [m("i", {class:"fa fa-sort-alpha-asc"})], " Sort"),
               m("li", {
                 class: "pure-menu-link",

@@ -34,7 +34,7 @@
 
     vm = {};
     vm.clear = function () {
-      vm.value("");
+      vm.text("");
       vm.end();
     };
     vm.end = function () { state.send("end"); };
@@ -52,7 +52,10 @@
     vm.style = function () { 
       return state.resolve(state.current()[0]).style();
     };
-    vm.value = m.prop();
+    vm.text = m.prop();
+    vm.value = function () {
+      return state.resolve(state.current()[0]).value();
+    };
 
     // ..........................................................
     // PRIVATE
@@ -63,7 +66,7 @@
       this.state("Search", function () {
         this.state("Off", function () {
           this.enter(function () {
-            vm.value("Search");
+            vm.text("Search");
           });
           this.event("start", function () {
             this.goto("../On");
@@ -80,13 +83,13 @@
         });
         this.state("On", function () {
           this.enter(function () {
-            vm.value("");
+            vm.text("");
           });
           this.exit(function () {
             vm.refresh();
           });
           this.canExit = function () {
-            return !vm.value();
+            return !vm.text();
           };
           this.event("end", function () {
             this.goto("../Off");
@@ -98,7 +101,7 @@
             };
           };
           this.value = function () {
-            return vm.value();
+            return vm.text();
           };
         });
       });
@@ -126,11 +129,11 @@
         vm = ctrl.vm;
 
       opts = {
-        value: vm.value(),
+        value: vm.text(),
         style: vm.style(),
         onfocus: vm.start,
         onblur: vm.end,
-        oninput:  m.withAttr("value", vm.value),
+        oninput:  m.withAttr("value", vm.text),
         onkeydown: vm.onkeydown
       };
 

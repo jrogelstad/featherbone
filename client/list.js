@@ -201,10 +201,11 @@
     return function (options) {
       options = options || {};
       ary = options.value || ary;
-      ary.filter(options.filter || {});
 
       if (options.fetch !== false) {
-        ary.fetch(options.merge);
+        ary.fetch(options.filter, options.merge);
+      } else {
+        ary.filter(options.filter || {});
       }
 
       return prop;

@@ -30,6 +30,17 @@
   };
 
   /**
+     Change a path to a capitalized name.
+
+     "contact.name".toName() // "Contact Name"
+
+     @returns {String}
+  */
+  String.prototype.toName = function () {
+    return this.replace(/\./g,' _').toCamelCase().toProperCase(true);
+  };
+
+  /**
      Change a camel case string to proper case.
      @returns {String} The argument modified
   */
