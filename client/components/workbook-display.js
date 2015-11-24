@@ -920,7 +920,7 @@
               width: "100%",
               overflow: "hidden"
             }
-          }, [ header ]),
+          }, [header]),
           m("tbody", {
             id: "rows",
             onscroll: vm.onscroll,
@@ -930,7 +930,7 @@
               overflow: "auto"
             },
             config: tbodyConfig
-          }, [rows])
+          }, rows)
         ]),
         m("div", {
             id: "tabs"

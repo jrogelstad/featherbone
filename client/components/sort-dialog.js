@@ -59,6 +59,9 @@
       if (!vm.isSelected()) {
         vm.selection(sort.length - 1);
       }
+
+      buttonRemove.enable();
+      vm.scrollBottom(true);
     };
     vm.attrs = function () {
       return options.attrs;
@@ -103,7 +106,16 @@
       state.send("close");
     };
     vm.remove = function () {
-
+      var idx = selection(),
+        sort = vm.filter().sort;
+      sort.splice(idx, 1);
+      state.send("unselected");
+      if (sort.length) {
+        if (idx > 0) { idx -= 1; }
+        selection(idx);
+        return;
+      }
+      buttonRemove.disable();
     };
     vm.reset = function () {
       var filter = JSON.parse(JSON.stringify(options.filter()));
@@ -112,6 +124,7 @@
       if (!filter.sort.length) { vm.add(); }
       vm.selection(0);
     };
+    vm.scrollBottom = m.prop(false);
     vm.selection = function (index, select) {
       if (select) { state.send("selected"); }
       if (arguments.length) {
@@ -169,18 +182,12 @@
       });
       this.state("Selection", function () {
         this.state("Off", function () {
-          this.enter(function () {
-            buttonRemove.disable();
-          });
           this.event("selected", function () {
             this.goto("../On");
           });
           this.isSelected = function () { return false; };
         });
         this.state("On", function () {
-          this.enter(function () {
-            buttonRemove.enable();
-          });
           this.event("unselected", function () {
             this.goto("../Off");
           });
@@ -228,53 +235,80 @@
         m("div", {style: {padding: "1em"}}, [
           m.component(button({viewModel: vm.buttonAdd()})),
           m.component(button({viewModel: vm.buttonRemove()})),
-          m("table", {class: "pure-table"}, [
-            m("thead", [
-              m("th", "Column"),
-              m("th", "Order")
-            ]),
-            vm.items().map(function (item) {
-              var color = "White";
-
-              if (vm.selection() === item.index) {
-                if (vm.isSelected()) {
-                  color = "LightSkyBlue" ;
-                } else {
-                  color = "AliceBlue";
-                }
+          m("table", {
+            class: "pure-table",
+            style: {minWidth: "350px"}
+          }, [
+            m("thead", {
+              style: {
+                minWidth: "inherit",
+                display: "inherit"
               }
-
-              return m("tr", {
-                onclick: vm.selection.bind(this, item.index, true),
-                style: {
-                  backgroundColor: color
+            }, [
+              m("th", {style: {minWidth: "150px"}}, "Column"),
+              m("th", {style: {minWidth: "150px"}}, "Order")
+            ]),
+            m("tbody", {
+              id: "sortTbody",
+              style: {
+                maxHeight: "175px",
+                minHeight: "175px",
+                overflowX: "hidden",
+                overflowY: "auto",
+                display: "inline-block"
+              },
+              config: function (e) {
+                if (vm.scrollBottom()) {
+                  e.scrollTop = e.scrollHeight;
                 }
-              },[
-                m("td",
-                  m("select", {
-                    value: item.property,
-                    onchange: m.withAttr("value", vm.itemValueChanged.bind(this, item.index))
-                  },
-                    vm.attrs().map(function (attr) {
-                      return m("option", {value: attr}, attr.toName());
-                    })
-                  )
-                ),
-                m("td", [
-                  m("select", {
-                    onchange: m.withAttr("value", vm.itemOrderChanged.bind(this, item.index))
-                  },[
-                    m("option", {value: "ASC"}, "Ascending"),
-                    m("option", {value: "DESC"}, "Descending")
-                  ], item.order || "ASC")
-                ])
-              ]);
-            })
+                vm.scrollBottom(false);
+              } 
+            }, vm.items().map(function (item) {
+                var iview,
+                  color = "White";
+
+                if (vm.selection() === item.index) {
+                  if (vm.isSelected()) {
+                    color = "LightSkyBlue" ;
+                  } else {
+                    color = "AliceBlue";
+                  }
+                }
+
+                iview = m("tr", {
+                  onclick: vm.selection.bind(this, item.index, true),
+                  style: {backgroundColor: color}
+                },[
+                  m("td",
+                    m("select", {
+                      style: {minWidth: "150px"}, 
+                      value: item.property,
+                      onchange: m.withAttr("value", vm.itemValueChanged.bind(this, item.index))
+                    }, vm.attrs().map(function (attr) {
+                        return m("option", {value: attr}, attr.toName());
+                      })
+                    )
+                  ),
+                  m("td", [
+                    m("select", {
+                      style: {minWidth: "150px"},
+                      onchange: m.withAttr("value", vm.itemOrderChanged.bind(this, item.index))
+                    },[
+                      m("option", {value: "ASC"}, "Ascending"),
+                      m("option", {value: "DESC"}, "Descending")
+                    ], item.order || "ASC")
+                  ])
+                ]);
+
+                return iview;
+              })
+            )
           ]),
           m("br"),
           m("button", {
             class: "pure-button  pure-button-primary",
             style: {marginRight: "5px"},
+            autofocus: true,
             onclick: vm.ok
           }, "Ok"),
           m("button", {
