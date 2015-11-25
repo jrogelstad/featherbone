@@ -33,42 +33,40 @@
     // PUBLIC
     //
 
-    options.propertyName = "sort";
-    vm = f.viewModels.filterDialogViewModel(options);
-    vm.itemOrderChanged = function (index, value) {
-      var sort = vm.data();
-      sort[index].order = value;
+    options = {
+      attrs: options.attrs,
+      list: options.list,
+      filter: options.filter,
+      propertyName: "sort"
     };
+    vm = f.viewModels.filterDialogViewModel(options);
+    vm.viewHeaderIds = m.prop({
+      column: f.createId(),
+      order: f.createId()
+    });
     vm.viewHeaders = function () {
+      var ids = vm.viewHeaderIds();
       return [
-        m("th", {style: {minWidth: "150px"}}, "Column"),
-        m("th", {style: {minWidth: "150px"}}, "Order")
+        m("th", {id: ids.column}, "Column"),
+        m("th", {id: ids.order}, "Order")
       ];
     };
     vm.viewRows = function () {
       var view;
 
       view = vm.items().map(function (item) {
-        var row,
-          color = "White";
-
-        if (vm.selection() === item.index) {
-          if (vm.isSelected()) {
-            color = "LightSkyBlue" ;
-          } else {
-            color = "AliceBlue";
-          }
-        }
+        var row;
 
         row = m("tr", {
           onclick: vm.selection.bind(this, item.index, true),
-          style: {backgroundColor: color}
+          style: {backgroundColor: vm.rowColor(item.index)}
         },[
           m("td",
             m("select", {
               style: {minWidth: "150px"}, 
               value: item.property,
-              onchange: m.withAttr("value", vm.itemValueChanged.bind(this, item.index))
+              onchange: m.withAttr("value", vm.itemChanged.bind(this, item.index, "property")),
+              config: vm.viewHeaderConfig.bind(this, item.index, "column")
             }, vm.attrs().map(function (attr) {
                 return m("option", {value: attr}, attr.toName());
               })
@@ -77,7 +75,8 @@
           m("td", [
             m("select", {
               style: {minWidth: "150px"},
-              onchange: m.withAttr("value", vm.itemOrderChanged.bind(this, item.index))
+              onchange: m.withAttr("value", vm.itemChanged.bind(this, item.index, "order")),
+              config: vm.viewHeaderConfig.bind(this, item.index, "order")
             },[
               m("option", {value: "ASC"}, "Ascending"),
               m("option", {value: "DESC"}, "Descending")

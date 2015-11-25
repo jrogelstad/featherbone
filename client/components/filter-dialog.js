@@ -90,9 +90,8 @@
     vm.isSelected = function () {
       return state.resolve(state.resolve("/Selection").current()[0]).isSelected();
     };
-    vm.itemValueChanged = function (index, value) {
-      var ary = vm.data();
-      ary[index].property = value;
+    vm.itemChanged = function (index, property, value) {
+      vm.data()[index][property] = value;
     };
     vm.items = function () {
       var i = 0,
@@ -129,6 +128,18 @@
       options.filter(vm.filter()); // Kicks off refresh
       state.send("close");
     };
+    vm.operators = function () {
+      return {
+        "=": "equals",
+        "!=": "not equals",
+        "~*": "matches",
+        "!~*": "not matches",
+        ">": "greater than",
+        "<": "less than",
+        ">=": "greater than or equals",
+        "<=": "less than or equals"
+      };
+    };
     vm.remove = function () {
       var idx = selection(),
         ary = vm.data();
@@ -149,35 +160,53 @@
       if (!filter[name].length) { vm.add(); }
       vm.selection(0);
     };
+    vm.rowColor = function (index) {
+      if (vm.selection() === index) {
+        if (vm.isSelected()) {
+          return "LightSkyBlue" ;
+        }
+        return "AliceBlue";
+      }
+      return "White";
+    };
+    vm.title = m.prop(options.propertyName || "filter");
+    vm.viewHeaderConfig = function (index, property, e) {
+      var ids;
+      if (!index) {
+        ids = vm.viewHeaderIds();
+        document.getElementById(ids[property]).style.minWidth = e.clientWidth + 3 + "px";
+      }
+    };
+    vm.viewHeaderIds = m.prop({
+      column: f.createId(),
+      operator: f.createId(),
+      value: f.createId()
+    });
     vm.viewHeaders = function () {
+      var ids = vm.viewHeaderIds();
       return [
-        m("th", {style: {minWidth: "150px"}}, "Column")
+        m("th", {id: ids.column }, "Column"),
+        m("th", {id: ids.operator}, "Operator"),
+        m("th", {id: ids.value}, "Value")
       ];
     };
     vm.viewRows = function () {
-      var view;
+      var view,
+        operators = vm.operators();
 
       view = vm.items().map(function (item) {
-        var row,
-          color = "White";
-
-        if (vm.selection() === item.index) {
-          if (vm.isSelected()) {
-            color = "LightSkyBlue" ;
-          } else {
-            color = "AliceBlue";
-          }
-        }
+        var row;
 
         row = m("tr", {
           onclick: vm.selection.bind(this, item.index, true),
-          style: {backgroundColor: color}
+          style: {backgroundColor: vm.rowColor(item.index)}
         },[
           m("td",
             m("select", {
               style: {minWidth: "150px"}, 
               value: item.property,
-              onchange: m.withAttr("value", vm.itemValueChanged.bind(this, item.index))
+              onchange: m.withAttr("value", vm.itemChanged.bind(this, item.index, "property")),
+              config: vm.viewHeaderConfig.bind(this, item.index, "column")
             }, vm.attrs().map(function (attr) {
                 return m("option", {value: attr}, attr.toName());
               })
@@ -186,11 +215,19 @@
           m("td", [
             m("select", {
               style: {minWidth: "150px"},
-              onchange: m.withAttr("value", vm.itemOrderChanged.bind(this, item.index))
-            },[
-              m("option", {value: "ASC"}, "Ascending"),
-              m("option", {value: "DESC"}, "Descending")
-            ], item.order || "ASC")
+              onchange: m.withAttr("value", vm.itemChanged.bind(this, item.index, "operator")),
+              config: vm.viewHeaderConfig.bind(this, item.index, "operator")
+            }, Object.keys(operators).map(function (op) {
+              return m("option", {value: op}, operators[op]);
+            }), item.operator || "=")
+          ]),
+          m("td", [
+            m("input", {
+              style: {minWidth: "150px"},
+              onchange: m.withAttr("value", vm.itemChanged.bind(this, item.index, "value")),
+              config: vm.viewHeaderConfig.bind(this, item.index, "value"),  
+              value: item.value
+            })
           ])
         ]);
 
@@ -346,7 +383,10 @@
             margin: "2px",
             padding: "6px"
           }
-        }, "Sort"),
+        }, [m("i", {
+          class:"fa fa-" + vm.title(), 
+          style: {marginRight: "3px"}
+        })], vm.title().toName()),
         m("div", {style: {padding: "1em"}}, [
           m.component(button({viewModel: vm.buttonAdd()})),
           m.component(button({viewModel: vm.buttonRemove()})),

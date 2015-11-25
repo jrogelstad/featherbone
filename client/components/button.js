@@ -174,7 +174,7 @@
         style = vm.style(),
         title = vm.title(),
         icon = vm.icon(),
-        label = vm.label() ? " " + vm.label() : undefined;
+        label = vm.label();
 
       if (vm.class()) { classes.push(vm.class()); }
       if (vm.primary()) { classes.push(vm.primary()); }
@@ -190,7 +190,10 @@
       style.display = vm.display();
 
       if (icon) {
-        iconView = [m("i", {class: "fa fa-" + icon})];
+        iconView = [m("i", {
+          class: "fa fa-" + icon,
+          style: {marginRight: "4px"}
+        })];
       }
 
       if (title) {

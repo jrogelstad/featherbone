@@ -1354,7 +1354,7 @@
         var part, op, err, or,
           name = obj.name,
           filter = obj.filter,
-          ops = ["=", "!=", "<", ">", "<>", "~", "~*", "!~", "!~*", "IN"],
+          ops = ["=", "!=", "<", ">", ">=","<=", "<>", "~", "~*", "!~", "!~*", "IN"],
           table = name.toSnakeCase(),
           clause = obj.showDeleted ? "true" : "NOT is_deleted",
           sql = "SELECT _pk FROM %I WHERE " + clause,

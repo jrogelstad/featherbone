@@ -47,8 +47,9 @@
   // Define workbook view model
   f.viewModels.workbookViewModel = function (options) {
     var selection, state, listState, createButton, buttonHome, buttonList,
-      buttonEdit, buttonSave, buttonOpen, buttonNew, buttonDelete, buttonUndo,
-      buttonRefresh, buttonClear, searchInput, searchState, sortDialog,
+      buttonEdit, buttonSave, buttonOpen, buttonNew, buttonDelete,
+      buttonUndo, buttonRefresh, buttonClear, searchInput, searchState,
+      sortDialog, filterDialog, filterOpts,
       sheet = options.sheet,
       frmroute = "/" + options.name + "/" + options.config[sheet].form.name,
       name = options.feather.toCamelCase(),
@@ -87,6 +88,9 @@
       return col ? col.toCamelCase(true) : undefined;
     };
     vm.filter = f.prop(JSON.parse(JSON.stringify(options.config[sheet].list.filter || {})));
+    vm.filterDialog = function () {
+      return filterDialog;
+    };
     vm.goHome = function () {
       m.route("/home");
     };
@@ -304,11 +308,14 @@
     //
 
     frmroute = frmroute.toSpinalCase();
-    sortDialog = f.viewModels.sortDialogViewModel({
+
+    filterOpts = {
       attrs: vm.attrs(),
       filter: vm.filter,
       list: vm.models()
-    });
+    };
+    sortDialog = f.viewModels.sortDialogViewModel(filterOpts);
+    filterDialog = f.viewModels.filterDialogViewModel(filterOpts);
 
     // Create button view models
     createButton = f.viewModels.buttonViewModel;
@@ -348,7 +355,7 @@
       onclick: vm.modelNew,
       title: "New (Alt+N)",
       label: "New",
-      icon: "circle-plus"
+      icon: "plus-circle"
     });
 
     buttonDelete = createButton({
@@ -540,23 +547,27 @@
     };
 
     component.view = function (ctrl) {
-      var tbodyConfig, findSortIndex,
+      var tbodyConfig, findFilterIndex,
         header, rows, tabs, view, rel,
         vm = ctrl.vm,
+        filter = vm.filter(),
+        sort = filter.sort || [],
         button = f.components.button,
         filterDialog = f.components.filterDialog,
-        activeSheet = vm.activeSheet(),
-        sort = vm.filter().sort || [];
+        activeSheet = vm.activeSheet();
 
-      findSortIndex = function (col) {
-        var hasCol, i = 0;
+      findFilterIndex = function (col, name) {
+        name = name || "criteria";
+        var hasCol,
+          ary = filter[name] || [],
+          i = 0;
 
         hasCol = function (item) {
           if (item.property === col) { return true; }
           i +=1;
         };
 
-        if (sort.some(hasCol)) { return i; }
+        if (ary.some(hasCol)) { return i; }
         return false;
       };
 
@@ -580,8 +591,10 @@
         var ths = vm.attrs().map(function (key) {
             var hview, order, name,
               icon = [],
-              idx = findSortIndex(key);
+              idx = findFilterIndex(key, "sort"),
+              operators = vm.filterDialog().operators();
 
+            // Add sort icons
             if (idx !== false) {
               order = sort[idx].order || "ASC";
               if (order.toUpperCase() === "ASC") {
@@ -608,8 +621,23 @@
                   }
                 }, idx + 1));
               }
-
             }
+
+            // Add filter icons
+            idx = findFilterIndex(key);
+            if (idx !== false) {
+              icon.push(m("i", {
+                class: "fa fa-filter", 
+                title: operators[(filter.criteria[idx].operator || "=")] + " " + filter.criteria[idx].value,
+                style: {
+                  float: "right",
+                  color: "DarkBlue",
+                  marginRight: "3px",
+                  fontSize: "small"
+                }
+              }));
+            }
+
             hview = m("th", {
               style: {
                 minWidth: "150px",
@@ -849,6 +877,7 @@
             style: {backgroundColor: "snow"}
           }, [
           m.component(filterDialog({viewModel: vm.sortDialog()})),
+          m.component(filterDialog({viewModel: vm.filterDialog()})),
           m.component(button({viewModel: vm.buttonHome()})),
           m.component(button({viewModel: vm.buttonList()})),
           m.component(button({viewModel: vm.buttonEdit()})),
@@ -895,8 +924,8 @@
               }, [m("i", {class:"fa fa-sort-alpha-asc"})], " Sort"),
               m("li", {
                 class: "pure-menu-link",
-                title: "Change sheet filter"
-                //onclick: rvm.onclickopen
+                title: "Change sheet filter",
+                onclick: vm.filterDialog().show
               }, [m("i", {class:"fa fa-filter"})], " Filter"),
               m("li", {
                 class: "pure-menu-link",
