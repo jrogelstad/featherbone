@@ -544,7 +544,7 @@
         header, rows, tabs, view, rel,
         vm = ctrl.vm,
         button = f.components.button,
-        sortDialog = f.components.sortDialog,
+        filterDialog = f.components.filterDialog,
         activeSheet = vm.activeSheet(),
         sort = vm.filter().sort || [];
 
@@ -848,7 +848,7 @@
             id: "toolbar",
             style: {backgroundColor: "snow"}
           }, [
-          m.component(sortDialog({viewModel: vm.sortDialog()})),
+          m.component(filterDialog({viewModel: vm.sortDialog()})),
           m.component(button({viewModel: vm.buttonHome()})),
           m.component(button({viewModel: vm.buttonList()})),
           m.component(button({viewModel: vm.buttonEdit()})),
