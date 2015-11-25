@@ -41,9 +41,8 @@
     @param {Object} Arguments object
     @param {Object} [obj.model] Model
     @param {String} [obj.key] Property key
-    @param {Object} {obj.controller} Controller
-    @param {Object} {obj.options} Options
-    @param {object} Properties specification
+    @param {Object} [obj.viewModel] View Model
+    @param {Object} [obj.options] Options
   */
   f.buildInputComponent = function (obj) {
     var rel, w, component,
@@ -126,7 +125,6 @@
     @param {String} [options.valueProperty] Default name of value property on relation model
     @param {Object} {options.labelProperty} Default name of label property on relation model
     @param {Object} {options.isCell} Whether to use table cell style
-    @param {object} Properties specification
   */
   f.buildRelationWidget = function (relopts) {
     var that,

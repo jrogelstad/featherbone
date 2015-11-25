@@ -25,12 +25,13 @@
     @param {Array} [options.propertyName] Filter property being modified
     @param {Array} [options.attrs] Attributes
     @param {Array} [options.list] Model list
+    @param {Array} [options.feather] Feather
     @param {Function} [options.filter] Filter property
   */
   f.viewModels.filterDialogViewModel = function (options) {
     options = options || {};
     var vm, state, createButton, buttonAdd, buttonRemove,
-      buttonDown, buttonUp,
+      buttonDown, buttonUp, buildInputComponent, resolveProperty,
       selection = m.prop();
 
     // ..........................................................
@@ -140,6 +141,7 @@
         "<=": "less than or equals"
       };
     };
+    vm.relations = m.prop({});
     vm.remove = function () {
       var idx = selection(),
         ary = vm.data();
@@ -170,13 +172,6 @@
       return "White";
     };
     vm.title = m.prop(options.propertyName || "filter");
-    vm.viewHeaderConfig = function (index, property, e) {
-      var ids;
-      if (!index) {
-        ids = vm.viewHeaderIds();
-        document.getElementById(ids[property]).style.minWidth = e.clientWidth + 3 + "px";
-      }
-    };
     vm.viewHeaderIds = m.prop({
       column: f.createId(),
       operator: f.createId(),
@@ -185,9 +180,9 @@
     vm.viewHeaders = function () {
       var ids = vm.viewHeaderIds();
       return [
-        m("th", {id: ids.column }, "Column"),
-        m("th", {id: ids.operator}, "Operator"),
-        m("th", {id: ids.value}, "Value")
+        m("th", {style: {minWidth: "175px"}, id: ids.column }, "Column"),
+        m("th", {style: {minWidth: "200px"}, id: ids.operator}, "Operator"),
+        m("th", {style: {minWidth: "225px"}, id: ids.value}, "Value")
       ];
     };
     vm.viewRows = function () {
@@ -201,34 +196,28 @@
           onclick: vm.selection.bind(this, item.index, true),
           style: {backgroundColor: vm.rowColor(item.index)}
         },[
-          m("td",
-            m("select", {
-              style: {minWidth: "150px"}, 
+          m("td", {
+           style: {minWidth: "175px", maxWidth: "175px"}
+          }, m("select", {
               value: item.property,
-              onchange: m.withAttr("value", vm.itemChanged.bind(this, item.index, "property")),
-              config: vm.viewHeaderConfig.bind(this, item.index, "column")
+              onchange: m.withAttr("value", vm.itemChanged.bind(this, item.index, "property"))
             }, vm.attrs().map(function (attr) {
                 return m("option", {value: attr}, attr.toName());
               })
             )
           ),
-          m("td", [
+          m("td", {
+           style: {minWidth: "200px", maxWidth: "200px"}
+          }, [
             m("select", {
-              style: {minWidth: "150px"},
-              onchange: m.withAttr("value", vm.itemChanged.bind(this, item.index, "operator")),
-              config: vm.viewHeaderConfig.bind(this, item.index, "operator")
+              onchange: m.withAttr("value", vm.itemChanged.bind(this, item.index, "operator"))
             }, Object.keys(operators).map(function (op) {
               return m("option", {value: op}, operators[op]);
             }), item.operator || "=")
           ]),
-          m("td", [
-            m("input", {
-              style: {minWidth: "150px"},
-              onchange: m.withAttr("value", vm.itemChanged.bind(this, item.index, "value")),
-              config: vm.viewHeaderConfig.bind(this, item.index, "value"),  
-              value: item.value
-            })
-          ])
+          m("td", {
+           style: {minWidth: "225px", maxWidth: "225px"}
+          }, [buildInputComponent({key: item.property, index: item.index})])
         ]);
 
         return row;
@@ -267,6 +256,102 @@
     // ..........................................................
     // PRIVATE
     //
+
+    /** @private
+      Helper function for building input elements
+
+      @param {Object} Arguments object
+      @param {Number} [obj.index] Index
+      @param {String} [obj.key] Property key
+      @param {Object} [obj.value] Value
+    */
+    buildInputComponent = function (obj) {
+      var rel, w, component, prop, format,
+        key = obj.key,
+        value = obj.value,
+        index = obj.index,
+        opts = {};
+
+      prop = resolveProperty(options.feather, key);
+      format = prop.format || prop.type;
+
+      // Handle input types
+      if (typeof prop.type === "string") {
+        opts.type = f.inputMap[format];
+
+        if (prop.type === "boolean") {
+          opts.onclick = m.withAttr(
+            "checked",
+            vm.itemChanged.bind(this, index, key)
+          );
+          opts.checked = value;
+          opts.style = {
+            position: "absolute",
+            left: "-999px"
+          };
+
+          component = m("div", {
+            style: {display: "inline-block"}
+          }, [
+            m("input", opts),
+            m("label", {
+              for: key,
+              style: {
+                borderWidth: "thin",
+                borderStyle: "solid",
+                borderRadius: "4px",
+                borderColor: "#ccc",
+                boxShadow: "inset 0 1px 3px #ddd",
+                padding: "7px",
+                maxWidth: "15px",
+                minWidth: "15px"
+              }
+            }, m("i", {
+              class:"fa fa-check",
+              style: {visibility: value ? "visible" : "hidden"}
+            }))
+          ]);
+
+        } else {
+          opts.onchange = m.withAttr(
+            "value",
+            vm.itemChanged.bind(this, index, key)
+          );
+          opts.value = value;
+          component = m("input", opts);
+        }
+
+        return component;
+      }
+
+      // Handle relations
+      rel = prop.type.relation.toCamelCase();
+      w = f.components[rel + "Relation"]({
+        parentProperty: key,
+        isCell: opts.isCell
+      });
+
+      if (prop.isToOne() && w) {
+        return m.component(w, {viewModel: obj.viewModel});
+      }
+
+      console.log("Widget for property '" + key + "' is unknown");
+    };
+
+    resolveProperty = function (feather, property) {
+      var prefix, suffix, rel,
+        idx = property.indexOf(".");
+
+      if (idx > -1) {
+        prefix = property.slice(0, idx);
+        suffix = property.slice(idx + 1, property.length);
+        rel = feather.properties[prefix].type.relation;
+        feather = f.catalog.getFeather(rel);
+        return f.resolveProperty(feather, suffix);
+      }
+
+      return feather.properties[property];
+    };
 
     createButton = f.viewModels.buttonViewModel;
     buttonAdd = createButton({
@@ -393,8 +478,8 @@
           m.component(button({viewModel: vm.buttonDown()})),
           m.component(button({viewModel: vm.buttonUp()})),
           m("table", {
-            class: "pure-table",
-            style: {minWidth: "350px"}
+            class: "pure-table"
+            //style: {minWidth: "350px"}
           }, [
             m("thead", {
               style: {

@@ -312,7 +312,8 @@
     filterOpts = {
       attrs: vm.attrs(),
       filter: vm.filter,
-      list: vm.models()
+      list: vm.models(),
+      feather: feather
     };
     sortDialog = f.viewModels.sortDialogViewModel(filterOpts);
     filterDialog = f.viewModels.filterDialogViewModel(filterOpts);

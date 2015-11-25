@@ -47,8 +47,8 @@
     vm.viewHeaders = function () {
       var ids = vm.viewHeaderIds();
       return [
-        m("th", {id: ids.column}, "Column"),
-        m("th", {id: ids.order}, "Order")
+        m("th", {style: {minWidth: "175px"}, id: ids.column}, "Column"),
+        m("th", {style: {minWidth: "175px"}, id: ids.order}, "Order")
       ];
     };
     vm.viewRows = function () {
@@ -61,22 +61,21 @@
           onclick: vm.selection.bind(this, item.index, true),
           style: {backgroundColor: vm.rowColor(item.index)}
         },[
-          m("td",
-            m("select", {
-              style: {minWidth: "150px"}, 
+          m("td", {
+           style: {minWidth: "175px", maxWidth: "175px"}
+          }, m("select", {
               value: item.property,
-              onchange: m.withAttr("value", vm.itemChanged.bind(this, item.index, "property")),
-              config: vm.viewHeaderConfig.bind(this, item.index, "column")
+              onchange: m.withAttr("value", vm.itemChanged.bind(this, item.index, "property"))
             }, vm.attrs().map(function (attr) {
                 return m("option", {value: attr}, attr.toName());
               })
             )
           ),
-          m("td", [
+          m("td", {
+            style: {minWidth: "175px", maxWidth: "175px"}
+          },[
             m("select", {
-              style: {minWidth: "150px"},
-              onchange: m.withAttr("value", vm.itemChanged.bind(this, item.index, "order")),
-              config: vm.viewHeaderConfig.bind(this, item.index, "order")
+              onchange: m.withAttr("value", vm.itemChanged.bind(this, item.index, "order"))
             },[
               m("option", {value: "ASC"}, "Ascending"),
               m("option", {value: "DESC"}, "Descending")
