@@ -31,6 +31,7 @@
   f.viewModels.sortDialogViewModel = function (options) {
     options = options || {};
     var vm, state, createButton, buttonAdd, buttonRemove,
+      buttonDown, buttonUp,
       selection = m.prop();
 
     // ..........................................................
@@ -69,8 +70,14 @@
     vm.buttonAdd = function () {
       return buttonAdd;
     };
+    vm.buttonDown = function () {
+      return buttonDown;
+    };
     vm.buttonRemove = function () {
       return buttonRemove;
+    };
+    vm.buttonUp = function () {
+      return buttonUp;
     };
     vm.cancel = function () {
       vm.reset();
@@ -101,6 +108,24 @@
     };
     vm.filter = m.prop();
     vm.list = m.prop(options.list);
+    vm.moveDown = function () {
+      var sort = vm.filter().sort,
+        idx = vm.selection(),
+        a = sort[idx],
+        b = sort[idx + 1];
+
+      sort.splice(idx, 2, b, a);
+      vm.selection(idx + 1);
+    };
+    vm.moveUp = function () {
+      var sort = vm.filter().sort,
+        idx = vm.selection() - 1,
+        a = sort[idx],
+        b = sort[idx + 1];
+
+      sort.splice(idx, 2, b, a);
+      vm.selection(idx);
+    };
     vm.ok = function () {
       options.filter(vm.filter()); // Kicks off refresh
       state.send("close");
@@ -126,10 +151,26 @@
     };
     vm.scrollBottom = m.prop(false);
     vm.selection = function (index, select) {
+      var sort = vm.filter().sort;
+
       if (select) { state.send("selected"); }
+
       if (arguments.length) {
+        buttonUp.disable();
+        buttonDown.disable();
+
+        if (sort.length > 1) {
+          if (index < sort.length - 1) {
+            buttonDown.enable();
+          }
+          if (index > 0) {
+            buttonUp.enable();
+          }
+        }
+
         return selection(index);
       }
+
       return selection();
     };
     vm.show = function () {
@@ -153,6 +194,26 @@
       label: "Remove",
       icon: "remove",
       style: {backgroundColor: "white"}
+    });
+
+    buttonUp = createButton({
+      onclick: vm.moveUp,
+      icon: "chevron-up",
+      title: "Move up",
+      style: {
+        backgroundColor: "white",
+        float: "right"
+      }
+    });
+
+    buttonDown = createButton({
+      onclick: vm.moveDown,
+      icon: "chevron-down",
+      title: "Move down",
+      style: {
+        backgroundColor: "white",
+        float: "right"
+      }
     });
 
     // Statechart
@@ -235,6 +296,8 @@
         m("div", {style: {padding: "1em"}}, [
           m.component(button({viewModel: vm.buttonAdd()})),
           m.component(button({viewModel: vm.buttonRemove()})),
+          m.component(button({viewModel: vm.buttonDown()})),
+          m.component(button({viewModel: vm.buttonUp()})),
           m("table", {
             class: "pure-table",
             style: {minWidth: "350px"}
