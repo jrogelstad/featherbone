@@ -37,6 +37,7 @@
       attrs: options.attrs,
       list: options.list,
       filter: options.filter,
+      feather: options.feather,
       propertyName: "sort"
     };
     vm = f.viewModels.filterDialogViewModel(options);
