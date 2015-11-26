@@ -154,7 +154,7 @@
     return vm;
   };
 
-  // Define dialog component
+  // Define button component
   f.components.button = function (options) {
     options = options || {};
     var component = {};

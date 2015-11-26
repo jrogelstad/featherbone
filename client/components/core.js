@@ -66,34 +66,14 @@
       }
 
       if (prop.type === "boolean") {
-        opts.onclick = m.withAttr("checked", prop);
-        opts.checked = prop();
-        opts.style = opts.style || {};
-        opts.style.position = "absolute";
-        opts.style.left = "-999px";
-
-        component = m("div", {
-          style: {display: "inline-block"}
-        }, [
-          m("input", opts),
-          m("label", {
-            for: key,
-            style: {
-              borderWidth: "thin",
-              borderStyle: "solid",
-              borderRadius: "4px",
-              borderColor: "#ccc",
-              boxShadow: "inset 0 1px 3px #ddd",
-              padding: "7px",
-              maxWidth: "15px",
-              minWidth: "15px",
-              backgroundColor: "White"
-            }
-          }, m("i", {
-            class:"fa fa-check",
-            style: {visibility: prop() ? "visible" : "hidden"}
-          }))
-        ]);
+        component = f.components.checkbox({
+          id: key,
+          value: prop(),
+          onclick: prop,
+          required: opts.required,
+          disabled: opts.disabled,
+          style: opts.style
+        });
 
       } else {
         opts.onchange = m.withAttr("value", prop);

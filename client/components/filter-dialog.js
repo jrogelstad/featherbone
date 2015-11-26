@@ -288,43 +288,13 @@
 
       // Handle input types
       if (typeof prop.type === "string") {
-        opts.type = f.inputMap[format];
-
         if (prop.type === "boolean") {
-          opts.onclick = m.withAttr(
-            "checked",
-            vm.itemChanged.bind(this, index, "value")
-          );
-          opts.checked = value;
-          opts.style = {
-            position: "absolute",
-            left: "-999px"
-          };
-
-          component = m("div", {
-            style: {display: "inline-block"}
-          }, [
-            m("input", opts),
-            m("label", {
-              for: id,
-              style: {
-                borderWidth: "thin",
-                borderStyle: "solid",
-                borderRadius: "4px",
-                borderColor: "#ccc",
-                boxShadow: "inset 0 1px 3px #ddd",
-                padding: "7px",
-                maxWidth: "15px",
-                minWidth: "15px",
-                backgroundColor: "White"
-              }
-            }, m("i", {
-              class:"fa fa-check",
-              style: {visibility: value ? "visible" : "hidden"}
-            }))
-          ]);
-
+          component = f.components.checkbox({
+            value: value,
+            onclick: vm.itemChanged.bind(this, index, "value")
+          });
         } else {
+          opts.type = f.inputMap[format];
           opts.onchange = m.withAttr(
             "value",
             vm.itemChanged.bind(this, index, "value")
