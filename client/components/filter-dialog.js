@@ -135,7 +135,7 @@
       options.filter(vm.filter()); // Kicks off refresh
       state.send("close");
     };
-    vm.operators = function (key) {
+    vm.operators = function (attr) {
       var ops, prop, format;
 
       ops = {
@@ -149,8 +149,8 @@
         "<=": "less than or equals"
       };
 
-      if (key) {
-        prop = feather.properties[key];
+      if (attr) {
+        prop = resolveProperty(feather, attr);
         format = prop.format || prop.type;
 
         switch (format) {
@@ -354,7 +354,7 @@
 
     getDefault = function (attr) {
       var value,
-        prop = options.feather.properties[attr],
+        prop = resolveProperty(feather, attr),
         format = prop.format;
 
       if (format && f.formats[format] &&
@@ -380,7 +380,7 @@
         suffix = property.slice(idx + 1, property.length);
         rel = feather.properties[prefix].type.relation;
         feather = f.catalog.getFeather(rel);
-        return f.resolveProperty(feather, suffix);
+        return resolveProperty(feather, suffix);
       }
 
       return feather.properties[property];
