@@ -40,6 +40,12 @@
       propertyName: "sort"
     };
     vm = f.viewModels.filterDialogViewModel(options);
+    vm.addAttr = function (attr) {
+      if (!this.some(vm.hasAttr.bind(attr))) {
+        this.push({property: attr});
+        return true;
+      }
+    };
     vm.viewHeaderIds = m.prop({
       column: f.createId(),
       order: f.createId()

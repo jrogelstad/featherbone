@@ -32,6 +32,7 @@
     options = options || {};
     var vm, state, createButton, buttonAdd, buttonRemove,
       buttonDown, buttonUp, buildInputComponent, resolveProperty,
+      getDefault,
       selection = m.prop();
 
     // ..........................................................
@@ -40,22 +41,10 @@
 
     vm = {};
     vm.add = function () {
-      var addAttr, hasAttr,
-       ary = vm.data(),
+      var ary = vm.data(),
        attrs = vm.attrs();
 
-      addAttr = function (attr) {
-        if (!ary.some(hasAttr.bind(attr))) {
-          ary.push({property: attr});
-          return true;
-        }
-      };
-
-      hasAttr = function (item) { 
-        return item.property === this;
-      };
-
-      attrs.some(addAttr);
+      attrs.some(vm.addAttr.bind(ary));
 
       if (!vm.isSelected()) {
         vm.selection(ary.length - 1);
@@ -63,6 +52,16 @@
 
       buttonRemove.enable();
       vm.scrollBottom(true);
+    };
+    vm.addAttr = function (attr) {
+      if (!this.some(vm.hasAttr.bind(attr))) {
+        this.push({
+          property: attr,
+          value: getDefault(attr)
+        });
+
+        return true;
+      }
     };
     vm.attrs = function () {
       return options.attrs;
@@ -86,13 +85,16 @@
     vm.data = function () {
       return vm.filter()[vm.propertyName()];
     };
-    vm.propertyName = m.prop(options.propertyName || "criteria");
     vm.id = m.prop(options.id || f.createId());
     vm.isSelected = function () {
       return state.resolve(state.resolve("/Selection").current()[0]).isSelected();
     };
     vm.itemChanged = function (index, property, value) {
       vm.data()[index][property] = value;
+    };
+    vm.itemPropertyChanged = function (index, value) {
+      vm.itemChanged(index, "property", value);
+      vm.data()[index].value = getDefault(value);
     };
     vm.items = function () {
       var i = 0,
@@ -106,6 +108,9 @@
       return items;
     };
     vm.filter = m.prop();
+    vm.hasAttr = function (item) { 
+      return item.property === this;
+    };
     vm.list = m.prop(options.list);
     vm.moveDown = function () {
       var ary = vm.data(),
@@ -141,6 +146,7 @@
         "<=": "less than or equals"
       };
     };
+    vm.propertyName = m.prop(options.propertyName || "criteria");
     vm.relations = m.prop({});
     vm.remove = function () {
       var idx = selection(),
@@ -200,7 +206,7 @@
            style: {minWidth: "175px", maxWidth: "175px"}
           }, m("select", {
               value: item.property,
-              onchange: m.withAttr("value", vm.itemChanged.bind(this, item.index, "property"))
+              onchange: m.withAttr("value", vm.itemPropertyChanged.bind(this, item.index))
             }, vm.attrs().map(function (attr) {
                 return m("option", {value: attr}, attr.toName());
               })
@@ -217,7 +223,11 @@
           ]),
           m("td", {
            style: {minWidth: "225px", maxWidth: "225px"}
-          }, [buildInputComponent({key: item.property, index: item.index})])
+          }, [buildInputComponent({
+            index: item.index,
+            key: item.property,
+            value: item.value
+          })])
         ]);
 
         return row;
@@ -282,7 +292,7 @@
         if (prop.type === "boolean") {
           opts.onclick = m.withAttr(
             "checked",
-            vm.itemChanged.bind(this, index, key)
+            vm.itemChanged.bind(this, index, "value")
           );
           opts.checked = value;
           opts.style = {
@@ -315,7 +325,7 @@
         } else {
           opts.onchange = m.withAttr(
             "value",
-            vm.itemChanged.bind(this, index, key)
+            vm.itemChanged.bind(this, index, "value")
           );
           opts.value = value;
           component = m("input", opts);
@@ -336,6 +346,25 @@
       }
 
       console.log("Widget for property '" + key + "' is unknown");
+    };
+
+    getDefault = function (attr) {
+      var value,
+        prop = options.feather.properties[attr],
+        format = prop.format;
+
+      if (format && f.formats[format] &&
+          f.formats[format].default) {
+        value = f.formats[format].default;
+      } else {
+        value = f.types[prop.type].default;
+      }
+
+      if (typeof value === "function") {
+        value = value();
+      }
+
+      return value;
     };
 
     resolveProperty = function (feather, property) {
@@ -526,5 +555,3 @@
   };
 
 }(f));
-
-
