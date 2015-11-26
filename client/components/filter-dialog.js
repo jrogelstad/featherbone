@@ -313,8 +313,7 @@
         key = obj.key,
         value = obj.value,
         index = obj.index,
-        id = f.createId(),
-        opts = {id: id};
+        opts = {};
 
       prop = resolveProperty(feather, key);
       format = prop.format || prop.type;
