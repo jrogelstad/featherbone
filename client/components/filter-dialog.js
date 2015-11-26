@@ -33,6 +33,7 @@
     var vm, state, createButton, buttonAdd, buttonRemove,
       buttonDown, buttonUp, buildInputComponent, resolveProperty,
       getDefault,
+      feather = options.feather,
       selection = m.prop();
 
     // ..........................................................
@@ -134,8 +135,10 @@
       options.filter(vm.filter()); // Kicks off refresh
       state.send("close");
     };
-    vm.operators = function () {
-      return {
+    vm.operators = function (key) {
+      var ops, prop, format;
+
+      ops = {
         "=": "equals",
         "!=": "not equals",
         "~*": "matches",
@@ -145,6 +148,36 @@
         ">=": "greater than or equals",
         "<=": "less than or equals"
       };
+
+      if (key) {
+        prop = feather.properties[key];
+        format = prop.format || prop.type;
+
+        switch (format) {
+        case "integer":
+        case "number":
+        case "date":
+        case "dateTime":
+          delete ops["~*"];
+          delete ops["!~*"];
+          break;
+        case "boolean":
+          delete ops["~*"];
+          delete ops["!~*"];
+          delete ops[">"];
+          delete ops["<"];
+          delete ops[">="];
+          delete ops["<="];
+          break;
+        default:
+          delete ops[">"];
+          delete ops["<"];
+          delete ops[">="];
+          delete ops["<="];
+        }
+      }
+
+      return ops;
     };
     vm.propertyName = m.prop(options.propertyName || "criteria");
     vm.relations = m.prop({});
@@ -192,11 +225,11 @@
       ];
     };
     vm.viewRows = function () {
-      var view,
-        operators = vm.operators();
+      var view;
 
       view = vm.items().map(function (item) {
-        var row;
+        var row,
+          operators = vm.operators(item.property);
 
         row = m("tr", {
           onclick: vm.selection.bind(this, item.index, true),
@@ -283,7 +316,7 @@
         id = f.createId(),
         opts = {id: id};
 
-      prop = resolveProperty(options.feather, key);
+      prop = resolveProperty(feather, key);
       format = prop.format || prop.type;
 
       // Handle input types
