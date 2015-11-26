@@ -30,7 +30,7 @@
   */
   f.viewModels.filterDialogViewModel = function (options) {
     options = options || {};
-    var vm, state, createButton, buttonAdd, buttonRemove,
+    var vm, state, model, createButton, buttonAdd, buttonRemove,
       buttonDown, buttonUp, buildInputComponent, resolveProperty,
       getDefault,
       feather = options.feather,
@@ -113,6 +113,7 @@
       return item.property === this;
     };
     vm.list = m.prop(options.list);
+    vm.model = function () { return model; };
     vm.moveDown = function () {
       var ary = vm.data(),
         idx = vm.selection(),
@@ -169,7 +170,17 @@
           delete ops[">="];
           delete ops["<="];
           break;
+        case "string":
+        case "password":
+        case "tel":
+          delete ops[">"];
+          delete ops["<"];
+          delete ops[">="];
+          delete ops["<="];
+          break;
         default:
+          delete ops["~*"];
+          delete ops["!~*"];
           delete ops[">"];
           delete ops["<"];
           delete ops[">="];
@@ -239,7 +250,9 @@
            style: {minWidth: "175px", maxWidth: "175px"}
           }, m("select", {
               value: item.property,
-              onchange: m.withAttr("value", vm.itemPropertyChanged.bind(this, item.index))
+              onchange: m.withAttr(
+                "value",
+                vm.itemPropertyChanged.bind(this, item.index))
             }, vm.attrs().map(function (attr) {
                 return m("option", {value: attr}, attr.toName());
               })
@@ -249,7 +262,9 @@
            style: {minWidth: "200px", maxWidth: "200px"}
           }, [
             m("select", {
-              onchange: m.withAttr("value", vm.itemChanged.bind(this, item.index, "operator"))
+              onchange: m.withAttr(
+                "value",
+                vm.itemChanged.bind(this, item.index, "operator"))
             }, Object.keys(operators).map(function (op) {
               return m("option", {value: op}, operators[op]);
             }), item.operator || "=")
@@ -305,22 +320,23 @@
 
       @param {Object} Arguments object
       @param {Number} [obj.index] Index
-      @param {String} [obj.key] Property key
+      @param {String} [obj.attr] Property
       @param {Object} [obj.value] Value
     */
     buildInputComponent = function (obj) {
-      var rel, w, component, prop, format,
-        key = obj.key,
+      var rel, w, component, prop, type, format,
+        attr = obj.key,
         value = obj.value,
         index = obj.index,
         opts = {};
 
-      prop = resolveProperty(feather, key);
+      prop = resolveProperty(feather, attr);
+      type = prop.type;
       format = prop.format || prop.type;
 
       // Handle input types
-      if (typeof prop.type === "string") {
-        if (prop.type === "boolean") {
+      if (typeof type === "string") {
+        if (type === "boolean") {
           component = f.components.checkbox({
             value: value,
             onclick: vm.itemChanged.bind(this, index, "value")
@@ -339,29 +355,34 @@
       }
 
       // Handle relations
-      rel = prop.type.relation.toCamelCase();
-      w = f.components[rel + "Relation"]({
-        parentProperty: key,
-        isCell: opts.isCell
-      });
+      if (!type.childOf && !type.parentOf) {
+        rel = type.relation.toCamelCase();
+        w = f.components[rel + "Relation"]({
+          parentProperty: attr,
+          isCell: true
+        });
 
-      if (prop.isToOne() && w) {
-        return m.component(w, {viewModel: obj.viewModel});
+        if (w) {
+          return m.component(w, {viewModel: vm});
+        }
       }
 
-      console.log("Widget for property '" + key + "' is unknown");
+      console.log("Widget for property '" + attr + "' is unknown");
     };
 
     getDefault = function (attr) {
       var value,
         prop = resolveProperty(feather, attr),
+        type = prop.type,
         format = prop.format;
+
+      if (typeof type === "object") { return {id: ""}; }
 
       if (format && f.formats[format] &&
           f.formats[format].default) {
         value = f.formats[format].default;
       } else {
-        value = f.types[prop.type].default;
+        value = f.types[type].default;
       }
 
       if (typeof value === "function") {
@@ -385,6 +406,27 @@
 
       return feather.properties[property];
     };
+
+    // Build internal model for processing relations where applicable
+    if (feather) { 
+      model = f.model({}, feather);
+      Object.keys(model.data).forEach(function (key) {
+        if (model.data[key].isToOne()) {
+          // If property updated, forward change
+          model.onChange(key, function (prop) {
+            var items = vm.items();
+            items.forEach(function (item) {
+              var value;
+              if (item.property === key) {
+                value = prop.newValue();
+                value = value ? {id: value.data.id()} : {id: ""};
+                vm.itemChanged(item.index, "value", value);
+              }
+            });
+          });
+        }
+      });
+    }
 
     createButton = f.viewModels.buttonViewModel;
     buttonAdd = createButton({

@@ -1343,7 +1343,7 @@
 
       @param {Object} Request payload
       @param {Object} [payload.name] Feather name
-      @param {Object} [payload.filter] Feather name
+      @param {Object} [payload.filter] Filter
       @param {Object} [payload.client] Database client
       @param {Function} [payload.callback] callback
       @param {Boolean} Request as super user. Default false.
@@ -1407,7 +1407,13 @@
               part = "(" + or.join(" OR ") + ")";
 
             // Regular comparison ("name"="Andy")
+            } else if (typeof where.value === "object" && !where.value.id) {
+              part = resolvePath(where.property, tokens) + " IS NULL";
             } else {
+              if (typeof where.value === "object") {
+                where.property = where.property + ".id";
+                where.value = where.value.id;
+              }
               params.push(where.value);
               part = resolvePath(where.property, tokens) + " " + op + " $" + p;
               p += 1;
