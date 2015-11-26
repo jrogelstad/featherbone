@@ -280,7 +280,8 @@
         key = obj.key,
         value = obj.value,
         index = obj.index,
-        opts = {};
+        id = f.createId(),
+        opts = {id: id};
 
       prop = resolveProperty(options.feather, key);
       format = prop.format || prop.type;
@@ -305,7 +306,7 @@
           }, [
             m("input", opts),
             m("label", {
-              for: key,
+              for: id,
               style: {
                 borderWidth: "thin",
                 borderStyle: "solid",
@@ -314,7 +315,8 @@
                 boxShadow: "inset 0 1px 3px #ddd",
                 padding: "7px",
                 maxWidth: "15px",
-                minWidth: "15px"
+                minWidth: "15px",
+                backgroundColor: "White"
               }
             }, m("i", {
               class:"fa fa-check",

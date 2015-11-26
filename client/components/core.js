@@ -86,7 +86,8 @@
               boxShadow: "inset 0 1px 3px #ddd",
               padding: "7px",
               maxWidth: "15px",
-              minWidth: "15px"
+              minWidth: "15px",
+              backgroundColor: "White"
             }
           }, m("i", {
             class:"fa fa-check",
