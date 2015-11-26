@@ -274,7 +274,8 @@
           }, [buildInputComponent({
             index: item.index,
             key: item.property,
-            value: item.value
+            value: item.value,
+            style: {maxWidth: "200px"}
           })])
         ]);
 
@@ -363,7 +364,10 @@
         });
 
         if (w) {
-          return m.component(w, {viewModel: vm});
+          return m.component(w, {
+            viewModel: vm,
+            style: obj.style
+          });
         }
       }
 

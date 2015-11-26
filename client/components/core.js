@@ -88,11 +88,15 @@
     rel = prop.type.relation.toCamelCase();
     w = f.components[rel + "Relation"]({
       parentProperty: key,
-      isCell: opts.isCell
+      isCell: opts.isCell,
+      style: opts.style
     });
 
     if (prop.isToOne() && w) {
-      return m.component(w, {viewModel: obj.viewModel});
+      return m.component(w, {
+        viewModel: obj.viewModel,
+        style: opts.style
+      });
     }
 
     console.log("Widget for property '" + key + "' is unknown");

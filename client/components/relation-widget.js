@@ -148,8 +148,9 @@
       labelProperty = options.labelProperty;
 
     widget.view = function (ignore, args) {
-      var rvm, listOptions, view, inputStyle, menuStyle,
+      var rvm, listOptions, view, inputStyle, menuStyle, maxWidth,
         vm = args.viewModel,
+        style = args.style || {},
         relations = vm.relations(),
         buttonStyle = {
           margin: "2px"
@@ -181,18 +182,13 @@
       if (options.isCell) {
         inputStyle = {
           minWidth: "100px",
-          maxWidth: "100px",
-          boxShadow: "none",
-          border: "none",
-          padding: "0px",
-          backgroundColor: "Azure"
+          maxWidth: "100%"
         };
         buttonStyle = {
           position: "absolute",
-          top: "-7px",
-          right: "-65px"
+          margin: "2px"
         };
-        menuStyle.top = "26px";
+        menuStyle.top = "35px";
         menuStyle.right = "-100px";
         labelStyle.display = "none";
       }
@@ -204,10 +200,19 @@
         return m("option", content);
       });
 
+      style.display = style.display || "inline-block";
+      // Hack size to fit button. Should do this in CSS
+      
+      if (style.maxWidth) {
+        maxWidth = style.maxWidth.replace("px", "");
+        maxWidth = maxWidth - 35;
+        maxWidth = maxWidth < 100  ? 100 : maxWidth;
+        inputStyle.maxWidth = maxWidth + "px";
+      }
+      
+
       // Build the view
-      view = m("div", {
-        style: {display: "inline-block"}
-      },[
+      view = m("div", {style: style},[
         m("input", {
           style: inputStyle,
           list: rvm.listId(),

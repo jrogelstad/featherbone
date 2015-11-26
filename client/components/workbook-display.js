@@ -837,6 +837,7 @@
             cellOpts.style.borderColor = "blue";
             cellOpts.style.borderWidth = "thin";
             cellOpts.style.borderStyle = "solid";
+            cellOpts.style.borderLeftStyle = "none";
           }
         }
         tds.unshift(m("th", cellOpts, thContent));
