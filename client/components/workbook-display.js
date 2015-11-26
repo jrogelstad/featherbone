@@ -132,6 +132,24 @@
     };
     vm.models = f.models[name].list({filter: vm.filter()});
     vm.nextFocus = m.prop();
+    vm.ondragover = function (ev) {
+      ev.preventDefault();
+    };
+    vm.ondragstartColumnHeader = function (idx, ev) {
+      ev.dataTransfer.setData("column", idx);
+    };
+    vm.ondropColumnHeader = function (toIdx, ev) {
+      ev.preventDefault();
+      var moved,
+        fromIdx = ev.dataTransfer.getData("column"),
+        config = vm.config(),
+        cols = config[vm.activeSheet()].list.columns;
+
+      if (fromIdx !== toIdx) {
+        moved = cols.splice(fromIdx, 1)[0];
+        cols.splice(toIdx, 0, moved);
+      }
+    };
     vm.onkeydownCell = function (e) {
       var id, step,
         key = e.key || e.keyIdentifier,
@@ -555,7 +573,8 @@
         sort = filter.sort || [],
         button = f.components.button,
         filterDialog = f.components.filterDialog,
-        activeSheet = vm.activeSheet();
+        activeSheet = vm.activeSheet(),
+        idx = 0;
 
       findFilterIndex = function (col, name) {
         name = name || "criteria";
@@ -592,12 +611,12 @@
         var ths = vm.attrs().map(function (key) {
             var hview, order, name,
               icon = [],
-              idx = findFilterIndex(key, "sort"),
+              fidx = findFilterIndex(key, "sort"),
               operators = vm.filterDialog().operators();
 
             // Add sort icons
-            if (idx !== false) {
-              order = sort[idx].order || "ASC";
+            if (fidx !== false) {
+              order = sort[fidx].order || "ASC";
               if (order.toUpperCase() === "ASC") {
                 name = "fa fa-sort-asc";
               } else {
@@ -620,16 +639,17 @@
                     fontSize: "xx-small",
                     marginRight: "3px"
                   }
-                }, idx + 1));
+                }, fidx + 1));
               }
             }
 
             // Add filter icons
-            idx = findFilterIndex(key);
-            if (idx !== false) {
+            fidx = findFilterIndex(key);
+            if (fidx !== false) {
               icon.push(m("i", {
                 class: "fa fa-filter", 
-                title: operators[(filter.criteria[idx].operator || "=")] + " " + filter.criteria[idx].value,
+                title: operators[(filter.criteria[fidx].operator || "=")] +
+                  " " + filter.criteria[fidx].value,
                 style: {
                   float: "right",
                   color: "DarkBlue",
@@ -640,6 +660,10 @@
             }
 
             hview = m("th", {
+              ondragover: vm.ondragover,
+              draggable: true,
+              ondragstart: vm.ondragstartColumnHeader.bind(this, idx),
+              ondrop: vm.ondropColumnHeader.bind(this, idx),
               style: {
                 minWidth: "150px",
                 maxWidth: "150px",
@@ -648,6 +672,8 @@
                 textOverflow: "ellipsis"
               }
             }, icon, key.toName());
+
+            idx += 1;
 
             return hview;
           });
