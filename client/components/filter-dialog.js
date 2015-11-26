@@ -31,8 +31,8 @@
   f.viewModels.filterDialogViewModel = function (options) {
     options = options || {};
     var vm, state, model, createButton, buttonAdd, buttonRemove,
-      buttonDown, buttonUp, buildInputComponent, resolveProperty,
-      getDefault,
+      buttonClear, buttonDown, buttonUp, buildInputComponent,
+      resolveProperty, getDefault,
       feather = options.feather,
       selection = m.prop();
 
@@ -52,6 +52,7 @@
       }
 
       buttonRemove.enable();
+      buttonClear.enable();
       vm.scrollBottom(true);
     };
     vm.addAttr = function (attr) {
@@ -70,6 +71,9 @@
     vm.buttonAdd = function () {
       return buttonAdd;
     };
+    vm.buttonClear = function () {
+      return buttonClear;
+    };
     vm.buttonDown = function () {
       return buttonDown;
     };
@@ -82,6 +86,10 @@
     vm.cancel = function () {
       vm.reset();
       state.send("close");
+    };
+    vm.clear = function () {
+      vm.data().length = 0;
+      buttonClear.disable();
     };
     vm.data = function () {
       return vm.filter()[vm.propertyName()];
@@ -447,6 +455,13 @@
       style: {backgroundColor: "white"}
     });
 
+    buttonClear = createButton({
+      onclick: vm.clear,
+      title: "Clear",
+      icon: "eraser",
+      style: {backgroundColor: "white"}
+    });
+
     buttonUp = createButton({
       onclick: vm.moveUp,
       icon: "chevron-up",
@@ -554,6 +569,7 @@
         m("div", {style: {padding: "1em"}}, [
           m.component(button({viewModel: vm.buttonAdd()})),
           m.component(button({viewModel: vm.buttonRemove()})),
+          m.component(button({viewModel: vm.buttonClear()})),
           m.component(button({viewModel: vm.buttonDown()})),
           m.component(button({viewModel: vm.buttonUp()})),
           m("table", {
