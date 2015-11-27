@@ -49,7 +49,8 @@
     var selection, state, listState, createButton, buttonHome, buttonList,
       buttonEdit, buttonSave, buttonOpen, buttonNew, buttonDelete,
       buttonUndo, buttonRefresh, buttonClear, buttonNewSheet,
-      searchInput, searchState, sortDialog, filterDialog, filterOpts,
+      searchInput, searchState, sortDialog, filterDialog,
+      sheetConfigureDialog, filterOpts,
       sheet = options.sheet,
       frmroute = "/" + options.name + "/" + options.config[sheet].form.name,
       name = options.feather.toCamelCase(),
@@ -292,10 +293,13 @@
       return vm.mode().selectedColor();
     };
     vm.sheetNew = function () {
-      console.log("new sheet");
+      sheetConfigureDialog.show();
     };
     vm.sheets = function () {
       return Object.keys(options.config || {});
+    };
+    vm.sheetConfigureDialog = function () {
+      return sheetConfigureDialog;
     };
     vm.showMenu = function () {
       return showMenu;
@@ -340,6 +344,9 @@
     };
     sortDialog = f.viewModels.sortDialogViewModel(filterOpts);
     filterDialog = f.viewModels.filterDialogViewModel(filterOpts);
+    sheetConfigureDialog = f.viewModels.sheetConfigureDialogViewModel({
+      config: vm.config()
+    });
 
     // Create button view models
     createButton = f.viewModels.buttonViewModel;
@@ -592,6 +599,7 @@
         sort = filter.sort || [],
         button = f.components.button,
         filterDialog = f.components.filterDialog,
+        sheetConfigureDialog = f.components.sheetConfigureDialog,
         activeSheet = vm.activeSheet(),
         idx = 0;
 
@@ -940,6 +948,7 @@
           }, [
           m.component(filterDialog({viewModel: vm.sortDialog()})),
           m.component(filterDialog({viewModel: vm.filterDialog()})),
+          m.component(sheetConfigureDialog({viewModel: vm.sheetConfigureDialog()})),
           m.component(button({viewModel: vm.buttonHome()})),
           m.component(button({viewModel: vm.buttonList()})),
           m.component(button({viewModel: vm.buttonEdit()})),
