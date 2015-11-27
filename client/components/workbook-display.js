@@ -601,7 +601,8 @@
         filterDialog = f.components.filterDialog,
         sheetConfigureDialog = f.components.sheetConfigureDialog,
         activeSheet = vm.activeSheet(),
-        idx = 0;
+        idx = 0,
+        zoom = vm.zoom() + "%";
 
       findFilterIndex = function (col, name) {
         name = name || "criteria";
@@ -620,19 +621,14 @@
 
       // Define scrolling behavior for table body
       tbodyConfig = function (e) {
-        var bodyHeight,
-          OFFSET = 3, // Hack
-          MARGIN = 6,
-          zoom = vm.zoom() * 0.01,
+        var MARGIN = 6,
           winHeight = window.innerHeight,
           toolbarHeight = document.getElementById("toolbar").clientHeight,
-          headerHeight = document.getElementById("header").clientHeight * zoom,
+          headerHeight = document.getElementById("header").clientHeight,
           tabsHeight = document.getElementById("tabs").clientHeight,
-          fh = math.subtract(math.subtract(math.subtract(winHeight, toolbarHeight), headerHeight),tabsHeight);
+          bodyHeight = math.subtract(math.subtract(math.subtract(math.subtract(winHeight, toolbarHeight), headerHeight),tabsHeight), MARGIN);
 
-        bodyHeight = math.subtract(math.add(fh / zoom, OFFSET * zoom), MARGIN);
         e.style.height = bodyHeight + "px";
-
 
         // Set fields table to scroll and toolbar to stay put
         document.documentElement.style.overflow = 'hidden';
@@ -662,7 +658,8 @@
                 class: name, 
                 style: {
                   float: "right",
-                  color: "grey"
+                  color: "grey",
+                  fontSize: zoom
                 }
               }));
 
@@ -671,7 +668,7 @@
                    style: {
                     float: "right",
                     color: "grey",
-                    fontSize: "xx-small",
+                    fontSize: vm.zoom() * 0.6 + "%",
                     marginRight: "3px"
                   }
                 }, fidx + 1));
@@ -689,7 +686,7 @@
                   float: "right",
                   color: "DarkBlue",
                   marginRight: "3px",
-                  fontSize: "small"
+                  fontSize: vm.zoom() * 0.80 + "%"
                 }
               }));
             }
@@ -704,7 +701,8 @@
                 maxWidth: "150px",
                 whiteSpace: "nowrap",
                 overflow: "hidden",
-                textOverflow: "ellipsis"
+                textOverflow: "ellipsis",
+                fontSize: zoom
               }
             }, icon, key.toName());
 
@@ -758,7 +756,8 @@
                   maxWidth: "150px",
                   whiteSpace: "nowrap",
                   overflow: "hidden",
-                  textOverflow: "ellipsis"
+                  textOverflow: "ellipsis",
+                  fontSize: zoom
                 }
               };
 
@@ -841,7 +840,8 @@
                 boxShadow: "none",
                 border: "none",
                 padding: "0px",
-                backgroundColor: color
+                backgroundColor: color,
+                fontSize: zoom
               },
               isCell: true
             };
@@ -1022,8 +1022,7 @@
           class: "pure-table",
           style: {
             tableLayout: "fixed",
-            width: "100%",
-            zoom: vm.zoom() + "%"
+            width: "100%"
           }
         }, [
             m("thead", {
