@@ -14,7 +14,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-/*global window, f, m */
+/*global window, f, m, math */
 (function (f) {
   "use strict";
 
@@ -320,6 +320,7 @@
     vm.undo = function () {
       if (selection) { selection.undo(); }
     };
+    vm.zoom = m.prop(vm.config()[vm.activeSheet()].zoom || 100);
 
     // ..........................................................
     // PRIVATE
@@ -593,14 +594,22 @@
 
       // Define scrolling behavior for table body
       tbodyConfig = function (e) {
-        var tb = document.getElementById("toolbar"),
-          hd = document.getElementById("header"),
-          ts = document.getElementById("tabs"),
-          mh = window.innerHeight - tb.clientHeight - hd.clientHeight - ts.clientHeight- 12;
+        var bodyHeight,
+          OFFSET = 3, // Hack
+          MARGIN = 6,
+          zoom = vm.zoom() * 0.01,
+          winHeight = window.innerHeight,
+          toolbarHeight = document.getElementById("toolbar").clientHeight,
+          headerHeight = document.getElementById("header").clientHeight * zoom,
+          tabsHeight = document.getElementById("tabs").clientHeight,
+          fh = math.subtract(math.subtract(math.subtract(winHeight, toolbarHeight), headerHeight),tabsHeight);
+
+        bodyHeight = math.subtract(math.add(fh / zoom, OFFSET * zoom), MARGIN);
+        e.style.height = bodyHeight + "px";
+
 
         // Set fields table to scroll and toolbar to stay put
         document.documentElement.style.overflow = 'hidden';
-        e.style.height = mh + "px";
 
         // Key down handler for up down movement
         e.addEventListener("keydown", vm.onkeydownCell);
@@ -967,7 +976,8 @@
           class: "pure-table",
           style: {
             tableLayout: "fixed",
-            width: "100%"
+            width: "100%",
+            zoom: vm.zoom() + "%"
           }
         }, [
             m("thead", {
@@ -991,8 +1001,35 @@
         ]),
         m("div", {
             id: "tabs"
-          }, tabs
-        )
+          }, [
+          tabs,
+          m("i", {class: "fa fa-search-plus", style: {
+            color: "LightGrey",
+            marginLeft: "5px",
+            marginTop: "11px",
+            marginRight: "8px",
+            float: "right"
+          }}),
+          m("input", {
+            style: {
+               float: "right",
+               marginTop: "8px"
+            },
+            title: "Zoom " + vm.zoom() + "%",
+            type: "range",
+            step: "5",
+            min: "50",
+            max: "150",
+            value: vm.zoom(),
+            oninput: m.withAttr("value", vm.zoom)
+          }),
+          m("i", {class: "fa fa-search-minus", style: {
+            color: "LightGrey",
+            marginRight: "5px",
+            marginTop: "11px",
+            float: "right"
+          }})
+        ])
       ]);
 
       return view;

@@ -15,6 +15,7 @@
     "body-parser": "^1.13.3",
     "express": "^4.13.1",
     "fast-json-patch": "0.5.2",
+    "mathjs": "^2.4.2",
     "mithril": "^0.2.0",
     "pg": "4.4.0",
     "pg-format": "^0.1.4",
