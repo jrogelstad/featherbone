@@ -14,7 +14,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-/*global window, f, m, math */
+/*global window, f, m, math, dialogPolyfill */
 (function (f) {
   "use strict";
 
@@ -927,6 +927,10 @@
       view = m("div", {
         class: "pure-form",
         config: function () {
+          // Make Chrome style dialog available for all browsers
+          var dialog = document.querySelector('dialog');
+          if (!dialog.showModal) { dialogPolyfill.registerDialog(dialog); }
+
           document.addEventListener("keydown", vm.onkeydownPage, false);
         }
       }, [
@@ -992,8 +996,7 @@
               }, [m("div", {style: {
                 display: "inline",
                 fontWeight: "bold",
-                fontStyle: "Italic",
-                //fontFamily: "Courier"
+                fontStyle: "Italic"
               }}, "∑")], " Totals"),
               m("li", {
                 class: "pure-menu-link",
