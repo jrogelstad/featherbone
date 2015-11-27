@@ -48,8 +48,8 @@
   f.viewModels.workbookViewModel = function (options) {
     var selection, state, listState, createButton, buttonHome, buttonList,
       buttonEdit, buttonSave, buttonOpen, buttonNew, buttonDelete,
-      buttonUndo, buttonRefresh, buttonClear, searchInput, searchState,
-      sortDialog, filterDialog, filterOpts,
+      buttonUndo, buttonRefresh, buttonClear, buttonNewSheet,
+      searchInput, searchState, sortDialog, filterDialog, filterOpts,
       sheet = options.sheet,
       frmroute = "/" + options.name + "/" + options.config[sheet].form.name,
       name = options.feather.toCamelCase(),
@@ -74,6 +74,7 @@
     vm.buttonHome = function () { return buttonHome; };
     vm.buttonList = function () { return buttonList; };
     vm.buttonNew = function () { return buttonNew; };
+    vm.buttonNewSheet = function () { return buttonNewSheet; };
     vm.buttonOpen = function () { return buttonOpen; };
     vm.buttonRefresh = function () { return buttonRefresh; };
     vm.buttonSave = function () { return buttonSave; };
@@ -290,6 +291,9 @@
     vm.selectedColor = function () {
       return vm.mode().selectedColor();
     };
+    vm.sheetNew = function () {
+      console.log("new sheet");
+    };
     vm.sheets = function () {
       return Object.keys(options.config || {});
     };
@@ -406,6 +410,20 @@
       onclick: vm.searchInput().clear,
       title: "Clear search",
       icon: "eraser"
+    });
+
+    buttonNewSheet = createButton({
+      onclick: vm.sheetNew,
+      title: "New sheet",
+      icon: "plus",
+      style: {
+        backgroundColor: "#E6E6E6",
+        borderTopLeftRadius: "0px",
+        borderTopRightRadius: "0px",
+        borderRightStyle: "solid",
+        borderRightColor: "Silver",
+        borderRightWidth: "thin"
+      }
     });
 
     // Bind button states to list statechart events
@@ -894,7 +912,10 @@
             "pure-button pure-button-primary" : "pure-button",
           style: {
             borderTopLeftRadius: "0px",
-            borderTopRightRadius: "0px"
+            borderTopRightRadius: "0px",
+            borderRightStyle: "solid",
+            borderRightColor: "Silver",
+            borderRightWidth: "thin"
           },
           onclick: vm.tabClicked.bind(this, sheet)
         }, sheet);
@@ -966,9 +987,22 @@
               }, [m("i", {class:"fa fa-filter"})], " Filter"),
               m("li", {
                 class: "pure-menu-link",
-                title: "Store workbook configuration"
+                title: "Change sheet filter",
+                onclick: vm.filterDialog().show
+              }, [m("div", {style: {
+                display: "inline",
+                fontWeight: "bold",
+                fontStyle: "Italic",
+                //fontFamily: "Courier"
+              }}, "∑")], " Totals"),
+              m("li", {
+                class: "pure-menu-link",
+                style: {
+                  borderTop: "solid thin lightgrey"
+                },
+                title: "Share workbook configuration"
                 //onclick: rvm.onclickopen
-              }, [m("i", {class:"fa fa-upload"})], " Store")
+              }, [m("i", {class:"fa fa-share-alt"})], " Share")
             ])
           ])     
         ]),
@@ -1003,17 +1037,18 @@
             id: "tabs"
           }, [
           tabs,
+          m.component(button({viewModel: vm.buttonNewSheet()})),
           m("i", {class: "fa fa-search-plus", style: {
             color: "LightGrey",
             marginLeft: "5px",
-            marginTop: "11px",
+            marginTop: "9px",
             marginRight: "8px",
             float: "right"
           }}),
           m("input", {
             style: {
                float: "right",
-               marginTop: "8px"
+               marginTop: "6px"
             },
             title: "Zoom " + vm.zoom() + "%",
             type: "range",
@@ -1026,7 +1061,7 @@
           m("i", {class: "fa fa-search-minus", style: {
             color: "LightGrey",
             marginRight: "5px",
-            marginTop: "11px",
+            marginTop: "9px",
             float: "right"
           }})
         ])
