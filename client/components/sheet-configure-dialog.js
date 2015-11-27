@@ -30,7 +30,7 @@
   */
   f.viewModels.sheetConfigureDialogViewModel = function (options) {
     options = options || {};
-    var vm, state;
+    var vm, state, setModel;
 
     // ..........................................................
     // PUBLIC
@@ -38,6 +38,13 @@
 
     vm = {};
     vm.id = m.prop(options.id || f.createId());
+    vm.feathers = function () {
+      var feathers = f.catalog.data(),
+        result = Object.keys(feathers).filter(function (name) {
+          return !feathers[name].isChild;
+        }).sort();
+      return result;
+    };
     vm.show = function () {
       state.send("show");
     };
@@ -47,11 +54,31 @@
     vm.cancel = function () {
       state.send("close");
     };
-    vm.title = m.prop( "Edit sheet");
+    vm.config = f.prop(options.config);
+    vm.sheet = f.prop(options.sheet || "");
+    vm.model = m.prop();
+    vm.title = m.prop( options.title || "Configure worksheet");
 
     // ..........................................................
     // PRIVATE
     //
+
+    setModel = function (sheet) {
+      var model = {},
+        config = vm.config(),
+        sheetConfig = config[sheet] || {};
+      model.name = m.prop(sheet || "");
+      model.feather = m.prop(sheetConfig.feather || "");
+      model.form = m.prop(sheetConfig.form || {});
+      model.list = m.prop(sheetConfig.list || []);
+      vm.model(model);
+    };
+    setModel(vm.sheet());
+
+    // When sheet changes, update model referenced
+    vm.sheet.state().resolve("/Changing").enter(function () {
+      setModel(vm.sheet.newValue());
+    });
 
     // Statechart
     state = f.statechart.State.define({concurrent: true}, function () {
@@ -96,9 +123,15 @@
     };
 
     component.view = function (ctrl) {
-      var view,
-        button = f.components.button,
-        vm = ctrl.vm;
+      var view, feathers,
+        vm = ctrl.vm,
+        model = vm.model(),
+        nameId = f.createId(),
+        featherId = f.createId();
+
+      feathers = vm.feathers().map(function (feather) {
+        return m("option", feather);
+      });
 
       view = m("dialog",  {
           id: vm.id(),
@@ -117,20 +150,44 @@
             padding: "6px"
           }
         }, [m("i", {
-          class:"fa fa-edit", 
-          style: {marginRight: "3px"}
+          class:"fa fa-gear", 
+          style: {marginRight: "5px"}
         })], vm.title()),
-        m("br"),
-        m("button", {
-          class: "pure-button  pure-button-primary",
-          style: {marginRight: "5px"},
-          autofocus: true,
-          onclick: vm.ok
-        }, "Ok"),
-        m("button", {
-          class: "pure-button",
-          onclick: vm.cancel
-        }, "Cancel")
+        m("div", {style: {padding: "1em"}}, [
+          m("form", {
+            class: "pure-form pure-form-aligned"
+          }, [
+            m("div", {class: "pure-control-group"}, [
+              m("label", {
+                for: nameId
+              }, "Name:"),
+              m("input", {
+                value: model.name(),
+                oninput: m.withAttr("value", model.name)
+              })
+            ]),
+            m("div", {class: "pure-control-group"}, [
+              m("label", {
+                for: featherId
+              }, "Feather:"),
+              m("select", {
+                value: model.feather(),
+                oninput: m.withAttr("value", model.feather)
+              }, feathers)
+            ])
+          ]),
+          m("br"),
+          m("button", {
+            class: "pure-button  pure-button-primary",
+            style: {marginRight: "5px"},
+            autofocus: true,
+            onclick: vm.ok
+          }, "Ok"),
+          m("button", {
+            class: "pure-button",
+            onclick: vm.cancel
+          }, "Cancel")
+       ])
       ]);
 
       return view;

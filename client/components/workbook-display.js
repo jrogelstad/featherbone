@@ -89,6 +89,11 @@
       });
       return col ? col.toCamelCase(true) : undefined;
     };
+    vm.configureSheet = function () {
+      var dlg = vm.sheetConfigureDialog();
+      dlg.sheet(vm.activeSheet());
+      dlg.show();
+    };
     vm.filter = f.prop(JSON.parse(JSON.stringify(options.config[sheet].list.filter || {})));
     vm.filterDialog = function () {
       return filterDialog;
@@ -992,16 +997,20 @@
                 class: "pure-menu-link",
                 title: "Change sheet sort",
                 onclick: vm.sortDialog().show
-              }, [m("i", {class:"fa fa-sort-alpha-asc"})], " Sort"),
+              }, [m("i", {class:"fa fa-sort-alpha-asc", style: {
+                marginRight: "4px"
+              }})], "Sort"),
               m("li", {
                 class: "pure-menu-link",
                 title: "Change sheet filter",
                 onclick: vm.filterDialog().show
-              }, [m("i", {class:"fa fa-filter"})], " Filter"),
+              }, [m("i", {class:"fa fa-filter", style: {
+                marginRight: "4px"
+              }})], "Filter"),
               m("li", {
                 class: "pure-menu-link",
-                title: "Change sheet filter",
-                onclick: vm.filterDialog().show
+                title: "Edit subtotals"
+                //onclick: vm.filterDialog().show
               }, [m("div", {style: {
                 display: "inline",
                 fontWeight: "bold",
@@ -1012,9 +1021,25 @@
                 style: {
                   borderTop: "solid thin lightgrey"
                 },
+                title: "Configure current worksheet",
+                onclick: vm.configureSheet
+              }, [m("i", {class:"fa fa-gear", style: {
+                marginRight: "4px"
+              }})], "Configure"),
+              m("li", {
+                class: "pure-menu-link",
                 title: "Share workbook configuration"
                 //onclick: rvm.onclickopen
-              }, [m("i", {class:"fa fa-share-alt"})], " Share")
+              }, [m("i", {class:"fa fa-share-alt", style: {
+                marginRight: "4px"
+              }})], "Share"),
+              m("li", {
+                class: "pure-menu-link",
+                title: "Revert workbook configuration to original state"
+                //onclick: rvm.onclickopen
+              }, [m("i", {class:"fa fa-reply", style: {
+                marginRight: "4px"
+              }})], "Revert")
             ])
           ])     
         ]),

@@ -564,7 +564,7 @@
           }
         }, [m("i", {
           class:"fa fa-" + vm.title(), 
-          style: {marginRight: "3px"}
+          style: {marginRight: "5px"}
         })], vm.title().toName()),
         m("div", {style: {padding: "1em"}}, [
           m.component(button({viewModel: vm.buttonAdd()})),
