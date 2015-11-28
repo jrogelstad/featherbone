@@ -22,7 +22,7 @@
     doGetSettings, doGetFeather, doGetModules, doRequest,
     doGetMethod, doSaveFeather, doDeleteFeather, registerDataRoutes,
     doDeleteMethod, doDeleteWorkbook, doGetWorkbooks, doSaveWorkbook,
-    doSaveMethod,
+    doSaveMethod, doGetWorkbook,
     datasource = require("./server/datasource"),
     express = require("express"),
     bodyParser = require("body-parser"),
@@ -141,7 +141,7 @@
       }
     }
 
-  console.log(JSON.stringify(payload, null, 2));
+    console.log(JSON.stringify(payload, null, 2));
     datasource.request(payload);
   };
 
@@ -156,6 +156,10 @@
 
   doGetSettings = function (req, res) {
     doGetMethod("getSettings", req, res);
+  };
+
+  doGetWorkbook = function (req, res) {
+    doGetMethod("getWorkbook", req, res);
   };
 
   doGetWorkbooks = function (req, res) {
@@ -187,6 +191,7 @@
       }
     };
 
+    console.log(JSON.stringify(payload, null, 2));
     datasource.request(payload);
   };
 
@@ -224,6 +229,7 @@
       }
     };
 
+    console.log(JSON.stringify(payload, null, 2));
     datasource.request(payload);
   };
 
@@ -323,7 +329,7 @@
     workbookRouter.route("/")
       .get(doGetWorkbooks);
     workbookRouter.route("/:name")
-      .get(doGetWorkbooks)
+      .get(doGetWorkbook)
       .put(doSaveWorkbook)
       .delete(doDeleteWorkbook);
 

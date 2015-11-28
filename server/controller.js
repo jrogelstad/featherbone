@@ -1638,6 +1638,23 @@
       callback(null, false);
     },
 
+    getWorkbook: function (obj) {
+      var callback = function (err, resp) {
+           if (err) {
+            obj.callback(err);
+            return;
+          }
+
+          obj.callback(null, resp[0]);
+        };
+
+      that.getWorkbooks({
+        name: obj.name,
+        client: obj.client,
+        callback: callback
+      });
+    },
+
     /**
       Return a workbook definition(s). If name is passed in payload
       only that workbook will be returned.
@@ -1650,7 +1667,7 @@
     */
     getWorkbooks: function (obj) {
       var params = [obj.client.currentUser],
-        sql = "SELECT name, description, launch_config AS \"launchConfig\", " +
+        sql = "SELECT name, description, module, launch_config AS \"launchConfig\", " +
           "default_config AS \"defaultConfig\", local_config AS \"localConfig\" " +
           "FROM \"$workbook\"" +
           "WHERE EXISTS (" +
@@ -2831,18 +2848,16 @@
               // Update workbook
               sql = "UPDATE \"$workbook\" SET " +
                 "updated_by=$2, updated=now(), " +
-                "description=$3, launch_config=$4, default_config=$5," +
-                "local_config=$6, module=$7 WHERE name=$1;";
+                "description=$3, launch_config=$4," +
+                "local_config=$5, module=$6 WHERE name=$1;";
               id = wb.id;
               launchConfig = wb.launchConfig || row.launch_config;
               localConfig = wb.localConfig || row.local_config;
-              defaultConfig = wb.defaultConfig || row.default_config;
               params = [
                 wb.name,
                 obj.client.currentUser,
                 wb.description || row.description,
                 launchConfig,
-                defaultConfig,
                 localConfig,
                 wb.module
               ];

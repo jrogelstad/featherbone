@@ -195,7 +195,7 @@
           sql = "CREATE TABLE \"$workbook\" (" +
             "name text UNIQUE," +
             "description text," +
-            "launch_config," +
+            "launch_config json," +
             "default_config json," +
             "local_config json," +
             "module text REFERENCES \"$module\" (name)," +

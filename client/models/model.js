@@ -182,7 +182,7 @@
     feather = feather || {};
 
     var  doClear, doDelete, doError, doFetch, doInit, doPatch, doPost, doSend,
-      doFreeze, doThaw, doRevert, validator, lastError, path, state, noUndo,
+      doFreeze, doThaw, doRevert, validator, lastError, state, noUndo,
       that = {data: {}, name: feather.name || "Object", plural: feather.plural},
       jsonpatch = f.jsonpatch,
       d = that.data,
@@ -237,6 +237,15 @@
     that.fetch = function () {
       return doSend("fetch");
     };
+
+    /*
+      The data property that is the unique identifier for the model.
+      Default is "id".
+
+      @param {String}
+      @returns {String}
+    */
+    that.idProperty = m.prop("id");
 
     /*
       Property that indicates object is a model (i.e. class).
@@ -367,6 +376,18 @@
       return this;
     };
 
+    /*
+      Returns a path to execute server requests.
+
+      @param {String} Name
+      @param {String} Id (Optional)
+      @returns {String}
+    */
+    that.path = function (name, id) {
+      var ret = "/data/" + name.toSpinalCase();
+      if (id) { ret += "/" + id; }
+      return ret;
+    };
 
     /*
       Send the save event to persist current data to the server.
@@ -474,7 +495,8 @@
     doDelete = function (context) {
       var ds = f.dataSource,
         result = f.prop({}),
-        payload = {method: "DELETE", path: path(that.name, d.id())},
+        id = that.idProperty(),
+        payload = {method: "DELETE", path: that.path(that.name, d[id]())},
         callback = function () {
           that.set(result(), true, true);
           state.send('deleted');
@@ -495,7 +517,8 @@
     doFetch = function (context) {
       var ds = f.dataSource,
         result = f.prop({}),
-        payload = {method: "GET", path: path(that.name, that.data.id())},
+        id = that.idProperty(),
+        payload = {method: "GET", path: that.path(that.name, that.data[id]())},
         handleErr = function (err) {
           console.log(err);
         },
@@ -528,7 +551,8 @@
       var ds = f.dataSource,
         result = f.prop({}),
         patch = jsonpatch.compare(lastFetched, that.toJSON()),
-        payload = {method: "PATCH", path: path(that.name, that.data.id()),
+        id = that.idProperty(),
+        payload = {method: "PATCH", path: that.path(that.name, that.data[id]()),
           data: {data: patch}},
         callback = function () {
           jsonpatch.apply(lastFetched, patch); // Update to sent changes
@@ -547,7 +571,7 @@
       var ds = f.dataSource,
         result = f.prop({}),
         cache = that.toJSON(),
-        payload = {method: "POST", path: path(that.plural),
+        payload = {method: "POST", path: that.path(that.plural),
           data: {data: cache}},
         callback = function () {
           jsonpatch.apply(cache, result());
@@ -654,10 +678,11 @@
         };
 
         ary.remove = function (value) {
-          var result, idx, find;
+          var result, idx, find,
+            id = that.idProperty();
 
           find = function (item, i) {
-            if (value.data.id() === item.data.id()) {
+            if (value.data[id]() === item.data[id]()) {
               idx = i;
               return true;
             }
@@ -844,12 +869,6 @@
 
         d[key] = prop;
       });
-    };
-
-    path = function (name, id) {
-      var ret = "/data/" + name.toSpinalCase();
-      if (id) { ret += "/" + id; }
-      return ret;
     };
 
     // Define state

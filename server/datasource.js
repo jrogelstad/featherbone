@@ -297,6 +297,7 @@
   that.registerFunction("GET", "getFeather", controller.getFeather);
   that.registerFunction("GET", "getModules", controller.getModules);
   that.registerFunction("GET", "getSettings", controller.getSettings);
+  that.registerFunction("GET", "getWorkbook", controller.getWorkbook);
   that.registerFunction("GET", "getWorkbooks", controller.getWorkbooks);
   that.registerFunction("GET", "isAuthorized", controller.isAuthorized);
   that.registerFunction("GET", "isSuperUser", controller.isSuperUser);
