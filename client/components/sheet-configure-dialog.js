@@ -22,10 +22,7 @@
     View model for sort dialog.
 
     @param {Object} Options
-    @param {Array} [options.propertyName] Filter property being modified
-    @param {Array} [options.attrs] Attributes
-    @param {Array} [options.list] Model list
-    @param {Array} [options.feather] Feather
+    @param {Function} [options.config] Filter property being modified
     @param {Function} [options.filter] Filter property
   */
   f.viewModels.sheetConfigureDialogViewModel = function (options) {
@@ -54,7 +51,7 @@
     vm.cancel = function () {
       state.send("close");
     };
-    vm.config = f.prop(options.config);
+    vm.config = options.config;
     vm.sheet = f.prop(options.sheet || "");
     vm.model = m.prop();
     vm.title = m.prop( options.title || "Configure worksheet");
@@ -67,10 +64,19 @@
       var model = {},
         config = vm.config(),
         sheetConfig = config[sheet] || {};
+
+      model.isNew = !config[sheet];
       model.name = m.prop(sheet || "");
       model.feather = m.prop(sheetConfig.feather || "");
       model.form = m.prop(sheetConfig.form || {});
       model.list = m.prop(sheetConfig.list || []);
+      model.toJSON = function () {
+        return {
+          feather: model.feather(),
+          form: model.form(),
+          list: model.list()
+        };
+      };
       vm.model(model);
     };
     setModel(vm.sheet());
@@ -81,7 +87,7 @@
     });
 
     // Statechart
-    state = f.statechart.State.define({concurrent: true}, function () {
+    state = f.statechart.State.define(function () {
       this.state("Display", function () {
         this.state("Closed", function () {
           this.enter(function () {
@@ -101,6 +107,28 @@
           });
           this.event("close", function () {
             this.goto("../Closed");
+          });
+          this.C(function() {
+            if (vm.model().isNew) { 
+              return "./New";
+            }
+            return "./Edit";
+          });
+          this.state("New", function () {
+          });
+          this.state("Edit", function () {
+            this.exit(function () {
+              var route,
+                config = vm.config(),
+                sheet = vm.sheet(),
+                model = vm.model(),
+                name = model.name();
+              delete config[sheet];
+              config[name] = model.toJSON();
+              route = "/" + options.workbook + "/" + name;
+              route = route.toSpinalCase();
+              m.route(route);
+            });
           });
         });
       });

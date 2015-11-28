@@ -173,7 +173,7 @@
     callback = function (err, resp) {
       // Handle error
       if (err) {
-        err.status(err.statusCode).json(err.message);
+        res.status(err.statusCode).json(err.message);
         return res;
       }
 
@@ -209,7 +209,7 @@
 
     callback = function (err, resp) {
       if (err) {
-        err.status(err.statusCode).json(err.message);
+        res.status(err.statusCode).json(err.message);
         return;
       }
 

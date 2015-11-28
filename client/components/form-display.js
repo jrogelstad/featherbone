@@ -20,7 +20,7 @@
 
   f.viewModels.formViewModel = function (options) {
     var vm = {}, model,
-      wbkroute = "/" + options.workbook + "/" + options.sheet,
+      wbkroute = "/" + options.workbook + "/" + options.sheet.name,
       frmroute = "/" + options.workbook + "/" + options.form,
       feather = options.feather,
       name = feather.toCamelCase(),

@@ -23,7 +23,7 @@
   var workbooks = m.prop(),
     getConfig = function (workbook) {
       var config = workbook.defaultConfig;
-      if (Object.keys(workbook.localConfig).length) {
+      if (workbook.localConfig.length) {
         config = workbook.localConfig;
       }
       return config;
@@ -96,9 +96,9 @@
 
         workbooks().forEach(function (workbook) {
           var config = getConfig(workbook),
-            sheet = Object.keys(config)[0],
-            name = workbook.name + sheet,
-            route = "/" + workbook.name + "/" + sheet;
+            sheetname = config[0].name,
+            name = workbook.name + sheetname,
+            route = "/" + workbook.name + "/" + sheetname;
           route = route.toSpinalCase();
 
           that["go" + name] = function () {
@@ -109,7 +109,7 @@
       view: function (ctrl) {
         var buttons = workbooks().map(function (workbook) {
             var config = getConfig(workbook),
-              sheet = Object.keys(config)[0],
+              sheet = config[0].name,
               name = workbook.name + sheet,
               launchConfig = workbook.launchConfig,
               className = "fa fa-" + launchConfig.icon || "gear";
@@ -154,14 +154,14 @@
 
     // Build workbook for each configured object
     workbooks().forEach(function (workbook) {
-      var config = getConfig(workbook),
-        keys = Object.keys(config);
+      var config = getConfig(workbook);
 
-      keys.forEach(function (sheet) {
-        var form = config[sheet].form.name,
+      config.forEach(function (item) {
+        var sheet = item.name,
+          form = item.form.name,
           sheetname = workbook.name + sheet,
           formname = workbook.name + form,
-          feather = config[sheet].feather,
+          feather = item.feather,
           wbkroute = "/" + workbook.name + "/" + sheet,
           frmroute = "/" + workbook.name + "/" + form;
         sheetname = sheetname.toCamelCase();
@@ -174,15 +174,15 @@
           name: workbook.name,
           feather: feather,
           config: config,
-          sheet: sheet
+          sheet: item
         });
 
         app[formname + "FormDisplay"] = f.components.formDisplay({
           workbook: workbook.name,
-          sheet: sheet,
+          sheet: item,
           form: form,
           feather: feather,
-          attrs: config[sheet].form.attrs
+          attrs: item.form.attrs
         });
 
         // Build routes

@@ -71,7 +71,7 @@
             });
           });
 
-          this.state("Dirty", function (deferred) {
+          this.state("Dirty", function () {
             this.event("save", function (deferred) {
               this.goto("/Busy/Saving", {
                 context: {deferred: deferred}
@@ -125,15 +125,18 @@
 
     /**
       Return a model specification (feather) including inherited properties.
+      If a feather already resolved is passed in as the first argument, it
+      will simply be returned.
 
-      @param {String} Model name
+      @param {String | Object} Feather
       @param {Boolean} Include inherited or not. Defult = true.
       @return {String}
     */
-    that.getFeather = function (name, includeInherited) {
-      var resultProps, modelProps, key, appendParent,
+    that.getFeather = function (feather, includeInherited) {
+      if (typeof feather === "object") { return feather; }
+      var resultProps, modelProps, appendParent,
         catalog = that.data(),
-        result = {name: name, inherits: "Object"};
+        result = {name: feather, inherits: "Object"};
 
       appendParent = function (child, parent) {
         var model = catalog[parent],
@@ -155,17 +158,15 @@
         return child;
       };
 
-      if (!catalog[name]) { return false; }
+      if (!catalog[feather]) { return false; }
 
-      // Add other attributes after name
-      for (key in catalog[name]) {
-        if (catalog[name].hasOwnProperty(key)) {
-          result[key] = catalog[name][key];
-        }
-      }
+      // Add other attributes after nam
+      Object.keys(catalog[feather]).forEach(function (key) {
+        result[key] = catalog[feather][key];
+      });
 
       // Want inherited properites before class properties
-      if (includeInherited !== false && name !== "Object") {
+      if (includeInherited !== false && feather !== "Object") {
         result.properties = {};
         result = appendParent(result, result.inherits);
       } else {
@@ -173,13 +174,11 @@
       }
 
       // Now add local properties back in
-      modelProps = catalog[name].properties;
+      modelProps = catalog[feather].properties;
       resultProps = result.properties;
-      for (key in modelProps) {
-        if (modelProps.hasOwnProperty(key)) {
-          resultProps[key] = modelProps[key];
-        }
-      }
+      Object.keys(modelProps).forEach(function (key) {
+        resultProps[key] = modelProps[key];
+      });
 
       return result;
     };

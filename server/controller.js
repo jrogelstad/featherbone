@@ -2848,42 +2848,43 @@
               // Update workbook
               sql = "UPDATE \"$workbook\" SET " +
                 "updated_by=$2, updated=now(), " +
-                "description=$3, launch_config=$4," +
-                "local_config=$5, module=$6 WHERE name=$1;";
+                "description=$3, launch_config=$4, default_config=$5," +
+                "local_config=$6, module=$7 WHERE name=$1;";
               id = wb.id;
               launchConfig = wb.launchConfig || row.launch_config;
+              defaultConfig = wb.defaultConfig || row.default_config;
               localConfig = wb.localConfig || row.local_config;
               params = [
                 wb.name,
                 obj.client.currentUser,
                 wb.description || row.description,
-                launchConfig,
-                localConfig,
+                JSON.stringify(launchConfig),
+                JSON.stringify(defaultConfig),
+                JSON.stringify(localConfig),
                 wb.module
               ];
             } else {
               // Insert new workbook
-              sql = "INSERT INTO \"$workbook\" (_pk, id, created, " +
-                " created_by, updated, updated_by, is_deleted, name, " +
-                "description, launch_config, default_config, " +
-                "local_config, module) " +
+              sql = "INSERT INTO \"$workbook\" (_pk, id, name, description, module, " +
+                "launch_config, default_config, local_config, " +
+                "created_by, updated_by, created, updated, is_deleted) " +
                 "VALUES (" +
-                "nextval('object__pk_seq'), $2, now(), " +
-                "$2, now(), $3, false, $1, $4, $5, $6, $7, $8) " +
+                "nextval('object__pk_seq'), $1, $2, $3, $4, $5, $6, $7, $8, $8, " +
+                "now(), now(), false) " +
                 "RETURNING _pk;";
               id = f.createId();
               launchConfig = wb.launchConfig || {};
-              localConfig = wb.localConfig || {};
-              defaultConfig = wb.defaultConfig || {};
+              localConfig = wb.localConfig || [];
+              defaultConfig = wb.defaultConfig || [];
               params = [
-                wb.name,
                 id,
-                obj.client.currentUser,
+                wb.name,
                 wb.description || "",
+                wb.module,
                 launchConfig,
-                defaultConfig,
-                localConfig,
-                wb.module
+                JSON.stringify(defaultConfig),
+                JSON.stringify(localConfig),
+                obj.client.currentUser
               ];
             }
 

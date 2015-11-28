@@ -51,11 +51,10 @@
       buttonUndo, buttonRefresh, buttonClear, buttonNewSheet,
       searchInput, searchState, sortDialog, filterDialog,
       sheetConfigureDialog, filterOpts,
-      sheet = options.sheet,
-      frmroute = "/" + options.name + "/" + options.config[sheet].form.name,
+      frmroute = "/" + options.name + "/" + options.sheet.form.name,
       name = options.feather.toCamelCase(),
       feather = f.catalog.getFeather(options.feather),
-      columns = options.config[sheet].list.columns || [{attr: "id"}],
+      columns = options.sheet.list.columns || [{attr: "id"}],
       showMenu = false,
       vm = {};
 
@@ -63,7 +62,7 @@
     // PUBLIC
     //
 
-    vm.activeSheet = m.prop(options.sheet);
+    vm.activeSheet = m.prop(options.sheet.name);
     vm.attrs = function () {
       return columns.map(function(column) {
         return column.attr;
@@ -80,9 +79,7 @@
     vm.buttonRefresh = function () { return buttonRefresh; };
     vm.buttonSave = function () { return buttonSave; };
     vm.buttonUndo = function () { return buttonUndo; };
-    vm.config = function () {
-      return options.config || {};
-    }; 
+    vm.config = m.prop(options.config || {}); 
     vm.defaultFocus = function (model) {
       var col = vm.attrs().find(function (attr) {
         return !model.data[attr] || !model.data[attr].isReadOnly();
@@ -94,7 +91,7 @@
       dlg.sheet(vm.activeSheet());
       dlg.show();
     };
-    vm.filter = f.prop(JSON.parse(JSON.stringify(options.config[sheet].list.filter || {})));
+    vm.filter = f.prop(JSON.parse(JSON.stringify(options.sheet.list.filter || {})));
     vm.filterDialog = function () {
       return filterDialog;
     };
@@ -150,7 +147,7 @@
       var moved,
         fromIdx = ev.dataTransfer.getData("column"),
         config = vm.config(),
-        cols = config[vm.activeSheet()].list.columns;
+        cols = options.sheet.list.columns;
 
       if (fromIdx !== toIdx) {
         moved = cols.splice(fromIdx, 1)[0];
@@ -301,7 +298,9 @@
       sheetConfigureDialog.show();
     };
     vm.sheets = function () {
-      return Object.keys(options.config || {});
+      return options.config.map(function (sheet) {
+        return sheet.name;
+      });
     };
     vm.sheetConfigureDialog = function () {
       return sheetConfigureDialog;
@@ -330,10 +329,13 @@
     vm.toggleSelection = function (model, col) {
       return vm.mode().toggleSelection(model, col);
     };
+    vm.workbook= function () {
+      return options.name;
+    };
     vm.undo = function () {
       if (selection) { selection.undo(); }
     };
-    vm.zoom = m.prop(vm.config()[vm.activeSheet()].zoom || 100);
+    vm.zoom = m.prop(options.sheet.zoom || 100);
 
     // ..........................................................
     // PRIVATE
@@ -350,7 +352,8 @@
     sortDialog = f.viewModels.sortDialogViewModel(filterOpts);
     filterDialog = f.viewModels.filterDialogViewModel(filterOpts);
     sheetConfigureDialog = f.viewModels.sheetConfigureDialogViewModel({
-      config: vm.config()
+      workbook: vm.workbook(),
+      config: vm.config
     });
 
     // Create button view models
