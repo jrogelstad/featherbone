@@ -52,7 +52,7 @@
       state.send("close");
     };
     vm.config = options.config;
-    vm.sheet = f.prop(options.sheet || "");
+    vm.sheet = f.prop(options.sheet);
     vm.model = m.prop();
     vm.title = m.prop( options.title || "Configure worksheet");
 
@@ -62,14 +62,13 @@
 
     setModel = function (sheet) {
       var model = {},
-        config = vm.config(),
-        sheetConfig = config[sheet] || {};
+        config = vm.config();
 
       model.isNew = !config[sheet];
-      model.name = m.prop(sheet || "");
-      model.feather = m.prop(sheetConfig.feather || "");
-      model.form = m.prop(sheetConfig.form || {});
-      model.list = m.prop(sheetConfig.list || []);
+      model.name = m.prop(sheet.name || "");
+      model.feather = m.prop(sheet.feather || "");
+      model.form = m.prop(sheet.form || {});
+      model.list = m.prop(sheet.list || []);
       model.toJSON = function () {
         return {
           feather: model.feather(),

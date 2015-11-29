@@ -70,7 +70,7 @@
         }
       },
       name: {
-        description: "Workbook name",
+        description: "Sheet name",
         type: "string"
       },
       feather: {
@@ -84,6 +84,11 @@
       list: {
         description: "List layout",
         type: "object"
+      },
+      zoom: {
+        description: "Zoom level",
+        type: "string",
+        default: "100"
       }
     }
   };

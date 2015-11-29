@@ -54,7 +54,6 @@
       frmroute = "/" + options.name + "/" + options.sheet.form.name,
       name = options.feather.toCamelCase(),
       feather = f.catalog.getFeather(options.feather),
-      columns = options.sheet.list.columns || [{attr: "id"}],
       showMenu = false,
       vm = {};
 
@@ -62,11 +61,12 @@
     // PUBLIC
     //
 
-    vm.activeSheet = m.prop(options.sheet.name);
     vm.attrs = function () {
-      return columns.map(function(column) {
-        return column.attr;
-      });
+      var columns = vm.sheet().list.columns,
+        result = columns.map(function(column) {
+          return column.attr;
+        });
+      return result || [{attr: "id"}];
     };
     vm.buttonClear = function () { return buttonClear; };
     vm.buttonDelete = function () { return buttonDelete; };
@@ -78,7 +78,7 @@
     vm.buttonRefresh = function () { return buttonRefresh; };
     vm.buttonSave = function () { return buttonSave; };
     vm.buttonUndo = function () { return buttonUndo; };
-    vm.config = m.prop(options.config || {}); 
+    vm.config = m.prop(JSON.parse(JSON.stringify(options.config)) || {}); 
     vm.defaultFocus = function (model) {
       var col = vm.attrs().find(function (attr) {
         return !model.data[attr] || !model.data[attr].isReadOnly();
@@ -87,7 +87,7 @@
     };
     vm.configureSheet = function () {
       var dlg = vm.sheetConfigureDialog();
-      dlg.sheet(vm.activeSheet());
+      dlg.sheet(vm.sheet().name);
       dlg.show();
     };
     vm.filter = f.prop(JSON.parse(JSON.stringify(options.sheet.list.filter || {})));
@@ -133,7 +133,9 @@
         m.route(frmroute + "/" + selection.data.id());
       }
     };
-    vm.models = f.models[name].list({filter: vm.filter()});
+    vm.models = f.models[name].list({
+      filter: vm.filter()
+    });
     vm.nextFocus = m.prop();
     vm.ondragover = function (ev) {
       ev.preventDefault();
@@ -145,8 +147,8 @@
       ev.preventDefault();
       var moved,
         fromIdx = ev.dataTransfer.getData("column"),
-        config = vm.config(),
-        cols = options.sheet.list.columns;
+        sheet = vm.sheet(),
+        cols = sheet.list.columns;
 
       if (fromIdx !== toIdx) {
         moved = cols.splice(fromIdx, 1)[0];
@@ -293,11 +295,28 @@
     vm.selectedColor = function () {
       return vm.mode().selectedColor();
     };
+    vm.share = function () {
+      var idx = 0,
+        sheet = vm.sheet(),
+        workbook = vm.workbook(),
+        config = JSON.parse(JSON.stringify(vm.config()));
+      config.some(function (item) {
+        if (item.name === sheet.name) {
+          return true;
+        }
+        idx += 1;
+      });
+      config.splice(idx, 1, sheet);
+      workbook.data.localConfig(config);
+      workbook.save();
+    };
+    vm.sheet = m.prop(JSON.parse(JSON.stringify(options.sheet)));
     vm.sheetNew = function () {
       sheetConfigureDialog.show();
     };
     vm.sheets = function () {
-      return options.config.map(function (sheet) {
+      var config = vm.config();
+      return config.map(function (sheet) {
         return sheet.name;
       });
     };
@@ -329,12 +348,16 @@
       return vm.mode().toggleSelection(model, col);
     };
     vm.workbook= function () {
-      return options.name;
+      return f.workbooks[options.name.toCamelCase()];
     };
     vm.undo = function () {
       if (selection) { selection.undo(); }
     };
-    vm.zoom = m.prop(options.sheet.zoom || 100);
+    vm.zoom = function (value) {
+      var sheet = vm.sheet();
+      if (arguments.length) { sheet.zoom = value; }
+      return sheet.zoom;
+    };
 
     // ..........................................................
     // PRIVATE
@@ -352,6 +375,7 @@
     filterDialog = f.viewModels.filterDialogViewModel(filterOpts);
     sheetConfigureDialog = f.viewModels.sheetConfigureDialogViewModel({
       workbook: vm.workbook(),
+      sheet: vm.sheet(),
       config: vm.config
     });
 
@@ -456,6 +480,7 @@
 
     // Bind refresh to filter change event
     vm.filter.state().resolve("/Ready").enter(function () {
+      vm.sheet().list.filter = vm.filter();
       vm.refresh();
     });
 
@@ -593,7 +618,7 @@
         button = f.components.button,
         filterDialog = f.components.filterDialog,
         sheetConfigureDialog = f.components.sheetConfigureDialog,
-        activeSheet = vm.activeSheet(),
+        activeSheet = vm.sheet().name,
         idx = 0,
         zoom = vm.zoom() + "%";
 
@@ -1027,8 +1052,8 @@
               }})], "Configure"),
               m("li", {
                 class: "pure-menu-link",
-                title: "Share workbook configuration"
-                //onclick: rvm.onclickopen
+                title: "Share workbook configuration",
+                onclick: vm.share
               }, [m("i", {class:"fa fa-share-alt", style: {
                 marginRight: "4px"
               }})], "Share"),
