@@ -49,7 +49,7 @@
     var selection, state, listState, createButton, buttonHome, buttonList,
       buttonEdit, buttonSave, buttonOpen, buttonNew, buttonDelete,
       buttonUndo, buttonRefresh, buttonClear,
-      searchInput, searchState, sortDialog, filterDialog,
+      searchInput, searchState, sortDialog, filterDialog, shareDialog,
       sheetConfigureDialog, filterOpts,
       frmroute = "/" + options.name + "/" + options.sheet.form.name,
       name = options.feather.toCamelCase(),
@@ -230,7 +230,6 @@
       // Sync header position with table body position
       header.scrollLeft = rows.scrollLeft;
     };
-    vm.searchInput = function () { return searchInput; };
     vm.refresh = function () {
       var attrs, formatOf, criterion,
         value = searchInput.value(),
@@ -278,6 +277,7 @@
     vm.scrollbarWidth = function () {
       return scrWidth;
     };
+    vm.searchInput = function () { return searchInput; };
     vm.select = function (model) {
       if (selection !== model) {
         vm.relations({});
@@ -310,10 +310,8 @@
       workbook.data.localConfig(config);
       workbook.save();
     };
+    vm.shareDialog = function () { return shareDialog; };
     vm.sheet = m.prop(JSON.parse(JSON.stringify(options.sheet)));
-    vm.sheetNew = function () {
-      sheetConfigureDialog.show();
-    };
     vm.sheets = function () {
       var config = vm.config();
       return config.map(function (sheet) {
@@ -377,6 +375,13 @@
       workbook: vm.workbook(),
       sheet: vm.sheet(),
       config: vm.config
+    });
+    shareDialog = f.viewModels.dialogViewModel({
+      icon: "question-circle",
+      title: "Confirmation",
+      message: "Are you sure you want to share your workbook " +
+        "configuration with all other users?",
+      onclickOk: vm.share
     });
 
     // Create button view models
@@ -957,7 +962,7 @@
       tabs.push(m("button[type=button]", {
         class: "pure-button",
         style: tabStyle,
-        onclick: vm.sheetNew
+        onclick: vm.sheetConfigureDialog().show
       }, [m("i", {class:"fa fa-plus"})]));
 
       // Finally assemble the whole view
@@ -978,6 +983,7 @@
           m.component(filterDialog({viewModel: vm.sortDialog()})),
           m.component(filterDialog({viewModel: vm.filterDialog()})),
           m.component(sheetConfigureDialog({viewModel: vm.sheetConfigureDialog()})),
+          m.component(f.components.dialog({viewModel: vm.shareDialog()})),
           m.component(button({viewModel: vm.buttonHome()})),
           m.component(button({viewModel: vm.buttonList()})),
           m.component(button({viewModel: vm.buttonEdit()})),
@@ -1053,7 +1059,7 @@
               m("li", {
                 class: "pure-menu-link",
                 title: "Share workbook configuration",
-                onclick: vm.share
+                onclick: vm.shareDialog().show
               }, [m("i", {class:"fa fa-share-alt", style: {
                 marginRight: "4px"
               }})], "Share"),
