@@ -27,27 +27,38 @@
 
     if (!name) { throw "Settings name is required"; }
 
-    that.data = f.prop();
+    that.data = f.prop({});
 
     /*
       Send event to fetch data based on the current id from the server.
     */
-    that.fetch = function () {
+    that.fetch = function (merge) {
       var deferred = m.deferred();
-      state.send("fetch", deferred);
+      state.send("fetch", {deferred: deferred, merge: merge});
       return deferred.promise;
     };
 
     doFetch = function (context) {
       var ds = f.dataSource,
+        result = m.prop(),
         payload = {method: "GET", path: "/settings/" + name},
         callback = function () {
+          var merge,
+            data = result() || {};
+          if (context.merge) {
+            merge = that.data();
+            Object.keys(data).forEach(function (key) {
+              merge[key] = data[key];
+            });
+            data = merge;
+          }
+          that.data(data);
           state.send('fetched');
           context.deferred.resolve(that.data);
         };
 
       state.goto("/Busy");
-      ds.request(payload).then(that.data).then(callback);
+      ds.request(payload).then(result).then(callback);
     };
 
     doPost = function () {
@@ -57,9 +68,9 @@
 
     state = statechart.State.define(function () {
       this.state("Ready", function () {
-        this.event("fetch", function (deferred) {
+        this.event("fetch", function (context) {
           this.goto("/Busy", {
-            context: {deferred: deferred}
+            context: context
           });
         });
 
@@ -72,9 +83,9 @@
           });
 
           this.state("Dirty", function () {
-            this.event("save", function (deferred) {
+            this.event("save", function (context) {
               this.goto("/Busy/Saving", {
-                context: {deferred: deferred}
+                context: context
               });
             });
           });
@@ -125,15 +136,12 @@
 
     /**
       Return a model specification (feather) including inherited properties.
-      If a feather already resolved is passed in as the first argument, it
-      will simply be returned.
 
-      @param {String | Object} Feather
+      @param {String} Feather
       @param {Boolean} Include inherited or not. Defult = true.
       @return {String}
     */
     that.getFeather = function (feather, includeInherited) {
-      if (typeof feather === "object") { return feather; }
       var resultProps, modelProps, appendParent,
         catalog = that.data(),
         result = {name: feather, inherits: "Object"};

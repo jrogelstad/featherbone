@@ -48,7 +48,7 @@
   f.viewModels.workbookViewModel = function (options) {
     var selection, state, listState, createButton, buttonHome, buttonList,
       buttonEdit, buttonSave, buttonOpen, buttonNew, buttonDelete,
-      buttonUndo, buttonRefresh, buttonClear, buttonNewSheet,
+      buttonUndo, buttonRefresh, buttonClear,
       searchInput, searchState, sortDialog, filterDialog,
       sheetConfigureDialog, filterOpts,
       frmroute = "/" + options.name + "/" + options.sheet.form.name,
@@ -74,7 +74,6 @@
     vm.buttonHome = function () { return buttonHome; };
     vm.buttonList = function () { return buttonList; };
     vm.buttonNew = function () { return buttonNew; };
-    vm.buttonNewSheet = function () { return buttonNewSheet; };
     vm.buttonOpen = function () { return buttonOpen; };
     vm.buttonRefresh = function () { return buttonRefresh; };
     vm.buttonSave = function () { return buttonSave; };
@@ -427,20 +426,6 @@
       icon: "eraser"
     });
 
-    buttonNewSheet = createButton({
-      onclick: vm.sheetNew,
-      title: "New sheet",
-      icon: "plus",
-      style: {
-        backgroundColor: "#E6E6E6",
-        borderTopLeftRadius: "0px",
-        borderTopRightRadius: "0px",
-        borderRightStyle: "solid",
-        borderRightColor: "Silver",
-        borderRightWidth: "thin"
-      }
-    });
-
     // Bind button states to list statechart events
     listState = vm.models().state();
     listState.resolve("/Fetched").enter(function () {
@@ -601,7 +586,7 @@
 
     component.view = function (ctrl) {
       var tbodyConfig, findFilterIndex,
-        header, rows, tabs, view, rel,
+        header, rows, tabs, view, rel, tabStyle,
         vm = ctrl.vm,
         filter = vm.filter(),
         sort = filter.sort || [],
@@ -919,6 +904,16 @@
       });
 
       // Build tabs
+      tabStyle = {
+        borderTopLeftRadius: "0px",
+        borderTopRightRadius: "0px",
+        borderRightStyle: "solid",
+        borderRightColor: "Silver",
+        borderRightWidth: "thin",
+        borderBottomStyle: "solid",
+        borderBottomColor: "Silver",
+        borderBottomWidth: "thin"
+      };
       tabs = vm.sheets().map(function (sheet) {
         var tab;
 
@@ -926,18 +921,19 @@
         tab = m("button[type=button]", {
           class: activeSheet === sheet ?
             "pure-button pure-button-primary" : "pure-button",
-          style: {
-            borderTopLeftRadius: "0px",
-            borderTopRightRadius: "0px",
-            borderRightStyle: "solid",
-            borderRightColor: "Silver",
-            borderRightWidth: "thin"
-          },
+          style: tabStyle,
           onclick: vm.tabClicked.bind(this, sheet)
         }, sheet);
 
         return tab;
       });
+
+      // New tab button
+      tabs.push(m("button[type=button]", {
+        class: "pure-button",
+        style: tabStyle,
+        onclick: vm.sheetNew
+      }, [m("i", {class:"fa fa-plus"})]));
 
       // Finally assemble the whole view
       view = m("div", {
@@ -1076,7 +1072,6 @@
             id: "tabs"
           }, [
           tabs,
-          m.component(button({viewModel: vm.buttonNewSheet()})),
           m("i", {class: "fa fa-search-plus", style: {
             color: "LightGrey",
             marginLeft: "5px",

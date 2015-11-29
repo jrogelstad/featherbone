@@ -17,52 +17,99 @@
 (function (f) {
   "use strict";
 
+  var workbook, workbookDefaultConifg, workbookLocalConfig, feathers;
+
+  workbook = {
+    name: "Workbook",
+    plural: "Workbooks",
+    description: "System workbook definition",
+    isSystem: true,
+    properties: {
+      name: {
+        description: "Workbook name",
+        type: "string"
+      },
+      description: {
+        description: "Description",
+        type: "string"
+      },
+      module: {
+        description: "Module",
+        type: "string"
+      },
+      launchConfig: {
+        description: "Launch configuration",
+        type: "object"
+      },
+      defaultConfig: {
+        description: "Parent of \"parent\" on \"WorkbookDefaultConfig\"",
+        type: {
+          parentOf: "parent",
+          relation: "WorkbookDefaultConfig"
+        }
+      },
+      localConfig: {
+        description: "Parent of \"parent\" on \"WorkbookLocalConfig\"",
+        type: {
+          parentOf: "parent",
+          relation: "WorkbookLocalConfig"
+        }
+      }
+    }
+  };
+
+  workbookDefaultConifg = {
+    description: "Workbook default sheet definition",
+    isSystem: true,
+    properties: {
+      parent: {
+        description: "Workbook name",
+        type: {
+          relation: "Workbook",
+          childOf: "defaultConfig"
+        }
+      },
+      name: {
+        description: "Workbook name",
+        type: "string"
+      },
+      feather: {
+        description: "Description",
+        type: "string"
+      },
+      form: {
+        description: "Form layout",
+        type: "object"
+      },
+      list: {
+        description: "List layout",
+        type: "object"
+      }
+    }
+  };
+
+  workbookLocalConfig = JSON.parse(JSON.stringify(workbookDefaultConifg));
+  workbookLocalConfig.description = "Workbook local sheet definition";
+  workbookLocalConfig.properties.parent.type.childOf = "localConfig";
+  feathers = f.catalog.data();
+  feathers.Workbook = workbook;
+  feathers.WorkbookDefaultConfig = workbookDefaultConifg;
+  feathers.WorkbookLocalConfig = workbookLocalConfig;
+
   /**
     A factory that returns a persisting object based on a definition call a
     `feather`. Can be extended by modifying the return object directly.
     @param {Object} Default data
     return {Object}
   */
-  f.workbook = function (data) {
-    var that, feather, state, substate, doPut;
-
-    feather = {
-        name: "Workbook",
-        plural: "Workbooks",
-        description: "System workbook definition",
-        properties: {
-            name: {
-                description: "Workbook name",
-                type: "string"
-            },
-            description: {
-                description: "Description",
-                type: "string"
-            },
-            module: {
-                description: "Module",
-                type: "string"
-            },
-            launchConfig: {
-                description: "Launch configuration",
-                type: "object"
-            },
-            defaultConfig: {
-                description: "Original default configuration",
-                type: "object"
-            },
-            localConfig: {
-                description: "Locally modified configuration",
-                type: "object"
-            }
-        }
-    };
+  f.models.workbook = function (data) {
+    var that, state, substate, doPut;
 
     // ..........................................................
     // PUBLIC
     //
 
-    that = f.model(data, feather);
+    that = f.model(data, workbook);
     that.idProperty("name");
 
     that.path = function (name, id) {

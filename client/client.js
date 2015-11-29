@@ -31,7 +31,7 @@
 
   // Load catalog and process models
   f.init(function () {
-    return f.catalog.fetch().then(function (data) {
+    return f.catalog.fetch(true).then(function (data) {
       var feathers;
 
       feathers = Object.keys(data());
@@ -153,9 +153,11 @@
     routes["/home"] = app.Home;
 
     // Build workbook for each configured object
+    f.workbooks = {};
     workbooks().forEach(function (workbook) {
       var config = getConfig(workbook);
 
+      f.workbooks[workbook.name.toCamelCase()] = f.models.workbook(workbook);
       config.forEach(function (item) {
         var sheet = item.name,
           form = item.form.name,

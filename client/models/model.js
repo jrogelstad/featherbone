@@ -479,6 +479,7 @@
 
       // If first entry here with user data, clear for next time and bail
       if (data) {
+        context.clear = false;
         data = undefined;
         return;
       }
@@ -734,7 +735,7 @@
           if (isChild(p)) { return; } // Ignore child properties on client level
 
           relation = type.relation;
-          name = relation.slice(0, 1).toLowerCase() + relation.slice(1);
+          name = relation.toCamelCase();
 
           if (isToOne(p)) {
 
@@ -1016,7 +1017,7 @@
     that.onValidate(validator);
 
     // Initialize
-    state.goto();
+    state.goto({context: {}});
 
     return that;
   };
