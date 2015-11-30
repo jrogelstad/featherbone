@@ -271,6 +271,17 @@
       vm.models().fetch(filter, false);
     };
     vm.relations = m.prop({});
+    vm.revert = function () {
+      var workbook = vm.workbook(),
+        sheet = vm.sheet(),
+        defaultConfig = workbook.data.defaultConfig(),
+        defaultSheet = defaultConfig.filter(function (item) {
+          return item.data.name() === sheet.name;
+        })[0];
+      vm.config(defaultConfig.toJSON());
+      vm.sheet(defaultSheet.toJSON());
+      vm.filter(defaultSheet.data.list().filter);
+    };
     vm.saveAll = function () {
       vm.models().save();
     };
@@ -1065,8 +1076,8 @@
               }})], "Share"),
               m("li", {
                 class: "pure-menu-link",
-                title: "Revert workbook configuration to original state"
-                //onclick: rvm.onclickopen
+                title: "Revert workbook configuration to original state",
+                onclick: vm.revert
               }, [m("i", {class:"fa fa-reply", style: {
                 marginRight: "4px"
               }})], "Revert")
