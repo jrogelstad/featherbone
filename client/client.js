@@ -20,14 +20,7 @@
 
   "strict";
 
-  var workbooks = m.prop(),
-    getConfig = function (workbook) {
-      var config = workbook.defaultConfig;
-      if (workbook.localConfig.length) {
-        config = workbook.localConfig;
-      }
-      return config;
-    };
+  var workbooks = m.prop();
 
   // Load catalog and process models
   f.init(function () {
@@ -86,8 +79,7 @@
 
   // When all intialization done, construct app.
   f.init().then(function () {
-    var app = {},
-      routes = {};
+    var app = {};
 
     // Build home navigation page
     app.Home = {
@@ -95,7 +87,7 @@
         var that = this;
 
         workbooks().forEach(function (workbook) {
-          var config = getConfig(workbook),
+          var config = f.getConfig(workbook),
             sheetname = config[0].name,
             name = workbook.name + sheetname,
             route = "/" + workbook.name + "/" + sheetname;
@@ -108,7 +100,7 @@
       },
       view: function (ctrl) {
         var buttons = workbooks().map(function (workbook) {
-            var config = getConfig(workbook),
+            var config = f.getConfig(workbook),
               sheet = config[0].name,
               name = workbook.name + sheet,
               launchConfig = workbook.launchConfig,
@@ -150,51 +142,13 @@
         ]);
       }
     };
-    routes["/home"] = app.Home;
+    f.routes["/home"] = app.Home;
 
     // Build workbook for each configured object
     f.workbooks = {};
-    workbooks().forEach(function (workbook) {
-      var config = getConfig(workbook);
+    workbooks().forEach(f.buildRoutes);
 
-      f.workbooks[workbook.name.toCamelCase()] = f.models.workbook(workbook);
-      config.forEach(function (item) {
-        var sheet = item.name,
-          form = item.form.name,
-          sheetname = workbook.name + sheet,
-          formname = workbook.name + form,
-          feather = item.feather,
-          wbkroute = "/" + workbook.name + "/" + sheet,
-          frmroute = "/" + workbook.name + "/" + form;
-        sheetname = sheetname.toCamelCase();
-        formname = formname.toCamelCase();
-        wbkroute = wbkroute.toSpinalCase();
-        frmroute = frmroute.toSpinalCase();
-
-        // Build UI
-        app[sheetname + "WorkbookDisplay"] = f.components.workbookDisplay({
-          name: workbook.name,
-          feather: feather,
-          config: config,
-          sheet: item
-        });
-
-        app[formname + "FormDisplay"] = f.components.formDisplay({
-          workbook: workbook.name,
-          sheet: item,
-          form: form,
-          feather: feather,
-          attrs: item.form.attrs
-        });
-
-        // Build routes
-        routes[wbkroute] = app[sheetname + "WorkbookDisplay"];
-        routes[frmroute] = app[formname + "FormDisplay"];
-        routes[frmroute + "/:id"] = app[formname + "FormDisplay"];
-      });
-    });
-
-    m.route(document.body, "/home", routes);
+    m.route(document.body, "/home", f.routes);
   });
 
   window.onresize = function () {

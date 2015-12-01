@@ -27,7 +27,8 @@
   */
   f.viewModels.sheetConfigureDialogViewModel = function (options) {
     options = options || {};
-    var vm, state, setModel;
+    var vm, state,
+      cache = options.parentViewModel.sheet();
 
     // ..........................................................
     // PUBLIC
@@ -38,10 +39,11 @@
     vm.feathers = function () {
       var feathers = f.catalog.data(),
         result = Object.keys(feathers).filter(function (name) {
-          return !feathers[name].isChild;
+          return !feathers[name].isChild && !feathers[name].isSystem;
         }).sort();
       return result;
     };
+    vm.sheet = options.parentViewModel.sheet;
     vm.show = function () {
       state.send("show");
     };
@@ -51,39 +53,14 @@
     vm.cancel = function () {
       state.send("close");
     };
-    vm.config = options.config;
-    vm.sheet = f.prop(options.sheet);
-    vm.model = m.prop();
-    vm.title = m.prop( options.title || "Configure worksheet");
+    vm.config = options.parentViewModel.config;
+    vm.model = f.prop(f.models.workbookLocalConfig(cache));
+    vm.title = m.prop(options.title || "Configure worksheet");
+    vm.workbook = options.parentViewModel.workbook;
 
     // ..........................................................
     // PRIVATE
     //
-
-    setModel = function (sheet) {
-      var model = {},
-        config = vm.config();
-
-      model.isNew = !config[sheet];
-      model.name = m.prop(sheet.name || "");
-      model.feather = m.prop(sheet.feather || "");
-      model.form = m.prop(sheet.form || {});
-      model.list = m.prop(sheet.list || []);
-      model.toJSON = function () {
-        return {
-          feather: model.feather(),
-          form: model.form(),
-          list: model.list()
-        };
-      };
-      vm.model(model);
-    };
-    setModel(vm.sheet());
-
-    // When sheet changes, update model referenced
-    vm.sheet.state().resolve("/Changing").enter(function () {
-      setModel(vm.sheet.newValue());
-    });
 
     // Statechart
     state = f.statechart.State.define(function () {
@@ -118,13 +95,13 @@
           this.state("Edit", function () {
             this.exit(function () {
               var route,
-                config = vm.config(),
-                sheet = vm.sheet(),
-                model = vm.model(),
-                name = model.name();
-              delete config[sheet];
-              config[name] = model.toJSON();
-              route = "/" + options.workbook + "/" + name;
+                sheet = vm.model().toJSON(),
+                workbook = vm.workbook();
+   
+              vm.sheet(sheet);
+              workbook.data.localConfig(vm.config());
+              f.buildRoutes(workbook.toJSON());
+              route = "/" + workbook.data.name() + "/" + sheet.name;
               route = route.toSpinalCase();
               m.route(route);
             });
@@ -152,7 +129,7 @@
     component.view = function (ctrl) {
       var view, feathers,
         vm = ctrl.vm,
-        model = vm.model(),
+        d = vm.model().data,
         nameId = f.createId(),
         featherId = f.createId();
 
@@ -189,8 +166,8 @@
                 for: nameId
               }, "Name:"),
               m("input", {
-                value: model.name(),
-                oninput: m.withAttr("value", model.name)
+                value: d.name(),
+                oninput: m.withAttr("value", d.name)
               })
             ]),
             m("div", {class: "pure-control-group"}, [
@@ -198,8 +175,8 @@
                 for: featherId
               }, "Feather:"),
               m("select", {
-                value: model.feather(),
-                oninput: m.withAttr("value", model.feather)
+                value: d.feather(),
+                oninput: m.withAttr("value", d.feather)
               }, feathers)
             ])
           ]),

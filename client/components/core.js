@@ -20,6 +20,7 @@
 
   f.components = {};
   f.viewModels = {};
+  f.routes = {};
 
   /**
     Object to define what input type to use for data
@@ -135,6 +136,56 @@
       return relopts.valueProperty;
     };
     f.components[name] = that;
+  };
+
+  f.buildRoutes = function (workbook) {
+    var config = f.getConfig(workbook),
+      app = {};
+
+    f.workbooks[workbook.name.toCamelCase()] = f.models.workbook(workbook);
+    config.forEach(function (item) {
+      var sheet = item.name,
+        form = item.form.name,
+        sheetname = workbook.name + sheet,
+        formname = workbook.name + form,
+        feather = item.feather,
+        wbkroute = "/" + workbook.name + "/" + sheet,
+        frmroute = "/" + workbook.name + "/" + form;
+      sheetname = sheetname.toCamelCase();
+      formname = formname.toCamelCase();
+      wbkroute = wbkroute.toSpinalCase();
+      frmroute = frmroute.toSpinalCase();
+
+      // Build UI
+      item.id = f.createId(); // Need this to keep track of name changes
+      app[sheetname + "WorkbookDisplay"] = f.components.workbookDisplay({
+        name: workbook.name,
+        feather: feather,
+        config: config,
+        id: item.id
+      });
+
+      app[formname + "FormDisplay"] = f.components.formDisplay({
+        workbook: workbook.name,
+        sheet: item,
+        form: form,
+        feather: feather,
+        attrs: item.form.attrs
+      });
+
+      // Build routes
+      f.routes[wbkroute] = app[sheetname + "WorkbookDisplay"];
+      f.routes[frmroute] = app[formname + "FormDisplay"];
+      f.routes[frmroute + "/:id"] = app[formname + "FormDisplay"];
+    });
+  };
+
+  f.getConfig = function (workbook) {
+    var config = workbook.defaultConfig;
+    if (workbook.localConfig.length) {
+      config = workbook.localConfig;
+    }
+    return config;
   };
 
   /** @private  Helper function to resolve property dot notation */
