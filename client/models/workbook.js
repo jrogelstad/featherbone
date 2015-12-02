@@ -93,7 +93,7 @@
     }
   };
 
-  workbookLocalConfig = JSON.parse(JSON.stringify(workbookDefaultConifg));
+  workbookLocalConfig = f.copy(workbookDefaultConifg);
   workbookLocalConfig.description = "Workbook local sheet definition";
   workbookLocalConfig.properties.parent.type.childOf = "localConfig";
   feathers = f.catalog.data();

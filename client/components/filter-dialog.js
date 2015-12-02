@@ -108,7 +108,7 @@
     vm.items = function () {
       var i = 0,
         items = vm.data().map(function (item) {
-          var ret = JSON.parse(JSON.stringify(item));
+          var ret = f.copy(item);
           ret.index = i;
           i += 1;
           return ret;
@@ -214,7 +214,7 @@
     };
     vm.reset = function () {
       var name = vm.propertyName(),
-        filter = JSON.parse(JSON.stringify(options.filter()));
+        filter = f.copy(options.filter());
       filter[name] = filter[name] || [];
       vm.filter(filter);
       if (!filter[name].length) { vm.add(); }

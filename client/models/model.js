@@ -741,9 +741,7 @@
 
             // Need to to make sure transform knows to ignore inapplicable props
             if (type.properties && type.properties.length) {
-              cFeather = JSON.parse(JSON.stringify(
-                f.catalog.getFeather(relation)
-              ));
+              cFeather = f.copy(f.catalog.getFeather(relation));
               cKeys = Object.keys(cFeather.properties);
               cKeys.forEach(function (key) {
                 if (type.properties.indexOf(key) === -1 && key !== "id") {

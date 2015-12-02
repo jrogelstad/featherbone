@@ -26,6 +26,16 @@ var f = (function () {
     SCALE_DEFAULT: 6,
 
     /**
+      Make a deep copy of an object.
+
+      @param {Object} Object
+      @return {Object}
+    */
+    copy: function (obj) {
+      return JSON.parse(JSON.stringify(obj));
+    },
+
+    /**
       Return a unique identifier string.
 
       Moddified from https://github.com/google/closure-library

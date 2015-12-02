@@ -77,7 +77,7 @@
     vm.buttonRefresh = function () { return buttonRefresh; };
     vm.buttonSave = function () { return buttonSave; };
     vm.buttonUndo = function () { return buttonUndo; };
-    vm.config = m.prop(JSON.parse(JSON.stringify(options.config)) || {}); 
+    vm.config = m.prop(options.config); 
     vm.defaultFocus = function (model) {
       var col = vm.attrs().find(function (attr) {
         return !model.data[attr] || !model.data[attr].isReadOnly();
@@ -135,19 +135,17 @@
     vm.ondragover = function (ev) {
       ev.preventDefault();
     };
-    vm.ondragstartColumnHeader = function (idx, ev) {
-      ev.dataTransfer.setData("column", idx);
+    vm.ondragstart = function (idx, type, ev) {
+      ev.dataTransfer.setData(type, idx);
     };
-    vm.ondropColumnHeader = function (toIdx, ev) {
+    vm.ondrop = function (toIdx, type, ary, ev) {
       ev.preventDefault();
       var moved,
-        fromIdx = ev.dataTransfer.getData("column"),
-        sheet = vm.sheet(),
-        cols = sheet.list.columns;
+        fromIdx = ev.dataTransfer.getData(type);
 
       if (fromIdx !== toIdx) {
-        moved = cols.splice(fromIdx, 1)[0];
-        cols.splice(toIdx, 0, moved);
+        moved = ary.splice(fromIdx, 1)[0];
+        ary.splice(toIdx, 0, moved);
       }
     };
     vm.onkeydownCell = function (e) {
@@ -228,7 +226,7 @@
     vm.refresh = function () {
       var attrs, formatOf, criterion,
         value = searchInput.value(),
-        filter = JSON.parse(JSON.stringify(vm.filter()));
+        filter = f.copy(vm.filter());
 
       // Recursively resolve type
       formatOf = function (feather, property) {
@@ -267,14 +265,21 @@
     };
     vm.relations = m.prop({});
     vm.revert = function () {
-      var workbook = vm.workbook(),
-        sheet = vm.sheet(),
-        defaultConfig = workbook.data.defaultConfig(),
-        defaultSheet = defaultConfig.filter(function (item) {
-          return item.data.name() === sheet.name;
-        })[0];
-      vm.config(defaultConfig.toJSON());
-      vm.filter(defaultSheet.data.list().filter);
+      var route,
+         workbook = vm.workbook().toJSON(),
+        localConfig = vm.config(),
+        defaultConfig = workbook.defaultConfig,
+        sheet = defaultConfig[0];
+      
+      localConfig.length = 0;
+      defaultConfig.forEach(function (item) {
+        localConfig.push(item);
+      });
+      workbook.localConfig = localConfig;
+      f.buildRoutes(workbook);
+      route = "/" + workbook.name + "/" + sheet.name;
+      route = route.toSpinalCase();
+      m.route(route);
     };
     vm.saveAll = function () {
       vm.models().save();
@@ -302,7 +307,7 @@
     };
     vm.share = function () {
       var workbook = vm.workbook(),
-        config = JSON.parse(JSON.stringify(vm.config()));
+        config = f.copy(vm.config());
       workbook.data.localConfig(config);
       workbook.save();
     };
@@ -368,7 +373,7 @@
 
     frmroute = "/" + options.name + "/" + vm.sheet().form.name;
     frmroute = frmroute.toSpinalCase();
-    vm.filter(JSON.parse(JSON.stringify(vm.sheet().list.filter || {})));
+    vm.filter(f.copy(vm.sheet().list.filter || {}));
     vm.models = f.models[name].list({
       filter: vm.filter()
     });
@@ -631,7 +636,8 @@
         button = f.components.button,
         filterDialog = f.components.filterDialog,
         sheetConfigureDialog = f.components.sheetConfigureDialog,
-        activeSheet = vm.sheet().name,
+        activeSheet = vm.sheet(),
+        config = vm.config(),
         idx = 0,
         zoom = vm.zoom() + "%";
 
@@ -725,8 +731,8 @@
             hview = m("th", {
               ondragover: vm.ondragover,
               draggable: true,
-              ondragstart: vm.ondragstartColumnHeader.bind(this, idx),
-              ondrop: vm.ondropColumnHeader.bind(this, idx),
+              ondragstart: vm.ondragstart.bind(this, idx, "column"),
+              ondrop: vm.ondrop.bind(this, idx, "column", activeSheet.list.columns),
               style: {
                 minWidth: "150px",
                 maxWidth: "150px",
@@ -942,6 +948,7 @@
       });
 
       // Build tabs
+      idx = 0;
       tabStyle = {
         borderTopLeftRadius: "0px",
         borderTopRightRadius: "0px",
@@ -950,23 +957,31 @@
         borderRightWidth: "thin",
         borderBottomStyle: "solid",
         borderBottomColor: "Silver",
-        borderBottomWidth: "thin"
+        borderBottomWidth: "thin",
+        webkitUserDrag: "element"
       };
       tabs = vm.sheets().map(function (sheet) {
         var tab;
 
         // Build tab
         tab = m("button[type=button]", {
-          class: activeSheet === sheet ?
+          ondragover: vm.ondragover,
+          draggable: true,
+          ondragstart: vm.ondragstart.bind(this, idx, "tab"),
+          ondrop: vm.ondrop.bind(this, idx, "tab", config),
+          class: activeSheet.name === sheet ?
             "pure-button pure-button-primary" : "pure-button",
           style: tabStyle,
           onclick: vm.tabClicked.bind(this, sheet)
         }, sheet);
+        idx += 1;
 
         return tab;
       });
 
       // New tab button
+      tabStyle = f.copy(tabStyle);
+      delete tabStyle.webkitUserDrag;
       tabs.push(m("button[type=button]", {
         class: "pure-button",
         style: tabStyle,
