@@ -41,10 +41,13 @@
     vm.cancel = function () {
       state.send("close");
     };
+    vm.content = function () {
+      return m("div", vm.message());
+    };
     vm.displayOk = function () {
       return options.onclickOk ? "inline-block" : "none";
     };
-    vm.message = m.prop(options.message);
+    vm.message = m.prop(options.message || "Your message here");
     vm.onclickOk = function () {
       state.send("close");
       options.onclickOk();
@@ -53,13 +56,16 @@
       state.send("show");
     };
     vm.title = m.prop(options.title);
+    vm.state = function () {
+      return state;
+    };
 
     // ..........................................................
     // PRIVATE
     //
 
     // Statechart
-    state = f.statechart.State.define({concurrent: true}, function () {
+    state = f.statechart.State.define(function () {
       this.state("Display", function () {
         this.state("Closed", function () {
           this.enter(function () {
@@ -125,7 +131,7 @@
           style: {marginRight: "5px"}
         })], vm.title().toName()),
         m("div", {style: {padding: "1em"}}, [
-          m("div", {}, vm.message()),
+          vm.content(),
           m("br"),
           m("button", {
             class: "pure-button  pure-button-primary",

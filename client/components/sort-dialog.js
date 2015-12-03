@@ -29,17 +29,12 @@
   f.viewModels.sortDialogViewModel = function (options) {
     var vm;
 
+    options.propertyName = "sort";
+
     // ..........................................................
     // PUBLIC
     //
 
-    options = {
-      attrs: options.attrs,
-      list: options.list,
-      filter: options.filter,
-      feather: options.feather,
-      propertyName: "sort"
-    };
     vm = f.viewModels.filterDialogViewModel(options);
     vm.addAttr = function (attr) {
       if (!this.some(vm.hasAttr.bind(attr))) {
@@ -98,6 +93,8 @@
 
     return vm;
   };
+
+  f.components.sortDialog = f.components.tableDialog;
 
 }(f));
 

@@ -30,31 +30,19 @@
   */
   f.viewModels.filterDialogViewModel = function (options) {
     options = options || {};
-    var vm, state, model, createButton, buttonAdd, buttonRemove,
-      buttonClear, buttonDown, buttonUp, buildInputComponent,
+    var vm, model, buildInputComponent,
       resolveProperty, getDefault,
-      feather = options.feather,
-      selection = m.prop();
+      feather = options.feather;
+
+    options.onclickOk = function () {
+      options.filter(vm.filter());
+    };
 
     // ..........................................................
     // PUBLIC
     //
 
-    vm = {};
-    vm.add = function () {
-      var ary = vm.data(),
-       attrs = vm.attrs();
-
-      attrs.some(vm.addAttr.bind(ary));
-
-      if (!vm.isSelected()) {
-        vm.selection(ary.length - 1);
-      }
-
-      buttonRemove.enable();
-      buttonClear.enable();
-      vm.scrollBottom(true);
-    };
+    vm = f.viewModels.tableDialogViewModel(options);
     vm.addAttr = function (attr) {
       if (!this.some(vm.hasAttr.bind(attr))) {
         this.push({
@@ -65,85 +53,15 @@
         return true;
       }
     };
-    vm.attrs = function () {
-      return options.attrs;
-    };
-    vm.buttonAdd = function () {
-      return buttonAdd;
-    };
-    vm.buttonClear = function () {
-      return buttonClear;
-    };
-    vm.buttonDown = function () {
-      return buttonDown;
-    };
-    vm.buttonRemove = function () {
-      return buttonRemove;
-    };
-    vm.buttonUp = function () {
-      return buttonUp;
-    };
-    vm.cancel = function () {
-      vm.reset();
-      state.send("close");
-    };
-    vm.clear = function () {
-      vm.data().length = 0;
-      buttonClear.disable();
-    };
     vm.data = function () {
       return vm.filter()[vm.propertyName()];
-    };
-    vm.id = m.prop(options.id || f.createId());
-    vm.isSelected = function () {
-      return state.resolve(state.resolve("/Selection").current()[0]).isSelected();
-    };
-    vm.itemChanged = function (index, property, value) {
-      vm.data()[index][property] = value;
     };
     vm.itemPropertyChanged = function (index, value) {
       vm.itemChanged(index, "property", value);
       vm.data()[index].value = getDefault(value);
     };
-    vm.items = function () {
-      var i = 0,
-        items = vm.data().map(function (item) {
-          var ret = f.copy(item);
-          ret.index = i;
-          i += 1;
-          return ret;
-        });
-
-      return items;
-    };
     vm.filter = m.prop();
-    vm.hasAttr = function (item) { 
-      return item.property === this;
-    };
-    vm.list = m.prop(options.list);
     vm.model = function () { return model; };
-    vm.moveDown = function () {
-      var ary = vm.data(),
-        idx = vm.selection(),
-        a = ary[idx],
-        b = ary[idx + 1];
-
-      ary.splice(idx, 2, b, a);
-      vm.selection(idx + 1);
-    };
-    vm.moveUp = function () {
-      var  ary = vm.data(),
-        idx = vm.selection() - 1,
-        a = ary[idx],
-        b = ary[idx + 1];
-
-      ary.splice(idx, 2, b, a);
-      vm.selection(idx);
-    };
-    vm.ok = function () {
-      options.filter(vm.filter()); // Kicks off refresh
-      state.send("close");
-    };
     vm.operators = function (attr) {
       var ops, prop, format;
 
@@ -200,18 +118,6 @@
     };
     vm.propertyName = m.prop(options.propertyName || "criteria");
     vm.relations = m.prop({});
-    vm.remove = function () {
-      var idx = selection(),
-        ary = vm.data();
-      ary.splice(idx, 1);
-      state.send("unselected");
-      if (ary.length) {
-        if (idx > 0) { idx -= 1; }
-        selection(idx);
-        return;
-      }
-      buttonRemove.disable();
-    };
     vm.reset = function () {
       var name = vm.propertyName(),
         filter = f.copy(options.filter());
@@ -220,16 +126,6 @@
       if (!filter[name].length) { vm.add(); }
       vm.selection(0);
     };
-    vm.rowColor = function (index) {
-      if (vm.selection() === index) {
-        if (vm.isSelected()) {
-          return "LightSkyBlue" ;
-        }
-        return "AliceBlue";
-      }
-      return "White";
-    };
-    vm.title = m.prop(options.propertyName || "filter");
     vm.viewHeaderIds = m.prop({
       column: f.createId(),
       operator: f.createId(),
@@ -291,33 +187,6 @@
       });
 
       return view;
-    };
-    vm.scrollBottom = m.prop(false);
-    vm.selection = function (index, select) {
-      var ary = vm.data();
-
-      if (select) { state.send("selected"); }
-
-      if (arguments.length) {
-        buttonUp.disable();
-        buttonDown.disable();
-
-        if (ary.length > 1) {
-          if (index < ary.length - 1) {
-            buttonDown.enable();
-          }
-          if (index > 0) {
-            buttonUp.enable();
-          }
-        }
-
-        return selection(index);
-      }
-
-      return selection();
-    };
-    vm.show = function () {
-      state.send("show");
     };
 
     // ..........................................................
@@ -440,90 +309,7 @@
       });
     }
 
-    createButton = f.viewModels.buttonViewModel;
-    buttonAdd = createButton({
-      onclick: vm.add,
-      label: "Add",
-      icon: "plus-circle",
-      style: {backgroundColor: "white"}
-    });
-
-    buttonRemove = createButton({
-      onclick: vm.remove,
-      label: "Remove",
-      icon: "remove",
-      style: {backgroundColor: "white"}
-    });
-
-    buttonClear = createButton({
-      onclick: vm.clear,
-      title: "Clear",
-      icon: "eraser",
-      style: {backgroundColor: "white"}
-    });
-
-    buttonUp = createButton({
-      onclick: vm.moveUp,
-      icon: "chevron-up",
-      title: "Move up",
-      style: {
-        backgroundColor: "white",
-        float: "right"
-      }
-    });
-
-    buttonDown = createButton({
-      onclick: vm.moveDown,
-      icon: "chevron-down",
-      title: "Move down",
-      style: {
-        backgroundColor: "white",
-        float: "right"
-      }
-    });
-
-    // Statechart
-    state = f.statechart.State.define({concurrent: true}, function () {
-      this.state("Display", function () {
-        this.state("Closed", function () {
-          this.enter(function () {
-            var  id = vm.id(),
-              dlg = document.getElementById(id);
-            if (dlg) { dlg.close(); }
-          });
-          this.event("show", function () {
-            this.goto("../Showing");
-          });
-        });
-        this.state("Showing", function () {
-          this.enter(function () {
-            var id = vm.id(),
-              dlg = document.getElementById(id);
-            vm.reset();
-            if (dlg) { dlg.showModal(); }
-          });
-          this.event("close", function () {
-            this.goto("../Closed");
-          });
-        });
-      });
-      this.state("Selection", function () {
-        this.state("Off", function () {
-          this.event("selected", function () {
-            this.goto("../On");
-          });
-          this.isSelected = function () { return false; };
-        });
-        this.state("On", function () {
-          this.event("unselected", function () {
-            this.goto("../Off");
-          });
-          this.isSelected = function () { return true; };
-        });
-      });
-    });
-    state.goto();
-
+    vm.state().resolve("/Display/Showing").enter(vm.reset);
     vm.reset();
 
     return vm;
@@ -534,90 +320,6 @@
 
     @params {Object} View model
   */
-  f.components.filterDialog = function (options) {
-    var component = {};
-
-    component.controller = function () {
-      this.vm = options.viewModel;
-    };
-
-    component.view = function (ctrl) {
-      var view,
-        button = f.components.button,
-        vm = ctrl.vm;
-
-      view = m("dialog", {
-          id: vm.id(),
-          style: {
-            borderRadius: "10px",
-            padding: "0px"
-          }
-        }, [
-        m("h3", {
-          style: {
-            backgroundColor: "snow",
-            borderBottomColor: "lightgrey",
-            borderBottomStyle: "solid",
-            borderBottomWidth: "thin",
-            margin: "2px",
-            padding: "6px"
-          }
-        }, [m("i", {
-          class:"fa fa-" + vm.title(), 
-          style: {marginRight: "5px"}
-        })], vm.title().toName()),
-        m("div", {style: {padding: "1em"}}, [
-          m.component(button({viewModel: vm.buttonAdd()})),
-          m.component(button({viewModel: vm.buttonRemove()})),
-          m.component(button({viewModel: vm.buttonClear()})),
-          m.component(button({viewModel: vm.buttonDown()})),
-          m.component(button({viewModel: vm.buttonUp()})),
-          m("table", {
-            class: "pure-table"
-            //style: {minWidth: "350px"}
-          }, [
-            m("thead", {
-              style: {
-                minWidth: "inherit",
-                display: "inherit"
-              }
-            }, vm.viewHeaders()),
-            m("tbody", {
-              id: "sortTbody",
-              style: {
-                maxHeight: "175px",
-                minHeight: "175px",
-                overflowX: "hidden",
-                overflowY: "auto",
-                display: "inline-block"
-              },
-              config: function (e) {
-                if (vm.scrollBottom()) {
-                  e.scrollTop = e.scrollHeight;
-                }
-                vm.scrollBottom(false);
-              } 
-            }, vm.viewRows()
-            )
-          ]),
-          m("br"),
-          m("button", {
-            class: "pure-button  pure-button-primary",
-            style: {marginRight: "5px"},
-            autofocus: true,
-            onclick: vm.ok
-          }, "Ok"),
-          m("button", {
-            class: "pure-button",
-            onclick: vm.cancel
-          }, "Cancel")
-        ])
-      ]);
-
-      return view;
-    };
-
-    return component;
-  };
+  f.components.filterDialog = f.components.tableDialog;
 
 }(f));

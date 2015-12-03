@@ -50,7 +50,7 @@
       buttonEdit, buttonSave, buttonOpen, buttonNew, buttonDelete,
       buttonUndo, buttonRefresh, buttonClear,
       searchInput, searchState, sortDialog, filterDialog, shareDialog,
-      sheetConfigureDialog, filterOpts, frmroute,
+      sheetConfigureDialog, frmroute,
       name = options.feather.toCamelCase(),
       feather = f.catalog.getFeather(options.feather),
       showMenu = false,
@@ -378,14 +378,22 @@
       filter: vm.filter()
     });
 
-    filterOpts = {
+    filterDialog = f.viewModels.filterDialogViewModel({
       attrs: vm.attrs(),
       filter: vm.filter,
       list: vm.models(),
-      feather: feather
-    };
-    sortDialog = f.viewModels.sortDialogViewModel(filterOpts);
-    filterDialog = f.viewModels.filterDialogViewModel(filterOpts);
+      feather: feather,
+      title: "filter",
+      icon: "filter"
+    });
+    sortDialog = f.viewModels.sortDialogViewModel({
+      attrs: vm.attrs(),
+      filter: vm.filter,
+      list: vm.models(),
+      feather: feather,
+      title: "sort",
+      icon: "sort"
+    });
     sheetConfigureDialog = f.viewModels.sheetConfigureDialogViewModel({
       parentViewModel: vm
     });
@@ -634,7 +642,7 @@
         filter = vm.filter(),
         sort = filter.sort || [],
         button = f.components.button,
-        filterDialog = f.components.filterDialog,
+        tableDialog = f.components.tableDialog,
         sheetConfigureDialog = f.components.sheetConfigureDialog,
         activeSheet = vm.sheet(),
         config = vm.config(),
@@ -1003,8 +1011,8 @@
             id: "toolbar",
             style: {backgroundColor: "snow"}
           }, [
-          m.component(filterDialog({viewModel: vm.sortDialog()})),
-          m.component(filterDialog({viewModel: vm.filterDialog()})),
+          m.component(tableDialog({viewModel: vm.sortDialog()})),
+          m.component(tableDialog({viewModel: vm.filterDialog()})),
           m.component(sheetConfigureDialog({viewModel: vm.sheetConfigureDialog()})),
           m.component(f.components.dialog({viewModel: vm.shareDialog()})),
           m.component(button({viewModel: vm.buttonHome()})),
@@ -1050,7 +1058,7 @@
                 class: "pure-menu-link",
                 title: "Change sheet sort",
                 onclick: vm.sortDialog().show
-              }, [m("i", {class:"fa fa-sort-alpha-asc", style: {
+              }, [m("i", {class:"fa fa-sort", style: {
                 marginRight: "4px"
               }})], "Sort"),
               m("li", {
