@@ -27,15 +27,63 @@
   */
   f.viewModels.sheetConfigureDialogViewModel = function (options) {
     options = options || {};
-    var vm, state,
+    var vm,
       cache = options.parentViewModel.sheet();
+
+    options.onclickOk = function () {
+      var route,
+        sheet = vm.model().toJSON(),
+        workbook = vm.workbook();
+
+      vm.sheet(sheet);
+      workbook.data.localConfig(vm.config());
+      f.buildRoutes(workbook.toJSON());
+      route = "/" + workbook.data.name() + "/" + sheet.name;
+      route = route.toSpinalCase();
+      m.route(route);
+      vm.state().send("close");
+    };
+    options.icon = "gear";
+    options.title = "Configure worksheet";
 
     // ..........................................................
     // PUBLIC
     //
 
-    vm = {};
-    vm.id = m.prop(options.id || f.createId());
+    vm = f.viewModels.dialogViewModel(options);
+    vm.content = function () {
+      var feathers,
+        d = vm.model().data,
+        nameId = f.createId(),
+        featherId = f.createId();
+
+      feathers = vm.feathers().map(function (feather) {
+        return m("option", feather);
+      });
+
+      return m("form", {
+        class: "pure-form pure-form-aligned"
+      }, [
+        m("div", {class: "pure-control-group"}, [
+          m("label", {
+            for: nameId
+          }, "Name:"),
+          m("input", {
+            value: d.name(),
+            oninput: m.withAttr("value", d.name)
+          })
+        ]),
+        m("div", {class: "pure-control-group"}, [
+          m("label", {
+            for: featherId
+          }, "Feather:"),
+          m("select", {
+            value: d.feather(),
+            oninput: m.withAttr("value", d.feather)
+          }, feathers)
+        ])
+      ]);
+    };
     vm.feathers = function () {
       var feathers = f.catalog.data(),
         result = Object.keys(feathers).filter(function (name) {
@@ -44,72 +92,9 @@
       return result;
     };
     vm.sheet = options.parentViewModel.sheet;
-    vm.show = function () {
-      state.send("show");
-    };
-    vm.ok = function () {
-      state.send("close");
-    };
-    vm.cancel = function () {
-      state.send("close");
-    };
     vm.config = options.parentViewModel.config;
     vm.model = f.prop(f.models.workbookLocalConfig(cache));
-    vm.title = m.prop(options.title || "Configure worksheet");
     vm.workbook = options.parentViewModel.workbook;
-
-    // ..........................................................
-    // PRIVATE
-    //
-
-    // Statechart
-    state = f.statechart.State.define(function () {
-      this.state("Display", function () {
-        this.state("Closed", function () {
-          this.enter(function () {
-            var  id = vm.id(),
-              dlg = document.getElementById(id);
-            if (dlg) { dlg.close(); }
-          });
-          this.event("show", function () {
-            this.goto("../Showing");
-          });
-        });
-        this.state("Showing", function () {
-          this.enter(function () {
-            var id = vm.id(),
-              dlg = document.getElementById(id);
-            if (dlg) { dlg.showModal(); }
-          });
-          this.event("close", function () {
-            this.goto("../Closed");
-          });
-          this.C(function() {
-            if (vm.model().isNew) { 
-              return "./New";
-            }
-            return "./Edit";
-          });
-          this.state("New", function () {
-          });
-          this.state("Edit", function () {
-            this.exit(function () {
-              var route,
-                sheet = vm.model().toJSON(),
-                workbook = vm.workbook();
-   
-              vm.sheet(sheet);
-              workbook.data.localConfig(vm.config());
-              f.buildRoutes(workbook.toJSON());
-              route = "/" + workbook.data.name() + "/" + sheet.name;
-              route = route.toSpinalCase();
-              m.route(route);
-            });
-          });
-        });
-      });
-    });
-    state.goto();
 
     return vm;
   };
@@ -119,85 +104,6 @@
 
     @params {Object} View model
   */
-  f.components.sheetConfigureDialog = function (options) {
-    var component = {};
-
-    component.controller = function () {
-      this.vm = options.viewModel;
-    };
-
-    component.view = function (ctrl) {
-      var view, feathers,
-        vm = ctrl.vm,
-        d = vm.model().data,
-        nameId = f.createId(),
-        featherId = f.createId();
-
-      feathers = vm.feathers().map(function (feather) {
-        return m("option", feather);
-      });
-
-      view = m("dialog",  {
-          id: vm.id(),
-          style: {
-            borderRadius: "10px",
-            padding: "0px"
-          }
-        }, [
-        m("h3", {
-          style: {
-            backgroundColor: "snow",
-            borderBottomColor: "lightgrey",
-            borderBottomStyle: "solid",
-            borderBottomWidth: "thin",
-            margin: "2px",
-            padding: "6px"
-          }
-        }, [m("i", {
-          class:"fa fa-gear", 
-          style: {marginRight: "5px"}
-        })], vm.title()),
-        m("div", {style: {padding: "1em"}}, [
-          m("form", {
-            class: "pure-form pure-form-aligned"
-          }, [
-            m("div", {class: "pure-control-group"}, [
-              m("label", {
-                for: nameId
-              }, "Name:"),
-              m("input", {
-                value: d.name(),
-                oninput: m.withAttr("value", d.name)
-              })
-            ]),
-            m("div", {class: "pure-control-group"}, [
-              m("label", {
-                for: featherId
-              }, "Feather:"),
-              m("select", {
-                value: d.feather(),
-                oninput: m.withAttr("value", d.feather)
-              }, feathers)
-            ])
-          ]),
-          m("br"),
-          m("button", {
-            class: "pure-button  pure-button-primary",
-            style: {marginRight: "5px"},
-            autofocus: true,
-            onclick: vm.ok
-          }, "Ok"),
-          m("button", {
-            class: "pure-button",
-            onclick: vm.cancel
-          }, "Cancel")
-       ])
-      ]);
-
-      return view;
-    };
-
-    return component;
-  };
+  f.components.sheetConfigureDialog = f.components.dialog;
 
 }(f));
