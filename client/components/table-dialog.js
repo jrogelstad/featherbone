@@ -59,9 +59,6 @@
         return true;
       }
     };
-    vm.attrs = function () {
-      return options.attrs;
-    };
     vm.buttonAdd = function () {
       return buttonAdd;
     };
@@ -76,10 +73,6 @@
     };
     vm.buttonUp = function () {
       return buttonUp;
-    };
-    vm.cancel = function () {
-      vm.reset();
-      state.send("close");
     };
     vm.clear = function () {
       vm.data().length = 0;

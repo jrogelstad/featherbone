@@ -988,11 +988,10 @@
       });
 
       // New tab button
-      tabStyle = f.copy(tabStyle);
-      delete tabStyle.webkitUserDrag;
       tabs.push(m("button[type=button]", {
         class: "pure-button",
-        style: tabStyle,
+        title: "Add sheet",
+        style: {backgroundColor: "White"},
         onclick: vm.sheetConfigureDialog().show
       }, [m("i", {class:"fa fa-plus"})]));
 

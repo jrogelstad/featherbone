@@ -27,7 +27,7 @@
   */
   f.viewModels.sheetConfigureDialogViewModel = function (options) {
     options = options || {};
-    var vm,
+    var vm, tableView,
       cache = options.parentViewModel.sheet();
 
     options.onclickOk = function () {
@@ -50,7 +50,17 @@
     // PUBLIC
     //
 
-    vm = f.viewModels.dialogViewModel(options);
+    vm = f.viewModels.tableDialogViewModel(options);
+    tableView = vm.content;
+    vm.addAttr = function (attr) {
+      if (!this.some(vm.hasAttr.bind(attr))) {
+        this.push({attr: attr});
+        return true;
+      }
+    };
+    vm.attrs = function () {
+      return options.parentViewModel.attrs();
+    };
     vm.content = function () {
       var feathers,
         d = vm.model().data,
@@ -81,9 +91,11 @@
             value: d.feather(),
             oninput: m.withAttr("value", d.feather)
           }, feathers)
-        ])
+        ]),
+        tableView()
       ]);
     };
+    vm.data = m.prop(cache.list.columns);
     vm.feathers = function () {
       var feathers = f.catalog.data(),
         result = Object.keys(feathers).filter(function (name) {
@@ -95,6 +107,51 @@
     vm.config = options.parentViewModel.config;
     vm.model = f.prop(f.models.workbookLocalConfig(cache));
     vm.workbook = options.parentViewModel.workbook;
+    vm.viewHeaderIds = m.prop({
+      column: f.createId(),
+      label: f.createId()
+    });
+    vm.viewHeaders = function () {
+      var ids = vm.viewHeaderIds();
+      return [
+        m("th", {style: {minWidth: "165px"}, id: ids.column }, "Column"),
+        m("th", {style: {minWidth: "220px"}, id: ids.column }, "Label")
+      ];
+    };
+    vm.viewRows = function () {
+      var view;
+
+      view = vm.items().map(function (item) {
+        var row;
+
+        row = m("tr", {
+          onclick: vm.selection.bind(this, item.index, true),
+          style: {backgroundColor: vm.rowColor(item.index)}
+        },[
+          m("td", {style: {minWidth: "165px", maxWidth: "165px"}}, m("select", {
+              value: item.attr,
+              onchange: m.withAttr(
+                "value",
+                vm.itemChanged.bind(this, item.index, "attr"))
+            }, vm.attrs().map(function (attr) {
+                return m("option", {value: attr}, attr.toName());
+              })
+            )
+          ),
+          m("td", {style: {minWidth: "220px", maxWidth: "220px"}}, m("input", {
+              value: item.label || item.attr.toName(),
+              onchange: m.withAttr(
+                "value",
+                vm.itemChanged.bind(this, item.index, "label"))
+            })
+          )
+        ]);
+
+        return row;
+      });
+
+      return view;
+    };
 
     return vm;
   };
