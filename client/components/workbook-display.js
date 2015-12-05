@@ -50,7 +50,7 @@
       buttonEdit, buttonSave, buttonOpen, buttonNew, buttonDelete,
       buttonUndo, buttonRefresh, buttonClear,
       searchInput, searchState, sortDialog, filterDialog, shareDialog,
-      sheetConfigureDialog, frmroute,
+      sheetConfigureDialog, frmroute, attrs, resolveProperties,
       name = options.feather.toCamelCase(),
       feather = f.catalog.getFeather(options.feather),
       showMenu = false,
@@ -224,7 +224,7 @@
       header.scrollLeft = rows.scrollLeft;
     };
     vm.refresh = function () {
-      var attrs, formatOf, criterion,
+      var fattrs, formatOf, criterion,
         value = searchInput.value(),
         filter = f.copy(vm.filter());
 
@@ -246,11 +246,11 @@
 
       // Only search on text attributes
       if (value) {
-        attrs = vm.attrs().filter(function (attr) {
+        fattrs = vm.attrs().filter(function (attr) {
           return formatOf(feather, attr) === "string";
         });
 
-        if (attrs.length) {
+        if (fattrs.length) {
           criterion = {
             property: attrs,
             operator: "~*",
@@ -378,8 +378,28 @@
       filter: vm.filter()
     });
 
+    resolveProperties = function (feather, properties, ary, prefix) {
+      prefix = prefix || "";
+      var result = ary || [];
+      properties.forEach(function (key) {
+        var rfeather,
+          prop = feather.properties[key],
+          isObject = typeof prop.type === "object",
+          path = prefix + key;
+        if (isObject && prop.type.properties) {
+          rfeather = f.catalog.getFeather(prop.type.relation);
+          resolveProperties(rfeather, prop.type.properties, result, path + ".");
+        }
+        if (!isObject || (!prop.type.childOf && !prop.type.parentOf)) {
+          result.push(path);
+        }
+      });
+      return result;
+    };
+    attrs = resolveProperties(feather, Object.keys(feather.properties)).sort();
+
     filterDialog = f.viewModels.filterDialogViewModel({
-      attrs: vm.attrs(),
+      attrs: attrs,
       filter: vm.filter,
       list: vm.models(),
       feather: feather,
@@ -387,7 +407,7 @@
       icon: "filter"
     });
     sortDialog = f.viewModels.sortDialogViewModel({
-      attrs: vm.attrs(),
+      attrs: attrs,
       filter: vm.filter,
       list: vm.models(),
       feather: feather,
@@ -395,7 +415,8 @@
       icon: "sort"
     });
     sheetConfigureDialog = f.viewModels.sheetConfigureDialogViewModel({
-      parentViewModel: vm
+      parentViewModel: vm,
+      attrs: attrs
     });
     shareDialog = f.viewModels.dialogViewModel({
       icon: "question-circle",

@@ -59,7 +59,7 @@
       }
     };
     vm.attrs = function () {
-      return options.parentViewModel.attrs();
+      return options.attrs;
     };
     vm.content = function () {
       var feathers,
