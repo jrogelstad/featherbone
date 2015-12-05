@@ -35,6 +35,12 @@
     vm.doApply = function () {
       model.save();
     };
+    vm.canSave = function () {
+      return vm.model().isValid() && (
+        vm.model().state().current()[0] === "/Ready/New" || 
+        vm.model.canUndo()
+      );
+    };
     vm.doList = function () {
       m.route(wbkroute);
     };
@@ -140,7 +146,7 @@
             type: "button",
             class: "pure-button",
             style: { backgroundColor: "snow" },
-            disabled: !model.canUndo() || !model.isValid(),
+            disabled: !vm.canSave(),
             onclick: vm.doSave
           }, [m("i", {class:"fa fa-cloud-upload"})], " Save"),
           m("button", {
