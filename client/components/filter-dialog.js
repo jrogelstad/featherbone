@@ -30,7 +30,7 @@
   */
   f.viewModels.filterDialogViewModel = function (options) {
     options = options || {};
-    var vm, model, buildInputComponent, cancel,
+    var vm, model, buildInputComponent,
       resolveProperty, getDefault,
       feather = options.feather;
 
@@ -55,11 +55,6 @@
     };
     vm.attrs = function () {
       return options.attrs;
-    };
-    cancel = vm.cancel;
-    vm.cancel = function () {
-      vm.reset();
-      cancel();
     };
     vm.data = function () {
       return vm.filter()[vm.propertyName()];
@@ -316,8 +311,6 @@
         }
       });
     }
-
-    vm.state().resolve("/Display/Showing").enter(vm.reset);
     vm.reset();
 
     return vm;

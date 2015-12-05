@@ -31,7 +31,7 @@
   f.viewModels.tableDialogViewModel = function (options) {
     options = options || {};
     var vm, state, createButton, buttonAdd, buttonRemove,
-      buttonClear, buttonDown, buttonUp,
+      buttonClear, buttonDown, buttonUp, cancel,
       selection = m.prop();
 
     // ..........................................................
@@ -73,6 +73,11 @@
     };
     vm.buttonUp = function () {
       return buttonUp;
+    };
+    cancel = vm.cancel;
+    vm.cancel = function () {
+      vm.reset();
+      cancel();
     };
     vm.clear = function () {
       vm.data().length = 0;
@@ -169,6 +174,9 @@
         return;
       }
       buttonRemove.disable();
+    };
+    vm.reset = function () {
+      // Reset code here
     };
     vm.rowColor = function (index) {
       if (vm.selection() === index) {
@@ -272,6 +280,9 @@
       });
     });
     state.goto();
+
+    vm.state().resolve("/Display/Showing").enter(vm.reset);
+    vm.reset();
 
     return vm;
   };

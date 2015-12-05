@@ -28,7 +28,7 @@
   f.viewModels.sheetConfigureDialogViewModel = function (options) {
     options = options || {};
     var vm, tableView,
-      cache = options.parentViewModel.sheet();
+      cache = f.copy(options.parentViewModel.sheet());
 
     options.onclickOk = function () {
       var route,
@@ -106,6 +106,13 @@
     vm.sheet = options.parentViewModel.sheet;
     vm.config = options.parentViewModel.config;
     vm.model = f.prop(f.models.workbookLocalConfig(cache));
+    vm.reset = function () {
+      cache = f.copy(vm.sheet());
+      vm.model(f.models.workbookLocalConfig(cache));
+      vm.data(cache.list.columns);
+      if (cache.list.columns.length) { vm.add(); }
+      vm.selection(0);
+    };
     vm.workbook = options.parentViewModel.workbook;
     vm.viewHeaderIds = m.prop({
       column: f.createId(),
@@ -152,6 +159,7 @@
 
       return view;
     };
+    vm.reset();
 
     return vm;
   };

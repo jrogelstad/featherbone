@@ -684,8 +684,9 @@
 
       // Build header
       header = (function () {
-        var ths = vm.attrs().map(function (key) {
+        var ths = vm.sheet().list.columns.map(function (col) {
             var hview, order, name,
+              key = col.attr,
               icon = [],
               fidx = findFilterIndex(key, "sort"),
               operators = vm.filterDialog().operators();
@@ -749,7 +750,7 @@
                 textOverflow: "ellipsis",
                 fontSize: zoom
               }
-            }, icon, key.toName());
+            }, icon, col.label || key.toName());
 
             idx += 1;
 
