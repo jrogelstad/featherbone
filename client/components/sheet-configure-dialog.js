@@ -96,6 +96,9 @@
       ]);
     };
     vm.data = m.prop(cache.list.columns);
+    vm.hasAttr = function (item) { 
+      return item.attr === this;
+    };
     vm.feathers = function () {
       var feathers = f.catalog.data(),
         result = Object.keys(feathers).filter(function (name) {
