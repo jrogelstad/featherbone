@@ -26,7 +26,8 @@
   */
   f.viewModels.buttonViewModel = function (options) {
     options = options || {};
-    var vm, state, display, primary, mode, lidx, lary, label;
+    var vm, state, display, primary, mode, idx, ary, label,
+      hotkey = options.hotkey ? options.hotkey.toUpperCase().charCodeAt(0) : false;
 
     // ..........................................................
     // PUBLIC
@@ -41,9 +42,18 @@
     vm.enable = function () { state.send("enable"); };
     vm.class = function () { return mode().class(); };
     vm.hide = function () { state.send("hide"); };
+    vm.hotKey = m.prop(hotkey);
     vm.icon = m.prop(options.icon || "");
+    vm.id = m.prop(f.createId());
     vm.label = m.prop(options.label || "");
     vm.onclick = m.prop(options.onclick);
+    vm.onkeydown = function (e) {
+      var id;
+      if (e.altKey && e.which === vm.hotKey()) {
+        id = vm.id();
+        document.getElementById(id).click();
+      }
+    };
     vm.primary = function () { return primary().class(); };
     vm.show = function () { state.send("show"); };
     vm.state = function () { return state; };
@@ -54,19 +64,20 @@
     // PRIVATE
     //
 
-    lidx = vm.label().indexOf("&");
-    if (lidx > -1) {
+    idx = vm.label().indexOf("&");
+    if (idx > -1) {
       label = vm.label();
       label = label.replace("&", "");
-      lary = [];
-      if (lidx > 0) {
-        lary.push(m("span", label.slice(0, lidx)));
+      vm.hotKey(label.slice(idx, idx + 1).toUpperCase().charCodeAt(0));
+      ary = [];
+      if (idx > 0) {
+        ary.push(m("span", label.slice(0, idx)));
       }
-      lary.push(m("span", {style: {
+      ary.push(m("span", {style: {
         textDecoration: "underline"
-      }}, label.slice(lidx, lidx + 1)));
-      lary.push(m("span", label.slice(lidx + 1, label.length)));  
-      vm.label(lary);
+      }}, label.slice(idx, idx + 1)));
+      ary.push(m("span", label.slice(idx + 1, label.length)));  
+      vm.label(ary);
     }
 
     // Define statechart
@@ -195,6 +206,7 @@
       if (vm.primary()) { classes.push(vm.primary()); }
 
       opts = {
+        id: vm.id(),
         type: "button",
         class: classes.join(" "),
         style: style,
@@ -204,6 +216,11 @@
           backgroundColor: "Red"
         }
       };
+      if (vm.hotKey()) {
+        opts.config = function () {
+          document.addEventListener("keydown", vm.onkeydown);
+        };
+      }
       style.backgroundColor = style.backgroundColor || "snow";
       style.display = vm.display();
 

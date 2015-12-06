@@ -181,35 +181,6 @@
         break;
       }
     };
-    vm.onkeydownPage = function (e) {
-      if (e.altKey) {
-        switch (e.which)
-        {
-        case 72: // h (home)
-          vm.goHome();
-          break;
-        case 77: // m (mode)
-          m.startComputation();
-          vm.toggleMode();
-          m.endComputation();
-          break;
-        case 78: // n (new)
-          m.startComputation();
-          vm.modelNew();
-          m.endComputation();
-          break;
-        case 79: // o (open)
-          vm.modelOpen();
-          break;
-        case 82: // r (refresh)
-          vm.refresh();
-          break;
-        case 83: // s (save)
-          vm.saveAll();
-          break;
-        }
-      }
-    };
     vm.onmouseovermenu = function () {
       showMenu = true;
     };
@@ -431,18 +402,21 @@
     buttonHome = createButton({
       onclick: vm.goHome,
       title: "Home (Alt+H)",
+      hotkey: "H",
       icon: "home"
     });
 
     buttonList = createButton({
       onclick: vm.toggleView,
-      title: "List mode (Alt+M)",
+      title: "List mode (Alt+L)",
+      hotkey: "L",
       icon: "list"
     });
 
     buttonEdit = createButton({
       onclick: vm.toggleEdit,
-      title: "Edit mode (Alt+M)",
+      title: "Edit mode (Alt+T)",
+      hotkey: "T",
       icon: "pencil"
     });
 
@@ -484,6 +458,7 @@
     buttonRefresh = createButton({
       onclick: vm.refresh,
       title: "Refresh (Alt+R)",
+      hotkey: "R",
       icon: "refresh"
     });
 
@@ -1022,8 +997,6 @@
           // Make Chrome style dialog available for all browsers
           var dialog = document.querySelector('dialog');
           if (!dialog.showModal) { dialogPolyfill.registerDialog(dialog); }
-
-          document.addEventListener("keydown", vm.onkeydownPage, false);
         }
       }, [
         m("div", {
