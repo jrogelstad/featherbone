@@ -26,7 +26,7 @@
   */
   f.viewModels.buttonViewModel = function (options) {
     options = options || {};
-    var vm, state, display, primary, mode, idx, ary, label,
+    var vm, state, display, primary, mode, idx, ary, label, title, len,
       hotkey = options.hotkey ? options.hotkey.toUpperCase().charCodeAt(0) : false;
 
     // ..........................................................
@@ -51,6 +51,7 @@
       var id;
       if (e.altKey && e.which === vm.hotKey()) {
         id = vm.id();
+        e.preventDefault();
         document.getElementById(id).click();
       }
     };
@@ -78,6 +79,21 @@
       }}, label.slice(idx, idx + 1)));
       ary.push(m("span", label.slice(idx + 1, label.length)));  
       vm.label(ary);
+    }
+
+    // Append hot key advice to title if applicable
+    hotkey = vm.hotKey();
+    if (hotkey) {
+      title = vm.title();
+      len = title.length;
+      if (len) {
+        title += " (";
+      }
+      title += "Alt + " + String.fromCharCode(hotkey);
+      if (len) {
+        title += ")";
+      }
+      vm.title(title);
     }
 
     // Define statechart

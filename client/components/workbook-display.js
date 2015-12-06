@@ -401,22 +401,22 @@
     createButton = f.viewModels.buttonViewModel;
     buttonHome = createButton({
       onclick: vm.goHome,
-      title: "Home (Alt+H)",
+      title: "Home",
       hotkey: "H",
       icon: "home"
     });
 
     buttonList = createButton({
       onclick: vm.toggleView,
-      title: "List mode (Alt+L)",
+      title: "List mode",
       hotkey: "L",
       icon: "list"
     });
 
     buttonEdit = createButton({
       onclick: vm.toggleEdit,
-      title: "Edit mode (Alt+T)",
-      hotkey: "T",
+      title: "Edit mode",
+      hotkey: "E",
       icon: "pencil"
     });
 
@@ -440,14 +440,13 @@
 
     buttonDelete = createButton({
       onclick: vm.modelDelete,
-      label: "Delete",
+      label: "&Delete",
       icon: "remove"
     });
 
     buttonUndo = createButton({
       onclick: vm.undo,
-      title: "Undo",
-      label: "Undo",
+      label: "&Undo",
       icon: "undo"
     });
 
@@ -457,7 +456,7 @@
 
     buttonRefresh = createButton({
       onclick: vm.refresh,
-      title: "Refresh (Alt+R)",
+      title: "Refresh",
       hotkey: "R",
       icon: "refresh"
     });
@@ -465,6 +464,7 @@
     buttonClear = createButton({
       onclick: vm.searchInput().clear,
       title: "Clear search",
+      hotkey: "C",
       icon: "eraser"
     });
 
