@@ -38,7 +38,7 @@
     vm.canSave = function () {
       return vm.model().isValid() && (
         vm.model().state().current()[0] === "/Ready/New" || 
-        vm.model.canUndo()
+        vm.model().canUndo()
       );
     };
     vm.doList = function () {
