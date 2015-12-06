@@ -71,8 +71,9 @@
         return m("option", feather);
       });
 
-      return m("form", {
-        class: "pure-form pure-form-aligned"
+      return m("div", {
+        class: "pure-form pure-form-aligned",
+        style: {height: "375px"}
       }, [
         m("div", {class: "pure-control-group"}, [
           m("label", {
@@ -86,13 +87,50 @@
         m("div", {class: "pure-control-group"}, [
           m("label", {
             for: featherId
-          }, "Feather:"),
+          }, "Class:"),
           m("select", {
             value: d.feather(),
             oninput: m.withAttr("value", d.feather)
           }, feathers)
         ]),
-        tableView()
+        m("div", {style: {
+          position: "absolute",
+          zIndex: "1",
+          left: "175px"
+        }}, [
+          m("button", {class: "pure-button pure-button-primary", style: {
+            borderColor: "#0078e7",
+            borderStyle: "solid",
+            borderWidth: "thin",
+            borderTopRightRadius: "0px",
+            borderBottomRightRadius: "0px",
+            borderTopLeftRadius: "4px",
+            borderBottomLeftRadius: "4px"
+          }}, "List"),
+          m("button", {class: "pure-button", style: {
+            backgroundColor: "White",
+            color: "#0078e7",
+            borderColor: "#0078e7",
+            borderStyle: "solid",
+            borderWidth: "thin",
+            borderTopLeftRadius: "0px",
+            borderBottomLeftRadius: "0px",
+            borderTopRightRadius: "4px",
+            borderBottomRightRadius: "4px"
+          }}, "Form")
+        ]),
+        m("div", {
+          style: {
+            border: "thin #0078e7 solid",
+            borderRadius: "6px",
+            padding: "6px",
+            paddingTop: "20px",
+            position: "relative",
+            top: "20px"
+          }
+        }, [
+          tableView()
+        ])
       ]);
     };
     vm.data = m.prop(cache.list.columns);
