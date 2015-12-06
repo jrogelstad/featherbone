@@ -252,7 +252,7 @@
 
         if (fattrs.length) {
           criterion = {
-            property: attrs,
+            property: fattrs,
             operator: "~*",
             value: value
           };
@@ -448,28 +448,24 @@
 
     buttonSave = createButton({
       onclick: vm.saveAll,
-      title: "Save (Alt+S)",
-      label: "Save",
+      label: "&Save",
       icon: "cloud-upload"
     });
 
     buttonOpen = createButton({
       onclick: vm.modelOpen,
-      title: "Open (Alt+O)",
-      label: "Open",
+      label: "&Open",
       icon: "folder-open"
     });
 
     buttonNew = createButton({
       onclick: vm.modelNew,
-      title: "New (Alt+N)",
-      label: "New",
+      label: "&New",
       icon: "plus-circle"
     });
 
     buttonDelete = createButton({
       onclick: vm.modelDelete,
-      title: "Delete",
       label: "Delete",
       icon: "remove"
     });

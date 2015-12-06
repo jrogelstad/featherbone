@@ -26,7 +26,7 @@
   */
   f.viewModels.buttonViewModel = function (options) {
     options = options || {};
-    var vm, state, display, primary, mode;
+    var vm, state, display, primary, mode, lidx, lary, label;
 
     // ..........................................................
     // PUBLIC
@@ -53,6 +53,21 @@
     // ..........................................................
     // PRIVATE
     //
+
+    lidx = vm.label().indexOf("&");
+    if (lidx > -1) {
+      label = vm.label();
+      label = label.replace("&", "");
+      lary = [];
+      if (lidx > 0) {
+        lary.push(m("span", label.slice(0, lidx)));
+      }
+      lary.push(m("span", {style: {
+        textDecoration: "underline"
+      }}, label.slice(lidx, lidx + 1)));
+      lary.push(m("span", label.slice(lidx + 1, label.length)));  
+      vm.label(lary);
+    }
 
     // Define statechart
     state = f.statechart.State.define({concurrent: true}, function () {
@@ -184,7 +199,10 @@
         class: classes.join(" "),
         style: style,
         disabled: vm.isDisabled(),
-        onclick: vm.onclick()
+        onclick: vm.onclick(),
+        tooltip: {
+          backgroundColor: "Red"
+        }
       };
       style.backgroundColor = style.backgroundColor || "snow";
       style.display = vm.display();
