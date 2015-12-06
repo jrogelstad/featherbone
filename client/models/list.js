@@ -167,6 +167,12 @@
         });
         this.state("Saving", function () {
           this.enter(doSave);
+          this.event("changed", function () {
+            this.goto("/Fetched");
+          });
+          this.canExit = function () {
+            return !dirty.length;
+          };
         });
         this.event("fetched", function () {
           this.goto("/Fetched");
