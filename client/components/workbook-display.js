@@ -349,7 +349,7 @@
       state.send("view");
     };
     vm.toggleOpen = function (model) {
-      selection = model;
+      vm.select(model);
       vm.modelOpen();
     };
     vm.toggleSelection = function (model, col) {
@@ -646,10 +646,12 @@
 
   // Define workbook component
   f.components.workbookDisplay = function (options) {
-    var component = {};
+    var viewModel,
+      component = {};
 
     component.controller = function () {
-      this.vm = f.viewModels.workbookViewModel(options);
+      viewModel = viewModel || f.viewModels.workbookViewModel(options);
+      this.vm = viewModel;
     };
 
     component.view = function (ctrl) {
