@@ -21,7 +21,8 @@
   // Calculate scroll bar width
   // http://stackoverflow.com/questions/13382516/getting-scroll-bar-width-using-javascript
   var scrWidth, inner, widthNoScroll, widthWithScroll,
-    outer = document.createElement("div");
+    outer = document.createElement("div"),
+    COL_WIDTH_DEFAULT = "150px";
 
   outer.style.visibility = "hidden";
   outer.style.width = "100px";
@@ -136,16 +137,39 @@
       ev.preventDefault();
     };
     vm.ondragstart = function (idx, type, ev) {
+      ev.dataTransfer.setData("typeStart", type);
+      if (type === "width") {
+        ev.dataTransfer.setData("widthIndex", idx);
+        ev.dataTransfer.setData("widthStart", ev.clientX);
+        return;
+      }
       ev.dataTransfer.setData(type, idx);
     };
     vm.ondrop = function (toIdx, type, ary, ev) {
-      ev.preventDefault();
-      var moved,
-        fromIdx = ev.dataTransfer.getData(type);
+      var moved, column, fromIdx, oldWidth, newWidth, widthStart,
+        typeStart = ev.dataTransfer.getData("typeStart");
 
-      if (fromIdx !== toIdx) {
-        moved = ary.splice(fromIdx, 1)[0];
-        ary.splice(toIdx, 0, moved);
+      ev.preventDefault();
+
+      switch (typeStart)
+      {
+      case "width":
+        fromIdx = ev.dataTransfer.getData("widthIndex") - 0;
+        if (fromIdx <= toIdx) {
+          widthStart = ev.dataTransfer.getData("widthStart") - 0;
+          column = vm.sheet().list.columns[fromIdx];
+          oldWidth = column.width || COL_WIDTH_DEFAULT;
+          oldWidth = oldWidth.replace("px", "") - 0;
+          newWidth = oldWidth - (widthStart - ev.clientX);
+          column.width = newWidth + "px";
+        }
+        break;
+      default:
+        fromIdx = ev.dataTransfer.getData(type) - 0;
+        if (fromIdx !== toIdx) {
+          moved = ary.splice(fromIdx, 1)[0];
+          ary.splice(toIdx, 0, moved);
+        }
       }
     };
     vm.onkeydownCell = function (e) {
@@ -677,13 +701,17 @@
       };
 
       // Build header
+      idx = 0;
       header = (function () {
-        var ths = vm.sheet().list.columns.map(function (col) {
+        var ths = activeSheet.list.columns.map(function (col) {
             var hview, order, name,
               key = col.attr,
               icon = [],
               fidx = findFilterIndex(key, "sort"),
-              operators = vm.filterDialog().operators();
+              operators = vm.filterDialog().operators(),
+              columnWidth = activeSheet.list.columns[idx].width || COL_WIDTH_DEFAULT;
+
+            columnWidth = (columnWidth.replace("px", "") - 6) + "px"; 
 
             // Add sort icons
             if (fidx !== false) {
@@ -731,20 +759,31 @@
               }));
             }
 
-            hview = m("th", {
-              ondragover: vm.ondragover,
-              draggable: true,
-              ondragstart: vm.ondragstart.bind(this, idx, "column"),
-              ondrop: vm.ondrop.bind(this, idx, "column", activeSheet.list.columns),
-              style: {
-                minWidth: "150px",
-                maxWidth: "150px",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                fontSize: zoom
-              }
-            }, icon, col.label || key.toName());
+            hview = [
+              m("th", {
+                ondragover: vm.ondragover,
+                draggable: true,
+                ondragstart: vm.ondragstart.bind(this, idx, "column"),
+                ondrop: vm.ondrop.bind(this, idx, "column", activeSheet.list.columns),
+                style: {
+                  minWidth: columnWidth,
+                  maxWidth: columnWidth,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  fontSize: zoom
+                }
+              }, icon, col.label || key.toName()),
+              m("th", {
+                ondragover: vm.ondragover,
+                draggable: true,
+                ondragstart: vm.ondragstart.bind(this, idx, "width"),
+                style: {
+                  padding: "3px",
+                  borderLeft: "none"
+                }
+              })
+            ];
 
             idx += 1;
 
@@ -784,16 +823,18 @@
         // Build view row
         if (currentMode === "/Mode/View" || !isSelected) {
           // Build cells
+          idx = 0;
           tds = vm.attrs().map(function (col) {
             var cell, content,
               prop = f.resolveProperty(model, col),
               value = prop(),
               format = prop.format || prop.type,
+              columnWidth = activeSheet.list.columns[idx].width || COL_WIDTH_DEFAULT,
               tdOpts = {
                 onclick: vm.toggleSelection.bind(this, model, col),
                 style: {
-                  minWidth: "150px",
-                  maxWidth: "150px",
+                  minWidth: columnWidth,
+                  maxWidth: columnWidth,
                   whiteSpace: "nowrap",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
@@ -840,6 +881,7 @@
             }
 
             cell = m("td", tdOpts, content);
+            idx += 1;
 
             return cell;
           });
@@ -859,10 +901,12 @@
           };
 
           // Build cells
+          idx = 0;
           tds = vm.attrs().map(function (col) {
             var cell, tdOpts, inputOpts,
               prop = f.resolveProperty(model, col),
-              id = "input" + col.toCamelCase(true);
+              id = "input" + col.toCamelCase(true),
+              columnWidth = activeSheet.list.columns[idx].width || COL_WIDTH_DEFAULT;
 
             inputOpts = {
               id: id,
@@ -875,8 +919,8 @@
                 }
               },
               style: {
-                minWidth: "150px",
-                maxWidth: "150px",
+                minWidth: columnWidth,
+                maxWidth: columnWidth,
                 boxShadow: "none",
                 border: "none",
                 padding: "0px",
@@ -907,6 +951,8 @@
                 options: inputOpts
               })
             ]);
+
+            idx += 1;
 
             return cell;
           });
