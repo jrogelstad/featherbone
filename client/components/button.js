@@ -38,9 +38,9 @@
     vm.isDisabled = function () { return mode().isDisabled(); };
     vm.deactivate = function () { state.send("deactivate"); };
     vm.disable = function () { state.send("disable"); };
-    vm.display = function () { return display().value(); };
     vm.enable = function () { state.send("enable"); };
     vm.class = function () { return mode().class(); };
+    vm.hidden = function () { return display().hidden(); };
     vm.hide = function () { state.send("hide"); };
     vm.hotKey = m.prop(hotkey);
     vm.icon = m.prop(options.icon || "");
@@ -107,7 +107,7 @@
             this.goto("../Disabled");
           });
           this.class = function () {
-            return "pure-button";
+            return "";
           };
           this.isDisabled = function () {
             return false;
@@ -135,7 +135,7 @@
             this.goto("../Active");
           });
           this.class = function () {
-            return "pure-button";
+            return "";
           };
           this.isDisabled = function () {
             return true;
@@ -165,16 +165,16 @@
           this.event("hide", function () {
             this.goto("../Off");
           });
-          this.value = function () {
-            return "inline-block";
+          this.hidden = function () {
+            return "";
           };
         });
         this.state("Off", function () {
           this.event("show", function () {
             this.goto("../On");
           });
-          this.value = function () {
-            return "none";
+          this.hidden = function () {
+            return "pure-button-hidden";
           };
         });
       });
@@ -212,7 +212,7 @@
     component.view = function (ctrl) {
       var opts, view, iconView,
         vm = ctrl.vm,
-        classes = ["pure-button"],
+        classes = ["pure-button suite-button"],
         style = vm.style(),
         title = vm.title(),
         icon = vm.icon(),
@@ -220,6 +220,7 @@
 
       if (vm.class()) { classes.push(vm.class()); }
       if (vm.primary()) { classes.push(vm.primary()); }
+      classes.push(vm.hidden());
 
       opts = {
         id: vm.id(),
@@ -227,18 +228,13 @@
         class: classes.join(" "),
         style: style,
         disabled: vm.isDisabled(),
-        onclick: vm.onclick(),
-        tooltip: {
-          backgroundColor: "Red"
-        }
+        onclick: vm.onclick()
       };
       if (vm.hotKey()) {
         opts.config = function () {
           document.addEventListener("keydown", vm.onkeydown);
         };
       }
-      style.backgroundColor = style.backgroundColor || "snow";
-      style.display = vm.display();
 
       if (icon) {
         iconView = [m("i", {
