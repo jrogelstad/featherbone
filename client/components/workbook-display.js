@@ -765,12 +765,10 @@
                 draggable: true,
                 ondragstart: vm.ondragstart.bind(this, idx, "column"),
                 ondrop: vm.ondrop.bind(this, idx, "column", activeSheet.list.columns),
+                class: "suite-column-header",
                 style: {
                   minWidth: columnWidth,
                   maxWidth: columnWidth,
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
                   fontSize: zoom
                 }
               }, icon, col.label || key.toName()),
@@ -778,6 +776,7 @@
                 ondragover: vm.ondragover,
                 draggable: true,
                 ondragstart: vm.ondragstart.bind(this, idx, "width"),
+                class: "suite-column-header-grabber",
                 style: {
                   padding: "3px",
                   borderLeft: "none"
@@ -832,12 +831,10 @@
               columnWidth = activeSheet.list.columns[idx].width || COL_WIDTH_DEFAULT,
               tdOpts = {
                 onclick: vm.toggleSelection.bind(this, model, col),
+                class: "suite-cell-view",
                 style: {
                   minWidth: columnWidth,
                   maxWidth: columnWidth,
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
                   fontSize: zoom
                 }
               };

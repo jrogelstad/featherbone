@@ -15,5 +15,33 @@
 **/
 .suite-button {
     /* Structure */
-    background-color: snow;
+    background-color: Snow;
 }
+
+.suite-cell-view {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.suite-column-header {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/*
+.suite-column-header-grabber {
+  padding: 3px;
+  border-left: none;
+}
+*/
+.suite-header {
+    /* Structure */
+    background-color: Snow;
+    border-bottom-color: LightGrey;
+    border-bottom-style: solid;
+    border-bottom-width: thin;
+    margin: 2px;
+    padding: 6px;
+}
+

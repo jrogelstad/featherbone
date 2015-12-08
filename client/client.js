@@ -124,14 +124,7 @@
           });
         return m("div", [
           m("h2", {
-            style: {
-              backgroundColor: "snow",
-              borderBottomColor: "lightgrey",
-              borderBottomStyle: "solid",
-              borderBottomWidth: "thin",
-              margin: "2px",
-              padding: "6px"
-            }
+            class: "suite-header"
           }, "Suite Sheets"),
           m("div", {
             style: {

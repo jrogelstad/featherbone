@@ -118,14 +118,7 @@
           }
         }, [
         m("h3", {
-          style: {
-            backgroundColor: "snow",
-            borderBottomColor: "lightgrey",
-            borderBottomStyle: "solid",
-            borderBottomWidth: "thin",
-            margin: "2px",
-            padding: "6px"
-          }
+          class: "suite-header"
         }, [m("i", {
           class:"fa fa-" + vm.icon(), 
           style: {marginRight: "5px"}
