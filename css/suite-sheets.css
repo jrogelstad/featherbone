@@ -36,12 +36,83 @@
 }
 */
 .suite-header {
-    /* Structure */
-    background-color: Snow;
-    border-bottom-color: LightGrey;
-    border-bottom-style: solid;
-    border-bottom-width: thin;
-    margin: 2px;
-    padding: 6px;
+  background-color: Snow;
+  border-bottom-color: LightGrey;
+  border-bottom-style: solid;
+  border-bottom-width: thin;
+  margin: 2px;
+  padding: 6px;
+}
+
+.suite-menu {
+  position: absolute;
+  display: inline-block;
+  top: 2px;
+}
+
+.suite-menu-button {
+  background-color: Snow;
+  margin: 2px;
+  min-height: 34px;
+}
+
+.suite-menu-list {
+  background-color: White;
+  position: absolute;
+  z-index: 9999;
+  border: 1px solid LightGrey;
+}
+
+.suite-sheet-tab {
+  border-top-left-radius: 0px;
+  border-top-right-radius: 0px;
+  border-right-style: solid;
+  border-right-color: Silver;
+  border-right-width: thin;
+  border-bottom-style: solid;
+  border-bottom-color: Silver;
+  border-bottom-width: thin;
+  webkit-user-drag: element;
+}
+
+.suite-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.suite-table-body {
+  display: inline-block;
+  width: 100%;
+  overflow: auto;
+}
+
+.suite-table-header {
+  display: inline-block;
+  width: 100%;
+  overflow: hidden;
+}
+
+.suite-toolbar {
+  background-color: Snow;
+}
+
+.suite-zoom-control {
+  float: right;
+  margin-top: 6px;
+}
+
+.suite-zoom-icon {
+  color: LightGrey;
+  margin-top: 9px;
+  float: right;
+}
+
+.suite-zoom-left-icon {
+  margin-right: 5px;
+}
+
+.suite-zoom-right-icon {
+  margin-left: 5px;
+  margin-right: 8px;
 }
 

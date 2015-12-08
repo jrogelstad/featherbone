@@ -655,7 +655,7 @@
 
     component.view = function (ctrl) {
       var tbodyConfig, findFilterIndex,
-        header, rows, tabs, view, rel, tabStyle,
+        header, rows, tabs, view, rel,
         vm = ctrl.vm,
         filter = vm.filter(),
         sort = filter.sort || [],
@@ -995,17 +995,6 @@
 
       // Build tabs
       idx = 0;
-      tabStyle = {
-        borderTopLeftRadius: "0px",
-        borderTopRightRadius: "0px",
-        borderRightStyle: "solid",
-        borderRightColor: "Silver",
-        borderRightWidth: "thin",
-        borderBottomStyle: "solid",
-        borderBottomColor: "Silver",
-        borderBottomWidth: "thin",
-        webkitUserDrag: "element"
-      };
       tabs = vm.sheets().map(function (sheet) {
         var tab;
 
@@ -1015,9 +1004,8 @@
           draggable: true,
           ondragstart: vm.ondragstart.bind(this, idx, "tab"),
           ondrop: vm.ondrop.bind(this, idx, "tab", config),
-          class: activeSheet.name === sheet ?
-            "pure-button pure-button-primary" : "pure-button",
-          style: tabStyle,
+          class: "suite-sheet-tab pure-button" +
+            (activeSheet.name === sheet ? " pure-button-primary" : ""),
           onclick: vm.tabClicked.bind(this, sheet)
         }, sheet);
         idx += 1;
@@ -1044,7 +1032,7 @@
       }, [
         m("div", {
             id: "toolbar",
-            style: {backgroundColor: "snow"}
+            class: "suite-toolbar"
           }, [
           m.component(tableDialog({viewModel: vm.sortDialog()})),
           m.component(tableDialog({viewModel: vm.filterDialog()})),
@@ -1062,31 +1050,17 @@
           m.component(button({viewModel: vm.buttonRefresh()})),
           m.component(button({viewModel: vm.buttonClear()})),
           m("div", {
-            class: "pure-menu custom-restricted-width",
+            class: "pure-menu custom-restricted-width suite-menu",
             onmouseover: vm.onmouseovermenu,
-            onmouseout: vm.onmouseoutmenu,
-            style: {
-              position: "absolute",
-              display: "inline-block",
-              top: "2px"
-            }
+            onmouseout: vm.onmouseoutmenu
           }, [
             m("span", {
-              class:"pure-button fa fa-bars",
-              style: {
-                backgroundColor: "snow",
-                margin: "2px",
-                minHeight: "34px"
-              }
+              class:"pure-button fa fa-bars suite-menu-button"
             }),
             m("ul", {
-              class: "pure-menu-list",
+              class: "pure-menu-list suite-menu-list",
               style: {
-                display: vm.showMenu() ? "block" : "none",
-                backgroundColor: "white",
-                position: "absolute",
-                zIndex: 9999,
-                border: "1px solid lightgrey"
+                display: vm.showMenu() ? "block" : "none"
               }
             }, [
               m("li", {
@@ -1140,47 +1114,24 @@
           ])     
         ]),
         m("table", {
-          class: "pure-table",
-          style: {
-            tableLayout: "fixed",
-            width: "100%"
-          }
+          class: "pure-table suite-table"
         }, [
             m("thead", {
             id: "header",
-            style: {
-              display: "inline-block",
-              width: "100%",
-              overflow: "hidden"
-            }
+            class: "suite-table-header"
           }, [header]),
           m("tbody", {
             id: "rows",
+            class: "suite-table-body",
             onscroll: vm.onscroll,
-            style: {
-              display: "inline-block",
-              width: "100%",
-              overflow: "auto"
-            },
             config: tbodyConfig
           }, rows)
         ]),
-        m("div", {
-            id: "tabs"
-          }, [
+        m("div", {id: "tabs"}, [
           tabs,
-          m("i", {class: "fa fa-search-plus", style: {
-            color: "LightGrey",
-            marginLeft: "5px",
-            marginTop: "9px",
-            marginRight: "8px",
-            float: "right"
-          }}),
+          m("i", {class: "fa fa-search-plus suite-zoom-icon suite-zoom-right-icon"}),
           m("input", {
-            style: {
-               float: "right",
-               marginTop: "6px"
-            },
+            class: "suite-zoom-control",
             title: "Zoom " + vm.zoom() + "%",
             type: "range",
             step: "5",
@@ -1189,12 +1140,7 @@
             value: vm.zoom(),
             oninput: m.withAttr("value", vm.zoom)
           }),
-          m("i", {class: "fa fa-search-minus", style: {
-            color: "LightGrey",
-            marginRight: "5px",
-            marginTop: "9px",
-            float: "right"
-          }})
+          m("i", {class: "fa fa-search-minus suite-zoom-icon suite-zoom-left-icon"})
         ])
       ]);
 
