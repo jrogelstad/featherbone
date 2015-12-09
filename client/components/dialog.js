@@ -117,7 +117,7 @@
         m("h3", {
           class: "suite-header"
         }, [m("i", {
-          class:"fa fa-" + vm.icon()
+          class:"fa fa-" + vm.icon() + " suite-dialog-icon"
         })], vm.title().toName()),
         m("div", {class: "suite-dialog-content-frame"}, [
           vm.content(),

@@ -72,8 +72,7 @@
       });
 
       return m("div", {
-        class: "pure-form pure-form-aligned",
-        style: {height: "375px"}
+        class: "pure-form pure-form-aligned suite-sheet-configure-content"
       }, [
         m("div", {class: "pure-control-group"}, [
           m("label", {
@@ -93,42 +92,11 @@
             oninput: m.withAttr("value", d.feather)
           }, feathers)
         ]),
-        m("div", {style: {
-          position: "absolute",
-          zIndex: "1",
-          left: "175px"
-        }}, [
-          m("button", {class: "pure-button pure-button-primary", style: {
-            borderColor: "#0078e7",
-            borderStyle: "solid",
-            borderWidth: "thin",
-            borderTopRightRadius: "0px",
-            borderBottomRightRadius: "0px",
-            borderTopLeftRadius: "4px",
-            borderBottomLeftRadius: "4px"
-          }}, "List"),
-          m("button", {class: "pure-button", style: {
-            backgroundColor: "White",
-            color: "#0078e7",
-            borderColor: "#0078e7",
-            borderStyle: "solid",
-            borderWidth: "thin",
-            borderTopLeftRadius: "0px",
-            borderBottomLeftRadius: "0px",
-            borderTopRightRadius: "4px",
-            borderBottomRightRadius: "4px"
-          }}, "Form")
+        m("div", {class: "suite-sheet-configure-tabs"} , [
+          m("button", {class: "pure-button pure-button-primary suite-sheet-configure-left-tab"}, "List"),
+          m("button", {class: "pure-button suite-sheet-configure-right-tab"}, "Form")
         ]),
-        m("div", {
-          style: {
-            border: "thin #0078e7 solid",
-            borderRadius: "6px",
-            padding: "6px",
-            paddingTop: "20px",
-            position: "relative",
-            top: "20px"
-          }
-        }, [
+        m("div", {class: "suite-sheet-configure-group-box"}, [
           tableView()
         ])
       ]);
