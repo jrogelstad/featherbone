@@ -112,26 +112,19 @@
 
       view = m("dialog", {
           id: vm.id(),
-          style: {
-            borderRadius: "10px",
-            padding: "0px"
-          }
+          class: "suite-dialog"
         }, [
         m("h3", {
           class: "suite-header"
         }, [m("i", {
-          class:"fa fa-" + vm.icon(), 
-          style: {marginRight: "5px"}
+          class:"fa fa-" + vm.icon()
         })], vm.title().toName()),
-        m("div", {style: {padding: "1em"}}, [
+        m("div", {class: "suite-dialog-content-frame"}, [
           vm.content(),
           m("br"),
           m("button", {
-            class: "pure-button  pure-button-primary",
-            style: {
-              marginRight: "5px",
-              display: vm.displayOk()
-            },
+            class: "pure-button  pure-button-primary suite-dialog-button-ok",
+            style: { display: vm.displayOk() },
             onclick: vm.onclickOk
           }, "Ok"),
           m("button", {

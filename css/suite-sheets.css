@@ -74,6 +74,19 @@
   cursor: w-resize;
 }
 
+.suite-dialog {
+  border-radius: 10px;
+  padding: 0px;
+}
+
+.suite-dialog-content-frame {
+  padding: 1em;
+}
+
+.suite-dialog-button-ok {
+  margin-right: 5px;
+}
+
 .suite-header {
   background-color: Snow;
   border-bottom-color: LightGrey;
