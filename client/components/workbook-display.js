@@ -49,7 +49,7 @@
   f.viewModels.workbookViewModel = function (options) {
     var selection, state, listState, createButton, buttonHome, buttonList,
       buttonEdit, buttonSave, buttonOpen, buttonNew, buttonDelete,
-      buttonUndo, buttonRefresh, buttonClear,
+      buttonUndo, buttonRefresh, buttonClear, fromWidthIdx,
       searchInput, searchState, sortDialog, filterDialog, shareDialog,
       sheetConfigureDialog, frmroute, attrs, resolveProperties,
       name = options.feather.toCamelCase(),
@@ -133,13 +133,14 @@
       }
     };
     vm.nextFocus = m.prop();
-    vm.ondragover = function (ev) {
+    vm.ondragover = function (toIdx, ev) {
+      if (!isNaN(toIdx) && fromWidthIdx > toIdx) { return; }
       ev.preventDefault();
     };
     vm.ondragstart = function (idx, type, ev) {
       ev.dataTransfer.setData("typeStart", type);
       if (type === "width") {
-        ev.dataTransfer.setData("widthIndex", idx);
+        fromWidthIdx = idx;
         ev.dataTransfer.setData("widthStart", ev.clientX);
         return;
       }
@@ -154,10 +155,9 @@
       switch (typeStart)
       {
       case "width":
-        fromIdx = ev.dataTransfer.getData("widthIndex") - 0;
-        if (fromIdx <= toIdx) {
+        if (fromWidthIdx <= toIdx) {
           widthStart = ev.dataTransfer.getData("widthStart") - 0;
-          column = vm.sheet().list.columns[fromIdx];
+          column = vm.sheet().list.columns[fromWidthIdx];
           oldWidth = column.width || COL_WIDTH_DEFAULT;
           oldWidth = oldWidth.replace("px", "") - 0;
           newWidth = oldWidth - (widthStart - ev.clientX);
@@ -723,22 +723,14 @@
               }
 
               icon.push(m("i", {
-                class: name, 
-                style: {
-                  float: "right",
-                  color: "grey",
-                  fontSize: zoom
-                }
+                class: name + " suite-column-sort-icon", 
+                style: {fontSize: zoom}
               }));
 
               if (sort.length > 1) {
                 icon.push(m("span", {
-                   style: {
-                    float: "right",
-                    color: "grey",
-                    fontSize: vm.zoom() * 0.6 + "%",
-                    marginRight: "3px"
-                  }
+                  class: "suite-column-sort-number",
+                  style: {fontSize: vm.zoom() * 0.6 + "%"}
                 }, fidx + 1));
               }
             }
@@ -747,21 +739,16 @@
             fidx = findFilterIndex(key);
             if (fidx !== false) {
               icon.push(m("i", {
-                class: "fa fa-filter", 
+                class: "fa fa-filter suite-column-filter-icon", 
                 title: operators[(filter.criteria[fidx].operator || "=")] +
                   " " + filter.criteria[fidx].value,
-                style: {
-                  float: "right",
-                  color: "DarkBlue",
-                  marginRight: "3px",
-                  fontSize: vm.zoom() * 0.80 + "%"
-                }
+                style: {fontSize: vm.zoom() * 0.80 + "%"}
               }));
             }
 
             hview = [
               m("th", {
-                ondragover: vm.ondragover,
+                ondragover: vm.ondragover.bind(this, idx),
                 draggable: true,
                 ondragstart: vm.ondragstart.bind(this, idx, "column"),
                 ondrop: vm.ondrop.bind(this, idx, "column", activeSheet.list.columns),
@@ -773,14 +760,10 @@
                 }
               }, icon, col.label || key.toName()),
               m("th", {
-                ondragover: vm.ondragover,
+                ondragover: vm.ondragover.bind(this, idx),
                 draggable: true,
                 ondragstart: vm.ondragstart.bind(this, idx, "width"),
-                class: "suite-column-header-grabber",
-                style: {
-                  padding: "3px",
-                  borderLeft: "none"
-                }
+                class: "pure-table td pure-table th suite-column-header-grabber"
               })
             ];
 
