@@ -29,34 +29,23 @@
 
       opts = {
         id: id,
+        class: "suite-checkbox-input",
         type: "checkbox",
         onclick: m.withAttr("checked", options.onclick),
         checked: value,
         style: options.style || {}
       };
-      opts.style.position = "absolute";
-      opts.style.left = "-999px";
 
       if (options.required) { opts.required = true; }
       if (options.disabled) { opts.disabled = true; }
 
       view = m("div", {
-          style: {display: "inline-block"}
+          class: "suite-checkbox"
         }, [
           m("input", opts),
           m("label", {
             for: id,
-            style: {
-              borderWidth: "thin",
-              borderStyle: "solid",
-              borderRadius: "4px",
-              borderColor: "#ccc",
-              boxShadow: "inset 0 1px 3px #ddd",
-              padding: "7px",
-              maxWidth: "15px",
-              minWidth: "15px",
-              backgroundColor: "White"
-            }
+            class: "suite-checkbox-label"
           }, m("i", {
             class:"fa fa-check",
             style: {visibility: value ? "visible" : "hidden"}
