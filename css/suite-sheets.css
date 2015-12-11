@@ -104,22 +104,27 @@
   top: 20px;
 }
 
-.suite-sheet-configure-left-tab {
+.suite-sheet-group-tab {
+  background-color: White;
+  color: #0078e7;
   border-color: #0078e7;
   border-style: solid;
   border-width: thin;
+}
+
+.suite-sheet-group-tab-active {
+  background-color: #0078e7 !important;
+  color: #fff !important;
+}
+
+.suite-sheet-group-tab-left {
   border-top-right-radius: 0px;
   border-bottom-right-radius: 0px;
   border-top-left-radius: 4px;
   border-bottom-left-radius: 4px;
 }
 
-.suite-sheet-configure-right-tab {
-  background-color: White;
-  color: #0078e7;
-  border-color: #0078e7;
-  border-style: solid;
-  border-width: thin;
+.suite-sheet-group-tab-right {
   border-top-left-radius: 0px;
   border-bottom-left-radius: 0px;
   border-top-right-radius: 4px;

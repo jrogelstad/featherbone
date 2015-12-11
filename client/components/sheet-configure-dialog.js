@@ -27,8 +27,10 @@
   */
   f.viewModels.sheetConfigureDialogViewModel = function (options) {
     options = options || {};
-    var vm, tableView,
-      cache = f.copy(options.parentViewModel.sheet());
+    var vm, state, currentState, tableView,
+      cache = f.copy(options.parentViewModel.sheet()),
+      leftTabClass = ["pure-button", "suite-sheet-group-tab", "suite-sheet-group-tab-left"],
+      rightTabClass = ["pure-button", "suite-sheet-group-tab", "suite-sheet-group-tab-right"];
 
     options.onclickOk = function () {
       var route,
@@ -93,8 +95,14 @@
           }, feathers)
         ]),
         m("div", {class: "suite-sheet-configure-tabs"} , [
-          m("button", {class: "pure-button pure-button-primary suite-sheet-configure-left-tab"}, "List"),
-          m("button", {class: "pure-button suite-sheet-configure-right-tab"}, "Form")
+          m("button", {
+            class: leftTabClass.join(" "),
+            onclick: state.send.bind(state, "list")
+          }, "List"),
+          m("button", {
+            class: rightTabClass.join(" "),
+            onclick: state.send.bind(state, "form")
+          }, "Form")
         ]),
         m("div", {class: "suite-sheet-configure-group-box"}, [
           tableView()
@@ -168,6 +176,45 @@
 
       return view;
     };
+
+    // ..........................................................
+    // PRIVATE
+    //
+    currentState = function () {
+      return state.resolve(state.current()[0]);
+    };
+
+    // Statechart
+    state = f.statechart.State.define(function () {
+      var primaryOn, primaryOff;
+
+      primaryOn = function () {
+        this.push("suite-sheet-group-tab-active");
+      };
+
+      primaryOff = function () {
+        this.pop();
+      };
+
+      this.state("Group", function () {
+        this.state("List", function () {
+          this.event("form", function () {
+            this.goto("../Form");
+          });
+          this.enter(primaryOn.bind(leftTabClass));
+          this.exit(primaryOff.bind(leftTabClass));
+        });
+        this.state("Form", function () {
+          this.event("list", function () {
+            this.goto("../List");
+          });
+          this.enter(primaryOn.bind(rightTabClass));
+          this.exit(primaryOff.bind(rightTabClass));
+        });
+      });
+    });
+    state.goto();
+
     vm.reset();
 
     return vm;
