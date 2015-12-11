@@ -86,7 +86,8 @@
         d = model.data;
 
       // Build elements
-      attrs = options.attrs.map(function (key) {
+      attrs = options.attrs.map(function (item) {
+        var key = item.attr;
         if (!focusAttr) { focusAttr = key; }
         var color, result;
         color = (d[key].isRequired() && d[key]()) === null ? "Red" : "Black";
@@ -100,7 +101,7 @@
               verticalAlign: "top", // Hack (relation widget)
               marginTop: "9px" // Hack (relation widget)
             }
-          }, key.toProperCase() + ":"),
+          }, item.label || key.toProperCase() + ":"),
           f.buildInputComponent({
             model: model,
             key: key,

@@ -109,7 +109,9 @@
         ])
       ]);
     };
-    vm.data = m.prop(cache.list.columns);
+    vm.data = function () { 
+      return currentState().data(); 
+    };
     vm.hasAttr = function (item) { 
       return item.attr === this;
     };
@@ -138,8 +140,8 @@
     vm.viewHeaders = function () {
       var ids = vm.viewHeaderIds();
       return [
-        m("th", {style: {minWidth: "165px"}, id: ids.column }, "Column"),
-        m("th", {style: {minWidth: "220px"}, id: ids.column }, "Label")
+        m("th", {style: {minWidth: "165px"}, id: ids.column }, currentState().attrName()),
+        m("th", {style: {minWidth: "220px"}, id: ids.label }, "Label")
       ];
     };
     vm.viewRows = function () {
@@ -203,6 +205,8 @@
           });
           this.enter(primaryOn.bind(leftTabClass));
           this.exit(primaryOff.bind(leftTabClass));
+          this.attrName = m.prop("Column");
+          this.data = m.prop(cache.list.columns);
         });
         this.state("Form", function () {
           this.event("list", function () {
@@ -210,6 +214,8 @@
           });
           this.enter(primaryOn.bind(rightTabClass));
           this.exit(primaryOff.bind(rightTabClass));
+          this.attrName = m.prop("Attribute");
+          this.data = m.prop(cache.form.attrs);
         });
       });
     });
