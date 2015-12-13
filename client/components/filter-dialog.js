@@ -4,6 +4,7 @@
   var filterDialog = {},
     m = require("mithril"),
     f = require("component-core"),
+    catalog = require("catalog"),
     model = require("model"),
     checkbox = require("checkbox"),
     tableDialog = require("table-dialog");
@@ -228,7 +229,7 @@
       // Handle relations
       if (!type.childOf && !type.parentOf) {
         rel = type.relation.toCamelCase();
-        w = f.components[rel + "Relation"]({ // FIX THIS
+        w = catalog.store().components()[rel + "Relation"]({
           parentProperty: attr,
           isCell: true
         });
@@ -274,7 +275,7 @@
         prefix = property.slice(0, idx);
         suffix = property.slice(idx + 1, property.length);
         rel = feather.properties[prefix].type.relation;
-        feather = f.catalog.getFeather(rel); // FIX THIS
+        feather = catalog.getFeather(rel); // FIX THIS
         return resolveProperty(feather, suffix);
       }
 

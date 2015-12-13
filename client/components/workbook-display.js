@@ -218,7 +218,7 @@
     };
     vm.refresh = function () {
       var fattrs, formatOf, criterion,
-        value = searchInput.value(),
+        value = inputSearch.value(),
         filter = f.copy(vm.filter());
 
       // Recursively resolve type
@@ -349,7 +349,7 @@
       return vm.mode().toggleSelection(model, col);
     };
     vm.workbook= function () {
-      return catalog.workbooks()[options.name.toCamelCase()];
+      return catalog.store().workbooks()[options.name.toCamelCase()];
     };
     vm.undo = function () {
       if (selection) { selection.undo(); }
