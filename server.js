@@ -123,6 +123,11 @@
         res.statusCode = 204;
       }
 
+      // No caching... ever
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate"); // HTTP 1.1.
+      res.setHeader("Pragma", "no-cache"); // HTTP 1.0.
+      res.setHeader("Expires", "0"); //
+
       // Send back a JSON response
       res.json(resp);
     };
@@ -178,6 +183,9 @@
       }
 
       if (!resp) { res.statusCode = 204; }
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate"); // HTTP 1.1.
+      res.setHeader("Pragma", "no-cache"); // HTTP 1.0.
+      res.setHeader("Expires", "0"); //
       res.json(resp);
     };
 
