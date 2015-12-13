@@ -3,7 +3,8 @@
 
   "strict";
 
-  // Register key ui components
+  // Load pre-requisites
+  require("extend-string");
   require("form-display");
   require("workbook-display");
 
