@@ -132,7 +132,9 @@
     };
     vm.nextFocus = m.prop();
     vm.ondragover = function (toIdx, ev) {
-      if (!isNaN(toIdx) && fromWidthIdx > toIdx) { return; }
+      if (!isNaN(toIdx)) {
+        if (fromWidthIdx > toIdx) { return; }
+      } else { ev = toIdx; }
       ev.preventDefault();
     };
     vm.ondragstart = function (idx, type, ev) {
