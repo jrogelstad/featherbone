@@ -47,7 +47,7 @@
   workbookDisplay.viewModel = function (options) {
     var selection, state, listState, createButton, buttonHome, buttonList,
       buttonEdit, buttonSave, buttonOpen, buttonNew, buttonDelete,
-      buttonUndo, buttonRefresh, buttonClear, fromWidthIdx,
+      buttonUndo, buttonRefresh, buttonClear, fromWidthIdx, dataTransfer,
       searchState, frmroute, attrs, resolveProperties, inputSearch,
       dialogShare, dialogFilter, dialogSort, dialogSheetConfigure,
       name = options.feather.toCamelCase(),
@@ -141,17 +141,18 @@
       ev.preventDefault();
     };
     vm.ondragstart = function (idx, type, ev) {
-      ev.dataTransfer.setData("typeStart", type);
+      dataTransfer = {}; // Because ms edge only allows one value
+      dataTransfer.typeStart = type;
       if (type === "width") {
         fromWidthIdx = idx;
-        ev.dataTransfer.setData("widthStart", ev.clientX);
+        dataTransfer.widthStart = ev.clientX;
         return;
       }
-      ev.dataTransfer.setData(type, idx);
+      dataTransfer[type] = idx;
     };
     vm.ondrop = function (toIdx, type, ary, ev) {
       var moved, column, fromIdx, oldWidth, newWidth, widthStart,
-        typeStart = ev.dataTransfer.getData("typeStart");
+        typeStart = dataTransfer.typeStart;
 
       ev.preventDefault();
 
@@ -159,7 +160,7 @@
       {
       case "width":
         if (fromWidthIdx <= toIdx) {
-          widthStart = ev.dataTransfer.getData("widthStart") - 0;
+          widthStart = dataTransfer.widthStart - 0;
           column = vm.sheet().list.columns[fromWidthIdx];
           oldWidth = column.width || COL_WIDTH_DEFAULT;
           oldWidth = oldWidth.replace("px", "") - 0;
@@ -168,7 +169,7 @@
         }
         break;
       default:
-        fromIdx = ev.dataTransfer.getData(type) - 0;
+        fromIdx = dataTransfer[type] - 0;
         if (fromIdx !== toIdx) {
           moved = ary.splice(fromIdx, 1)[0];
           ary.splice(toIdx, 0, moved);
