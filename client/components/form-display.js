@@ -18,7 +18,7 @@
 
     wbkroute = wbkroute.toSpinalCase();
     frmroute = frmroute.toSpinalCase();
-    model = models[name]({id: id}); // FIX THIS
+    model = models[name]({id: id});
 
     if (id) { model.fetch(); }
 

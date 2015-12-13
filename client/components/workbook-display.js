@@ -87,11 +87,13 @@
       var dlg = vm.sheetConfigureDialog();
       dlg.show();
     };
+    vm.didLeave = m.prop(false);
     vm.filter = f.prop();
     vm.filterDialog = function () {
       return dialogFilter;
     };
     vm.goHome = function () {
+      vm.didLeave(true);
       m.route("/home");
     };
     vm.goNextRow = function () {
@@ -127,6 +129,7 @@
     };
     vm.modelOpen = function () {
       if (selection) {
+        vm.didLeave(true);
         m.route(frmroute + "/" + selection.data.id());
       }
     };
@@ -545,6 +548,7 @@
             });
           };
           this.modelNew = function () {
+            vm.didLeave(true);
             m.route(frmroute);
           };
           this.selectedColor = function () {
@@ -651,6 +655,10 @@
     component.controller = function () {
       viewModel = viewModel || workbookDisplay.viewModel(options);
       this.vm = viewModel;
+      if (viewModel.didLeave()) {
+        viewModel.didLeave(false);
+        viewModel.refresh(); 
+      }
     };
 
     component.view = function (ctrl) {
