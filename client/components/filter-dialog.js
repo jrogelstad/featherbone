@@ -18,7 +18,7 @@
     @param {Array} [options.feather] Feather
     @param {Function} [options.filter] Filter property
   */
-  filterDialog.ViewModel = function (options) {
+  filterDialog.viewModel = function (options) {
     options = options || {};
     var vm, store, buildInputComponent,
       resolveProperty, getDefault,
@@ -208,7 +208,7 @@
       // Handle input types
       if (typeof type === "string") {
         if (type === "boolean") {
-          component = checkbox({
+          component = checkbox.component({
             value: value,
             onclick: vm.itemChanged.bind(this, index, "value")
           });

@@ -3,7 +3,6 @@
 
   var list,
     m = require("mithril"),
-    f = require("feather-core"),
     qs = require("Qs"),
     catalog = require("catalog"),
     statechart = require("statechartjs");
@@ -30,6 +29,7 @@
     var state, doFetch, doSave, onClean, onDirty,
       plural = catalog.getFeather(feather).plural.toSpinalCase(),
       name = feather.toCamelCase(),
+      models = catalog.store().models(),
       ary = [],
       idx = {},
       dirty = [],
@@ -125,7 +125,7 @@
           idx = {};
         }
         data.forEach(function (item) {
-          var model = f.models[name]();
+          var model = models[name]();
           model.set(item, true, true);
           model.state().goto("/Ready/Fetched");
           ary.add(model);

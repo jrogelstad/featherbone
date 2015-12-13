@@ -7,17 +7,18 @@
     f = require("component-core"),
     catalog = require("catalog");
 
-  formDisplay.ViewModel = function (options) {
+  formDisplay.viewModel = function (options) {
     var vm = {}, model,
       wbkroute = "/" + options.workbook + "/" + options.sheet.name,
       frmroute = "/" + options.workbook + "/" + options.form,
       feather = options.feather,
       name = feather.toCamelCase(),
+      models = catalog.store().models(),
       id = options.id;
 
     wbkroute = wbkroute.toSpinalCase();
     frmroute = frmroute.toSpinalCase();
-    model = f.models[name]({id: id}); // FIX THIS
+    model = models[name]({id: id}); // FIX THIS
 
     if (id) { model.fetch(); }
 

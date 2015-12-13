@@ -72,7 +72,8 @@
 
   // When all intialization done, construct app.
   f.init().then(function () {
-    var app = {};
+    var routes,
+      app = {};
 
     // Build home navigation page
     app.Home = {
@@ -128,12 +129,12 @@
         ]);
       }
     };
-    catalog.register("routes", "/home", app.Home);
+    routes = catalog.register("routes", "/home", app.Home);
 
     // Build workbook for each configured object
     workbooks().forEach(f.buildRoutes);
 
-    m.route(document.body, "/home", f.routes);
+    m.route(document.body, "/home", routes);
   });
 
   window.onresize = function () {

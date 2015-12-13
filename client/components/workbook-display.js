@@ -4,8 +4,6 @@
 
   require("dialog-polyfill");
 
-  // Calculate scroll bar width
-  // http://stackoverflow.com/questions/13382516/getting-scroll-bar-width-using-javascript
   var scrWidth, inner, widthNoScroll, widthWithScroll,
     workbookDisplay = {},
     m = require("mithril"),
@@ -22,6 +20,8 @@
     outer = document.createElement("div"),
     COL_WIDTH_DEFAULT = "150px";
 
+  // Calculate scroll bar width
+  // http://stackoverflow.com/questions/13382516/getting-scroll-bar-width-using-javascript
   outer.style.visibility = "hidden";
   outer.style.width = "100px";
   outer.style.msOverflowStyle = "scrollbar"; // needed for WinJS apps
@@ -48,7 +48,8 @@
     var selection, state, listState, createButton, buttonHome, buttonList,
       buttonEdit, buttonSave, buttonOpen, buttonNew, buttonDelete,
       buttonUndo, buttonRefresh, buttonClear, fromWidthIdx,
-      searchState, shareDialog, frmroute, attrs, resolveProperties,
+      searchState, frmroute, attrs, resolveProperties, inputSearch,
+      dialogShare, dialogFilter, dialogSort, dialogSheetConfigure,
       name = options.feather.toCamelCase(),
       feather = catalog.getFeather(options.feather),
       showMenu = false,
@@ -88,7 +89,7 @@
     };
     vm.filter = f.prop();
     vm.filterDialog = function () {
-      return filterDialog;
+      return dialogFilter;
     };
     vm.goHome = function () {
       m.route("/home");
@@ -279,7 +280,7 @@
     vm.scrollbarWidth = function () {
       return scrWidth;
     };
-    vm.searchInput = function () { return searchInput; };
+    vm.searchInput = function () { return inputSearch; };
     vm.select = function (model) {
       if (selection !== model) {
         vm.relations({});
@@ -303,7 +304,7 @@
       workbook.data.localConfig(config);
       workbook.save();
     };
-    vm.shareDialog = function () { return shareDialog; };
+    vm.shareDialog = function () { return dialogShare; };
     vm.sheet = function (value) {
       var idx = 0,
         config = vm.config();
@@ -321,13 +322,13 @@
       });
     };
     vm.sheetConfigureDialog = function () {
-      return sheetConfigureDialog;
+      return dialogSheetConfigure;
     };
     vm.showMenu = function () {
       return showMenu;
     };
     vm.sortDialog = function () {
-      return sortDialog;
+      return dialogSort;
     };
     vm.tabClicked = function (sheet) {
       var route = "/" + options.name + "/" + sheet;
@@ -390,7 +391,7 @@
     };
     attrs = resolveProperties(feather, Object.keys(feather.properties)).sort();
 
-    filterDialog = filterDialog.viewModel({
+    dialogFilter = filterDialog.viewModel({
       attrs: attrs,
       filter: vm.filter,
       list: vm.models(),
@@ -398,7 +399,7 @@
       title: "filter",
       icon: "filter"
     });
-    sortDialog = sortDialog.viewModel({
+    dialogSort = sortDialog.viewModel({
       attrs: attrs,
       filter: vm.filter,
       list: vm.models(),
@@ -406,11 +407,11 @@
       title: "sort",
       icon: "sort"
     });
-    sheetConfigureDialog = f.viewModels.sheetConfigureDialogViewModel({
+    dialogSheetConfigure = sheetConfigureDialog.viewModel({
       parentViewModel: vm,
       attrs: attrs
     });
-    shareDialog = dialog.viewModel({
+    dialogShare = dialog.viewModel({
       icon: "question-circle",
       title: "Confirmation",
       message: "Are you sure you want to share your workbook " +
@@ -471,7 +472,7 @@
       icon: "undo"
     });
 
-    searchInput = searchInput.viewModel({
+    inputSearch = searchInput.viewModel({
       refresh: vm.refresh
     });
 
@@ -646,7 +647,7 @@
       component = {};
 
     component.controller = function () {
-      viewModel = viewModel || f.viewModels.workbookViewModel(options);
+      viewModel = viewModel || workbookDisplay.viewModel(options);
       this.vm = viewModel;
     };
 
@@ -848,7 +849,7 @@
             default:
               if (typeof format === "object" && d[col]()) {
                 // If relation, use relation widget to find display property
-                rel = f.components[format.relation.toCamelCase() + "Relation"];
+                rel = catalog.store().components()[format.relation.toCamelCase() + "Relation"];
                 if (rel) { value = d[col]().data[rel.valueProperty()](); }
               }
               content = value;

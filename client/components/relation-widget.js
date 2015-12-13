@@ -22,7 +22,7 @@
         sort: [{property: valueProperty}],
         limit: 10
       },
-      list =  options.models[modelName].list,
+      list =  catalog.store().models()[modelName].list,
       modelList = list({filter: filter});
 
     vm.listId = m.prop(f.createId());
@@ -149,7 +149,7 @@
 
       // Set up viewModel if required
       if (!relations[parentProperty]) {
-        relations[parentProperty] = relationWidget.ViewModel({
+        relations[parentProperty] = relationWidget.viewModel({
           parent: vm,
           parentProperty: parentProperty,
           valueProperty: valueProperty,
