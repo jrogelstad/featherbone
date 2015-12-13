@@ -1,21 +1,12 @@
-/**
-    Framework for building object relational database apps
-    Copyright (C) 2015  John Rogelstad
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-**/
-
-/*global f, m, Qs */
-(function (f) {
+(function () {
   "use strict";
+
+  var list,
+    m = require("mithril"),
+    f = require("feather-core"),
+    qs = require("Qs"),
+    catalog = require("catalog"),
+    statechart = require("statechartjs");
 
   /**
     Return a function that when called will return an array of models
@@ -35,9 +26,9 @@
     @param {String} Feather name
     @return {Function}
   */
-  f.list = function (feather) {
+  list = function (feather) {
     var state, doFetch, doSave, onClean, onDirty,
-      plural = f.catalog.getFeather(feather).plural.toSpinalCase(),
+      plural = catalog.getFeather(feather).plural.toSpinalCase(),
       name = feather.toCamelCase(),
       ary = [],
       idx = {},
@@ -121,7 +112,7 @@
     //
 
     doFetch = function (context) {
-      var filter = Qs.stringify(ary.filter()),
+      var filter = qs.stringify(ary.filter()),
         url = "/data/" + plural + "/" + filter;
 
       return m.request({
@@ -154,7 +145,7 @@
     };
 
     // Define statechart
-    state = f.statechart.State.define(function () {
+    state = statechart.define(function () {
       this.state("Unitialized", function () {
         this.event("fetch", function (merge) {
           this.goto("/Busy", {context: {merge: merge}});
@@ -220,4 +211,6 @@
     };
   };
 
-}(f));
+  module.exports = list;
+
+}());

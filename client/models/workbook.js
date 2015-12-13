@@ -1,23 +1,11 @@
-/**
-    Framework for building object relational database apps
-    Copyright (C) 2015  John Rogelstad
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-**/
-
-/*global window, f, m */
-(function (f) {
+(function () {
   "use strict";
 
-  var workbook, workbookDefaultConifg, workbookLocalConfig, feathers;
+  var workbook, workbookModel, workbookDefaultConifg, workbookLocalConfig, feathers,
+    f = require("feather-core"),
+    model = require("model"),
+    dataSource = require("datasource"),
+    catalog = require("catalog");
 
   workbook = {
     name: "Workbook",
@@ -96,7 +84,7 @@
   workbookLocalConfig = f.copy(workbookDefaultConifg);
   workbookLocalConfig.description = "Workbook local sheet definition";
   workbookLocalConfig.properties.parent.type.childOf = "localConfig";
-  feathers = f.catalog.data();
+  feathers = catalog.data();
   feathers.Workbook = workbook;
   feathers.WorkbookDefaultConfig = workbookDefaultConifg;
   feathers.WorkbookLocalConfig = workbookLocalConfig;
@@ -107,14 +95,14 @@
     @param {Object} Default data
     return {Object}
   */
-  f.models.workbook = function (data) {
+  workbookModel = function (data) {
     var that, state, substate, doPut;
 
     // ..........................................................
     // PUBLIC
     //
 
-    that = f.model(data, workbook);
+    that = model(data, workbook);
     that.idProperty("name");
 
     that.path = function (name, id) {
@@ -128,8 +116,7 @@
     //
 
     doPut = function (context) {
-      var ds = f.dataSource,
-        result = f.prop(),
+      var result = f.prop(),
         cache = that.toJSON(),
         payload = {method: "PUT", path: that.path(that.name, that.data.name()),
           data: cache},
@@ -141,7 +128,7 @@
         };
 
       if (that.isValid()) {
-        ds.request(payload).then(result).then(callback);
+        dataSource.request(payload).then(result).then(callback);
       }
     };
 
@@ -162,4 +149,7 @@
     return that;
   };
 
-}(f));
+  catalog.register("models", "workbook", workbookModel);
+  module.exports = workbookModel;
+
+}());

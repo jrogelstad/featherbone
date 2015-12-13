@@ -15,11 +15,13 @@
 **/
 
 /*global window, f, m */
-(function (f) {
+(function () {
   "use strict";
 
+  var checkbox = {};
+
   // Define checkbox component
-  f.components.checkbox = function (options) {
+  checkbox.component = function (options) {
     var component = {};
 
     component.view = function () {
@@ -58,6 +60,8 @@
     return component;
   };
 
-}(f));
+  module.exports = checkbox;
+
+}());
 
 

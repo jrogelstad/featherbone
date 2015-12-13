@@ -1,22 +1,9 @@
-/**
-    Framework for building object relational database apps
-
-    Copyright (C) 2015  John Rogelstad
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-**/
-
-/*global window, f, m */
-(function (f) {
+(function () {
   "use strict";
+
+  var searchInput = {},
+    m = require("mithril"),
+    statechart = require("statechartjs");
 
   /**
     @param {Object} Options
@@ -24,7 +11,7 @@
     @param {String} [options.icon] Icon name
     @param {Function} [options.onclick] On click function
   */
-  f.viewModels.searchInputViewModel = function (options) {
+  searchInput.viewModel = function (options) {
     options = options || {};
     var vm, state;
 
@@ -62,7 +49,7 @@
     //
 
     // Define statechart
-    state = f.statechart.State.define(function () {
+    state = statechart.define(function () {
       this.state("Search", function () {
         this.state("Off", function () {
           this.enter(function () {
@@ -112,7 +99,7 @@
   };
 
   // Define dialog component
-  f.components.searchInput = function (options) {
+  searchInput.component = function (options) {
     options = options || {};
     var component = {};
 
@@ -121,7 +108,7 @@
       @param {Object} [options.viewModel] View model
     */
     component.controller = function () {
-      this.vm =  options.viewModel || f.viewModels.searchInputViewModel(options);
+      this.vm =  options.viewModel || searchInput.viewModel(options);
     };
 
     component.view = function (ctrl) {
@@ -145,6 +132,8 @@
     return component;
   };
 
-}(f));
+  module.exports = searchInput;
+
+}());
 
 

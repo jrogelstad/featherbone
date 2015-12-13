@@ -14,13 +14,16 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-/*global window, f, m */
-(function (f) {
+/*global window, m */
+(function () {
   "use strict";
 
-  f.components = {};
-  f.viewModels = {};
-  f.routes = {};
+  require("workbook");
+
+  var f = require("feather-core"),
+    catalog = require("catalog"),
+    checkbox = require("checkbox"),
+    relationWidget = require("relation-widget");
 
   /**
     Object to define what input type to use for data
@@ -67,7 +70,7 @@
       }
 
       if (prop.type === "boolean") {
-        component = f.components.checkbox({
+        component = checkbox.component({
           id: key,
           value: prop(),
           onclick: prop,
@@ -87,7 +90,7 @@
 
     // Handle relations
     rel = prop.type.relation.toCamelCase();
-    w = f.components[rel + "Relation"]({
+    w = catalog.store().components()[rel + "Relation"]({
       parentProperty: key,
       isCell: opts.isCell,
       style: opts.style
@@ -118,7 +121,7 @@
 
     that = function (options) {
       options = options || {};
-      var w = f.components.relationWidget({
+      var w = relationWidget.component({
         parentProperty: options.parentProperty || relopts.parentProperty,
         valueProperty: options.valueProperty || relopts.valueProperty,
         labelProperty: options.labelProperty || relopts.labelProperty,
@@ -135,14 +138,18 @@
     that.valueProperty = function () {
       return relopts.valueProperty;
     };
-    f.components[name] = that;
+    catalog.register("components", name, that);
   };
 
   f.buildRoutes = function (workbook) {
     var config = f.getConfig(workbook),
+      models = catalog.store().models(),
+      components = catalog.store().components(),
+      workbooks = catalog.register("workbooks"),
+      routes = catalog.register("routes"),
       app = {};
 
-    f.workbooks[workbook.name.toCamelCase()] = f.models.workbook(workbook);
+    workbooks[workbook.name.toCamelCase()] = models.workbook(workbook);
     config.forEach(function (item) {
       var sheet = item.name,
         form = item.form.name,
@@ -158,14 +165,14 @@
 
       // Build UI
       item.id = f.createId(); // Need this to keep track of name changes
-      app[sheetname + "WorkbookDisplay"] = f.components.workbookDisplay({
+      app[sheetname + "WorkbookDisplay"] = components.workbookDisplay({
         name: workbook.name,
         feather: feather,
         config: config,
         id: item.id
       });
 
-      app[formname + "FormDisplay"] = f.components.formDisplay({
+      app[formname + "FormDisplay"] = components.formDisplay({
         workbook: workbook.name,
         sheet: item,
         form: form,
@@ -174,9 +181,9 @@
       });
 
       // Build routes
-      f.routes[wbkroute] = app[sheetname + "WorkbookDisplay"];
-      f.routes[frmroute] = app[formname + "FormDisplay"];
-      f.routes[frmroute + "/:id"] = app[formname + "FormDisplay"];
+      routes[wbkroute] = app[sheetname + "WorkbookDisplay"];
+      routes[frmroute] = app[formname + "FormDisplay"];
+      routes[frmroute + "/:id"] = app[formname + "FormDisplay"];
     });
   };
 
@@ -204,6 +211,8 @@
     return model.data[property];
   };
 
-}(f));
+  module.exports = f;
+
+}());
 
 

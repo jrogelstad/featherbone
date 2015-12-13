@@ -1,22 +1,12 @@
-/**
-    Framework for building object relational database apps
-
-    Copyright (C) 2015  John Rogelstad
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-**/
-
-/*global window, f, m */
-(function (f) {
+(function () {
   "use strict";
+
+  var sheetConfigureDialog = {},
+    m = require("mithril"),
+    f = require("component-core"),
+    catalog = require("catalog"),
+    tableDialog = require("table-dialog"),
+    statechart = require("statechartjs");
 
   /**
     View model for sort dialog.
@@ -25,7 +15,7 @@
     @param {Function} [options.config] Filter property being modified
     @param {Function} [options.filter] Filter property
   */
-  f.viewModels.sheetConfigureDialogViewModel = function (options) {
+  sheetConfigureDialog.viewModel = function (options) {
     options = options || {};
     var vm, state, currentState, tableView,
       cache = f.copy(options.parentViewModel.sheet()),
@@ -52,7 +42,7 @@
     // PUBLIC
     //
 
-    vm = f.viewModels.tableDialogViewModel(options);
+    vm = tableDialog.viewModel(options);
     tableView = vm.content;
     vm.addAttr = function (attr) {
       if (!this.some(vm.hasAttr.bind(attr))) {
@@ -116,7 +106,7 @@
       return item.attr === this;
     };
     vm.feathers = function () {
-      var feathers = f.catalog.data(),
+      var feathers = catalog.data(),
         result = Object.keys(feathers).filter(function (name) {
           return !feathers[name].isChild && !feathers[name].isSystem;
         }).sort();
@@ -124,10 +114,10 @@
     };
     vm.sheet = options.parentViewModel.sheet;
     vm.config = options.parentViewModel.config;
-    vm.model = f.prop(f.models.workbookLocalConfig(cache));
+    vm.model = f.prop(catalog.store().models().workbookLocalConfig(cache));
     vm.reset = function () {
       cache = f.copy(vm.sheet());
-      vm.model(f.models.workbookLocalConfig(cache));
+      vm.model(catalog.store().models().workbookLocalConfig(cache));
       vm.data(cache.list.columns);
       if (cache.list.columns.length) { vm.add(); }
       vm.selection(0);
@@ -187,7 +177,7 @@
     };
 
     // Statechart
-    state = f.statechart.State.define(function () {
+    state = statechart.define(function () {
       var primaryOn, primaryOff;
 
       primaryOn = function () {
@@ -231,6 +221,8 @@
 
     @params {Object} View model
   */
-  f.components.sheetConfigureDialog = f.components.dialog;
+  sheetConfigureDialog.component = tableDialog.component;
 
-}(f));
+  module.exports = sheetConfigureDialog;
+
+}());

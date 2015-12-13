@@ -1,22 +1,11 @@
-/**
-    Framework for building object relational database apps
-
-    Copyright (C) 2015  John Rogelstad
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-**/
-
-/*global window, f, m */
-(function (f) {
+(function () {
   "use strict";
+
+  var sortDialog = {},
+    m = require("mithril"),
+    f = require("feather-core"),
+    filterDialog = require("filter-dialog"),
+    tableDialog = require("table-dialog");
 
   /**
     View model for sort dialog.
@@ -26,7 +15,7 @@
     @param {Array} [options.list] Model list
     @param {Function} [options.filter] Filter property
   */
-  f.viewModels.sortDialogViewModel = function (options) {
+  sortDialog.viewModel = function (options) {
     var vm;
 
     options.propertyName = "sort";
@@ -35,7 +24,7 @@
     // PUBLIC
     //
 
-    vm = f.viewModels.filterDialogViewModel(options);
+    vm = filterDialog.viewModel(options);
     vm.addAttr = function (attr) {
       if (!this.some(vm.hasAttr.bind(attr))) {
         this.push({property: attr});
@@ -94,8 +83,10 @@
     return vm;
   };
 
-  f.components.sortDialog = f.components.tableDialog;
+  sortDialog.component = tableDialog.component;
 
-}(f));
+  module.exports = sortDialog;
+
+}());
 
 

@@ -1,22 +1,10 @@
-/**
-    Framework for building object relational database apps
-
-    Copyright (C) 2015  John Rogelstad
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-**/
-
-/*global window, f, m */
-(function (f) {
+(function () {
   "use strict";
+
+  var button = {},
+    f = require("feather-core"),
+    m = require("mithril"),
+    statechart = require("statechartjs");
 
   /**
     @param {Object} Options
@@ -24,7 +12,7 @@
     @param {String} [options.icon] Icon name
     @param {Function} [options.onclick] On click function
   */
-  f.viewModels.buttonViewModel = function (options) {
+  button.viewModel = function (options) {
     options = options || {};
     var vm, state, display, primary, mode, idx, ary, label, title, len,
       hotkey = options.hotkey ? options.hotkey.toUpperCase().charCodeAt(0) : false;
@@ -97,7 +85,7 @@
     }
 
     // Define statechart
-    state = f.statechart.State.define({concurrent: true}, function () {
+    state = statechart.define({concurrent: true}, function () {
       this.state("Mode", function () {
         this.state("Normal", function () {
           this.event("activate", function () {
@@ -197,7 +185,7 @@
   };
 
   // Define button component
-  f.components.button = function (options) {
+  button.component = function (options) {
     options = options || {};
     var component = {};
 
@@ -255,6 +243,8 @@
     return component;
   };
 
-}(f));
+  module.exports = button;
+
+}());
 
 

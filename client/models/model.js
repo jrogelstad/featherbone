@@ -1,190 +1,31 @@
-/**
-    Framework for building object relational database apps
-    Copyright (C) 2015  John Rogelstad
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-**/
-
-/*global window, f, m */
-(function (f) {
+(function () {
   "use strict";
 
-  var isChild, isToOne, isToMany;
-
-  /**
-    Creates a property getter setter function with a default value.
-    Includes state...
-    @param {Any} Initial 
-    @param {Object} Formatter. Optional
-    @param {Any} [formatter.default] Function or value returned by default.
-    @param {Function} [formatter.toType] Converts input to internal type.
-    @param {Function} [formatter.fromType] Formats internal value for output.
-    @return {Function}
-  */
-  f.prop = function (store, formatter) {
-    formatter = formatter || {};
-
-    var newValue, oldValue, p, state, revert,
-      isReadOnly = false,
-      isRequired = false,
-      defaultTransform = function (value) { return value; };
-
-    formatter.toType = formatter.toType || defaultTransform;
-    formatter.fromType = formatter.fromType || defaultTransform;
-
-    revert = function () {
-      store = oldValue;
-    };
-
-    // Define state
-    state = f.statechart.State.define(function () {
-      this.state("Ready", function () {
-        this.event("change", function () {
-          this.goto("../Changing");
-        });
-        this.event("silence", function () {
-          this.goto("../Silent");
-        });
-        this.event("disable", function () {
-          this.goto("../Disabled");
-        });
-      });
-      this.state("Changing", function () {
-        this.event("changed", function () {
-          this.goto("../Ready");
-        });
-      });
-      this.state("Silent", function () {
-        this.event("report", function () {
-          this.goto("../Ready");
-        });
-        this.event("disable", function () {
-          this.goto("../Disabled");
-        });
-      });
-      this.state("Disabled", function () {
-        // Attempts to make changes from disabled mode revert back
-        this.event("changed", revert);
-        this.event("enable", function () {
-          this.goto("../Ready");
-        });
-      });
-    });
-
-    // Private function that will be returned
-    p = function (value) {
-      var proposed;
-
-      if (arguments.length) {
-        proposed = formatter.toType(value);
-
-        if (proposed === store) { return; }
-
-        newValue = value;
-        oldValue = store;
-
-        p.state().send("change");
-        store = value === newValue ? proposed : formatter.toType(newValue);
-        p.state().send("changed");
-        newValue = undefined;
-        oldValue = undefined;
-      }
-
-      return formatter.fromType(store);
-    };
-
-    /*
-      Getter setter for the new value
-      @param {Any} New value
-      @return {Any}
-    */
-    p.newValue = function (value) {
-      if (arguments.length && p.state().current() === "/Changing") {
-        newValue = value;
-      }
-
-      return newValue;
-    };
-
-    p.oldValue = function () {
-      return formatter.fromType(oldValue);
-    };
-
-    p.state = function () {
-      return state;
-    };
-
-    p.ignore = 0;
-
-    p.toJSON = function () {
-      if (typeof store === "object" && store !== null &&
-          typeof store.toJSON === "function") {
-        return store.toJSON();
-      }
-
-      return store;
-    };
-    /**
-      @param {Boolean} Is read only
-      @returns {Boolean}
-    */
-    p.isReadOnly = function (value) {
-      if (value !== undefined) {
-        isReadOnly = !!value;
-      }
-      return isReadOnly;
-    };
-    /**
-      @param {Boolean} Is required
-      @returns {Boolean}
-    */
-    p.isRequired = function (value) {
-      if (value !== undefined) {
-        isRequired = !!value;
-      }
-      return isRequired;
-    };
-    p.isToOne = function () {
-      return isToOne(p);
-    };
-    p.isToMany = function () {
-      return isToMany(p);
-    };
-    p.isChild = function () {
-      return isChild(p);
-    };
-
-    store = formatter.toType(store);
-    state.goto();
-
-    return p;
-  };
+  var model, isChild, isToOne, isToMany,
+    f = require("feather-core"),
+    m = require("mithril"),
+    catalog = require("catalog"),
+    dataSource = require("datasource"),
+    jsonpatch = require("fast-json-patch"),
+    statechart = require("statechartjs");
 
   /**
     A factory that returns a persisting object based on a definition call a
     `feather`. Can be extended by modifying the return object directly.
+
     @param {Object} Default data
     @param {Object} Feather
     @param {Array} [feather.name] the class name of the object
     @param {Array} [feather.properties] the properties to set on the data object
     return {Object}
   */
-  f.model = function (data, feather) {
+  model = function (data, feather) {
     data = data || {};
     feather = feather || {};
 
     var  doClear, doDelete, doError, doFetch, doInit, doPatch, doPost, doSend,
       doFreeze, doThaw, doRevert, validator, lastError, state, noUndo,
       that = {data: {}, name: feather.name || "Object", plural: feather.plural},
-      jsonpatch = f.jsonpatch,
       d = that.data,
       errHandlers = [],
       validators = [],
@@ -282,9 +123,14 @@
       property change. Pass a callback in and the property will be passed
       to the callback. The property will be passed to the callback as the
       first argument.
+
+        var contact,
+          catalog = require("catalog"),
+          model = require("model");
+
         contact = function (data, feather) {
-          var shared = feather || f.catalog.getFeather("Contact"),
-            that = f.model(data, shared);
+          var shared = feather || catalog.getFeather("Contact"),
+            that = model(data, shared);
           // Add a change event to a property
           that.onChange("first", function (prop) {
             console.log("First name changing from " +
@@ -308,9 +154,13 @@
       change. Pass a callback in and the property will be passed to the
       callback. The property will be passed to the callback as the first
       argument.
+        var contact,
+          catalog = require("catalog"),
+          model = require("model");
+
         contact = function (data, feather) {
-          var shared = feather || f.catalog.getFeather("Contact"),
-            that = f.model(data, shared);
+          var shared = feather || catalog.getFeather("Contact"),
+            that = model(data, shared);
           // Add a changed event to a property
           that.onChanged("first", function (prop) {
             console.log("First name is now " + prop() + "!");
@@ -331,9 +181,13 @@
     /*
       Add an error handler binding to the object. Pass a callback
       in and the error will be passed as an argument.
+        var contact,
+          catalog = require("catalog"),
+          model = require("model");
+
         contact = function (data, feather) {
-          var shared = feather || f.catalog.getFeather("Contact"),
-            that = f.model(data, shared);
+          var shared = feather || catalog.getFeather("Contact"),
+            that = model(data, shared);
           // Add an error handler
           that.onError(function (err) {
             console.log("Error->", err);
@@ -354,9 +208,14 @@
       by the validator will be caught and passed through `onError`
       callback(s). The most recent error may also be access via
       `lastError`.
+
+        var contact,
+          catalog = require("catalog"),
+          model = require("model");
+
         contact = function (data, feather) {
-          var shared = feather || f.catalog.getFeather("Contact"),
-            that = f.model(data, shared),
+          var shared = feather || catalog.getFeather("Contact"),
+            that = model(data, shared),
             validator function () {
               if (!that.data.first()) {
                 throw "First name must not be empty.";
@@ -494,8 +353,7 @@
     };
 
     doDelete = function (context) {
-      var ds = f.dataSource,
-        result = f.prop({}),
+      var result = f.prop({}),
         id = that.idProperty(),
         payload = {method: "DELETE", path: that.path(that.name, d[id]())},
         callback = function () {
@@ -504,7 +362,7 @@
           context.deferred.resolve(true);
         };
 
-      ds.request(payload).then(result).then(callback);
+      dataSource.request(payload).then(result).then(callback);
     };
 
     doError = function (err) {
@@ -516,8 +374,7 @@
     };
 
     doFetch = function (context) {
-      var ds = f.dataSource,
-        result = f.prop({}),
+      var result = f.prop({}),
         id = that.idProperty(),
         payload = {method: "GET", path: that.path(that.name, that.data[id]())},
         handleErr = function (err) {
@@ -529,7 +386,7 @@
           context.deferred.resolve(d);
         };
 
-      ds.request(payload).then(result, handleErr).then(callback);
+      dataSource.request(payload).then(result, handleErr).then(callback);
     };
 
     doFreeze = function () {
@@ -549,7 +406,7 @@
     };
 
     doPatch = function (context) {
-      var ds = f.dataSource,
+      var ds = dataSource,
         result = f.prop({}),
         patch = jsonpatch.compare(lastFetched, that.toJSON()),
         id = that.idProperty(),
@@ -569,7 +426,7 @@
     };
 
     doPost = function (context) {
-      var ds = f.dataSource,
+      var ds = dataSource,
         result = f.prop({}),
         cache = that.toJSON(),
         payload = {method: "POST", path: that.path(that.plural),
@@ -648,7 +505,7 @@
           if (value && value.isModel) { value = value.toJSON(); }
 
           // Create an instance
-          value = f.models[name](value);
+          value = catalog.store().models()[name](value);
 
           // Synchronize statechart
           state.resolve("/Busy/Fetching").enter(onFetching.bind(value));
@@ -741,7 +598,7 @@
 
             // Need to to make sure transform knows to ignore inapplicable props
             if (type.properties && type.properties.length) {
-              cFeather = f.copy(f.catalog.getFeather(relation));
+              cFeather = f.copy(catalog.getFeather(relation));
               cKeys = Object.keys(cFeather.properties);
               cKeys.forEach(function (key) {
                 if (type.properties.indexOf(key) === -1 && key !== "id") {
@@ -756,7 +613,7 @@
 
               if (value === undefined || value === null) { return null; }
               if (value && value.isModel) { value = value.toJSON(); }
-              result =  f.models[name](value, cFeather);
+              result =  catalog.store().models()[name](value, cFeather);
 
               // Synchronize statechart
               state.resolve("/Busy/Fetching").enter(onFetching.bind(result));
@@ -872,7 +729,7 @@
 
     // Define state
     noUndo = function () {return false; };
-    state = f.statechart.State.define(function () {
+    state = statechart.define(function () {
       this.enter(doInit);
 
       this.state("Ready", {H: "*"}, function () {
@@ -1040,4 +897,6 @@
     return p.type && typeof p.type === "object" && p.type.parentOf;
   };
 
-}(f));
+  module.exports = model;
+
+}());

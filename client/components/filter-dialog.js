@@ -1,22 +1,12 @@
-/**
-    Framework for building object relational database apps
-
-    Copyright (C) 2015  John Rogelstad
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-**/
-
-/*global window, f, m */
-(function (f) {
+(function () {
   "use strict";
+
+  var filterDialog = {},
+    m = require("mithril"),
+    f = require("component-core"),
+    model = require("model"),
+    checkbox = require("checkbox"),
+    tableDialog = require("table-dialog");
 
   /**
     View model for sort dialog.
@@ -28,9 +18,9 @@
     @param {Array} [options.feather] Feather
     @param {Function} [options.filter] Filter property
   */
-  f.viewModels.filterDialogViewModel = function (options) {
+  filterDialog.ViewModel = function (options) {
     options = options || {};
-    var vm, model, buildInputComponent,
+    var vm, store, buildInputComponent,
       resolveProperty, getDefault,
       feather = options.feather;
 
@@ -42,7 +32,7 @@
     // PUBLIC
     //
 
-    vm = f.viewModels.tableDialogViewModel(options);
+    vm = tableDialog.viewModel(options);
     vm.addAttr = function (attr) {
       if (!this.some(vm.hasAttr.bind(attr))) {
         this.push({
@@ -64,7 +54,7 @@
       vm.data()[index].value = getDefault(value);
     };
     vm.filter = m.prop();
-    vm.model = function () { return model; };
+    vm.model = function () { return store; };
     vm.operators = function (attr) {
       var ops, prop, format;
 
@@ -218,7 +208,7 @@
       // Handle input types
       if (typeof type === "string") {
         if (type === "boolean") {
-          component = f.components.checkbox({
+          component = checkbox({
             value: value,
             onclick: vm.itemChanged.bind(this, index, "value")
           });
@@ -238,7 +228,7 @@
       // Handle relations
       if (!type.childOf && !type.parentOf) {
         rel = type.relation.toCamelCase();
-        w = f.components[rel + "Relation"]({
+        w = f.components[rel + "Relation"]({ // FIX THIS
           parentProperty: attr,
           isCell: true
         });
@@ -284,7 +274,7 @@
         prefix = property.slice(0, idx);
         suffix = property.slice(idx + 1, property.length);
         rel = feather.properties[prefix].type.relation;
-        feather = f.catalog.getFeather(rel);
+        feather = f.catalog.getFeather(rel); // FIX THIS
         return resolveProperty(feather, suffix);
       }
 
@@ -293,11 +283,11 @@
 
     // Build internal model for processing relations where applicable
     if (feather) { 
-      model = f.model({}, feather);
-      Object.keys(model.data).forEach(function (key) {
-        if (model.data[key].isToOne()) {
+      store = model({}, feather);
+      Object.keys(store.data).forEach(function (key) {
+        if (store.data[key].isToOne()) {
           // If property updated, forward change
-          model.onChange(key, function (prop) {
+          store.onChange(key, function (prop) {
             var items = vm.items();
             items.forEach(function (item) {
               var value;
@@ -321,6 +311,8 @@
 
     @params {Object} View model
   */
-  f.components.filterDialog = f.components.tableDialog;
+  filterDialog.component = tableDialog.component;
 
-}(f));
+  module.exports = filterDialog;
+
+}());

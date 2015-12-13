@@ -1,26 +1,24 @@
-/**
-    Framework for building object relational database apps
-
-    Copyright (C) 2015  John Rogelstad
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-**/
-
-/*global window, f, m, math, dialogPolyfill */
-(function (f) {
+/*global window, dialogPolyfill*/
+(function () {
   "use strict";
+
+  require("dialog-polyfill");
 
   // Calculate scroll bar width
   // http://stackoverflow.com/questions/13382516/getting-scroll-bar-width-using-javascript
   var scrWidth, inner, widthNoScroll, widthWithScroll,
+    workbookDisplay = {},
+    m = require("mithril"),
+    f = require("component-core"),
+    math = require("mathjs"),
+    button = require("button"),
+    statechart = require("statechartjs"),
+    catalog = require("catalog"),
+    dialog = require("dialog"),
+    filterDialog = require("filter-dialog"),
+    searchInput = require("search-input"),
+    sortDialog = require("sort-dialog"),
+    sheetConfigureDialog = require("sheet-configure-dialog"),
     outer = document.createElement("div"),
     COL_WIDTH_DEFAULT = "150px";
 
@@ -46,14 +44,13 @@
   scrWidth = widthNoScroll - widthWithScroll;
 
   // Define workbook view model
-  f.viewModels.workbookViewModel = function (options) {
+  workbookDisplay.viewModel = function (options) {
     var selection, state, listState, createButton, buttonHome, buttonList,
       buttonEdit, buttonSave, buttonOpen, buttonNew, buttonDelete,
       buttonUndo, buttonRefresh, buttonClear, fromWidthIdx,
-      searchInput, searchState, sortDialog, filterDialog, shareDialog,
-      sheetConfigureDialog, frmroute, attrs, resolveProperties,
+      searchState, shareDialog, frmroute, attrs, resolveProperties,
       name = options.feather.toCamelCase(),
-      feather = f.catalog.getFeather(options.feather),
+      feather = catalog.getFeather(options.feather),
       showMenu = false,
       vm = {};
 
@@ -232,7 +229,7 @@
           prefix = property.slice(0, idx);
           suffix = property.slice(idx + 1, property.length);
           rel = feather.properties[prefix].type.relation;
-          return formatOf(f.catalog.getFeather(rel), suffix);
+          return formatOf(catalog.getFeather(rel), suffix);
         }
 
         prop = feather.properties[property];
@@ -351,7 +348,7 @@
       return vm.mode().toggleSelection(model, col);
     };
     vm.workbook= function () {
-      return f.workbooks[options.name.toCamelCase()];
+      return catalog.workbooks()[options.name.toCamelCase()];
     };
     vm.undo = function () {
       if (selection) { selection.undo(); }
@@ -369,7 +366,7 @@
     frmroute = "/" + options.name + "/" + vm.sheet().form.name;
     frmroute = frmroute.toSpinalCase();
     vm.filter(f.copy(vm.sheet().list.filter || {}));
-    vm.models = f.models[name].list({
+    vm.models = catalog.store().models()[name].list({
       filter: vm.filter()
     });
 
@@ -382,7 +379,7 @@
           isObject = typeof prop.type === "object",
           path = prefix + key;
         if (isObject && prop.type.properties) {
-          rfeather = f.catalog.getFeather(prop.type.relation);
+          rfeather = catalog.getFeather(prop.type.relation);
           resolveProperties(rfeather, prop.type.properties, result, path + ".");
         }
         if (!isObject || (!prop.type.childOf && !prop.type.parentOf)) {
@@ -393,7 +390,7 @@
     };
     attrs = resolveProperties(feather, Object.keys(feather.properties)).sort();
 
-    filterDialog = f.viewModels.filterDialogViewModel({
+    filterDialog = filterDialog.viewModel({
       attrs: attrs,
       filter: vm.filter,
       list: vm.models(),
@@ -401,7 +398,7 @@
       title: "filter",
       icon: "filter"
     });
-    sortDialog = f.viewModels.sortDialogViewModel({
+    sortDialog = sortDialog.viewModel({
       attrs: attrs,
       filter: vm.filter,
       list: vm.models(),
@@ -413,7 +410,7 @@
       parentViewModel: vm,
       attrs: attrs
     });
-    shareDialog = f.viewModels.dialogViewModel({
+    shareDialog = dialog.viewModel({
       icon: "question-circle",
       title: "Confirmation",
       message: "Are you sure you want to share your workbook " +
@@ -422,7 +419,7 @@
     });
 
     // Create button view models
-    createButton = f.viewModels.buttonViewModel;
+    createButton = button.viewModel;
     buttonHome = createButton({
       onclick: vm.goHome,
       title: "Home",
@@ -474,7 +471,7 @@
       icon: "undo"
     });
 
-    searchInput = f.viewModels.searchInputViewModel({
+    searchInput = searchInput.viewModel({
       refresh: vm.refresh
     });
 
@@ -527,7 +524,7 @@
     });
 
     // Create workbook statechart
-    state = f.statechart.State.define({concurrent: true}, function () {
+    state = statechart.define({concurrent: true}, function () {
       this.state("Mode", function () {
         this.state("View", function () {
           this.enter(function () {
@@ -579,7 +576,7 @@
             }
           };
           this.modelNew = function () {
-            var  model = f.models[name](),
+            var  model = catalog.store().models()[name](),
               input = "input" + vm.defaultFocus(model).toCamelCase(true);
             vm.models().add(model);
             vm.nextFocus(input);
@@ -644,7 +641,7 @@
   };
 
   // Define workbook component
-  f.components.workbookDisplay = function (options) {
+  workbookDisplay.component = function (options) {
     var viewModel,
       component = {};
 
@@ -659,9 +656,6 @@
         vm = ctrl.vm,
         filter = vm.filter(),
         sort = filter.sort || [],
-        button = f.components.button,
-        tableDialog = f.components.tableDialog,
-        sheetConfigureDialog = f.components.sheetConfigureDialog,
         activeSheet = vm.sheet(),
         config = vm.config(),
         idx = 0,
@@ -1009,29 +1003,29 @@
         class: "pure-form",
         config: function () {
           // Make Chrome style dialog available for all browsers
-          var dialog = document.querySelector('dialog');
-          if (!dialog.showModal) { dialogPolyfill.registerDialog(dialog); }
+          var dlg = document.querySelector('dialog');
+          if (!dlg.showModal) { dialogPolyfill.registerDialog(dlg); }
         }
       }, [
         m("div", {
             id: "toolbar",
             class: "suite-toolbar"
           }, [
-          m.component(tableDialog({viewModel: vm.sortDialog()})),
-          m.component(tableDialog({viewModel: vm.filterDialog()})),
-          m.component(sheetConfigureDialog({viewModel: vm.sheetConfigureDialog()})),
-          m.component(f.components.dialog({viewModel: vm.shareDialog()})),
-          m.component(button({viewModel: vm.buttonHome()})),
-          m.component(button({viewModel: vm.buttonList()})),
-          m.component(button({viewModel: vm.buttonEdit()})),
-          m.component(button({viewModel: vm.buttonSave()})),
-          m.component(button({viewModel: vm.buttonOpen()})),
-          m.component(button({viewModel: vm.buttonNew()})),
-          m.component(button({viewModel: vm.buttonDelete()})),
-          m.component(button({viewModel: vm.buttonUndo()})),
-          m.component(f.components.searchInput({viewModel: vm.searchInput()})),
-          m.component(button({viewModel: vm.buttonRefresh()})),
-          m.component(button({viewModel: vm.buttonClear()})),
+          m.component(sortDialog.component({viewModel: vm.sortDialog()})),
+          m.component(sortDialog.component({viewModel: vm.filterDialog()})),
+          m.component(sheetConfigureDialog.component({viewModel: vm.sheetConfigureDialog()})),
+          m.component(dialog.component({viewModel: vm.shareDialog()})),
+          m.component(button.component({viewModel: vm.buttonHome()})),
+          m.component(button.component({viewModel: vm.buttonList()})),
+          m.component(button.component({viewModel: vm.buttonEdit()})),
+          m.component(button.component({viewModel: vm.buttonSave()})),
+          m.component(button.component({viewModel: vm.buttonOpen()})),
+          m.component(button.component({viewModel: vm.buttonNew()})),
+          m.component(button.component({viewModel: vm.buttonDelete()})),
+          m.component(button.component({viewModel: vm.buttonUndo()})),
+          m.component(searchInput.component({viewModel: vm.searchInput()})),
+          m.component(button.component({viewModel: vm.buttonRefresh()})),
+          m.component(button.component({viewModel: vm.buttonClear()})),
           m("div", {
             class: "pure-menu custom-restricted-width suite-menu",
             onmouseover: vm.onmouseovermenu,
@@ -1133,6 +1127,9 @@
     return component;
   };
 
-}(f));
+  catalog.register("components", "workbookDisplay", workbookDisplay.component);
+  module.exports = workbookDisplay;
+
+}());
 
 

@@ -1,24 +1,12 @@
-/**
-    Framework for building object relational database apps
-
-    Copyright (C) 2015  John Rogelstad
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-**/
-
-/*global window, f, m */
-(function (f) {
+(function () {
   "use strict";
 
-  f.viewModels.relationViewModel = function (options) {
+  var relationWidget = {},
+    m = require("mithril"),
+    f = require("feather-core"),
+    catalog = require("catalog");
+
+  relationWidget.viewModel = function (options) {
     var vm = {},
       hasFocus = false,
       showMenu = false,
@@ -34,7 +22,7 @@
         sort: [{property: valueProperty}],
         limit: 10
       },
-      list =  f.models[modelName].list,
+      list =  options.models[modelName].list,
       modelList = list({filter: filter});
 
     vm.listId = m.prop(f.createId());
@@ -141,7 +129,7 @@
     @param {String} [options.valueProperty] Value property
     @params {Object} [options.isCell] Style for cell in table
   */
-  f.components.relationWidget = function (options) {
+  relationWidget.component = function (options) {
     var widget = {},
       parentProperty = options.parentProperty,
       valueProperty = options.valueProperty,
@@ -161,7 +149,7 @@
 
       // Set up viewModel if required
       if (!relations[parentProperty]) {
-        relations[parentProperty] = f.viewModels.relationViewModel({
+        relations[parentProperty] = relationWidget.ViewModel({
           parent: vm,
           parentProperty: parentProperty,
           valueProperty: valueProperty,
@@ -278,6 +266,9 @@
     return widget;
   };
 
-}(f));
+  catalog.register("components", "relationWidget", relationWidget.component);
+  module.exports = relationWidget;
+
+}());
 
 

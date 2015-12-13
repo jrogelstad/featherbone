@@ -1,24 +1,13 @@
-/**
-    Framework for building object relational database apps
-
-    Copyright (C) 2015  John Rogelstad
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-**/
-
-/*global window, f, m */
-(function (f) {
+/*global window*/
+(function () {
   "use strict";
 
-  f.viewModels.formViewModel = function (options) {
+  var formDisplay = {},
+    m = require("mithril"),
+    f = require("component-core"),
+    catalog = require("catalog");
+
+  formDisplay.ViewModel = function (options) {
     var vm = {}, model,
       wbkroute = "/" + options.workbook + "/" + options.sheet.name,
       frmroute = "/" + options.workbook + "/" + options.form,
@@ -28,7 +17,7 @@
 
     wbkroute = wbkroute.toSpinalCase();
     frmroute = frmroute.toSpinalCase();
-    model = f.models[name]({id: id});
+    model = f.models[name]({id: id}); // FIX THIS
 
     if (id) { model.fetch(); }
 
@@ -66,11 +55,11 @@
     return vm;
   };
 
-  f.components.formDisplay = function (options) {
+  formDisplay.component = function (options) {
     var widget = {};
 
     widget.controller = function () {
-      this.vm = f.viewModels.formViewModel({
+      this.vm = formDisplay.viewModel({
         workbook: options.workbook,
         sheet: options.sheet,
         form: options.form,
@@ -180,6 +169,9 @@
     return widget;
   };
 
-}(f));
+  catalog.register("components", "formDisplay", formDisplay.component);
+  module.exports = formDisplay;
+
+}());
 
 

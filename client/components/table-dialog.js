@@ -1,22 +1,12 @@
-/**
-    Framework for building object relational database apps
-
-    Copyright (C) 2015  John Rogelstad
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-**/
-
-/*global window, f, m */
-(function (f) {
+(function () {
   "use strict";
+
+  var tableDialog = {},
+    m = require("mithril"),
+    f = require("feather-core"),
+    dialog = require("dialog"),
+    button = require("button"),
+    statechart = require("statechartjs");
 
   /**
     View model for sort dialog.
@@ -28,7 +18,7 @@
     @param {Array} [options.feather] Feather
     @param {Function} [options.filter] Filter property
   */
-  f.viewModels.tableDialogViewModel = function (options) {
+  tableDialog.viewModel = function (options) {
     options = options || {};
     var vm, state, createButton, buttonAdd, buttonRemove,
       buttonClear, buttonDown, buttonUp, cancel,
@@ -38,7 +28,7 @@
     // PUBLIC
     //
 
-    vm = f.viewModels.dialogViewModel(options);
+    vm = dialog.viewModel(options);
     vm.add = function () {
       var ary = vm.data(),
        attrs = vm.attrs();
@@ -84,8 +74,6 @@
       buttonClear.disable();
     };
     vm.content = function () {
-      var button = f.components.button;
-
       return [
         m.component(button({viewModel: vm.buttonAdd()})),
         m.component(button({viewModel: vm.buttonRemove()})),
@@ -220,7 +208,7 @@
     // PRIVATE
     //
 
-    createButton = f.viewModels.buttonViewModel;
+    createButton = button.viewModel;
     buttonAdd = createButton({
       onclick: vm.add,
       label: "Add",
@@ -263,7 +251,7 @@
     });
 
     // Statechart
-    state = f.statechart.State.define(function () {
+    state = statechart.define(function () {
       this.state("Selection", function () {
         this.state("Off", function () {
           this.event("selected", function () {
@@ -292,6 +280,8 @@
 
     @params {Object} View model
   */
-  f.components.tableDialog = f.components.dialog;
+  tableDialog.component = dialog.component;
 
-}(f));
+  module.exports = tableDialog;
+
+}());
