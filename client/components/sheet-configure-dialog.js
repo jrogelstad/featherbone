@@ -118,8 +118,7 @@
     vm.reset = function () {
       cache = f.copy(vm.sheet());
       vm.model(catalog.store().models().workbookLocalConfig(cache));
-      vm.data(cache.list.columns);
-      if (cache.list.columns.length) { vm.add(); }
+      if (!cache.list.columns.length) { vm.add(); }
       vm.selection(0);
     };
     vm.workbook = options.parentViewModel.workbook;
@@ -199,7 +198,9 @@
           this.enter(primaryOn.bind(leftTabClass));
           this.exit(primaryOff.bind(leftTabClass));
           this.attrName = m.prop("Column");
-          this.data = m.prop(cache.list.columns);
+          this.data = function () {
+            return vm.model().data.list().columns;
+          };
         });
         this.state("Form", function () {
           this.event("list", function () {
@@ -208,7 +209,9 @@
           this.enter(primaryOn.bind(rightTabClass));
           this.exit(primaryOff.bind(rightTabClass));
           this.attrName = m.prop("Attribute");
-          this.data = m.prop(cache.form.attrs);
+          this.data = function () {
+            return vm.model().data.form().attrs;
+          };
         });
       });
     });
