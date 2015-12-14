@@ -80,6 +80,8 @@
       return view;
     };
 
+    vm.style().width = "460px";
+
     return vm;
   };
 

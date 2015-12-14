@@ -1,8 +1,6 @@
-/*global window, dialogPolyfill*/
+/*global window*/
 (function () {
   "use strict";
-
-  require("dialog-polyfill");
 
   var scrWidth, inner, widthNoScroll, widthWithScroll,
     workbookDisplay = {},
@@ -1012,12 +1010,7 @@
 
       // Finally assemble the whole view
       view = m("div", {
-        class: "pure-form",
-        config: function () {
-          // Make Chrome style dialog available for all browsers
-          var dlg = document.querySelector('dialog');
-          if (!dlg.showModal) { dialogPolyfill.registerDialog(dlg); }
-        }
+        class: "pure-form"
       }, [
         m("div", {
             id: "toolbar",

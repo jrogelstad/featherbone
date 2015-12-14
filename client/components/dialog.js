@@ -1,5 +1,8 @@
+/*global dialogPolyfill*/
 (function () {
   "use strict";
+
+  require("dialog-polyfill");
 
   var dialog = {},
     m = require("mithril"),
@@ -47,6 +50,7 @@
     vm.state = function () {
       return state;
     };
+    vm.style = m.prop({width: "350px"});
 
     // ..........................................................
     // PRIVATE
@@ -100,7 +104,12 @@
 
       view = m("dialog", {
           id: vm.id(),
-          class: "suite-dialog"
+          class: "suite-dialog",
+          style: vm.style(),
+          config: function (dlg) {
+            // Make Chrome style dialog available for all browsers
+            if (!dlg.showModal) { dialogPolyfill.registerDialog(dlg); }
+          }
         }, [
         m("h3", {
           class: "suite-header"

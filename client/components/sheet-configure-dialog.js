@@ -172,6 +172,9 @@
     // ..........................................................
     // PRIVATE
     //
+
+    vm.style().width = "510px";
+
     currentState = function () {
       return state.resolve(state.current()[0]);
     };

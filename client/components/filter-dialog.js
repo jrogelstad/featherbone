@@ -187,6 +187,8 @@
     // PRIVATE
     //
 
+    vm.style().width = "750px";
+
     /** @private
       Helper function for building input elements
 
