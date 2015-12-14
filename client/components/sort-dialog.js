@@ -66,11 +66,12 @@
             style: {minWidth: "175px", maxWidth: "175px"}
           },[
             m("select", {
+              value: item.order || "ASC",
               onchange: m.withAttr("value", vm.itemChanged.bind(this, item.index, "order"))
             },[
               m("option", {value: "ASC"}, "Ascending"),
               m("option", {value: "DESC"}, "Descending")
-            ], item.order || "ASC")
+            ])
           ])
         ]);
 

@@ -211,7 +211,7 @@
       showMenu = true;
     };
     vm.onmouseoutmenu = function (ev) {
-      if (!ev.toElement.id ||
+      if (!ev || !ev.toElement || !ev.toElement.id ||
           ev.toElement.id.indexOf("nav-") === -1) {
         showMenu = false;
       }
