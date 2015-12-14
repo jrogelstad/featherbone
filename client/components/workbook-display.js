@@ -210,8 +210,11 @@
     vm.onmouseovermenu = function () {
       showMenu = true;
     };
-    vm.onmouseoutmenu = function () {
-      showMenu = false;
+    vm.onmouseoutmenu = function (ev) {
+      if (!ev.toElement.id ||
+          ev.toElement.id.indexOf("nav-") === -1) {
+        showMenu = false;
+      }
     };
     vm.onscroll = function () {
       var rows = document.getElementById("rows"),
@@ -1032,20 +1035,24 @@
           m.component(button.component({viewModel: vm.buttonRefresh()})),
           m.component(button.component({viewModel: vm.buttonClear()})),
           m("div", {
+            id: "nav-div",
             class: "pure-menu custom-restricted-width suite-menu",
             onmouseover: vm.onmouseovermenu,
             onmouseout: vm.onmouseoutmenu
           }, [
             m("span", {
+              id: "nav-button",
               class:"pure-button fa fa-bars suite-menu-button"
             }),
             m("ul", {
+              id: "nav-menu-list",
               class: "pure-menu-list suite-menu-list",
               style: {
                 display: vm.showMenu() ? "block" : "none"
               }
             }, [
               m("li", {
+                id: "nav-sort",
                 class: "pure-menu-link",
                 title: "Change sheet sort",
                 onclick: vm.sortDialog().show
@@ -1053,6 +1060,7 @@
                 marginRight: "4px"
               }})], "Sort"),
               m("li", {
+                id: "nav-filter",
                 class: "pure-menu-link",
                 title: "Change sheet filter",
                 onclick: vm.filterDialog().show
@@ -1060,6 +1068,7 @@
                 marginRight: "4px"
               }})], "Filter"),
               m("li", {
+                id: "nav-subtotal",
                 class: "pure-menu-link",
                 title: "Edit subtotals"
                 //onclick: vm.filterDialog().show
@@ -1069,6 +1078,7 @@
                 fontStyle: "Italic"
               }}, "∑")], " Totals"),
               m("li", {
+                id: "nav-configure",
                 class: "pure-menu-link",
                 style: {
                   borderTop: "solid thin lightgrey"
@@ -1079,6 +1089,7 @@
                 marginRight: "4px"
               }})], "Configure"),
               m("li", {
+                id: "nav-share",
                 class: "pure-menu-link",
                 title: "Share workbook configuration",
                 onclick: vm.shareDialog().show
@@ -1086,6 +1097,7 @@
                 marginRight: "4px"
               }})], "Share"),
               m("li", {
+                id: "nav-revert",
                 class: "pure-menu-link",
                 title: "Revert workbook configuration to original state",
                 onclick: vm.revert
