@@ -91,6 +91,16 @@
   margin-right: 5px;
 }
 
+.suite-form-content {
+  overflow: auto;
+}
+
+/* Hack (relation widget) */
+.suite-form-label {
+  vertical-align: top !important;
+  margin-top: 9px !important;
+}
+
 .suite-sheet-configure-content {
   height: 375px;
 }

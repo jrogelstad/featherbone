@@ -5,10 +5,12 @@
   var formDisplay = {},
     m = require("mithril"),
     f = require("component-core"),
-    catalog = require("catalog");
+    catalog = require("catalog"),
+    button = require("button");
 
   formDisplay.viewModel = function (options) {
-    var vm = {}, model,
+    var vm = {}, state, model, createButton, canSave,
+      buttonDone, buttonApply, buttonSave, buttonSaveAndNew,
       wbkroute = "/" + options.workbook + "/" + options.sheet.name,
       frmroute = "/" + options.workbook + "/" + options.form,
       feather = options.feather,
@@ -22,14 +24,12 @@
 
     if (id) { model.fetch(); }
 
+    vm.buttonApply = function () { return buttonApply; };
+    vm.buttonDone = function () { return buttonDone; };
+    vm.buttonSave = function () { return buttonSave; };
+    vm.buttonSaveAndNew = function () { return buttonSaveAndNew; };
     vm.doApply = function () {
       model.save();
-    };
-    vm.canSave = function () {
-      return vm.model().isValid() && (
-        vm.model().state().current()[0] === "/Ready/New" || 
-        vm.model().canUndo()
-      );
     };
     vm.doList = function () {
       m.route(wbkroute);
@@ -52,6 +52,59 @@
       return model;
     };
     vm.relations = m.prop({});
+
+    // ..........................................................
+    // PRIVATE
+    //
+
+    // Create button view models
+    createButton = button.viewModel;
+    buttonDone = createButton({
+      onclick: vm.doList,
+      label: "&Back",
+      icon: "arrow-left"
+    });
+
+    buttonApply = createButton({
+      onclick: vm.doApply,
+      label: "&Apply"
+    });
+
+    buttonSave = createButton({
+      onclick: vm.doSave,
+      label: "&Save",
+      icon: "cloud-upload"
+    });
+
+    buttonSaveAndNew = createButton({
+      onclick: vm.saveAll,
+      label: "Save and &New",
+      icon: "plus-circle"
+    });
+
+    // Bind model state to display state
+    canSave = function (enable) {
+      if (enable && model.isValid()) {
+        buttonApply.enable();
+        buttonSave.enable();
+        buttonSaveAndNew.enable();
+        buttonSaveAndNew.label("Save and &New");
+      } else {
+        buttonApply.disable();
+        buttonSave.disable();
+        buttonSaveAndNew.enable();
+        buttonSaveAndNew.label("&New");        
+      }
+    };
+    state = model.state();
+    state.resolve("/Ready/New").enter(canSave.bind(this, true));
+    state.resolve("/Ready/Fetched/Clean").enter(canSave.bind(this, false));
+    state.resolve("/Ready/Fetched/Dirty").enter(canSave.bind(this, true));
+    state.resolve("/Busy").enter(function () {
+      buttonApply.disable();
+      buttonSave.disable();
+      buttonSaveAndNew.disable();
+    });
 
     return vm;
   };
@@ -86,11 +139,8 @@
         }, [
           m("label", {
             for: key,
-            style: {
-              color: color,
-              verticalAlign: "top", // Hack (relation widget)
-              marginTop: "9px" // Hack (relation widget)
-            }
+            class: "suite-form-label",
+            style: {color: color}
           }, item.label || key.toProperCase() + ":"),
           f.buildInputComponent({
             model: model,
@@ -111,47 +161,14 @@
           }
         }
       }, [
-        m("div", {id: "toolbar",
-          style: {
-            backgroundColor: "snow",
-            borderBottomColor: "lightgrey",
-            borderBottomStyle: "solid",
-            borderBottomWidth: "thin",
-            margin: "2px"
-          }
-        }, [
-          m("button", {
-            type: "button",
-            class: "pure-button",
-            style: { backgroundColor: "snow" },
-            onclick: vm.doList
-          }, [m("i", {class:"fa fa-arrow-left"})], " Done"),
-          m("button", {
-            type: "button",
-            class: "pure-button",
-            style: { backgroundColor: "snow" },
-            disabled: !model.canUndo() || !model.isValid(),
-            onclick: vm.doApply
-          }, "Apply"),
-          m("button", {
-            type: "button",
-            class: "pure-button",
-            style: { backgroundColor: "snow" },
-            disabled: !vm.canSave(),
-            onclick: vm.doSave
-          }, [m("i", {class:"fa fa-cloud-upload"})], " Save"),
-          m("button", {
-            type: "button",
-            class: "pure-button",
-            style: { backgroundColor: "snow" },
-            onclick: (model.canUndo() && model.isValid()) ? vm.doSaveAndNew : vm.doNew
-          }, [m("i", {class:"fa fa-plus-circle"})],
-          (model.canUndo() && model.isValid()) ? " Save & New" : " New")
+        m("div", {id: "toolbar",class: "suite-header"}, [
+          m.component(button.component({viewModel: vm.buttonDone()})),
+          m.component(button.component({viewModel: vm.buttonApply()})),
+          m.component(button.component({viewModel: vm.buttonSave()})),
+          m.component(button.component({viewModel: vm.buttonSaveAndNew()}))
         ]),
         m("div", {
-          style: {
-            overflow: "auto"
-          },
+          class: "suite-form-content",
           config: function (e) {
             var tb = document.getElementById("toolbar");
 
@@ -159,9 +176,7 @@
             document.documentElement.style.overflow = 'hidden';
             e.style.maxHeight = (window.innerHeight - tb.clientHeight) + "px";
           }
-        }, [
-          m("fieldset", attrs)
-        ])
+        }, [m("fieldset", attrs)])
       ]);
 
       return view;
