@@ -9,7 +9,7 @@
     button = require("button");
 
   formDisplay.viewModel = function (options) {
-    var vm = {}, state, model, createButton, canSave,
+    var vm = {}, state, model, createButton, toggleNew, isDisabled,
       buttonDone, buttonApply, buttonSave, buttonSaveAndNew,
       wbkroute = "/" + options.workbook + "/" + options.sheet.name,
       frmroute = "/" + options.workbook + "/" + options.form,
@@ -77,34 +77,28 @@
     });
 
     buttonSaveAndNew = createButton({
-      onclick: vm.saveAll,
+      onclick: vm.doSaveAndNew,
       label: "Save and &New",
       icon: "plus-circle"
     });
 
     // Bind model state to display state
-    canSave = function (enable) {
-      if (enable && model.isValid()) {
-        buttonApply.enable();
-        buttonSave.enable();
-        buttonSaveAndNew.enable();
-        buttonSaveAndNew.label("Save and &New");
+    isDisabled = function () { return !model.canSave(); };
+    buttonApply.isDisabled = isDisabled;
+    buttonSave.isDisabled = isDisabled;
+    toggleNew = function (isNew) {
+      if (isNew) {
+        buttonSaveAndNew.label("&New");
+        buttonSaveAndNew.onclick(vm.doNew);    
       } else {
-        buttonApply.disable();
-        buttonSave.disable();
-        buttonSaveAndNew.enable();
-        buttonSaveAndNew.label("&New");        
+        buttonSaveAndNew.label("Save and &New");
+        buttonSaveAndNew.onclick(vm.doSaveAndNew);  
       }
     };
     state = model.state();
-    state.resolve("/Ready/New").enter(canSave.bind(this, true));
-    state.resolve("/Ready/Fetched/Clean").enter(canSave.bind(this, false));
-    state.resolve("/Ready/Fetched/Dirty").enter(canSave.bind(this, true));
-    state.resolve("/Busy").enter(function () {
-      buttonApply.disable();
-      buttonSave.disable();
-      buttonSaveAndNew.disable();
-    });
+    state.resolve("/Ready/New").enter(toggleNew.bind(this, false));
+    state.resolve("/Ready/Fetched/Clean").enter(toggleNew.bind(this, true));
+    state.resolve("/Ready/Fetched/Dirty").enter(toggleNew.bind(this, false));
 
     return vm;
   };

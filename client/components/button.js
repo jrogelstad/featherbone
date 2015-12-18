@@ -14,8 +14,7 @@
   */
   button.viewModel = function (options) {
     options = options || {};
-    var vm, state, display, primary, mode, idx, ary, label, title, len,
-      hotkey = options.hotkey ? options.hotkey.toUpperCase().charCodeAt(0) : false;
+    var vm, state, display, primary, mode, label, hotkey;
 
     // ..........................................................
     // PUBLIC
@@ -30,10 +29,47 @@
     vm.class = function () { return mode().class(); };
     vm.hidden = function () { return display().hidden(); };
     vm.hide = function () { state.send("hide"); };
-    vm.hotKey = m.prop(hotkey);
+    vm.hotKey = function (value) {
+      var title, len;
+
+      if (arguments.length) {
+        hotkey = value;
+        title = vm.title();
+        len = title.length;
+        if (len) {
+          title += " (";
+        }
+        title += "Alt + " + String.fromCharCode(hotkey);
+        if (len) {
+          title += ")";
+        }
+        vm.title(title);
+      }
+      return hotkey;
+    };
     vm.icon = m.prop(options.icon || "");
     vm.id = m.prop(f.createId());
-    vm.label = m.prop(options.label || "");
+    vm.label = function (value) {
+      var idx, ary;
+
+      if (arguments.length) {
+        idx = value.indexOf("&");
+        if (idx > -1) {
+          label = value.replace("&", "");
+          vm.hotKey(label.slice(idx, idx + 1).toUpperCase().charCodeAt(0));
+          ary = [];
+          if (idx > 0) {
+            ary.push(m("span", label.slice(0, idx)));
+          }
+          ary.push(m("span", {style: {
+            textDecoration: "underline"
+          }}, label.slice(idx, idx + 1)));
+          ary.push(m("span", label.slice(idx + 1, label.length)));  
+          label = ary;
+        }
+      }
+      return label;
+    };
     vm.onclick = m.prop(options.onclick);
     vm.onkeydown = function (e) {
       var id;
@@ -53,35 +89,9 @@
     // PRIVATE
     //
 
-    idx = vm.label().indexOf("&");
-    if (idx > -1) {
-      label = vm.label();
-      label = label.replace("&", "");
-      vm.hotKey(label.slice(idx, idx + 1).toUpperCase().charCodeAt(0));
-      ary = [];
-      if (idx > 0) {
-        ary.push(m("span", label.slice(0, idx)));
-      }
-      ary.push(m("span", {style: {
-        textDecoration: "underline"
-      }}, label.slice(idx, idx + 1)));
-      ary.push(m("span", label.slice(idx + 1, label.length)));  
-      vm.label(ary);
-    }
-
-    // Append hot key advice to title if applicable
-    hotkey = vm.hotKey();
-    if (hotkey) {
-      title = vm.title();
-      len = title.length;
-      if (len) {
-        title += " (";
-      }
-      title += "Alt + " + String.fromCharCode(hotkey);
-      if (len) {
-        title += ")";
-      }
-      vm.title(title);
+    vm.label(options.label || "");
+    if (options.hotkey) {
+      vm.hotKey(options.hotkey.toUpperCase().charCodeAt(0));
     }
 
     // Define statechart

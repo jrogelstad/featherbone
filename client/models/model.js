@@ -36,14 +36,17 @@
     // ..........................................................
     // PUBLIC
     //
+
+    that.canSave = function () {
+      return state.resolve(state.current()[0]).canSave();
+    };
+
     that.canUndo = function () {
-      var currentState = state.resolve(state.current()[0]);
-      return currentState.canUndo();
+      return state.resolve(state.current()[0]).canUndo();
     };
 
     that.canDelete = function () {
-      var currentState = state.resolve(state.current()[0]);
-      return currentState.canDelete();
+      return state.resolve(state.current()[0]).canDelete();
     };
 
     /*
@@ -739,7 +742,6 @@
 
         this.state("New", function () {
           this.enter(doClear);
-
           this.event("clear",  function () {
             this.goto("/Ready/New", {force: true});
           });
@@ -752,6 +754,7 @@
             this.goto("/Deleted");
           });
           this.canDelete = m.prop(true);
+          this.canSave = that.isValid;
           this.canUndo = m.prop(false);
         });
 
@@ -768,20 +771,19 @@
               this.goto("../Dirty");
             });
             this.canDelete = m.prop(true);
+            this.canSave = m.prop(false);
             this.canUndo = m.prop(false);
           });
 
           this.state("Dirty", function () {
             this.event("undo", doRevert);
-            this.event("changed", function () {
-              this.goto("../Dirty", {force: true});
-            });
             this.event("save", function (deferred) {
               this.goto("/Busy/Saving/Patching", {
                 context: {deferred: deferred}
               });
             });
             this.canDelete = m.prop(false);
+            this.canSave = that.isValid;
             this.canUndo = m.prop(true);
           });
         });
@@ -797,6 +799,7 @@
           this.state("Posting", function () {
             this.enter(doPost);
             this.canDelete = m.prop(false);
+            this.canSave = m.prop(false);
             this.canUndo = m.prop(false);
           });
           this.state("Patching", function () {
@@ -805,6 +808,7 @@
             this.canUndo = m.prop(false);
           });
           this.canDelete = m.prop(false);
+          this.canSave = m.prop(false);
           this.canUndo = m.prop(false);
         });
         this.state("Deleting", function () {
@@ -814,6 +818,7 @@
             this.goto("/Deleted");
           });
           this.canDelete = m.prop(false);
+          this.canSave = m.prop(false);
           this.canUndo = m.prop(false);
         });
 
@@ -841,6 +846,7 @@
           this.goto("/Ready");
         });
         this.canDelete = m.prop(false);
+        this.canSave = m.prop(false);
         this.canUndo = m.prop(true);
       });
 
@@ -849,6 +855,7 @@
           this.goto("/Ready/New");
         });
         this.canDelete = m.prop(false);
+        this.canSave = m.prop(false);
         this.canUndo = m.prop(false);
       });
 
@@ -859,6 +866,7 @@
           this.goto("/Deleted");
         });
         this.canDelete = m.prop(false);
+        this.canSave = m.prop(false);
         this.canUndo = m.prop(false);
       });
     });
