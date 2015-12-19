@@ -53,6 +53,7 @@
     vm.itemPropertyChanged = function (index, value) {
       vm.itemChanged(index, "property", value);
       vm.data()[index].value = getDefault(value);
+      vm.data()[index].operator = "=";
     };
     vm.filter = m.prop();
     vm.model = function () { return store; };
