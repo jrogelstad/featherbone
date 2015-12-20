@@ -169,6 +169,9 @@
       config.push(newSheet);
     };
     vm.nextFocus = m.prop();
+    vm.ondragend = function () {
+      isDraggingTab = false;
+    };
     vm.ondragover = function (toIdx, ev) {
       if (!isNaN(toIdx)) {
         if (fromWidthIdx > toIdx) { return; }
@@ -1050,6 +1053,7 @@
           tabOpts.draggable = true;
           tabOpts.ondragstart = vm.ondragstart.bind(this, idx, "tab");
           tabOpts.ondrop = vm.ondrop.bind(this, idx, "tab", config);
+          tabOpts.ondragend = vm.ondragend;
           tabOpts.style = {webkitUserDrag: "element"};
         }
 
