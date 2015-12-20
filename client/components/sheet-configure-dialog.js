@@ -22,7 +22,7 @@
       leftTabClass = ["pure-button", "suite-sheet-group-tab", "suite-sheet-group-tab-left"],
       rightTabClass = ["pure-button", "suite-sheet-group-tab", "suite-sheet-group-tab-right"];
 
-    options.onclickOk = function () {
+    options.onOk = function () {
       var route,
         sheet = vm.model().toJSON(),
         workbook = vm.workbook();

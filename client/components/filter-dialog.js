@@ -25,7 +25,7 @@
       resolveProperty, getDefault,
       feather = options.feather;
 
-    options.onclickOk = function () {
+    options.onOk = function () {
       options.filter(vm.filter());
     };
 

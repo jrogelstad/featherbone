@@ -47,10 +47,11 @@
       buttonEdit, buttonSave, buttonOpen, buttonNew, buttonDelete,
       buttonUndo, buttonRefresh, buttonClear, fromWidthIdx, dataTransfer,
       searchState, frmroute, attrs, resolveProperties, inputSearch,
-      dialogShare, dialogFilter, dialogSort, dialogSheetConfigure,
+      dialogConfirm, dialogFilter, dialogSort, dialogSheetConfigure,
       name = options.feather.toCamelCase(),
       feather = catalog.getFeather(options.feather),
       showMenu = false,
+      isDraggingTab = false,
       vm = {};
 
     // ..........................................................
@@ -75,6 +76,7 @@
     vm.buttonSave = function () { return buttonSave; };
     vm.buttonUndo = function () { return buttonUndo; };
     vm.config = m.prop(options.config); 
+    vm.confirmDialog = function () { return dialogConfirm; };
     vm.defaultFocus = function (model) {
       var col = vm.attrs().find(function (attr) {
         return !model.data[attr] || !model.data[attr].isReadOnly();
@@ -84,6 +86,25 @@
     vm.configureSheet = function () {
       var dlg = vm.sheetConfigureDialog();
       dlg.show();
+    };
+    vm.deleteSheet = function () {
+      var doDelete;
+
+      doDelete = function () {
+        var config = vm.config(),
+          idx = dataTransfer.tab,
+          activeSheetId = vm.sheet().id,
+          deleteSheetId = config[idx].id;
+        config.splice(idx, 1);
+        if (activeSheetId === deleteSheetId) {
+          if (idx === config.length) { idx -= 1; }
+          vm.tabClicked(config[idx].name);
+        }
+      };
+
+      dialogConfirm.message("Are you sure you want to delete this sheet?");
+      dialogConfirm.onOk(doDelete);
+      dialogConfirm.show();
     };
     vm.didLeave = m.prop(false);
     vm.filter = f.prop();
@@ -110,6 +131,9 @@
         vm.select(list[idx]);
       }
     };
+    vm.isDraggingTab = function () {
+      return isDraggingTab;
+    };
     vm.isSelected = function (model) {
       return selection === model;
     };
@@ -131,6 +155,19 @@
         m.route(frmroute + "/" + selection.data.id());
       }
     };
+    vm.newSheet = function () {
+      var config = vm.config(),
+        newSheet = {
+          form: {
+            attrs: []
+          },
+          list: {
+            columns: []
+          }
+        };
+
+      config.push(newSheet);
+    };
     vm.nextFocus = m.prop();
     vm.ondragover = function (toIdx, ev) {
       if (!isNaN(toIdx)) {
@@ -141,11 +178,18 @@
     vm.ondragstart = function (idx, type, ev) {
       dataTransfer = {}; // Because ms edge only allows one value
       dataTransfer.typeStart = type;
-      if (type === "width") {
+
+      switch (type)
+      {
+      case "width":
         fromWidthIdx = idx;
         dataTransfer.widthStart = ev.clientX;
         return;
+      case "tab":
+        isDraggingTab = true;
+        break;
       }
+
       dataTransfer[type] = idx;
     };
     vm.ondrop = function (toIdx, type, ary, ev) {
@@ -172,6 +216,7 @@
           moved = ary.splice(fromIdx, 1)[0];
           ary.splice(toIdx, 0, moved);
         }
+        isDraggingTab = false;
       }
     };
     vm.onkeydownCell = function (e) {
@@ -306,12 +351,20 @@
       return vm.mode().selectedColor();
     };
     vm.share = function () {
-      var workbook = vm.workbook(),
+      var doShare;
+
+      doShare = function () {
+        var workbook = vm.workbook(),
         config = f.copy(vm.config());
-      workbook.data.localConfig(config);
-      workbook.save();
+        workbook.data.localConfig(config);
+        workbook.save();
+      };
+
+      dialogConfirm.message("Are you sure you want to share your workbook " +
+        "configuration with all other users?");
+      dialogConfirm.onOk(doShare);
+      dialogConfirm.show();
     };
-    vm.shareDialog = function () { return dialogShare; };
     vm.sheet = function (value) {
       var idx = 0,
         config = vm.config();
@@ -418,12 +471,9 @@
       parentViewModel: vm,
       attrs: attrs
     });
-    dialogShare = dialog.viewModel({
+    dialogConfirm = dialog.viewModel({
       icon: "question-circle",
-      title: "Confirmation",
-      message: "Are you sure you want to share your workbook " +
-        "configuration with all other users?",
-      onclickOk: vm.share
+      title: "Confirmation"
     });
 
     // Create button view models
@@ -986,18 +1036,24 @@
       // Build tabs
       idx = 0;
       tabs = vm.sheets().map(function (sheet) {
-        var tab;
+        var tab, tabOpts;
 
         // Build tab
-        tab = m("button[type=button]", {
-          ondragover: vm.ondragover,
-          draggable: true,
-          ondragstart: vm.ondragstart.bind(this, idx, "tab"),
-          ondrop: vm.ondrop.bind(this, idx, "tab", config),
+        tabOpts = {
           class: "suite-sheet-tab pure-button" +
             (activeSheet.name === sheet ? " pure-button-primary" : ""),
           onclick: vm.tabClicked.bind(this, sheet)
-        }, sheet);
+        };
+
+        if (vm.config().length > 1) {
+          tabOpts.ondragover = vm.ondragover;
+          tabOpts.draggable = true;
+          tabOpts.ondragstart = vm.ondragstart.bind(this, idx, "tab");
+          tabOpts.ondrop = vm.ondrop.bind(this, idx, "tab", config);
+          tabOpts.style = {webkitUserDrag: "element"};
+        }
+
+        tab = m("button[type=button]", tabOpts, sheet);
         idx += 1;
 
         return tab;
@@ -1007,9 +1063,23 @@
       tabs.push(m("button[type=button]", {
         class: "pure-button",
         title: "Add sheet",
-        style: {backgroundColor: "White"},
-        onclick: vm.sheetConfigureDialog().show
+        style: {
+          backgroundColor: "White",
+          display: vm.isDraggingTab() ? "none" : "inline-block"
+        },
+        onclick: vm.newSheet
       }, [m("i", {class:"fa fa-plus"})]));
+
+      // Delete target
+      tabs.push(m("div", {
+        class: "pure-button",
+        style: {
+          backgroundColor: "White",
+          display: vm.isDraggingTab() ? "inline-block" : "none"
+        },
+        ondragover: vm.ondragover,
+        ondrop: vm.deleteSheet
+      }, [m("i", {class:"fa fa-trash"})]));
 
       // Finally assemble the whole view
       view = m("div", {
@@ -1022,7 +1092,7 @@
           m.component(sortDialog.component({viewModel: vm.sortDialog()})),
           m.component(sortDialog.component({viewModel: vm.filterDialog()})),
           m.component(sheetConfigureDialog.component({viewModel: vm.sheetConfigureDialog()})),
-          m.component(dialog.component({viewModel: vm.shareDialog()})),
+          m.component(dialog.component({viewModel: vm.confirmDialog()})),
           m.component(button.component({viewModel: vm.buttonHome()})),
           m.component(button.component({viewModel: vm.buttonList()})),
           m.component(button.component({viewModel: vm.buttonEdit()})),
@@ -1092,7 +1162,7 @@
                 id: "nav-share",
                 class: "pure-menu-link",
                 title: "Share workbook configuration",
-                onclick: vm.shareDialog().show
+                onclick: vm.share
               }, [m("i", {class:"fa fa-share-alt", style: {
                 marginRight: "4px"
               }})], "Share"),

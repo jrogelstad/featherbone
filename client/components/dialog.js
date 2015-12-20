@@ -35,13 +35,17 @@
     vm.content = function () {
       return m("div", vm.message());
     };
-    vm.displayOk = function () {
-      return options.onclickOk ? "inline-block" : "none";
+    vm.displayCancel = function () {
+      return vm.onOk() ? "inline-block" : "none";
     };
     vm.message = m.prop(options.message || "Your message here");
+    vm.onOk = m.prop(options.onOk);
     vm.onclickOk = function () {
+      var doOk = vm.onOk();
       state.send("close");
-      options.onclickOk();
+      if (typeof doOk === "function") {
+        doOk();
+      }
     };
     vm.show = function () {
       state.send("show");
@@ -121,11 +125,11 @@
           m("br"),
           m("button", {
             class: "pure-button  pure-button-primary suite-dialog-button-ok",
-            style: { display: vm.displayOk() },
             onclick: vm.onclickOk
           }, "Ok"),
           m("button", {
             class: "pure-button",
+            style: { display: vm.displayCancel() },
             onclick: vm.cancel,
             autofocus: true
           }, "Cancel")
