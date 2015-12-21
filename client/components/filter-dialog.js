@@ -45,7 +45,8 @@
       }
     };
     vm.attrs = function () {
-      return options.attrs;
+      var keys = Object.keys(feather.properties);
+      return  f.resolveProperties(feather, keys).sort();
     };
     vm.data = function () {
       return vm.filter()[vm.propertyName()];

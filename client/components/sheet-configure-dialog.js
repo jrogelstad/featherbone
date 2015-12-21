@@ -52,7 +52,10 @@
       }
     };
     vm.attrs = function () {
-      return options.attrs;
+      var model = vm.model(),
+        feather = catalog.getFeather(model.data.feather()),
+        keys = feather ? Object.keys(feather.properties) : false;
+      return  keys ? f.resolveProperties(feather, keys).sort() : [];
     };
     vm.config = options.parentViewModel.config;
     vm.content = function () {

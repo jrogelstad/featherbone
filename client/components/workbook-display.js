@@ -46,7 +46,7 @@
     var selection, state, currentSheet, listState, createButton, buttonHome,
       buttonList, buttonEdit, buttonSave, buttonOpen, buttonNew, buttonDelete,
       buttonUndo, buttonRefresh, buttonClear, fromWidthIdx, dataTransfer,
-      searchState, frmroute, attrs, resolveProperties, inputSearch,
+      searchState, frmroute, inputSearch,
       dialogConfirm, dialogFilter, dialogSort, dialogSheetConfigure,
       name = options.feather.toCamelCase(),
       feather = catalog.getFeather(options.feather),
@@ -158,19 +158,30 @@
       }
     };
     vm.newSheet = function () {
-      var undo,
+      var undo, newSheet, sheetName, nextName,
         id = f.createId(),
         config = vm.config(),
-        newSheet = {
-          id: id,
-          name: "Sheet",
-          feather: "",
-          form: {
-            name: "Form",
-            attrs: []
-          },
-          list: {columns: []}
-        };
+        sheets = vm.sheets(),
+        i = 0;
+
+      while (!sheetName) {
+        i += 1;
+        nextName = "Sheet" + i;
+        if (sheets.indexOf(nextName) === -1) {
+          sheetName = nextName;
+        }
+      }
+
+      newSheet = {
+        id: id,
+        name: sheetName,
+        feather: "",
+        form: {
+          name: "Form",
+          attrs: []
+        },
+        list: {columns: []}
+      };
 
       undo = function () {
         config.pop();
@@ -464,28 +475,7 @@
       filter: vm.filter()
     });
 
-    resolveProperties = function (feather, properties, ary, prefix) {
-      prefix = prefix || "";
-      var result = ary || [];
-      properties.forEach(function (key) {
-        var rfeather,
-          prop = feather.properties[key],
-          isObject = typeof prop.type === "object",
-          path = prefix + key;
-        if (isObject && prop.type.properties) {
-          rfeather = catalog.getFeather(prop.type.relation);
-          resolveProperties(rfeather, prop.type.properties, result, path + ".");
-        }
-        if (!isObject || (!prop.type.childOf && !prop.type.parentOf)) {
-          result.push(path);
-        }
-      });
-      return result;
-    };
-    attrs = resolveProperties(feather, Object.keys(feather.properties)).sort();
-
     dialogFilter = filterDialog.viewModel({
-      attrs: attrs,
       filter: vm.filter,
       list: vm.models(),
       feather: feather,
@@ -493,7 +483,6 @@
       icon: "filter"
     });
     dialogSort = sortDialog.viewModel({
-      attrs: attrs,
       filter: vm.filter,
       list: vm.models(),
       feather: feather,
@@ -502,7 +491,6 @@
     });
     dialogSheetConfigure = sheetConfigureDialog.viewModel({
       parentViewModel: vm,
-      attrs: attrs,
       sheetId: sheetId
     });
     dialogConfirm = dialog.viewModel({
