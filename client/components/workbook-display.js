@@ -43,13 +43,14 @@
 
   // Define workbook view model
   workbookDisplay.viewModel = function (options) {
-    var selection, state, listState, createButton, buttonHome, buttonList,
-      buttonEdit, buttonSave, buttonOpen, buttonNew, buttonDelete,
+    var selection, state, currentSheet, listState, createButton, buttonHome,
+      buttonList, buttonEdit, buttonSave, buttonOpen, buttonNew, buttonDelete,
       buttonUndo, buttonRefresh, buttonClear, fromWidthIdx, dataTransfer,
       searchState, frmroute, attrs, resolveProperties, inputSearch,
       dialogConfirm, dialogFilter, dialogSort, dialogSheetConfigure,
       name = options.feather.toCamelCase(),
       feather = catalog.getFeather(options.feather),
+      sheetId = options.id,
       showMenu = false,
       isDraggingTab = false,
       vm = {};
@@ -85,6 +86,7 @@
     };
     vm.configureSheet = function () {
       var dlg = vm.sheetConfigureDialog();
+      dlg.sheetId(sheetId);
       dlg.show();
     };
     vm.deleteSheet = function () {
@@ -156,17 +158,28 @@
       }
     };
     vm.newSheet = function () {
-      var config = vm.config(),
+      var undo,
+        id = f.createId(),
+        config = vm.config(),
         newSheet = {
+          id: id,
+          name: "Sheet",
+          feather: "",
           form: {
+            name: "Form",
             attrs: []
           },
-          list: {
-            columns: []
-          }
+          list: {columns: []}
         };
 
+      undo = function () {
+        config.pop();
+      };
+
       config.push(newSheet);
+      dialogSheetConfigure.sheetId(id);
+      dialogSheetConfigure.onCancel(undo);
+      dialogSheetConfigure.show();
     };
     vm.nextFocus = m.prop();
     vm.ondragend = function () {
@@ -368,15 +381,32 @@
       dialogConfirm.onOk(doShare);
       dialogConfirm.show();
     };
-    vm.sheet = function (value) {
+    vm.sheet = function (id, value) {
       var idx = 0,
         config = vm.config();
+
+      if (id) {
+        if (typeof id === "object") {
+          value = id;
+          id = sheetId;
+        }
+      } else {
+        id = sheetId;
+      }
+
+      if (currentSheet && currentSheet.id === id &&
+          !value) {
+        return currentSheet;
+      }
+
       config.some(function (item) {
-        if (options.id === item.id) { return true; }
+        if (id === item.id) { return true; }
         idx += 1;
       });
-      if (arguments.length) { config.splice(idx, 1, value); }
-      return config[idx];
+      if (value) { config.splice(idx, 1, value); }
+      currentSheet = config[idx];
+
+      return currentSheet;
     };
     vm.sheets = function () {
       var config = vm.config();
@@ -419,7 +449,7 @@
     };
     vm.zoom = function (value) {
       var sheet = vm.sheet();
-      if (arguments.length) { sheet.zoom = value; }
+      if (value !== undefined) { sheet.zoom = value; }
       return sheet.zoom;
     };
 
@@ -472,7 +502,8 @@
     });
     dialogSheetConfigure = sheetConfigureDialog.viewModel({
       parentViewModel: vm,
-      attrs: attrs
+      attrs: attrs,
+      sheetId: sheetId
     });
     dialogConfirm = dialog.viewModel({
       icon: "question-circle",

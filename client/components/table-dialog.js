@@ -21,7 +21,7 @@
   tableDialog.viewModel = function (options) {
     options = options || {};
     var vm, state, createButton, buttonAdd, buttonRemove,
-      buttonClear, buttonDown, buttonUp, cancel,
+      buttonClear, buttonDown, buttonUp,
       selection = m.prop();
 
     // ..........................................................
@@ -63,11 +63,6 @@
     };
     vm.buttonUp = function () {
       return buttonUp;
-    };
-    cancel = vm.cancel;
-    vm.cancel = function () {
-      vm.reset();
-      cancel();
     };
     vm.clear = function () {
       vm.data().length = 0;
@@ -268,9 +263,6 @@
       });
     });
     state.goto();
-
-    vm.state().resolve("/Display/Showing").enter(vm.reset);
-    vm.reset();
 
     return vm;
   };

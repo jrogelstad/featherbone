@@ -30,6 +30,10 @@
     vm.icon = m.prop(options.icon);
     vm.id = m.prop(options.id || f.createId());
     vm.cancel = function () {
+      var doCancel = vm.onCancel();
+      if (typeof doCancel === "function") {
+        doCancel();
+      }
       state.send("close");
     };
     vm.content = function () {
@@ -39,13 +43,14 @@
       return vm.onOk() ? "inline-block" : "none";
     };
     vm.message = m.prop(options.message || "Your message here");
+    vm.onCancel = m.prop(options.onCancel);
     vm.onOk = m.prop(options.onOk);
-    vm.onclickOk = function () {
+    vm.ok = function () {
       var doOk = vm.onOk();
-      state.send("close");
       if (typeof doOk === "function") {
         doOk();
       }
+      state.send("close");
     };
     vm.show = function () {
       state.send("show");
@@ -125,7 +130,7 @@
           m("br"),
           m("button", {
             class: "pure-button  pure-button-primary suite-dialog-button-ok",
-            onclick: vm.onclickOk
+            onclick: vm.ok
           }, "Ok"),
           m("button", {
             class: "pure-button",

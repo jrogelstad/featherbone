@@ -24,10 +24,11 @@
 
     options.onOk = function () {
       var route,
+        id = vm.sheetId(),
         sheet = vm.model().toJSON(),
         workbook = vm.workbook();
 
-      vm.sheet(sheet);
+      vm.sheet(id, sheet);
       workbook.data.localConfig(vm.config());
       f.buildRoutes(workbook.toJSON());
       route = "/" + workbook.data.name() + "/" + sheet.name;
@@ -53,6 +54,7 @@
     vm.attrs = function () {
       return options.attrs;
     };
+    vm.config = options.parentViewModel.config;
     vm.content = function () {
       var feathers,
         d = vm.model().data,
@@ -112,15 +114,16 @@
         }).sort();
       return result;
     };
-    vm.sheet = options.parentViewModel.sheet;
-    vm.config = options.parentViewModel.config;
     vm.model = f.prop(catalog.store().models().workbookLocalConfig(cache));
+    vm.sheetId = m.prop(options.sheetId);
     vm.reset = function () {
-      cache = f.copy(vm.sheet());
+      var id = vm.sheetId();
+      cache = f.copy(vm.sheet(id));
       vm.model(catalog.store().models().workbookLocalConfig(cache));
       if (!cache.list.columns.length) { vm.add(); }
       vm.selection(0);
     };
+    vm.sheet = options.parentViewModel.sheet;
     vm.workbook = options.parentViewModel.workbook;
     vm.viewHeaderIds = m.prop({
       column: f.createId(),
@@ -216,6 +219,12 @@
       });
     });
     state.goto();
+  
+    // Always clear undo function when done
+    vm.state().resolve("/Display/Showing").enter(vm.reset);
+    vm.state().resolve("/Display/Closed").enter(function () {
+      vm.onCancel = m.prop();
+    });
 
     vm.reset();
 
