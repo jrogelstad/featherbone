@@ -175,7 +175,7 @@
       newSheet = {
         id: id,
         name: sheetName,
-        feather: "",
+        feather: null,
         form: {
           name: "Form",
           attrs: []
@@ -1241,5 +1241,3 @@
   module.exports = workbookDisplay;
 
 }());
-
-

@@ -1,7 +1,9 @@
 (function () {
   "use strict";
 
-  var workbook, workbookModel, workbookDefaultConifg, workbookLocalConfig, feathers,
+  var workbook, workbookModel, workbookChild,
+    workbookDefaultConifg, workbookLocalConfig,
+    models, feathers,
     f = require("feather-core"),
     model = require("model"),
     dataSource = require("datasource"),
@@ -59,11 +61,13 @@
       },
       name: {
         description: "Sheet name",
-        type: "string"
+        type: "string",
+        isRequired: true
       },
       feather: {
         description: "Description",
-        type: "string"
+        type: "string",
+        isRequired: true
       },
       form: {
         description: "Form layout",
@@ -149,7 +153,37 @@
     return that;
   };
 
-  catalog.register("models", "workbook", workbookModel);
+  /**
+    A factory that returns a persisting object based on a definition call a
+    `feather`. Can be extended by modifying the return object directly.
+    @param {Object} Default data
+    return {Object}
+  */
+  workbookChild = function (data) {
+    var that;
+
+    // ..........................................................
+    // PUBLIC
+    //
+
+    that = model(data, workbookLocalConfig);
+
+    that.onValidate(function () {
+      if (!that.data.list().columns.length) {
+        throw "List must include at least one column.";
+      }
+
+      if (!that.data.form().attrs.length) {
+        throw "Form must include at least one attribute.";
+      }
+    });
+
+    return that;
+  };
+
+  models = catalog.register("models");
+  models.workbook = workbookModel;
+  models.workbookLocalConfig = workbookChild;
   module.exports = workbookModel;
 
 }());

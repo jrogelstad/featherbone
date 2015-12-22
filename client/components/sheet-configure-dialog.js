@@ -118,6 +118,13 @@
       return result;
     };
     vm.model = f.prop(catalog.store().models().workbookLocalConfig(cache));
+    vm.okDisabled = function () {
+      return !vm.model().isValid();
+    };
+    vm.okTitle = function () {
+      var model = vm.model();
+      return model.isValid() ? "" : model.lastError();
+    };
     vm.sheetId = m.prop(options.sheetId);
     vm.reset = function () {
       var id = vm.sheetId();

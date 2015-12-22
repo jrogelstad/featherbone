@@ -52,6 +52,8 @@
       }
       state.send("close");
     };
+    vm.okDisabled = m.prop(false);
+    vm.okTitle = m.prop("");
     vm.show = function () {
       state.send("show");
     };
@@ -108,8 +110,18 @@
     };
 
     component.view = function (ctrl) {
-      var view,
+      var view, okOpts,
         vm = ctrl.vm;
+
+      okOpts = {
+        class: "pure-button  pure-button-primary suite-dialog-button-ok",
+        onclick: vm.ok,
+        disabled: vm.okDisabled()
+      };
+
+      if (vm.okTitle()) {
+        okOpts.title = vm.okTitle();
+      }
 
       view = m("dialog", {
           id: vm.id(),
@@ -128,10 +140,7 @@
         m("div", {class: "suite-dialog-content-frame"}, [
           vm.content(),
           m("br"),
-          m("button", {
-            class: "pure-button  pure-button-primary suite-dialog-button-ok",
-            onclick: vm.ok
-          }, "Ok"),
+          m("button", okOpts, "Ok"),
           m("button", {
             class: "pure-button",
             style: { display: vm.displayCancel() },
