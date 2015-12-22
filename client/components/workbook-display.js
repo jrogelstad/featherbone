@@ -158,7 +158,8 @@
       }
     };
     vm.newSheet = function () {
-      var undo, newSheet, sheetName, nextName,
+      var undo, newSheet, sheetName, formName, next,
+        forms,
         id = f.createId(),
         config = vm.config(),
         sheets = vm.sheets(),
@@ -166,9 +167,22 @@
 
       while (!sheetName) {
         i += 1;
-        nextName = "Sheet" + i;
-        if (sheets.indexOf(nextName) === -1) {
-          sheetName = nextName;
+        next = "Sheet" + i;
+        if (sheets.indexOf(next) === -1) {
+          sheetName = next;
+        }
+      }
+
+      forms = config.map(function (sheet) {
+        return sheet.form.name;
+      });
+
+      i= 0;
+      while (!formName) {
+        i += 1;
+        next = "Form" + i;
+        if (forms.indexOf(next) === -1) {
+          formName = next;
         }
       }
 
@@ -177,7 +191,7 @@
         name: sheetName,
         feather: null,
         form: {
-          name: "Form",
+          name: formName,
           attrs: []
         },
         list: {columns: []}
