@@ -212,7 +212,7 @@
         throw "A worksheet name is required.";
       }
 
-      if (!form.name) {
+      if (!form.data.name()) {
         throw "A form name is required.";
       }
 
