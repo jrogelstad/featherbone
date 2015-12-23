@@ -62,7 +62,8 @@
       var feathers,
         d = vm.model().data,
         nameId = f.createId(),
-        featherId = f.createId();
+        featherId = f.createId(),
+        formNameId = f.createId();
 
       feathers = vm.feathers().map(function (feather) {
         return m("option", feather);
@@ -77,6 +78,7 @@
           }, "Name:"),
           m("input", {
             value: d.name(),
+            required: true,
             oninput: m.withAttr("value", d.name)
           })
         ]),
@@ -86,8 +88,19 @@
           }, "Class:"),
           m("select", {
             value: d.feather(),
+            required: true,
             oninput: m.withAttr("value", d.feather)
           }, feathers)
+        ]),
+        m("div", {class: "pure-control-group"}, [
+          m("label", {
+            for: formNameId
+          }, "Form Name:"),
+          m("input", {
+            value: d.form().data.name(),
+            required: true,
+            oninput: m.withAttr("value", d.form().data.name)
+          })
         ]),
         m("div", {class: "suite-sheet-configure-tabs"} , [
           m("button", {
@@ -122,8 +135,7 @@
       return !vm.model().isValid();
     };
     vm.okTitle = function () {
-      var model = vm.model();
-      return model.isValid() ? "" : model.lastError();
+      return vm.model().lastError();
     };
     vm.sheetId = m.prop(options.sheetId);
     vm.reset = function () {
@@ -212,7 +224,7 @@
           this.exit(primaryOff.bind(leftTabClass));
           this.attrName = m.prop("Column");
           this.data = function () {
-            return vm.model().data.list().columns;
+            return vm.model().data.list().data.columns();
           };
         });
         this.state("Form", function () {
@@ -223,7 +235,7 @@
           this.exit(primaryOff.bind(rightTabClass));
           this.attrName = m.prop("Attribute");
           this.data = function () {
-            return vm.model().data.form().attrs;
+            return vm.model().data.form().data.attrs();
           };
         });
       });

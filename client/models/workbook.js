@@ -3,7 +3,7 @@
 
   var workbook, workbookModel, workbookChild,
     workbookDefaultConifg, workbookLocalConfig,
-    models, feathers,
+    workbookForm, workbookList, models, feathers,
     f = require("feather-core"),
     model = require("model"),
     dataSource = require("datasource"),
@@ -85,13 +85,55 @@
     }
   };
 
+  workbookForm = {
+    description: "Workbook form definition",
+    isSystem: true,
+    properties: {
+      name: {
+        description: "Form name",
+        type: "string",
+        isRequired: true
+      },
+      attrs: {
+        description: "Attributes",
+        type: "object"
+      }
+    }
+  };
+
+  workbookList = {
+    description: "Workbook list definition",
+    isSystem: true,
+    properties: {
+      columns: {
+        description: "Columns",
+        type: "object"
+      },
+      filter: {
+        description: "Filter",
+        type: "object"
+      }
+    }
+  };
+
   workbookLocalConfig = f.copy(workbookDefaultConifg);
   workbookLocalConfig.description = "Workbook local sheet definition";
   workbookLocalConfig.properties.parent.type.childOf = "localConfig";
+  workbookLocalConfig.properties.form = {
+    description: "Parent of \"parent\" on \"WorkbookForm\"",
+    type: {relation: "WorkbookForm"}
+  };
+  workbookLocalConfig.properties.list = {
+    description: "Parent of \"parent\" on \"WorkbookList\"",
+    type: {relation: "WorkbookList"}
+  };
+
   feathers = catalog.data();
   feathers.Workbook = workbook;
   feathers.WorkbookDefaultConfig = workbookDefaultConifg;
   feathers.WorkbookLocalConfig = workbookLocalConfig;
+  feathers.WorkbookForm = workbookForm;
+  feathers.WorkbookList = workbookList;
 
   /**
     A factory that returns a persisting object based on a definition call a
@@ -160,20 +202,25 @@
     return {Object}
   */
   workbookChild = function (data) {
-    var that;
-
-    // ..........................................................
-    // PUBLIC
-    //
-
-    that = model(data, workbookLocalConfig);
+    var that = model(data, workbookLocalConfig);
 
     that.onValidate(function () {
-      if (!that.data.list().columns.length) {
+      var list = that.data.list(),
+        form = that.data.form();
+
+      if (!that.data.name()) {
+        throw "A worksheet name is required.";
+      }
+
+      if (!form.name) {
+        throw "A form name is required.";
+      }
+
+      if (!list.data.columns().length) {
         throw "List must include at least one column.";
       }
 
-      if (!that.data.form().attrs.length) {
+      if (!form.data.attrs().length) {
         throw "Form must include at least one attribute.";
       }
     });

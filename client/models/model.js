@@ -109,6 +109,7 @@
         return false;
       }
 
+      lastError = "";
       return true;
     };
 
