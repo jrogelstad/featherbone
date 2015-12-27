@@ -50,7 +50,7 @@
 
   workbookDefaultConifg = {
     description: "Workbook default sheet definition",
-    isSystem: true,
+    isChild: true,
     properties: {
       parent: {
         description: "Workbook name",
@@ -87,7 +87,7 @@
 
   workbookForm = {
     description: "Workbook form definition",
-    isSystem: true,
+    isChild: true,
     properties: {
       name: {
         description: "Form name",
@@ -103,7 +103,7 @@
 
   workbookList = {
     description: "Workbook list definition",
-    isSystem: true,
+    isChild: true,
     properties: {
       columns: {
         description: "Columns",

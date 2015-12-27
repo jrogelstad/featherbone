@@ -5,6 +5,7 @@
 
   // Load pre-requisites
   require("extend-string");
+  require("feather");
   require("form-display");
   require("workbook-display");
 

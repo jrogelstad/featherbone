@@ -195,6 +195,7 @@
     return config;
   };
 
+  /** @private  Helper function recursive list of feather properties */
   f.resolveProperties = function (feather, properties, ary, prefix) {
     prefix = prefix || "";
     var result = ary || [];

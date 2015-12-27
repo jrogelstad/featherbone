@@ -18,44 +18,21 @@
     The model array includes support for the following three functions:
 
       add(model): Adds the passed model to the array.
-      remave(model): Removes the passed model from the array.
+      remove(model): Removes the passed model from the array.
       fetch (filter): Requeries the server for new results.
-
 
     @param {String} Feather name
     @return {Function}
   */
   list = function (feather) {
-    var state, doFetch, doSave, onClean, onDirty,
-      plural = catalog.getFeather(feather).plural.toSpinalCase(),
+    var models, plural, state, doFetch, doSave, onClean, onDirty,
       name = feather.toCamelCase(),
-      models = catalog.store().models(),
       ary = [],
-      idx = {},
-      dirty = [],
       prop = m.prop(ary);
 
-    onClean = function () {
-      dirty.remove(this);
-      state.send("changed");
-    };
-
-    onDirty = function () {
-      dirty.push(this);
-      state.send("changed");
-    };
-
-    dirty.remove = function (model) {
-      var i = dirty.indexOf(model);
-      if (i > -1) { dirty.splice(i, 1); }
-    };
-
-    ary.fetch = function (filter, merge) {
-      ary.filter(filter || {});
-      state.send("fetch", merge);
-    };
-
-    ary.filter = m.prop({});
+    // ..........................................................
+    // PUBLIC
+    //
 
     // Add a model to the list. Will replace existing
     // if model with same id is already found in array
@@ -63,10 +40,11 @@
       var  mstate,
         idProperty = model.idProperty(),
         id = model.data[idProperty](),
+        idx = ary.index(),
         oid = idx[id];
 
       if (!isNaN(oid)) {
-        dirty.remove(ary[oid]);
+        ary.dirty().remove(ary[oid]);
         ary.splice(oid, 1, model);
       } else {
         idx[id] = ary.length;
@@ -79,15 +57,29 @@
       mstate.resolve("/Ready/Fetched/Clean").enter(onClean.bind(model));
 
       if (model.state().current()[0] === "/Ready/New") {
-        dirty.push(model);
+        ary.dirty().push(model);
         state.send("changed");
       }
     };
+
+    ary.dirty = m.prop([]);
+
+    ary.fetch = function (filter, merge) {
+      ary.filter(filter || {});
+      state.send("fetch", merge);
+    };
+
+    ary.filter = m.prop({});
+
+    ary.index = m.prop({});
+
+    ary.path = m.prop();
 
     // Remove a model from the list
     ary.remove = function (model) {
       var idProperty = model.idProperty(),
         id = model.data[idProperty](),
+        idx = ary.index(),
         i = idx[id];
       if (!isNaN(i)) {
         ary.splice(i, 1);
@@ -96,7 +88,13 @@
         });
         delete idx[id];
       }
-      dirty.remove(model);
+      ary.dirty().remove(model);
+    };
+
+    ary.reset = function () {
+      ary.length = 0;
+      ary.dirty([]);
+      ary.index({});
     };
 
     ary.save = function () {
@@ -111,18 +109,32 @@
     // PRIVATE
     //
 
+    onClean = function () {
+      ary.dirty().remove(this);
+      state.send("changed");
+    };
+
+    onDirty = function () {
+      ary.dirty().push(this);
+      state.send("changed");
+    };
+
+    ary.dirty().remove = function (model) {
+      var dirty = ary.dirty(),
+        i = dirty.indexOf(model);
+      if (i > -1) { dirty.splice(i, 1); }
+    };
+
     doFetch = function (context) {
       var filter = qs.stringify(ary.filter()),
-        url = "/data/" + plural + "/" + filter;
+        url = ary.path() + filter;
 
       return m.request({
         method: "GET",
         url: url
       }).then(function (data) {
         if (context.merge === false) { 
-          ary.length = 0;
-          dirty.length = 0;
-          idx = {};
+          ary.reset();
         }
         data.forEach(function (item) {
           var model = models[name]();
@@ -135,7 +147,7 @@
     };
 
     doSave = function () {
-      dirty.forEach(function (model) {
+      ary.dirty().forEach(function (model) {
         model.save().then(function() {
           if (model.state().current()[0] === "/Deleted") {
             ary.remove(model);
@@ -162,7 +174,7 @@
             this.goto("/Fetched");
           });
           this.canExit = function () {
-            return !dirty.length;
+            return !ary.dirty().length;
           };
         });
         this.event("fetched", function () {
@@ -175,7 +187,7 @@
           this.goto("/Fetched", {force: true});
         });
         this.C(function() {
-          if (dirty.length) { 
+          if (ary.dirty().length) { 
             return "./Dirty";
           }
           return "./Clean";
@@ -185,7 +197,7 @@
         });
         this.state("Clean", function () {
           this.enter(function () {
-            dirty.length = 0;
+            ary.dirty().length = 0;
           });
         });
         this.state("Dirty", function () {
@@ -197,9 +209,19 @@
     });
     state.goto();
 
+    // Instantiate the list, optionally auto fetch
+    // and return a property that contains the array.
     return function (options) {
       options = options || {};
       ary = options.value || ary;
+      models = catalog.store().models();
+
+      if (options.path) { 
+        ary.path(options.path);
+      } else {
+        plural = catalog.getFeather(feather).plural.toSpinalCase();
+        ary.path("/data/" + plural + "/");
+      }
 
       if (options.fetch !== false) {
         ary.fetch(options.filter, options.merge);

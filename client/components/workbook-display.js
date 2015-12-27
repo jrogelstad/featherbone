@@ -152,9 +152,11 @@
       return vm.mode().modelNew();
     };
     vm.modelOpen = function () {
+      var key;
       if (selection) {
         vm.didLeave(true);
-        m.route(frmroute + "/" + selection.data.id());
+        key = selection.idProperty();
+        m.route(frmroute + "/" + selection.data[key]());
       }
     };
     vm.newSheet = function () {

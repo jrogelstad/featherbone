@@ -2,16 +2,17 @@
   "use strict";
 
   var feather, featherModel, feathers,
+    m = require("mithril"),
     f = require("feather-core"),
-    model = require("model"),
     dataSource = require("datasource"),
+    model = require("model"),
+    list = require("list"),
     catalog = require("catalog");
 
   feather = {
     name: "Feather",
     plural: "Feathers",
     description: "Persistence class definition",
-    isSystem: true,
     properties: {
       name: {
         description: "Feather name",
@@ -21,13 +22,28 @@
         description: "Description",
         type: "string"
       },
+      plural: {
+        description: "Plural name",
+        type: "string"
+      },
+      inherits: {
+        description: "Feather inherited from",
+        type: "string",
+        default: "Object"
+      },
+      isSystem: {
+        description: "Internal sytem object",
+        type: "boolean",
+        default: true
+      },
       properties: {
         description: "Properties",
-        type: "string"
+        type: "array"
       },
       isChild: {
         description: "Indicates child status",
-        type: "boolean"
+        type: "boolean",
+        default: "false"
       }
     }
   };
@@ -42,13 +58,14 @@
     return {Object}
   */
   featherModel = function (data) {
-    var that, state, substate, doPut;
+    var that, d, state, substate, doPut, p, toJSON;
 
     // ..........................................................
     // PUBLIC
     //
 
     that = model(data, feather);
+    d = that.data;
     that.idProperty("name");
 
     that.path = function (name, id) {
@@ -60,6 +77,14 @@
     // ..........................................................
     // PRIVATE
     //
+
+    delete d.id;
+    delete d.created;
+    delete d.createdBy;
+    delete d.updated;
+    delete d.updatedBy;
+    delete d.isDeleted;
+    delete d.objectType;
 
     doPut = function (context) {
       var result = f.prop(),
@@ -78,6 +103,41 @@
       }
     };
 
+    // Convert properties from array to object
+    toJSON = d.properties.toJSON();
+    d.properties.toJSON = function () {
+      var obj = {},
+        ary = toJSON();
+
+      ary.forEach(function (item) {
+        var dup = f.copy(item),
+          name = dup.name;
+
+        delete dup.name;
+        obj[name] = dup;
+      });
+      return obj;
+    };
+
+    // Convert properties from object to array
+    p = d.properties;
+    d.properties = function (value) {
+      var ary;
+      if (value === undefined) { return p(); }
+
+      ary = [];
+      Object.keys(value).forEach(function (key) {
+        var obj = f.copy(value[key]);
+        obj.name = key;
+        ary.push(obj);
+      });
+
+      return p(ary);
+    };
+    Object.keys(p).forEach(function (key) {
+      d.properties[key] = p[key];
+    });
+
     // Update statechart for modified behavior
     state = that.state();
     substate = state.resolve("/Busy/Saving");
@@ -94,6 +154,53 @@
 
     return that;
   };
+
+  featherModel.list = (function () {
+    var fn = list("Feather");
+
+    return function (options) {
+      options = options || {};
+      var prop, ary, opts, state, substate, doFetch,
+        models = catalog.store().models();
+
+      opts = {
+        path: "/settings/catalog",
+        fetch: false
+      };
+      prop = fn(opts);
+      ary = prop();
+      state = ary.state();
+
+      doFetch = function (context) {
+        var url = ary.path();
+
+        return m.request({
+          method: "GET",
+          url: url
+        }).then(function (data) {
+          if (context.merge === false) { 
+            ary.reset();
+          }
+          Object.keys(data).forEach(function (key) {
+            var item = data[key],
+              obj = models.feather();
+            item.name = key;
+            obj.set(item, true, true);
+            obj.state().goto("/Ready/Fetched");
+            ary.add(obj);
+          });
+          state.send("fetched");
+        });
+      };
+
+      substate = state.resolve("/Busy/Fetching");
+      substate.enters.length = 0;
+      substate.enter(doFetch);
+
+      if (options.fetch) { ary.fetch(); }
+      return prop;
+    };
+  }());
 
   catalog.register("models", "feather", featherModel);
   module.exports = featherModel;
