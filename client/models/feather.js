@@ -169,6 +169,7 @@
       };
       prop = fn(opts);
       ary = prop();
+      ary.canFilter(false);
       state = ary.state();
 
       doFetch = function (context) {
@@ -197,7 +198,7 @@
       substate.enters.length = 0;
       substate.enter(doFetch);
 
-      if (options.fetch) { ary.fetch(); }
+      if (options.fetch !== false) { ary.fetch(); }
       return prop;
     };
   }());

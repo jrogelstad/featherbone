@@ -62,6 +62,8 @@
       }
     };
 
+    ary.canFilter = m.prop(true);
+
     ary.dirty = m.prop([]);
 
     ary.fetch = function (filter, merge) {

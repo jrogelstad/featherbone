@@ -444,8 +444,18 @@
     vm.sheetConfigureDialog = function () {
       return dialogSheetConfigure;
     };
+    vm.showFilterDialog = function () {
+      if (vm.models().canFilter()) {
+        vm.filterDialog().show();
+      }
+    };
     vm.showMenu = function () {
       return showMenu;
+    };
+    vm.showSortDialog = function () {
+      if (vm.models().canFilter()) {
+        vm.sortDialog().show();
+      }
     };
     vm.sortDialog = function () {
       return dialogSort;
@@ -752,7 +762,7 @@
     };
 
     component.view = function (ctrl) {
-      var tbodyConfig, findFilterIndex,
+      var tbodyConfig, findFilterIndex, filterMenuClass,
         header, rows, tabs, view, rel,
         vm = ctrl.vm,
         filter = vm.filter(),
@@ -1121,6 +1131,10 @@
       }, [m("i", {class:"fa fa-trash"})]));
 
       // Finally assemble the whole view
+      filterMenuClass = "pure-menu-link";
+      if (!vm.models().canFilter()) {
+        filterMenuClass += " pure-menu-disabled";
+      }
       view = m("div", {
         class: "pure-form"
       }, [
@@ -1162,17 +1176,17 @@
             }, [
               m("li", {
                 id: "nav-sort",
-                class: "pure-menu-link",
+                class: filterMenuClass,
                 title: "Change sheet sort",
-                onclick: vm.sortDialog().show
+                onclick: vm.showSortDialog
               }, [m("i", {class:"fa fa-sort", style: {
                 marginRight: "4px"
               }})], "Sort"),
               m("li", {
                 id: "nav-filter",
-                class: "pure-menu-link",
+                class: filterMenuClass,
                 title: "Change sheet filter",
-                onclick: vm.filterDialog().show
+                onclick: vm.showFilterDialog
               }, [m("i", {class:"fa fa-filter", style: {
                 marginRight: "4px"
               }})], "Filter"),
