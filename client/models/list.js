@@ -28,6 +28,7 @@
     var models, plural, state, doFetch, doSave, onClean, onDirty,
       name = feather.toCamelCase(),
       ary = [],
+      dirty = [],
       prop = m.prop(ary);
 
     // ..........................................................
@@ -44,7 +45,7 @@
         oid = idx[id];
 
       if (!isNaN(oid)) {
-        ary.dirty().remove(ary[oid]);
+        dirty.remove(ary[oid]);
         ary.splice(oid, 1, model);
       } else {
         idx[id] = ary.length;
@@ -57,14 +58,12 @@
       mstate.resolve("/Ready/Fetched/Clean").enter(onClean.bind(model));
 
       if (model.state().current()[0] === "/Ready/New") {
-        ary.dirty().push(model);
+        dirty.push(model);
         state.send("changed");
       }
     };
 
     ary.canFilter = m.prop(true);
-
-    ary.dirty = m.prop([]);
 
     ary.fetch = function (filter, merge) {
       ary.filter(filter || {});
@@ -90,12 +89,12 @@
         });
         delete idx[id];
       }
-      ary.dirty().remove(model);
+      dirty.remove(model);
     };
 
     ary.reset = function () {
       ary.length = 0;
-      ary.dirty([]);
+      dirty.length = 0;
       ary.index({});
     };
 
@@ -112,18 +111,17 @@
     //
 
     onClean = function () {
-      ary.dirty().remove(this);
+      dirty.remove(this);
       state.send("changed");
     };
 
     onDirty = function () {
-      ary.dirty().push(this);
+      dirty.push(this);
       state.send("changed");
     };
 
-    ary.dirty().remove = function (model) {
-      var dirty = ary.dirty(),
-        i = dirty.indexOf(model);
+    dirty.remove = function (model) {
+      var i = dirty.indexOf(model);
       if (i > -1) { dirty.splice(i, 1); }
     };
 
@@ -149,7 +147,7 @@
     };
 
     doSave = function () {
-      ary.dirty().forEach(function (model) {
+      dirty.forEach(function (model) {
         model.save().then(function() {
           if (model.state().current()[0] === "/Deleted") {
             ary.remove(model);
@@ -176,7 +174,7 @@
             this.goto("/Fetched");
           });
           this.canExit = function () {
-            return !ary.dirty().length;
+            return !dirty.length;
           };
         });
         this.event("fetched", function () {
@@ -189,7 +187,7 @@
           this.goto("/Fetched", {force: true});
         });
         this.C(function() {
-          if (ary.dirty().length) { 
+          if (dirty.length) { 
             return "./Dirty";
           }
           return "./Clean";
@@ -199,7 +197,7 @@
         });
         this.state("Clean", function () {
           this.enter(function () {
-            ary.dirty().length = 0;
+            dirty.length = 0;
           });
         });
         this.state("Dirty", function () {
