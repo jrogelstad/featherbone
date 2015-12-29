@@ -37,9 +37,8 @@
 
   // Define workbook view model
   tableWidget.viewModel = function (options) {
-    var selection, state, fromWidthIdx, dataTransfer,
+    var fromWidthIdx, dataTransfer,
       name = options.config.feather.toCamelCase(),
-      feather = catalog.getFeather(options.feather),
       vm = {};
 
     // ..........................................................
@@ -47,7 +46,7 @@
     //
 
     vm.attrs = function () {
-      var columns = vm.sheet().list.columns,
+      var columns = vm.config().list.columns,
         result = columns.map(function(column) {
           return column.attr;
         });
@@ -60,6 +59,7 @@
       });
       return col ? col.toCamelCase(true) : undefined;
     };
+    vm.feather = m.prop(catalog.getFeather(options.config.feather));
     vm.filter = f.prop();
     vm.goNextRow = function () {
       var list = vm.models(),
@@ -78,13 +78,14 @@
       }
     };
     vm.isSelected = function (model) {
-      return selection === model;
+      return vm.selection() === model;
     };
     vm.mode = function () {
+      var state = vm.state();
       return state.resolve(state.current()[0]);
     };
     vm.model = function () {
-      return selection;
+      return vm.selection();
     };
     vm.modelDelete = function () {
       return vm.mode().modelDelete();
@@ -204,7 +205,7 @@
       // Only search on text attributes
       if (value) {
         fattrs = vm.attrs().filter(function (attr) {
-          return formatOf(feather, attr) === "string";
+          return formatOf(vm.feather(), attr) === "string";
         });
 
         if (fattrs.length) {
@@ -227,27 +228,29 @@
     vm.scrollbarWidth = m.prop(scrWidth);
     vm.search = m.prop("");
     vm.select = function (model) {
-      if (selection !== model) {
+      if (vm.selection() !== model) {
         vm.relations({});
-        selection = model;
+        vm.selection(model);
       }
 
-      if (selection) {
-        state.send("selected");
+      if (vm.selection()) {
+        vm.state().send("selected");
       } else {
-        state.send("unselected");
+        vm.state().send("unselected");
       }
 
-      return selection;
+      return vm.selection();
     };
+    vm.selection = m.prop();
     vm.selectedColor = function () {
       return vm.mode().selectedColor();
     };
+    vm.state = m.prop();
     vm.toggleEdit = function () {
-      state.send("edit");
+      vm.state().send("edit");
     };
     vm.toggleView = function () {
-      state.send("view");
+      vm.state().send("view");
     };
     vm.toggleOpen = function (model) {
       vm.select(model);
@@ -257,6 +260,7 @@
       return vm.mode().toggleSelection(model, col);
     };
     vm.undo = function () {
+      var selection = vm.selection();
       if (selection) { selection.undo(); }
     };
     vm.zoom = m.prop(100);
@@ -277,13 +281,14 @@
     });
 
     // Create workbook statechart
-    state = statechart.define({concurrent: true}, function () {
+    vm.state(statechart.define({concurrent: true}, function () {
       this.state("Mode", function () {
         this.state("View", function () {
           this.event("edit", function () {
             this.goto("../Edit");
           });
           this.modelDelete = function () {
+            var selection = vm.selection();
             selection.delete(true).then(function () {
               vm.models().remove(selection);
             });
@@ -297,7 +302,7 @@
             return "LightSkyBlue";
           };
           this.toggleSelection = function (model, col) {
-            if (selection === model) {
+            if (vm.selection() === model) {
               vm.select(undefined);
               return false;
             }
@@ -312,7 +317,8 @@
             this.goto("../View");
           });
           this.modelDelete = function () {
-            var prevState = selection.state().current()[0];
+            var selection = vm.selection(),
+              prevState = selection.state().current()[0];
             selection.delete();
             if (prevState === "/Ready/New") {
               vm.models().remove(selection);
@@ -345,7 +351,7 @@
             this.goto("../Off");
           });
           this.C(function() {
-            if (selection.canUndo()) { 
+            if (vm.selection().canUndo()) { 
               return "./Dirty";
             }
             return "./Clean";
@@ -354,22 +360,20 @@
           this.state("Dirty");
         });
       });
-    });
+    }));
 
     // Initialize statechart
-    state.goto();
+    vm.state().goto();
 
     return vm;
   };
 
-  // Define workbook component
+  // Define table widget component
   tableWidget.component = function (options) {
-    var viewModel,
-      component = {};
+    var component = {};
 
     component.controller = function () {
-      viewModel = viewModel || tableWidget.viewModel(options);
-      this.vm = viewModel;
+      this.vm = options.viewModel;
     };
 
     component.view = function (ctrl) {
@@ -423,7 +427,7 @@
               key = col.attr,
               icon = [],
               fidx = findFilterIndex(key, "sort"),
-              operators = vm.filterDialog().operators(),
+              operators = f.operators,
               columnWidth = config.list.columns[idx].width || COL_WIDTH_DEFAULT;
 
             columnWidth = (columnWidth.replace("px", "") - 6) + "px"; 

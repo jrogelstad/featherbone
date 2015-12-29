@@ -16,14 +16,12 @@
     @param {Array} [options.propertyName] Filter property being modified
     @param {Array} [options.attrs] Attributes
     @param {Array} [options.list] Model list
-    @param {Array} [options.feather] Feather
     @param {Function} [options.filter] Filter property
   */
   filterDialog.viewModel = function (options) {
     options = options || {};
     var vm, store, buildInputComponent,
-      resolveProperty, getDefault,
-      feather = options.feather;
+      resolveProperty, getDefault;
 
     options.onOk = function () {
       options.filter(vm.filter());
@@ -45,7 +43,8 @@
       }
     };
     vm.attrs = function () {
-      var keys = Object.keys(feather.properties);
+      var feather = vm.feather(),
+        keys = Object.keys(feather.properties);
       return  f.resolveProperties(feather, keys).sort();
     };
     vm.data = function () {
@@ -56,21 +55,14 @@
       vm.data()[index].value = getDefault(value);
       vm.data()[index].operator = "=";
     };
+    vm.feather = m.prop(options.feather);
     vm.filter = m.prop();
     vm.model = function () { return store; };
     vm.operators = function (attr) {
-      var ops, prop, format;
+      var ops, prop, format,
+        feather = vm.feather();
 
-      ops = {
-        "=": "equals",
-        "!=": "not equals",
-        "~*": "matches",
-        "!~*": "not matches",
-        ">": "greater than",
-        "<": "less than",
-        ">=": "greater than or equals",
-        "<=": "less than or equals"
-      };
+      ops = f.copy(f.operators);
 
       if (attr) {
         prop = resolveProperty(feather, attr);
@@ -109,6 +101,11 @@
           delete ops["<="];
         }
       }
+
+      // Currently unsupported operators
+      delete ops.IN; 
+      delete ops["~"];
+      delete ops["!~"];
 
       return ops;
     };
@@ -201,6 +198,7 @@
     */
     buildInputComponent = function (obj) {
       var rel, w, component, prop, type, format,
+        feather = vm.feather(),
         attr = obj.key,
         value = obj.value,
         index = obj.index,
@@ -251,6 +249,7 @@
 
     getDefault = function (attr) {
       var value,
+        feather = vm.feather(),
         prop = resolveProperty(feather, attr),
         type = prop.type,
         format = prop.format;
@@ -279,33 +278,31 @@
         prefix = property.slice(0, idx);
         suffix = property.slice(idx + 1, property.length);
         rel = feather.properties[prefix].type.relation;
-        feather = catalog.getFeather(rel); // FIX THIS
+        feather = catalog.getFeather(rel);
         return resolveProperty(feather, suffix);
       }
 
       return feather.properties[property];
     };
 
-    // Build internal model for processing relations where applicable
-    if (feather) { 
-      store = model({}, feather);
-      Object.keys(store.data).forEach(function (key) {
-        if (store.data[key].isToOne()) {
-          // If property updated, forward change
-          store.onChange(key, function (prop) {
-            var items = vm.items();
-            items.forEach(function (item) {
-              var value;
-              if (item.property === key) {
-                value = prop.newValue();
-                value = value ? {id: value.data.id()} : {id: ""};
-                vm.itemChanged(item.index, "value", value);
-              }
-            });
+    // Build internal model for processing relations where applicable 
+    store = model({}, vm.feather());
+    Object.keys(store.data).forEach(function (key) {
+      if (store.data[key].isToOne()) {
+        // If property updated, forward change
+        store.onChange(key, function (prop) {
+          var items = vm.items();
+          items.forEach(function (item) {
+            var value;
+            if (item.property === key) {
+              value = prop.newValue();
+              value = value ? {id: value.data.id()} : {id: ""};
+              vm.itemChanged(item.index, "value", value);
+            }
           });
-        }
-      });
-    }
+        });
+      }
+    });
     vm.reset();
 
     vm.state().resolve("/Display/Showing").enter(vm.reset);

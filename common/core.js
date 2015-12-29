@@ -224,6 +224,23 @@
     },
 
     /**
+      Allowable filter operators.
+    */
+    operators: {
+      "=": "equals",
+      "!=": "not equals",
+      "~": "matches (case sensitive)",
+      "!~": "not matches (case sensitive)",
+      "~*": "matches",
+      "!~*": "not matches",
+      ">": "greater than",
+      "<": "less than",
+      ">=": "greater than or equals",
+      "<=": "less than or equals",
+      IN: "in list"
+    },
+
+    /**
       Creates a property getter setter function with a default value.
       Includes state...
       @param {Any} Initial 

@@ -290,7 +290,7 @@
       icon: "filter"
     }));
 
-    vm.sortDialog = m.prop(sortDialog.viewModel({
+    vm.sortDialog(sortDialog.viewModel({
       filter: vm.tableWidget().filter,
       list: vm.tableWidget().models(),
       feather: feather,
@@ -299,21 +299,21 @@
     }));
 
     // Create button view models
-    vm.buttonEdit = m.prop(button.viewModel({
+    vm.buttonEdit(button.viewModel({
       onclick: vm.tableWidget().toggleEdit,
       title: "Edit mode",
       hotkey: "E",
       icon: "pencil"
     }));
 
-    vm.buttonHome = m.prop(button.viewModel({
+    vm.buttonHome(button.viewModel({
       onclick: vm.goHome,
       title: "Home",
       hotkey: "H",
       icon: "home"
     }));
 
-    vm.buttonList = m.prop(button.viewModel({
+    vm.buttonList(button.viewModel({
       onclick: vm.tableWidget().toggleView,
       title: "List mode",
       hotkey: "L",
@@ -350,7 +350,7 @@
       icon: "undo"
     }));
 
-    vm.inputSearch(searchInput.viewModel({
+    vm.searchInput(searchInput.viewModel({
       refresh: vm.refresh
     }));
 
@@ -510,7 +510,7 @@
 
       // Finally assemble the whole view
       filterMenuClass = "pure-menu-link";
-      if (!vm.models().canFilter()) {
+      if (!vm.tableWidget().models().canFilter()) {
         filterMenuClass += " pure-menu-disabled";
       }
       view = m("div", {
@@ -608,7 +608,7 @@
             ])
           ])     
         ]),
-        m.component(button.component({viewModel: vm.tableWidget()})),
+        m.component(tableWidget.component({viewModel: vm.tableWidget()})),
         m("div", {id: "tabs"}, [
           tabs,
           m("i", {class: "fa fa-search-plus suite-zoom-icon suite-zoom-right-icon"}),
