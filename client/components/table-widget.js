@@ -125,7 +125,7 @@
       case "width":
         if (fromWidthIdx <= toIdx) {
           widthStart = dataTransfer.widthStart - 0;
-          column = vm.sheet().list.columns[fromWidthIdx];
+          column = vm.config().list.columns[fromWidthIdx];
           oldWidth = column.width || COL_WIDTH_DEFAULT;
           oldWidth = oldWidth.replace("px", "") - 0;
           newWidth = oldWidth - (widthStart - ev.clientX);
@@ -276,7 +276,7 @@
 
     // Bind refresh to filter change event
     vm.filter.state().resolve("/Ready").enter(function () {
-      vm.sheet().list.filter = vm.filter();
+      vm.config().list.filter = vm.filter();
       vm.refresh();
     });
 

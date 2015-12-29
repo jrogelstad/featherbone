@@ -243,13 +243,13 @@
       sheetId: sheetId
     }));
     vm.showFilterDialog = function () {
-      if (vm.models().canFilter()) {
+      if (vm.tableWidget().models().canFilter()) {
         vm.filterDialog().show();
       }
     };
     vm.showMenu = m.prop(false);
     vm.showSortDialog = function () {
-      if (vm.models().canFilter()) {
+      if (vm.tableWidget().models().canFilter()) {
         vm.sortDialog().show();
       }
     };
