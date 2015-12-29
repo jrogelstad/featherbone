@@ -94,6 +94,12 @@
       return vm.mode().modelNew();
     };
     vm.nextFocus = m.prop();
+    vm.ondblclick = function (model) {
+      vm.select(model);
+      if (options.ondblclick) {
+        options.ondblclick();
+      }
+    };
     vm.ondragover = function (toIdx, ev) {
       if (!isNaN(toIdx)) {
         if (fromWidthIdx > toIdx) { return; }
@@ -251,10 +257,6 @@
     };
     vm.toggleView = function () {
       vm.state().send("view");
-    };
-    vm.toggleOpen = function (model) {
-      vm.select(model);
-      vm.modelOpen();
     };
     vm.toggleSelection = function (model, col) {
       return vm.mode().toggleSelection(model, col);
@@ -586,7 +588,7 @@
           });
 
           rowOpts = {
-            ondblclick: vm.toggleOpen.bind(this, model)
+            ondblclick: vm.ondblclick.bind(this, model)
           };
 
         // Build editable row

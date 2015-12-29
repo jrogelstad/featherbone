@@ -287,7 +287,8 @@
     // Create table widget view model
     vm.tableWidget(tableWidget.viewModel({
       config: vm.sheet(),
-      search: vm.searchInput().value
+      search: vm.searchInput().value,
+      ondblclick: vm.modelOpen
     }));
 
     // Create dalog view models
@@ -328,6 +329,7 @@
       hotkey: "L",
       icon: "list"
     }));
+    vm.buttonList().activate();
 
     vm.buttonSave(button.viewModel({
       onclick: vm.tableWidget().save,
@@ -340,6 +342,7 @@
       label: "&Open",
       icon: "folder-open"
     }));
+    vm.buttonOpen().disable();
 
     vm.buttonNew(button.viewModel({
       onclick: vm.modelNew,
