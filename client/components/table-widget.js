@@ -226,7 +226,7 @@
       vm.models().save();
     };
     vm.scrollbarWidth = m.prop(scrWidth);
-    vm.search = m.prop("");
+    vm.search = options.search || m.prop("");
     vm.select = function (model) {
       if (vm.selection() !== model) {
         vm.relations({});

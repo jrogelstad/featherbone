@@ -38,7 +38,7 @@
     vm.buttonSave = m.prop();
     vm.buttonUndo = m.prop();
     vm.config = m.prop(options.config); 
-    vm.confirmDialog = m.prop(dialog.viewModel({
+    vm.dialogConfirm = m.prop(dialog.viewModel({
       icon: "question-circle",
       title: "Confirmation"
     }));
@@ -171,6 +171,9 @@
         vm.showMenu(false);
       }
     };
+    vm.refresh = function () {
+      vm.tableWidget().refresh(); 
+    };
     vm.revert = function () {
       var route,
          workbook = vm.workbook().toJSON(),
@@ -276,9 +279,15 @@
     frmroute = "/" + options.name + "/" + vm.sheet().form.name;
     frmroute = frmroute.toSpinalCase();
 
+    // Create search widget view model
+    vm.searchInput(searchInput.viewModel({
+      refresh: vm.refresh
+    }));
+
     // Create table widget view model
     vm.tableWidget(tableWidget.viewModel({
-      config: vm.sheet()
+      config: vm.sheet(),
+      search: vm.searchInput().value
     }));
 
     // Create dalog view models
@@ -350,10 +359,6 @@
       icon: "undo"
     }));
 
-    vm.searchInput(searchInput.viewModel({
-      refresh: vm.refresh
-    }));
-
     vm.buttonRefresh(button.viewModel({
       onclick: vm.refresh,
       title: "Refresh",
@@ -395,12 +400,6 @@
     });
     searchState.resolve("/Search/Off").enter(function () {
       vm.buttonClear().disable();
-    });
-
-    // Bind refresh to filter change event
-    vm.filter.state().resolve("/Ready").enter(function () {
-      vm.sheet().list.filter = vm.filter();
-      vm.refresh();
     });
 
     // Bind buttons to table widget state change events
@@ -523,7 +522,7 @@
           m.component(sortDialog.component({viewModel: vm.sortDialog()})),
           m.component(sortDialog.component({viewModel: vm.filterDialog()})),
           m.component(sheetConfigureDialog.component({viewModel: vm.sheetConfigureDialog()})),
-          m.component(dialog.component({viewModel: vm.confirmDialog()})),
+          m.component(dialog.component({viewModel: vm.dialogConfirm()})),
           m.component(button.component({viewModel: vm.buttonHome()})),
           m.component(button.component({viewModel: vm.buttonList()})),
           m.component(button.component({viewModel: vm.buttonEdit()})),
@@ -569,8 +568,16 @@
                 marginRight: "4px"
               }})], "Filter"),
               m("li", {
+                id: "nav-format",
+                class: "pure-menu-link pure-menu-disabled",
+                title: "Format sheet"
+                //onclick: vm.showFormatDialog
+              }, [m("i", {class:"fa fa-paint-brush", style: {
+                marginRight: "4px"
+              }})], "Format"),
+              m("li", {
                 id: "nav-subtotal",
-                class: "pure-menu-link",
+                class: "pure-menu-link pure-menu-disabled",
                 title: "Edit subtotals"
                 //onclick: vm.filterDialog().show
               }, [m("div", {style: {
