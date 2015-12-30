@@ -38,7 +38,7 @@
     vm.buttonSave = m.prop();
     vm.buttonUndo = m.prop();
     vm.config = m.prop(options.config); 
-    vm.dialogConfirm = m.prop(dialog.viewModel({
+    vm.confirmDialog = m.prop(dialog.viewModel({
       icon: "question-circle",
       title: "Confirmation"
     }));
@@ -49,7 +49,7 @@
     };
     vm.deleteSheet = function () {
       var doDelete,
-        dialogConfirm = vm.dialogConfirm();
+        confirmDialog = vm.confirmDialog();
 
       doDelete = function () {
         var config = vm.config(),
@@ -63,9 +63,9 @@
         }
       };
 
-      dialogConfirm.message("Are you sure you want to delete this sheet?");
-      dialogConfirm.onOk(doDelete);
-      dialogConfirm.show();
+      confirmDialog.message("Are you sure you want to delete this sheet?");
+      confirmDialog.onOk(doDelete);
+      confirmDialog.show();
     };
     vm.didLeave = m.prop(false);
     vm.filter = f.prop();
@@ -91,7 +91,7 @@
     };
     vm.newSheet = function () {
       var undo, newSheet, sheetName, formName, next,
-        dialogSheetConfigure = vm.dialogSheetConfigure(),
+        dialogSheetConfigure = vm.sheetConfigureDialog(),
         forms,
         id = f.createId(),
         config = vm.config(),
@@ -194,7 +194,7 @@
     vm.searchInput = m.prop();
     vm.share = function () {
       var doShare,
-        dialogConfirm = vm.dialogConfirm();
+        confirmDialog = vm.confirmDialog();
 
       doShare = function () {
         var workbook = vm.workbook(),
@@ -203,10 +203,10 @@
         workbook.save();
       };
 
-      dialogConfirm.message("Are you sure you want to share your workbook " +
+      confirmDialog.message("Are you sure you want to share your workbook " +
         "configuration with all other users?");
-      dialogConfirm.onOk(doShare);
-      dialogConfirm.show();
+      confirmDialog.onOk(doShare);
+      confirmDialog.show();
     };
     vm.sheet = function (id, value) {
       var idx = 0,
@@ -527,7 +527,7 @@
           m.component(sortDialog.component({viewModel: vm.sortDialog()})),
           m.component(sortDialog.component({viewModel: vm.filterDialog()})),
           m.component(sheetConfigureDialog.component({viewModel: vm.sheetConfigureDialog()})),
-          m.component(dialog.component({viewModel: vm.dialogConfirm()})),
+          m.component(dialog.component({viewModel: vm.confirmDialog()})),
           m.component(button.component({viewModel: vm.buttonHome()})),
           m.component(button.component({viewModel: vm.buttonList()})),
           m.component(button.component({viewModel: vm.buttonEdit()})),
