@@ -241,10 +241,7 @@
         return sheet.name;
       });
     };
-    vm.sheetConfigureDialog = m.prop(sheetConfigureDialog.viewModel({
-      parentViewModel: vm,
-      sheetId: sheetId
-    }));
+    vm.sheetConfigureDialog = m.prop();
     vm.showFilterDialog = function () {
       if (vm.tableWidget().models().canFilter()) {
         vm.filterDialog().show();
@@ -263,7 +260,7 @@
       m.route(route);
     };
     vm.tableWidget = m.prop();
-    vm.workbook= function () {
+    vm.workbook = function () {
       return catalog.store().workbooks()[options.name.toCamelCase()];
     };
     vm.zoom = function (value) {
@@ -298,6 +295,11 @@
       feather: feather,
       title: "filter",
       icon: "filter"
+    }));
+
+    vm.sheetConfigureDialog(sheetConfigureDialog.viewModel({
+      parentViewModel: vm,
+      sheetId: sheetId
     }));
 
     vm.sortDialog(sortDialog.viewModel({

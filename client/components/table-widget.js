@@ -38,7 +38,6 @@
   // Define workbook view model
   tableWidget.viewModel = function (options) {
     var fromWidthIdx, dataTransfer,
-      name = options.config.feather.toCamelCase(),
       vm = {};
 
     // ..........................................................
@@ -272,7 +271,7 @@
     //
 
     vm.filter(f.copy(options.config.list.filter || {}));
-    vm.models = catalog.store().models()[name].list({
+    vm.models = catalog.store().models()[options.config.feather.toCamelCase()].list({
       filter: vm.filter()
     });
 
@@ -327,7 +326,8 @@
             }
           };
           this.modelNew = function () {
-            var  model = catalog.store().models()[name](),
+            var  name = vm.config().feather.toCamelCase(),
+              model = catalog.store().models()[name](),
               input = "input" + vm.defaultFocus(model).toCamelCase(true);
             vm.models().add(model);
             vm.nextFocus(input);
