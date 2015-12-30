@@ -294,11 +294,7 @@
               vm.models().remove(selection);
             });
           };
-          this.modelNew = function () {
-            // TO DO
-            //vm.didLeave(true);
-            //m.route(frmroute);
-          };
+          this.modelNew = m.prop(false); // Do nothing
           this.selectedColor = function () {
             return "LightSkyBlue";
           };
@@ -332,6 +328,7 @@
             vm.models().add(model);
             vm.nextFocus(input);
             vm.select(model);
+            return true;
           };
           this.selectedColor = function () {
             return "Azure";

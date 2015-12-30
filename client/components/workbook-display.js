@@ -78,7 +78,10 @@
       return isDraggingTab;
     };
     vm.modelNew = function () {
-      // TODO: Rewrite
+      if (!vm.tableWidget().modelNew()) {
+        vm.didLeave(true);
+        m.route(frmroute);
+      }
     };
     vm.modelOpen = function () {
       var key,
