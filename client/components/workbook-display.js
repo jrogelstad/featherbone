@@ -17,10 +17,9 @@
   // Define workbook view model
   workbookDisplay.viewModel = function (options) {
     var listState, tableState, searchState, currentSheet, 
-      dataTransfer, frmroute,
+      frmroute,
       feather = catalog.getFeather(options.feather),
       sheetId = options.id,
-      isDraggingTab = false,
       vm = {};
 
     // ..........................................................
@@ -47,13 +46,13 @@
       dlg.sheetId(sheetId);
       dlg.show();
     };
-    vm.deleteSheet = function () {
+    vm.deleteSheet = function (ev) {
       var doDelete,
+        idx = ev.dataTransfer.getData("text") - 0,
         confirmDialog = vm.confirmDialog();
 
       doDelete = function () {
         var config = vm.config(),
-          idx = dataTransfer.tab,
           activeSheetId = vm.sheet().id,
           deleteSheetId = config[idx].id;
         config.splice(idx, 1);
@@ -74,9 +73,7 @@
       vm.didLeave(true);
       m.route("/home");
     };
-    vm.isDraggingTab = function () {
-      return isDraggingTab;
-    };
+    vm.isDraggingTab = m.prop(false);
     vm.modelNew = function () {
       if (!vm.tableWidget().modelNew()) {
         vm.didLeave(true);
@@ -143,27 +140,25 @@
       dialogSheetConfigure.show();
     };
     vm.ondragend = function () {
-      isDraggingTab = false;
+      vm.isDraggingTab(false);
     };
     vm.ondragover = function (ev) {
       ev.preventDefault();
     };
-    vm.ondragstart = function (idx, type) {
-      dataTransfer = {}; // Because ms edge only allows one value
-      dataTransfer.typeStart = type;
-      isDraggingTab = true;
-      dataTransfer[type] = idx;
+    vm.ondragstart = function (idx, ev) {
+      vm.isDraggingTab(true);
+      ev.dataTransfer.setData("text", idx);
     };
-    vm.ondrop = function (toIdx, type, ary, ev) {
+    vm.ondrop = function (toIdx, ary, ev) {
       var moved, fromIdx;
 
       ev.preventDefault();
-      fromIdx = dataTransfer[type] - 0;
+      fromIdx = ev.dataTransfer.getData("text") - 0;
       if (fromIdx !== toIdx) {
         moved = ary.splice(fromIdx, 1)[0];
         ary.splice(toIdx, 0, moved);
       }
-      isDraggingTab = false;
+      vm.isDraggingTab(false);
     };
     vm.onmouseovermenu = function () {
       vm.showMenu(true);
@@ -481,8 +476,8 @@
         if (vm.config().length > 1) {
           tabOpts.ondragover = vm.ondragover;
           tabOpts.draggable = true;
-          tabOpts.ondragstart = vm.ondragstart.bind(this, idx, "tab");
-          tabOpts.ondrop = vm.ondrop.bind(this, idx, "tab", config);
+          tabOpts.ondragstart = vm.ondragstart.bind(this, idx);
+          tabOpts.ondrop = vm.ondrop.bind(this, idx, config);
           tabOpts.ondragend = vm.ondragend;
           tabOpts.style = {webkitUserDrag: "element"};
         }
