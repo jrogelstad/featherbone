@@ -291,6 +291,7 @@
           this.modelDelete = function () {
             var selection = vm.selection();
             selection.delete(true).then(function () {
+              vm.select();
               vm.models().remove(selection);
             });
           };
