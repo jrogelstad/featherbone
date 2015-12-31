@@ -283,7 +283,8 @@
     vm.tableWidget(tableWidget.viewModel({
       config: vm.sheet(),
       search: vm.searchInput().value,
-      ondblclick: vm.modelOpen
+      ondblclick: vm.modelOpen,
+      outsideElementIds: ["toolbar", "tabs"]
     }));
 
     // Create dalog view models

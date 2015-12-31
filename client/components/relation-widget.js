@@ -125,7 +125,6 @@
     };
 
     // Create search dialog
-    /*
     searchConfig = {
       feather: type.relation,
       list: {}
@@ -136,7 +135,7 @@
     vm.searchDialog(searchDialog.viewModel({
       config: searchConfig
     }));
-    */
+
     return vm;
   };
 
@@ -218,6 +217,7 @@
 
       // Build the view
       view = m("div", {style: style},[
+        m.component(searchDialog.component({viewModel: rvm.searchDialog()})),
         m("input", {
           style: inputStyle,
           list: rvm.listId(),
@@ -252,15 +252,15 @@
             }, [
               m("li", {
                 class: "pure-menu-link",
-                onclick: vm.onclicksearch
+                onclick: rvm.onclicksearch
               },  [m("i", {class:"fa fa-search"})], " Search"),
               m("li", {
                 class: "pure-menu-link",
-                onclick: vm.onclickopen
+                onclick: rvm.onclickopen
               },  [m("i", {class:"fa fa-folder-open"})], " Open"),
               m("li", {
                 class: "pure-menu-link",
-                onclick: vm.onclicknew
+                onclick: rvm.onclicknew
               },  [m("i", {class:"fa fa-plus-circle"})], " New")
             ])
           ])

@@ -57,7 +57,7 @@
     vm.show = function () {
       state.send("show");
     };
-    vm.title = m.prop(options.title);
+    vm.title = m.prop(options.title || "");
     vm.state = function () {
       return state;
     };

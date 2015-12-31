@@ -36,21 +36,19 @@
     //
 
     // Create search input view model
-    /*
     vm.searchInput(searchInput.viewModel({
       refresh: vm.refresh
     }));
-*/
+
     // Create table widget view model
-    /*
-    tableWidget.viewModel({
+    vm.tableWidget(tableWidget.viewModel({
       config: options.config,
       search: vm.searchInput().value,
       ondblclick: function () {
         vm.close();
       }
-    });
-    */
+    }));
+
     return vm;
   };
 

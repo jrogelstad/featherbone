@@ -76,6 +76,7 @@
         vm.select(list[idx]);
       }
     };
+    vm.headerId = m.prop(f.createId());
     vm.isSelected = function (model) {
       return vm.selection() === model;
     };
@@ -92,6 +93,7 @@
     vm.modelNew = function () {
       return vm.mode().modelNew();
     };
+    vm.models = m.prop();
     vm.nextFocus = m.prop();
     vm.ondblclick = function (model) {
       vm.select(model);
@@ -178,14 +180,16 @@
         break;
       }
     };
+    vm.outsideElementIds = m.prop(options.outsideElementIds || []);
     vm.onscroll = function () {
-      var rows = document.getElementById("rows"),
-        header = document.getElementById("header");
+      var headerId = vm.headerId(),
+        rowsId = vm.rowsId(),
+        header = document.getElementById(headerId),
+        rows = document.getElementById(rowsId);
 
       // Sync header position with table body position
       header.scrollLeft = rows.scrollLeft;
     };
-    vm.models = m.prop();
     vm.refresh = function () {
       var fattrs, formatOf, criterion,
         value = vm.search(),
@@ -227,6 +231,7 @@
       vm.models().fetch(filter, false);
     };
     vm.relations = m.prop({});
+    vm.rowsId = m.prop(f.createId());
     vm.save = function () {
       vm.models().save();
     };
@@ -270,6 +275,7 @@
     // PRIVATE
     //
 
+    vm.outsideElementIds().push(vm.headerId());
     vm.filter(f.copy(options.config.list.filter || {}));
     vm.models = catalog.store().models()[options.config.feather.toCamelCase()].list({
       filter: vm.filter()
@@ -404,11 +410,13 @@
       // Define scrolling behavior for table body
       tbodyConfig = function (e) {
         var MARGIN = 6,
-          winHeight = window.innerHeight,
-          toolbarHeight = document.getElementById("toolbar").clientHeight,
-          headerHeight = document.getElementById("header").clientHeight,
-          tabsHeight = document.getElementById("tabs").clientHeight,
-          bodyHeight = math.subtract(math.subtract(math.subtract(math.subtract(winHeight, toolbarHeight), headerHeight),tabsHeight), MARGIN);
+          bodyHeight = math.subtract(window.innerHeight, MARGIN),
+          ids = vm.outsideElementIds();
+
+        ids.forEach(function (id) {
+          var h = document.getElementById(id).clientHeight;
+          bodyHeight = math.subtract(bodyHeight, h);
+        });
 
         e.style.height = bodyHeight + "px";
 
@@ -699,11 +707,11 @@
           class: "pure-table suite-table"
         }, [
           m("thead", {
-          id: "header",
+          id: vm.headerId(),
           class: "suite-table-header"
         }, [header]),
         m("tbody", {
-          id: "rows",
+          id: vm.rowsId(),
           class: "suite-table-body",
           onscroll: vm.onscroll,
           config: tbodyConfig
