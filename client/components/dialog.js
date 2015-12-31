@@ -28,7 +28,13 @@
 
     vm = {};
     vm.icon = m.prop(options.icon);
-    vm.id = m.prop(options.id || f.createId());
+    vm.ids = m.prop({
+      dialog: options.id || f.createId(),
+      header: f.createId(),
+      buttonOk: f.createId(),
+      buttonCancel: f.createId(),
+      content: f.createId()
+    });
     vm.cancel = function () {
       var doCancel = vm.onCancel();
       if (typeof doCancel === "function") {
@@ -37,7 +43,7 @@
       state.send("close");
     };
     vm.content = function () {
-      return m("div", vm.message());
+      return m("div", {id: vm.ids().content}, vm.message());
     };
     vm.displayCancel = function () {
       return vm.onOk() ? "inline-block" : "none";
@@ -72,7 +78,7 @@
       this.state("Display", function () {
         this.state("Closed", function () {
           this.enter(function () {
-            var  id = vm.id(),
+            var  id = vm.ids().dialog,
               dlg = document.getElementById(id);
             if (dlg) { dlg.close(); }
           });
@@ -82,7 +88,7 @@
         });
         this.state("Showing", function () {
           this.enter(function () {
-            var id = vm.id(),
+            var id = vm.ids().dialog,
               dlg = document.getElementById(id);
             if (dlg) { dlg.showModal(); }
           });
@@ -111,9 +117,11 @@
 
     component.view = function (ctrl) {
       var view, okOpts,
-        vm = ctrl.vm;
+        vm = ctrl.vm,
+        ids = vm.ids();
 
       okOpts = {
+        id: ids.buttonOk,
         class: "pure-button  pure-button-primary suite-dialog-button-ok",
         onclick: vm.ok,
         disabled: vm.okDisabled()
@@ -124,7 +132,7 @@
       }
 
       view = m("dialog", {
-          id: vm.id(),
+          id: ids.dialog,
           class: "suite-dialog",
           style: vm.style(),
           config: function (dlg) {
@@ -133,6 +141,7 @@
           }
         }, [
         m("h3", {
+          id: ids.header,
           class: "suite-header"
         }, [m("i", {
           class:"fa fa-" + vm.icon() + " suite-dialog-icon"
@@ -142,6 +151,7 @@
           m("br"),
           m("button", okOpts, "Ok"),
           m("button", {
+            id: ids.buttonCancel,
             class: "pure-button",
             style: { display: vm.displayCancel() },
             onclick: vm.cancel,

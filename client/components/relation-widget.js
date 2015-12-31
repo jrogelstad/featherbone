@@ -129,10 +129,14 @@
       feather: type.relation,
       list: {}
     };
-    searchConfig.list.columns = type.properties.map(function(name) {
+    searchConfig.list.columns = type.properties.filter(function (name) {
+      return name !== "id";
+    }).map(function(name) {
       return {attr: name};
     });
     vm.searchDialog(searchDialog.viewModel({
+      title: "Search",
+      icon: "search",
       config: searchConfig
     }));
 

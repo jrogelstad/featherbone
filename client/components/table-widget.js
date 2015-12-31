@@ -76,7 +76,10 @@
         vm.select(list[idx]);
       }
     };
-    vm.headerId = m.prop(f.createId());
+    vm.ids = m.prop({
+      header: f.createId(),
+      rows: f.createId()
+    });
     vm.isSelected = function (model) {
       return vm.selection() === model;
     };
@@ -182,10 +185,9 @@
     };
     vm.outsideElementIds = m.prop(options.outsideElementIds || []);
     vm.onscroll = function () {
-      var headerId = vm.headerId(),
-        rowsId = vm.rowsId(),
-        header = document.getElementById(headerId),
-        rows = document.getElementById(rowsId);
+      var ids = vm.ids(),
+        header = document.getElementById(ids.header),
+        rows = document.getElementById(ids.rows);
 
       // Sync header position with table body position
       header.scrollLeft = rows.scrollLeft;
@@ -231,7 +233,6 @@
       vm.models().fetch(filter, false);
     };
     vm.relations = m.prop({});
-    vm.rowsId = m.prop(f.createId());
     vm.save = function () {
       vm.models().save();
     };
@@ -275,7 +276,7 @@
     // PRIVATE
     //
 
-    vm.outsideElementIds().push(vm.headerId());
+    vm.outsideElementIds().push(vm.ids().header);
     vm.filter(f.copy(options.config.list.filter || {}));
     vm.models = catalog.store().models()[options.config.feather.toCamelCase()].list({
       filter: vm.filter()
@@ -386,6 +387,7 @@
       var tbodyConfig, findFilterIndex,
         header, rows, view, rel,
         vm = ctrl.vm,
+        ids = vm.ids(),
         config = vm.config(),
         filter = vm.filter(),
         sort = filter.sort || [],
@@ -411,9 +413,9 @@
       tbodyConfig = function (e) {
         var MARGIN = 6,
           bodyHeight = math.subtract(window.innerHeight, MARGIN),
-          ids = vm.outsideElementIds();
+          eids = vm.outsideElementIds();
 
-        ids.forEach(function (id) {
+        eids.forEach(function (id) {
           var h = document.getElementById(id).clientHeight;
           bodyHeight = math.subtract(bodyHeight, h);
         });
@@ -707,11 +709,11 @@
           class: "pure-table suite-table"
         }, [
           m("thead", {
-          id: vm.headerId(),
+          id: ids.header,
           class: "suite-table-header"
         }, [header]),
         m("tbody", {
-          id: vm.rowsId(),
+          id: ids.rows,
           class: "suite-table-body",
           onscroll: vm.onscroll,
           config: tbodyConfig
