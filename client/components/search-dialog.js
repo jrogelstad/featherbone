@@ -46,8 +46,17 @@
       search: vm.searchInput().value,
       ondblclick: function () {
         vm.close();
-      }
+      },
+      outsideElementIds: [
+        vm.ids().header,
+        vm.ids().buttonOk
+      ],
+      heightMargin: 115
     }));
+
+    vm.style().width = undefined;
+    vm.style().margin = "25px";
+    vm.style().top = "0px";
 
     return vm;
   };

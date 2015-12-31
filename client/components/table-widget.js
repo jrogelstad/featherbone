@@ -37,6 +37,7 @@
 
   // Define workbook view model
   tableWidget.viewModel = function (options) {
+    options = options || {};
     var fromWidthIdx, dataTransfer,
       vm = {};
 
@@ -76,6 +77,7 @@
         vm.select(list[idx]);
       }
     };
+    vm.heightMargin = m.prop(options.heightMargin || 6);
     vm.ids = m.prop({
       header: f.createId(),
       rows: f.createId()
@@ -411,8 +413,8 @@
 
       // Define scrolling behavior for table body
       tbodyConfig = function (e) {
-        var MARGIN = 6,
-          bodyHeight = math.subtract(window.innerHeight, MARGIN),
+        var margin = vm.heightMargin(),
+          bodyHeight = math.subtract(window.innerHeight, margin),
           eids = vm.outsideElementIds();
 
         eids.forEach(function (id) {
