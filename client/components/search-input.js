@@ -3,6 +3,7 @@
 
   var searchInput = {},
     m = require("mithril"),
+    f = require("component-core"),
     statechart = require("statechartjs");
 
   /**
@@ -25,6 +26,7 @@
       vm.end();
     };
     vm.end = function () { state.send("end"); };
+    vm.id = m.prop(f.createId());
     vm.onkeydown = function (e) {
       var key = e.key || e.keyIdentifier;
       if (key === "Enter") { vm.refresh(); }
@@ -116,6 +118,7 @@
         vm = ctrl.vm;
 
       opts = {
+        id: vm.id(),
         value: vm.text(),
         style: vm.style(),
         onfocus: vm.start,

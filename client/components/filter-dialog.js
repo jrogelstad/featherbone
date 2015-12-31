@@ -26,6 +26,8 @@
     options.onOk = function () {
       options.filter(vm.filter());
     };
+    options.title = options.title || "Filter";
+    options.icon = options.icon || "filter";
 
     // ..........................................................
     // PUBLIC

@@ -10,7 +10,6 @@
   relationWidget.viewModel = function (options) {
     var vm = {},
       hasFocus = false,
-      showMenu = false,
       parent = options.parent,
       parentProperty = options.parentProperty,
       valueProperty = options.valueProperty,
@@ -96,15 +95,13 @@
       }
     };
     vm.onmouseovermenu = function () {
-      showMenu = true;
+      vm.showMenu(true);
     };
     vm.onmouseoutmenu = function () {
-      showMenu = false;
+      vm.showMenu(false);
     };
     vm.searchDialog = m.prop();
-    vm.showMenu = function () {
-      return showMenu;
-    };
+    vm.showMenu = m.prop(false);
     vm.value = function (value) {
       var result;
       if (hasFocus) {
@@ -134,8 +131,6 @@
       return {attr: name};
     });
     vm.searchDialog(searchDialog.viewModel({
-      title: "Search",
-      icon: "search",
       config: searchConfig,
       onCancel: function () {
         m.redraw(); // Bug in Chrome

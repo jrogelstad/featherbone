@@ -16,9 +16,12 @@
     @param {Function} [options.filter] Filter property
   */
   sortDialog.viewModel = function (options) {
+    options = options || {};
     var vm;
 
     options.propertyName = "sort";
+    options.title = options.title || "Sort";
+    options.icon = options.icon || "sort";
 
     // ..........................................................
     // PUBLIC

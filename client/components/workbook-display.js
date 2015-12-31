@@ -291,9 +291,7 @@
     vm.filterDialog(filterDialog.viewModel({
       filter: vm.tableWidget().filter,
       list: vm.tableWidget().models(),
-      feather: feather,
-      title: "filter",
-      icon: "filter"
+      feather: feather
     }));
 
     vm.sheetConfigureDialog(sheetConfigureDialog.viewModel({
@@ -304,9 +302,7 @@
     vm.sortDialog(sortDialog.viewModel({
       filter: vm.tableWidget().filter,
       list: vm.tableWidget().models(),
-      feather: feather,
-      title: "sort",
-      icon: "sort"
+      feather: feather
     }));
 
     // Create button view models
