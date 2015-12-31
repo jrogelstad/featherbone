@@ -41,7 +41,6 @@
         doCancel();
       }
       state.send("close");
-      m.redraw(); // Bug in Chrome
     };
     vm.content = function () {
       return m("div", {id: vm.ids().content}, vm.message());
@@ -58,7 +57,6 @@
         doOk();
       }
       state.send("close");
-      m.redraw(); // Bug in Chrome
     };
     vm.okDisabled = m.prop(false);
     vm.okTitle = m.prop("");
