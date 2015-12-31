@@ -3,7 +3,8 @@
 
   var checkbox = {},
     m = require("mithril"),
-    f = require("feather-core");
+    f = require("feather-core"),
+    catalog = require("catalog");
 
   // Define checkbox component
   checkbox.component = function (options) {
@@ -45,6 +46,7 @@
     return component;
   };
 
+  catalog.register("components", "checkbox", checkbox.component);
   module.exports = checkbox;
 
 }());

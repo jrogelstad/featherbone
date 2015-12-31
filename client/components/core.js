@@ -21,9 +21,7 @@
   require("workbook");
 
   var f = require("feather-core"),
-    catalog = require("catalog"),
-    checkbox = require("checkbox"),
-    relationWidget = require("relation-widget");
+    catalog = require("catalog");
 
   /**
     Object to define what input type to use for data
@@ -42,6 +40,9 @@
   /**
     Helper function for building input elements
 
+    Use of this function requires that "Checkbox" has been pre-registered,
+    (i.e. "required") in the application before it is called.
+
     @param {Object} Arguments object
     @param {Object} [obj.model] Model
     @param {String} [obj.key] Property key
@@ -54,7 +55,8 @@
       isPath = key.indexOf(".") !== -1,
       prop = f.resolveProperty(obj.model, key),
       format = prop.format || prop.type,
-      opts = obj.options || {};
+      opts = obj.options || {},
+      components = catalog.store().components();
 
     // Handle input types
     if (typeof prop.type === "string" || isPath) {
@@ -70,7 +72,7 @@
       }
 
       if (prop.type === "boolean") {
-        component = checkbox.component({
+        component = components.checkbox({
           id: key,
           value: prop(),
           onclick: prop,
@@ -107,7 +109,10 @@
   };
 
   /**
-    Helper function for building relation widgets
+    Helper function for building relation widgets.
+
+    Use of this function requires that the Relation Widget object has been pre-registered,
+    (i.e. "required") in the application before it is called.
 
     @param {Object} Options
     @param {Object} [options.parentProperty] Default name of parent property on parent model
@@ -117,11 +122,12 @@
   */
   f.buildRelationWidget = function (relopts) {
     var that,
+      relationWidget = catalog.store().components().relationWidget,
       name = relopts.feather.toCamelCase() + "Relation";
 
     that = function (options) {
       options = options || {};
-      var w = relationWidget.component({
+      var w = relationWidget({
         parentProperty: options.parentProperty || relopts.parentProperty,
         valueProperty: options.valueProperty || relopts.valueProperty,
         labelProperty: options.labelProperty || relopts.labelProperty,

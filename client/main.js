@@ -6,8 +6,13 @@
   // Load pre-requisites
   require("extend-string");
   require("feather");
+
+  // These get pre-registered for
+  // on-the-fly instantiation
   require("form-display");
   require("workbook-display");
+  require("checkbox");
+  require("relation-widget");
 
   var m = require("mithril"),
     f = require("component-core"),

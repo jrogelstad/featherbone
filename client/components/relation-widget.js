@@ -4,7 +4,8 @@
   var relationWidget = {},
     m = require("mithril"),
     f = require("feather-core"),
-    catalog = require("catalog");
+    catalog = require("catalog"),
+    searchDialog = require("search-dialog");
 
   relationWidget.viewModel = function (options) {
     var vm = {},
@@ -17,13 +18,15 @@
       modelValue = parent.model().data[parentProperty],
       current = modelValue() ? modelValue().data[valueProperty]() : null,
       inputValue = m.prop(current),
-      modelName = modelValue.type.relation.toCamelCase(),
+      type =  modelValue.type,
+      modelName = type.relation.toCamelCase(),
       filter = {
         sort: [{property: valueProperty}],
         limit: 10
       },
       list =  catalog.store().models()[modelName].list,
-      modelList = list({filter: filter});
+      modelList = list({filter: filter}),
+      searchConfig;
 
     vm.listId = m.prop(f.createId());
     vm.fetch = function () {
@@ -51,6 +54,7 @@
     };
     vm.onclicksearch = function () {
       console.log("search clicked");
+      vm.searchDialog().show();
     };
     vm.onchange = function (value) {
       var models = vm.models(),
@@ -98,6 +102,7 @@
     vm.onmouseoutmenu = function () {
       showMenu = false;
     };
+    vm.searchDialog = m.prop();
     vm.showMenu = function () {
       return showMenu;
     };
@@ -119,6 +124,19 @@
       return result.data[valueProperty]();
     };
 
+    // Create search dialog
+    /*
+    searchConfig = {
+      feather: type.relation,
+      list: {}
+    };
+    searchConfig.list.columns = type.properties.map(function(name) {
+      return {attr: name};
+    });
+    vm.searchDialog(searchDialog.viewModel({
+      config: searchConfig
+    }));
+    */
     return vm;
   };
 
@@ -197,7 +215,6 @@
         maxWidth = maxWidth < 100  ? 100 : maxWidth;
         inputStyle.maxWidth = maxWidth + "px";
       }
-      
 
       // Build the view
       view = m("div", {style: style},[
@@ -235,15 +252,15 @@
             }, [
               m("li", {
                 class: "pure-menu-link",
-                onclick: rvm.onclicksearch
+                onclick: vm.onclicksearch
               },  [m("i", {class:"fa fa-search"})], " Search"),
               m("li", {
                 class: "pure-menu-link",
-                onclick: rvm.onclickopen
+                onclick: vm.onclickopen
               },  [m("i", {class:"fa fa-folder-open"})], " Open"),
               m("li", {
                 class: "pure-menu-link",
-                onclick: rvm.onclicknew
+                onclick: vm.onclicknew
               },  [m("i", {class:"fa fa-plus-circle"})], " New")
             ])
           ])
