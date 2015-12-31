@@ -109,7 +109,9 @@
       name = resolveName(req.url),
       payload = req.body || {},
       id = params.id,
-      filter = params.filter ? qs.parse(params.filter) : {};
+      query = params.query ? qs.parse(params.query) : {},
+      properties = query.properties,
+      filter = query.filter || {};
 
     // Handle response
     callback = function (err, resp) {
@@ -141,6 +143,7 @@
       if (id) {
         payload.id = id;
       } else {
+        payload.properties = properties;
         payload.filter = filter;
         filter.offset = filter.offset || 0;
       }
@@ -291,7 +294,7 @@
         dataRouter.route("/" + name)
           .get(doRequest)
           .post(doRequest);
-        dataRouter.route("/" + name + "/:filter")
+        dataRouter.route("/" + name + "/:query")
           .get(doRequest);
       }
     });

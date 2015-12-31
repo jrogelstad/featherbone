@@ -75,6 +75,12 @@
     ary.index = m.prop({});
 
     ary.path = m.prop();
+ 
+    /*
+      Array of properties to fetch if only a subset required.
+      If undefined, then all properties returned.
+    */
+    ary.properties = m.prop();
 
     // Remove a model from the list
     ary.remove = function (model) {
@@ -126,8 +132,17 @@
     };
 
     doFetch = function (context) {
-      var filter = qs.stringify(ary.filter()),
-        url = ary.path() + filter;
+      var url,
+        query = {};
+
+      if (ary.properties()) {
+        query.properties = ary.properties();
+      }
+      if (ary.filter()) {
+        query.filter = ary.filter();
+      }
+      query = qs.stringify(query);
+      url = ary.path() + query;
 
       return m.request({
         method: "GET",

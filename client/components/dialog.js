@@ -41,6 +41,7 @@
         doCancel();
       }
       state.send("close");
+      m.redraw(); // Bug in Chrome
     };
     vm.content = function () {
       return m("div", {id: vm.ids().content}, vm.message());
@@ -57,6 +58,7 @@
         doOk();
       }
       state.send("close");
+      m.redraw(); // Bug in Chrome
     };
     vm.okDisabled = m.prop(false);
     vm.okTitle = m.prop("");
@@ -81,7 +83,6 @@
             var  id = vm.ids().dialog,
               dlg = document.getElementById(id);
             if (dlg) { dlg.close(); }
-            m.redraw(); // Bug in Chrome
           });
           this.event("show", function () {
             this.goto("../Showing");
