@@ -2288,13 +2288,14 @@
                     } else {
                       err = 'Property "' + type.childOf +
                         '" already exists on "' + type.relation + '"';
-                      return false;
                     }
-
                   } else if (type.parentOf) {
                     err = 'Can not set parent directly for "' + key + '"';
-                    return false;
+                  } else if (!type.properties || !type.properties.length) {
+                    err = 'Properties must be defined for relation "' + key + '"';                 
                   }
+
+                  if (err) { return false; }
 
                   if (type.properties) {
                     cols = ["%I"];
