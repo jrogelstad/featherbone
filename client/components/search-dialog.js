@@ -21,6 +21,15 @@
     //
 
     vm = dialog.viewModel(options);
+    vm.okDisabled = function () {
+      return !vm.tableWidget().selection();
+    };
+    vm.okTitle = function () {
+      if (vm.okDisabled()) {
+        return "A row must be selected";
+      }
+      return "";
+    };
     vm.searchInput = m.prop();
     vm.tableWidget = m.prop();
     vm.content = function () {
@@ -44,9 +53,7 @@
     vm.tableWidget(tableWidget.viewModel({
       config: options.config,
       search: vm.searchInput().value,
-      ondblclick: function () {
-        vm.close();
-      },
+      ondblclick: vm.ok,
       outsideElementIds: [
         vm.ids().header,
         vm.ids().buttonOk

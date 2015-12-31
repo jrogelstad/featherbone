@@ -53,7 +53,6 @@
       console.log("open clicked");
     };
     vm.onclicksearch = function () {
-      console.log("search clicked");
       vm.searchDialog().show();
     };
     vm.onchange = function (value) {
@@ -137,7 +136,13 @@
     vm.searchDialog(searchDialog.viewModel({
       title: "Search",
       icon: "search",
-      config: searchConfig
+      config: searchConfig,
+      onOk: function () {
+        var selection = vm.searchDialog().tableWidget().selection();
+        if (selection) {
+          modelValue(selection);
+        }
+      }
     }));
 
     return vm;
