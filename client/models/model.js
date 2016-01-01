@@ -886,7 +886,9 @@
       var name,
         keys = Object.keys(d),
         requiredIsNull = function (key) {
-          if (d[key].isRequired() && d[key]() === null) {
+          var prop = d[key];
+          if (prop.isRequired() && (prop() === null ||
+            (prop.type === "string" && !prop()))) {
             name = key;
             return true;
           }

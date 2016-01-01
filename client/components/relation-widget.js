@@ -50,8 +50,6 @@
       hasFocus = false;
     };
     vm.onclicknew = function () {
-      var model = modelValue();
-      if (!model) { return; }
       vm.formDialog().modelId(undefined);
       vm.formDialog().show();
     };

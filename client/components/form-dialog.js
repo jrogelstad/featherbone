@@ -36,8 +36,9 @@
       return w ? !w.model().canSave() : true;
     };
     vm.okTitle = function () {
-      var w = vm.formWidget();
-      return w ? w.model().lastError() : "";
+      var w = vm.formWidget(),
+        def = "Record is unchanged";
+      return w ? w.model().lastError() ||  def : "";
     };
     vm.content = function () {
       var state = vm.state();

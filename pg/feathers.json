@@ -7,11 +7,14 @@
         "properties": {
             "name": {
                 "description": "Name",
-                "type": "string"
+                "type": "string",
+                "isUnique": true,
+                "isRequired": true
             },
             "description": {
                 "description": "Description",
-                "type": "string"
+                "type": "string",
+                "isRequired": true
             }
         }
     },
