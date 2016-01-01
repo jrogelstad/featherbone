@@ -43,6 +43,9 @@
       return (labelProperty && model) ? model.data[labelProperty]() : "";
     };
     vm.listConfig = m.prop(options.list);
+    vm.model = function () {
+      return modelValue();
+    };
     vm.models = function () {
       return modelList();
     };
@@ -177,6 +180,7 @@
         vm = args.viewModel,
         style = args.style || {},
         relations = vm.relations(),
+        openMenuClass = "pure-menu-link",
         buttonStyle = {
           margin: "2px"
         },
@@ -232,6 +236,10 @@
         inputStyle.maxWidth = maxWidth + "px";
       }
 
+      if (!rvm.model()) {
+        openMenuClass += " pure-menu-disabled";
+      }
+
       // Build the view
       view = m("div", {style: style}, [
         m.component(searchDialog.component({viewModel: rvm.searchDialog()})),
@@ -273,7 +281,7 @@
                 onclick: rvm.onclicksearch
               },  [m("i", {class:"fa fa-search"})], " Search"),
               m("li", {
-                class: "pure-menu-link",
+                class: openMenuClass,
                 onclick: rvm.onclickopen
               },  [m("i", {class:"fa fa-folder-open"})], " Open"),
               m("li", {
