@@ -50,7 +50,10 @@
       hasFocus = false;
     };
     vm.onclicknew = function () {
-      console.log("new clicked");
+      var model = modelValue();
+      if (!model) { return; }
+      vm.formDialog().modelId(undefined);
+      vm.formDialog().show();
     };
     vm.onclickopen = function () {
       var id,
