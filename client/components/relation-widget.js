@@ -53,7 +53,11 @@
       console.log("new clicked");
     };
     vm.onclickopen = function () {
-      console.log("open clicked");
+      var id,
+        model = modelValue();
+      if (!model) { return; }
+      id = model.id();
+      vm.formDialog().modelId(id);
       vm.formDialog().show();
     };
     vm.onclicksearch = function () {
@@ -145,8 +149,7 @@
     vm.formDialog(formDialog.viewModel({
       feather: type.relation,
       attrs: vm.formConfig().attrs,
-      onOk: function () {
-        var model = vm.formDialog().model();
+      onOk: function (model) {
         modelValue(model);
       }
     }));
@@ -231,7 +234,7 @@
       // Build the view
       view = m("div", {style: style}, [
         m.component(searchDialog.component({viewModel: rvm.searchDialog()})),
-        //m.component(formDialog.component({viewModel: rvm.formDialog()})),
+        m.component(formDialog.component({viewModel: rvm.formDialog()})),
         m("input", {
           style: inputStyle,
           list: rvm.listId(),

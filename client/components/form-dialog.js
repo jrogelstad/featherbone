@@ -22,13 +22,15 @@
     options.title = options.title || options.feather.toName();
     options.icon = options.icon || "file-text";
     options.onOk = function () {
-      vm.formWidget().model().save().then(function () {
-        if (onOk) { onOk(); }
+      var model = vm.formWidget().model();
+      model.save().then(function () {
+        if (onOk) { onOk(model); }
       });
     };
 
     vm = dialog.viewModel(options);
     vm.formWidget = m.prop();
+    vm.modelId = m.prop(options.id);
     vm.okDisabled = function () {
       var w = vm.formWidget();
       return w ? !w.model().canSave() : true;
@@ -38,7 +40,8 @@
       return w ? w.model().lastError() : "";
     };
     vm.content = function () {
-      return substate.content();
+      var state = vm.state();
+      return state.resolve(state.current()[0]).content();
     };
 
     // ..........................................................
@@ -48,14 +51,16 @@
     // Only create the form instance when showing. Otherwise leads to creating forms
     // for entire relation tree which is too heavy and could lead to infinite loops
     substate = vm.state().resolve("/Display/Closed");
-    substate.content = function () { return m("div"); };
+    substate.content = function () {
+      return m("div"); 
+    };
     substate = vm.state().resolve("/Display/Showing");
     substate.enter(function () {
       // Create dalog view models
       vm.formWidget(formWidget.viewModel({
         feather: options.feather,
-        id: options.id,
         attrs: options.attrs,
+        id: vm.modelId(),
         outsideElementIds: [
           vm.ids().header,
           vm.ids().buttonOk
@@ -63,7 +68,7 @@
       }));
     });
     substate.content = function () {
-      return m.component(formWidget.component({viewModel: vm.formWidget()}));
+      return  m.component(formWidget.component({viewModel: vm.formWidget()}));
     };
     substate.exit(function () {
       vm.formWidget(undefined);

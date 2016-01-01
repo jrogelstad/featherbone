@@ -80,6 +80,15 @@
     that.fetch = function () {
       return doSend("fetch");
     };
+ 
+    /*
+      Return the unique identifier value for the model.
+
+      @returns {String}
+    */
+    that.id = function () {
+      return d[that.idProperty()]();
+    };
 
     /*
       The data property that is the unique identifier for the model.

@@ -81,12 +81,10 @@
       }
     };
     vm.modelOpen = function () {
-      var key,
-        selection = vm.tableWidget().selection();
+      var selection = vm.tableWidget().selection();
       if (selection) {
         vm.didLeave(true);
-        key = selection.idProperty();
-        m.route(frmroute + "/" + selection.data[key]());
+        m.route(frmroute + "/" + selection.id());
       }
     };
     vm.newSheet = function () {

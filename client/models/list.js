@@ -39,8 +39,7 @@
     // if model with same id is already found in array
     ary.add = function (model) {
       var  mstate,
-        idProperty = model.idProperty(),
-        id = model.data[idProperty](),
+        id = model.id(),
         idx = ary.index(),
         oid = idx[id];
 
@@ -84,8 +83,7 @@
 
     // Remove a model from the list
     ary.remove = function (model) {
-      var idProperty = model.idProperty(),
-        id = model.data[idProperty](),
+      var id = model.id(),
         idx = ary.index(),
         i = idx[id];
       if (!isNaN(i)) {
