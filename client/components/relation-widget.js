@@ -132,15 +132,11 @@
     });
     vm.searchDialog(searchDialog.viewModel({
       config: searchConfig,
-      onCancel: function () {
-        m.redraw(); // Bug in Chrome
-      },
       onOk: function () {
         var selection = vm.searchDialog().tableWidget().selection();
         if (selection) {
           modelValue(selection);
         }
-        m.redraw(); // Bug in Chrome
       }
     }));
 

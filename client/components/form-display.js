@@ -146,7 +146,7 @@
       });
 
       // Build view
-      view = m("form", {
+      view = m("div", {
         class: "pure-form pure-form-aligned",
         config: function () {
           if (vm.isFirstLoad()) {

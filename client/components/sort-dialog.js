@@ -4,8 +4,7 @@
   var sortDialog = {},
     m = require("mithril"),
     f = require("feather-core"),
-    filterDialog = require("filter-dialog"),
-    tableDialog = require("table-dialog");
+    filterDialog = require("filter-dialog");
 
   /**
     View model for sort dialog.
@@ -89,8 +88,7 @@
     return vm;
   };
 
-  sortDialog.component = tableDialog.component;
-
+  sortDialog.component = filterDialog.component;
   module.exports = sortDialog;
 
 }());
