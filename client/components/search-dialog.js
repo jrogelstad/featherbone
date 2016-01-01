@@ -159,7 +159,7 @@
   };
 
   /**
-    Table dialog component
+    Search dialog component
 
     @params {Object} View model
   */

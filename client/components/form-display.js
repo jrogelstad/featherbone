@@ -4,32 +4,24 @@
 
   var formDisplay = {},
     m = require("mithril"),
-    f = require("component-core"),
+    button = require("button"),
     catalog = require("catalog"),
-    button = require("button");
+    formWidget = require("form-widget");
 
   formDisplay.viewModel = function (options) {
-    var vm = {}, state, model, createButton, toggleNew, isDisabled,
-      buttonDone, buttonApply, buttonSave, buttonSaveAndNew,
+    var vm = {}, state, toggleNew, isDisabled,
       wbkroute = "/" + options.workbook + "/" + options.sheet.name,
-      frmroute = "/" + options.workbook + "/" + options.form,
-      feather = options.feather,
-      name = feather.toCamelCase(),
-      models = catalog.store().models(),
-      id = options.id;
+      frmroute = "/" + options.workbook + "/" + options.form;
 
     wbkroute = wbkroute.toSpinalCase();
     frmroute = frmroute.toSpinalCase();
-    model = models[name]({id: id});
 
-    if (id) { model.fetch(); }
-
-    vm.buttonApply = function () { return buttonApply; };
-    vm.buttonDone = function () { return buttonDone; };
-    vm.buttonSave = function () { return buttonSave; };
-    vm.buttonSaveAndNew = function () { return buttonSaveAndNew; };
+    vm.buttonApply = m.prop();
+    vm.buttonDone = m.prop();
+    vm.buttonSave = m.prop();
+    vm.buttonSaveAndNew = m.prop();
     vm.doApply = function () {
-      model.save();
+      vm.formWidget().model().save();
     };
     vm.doList = function () {
       m.route(wbkroute);
@@ -38,64 +30,67 @@
       m.route(frmroute);
     };
     vm.doSave = function () {
-      model.save().then(function () {
+      vm.model().save().then(function () {
         m.route(wbkroute);
       });
     };
     vm.doSaveAndNew = function () {
-      model.save().then(function () {
+      vm.model().save().then(function () {
         m.route(frmroute);
       });
     };
-    vm.isFirstLoad = m.prop(true);
+    vm.formWidget = m.prop(formWidget.viewModel({
+      feather: options.feather,
+      id: options.id,
+      attrs: options.attrs,
+      outsideElementIds: ["toolbar"]
+    }));
     vm.model = function () {
-      return model;
+      return vm.formWidget().model();
     };
-    vm.relations = m.prop({});
 
     // ..........................................................
     // PRIVATE
     //
 
     // Create button view models
-    createButton = button.viewModel;
-    buttonDone = createButton({
+    vm.buttonDone(button.viewModel({
       onclick: vm.doList,
       label: "&Back",
       icon: "arrow-left"
-    });
+    }));
 
-    buttonApply = createButton({
+    vm.buttonApply(button.viewModel({
       onclick: vm.doApply,
       label: "&Apply"
-    });
+    }));
 
-    buttonSave = createButton({
+    vm.buttonSave(button.viewModel({
       onclick: vm.doSave,
       label: "&Save",
       icon: "cloud-upload"
-    });
+    }));
 
-    buttonSaveAndNew = createButton({
+    vm.buttonSaveAndNew(button.viewModel({
       onclick: vm.doSaveAndNew,
       label: "Save and &New",
       icon: "plus-circle"
-    });
+    }));
 
     // Bind model state to display state
-    isDisabled = function () { return !model.canSave(); };
-    buttonApply.isDisabled = isDisabled;
-    buttonSave.isDisabled = isDisabled;
+    isDisabled = function () { return !vm.model().canSave(); };
+    vm.buttonApply().isDisabled = isDisabled;
+    vm.buttonSave().isDisabled = isDisabled;
     toggleNew = function (isNew) {
       if (isNew) {
-        buttonSaveAndNew.label("&New");
-        buttonSaveAndNew.onclick(vm.doNew);    
+        vm.buttonSaveAndNew().label("&New");
+        vm.buttonSaveAndNew().onclick(vm.doNew);    
       } else {
-        buttonSaveAndNew.label("Save and &New");
-        buttonSaveAndNew.onclick(vm.doSaveAndNew);  
+        vm.buttonSaveAndNew().label("Save and &New");
+        vm.buttonSaveAndNew().onclick(vm.doSaveAndNew);  
       }
     };
-    state = model.state();
+    state = vm.model().state();
     state.resolve("/Ready/New").enter(toggleNew.bind(this, false));
     state.resolve("/Ready/Fetched/Clean").enter(toggleNew.bind(this, true));
     state.resolve("/Ready/Fetched/Dirty").enter(toggleNew.bind(this, false));
@@ -112,65 +107,31 @@
         sheet: options.sheet,
         form: options.form,
         feather: options.feather,
-        id: m.route.param("id")
+        id: m.route.param("id"),
+        attrs: options.attrs
       });
     };
 
     widget.view = function (ctrl) {
-      var attrs, focusAttr, view,
-        vm = ctrl.vm,
-        model = vm.model(),
-        d = model.data;
-
-      // Build elements
-      attrs = options.attrs.map(function (item) {
-        var key = item.attr;
-        if (!focusAttr) { focusAttr = key; }
-        var color, result;
-        color = (d[key].isRequired() && d[key]()) === null ? "Red" : "Black";
-        result = m("div", {
-          class: "pure-control-group"
-        }, [
-          m("label", {
-            for: key,
-            class: "suite-form-label",
-            style: {color: color}
-          }, item.label || key.toProperCase() + ":"),
-          f.buildInputComponent({
-            model: model,
-            key: key,
-            viewModel: vm
-          })
-        ]);
-        return result;
-      });
+      var view,
+        vm = ctrl.vm;
 
       // Build view
-      view = m("div", {
-        class: "pure-form pure-form-aligned",
-        config: function () {
-          if (vm.isFirstLoad()) {
-            document.getElementById(focusAttr).focus();
-            vm.isFirstLoad(false);
+      view = m("div", [
+        m("div", {
+          id: "toolbar",
+          class: "suite-header",
+          config: function () {
+            // Set fields table to scroll and toolbar to stay put
+            document.documentElement.style.overflow = 'hidden';
           }
-        }
-      }, [
-        m("div", {id: "toolbar",class: "suite-header"}, [
+        }, [
           m.component(button.component({viewModel: vm.buttonDone()})),
           m.component(button.component({viewModel: vm.buttonApply()})),
           m.component(button.component({viewModel: vm.buttonSave()})),
           m.component(button.component({viewModel: vm.buttonSaveAndNew()}))
         ]),
-        m("div", {
-          class: "suite-form-content",
-          config: function (e) {
-            var tb = document.getElementById("toolbar");
-
-            // Set fields table to scroll and toolbar to stay put
-            document.documentElement.style.overflow = 'hidden';
-            e.style.maxHeight = (window.innerHeight - tb.clientHeight) + "px";
-          }
-        }, [m("fieldset", attrs)])
+        m.component(formWidget.component({viewModel: vm.formWidget()}))
       ]);
 
       return view;
