@@ -83,7 +83,13 @@
       rows: f.createId()
     });
     vm.isSelected = function (model) {
-      return vm.selection() === model;
+      var prop,
+        selection = vm.selection();
+      if (selection && model) {
+        prop = selection.idProperty();
+        return selection.data[prop]() === model.data[prop]();
+      }
+      return false;
     };
     vm.mode = function () {
       var state = vm.state();
