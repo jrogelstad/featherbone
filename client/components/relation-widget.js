@@ -5,7 +5,8 @@
     m = require("mithril"),
     f = require("feather-core"),
     catalog = require("catalog"),
-    searchDialog = require("search-dialog");
+    searchDialog = require("search-dialog"),
+    formDialog = require("form-dialog");
 
   relationWidget.viewModel = function (options) {
     var vm = {},
@@ -35,10 +36,13 @@
         merge: false
       });
     };
+    vm.formConfig = m.prop(options.form);
+    vm.formDialog = m.prop();
     vm.label = function () {
       var model = modelValue();
       return (labelProperty && model) ? model.data[labelProperty]() : "";
     };
+    vm.listConfig = m.prop(options.list);
     vm.models = function () {
       return modelList();
     };
@@ -46,10 +50,11 @@
       hasFocus = false;
     };
     vm.onclicknew = function () {
-      console.log("search new");
+      console.log("new clicked");
     };
     vm.onclickopen = function () {
       console.log("open clicked");
+      vm.formDialog().show();
     };
     vm.onclicksearch = function () {
       vm.searchDialog().show();
@@ -125,11 +130,7 @@
       feather: type.relation,
       list: {}
     };
-    searchConfig.list.columns = type.properties.filter(function (name) {
-      return name !== "id";
-    }).map(function(name) {
-      return {attr: name};
-    });
+    searchConfig.list = vm.listConfig();
     vm.searchDialog(searchDialog.viewModel({
       config: searchConfig,
       onOk: function () {
@@ -137,6 +138,16 @@
         if (selection) {
           modelValue(selection);
         }
+      }
+    }));
+
+    // Create form dialog
+    vm.formDialog(formDialog.viewModel({
+      feather: type.relation,
+      attrs: vm.formConfig().attrs,
+      onOk: function () {
+        var model = vm.formDialog().model();
+        modelValue(model);
       }
     }));
 
@@ -157,7 +168,8 @@
       labelProperty = options.labelProperty;
 
     widget.view = function (ignore, args) {
-      var rvm, listOptions, view, inputStyle, menuStyle, maxWidth,
+      var rvm, opts, listOptions, view,
+        inputStyle, menuStyle, maxWidth,
         vm = args.viewModel,
         style = args.style || {},
         relations = vm.relations(),
@@ -170,12 +182,9 @@
 
       // Set up viewModel if required
       if (!relations[parentProperty]) {
-        relations[parentProperty] = relationWidget.viewModel({
-          parent: vm,
-          parentProperty: parentProperty,
-          valueProperty: valueProperty,
-          labelProperty: labelProperty
-        });
+        opts = f.copy(options);
+        opts.parent = vm;
+        relations[parentProperty] = relationWidget.viewModel(opts);
       }
 
       rvm = relations[parentProperty];
@@ -220,8 +229,9 @@
       }
 
       // Build the view
-      view = m("div", {style: style},[
+      view = m("div", {style: style}, [
         m.component(searchDialog.component({viewModel: rvm.searchDialog()})),
+        //m.component(formDialog.component({viewModel: rvm.formDialog()})),
         m("input", {
           style: inputStyle,
           list: rvm.listId(),

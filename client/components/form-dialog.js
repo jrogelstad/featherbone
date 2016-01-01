@@ -4,7 +4,7 @@
   var formDialog = {},
     m = require("mithril"),
     dialog = require("dialog"),
-    catalog = require("catalog");
+    formWidget = require("form-widget");
 
   /**
     View model for form dialog.
@@ -12,36 +12,62 @@
     @param {Object} Options
   */
   formDialog.viewModel = function (options) {
-    var vm,
-      feather = catalog.getFeather(options.config.feather);
+    var vm, substate,
+      onOk = options.onOk;
 
     // ..........................................................
     // PUBLIC
     //
 
-    options.title = options.title || feather.plural.toName();
+    options.title = options.title || options.feather.toName();
     options.icon = options.icon || "file-text";
+    options.onOk = function () {
+      vm.formWidget().model().save().then(function () {
+        if (onOk) { onOk(); }
+      });
+    };
 
     vm = dialog.viewModel(options);
-    vm.formDialog = m.prop();
+    vm.formWidget = m.prop();
     vm.okDisabled = function () {
-      return true;
+      var w = vm.formWidget();
+      return w ? !w.model().canSave() : true;
     };
     vm.okTitle = function () {
-      return "";
+      var w = vm.formWidget();
+      return w ? w.model().lastError() : "";
     };
     vm.content = function () {
-      return m("div", []);
+      return substate.content();
     };
 
     // ..........................................................
     // PRIVATE
     //
 
-    // Create dalog view models
-    vm.formDialog(formDialog.viewModel({
-      feather: feather
-    }));
+    // Only create the form instance when showing. Otherwise leads to creating forms
+    // for entire relation tree which is too heavy and could lead to infinite loops
+    substate = vm.state().resolve("/Display/Closed");
+    substate.content = function () { return m("div"); };
+    substate = vm.state().resolve("/Display/Showing");
+    substate.enter(function () {
+      // Create dalog view models
+      vm.formWidget(formWidget.viewModel({
+        feather: options.feather,
+        id: options.id,
+        attrs: options.attrs,
+        outsideElementIds: [
+          vm.ids().header,
+          vm.ids().buttonOk
+        ]
+      }));
+    });
+    substate.content = function () {
+      return m.component(formWidget.component({viewModel: vm.formWidget()}));
+    };
+    substate.exit(function () {
+      vm.formWidget(undefined);
+    });
 
     vm.style().width = undefined;
     vm.style().margin = "25px";

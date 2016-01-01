@@ -115,6 +115,8 @@
         parentProperty: options.parentProperty || relopts.parentProperty,
         valueProperty: options.valueProperty || relopts.valueProperty,
         labelProperty: options.labelProperty || relopts.labelProperty,
+        form: options.form || relopts.form,
+        list: options.list || relopts.list,
         isCell: options.isCell === undefined ?
           relopts.isCell : options.isCell
       });

@@ -120,7 +120,7 @@
                 fontSize: "xx-large",
                 margin: "8px"
               }
-            })], workbook.name.toCamelCase().toProperCase());
+            })], workbook.name.toName());
           });
         return m("div", [
           m("h2", {

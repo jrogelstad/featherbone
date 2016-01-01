@@ -10,8 +10,7 @@
 
   formWidget.viewModel = function (options) {
     var vm = {},
-      feather = options.feather,
-      name = feather.toCamelCase(),
+      name = options.feather.toCamelCase(),
       models = catalog.store().models();
 
     vm.attrs = m.prop(options.attrs || []);
