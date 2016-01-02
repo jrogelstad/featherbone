@@ -13,7 +13,8 @@
       name = options.feather.toCamelCase(),
       models = catalog.store().models();
 
-    vm.attrs = m.prop(options.attrs || []);
+    vm.config = m.prop(options.config);
+    vm.selectedTab = m.prop(1);
     vm.isFirstLoad = m.prop(true);
     vm.model = m.prop(models[name]({id: options.id}));
     vm.outsideElementIds = m.prop(options.outsideElementIds || []);
@@ -29,19 +30,49 @@
   };
 
   formWidget.component = function (options) {
-    var widget = {};
+    var widget = {},
+      midTabClass = ["pure-button", "suite-sheet-group-tab"],
+      leftTabClass = ["pure-button", "suite-sheet-group-tab", "suite-sheet-group-tab-left"],
+      rightTabClass = ["pure-button", "suite-sheet-group-tab", "suite-sheet-group-tab-right"];
 
     widget.controller = function () {
       this.vm = options.viewModel;
     };
 
     widget.view = function (ctrl) {
-      var focusAttr, buildFieldset, buildColumn,
+      var focusAttr, buildFieldset,
+        buildColumn, buildButtons,
         vm = ctrl.vm,
-        attrs = vm.attrs(),
+        attrs = vm.config().attrs || [],
+        selectedTab = vm.selectedTab(),
         model = vm.model(),
         d = model.data,
         panes = [];
+
+      buildButtons = function () {
+        var className,
+          tabs = vm.config().panes || [],
+          last = panes.length - 1;
+
+        return tabs.map(function (name, idx) {
+          switch (idx)
+          {
+          case 0:
+            className = leftTabClass;
+            break;
+          case last:
+            className = rightTabClass;
+            break;
+          default:
+            className = midTabClass;
+          }
+
+          if (idx + 1 === selectedTab) {
+            className.push("suite-sheet-group-tab-active");
+          }
+          return m("button", {class: className.join(" ")}, name);
+        });
+      };
 
       // Build elements
       buildFieldset = function (attrs) {
@@ -102,12 +133,26 @@
       });
 
       // Build pane content
-      panes = panes.map(function (pane) {
-        var columns = pane.map(function (column) {
+      panes = panes.map(function (pane, idx) {
+        var columns,
+          className = "suite-tabbed-panes";
+
+        columns = pane.map(function (column) {
           return buildColumn(column, pane.length);
         });
 
-        return m("div", {class: "pure-g"}, columns);
+        if (!idx) {
+          return m("div", {class: "pure-g"}, columns);
+        }
+
+        if (idx !== selectedTab) {
+          className += " suite-tabbed-panes-hidden";
+        }
+
+        return m("div", {class: className}, [
+          buildButtons(),
+          m("div", {class: "pure-g"}, columns)
+        ]);
       });
 
       return m("div", {

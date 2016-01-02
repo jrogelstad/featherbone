@@ -42,7 +42,7 @@
     vm.formWidget = m.prop(formWidget.viewModel({
       feather: options.feather,
       id: options.id,
-      attrs: options.attrs,
+      config: options.config,
       outsideElementIds: ["toolbar"]
     }));
     vm.model = function () {
@@ -108,7 +108,7 @@
         form: options.form,
         feather: options.feather,
         id: m.route.param("id"),
-        attrs: options.attrs
+        config: options.config
       });
     };
 

@@ -152,7 +152,7 @@
     // Create form dialog
     vm.formDialog(formDialog.viewModel({
       feather: type.relation,
-      attrs: vm.formConfig().attrs,
+      config: vm.formConfig(),
       onOk: function (model) {
         modelValue(model);
       }

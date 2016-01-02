@@ -60,7 +60,7 @@
       // Create dalog view models
       vm.formWidget(formWidget.viewModel({
         feather: options.feather,
-        attrs: options.attrs,
+        config: options.config,
         id: vm.modelId(),
         outsideElementIds: [
           vm.ids().header,

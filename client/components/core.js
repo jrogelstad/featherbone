@@ -169,7 +169,7 @@
         sheet: item,
         form: form,
         feather: feather,
-        attrs: item.form.attrs
+        config: item.form
       });
 
       // Build routes

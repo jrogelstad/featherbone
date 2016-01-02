@@ -147,6 +147,15 @@
   left: 175px;
 }
 
+.suite-tabbed-panes {
+  border: solid thin blue;
+  border-radius: 4px;
+}
+
+.suite-tabbed-panes-hidden {
+  display: none;
+}
+
 .suite-header {
   background-color: Snow;
   border-bottom-color: LightGrey;
