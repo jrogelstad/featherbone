@@ -17,6 +17,7 @@
     "dialog-polyfill": "^0.4.2",
     "express": "^4.13.1",
     "fast-json-patch": "0.5.2",
+    "font-awesome": "^4.5.0",
     "mathjs": "^2.4.2",
     "mithril": "^0.2.0",
     "pg": "4.4.0",
