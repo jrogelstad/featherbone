@@ -120,11 +120,7 @@
       view = m("div", [
         m("div", {
           id: "toolbar",
-          class: "suite-header",
-          config: function () {
-            // Set fields table to scroll and toolbar to stay put
-            document.documentElement.style.overflow = 'hidden';
-          }
+          class: "suite-header"
         }, [
           m.component(button.component({viewModel: vm.buttonDone()})),
           m.component(button.component({viewModel: vm.buttonApply()})),

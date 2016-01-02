@@ -430,9 +430,6 @@
 
         e.style.height = bodyHeight + "px";
 
-        // Set fields table to scroll and toolbar to stay put
-        document.documentElement.style.overflow = 'hidden';
-
         // Key down handler for up down movement
         e.addEventListener("keydown", vm.onkeydownCell);
       };

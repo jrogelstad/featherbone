@@ -143,6 +143,9 @@
     m.route(document.body, "/home", routes);
   });
 
+  // Let displays handle their own overflow locally
+  document.documentElement.style.overflow = 'hidden';
+
   window.onresize = function () {
     m.redraw(true);
   };

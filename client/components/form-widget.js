@@ -36,61 +36,94 @@
     };
 
     widget.view = function (ctrl) {
-      var attrs, focusAttr, view,
+      var focusAttr, buildFieldset, buildColumn,
         vm = ctrl.vm,
+        attrs = vm.attrs(),
         model = vm.model(),
-        d = model.data;
+        d = model.data,
+        panes = [];
 
       // Build elements
-      attrs = vm.attrs().map(function (item) {
-        var key = item.attr;
-        if (!focusAttr) { focusAttr = key; }
-        var color, result;
-        color = (d[key].isRequired() && d[key]()) === null ? "Red" : "Black";
-        result = m("div", {
-          class: "pure-control-group"
+      buildFieldset = function (attrs) {
+        return attrs.map(function (item) {
+          var result,
+            color = "Black",
+            key = item.attr,
+            prop = d[key],
+            value = prop();
+
+          if (!focusAttr) { focusAttr = key; }
+
+          if (prop.isRequired() && (value === null ||
+            (prop.type === "string" && !value))) {
+            color = "Red";
+          }
+          result = m("div", {
+            class: "pure-control-group"
+          }, [
+            m("label", {
+              for: key,
+              class: "suite-form-label",
+              style: {color: color}
+            }, item.label || key.toProperCase() + ":"),
+            f.buildInputComponent({
+              model: model,
+              key: key,
+              viewModel: vm
+            })
+          ]);
+          return result;
+        });
+      };
+
+      buildColumn = function (attrs, n) {
+        var fieldset = buildFieldset(attrs);
+
+        return m("div", {
+          class: "pure-u-1 pure-u-md-1-" + n
         }, [
-          m("label", {
-            for: key,
-            class: "suite-form-label",
-            style: {color: color}
-          }, item.label || key.toProperCase() + ":"),
-          f.buildInputComponent({
-            model: model,
-            key: key,
-            viewModel: vm
-          })
+            m("div", {
+            class: "pure-form pure-form-aligned"
+          }, [m("fieldset", fieldset)])
         ]);
-        return result;
+      };
+
+      // build pane/column matrix from inside out
+      attrs.forEach(function (item) {
+        var pidx = item.pane || 0,
+          cidx = item.column || 0;
+        if (!panes[pidx]) {
+          panes[pidx] = [];
+        }
+        if (!panes[pidx][cidx]) {
+          panes[pidx][cidx] = [];
+        } 
+        panes[pidx][cidx].push(item);
       });
 
-      // Build view
-      view = m("div", {
-        class: "pure-form pure-form-aligned",
-        config: function () {
-          if (vm.isFirstLoad()) {
-            document.getElementById(focusAttr).focus();
-            vm.isFirstLoad(false);
-          }
+      // Build pane content
+      panes = panes.map(function (pane) {
+        var columns = pane.map(function (column) {
+          return buildColumn(column, pane.length);
+        });
+
+        return m("div", {class: "pure-g"}, columns);
+      });
+
+      return m("div", {
+        class: "suite-form-content",
+        config: function (e) {
+          var bodyHeight = window.innerHeight,
+            eids = vm.outsideElementIds();
+
+          eids.forEach(function (id) {
+            var h = document.getElementById(id).clientHeight;
+            bodyHeight = math.subtract(bodyHeight, h);
+          });
+
+          e.style.maxHeight = bodyHeight + "px";
         }
-      }, [
-        m("div", {
-          class: "suite-form-content",
-          config: function (e) {
-            var bodyHeight = window.innerHeight,
-              eids = vm.outsideElementIds();
-
-            eids.forEach(function (id) {
-              var h = document.getElementById(id).clientHeight;
-              bodyHeight = math.subtract(bodyHeight, h);
-            });
-
-            e.style.maxHeight = bodyHeight + "px";
-          }
-        }, [m("fieldset", attrs)])
-      ]);
-
-      return view;
+      }, panes);
     };
 
     return widget;
