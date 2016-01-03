@@ -299,7 +299,7 @@
 
     // Bind refresh to filter change event
     vm.filter.state().resolve("/Ready").enter(function () {
-      vm.config().list.filter = vm.filter();
+      vm.config().filter = vm.filter();
       vm.refresh();
     });
 

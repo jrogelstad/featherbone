@@ -8,10 +8,21 @@
     searchDialog = require("search-dialog"),
     formDialog = require("form-dialog");
 
+  /**
+    @param {Object} Options
+    @param {Object} [options.parentViewModel] Parent view-model. Required
+      property "relations" returning javascript object to attach relation view model to.
+    @param {String} [options.parentProperty] Name of the relation
+      in view model to attached to
+    @param {String} [options.valueProperty] Value property
+    @param {Object} [options.form] Form configuration
+    @param {Object} [options.list] (Search) List configuration
+    @params {Boolean} [options.isCell] Use style for cell in table
+  */
   relationWidget.viewModel = function (options) {
     var vm = {},
       hasFocus = false,
-      parent = options.parent,
+      parent = options.parentViewModel,
       parentProperty = options.parentProperty,
       valueProperty = options.valueProperty,
       labelProperty = options.labelProperty,
@@ -115,6 +126,7 @@
     };
     vm.searchDialog = m.prop();
     vm.showMenu = m.prop(false);
+    vm.style = m.prop({});
     vm.value = function (value) {
       var result;
       if (hasFocus) {
@@ -163,23 +175,44 @@
 
   /**
     @param {Object} Options
+    @param {Object} [options.viewModel] Parent view-model. Must have
+      property "relations" returning javascript object to attach relation view model to.
     @param {String} [options.parentProperty] Name of the relation
       in view model to attached to
     @param {String} [options.valueProperty] Value property
-    @params {Object} [options.isCell] Style for cell in table
+    @params {Boolean} [options.isCell] Use style for cell in table
   */
   relationWidget.component = function (options) {
     var widget = {},
+      parentViewModel = options.parentViewModel,
       parentProperty = options.parentProperty,
       valueProperty = options.valueProperty,
       labelProperty = options.labelProperty;
 
-    widget.view = function (ignore, args) {
-      var rvm, opts, listOptions, view,
+    widget.controller = function () {
+      var relations = parentViewModel.relations();
+
+      // Set up viewModel if required
+      if (!relations[parentProperty]) {
+        relations[parentProperty] = relationWidget.viewModel({
+          parentViewModel: parentViewModel,
+          parentProperty: parentProperty,
+          valueProperty: valueProperty,
+          labelProperty: labelProperty,
+          form: options.form,
+          list: options.list,
+          isCell: options.isCell
+        });
+      }
+      this.vm = relations[parentProperty];
+      this.vm.style(options.style || {});
+    };
+
+    widget.view = function (ctrl) {
+      var listOptions, view,
         inputStyle, menuStyle, maxWidth,
-        vm = args.viewModel,
-        style = args.style || {},
-        relations = vm.relations(),
+        vm = ctrl.vm,
+        style = vm.style(),
         openMenuClass = "pure-menu-link",
         buttonStyle = {
           margin: "2px"
@@ -188,17 +221,8 @@
           display: "inline"
         };
 
-      // Set up viewModel if required
-      if (!relations[parentProperty]) {
-        opts = f.copy(options);
-        opts.parent = vm;
-        relations[parentProperty] = relationWidget.viewModel(opts);
-      }
-
-      rvm = relations[parentProperty];
-
       menuStyle = {
-        display: rvm.showMenu() ? "block" : "none",
+        display: vm.showMenu() ? "block" : "none",
         backgroundColor: "White",
         position: "absolute",
         zIndex: 9999,
@@ -220,15 +244,15 @@
       }
 
       // Generate picker list
-      listOptions = rvm.models().map(function (model) {
+      listOptions = vm.models().map(function (model) {
         var content = {value: model.data[valueProperty]()};
         if (labelProperty) { content.label = model.data[labelProperty](); }
         return m("option", content);
       });
 
       style.display = style.display || "inline-block";
-      // Hack size to fit button. Should do this in CSS
       
+      // Hack size to fit button.
       if (style.maxWidth) {
         maxWidth = style.maxWidth.replace("px", "");
         maxWidth = maxWidth - 35;
@@ -236,22 +260,22 @@
         inputStyle.maxWidth = maxWidth + "px";
       }
 
-      if (!rvm.model()) {
+      if (!vm.model()) {
         openMenuClass += " pure-menu-disabled";
       }
 
       // Build the view
       view = m("div", {style: style}, [
-        m.component(searchDialog.component({viewModel: rvm.searchDialog()})),
-        m.component(formDialog.component({viewModel: rvm.formDialog()})),
+        m.component(searchDialog.component({viewModel: vm.searchDialog()})),
+        m.component(formDialog.component({viewModel: vm.formDialog()})),
         m("input", {
           style: inputStyle,
-          list: rvm.listId(),
-          onchange: m.withAttr("value", rvm.onchange),
-          onfocus: rvm.onfocus,
-          onblur: rvm.onblur,
-          oninput: m.withAttr("value", rvm.oninput),
-          value: rvm.value()
+          list: vm.listId(),
+          onchange: m.withAttr("value", vm.onchange),
+          onfocus: vm.onfocus,
+          onblur: vm.onblur,
+          oninput: m.withAttr("value", vm.oninput),
+          value: vm.value()
         }),
         m("div", {
           style: {
@@ -261,8 +285,8 @@
         }, [
           m("div", {
             class: "pure-menu custom-restricted-width",
-            onmouseover: rvm.onmouseovermenu,
-            onmouseout: rvm.onmouseoutmenu,
+            onmouseover: vm.onmouseovermenu,
+            onmouseout: vm.onmouseoutmenu,
             style: {
               position: "absolute",
               display: "inline"
@@ -278,15 +302,15 @@
             }, [
               m("li", {
                 class: "pure-menu-link",
-                onclick: rvm.onclicksearch
+                onclick: vm.onclicksearch
               },  [m("i", {class:"fa fa-search"})], " Search"),
               m("li", {
                 class: openMenuClass,
-                onclick: rvm.onclickopen
+                onclick: vm.onclickopen
               },  [m("i", {class:"fa fa-folder-open"})], " Open"),
               m("li", {
                 class: "pure-menu-link",
-                onclick: rvm.onclicknew
+                onclick: vm.onclicknew
               },  [m("i", {class:"fa fa-plus-circle"})], " New")
             ])
           ])
@@ -295,11 +319,11 @@
           style: labelStyle
         }, [
           m("div", {
-            style: {marginLeft: "12px", marginTop: rvm.label() ? "6px" : ""} // Hack
-          }, rvm.label())
+            style: {marginLeft: "12px", marginTop: vm.label() ? "6px" : ""} // Hack
+          }, vm.label())
         ]),
         m("datalist", {
-          id: rvm.listId()
+          id: vm.listId()
         }, listOptions)
       ]);
  

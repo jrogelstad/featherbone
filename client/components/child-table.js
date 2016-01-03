@@ -12,6 +12,8 @@
     View model for child table.
 
     @param {Object} Options
+    @param {Array} [options.models] Array of child models
+    @param {Array} [options.config] Column configuration
   */
   childTable.viewModel = function (options) {
     var vm = {};

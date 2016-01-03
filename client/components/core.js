@@ -27,11 +27,10 @@
     Use of this function requires that "Checkbox" has been pre-registered,
     (i.e. "required") in the application before it is called.
 
-    @param {Object} Arguments object
-    @param {Object} [obj.model] Model
-    @param {String} [obj.key] Property key
-    @param {Object} [obj.viewModel] View Model
-    @param {Object} [obj.options] Options
+    @param {Object} Options object
+    @param {Object} [options.model] Model
+    @param {String} [options.key] Property key
+    @param {Object} [options.viewModel] View Model
   */
   f.buildInputComponent = function (obj) {
     var rel, w, component,
@@ -75,18 +74,35 @@
     }
 
     // Handle relations
-    rel = prop.type.relation.toCamelCase();
-    w = catalog.store().components()[rel + "Relation"]({
-      parentProperty: key,
-      isCell: opts.isCell,
-      style: opts.style
-    });
-
-    if (prop.isToOne() && w) {
-      return m.component(w, {
-        viewModel: obj.viewModel,
+    if (prop.isToOne()) {
+      rel = prop.type.relation.toCamelCase();
+      w = catalog.store().components()[rel + "Relation"]({
+        parentViewModel: obj.viewModel,
+        parentProperty: key,
+        isCell: opts.isCell,
         style: opts.style
       });
+
+      if (w) {
+        return m.component(w);
+      }
+    }
+
+    if (prop.isToMany()) {
+      /*
+      w = catalog.store().components().childTable({
+        models: obj.model.data[key](),
+        config: obj.viewModel.config()
+      });
+      if (w) {
+        return m.component(w, {
+          viewModel: obj.viewModel,
+          style: opts.style
+        });
+      }
+      */
+      console.log("Working on it...");
+      return;
     }
 
     console.log("Widget for property '" + key + "' is unknown");
@@ -112,11 +128,13 @@
     that = function (options) {
       options = options || {};
       var w = relationWidget({
+        parentViewModel: options.parentViewModel,
         parentProperty: options.parentProperty || relopts.parentProperty,
         valueProperty: options.valueProperty || relopts.valueProperty,
         labelProperty: options.labelProperty || relopts.labelProperty,
         form: options.form || relopts.form,
         list: options.list || relopts.list,
+        style: options.style || relopts.style,
         isCell: options.isCell === undefined ?
           relopts.isCell : options.isCell
       });
