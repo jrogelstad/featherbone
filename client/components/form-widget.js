@@ -43,13 +43,13 @@
 
     widget.view = function (ctrl) {
       var focusAttr, buildFieldset,
-        buildColumn, buildButtons,
+        buildUnit, buildButtons,
         vm = ctrl.vm,
         attrs = vm.config().attrs || [],
         selectedTab = vm.selectedTab(),
         model = vm.model(),
         d = model.data,
-        panes = [];
+        grids = [];
 
       buildButtons = function () {
         var className,
@@ -112,7 +112,7 @@
         });
       };
 
-      buildColumn = function (attrs, n) {
+      buildUnit = function (attrs, n) {
         var fieldset = buildFieldset(attrs);
 
         return m("div", {
@@ -124,30 +124,30 @@
         ]);
       };
 
-      // build pane/column matrix from inside out
+      // build grid matrix from inside out
       attrs.forEach(function (item) {
-        var pidx = item.pane || 0,
-          cidx = item.column || 0;
-        if (!panes[pidx]) {
-          panes[pidx] = [];
+        var gidx = item.grid || 0,
+          uidx = item.unit || 0;
+        if (!grids[gidx]) {
+          grids[gidx] = [];
         }
-        if (!panes[pidx][cidx]) {
-          panes[pidx][cidx] = [];
+        if (!grids[gidx][uidx]) {
+          grids[gidx][uidx] = [];
         } 
-        panes[pidx][cidx].push(item);
+        grids[gidx][uidx].push(item);
       });
 
       // Build pane content
-      panes = panes.map(function (pane, idx) {
-        var columns,
+      grids = grids.map(function (grid, idx) {
+        var units,
           className = "suite-tabbed-panes suite-tabbed-panes-form";
 
-        columns = pane.map(function (column) {
-          return buildColumn(column, pane.length);
+        units = grid.map(function (unit) {
+          return buildUnit(unit, grid.length);
         });
 
         if (!idx) {
-          return m("div", {class: "pure-g suite-top-pane"}, columns);
+          return m("div", {class: "pure-g suite-top-pane"}, units);
         }
 
         if (idx !== selectedTab) {
@@ -156,7 +156,7 @@
 
         return m("div", {class: className}, [
           buildButtons(),
-          m("div", {class: "pure-g suite-tabbed-pane"}, columns)
+          m("div", {class: "pure-g suite-tabbed-pane"}, units)
         ]);
       });
 
@@ -173,7 +173,7 @@
 
           e.style.maxHeight = bodyHeight + "px";
         }
-      }, panes);
+      }, grids);
     };
 
     return widget;
