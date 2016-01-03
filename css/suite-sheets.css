@@ -122,6 +122,11 @@
   border-width: thin;
 }
 
+.suite-sheet-group-tab-form {
+  position: relative;
+  top: -18px;
+}
+
 .suite-sheet-group-tab-active {
   background-color: #0078e7 !important;
   color: #fff !important;
@@ -147,9 +152,24 @@
   left: 175px;
 }
 
+.suite-top-pane {
+  margin: 10px;
+}
+
+.suite-tabbed-pane {
+  text-align: left;
+}
+
 .suite-tabbed-panes {
   border: solid thin blue;
   border-radius: 4px;
+}
+
+.suite-tabbed-panes-form {
+  text-align: center;
+  position: absolute;
+  width: 98%;
+  margin: 10px;
 }
 
 .suite-tabbed-panes-hidden {

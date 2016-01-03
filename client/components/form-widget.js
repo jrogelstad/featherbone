@@ -31,10 +31,12 @@
 
   formWidget.component = function (options) {
     var widget = {},
-      midTabClass = ["pure-button", "suite-sheet-group-tab"],
-      leftTabClass = ["pure-button", "suite-sheet-group-tab", "suite-sheet-group-tab-left"],
-      rightTabClass = ["pure-button", "suite-sheet-group-tab", "suite-sheet-group-tab-right"];
+      midTabClass = ["pure-button", "suite-sheet-group-tab", "suite-sheet-group-tab-form"],
+      leftTabClass = f.copy(midTabClass),
+      rightTabClass = f.copy(midTabClass);
 
+    leftTabClass.push("suite-sheet-group-tab-left");
+    rightTabClass.push("suite-sheet-group-tab-right");
     widget.controller = function () {
       this.vm = options.viewModel;
     };
@@ -52,7 +54,7 @@
       buildButtons = function () {
         var className,
           tabs = vm.config().panes || [],
-          last = panes.length - 1;
+          last = tabs.length - 1;
 
         return tabs.map(function (name, idx) {
           switch (idx)
@@ -70,7 +72,10 @@
           if (idx + 1 === selectedTab) {
             className.push("suite-sheet-group-tab-active");
           }
-          return m("button", {class: className.join(" ")}, name);
+          return m("button", {
+            class: className.join(" "),
+            onclick: vm.selectedTab.bind(this, idx +1)
+          }, name);
         });
       };
 
@@ -135,14 +140,14 @@
       // Build pane content
       panes = panes.map(function (pane, idx) {
         var columns,
-          className = "suite-tabbed-panes";
+          className = "suite-tabbed-panes suite-tabbed-panes-form";
 
         columns = pane.map(function (column) {
           return buildColumn(column, pane.length);
         });
 
         if (!idx) {
-          return m("div", {class: "pure-g"}, columns);
+          return m("div", {class: "pure-g suite-top-pane"}, columns);
         }
 
         if (idx !== selectedTab) {
@@ -151,7 +156,7 @@
 
         return m("div", {class: className}, [
           buildButtons(),
-          m("div", {class: "pure-g"}, columns)
+          m("div", {class: "pure-g suite-tabbed-pane"}, columns)
         ]);
       });
 
