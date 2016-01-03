@@ -75,7 +75,8 @@
 
     // Create table widget view model
     vm.tableWidget(tableWidget.viewModel({
-      config: options.config,
+      config: options.config.list,
+      feather: options.config.feather,
       search: vm.searchInput().value,
       ondblclick: vm.ok,
       outsideElementIds: [

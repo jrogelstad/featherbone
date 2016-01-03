@@ -279,7 +279,8 @@
 
     // Create table widget view model
     vm.tableWidget(tableWidget.viewModel({
-      config: vm.sheet(),
+      config: vm.sheet().list,
+      feather: vm.sheet().feather,
       search: vm.searchInput().value,
       ondblclick: vm.modelOpen,
       outsideElementIds: ["toolbar", "tabs"]

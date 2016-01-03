@@ -13,6 +13,7 @@
   require("workbook-display");
   require("checkbox");
   require("relation-widget");
+  //require("child-table");
 
   var m = require("mithril"),
     f = require("component-core"),

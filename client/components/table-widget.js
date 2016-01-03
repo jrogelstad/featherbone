@@ -38,15 +38,20 @@
   // Define workbook view model
   tableWidget.viewModel = function (options) {
     options = options || {};
-    var fromWidthIdx, dataTransfer,
+    var fromWidthIdx, dataTransfer, feather, modelName,
       vm = {};
+
+    if (options.feather) {
+      feather = catalog.getFeather(options.feather);
+      modelName = options.feather.toCamelCase();
+    }
 
     // ..........................................................
     // PUBLIC
     //
 
     vm.attrs = function () {
-      var columns = vm.config().list.columns,
+      var columns = vm.config().columns,
         result = columns.map(function(column) {
           return column.attr;
         });
@@ -59,7 +64,7 @@
       });
       return col ? col.toCamelCase(true) : undefined;
     };
-    vm.feather = m.prop(catalog.getFeather(options.config.feather));
+    vm.feather = m.prop(feather);
     vm.filter = f.prop();
     vm.goNextRow = function () {
       var list = vm.models(),
@@ -104,7 +109,7 @@
     vm.modelNew = function () {
       return vm.mode().modelNew();
     };
-    vm.models = m.prop();
+    vm.models = m.prop(options.models);
     vm.nextFocus = m.prop();
     vm.ondblclick = function (model) {
       vm.select(model);
@@ -143,7 +148,7 @@
       case "width":
         if (fromWidthIdx <= toIdx) {
           widthStart = dataTransfer.widthStart - 0;
-          column = vm.config().list.columns[fromWidthIdx];
+          column = vm.config().columns[fromWidthIdx];
           oldWidth = column.width || COL_WIDTH_DEFAULT;
           oldWidth = oldWidth.replace("px", "") - 0;
           newWidth = oldWidth - (widthStart - ev.clientX);
@@ -285,10 +290,12 @@
     //
 
     vm.outsideElementIds().push(vm.ids().header);
-    vm.filter(f.copy(options.config.list.filter || {}));
-    vm.models = catalog.store().models()[options.config.feather.toCamelCase()].list({
-      filter: vm.filter()
-    });
+    vm.filter(f.copy(options.config.filter || {}));
+    if (!options.models) {
+      vm.models = catalog.store().models()[modelName].list({
+        filter: vm.filter()
+      });
+    }
 
     // Bind refresh to filter change event
     vm.filter.state().resolve("/Ready").enter(function () {
@@ -338,7 +345,7 @@
             }
           };
           this.modelNew = function () {
-            var  name = vm.config().feather.toCamelCase(),
+            var  name = vm.feather().name.toCamelCase(),
               model = catalog.store().models()[name](),
               input = "input" + vm.defaultFocus(model).toCamelCase(true);
             vm.models().add(model);
@@ -437,13 +444,13 @@
       // Build header
       idx = 0;
       header = (function () {
-        var ths = config.list.columns.map(function (col) {
+        var ths = config.columns.map(function (col) {
             var hview, order, name,
               key = col.attr,
               icon = [],
               fidx = findFilterIndex(key, "sort"),
               operators = f.operators,
-              columnWidth = config.list.columns[idx].width || COL_WIDTH_DEFAULT;
+              columnWidth = config.columns[idx].width || COL_WIDTH_DEFAULT;
 
             columnWidth = (columnWidth.replace("px", "") - 6) + "px"; 
 
@@ -485,7 +492,7 @@
                 ondragover: vm.ondragover.bind(this, idx),
                 draggable: true,
                 ondragstart: vm.ondragstart.bind(this, idx, "column"),
-                ondrop: vm.ondrop.bind(this, idx, "column", config.list.columns),
+                ondrop: vm.ondrop.bind(this, idx, "column", config.columns),
                 class: "suite-column-header",
                 style: {
                   minWidth: columnWidth,
@@ -545,7 +552,7 @@
               prop = f.resolveProperty(model, col),
               value = prop(),
               format = prop.format || prop.type,
-              columnWidth = config.list.columns[idx].width || COL_WIDTH_DEFAULT,
+              columnWidth = config.columns[idx].width || COL_WIDTH_DEFAULT,
               tdOpts = {
                 onclick: vm.toggleSelection.bind(this, model, col),
                 class: "suite-cell-view",
@@ -620,7 +627,7 @@
             var cell, tdOpts, inputOpts,
               prop = f.resolveProperty(model, col),
               id = "input" + col.toCamelCase(true),
-              columnWidth = config.list.columns[idx].width || COL_WIDTH_DEFAULT;
+              columnWidth = config.columns[idx].width || COL_WIDTH_DEFAULT;
 
             inputOpts = {
               id: id,
