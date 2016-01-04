@@ -38,13 +38,10 @@
   // Define workbook view model
   tableWidget.viewModel = function (options) {
     options = options || {};
-    var fromWidthIdx, dataTransfer, feather, modelName,
+    var fromWidthIdx, dataTransfer,
+      feather = catalog.getFeather(options.feather),
+      modelName = options.feather.toCamelCase(),
       vm = {};
-
-    if (options.feather) {
-      feather = catalog.getFeather(options.feather);
-      modelName = options.feather.toCamelCase();
-    }
 
     // ..........................................................
     // PUBLIC

@@ -83,26 +83,15 @@
         style: opts.style
       });
 
-      if (w) {
-        return m.component(w);
-      }
+      if (w) { return m.component(w); }
     }
 
     if (prop.isToMany()) {
-      /*
       w = catalog.store().components().childTable({
-        models: obj.model.data[key](),
-        config: obj.viewModel.config()
+        parentViewModel: obj.viewModel,
+        parentProperty: key
       });
-      if (w) {
-        return m.component(w, {
-          viewModel: obj.viewModel,
-          style: opts.style
-        });
-      }
-      */
-      console.log("Working on it...");
-      return;
+      if (w) { return m.component(w); }
     }
 
     console.log("Widget for property '" + key + "' is unknown");

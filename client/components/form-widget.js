@@ -53,7 +53,7 @@
 
       buildButtons = function () {
         var className,
-          tabs = vm.config().panes || [],
+          tabs = vm.config().tabs || [],
           last = tabs.length - 1;
 
         return tabs.map(function (name, idx) {

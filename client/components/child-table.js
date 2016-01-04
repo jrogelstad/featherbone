@@ -13,6 +13,7 @@
 
     @param {Object} Options
     @param {Array} [options.models] Array of child models
+    @param {String} [options.feather] Feather
     @param {Array} [options.config] Column configuration
   */
   childTable.viewModel = function (options) {
@@ -49,6 +50,7 @@
     vm.tableWidget(tableWidget.viewModel({
       config: options.config,
       models: options.models,
+      feather: options.feather,
       //ondblclick: vm.formDialog().show,
       outsideElementIds: [],
       heightMargin: 0
@@ -71,6 +73,7 @@
       icon: "remove",
       style: {backgroundColor: "white"}
     }));
+    vm.buttonRemove().disable();
 
     vm.buttonUndo(button.viewModel({
       onclick: vm.tableWidget().undo,
@@ -79,9 +82,10 @@
       icon: "undo",
       style: {backgroundColor: "white"}
     }));
+    vm.buttonUndo().hide();
 
     vm.buttonOpen(button.viewModel({
-      onclick: vm.formDialog().show,
+      //onclick: vm.formDialog().show,
       title: "Open",
       hotkey: "O",
       icon: "folder-open",
@@ -90,6 +94,7 @@
         float: "right"
       }
     }));
+    vm.buttonOpen().disable();
 
     return vm;
   };
@@ -100,10 +105,30 @@
     @params {Object} View model
   */
   childTable.component = function (options) {
-    var component = {};
+    var config,
+      component = {},
+      parentViewModel = options.parentViewModel,
+      parentProperty = options.parentProperty,
+      prop = parentViewModel.model().data[parentProperty],
+      models = prop(),
+      feather = prop.type.relation;
+
+    config = parentViewModel.config().attrs.find(function (item)  {
+      return item.attr === parentProperty;
+    });
 
     component.controller = function () {
-      this.vm = options.viewModel;
+      var relations = options.parentViewModel.relations();
+
+      // Set up viewModel if required
+      if (!relations[parentProperty]) {
+        relations[parentProperty] = childTable.viewModel({
+          models: models,
+          feather: feather,
+          config: config
+        });
+      }
+      this.vm = relations[parentProperty];
     };
 
     component.view = function (ctrl) {
