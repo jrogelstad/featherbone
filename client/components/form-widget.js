@@ -82,26 +82,32 @@
       // Build elements
       buildFieldset = function (attrs) {
         return attrs.map(function (item) {
-          var result,
-            color = "Black",
+          var result, labelOpts,
             key = item.attr,
             prop = d[key],
             value = prop();
+
+          labelOpts = {
+            for: key,
+            class: "suite-form-label",
+            style: {}
+          };
+
+          if (item.label === false) {
+            labelOpts.style.display = "none";
+          }
 
           if (!focusAttr) { focusAttr = key; }
 
           if (prop.isRequired() && (value === null ||
             (prop.type === "string" && !value))) {
-            color = "Red";
+            labelOpts.style.color = "Red";
           }
           result = m("div", {
             class: "pure-control-group"
           }, [
-            m("label", {
-              for: key,
-              class: "suite-form-label",
-              style: {color: color}
-            }, item.label || key.toProperCase() + ":"),
+            m("label", labelOpts,
+              item.label || key.toProperCase() + ":"),
             f.buildInputComponent({
               model: model,
               key: key,
