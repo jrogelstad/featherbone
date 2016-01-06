@@ -488,10 +488,10 @@
         keys = Object.keys(props || {});
 
       onFetching = function () {
-        state.goto("/Busy/Fetching");
+        this.state().goto("/Busy/Fetching");
       };
       onFetched = function () {
-        state.goto("/Ready/Fetched");
+        this.state().goto("/Ready/Fetched");
       };
 
       // Function to extend child array if applicable
@@ -529,6 +529,9 @@
 
           // Notify parent if child becomes dirty
           value.state().resolve("/Ready/Fetched/Dirty").enter(function () {
+            state.send("changed");
+          });
+          value.state().resolve("/Delete").enter(function () {
             state.send("changed");
           });
 
@@ -574,14 +577,15 @@
         };
 
         ary.toJSON = function () {
-          var item, value,
+          var item, value, isNotDeleting,
             result = [],
             len = cache.length,
             i = 0;
 
           while (i < len) {
             item = cache[i];
-            value = item ? item.toJSON() : undefined;
+            isNotDeleting = item.state().current()[0] !== "/Delete";
+            value = (item && isNotDeleting) ? item.toJSON() : undefined;
             result.push(value);
             i += 1;
           }
@@ -719,18 +723,8 @@
         prop.isRequired(props[key].isRequired);
         prop.isReadOnly(props[key].isReadOnly);
 
-        // Limit public access to state
+        // Add state to map for event helper functions
         stateMap[key] = prop.state();
-        prop.state = function () {
-          return {
-            current: function () {
-              return stateMap[key].current();
-            },
-            send: function (str) {
-              return stateMap[key].send(str);
-            }
-          };
-        };
 
         // Report property changed event up to model
         that.onChanged(key, function () { state.send("changed"); });
@@ -779,22 +773,6 @@
           this.state("Clean", function () {
             this.event("changed", function () {
               this.goto("../Dirty");
-            });
-            this.enter(function () {
-              // Recursively set all relations clean also
-              Object.keys(d).forEach(function(key) {
-                var prop = d[key],
-                  clean = "/Ready/Fetched/Clean";
-                if (prop.isToOne() && prop()) {
-                  prop().state().goto(clean);
-                } else if (prop.isToMany()) {
-                  prop().forEach(function (child) {
-                    child.state().goto(clean);
-                  });
-                }
-              });
-              
-
             });
             this.canDelete = m.prop(true);
             this.canSave = m.prop(false);
