@@ -17,7 +17,8 @@
     @param {Array} [options.config] Column configuration
   */
   childTable.viewModel = function (options) {
-    var vm = {};
+    var tableState,
+      vm = {};
 
     // ..........................................................
     // PUBLIC
@@ -95,6 +96,27 @@
       }
     }));
     vm.buttonOpen().disable();
+
+    // Bind buttons to table widget state change events
+    tableState = vm.tableWidget().state();
+    tableState.resolve("/Selection/Off").enter(function () {
+      vm.buttonOpen().disable();
+      vm.buttonRemove().disable();
+      vm.buttonRemove().show();
+      vm.buttonUndo().hide();
+    });
+    tableState.resolve("/Selection/On").enter(function () {
+      vm.buttonOpen().enable();
+      vm.buttonRemove().enable();
+    });
+    tableState.resolve("/Selection/On/Clean").enter(function () {
+      vm.buttonRemove().show();
+      vm.buttonUndo().hide();
+    });
+    tableState.resolve("/Selection/On/Dirty").enter(function () {
+      vm.buttonRemove().hide();
+      vm.buttonUndo().show();
+    });
 
     return vm;
   };
