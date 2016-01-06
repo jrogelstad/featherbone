@@ -788,8 +788,8 @@
                 if (prop.isToOne() && prop()) {
                   prop().state().goto(clean);
                 } else if (prop.isToMany()) {
-                  prop().forEach(function (model) {
-                    model.state().goto(clean);
+                  prop().forEach(function (child) {
+                    child.state().goto(clean);
                   });
                 }
               });
@@ -897,7 +897,8 @@
       });
     });
 
-    // Add standard validator
+    // Add standard validator that checks required properties
+    // and validates children
     validator = function () {
       var name,
         keys = Object.keys(d),
@@ -908,11 +909,20 @@
             name = key;
             return true;
           }
+
+          // Recursively validate children
+          if (prop.isToMany() && prop().length) {
+            prop().forEach(function (child) {
+              if (!child.isValid()) {
+                throw child.lastError();
+              }
+            });
+          }
         };
 
       // Validate required values
       if (keys.some(requiredIsNull)) {
-        throw "\"" + name + "\" is required";
+        throw "\"" + name.toName() + "\" is required";
       }
 
     };

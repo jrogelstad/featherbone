@@ -9,7 +9,7 @@
     formWidget = require("form-widget");
 
   formDisplay.viewModel = function (options) {
-    var vm = {}, state, toggleNew, isDisabled,
+    var vm = {}, state, toggleNew, isDisabled, applyTitle, saveTitle,
       wbkroute = "/" + options.workbook + "/" + options.sheet.name,
       frmroute = "/" + options.workbook + "/" + options.form;
 
@@ -79,8 +79,22 @@
 
     // Bind model state to display state
     isDisabled = function () { return !vm.model().canSave(); };
+    applyTitle = vm.buttonApply().title;
+    saveTitle = vm.buttonSave().title;
     vm.buttonApply().isDisabled = isDisabled;
+    vm.buttonApply().title = function () {
+      if (isDisabled()) {
+        return vm.model().lastError() || "No changes to apply";
+      }
+      return applyTitle();
+    };
     vm.buttonSave().isDisabled = isDisabled;
+    vm.buttonSave().title = function () {
+      if (isDisabled()) {
+        return vm.model().lastError() || "No changes to save";
+      }
+      return saveTitle();
+    };
     toggleNew = function (isNew) {
       if (isNew) {
         vm.buttonSaveAndNew().label("&New");
