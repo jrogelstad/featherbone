@@ -780,6 +780,22 @@
             this.event("changed", function () {
               this.goto("../Dirty");
             });
+            this.enter(function () {
+              // Recursively set all relations clean also
+              Object.keys(d).forEach(function(key) {
+                var prop = d[key],
+                  clean = "/Ready/Fetched/Clean";
+                if (prop.isToOne() && prop()) {
+                  prop().state().goto(clean);
+                } else if (prop.isToMany()) {
+                  prop().forEach(function (model) {
+                    model.state().goto(clean);
+                  });
+                }
+              });
+              
+
+            });
             this.canDelete = m.prop(true);
             this.canSave = m.prop(false);
             this.canUndo = m.prop(false);
