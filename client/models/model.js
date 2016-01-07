@@ -513,34 +513,36 @@
 
         // Extend array
         ary.add = function (value) {
+          var result;
           prop.state().send("change");
           if (value && value.isModel) { value = value.toJSON(); }
 
           // Create an instance
-          value = catalog.store().models()[name](value);
+          result = catalog.store().models()[name]();
+          result.set(value, true, true);
 
           // Synchronize statechart
-          state.resolve("/Busy/Fetching").enter(onFetching.bind(value));
-          state.resolve("/Ready/Fetched").enter(onFetched.bind(value));
+          state.resolve("/Busy/Fetching").enter(onFetching.bind(result));
+          state.resolve("/Ready/Fetched").enter(onFetched.bind(result));
 
           // Disable save event on children
-          value.state().resolve("/Ready/New").event("save");
-          value.state().resolve("/Ready/Fetched/Dirty").event("save");
+          result.state().resolve("/Ready/New").event("save");
+          result.state().resolve("/Ready/Fetched/Dirty").event("save");
 
           // Notify parent if child becomes dirty
-          value.state().resolve("/Ready/Fetched/Dirty").enter(function () {
+          result.state().resolve("/Ready/Fetched/Dirty").enter(function () {
             state.send("changed");
           });
-          value.state().resolve("/Delete").enter(function () {
+          result.state().resolve("/Delete").enter(function () {
             state.send("changed");
           });
 
           // Notify parent properties changed
-          ary.push(value);
-          cache.push(value);
+          ary.push(result);
+          cache.push(result);
           prop.state().send("changed");
 
-          return value;
+          return result;
         };
 
         ary.clear = function () {
@@ -585,7 +587,7 @@
           while (i < len) {
             item = cache[i];
             isNotDeleting = item.state().current()[0] !== "/Delete";
-            value = (item && isNotDeleting) ? item.toJSON() : undefined;
+            value = isNotDeleting ? item.toJSON() : undefined;
             result.push(value);
             i += 1;
           }
@@ -629,7 +631,8 @@
 
               if (value === undefined || value === null) { return null; }
               if (value && value.isModel) { value = value.toJSON(); }
-              result =  catalog.store().models()[name](value, cFeather);
+              result =  catalog.store().models()[name]({}, cFeather);
+              result.set(value, true, true);
 
               // Synchronize statechart
               state.resolve("/Busy/Fetching").enter(onFetching.bind(result));
