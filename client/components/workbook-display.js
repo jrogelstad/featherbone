@@ -375,8 +375,8 @@
     // Bind button states to list statechart events
     listState = vm.tableWidget().models().state();
     listState.resolve("/Fetched").enter(function () {
-      if (vm.tableWidget().selection() &&
-          vm.tableWidget().model().canUndo()) {
+      var model = vm.tableWidget().selection();
+      if (model && model.canUndo()) {
         vm.buttonDelete().hide();
         vm.buttonUndo().show();
         return;

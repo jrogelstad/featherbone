@@ -1,12 +1,25 @@
 (function () {
   "use strict";
 
-  var childTable = {},
+  var findRoot,
+    childTable = {},
     m = require("mithril"),
     button = require("button"),
     catalog = require("catalog"),
     //formDialog = require("form-dialog"),
     tableWidget = require("table-widget");
+
+  findRoot = function (model) {
+    var parent,
+      d = model.data,
+      keys = Object.keys(d);
+
+    parent = keys.find(function (key) {
+      if (d[key].isChild()) { return true; }
+    });
+
+    return parent ? findRoot(d[parent]()) : model;
+  };
 
   /**
     View model for child table.
@@ -18,6 +31,7 @@
   */
   childTable.viewModel = function (options) {
     var tableState,
+      root = findRoot(options.parentModel),
       vm = {};
 
     // ..........................................................
@@ -117,6 +131,16 @@
       vm.buttonRemove().hide();
       vm.buttonUndo().show();
     });
+    root.state().resolve("/Ready/Fetched/Clean").enter(function () {
+      var selection = vm.tableWidget().selection(),
+        found = function (model) {
+          return selection.id() === model.id();
+        };
+      // Unselect potentially deleted model
+      if (selection && !vm.tableWidget().models().some(found)) {
+        vm.tableWidget().select(undefined);
+      }
+    });
 
     return vm;
   };
@@ -145,6 +169,7 @@
       // Set up viewModel if required
       if (!relations[parentProperty]) {
         relations[parentProperty] = childTable.viewModel({
+          parentModel: parentViewModel.model(),
           models: models,
           feather: feather,
           config: config
