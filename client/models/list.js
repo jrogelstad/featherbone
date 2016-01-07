@@ -25,7 +25,7 @@
     @return {Function}
   */
   list = function (feather) {
-    var models, plural, state, doFetch, doSave, onClean, onDirty,
+    var models, plural, state, doFetch, doSave, onClean, onDirty, onDelete,
       name = feather.toCamelCase(),
       ary = [],
       dirty = [],
@@ -55,6 +55,7 @@
       mstate.resolve("/Delete").enter(onDirty.bind(model));
       mstate.resolve("/Ready/Fetched/Dirty").enter(onDirty.bind(model));
       mstate.resolve("/Ready/Fetched/Clean").enter(onClean.bind(model));
+      mstate.resolve("/Deleted").enter(onDelete.bind(model));
 
       if (model.state().current()[0] === "/Ready/New") {
         dirty.push(model);
@@ -119,6 +120,11 @@
       state.send("changed");
     };
 
+    onDelete = function () {
+      ary.remove(this);
+      state.send("changed");
+    };
+
     onDirty = function () {
       dirty.push(this);
       state.send("changed");
@@ -161,11 +167,7 @@
 
     doSave = function () {
       dirty.forEach(function (model) {
-        model.save().then(function() {
-          if (model.state().current()[0] === "/Deleted") {
-            ary.remove(model);
-          }
-        });
+        model.save();
       });
     };
 
