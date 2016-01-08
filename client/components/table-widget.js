@@ -38,7 +38,7 @@
   // Define workbook view model
   tableWidget.viewModel = function (options) {
     options = options || {};
-    var fromWidthIdx, dataTransfer,
+    var fromWidthIdx, dataTransfer, selectionChanged,
       feather = catalog.getFeather(options.feather),
       modelName = options.feather.toCamelCase(),
       vm = {};
@@ -249,9 +249,22 @@
     vm.scrollbarWidth = m.prop(scrWidth);
     vm.search = options.search || m.prop("");
     vm.select = function (model) {
-      if (vm.selection() !== model) {
+      var idx, state,
+        selection = vm.selection();
+      if (selection !== model) {
+        // Remove old state binding
+        if (selection) {
+          state = selection.state().resolve("/Ready/Fetched/Dirty");
+          idx = state.enters.indexOf(selectionChanged);
+          state.enters.splice(idx, 1);
+        }
         vm.relations({});
         vm.selection(model);
+        // Add new state binding
+        if (model) {
+          state = model.state().resolve("/Ready/Fetched/Dirty");
+          state.enter(selectionChanged);
+        }
       }
 
       if (vm.selection()) {
@@ -293,6 +306,10 @@
         filter: vm.filter()
       });
     }
+
+    selectionChanged = function () {
+      vm.state().send("changed");
+    };
 
     // Bind refresh to filter change event
     vm.filter.state().resolve("/Ready").enter(function () {
@@ -375,7 +392,11 @@
             }
             return "./Clean";
           });
-          this.state("Clean");
+          this.state("Clean", function () {
+            this.event("changed", function () {
+              this.goto("../Dirty");
+            });
+          });
           this.state("Dirty");
         });
       });
