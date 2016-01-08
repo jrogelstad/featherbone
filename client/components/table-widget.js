@@ -38,7 +38,8 @@
   // Define workbook view model
   tableWidget.viewModel = function (options) {
     options = options || {};
-    var fromWidthIdx, dataTransfer, selectionChanged,
+    var fromWidthIdx, dataTransfer,
+      selectionChanged, selectionFetched,
       feather = catalog.getFeather(options.feather),
       modelName = options.feather.toCamelCase(),
       vm = {};
@@ -257,6 +258,9 @@
           state = selection.state().resolve("/Ready/Fetched/Dirty");
           idx = state.enters.indexOf(selectionChanged);
           state.enters.splice(idx, 1);
+          state = selection.state().resolve("/Ready/Fetched/Clean");
+          idx = state.enters.indexOf(selectionFetched);
+          state.enters.splice(idx, 1);
         }
         vm.relations({});
         vm.selection(model);
@@ -264,6 +268,8 @@
         if (model) {
           state = model.state().resolve("/Ready/Fetched/Dirty");
           state.enter(selectionChanged);
+          state = model.state().resolve("/Ready/Fetched/Clean");
+          state.enter(selectionFetched);
         }
       }
 
@@ -309,6 +315,10 @@
 
     selectionChanged = function () {
       vm.state().send("changed");
+    };
+
+    selectionFetched = function () {
+      vm.state().send("fetched");
     };
 
     // Bind refresh to filter change event
@@ -397,7 +407,11 @@
               this.goto("../Dirty");
             });
           });
-          this.state("Dirty");
+          this.state("Dirty", function () {
+            this.event("fetched", function () {
+              this.goto("../Clean");
+            });
+          });
         });
       });
     }));
