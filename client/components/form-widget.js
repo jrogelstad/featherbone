@@ -97,13 +97,21 @@
             labelOpts.style.display = "none";
           }
 
-          if (!focusAttr) { focusAttr = key; }
+          if (!prop.isReadOnly() && !focusAttr) {
+            focusAttr = key;
+          }
 
           if (prop.isRequired() && (value === null ||
             (prop.type === "string" && !value))) {
             labelOpts.style.color = "Red";
           }
           result = m("div", {
+            config: function () {
+              if (focusAttr === key && vm.isFirstLoad()) {
+                document.getElementById(key).focus();
+                vm.isFirstLoad(false);
+              }
+            },
             class: "pure-control-group"
           }, [
             m("label", labelOpts,
