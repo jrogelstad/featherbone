@@ -258,6 +258,9 @@
           state = selection.state().resolve("/Ready/Fetched/Dirty");
           idx = state.enters.indexOf(selectionChanged);
           state.enters.splice(idx, 1);
+          state = selection.state().resolve("/Delete");
+          idx = state.enters.indexOf(selectionChanged);
+          state.enters.splice(idx, 1);
           state = selection.state().resolve("/Ready/Fetched/Clean");
           idx = state.enters.indexOf(selectionFetched);
           state.enters.splice(idx, 1);
@@ -267,6 +270,8 @@
         // Add new state binding
         if (model) {
           state = model.state().resolve("/Ready/Fetched/Dirty");
+          state.enter(selectionChanged);
+          state = model.state().resolve("/Delete");
           state.enter(selectionChanged);
           state = model.state().resolve("/Ready/Fetched/Clean");
           state.enter(selectionFetched);
