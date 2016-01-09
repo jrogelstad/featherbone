@@ -111,7 +111,11 @@
           controller.doSelect(obj, false, isSuperUser);
           return;
         case "POST":
-          transaction = controller.doInsert;
+          if (obj.id) {
+            transaction = controller.doUpsert;
+          } else {
+            transaction = controller.doInsert;
+          }
           break;
         case "PATCH":
           transaction = controller.doUpdate;

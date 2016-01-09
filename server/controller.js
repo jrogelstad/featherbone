@@ -428,7 +428,6 @@
       Insert records for a passed object.
 
       @param {Object} Request payload
-      @param {Object} [payload.id] Id of record to insert
       @param {Object} [payload.data] Data to insert
       @param {Object} [payload.client] Database client
       @param {Function} [payload.callback] callback
@@ -780,6 +779,7 @@
 
       @param {Object} Request payload
       @param {Object} [payload.id] Id of record to select
+      @param {Object} [payload.name] Name of feather
       @param {Object} [payload.filter] Filter criteria of records to select
       @param {Object} [payload.client] Database client
       @param {Function} [payload.callback] callback
@@ -1282,6 +1282,50 @@
         name: obj.name,
         client: obj.client,
         callback: afterGetFeather
+      });
+
+      return this;
+    },
+
+    /**
+      Update data if matching id found, otherwise insert.
+
+      @param {Object} Request payload
+      @param {Object} [payload.id] Record ID
+      @param {Object} [payload.name] Feather name
+      @param {Object} [payload.data] Data to insert
+      @param {Object} [payload.client] Database client
+      @param {Function} [payload.callback] callback
+      @return receiver
+    */
+    doUpsert: function (obj) {
+      var afterSelect = function (err, resp) {
+        if (err) {
+          obj.callback(err);
+          return;
+        }
+
+        if (resp) {
+          obj.data = jsonpatch.compare(resp, obj.data).filter(function (item) {
+            return item.op !== 'remove';
+          });
+          if (obj.data.length) {
+            that.doUpdate(obj);
+          } else {
+            obj.callback(null, []);
+          }
+        } else {
+          that.doInsert(obj);
+        }
+
+        return;
+      };
+
+      that.doSelect({
+        id: obj.id,
+        name: obj.name,
+        client: obj.client,
+        callback: afterSelect
       });
 
       return this;

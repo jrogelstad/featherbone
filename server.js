@@ -139,14 +139,12 @@
     payload.user = getCurrentUser();
     payload.callback = callback;
 
-    if (req.method !== "POST") {
-      if (id) {
-        payload.id = id;
-      } else {
-        payload.properties = properties;
-        payload.filter = filter;
-        filter.offset = filter.offset || 0;
-      }
+    if (id) {
+      payload.id = id;
+    } else if (req.method !== "POST") {
+      payload.properties = properties;
+      payload.filter = filter;
+      filter.offset = filter.offset || 0;
     }
 
     console.log(JSON.stringify(payload, null, 2));
@@ -285,6 +283,7 @@
     keys.forEach(function (key) {
       name = key.toSpinalCase();
       dataRouter.route("/" + name + "/:id")
+        .post(doRequest)
         .get(doRequest)
         .patch(doRequest)
         .delete(doRequest);
