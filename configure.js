@@ -37,7 +37,8 @@
       var conn = "postgres://" +
         config.user + ":" +
         config.password + "@" +
-        config.server + "/" +
+        config.server + ":" +
+        config.port + "/" +
         config.database;
 
       user = config.user;
