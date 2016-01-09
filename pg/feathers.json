@@ -141,6 +141,33 @@
                 "description": "Flag to show or hide label",
                 "type": "boolean",
                 "default": true
+            },
+            "label": {
+                "description": "Alternate attribute label",
+                "type": "string"
+            }
+        }
+    },
+    {
+        "name": "FormAttrColumn",
+        "plural": "FormAttrColumns",
+        "description": "Form attribute column definitions for child tables",
+        "authorization": false,
+        "properties": {
+            "parent": {
+                "description": "Parent form attribute",
+                "type": {
+                    "relation": "FormAttr",
+                    "childOf": "columns"
+                }
+            },
+            "attr": {
+                "description": "Attribute name",
+                "type": "string"
+            },
+            "label": {
+                "description": "Alternate column label",
+                "type": "string"
             }
         }
     }
