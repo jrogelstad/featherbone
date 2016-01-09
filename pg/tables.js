@@ -2,7 +2,7 @@
   "strict";
 
   exports.execute = function (obj) {
-    var createCamelCase, createObject, createFeather, createAuth, createObjectfolder,
+    var createCamelCase, createObject, createFeather, createAuth,
       createModule, createWorkbook, createSettings, createUser, sqlCheck,
       done, sql, params;
 
@@ -73,18 +73,16 @@
             "pk serial PRIMARY KEY," +
             "object_pk bigint not null," +
             "role_pk bigint not null," +
-            "is_inherited boolean not null," +
             "can_create boolean not null," +
             "can_read boolean not null," +
             "can_update boolean not null," +
             "can_delete boolean not null," +
             "is_member_auth boolean not null," +
-            "CONSTRAINT \"$auth_object_pk_role_pk_is_inherited__is_member_auth_key\" UNIQUE (object_pk, role_pk, is_inherited, is_member_auth));" +
+            "CONSTRAINT \"$auth_object_pk_role_pk_is_member_auth_key\" UNIQUE (object_pk, role_pk, is_member_auth));" +
             "COMMENT ON TABLE \"$auth\" IS 'Table for storing object level authorization information';" +
             "COMMENT ON COLUMN \"$auth\".pk IS 'Primary key';" +
             "COMMENT ON COLUMN \"$auth\".object_pk IS 'Primary key for object authorization applies to';" +
             "COMMENT ON COLUMN \"$auth\".role_pk IS 'Primary key for role authorization applies to';" +
-            "COMMENT ON COLUMN \"$auth\".is_inherited IS 'Authorization is inherited from a parent folder';" +
             "COMMENT ON COLUMN \"$auth\".can_create IS 'Can create the object';" +
             "COMMENT ON COLUMN \"$auth\".can_read IS 'Can read the object';" +
             "COMMENT ON COLUMN \"$auth\".can_update IS 'Can update the object';" +
@@ -112,32 +110,9 @@
             "CONSTRAINT feather_pkey PRIMARY KEY (_pk), " +
             "CONSTRAINT feather_id_key UNIQUE (id)) INHERITS (object);" +
             "COMMENT ON TABLE \"$feather\" is 'Internal table for storing class names';";
-          obj.client.query(sql, createObjectfolder);
-          return;
-        }
-        createObjectfolder();
-      });
-    };
-
-    // Create the object object folder table
-    createObjectfolder = function () {
-      sqlCheck('$objectfolder', function (err, exists) {
-        if (err) {
-          obj.callback(err);
-          return;
-        }
-
-        if (!exists) {
-          sql = "CREATE TABLE \"$objectfolder\" (" +
-            "object_pk bigint PRIMARY KEY," +
-            "folder_pk bigint);" +
-            "COMMENT ON TABLE \"$objectfolder\" IS 'Table for storing object folder locations';" +
-            "COMMENT ON COLUMN \"$objectfolder\".object_pk IS 'Object key';" +
-            "COMMENT ON COLUMN \"$objectfolder\".folder_pk IS 'Folder key';";
           obj.client.query(sql, createModule);
           return;
         }
-
         createModule();
       });
     };
@@ -330,7 +305,6 @@
 
   DROP TABLE object CASCADE;
   DROP TABLE "$auth";
-  DROP TABLE "$objectfolder";
   DROP TABLE "$module";
   DROP TABLE "$sheet";
   DROP TABLE "$user";

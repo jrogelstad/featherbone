@@ -1,20 +1,3 @@
-/**
-    Featherbone is a JavaScript based persistence framework for building object
-    relational database applications
-    
-    Copyright (C) 2015  John Rogelstad
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-**/
-
 (function (exports) {
   "strict";
 
@@ -29,7 +12,6 @@
     ops = Object.keys(f.operators),
     settings = {},
     PKCOL = "_pk",
-    ROOT = "global",
     types = {
       object: {type: "json", default: {}},
       array: {type: "json", default: []},
@@ -447,7 +429,6 @@
 
       @param {Object} Request payload
       @param {Object} [payload.id] Id of record to insert
-      @param {Object} [payload.folder] Folder to attached to. Default "Global"
       @param {Object} [payload.data] Data to insert
       @param {Object} [payload.client] Database client
       @param {Function} [payload.callback] callback
@@ -1973,8 +1954,7 @@
         sql = "SELECT auth.* FROM \"$auth\" AS auth " +
           "JOIN object ON object._pk=object_pk " +
           "JOIN role ON role._pk=role_pk " +
-          "WHERE object.id=$1 AND role.id=$2 AND is_member_auth=$3 " +
-          " ORDER BY is_inherited";
+          "WHERE object.id=$1 AND role.id=$2 AND is_member_auth=$3 ";
         obj.client.query(sql, [id, obj.role, isMember], afterQueryAuth);
       };
 
@@ -1986,7 +1966,7 @@
 
         result = resp.rows[0] || false;
 
-        if (result && !result.is_inherited) {
+        if (result) {
           pk = result.pk;
 
           if (!hasAuth && isMember) {
@@ -2009,10 +1989,10 @@
               pk
             ];
           }
-        } else if (hasAuth || (!isMember || result.is_inherited)) {
+        } else if (hasAuth || !isMember) {
 
           sql = "INSERT INTO \"$auth\" VALUES (" +
-            "nextval('$auth_pk_seq'), $1, $2, false," +
+            "nextval('$auth_pk_seq'), $1, $2," +
             "$3, $4, $5, $6, $7)";
           params = [
             objPk,
@@ -2821,8 +2801,7 @@
       @return {String}
     */
     saveWorkbook: function (obj) {
-      var row, nextWorkbook, wb, sql, params, authorization,
-        pk, folder, id,
+      var row, nextWorkbook, wb, sql, params, authorization, id,
         findSql = "SELECT * FROM \"$workbook\" WHERE name = $1;",
         workbooks = Array.isArray(obj.specs) ? obj.specs : [obj.specs],
         len = workbooks.length,
@@ -2831,7 +2810,6 @@
       nextWorkbook = function () {
         if (n < len) {
           wb = workbooks[n];
-          folder = wb.folder || ROOT;
           authorization = wb.authorization;
           n += 1;
 
@@ -2845,7 +2823,7 @@
 
             row = resp.rows[0];
             if (row) {
-              pk = row[PKCOL];
+
               // Update workbook
               sql = "UPDATE \"$workbook\" SET " +
                 "updated_by=$2, updated=now(), " +
@@ -2890,60 +2868,38 @@
             }
 
             // Execute
-            obj.client.query(sql, params, function (err, resp) {
+            obj.client.query(sql, params, function (err) {
               if (err) {
                 obj.callback(err);
                 return;
               }
 
-              //Handle folder
-              pk = pk || resp.rows[0][PKCOL];
-              sql = "DELETE FROM \"$objectfolder\" WHERE object_pk=$1;";
-              params = [pk];
-              obj.client.query(sql, params, function (err) {
-                if (err) {
-                  obj.callback(err);
-                  return;
-                }
+              // If no specific authorization, make one
+              if (authorization === undefined) {
+                authorization = {
+                  role: "everyone",
+                  actions: {
+                    canCreate: true,
+                    canRead: true,
+                    canUpdate: true,
+                    canDelete: true
+                  },
+                  client: obj.client,
+                  callback: nextWorkbook
+                };
+              }
+              authorization.id = id;
+              authorization.client = obj.client;
+              authorization.callback = nextWorkbook;
 
-                sql = "INSERT INTO \"$objectfolder\" VALUES " +
-                  "($1, (SELECT _pk FROM folder WHERE id=$2));";
+              // Set authorization
+              if (authorization) {
+                that.saveAuthorization(authorization);
+                return;
+              }
 
-                params = [pk, folder];
-                obj.client.query(sql, params, function (err) {
-                  if (err) {
-                    obj.callback(err);
-                    return;
-                  }
-
-                  // If no specific authorization, make one
-                  if (authorization === undefined) {
-                    authorization = {
-                      role: "everyone",
-                      actions: {
-                        canCreate: true,
-                        canRead: true,
-                        canUpdate: true,
-                        canDelete: true
-                      },
-                      client: obj.client,
-                      callback: nextWorkbook
-                    };
-                  }
-                  authorization.id = id;
-                  authorization.client = obj.client;
-                  authorization.callback = nextWorkbook;
-
-                  // Set authorization
-                  if (authorization) {
-                    that.saveAuthorization(authorization);
-                    return;
-                  }
-
-                  // Only come here if authorization was false
-                  nextWorkbook();
-                });
-              });
+              // Only come here if authorization was false
+              nextWorkbook();
             });
           });
           return;
