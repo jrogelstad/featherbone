@@ -1331,6 +1331,7 @@
             obj.callback(null, []);
           }
         } else {
+          obj.data.id = obj.id;
           that.doInsert(obj);
         }
 
