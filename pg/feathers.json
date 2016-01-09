@@ -106,7 +106,7 @@
                     "childOf": "tabs"
                 }
             },
-            "tab": {
+            "name": {
                 "description": "Tab name",
                 "type": "string"
             }
@@ -136,6 +136,11 @@
             "unit": {
                 "description": "Unit (column) number",
                 "type": "integer"
+            },
+            "showLabel": {
+                "description": "Flag to show or hide label",
+                "type": "boolean",
+                "default": true
             }
         }
     }

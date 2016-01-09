@@ -41,6 +41,85 @@
             }
           ]
         }
+      },
+      {
+        "name": "Forms",
+        "feather": "Form",
+        "form": {
+          "name": "Form",
+          "tabs": [{
+            "name": "Attributes"
+            }, {
+            "name": "Tabs"
+            }, {
+            "name": "Audit"
+          }],
+          "attrs": [{
+              "attr": "name",
+              "grid": 0,
+              "unit": 0
+            }, {
+              "attr": "description",
+              "grid": 0,
+              "unit": 0
+            }, {
+              "attr": "attrs",
+              "grid": 1,
+              "unit": 0,
+              "showLabel": false,
+              "columns": [{
+                  "attr": "attr",
+                  "label": "Attribute"
+                }, {
+                  "attr": "grid"
+                }, {
+                  "attr": "unit"
+                }
+              ]
+            }, {
+              "attr": "tabs",
+              "grid": 2,
+              "unit": 0,
+              "showLabel": false,
+              "columns": [{
+                  "attr": "name"
+                }
+              ]
+            }, {
+              "attr": "created",
+              "grid": 3,
+              "unit": 0
+            }, {
+              "attr": "createdBy",
+              "grid": 3,
+              "unit": 0
+            }, {
+              "attr": "updated",
+              "grid": 3,
+              "unit": 0
+            }, {
+              "attr": "updatedBy",
+              "grid": 3,
+              "unit": 0
+            }
+          ]
+        },
+        "list": {
+          "columns": [{
+              "attr": "name"
+            }, {
+              "attr": "description"
+            }, {
+              "attr": "created"
+            }, {
+              "attr": "createdBy"
+            }, {
+              "attr": "updated"
+            }, {
+              "attr": "updatedBy"
+            }
+          ]
+        }
       }
     ]
   }

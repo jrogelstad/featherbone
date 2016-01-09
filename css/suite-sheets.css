@@ -125,11 +125,16 @@
 .suite-sheet-group-tab-form {
   position: relative;
   top: -18px;
+  border-radius: 0px;
 }
 
 .suite-sheet-group-tab-active {
   background-color: #0078e7 !important;
   color: #fff !important;
+}
+
+.suite-sheet-group-tab-middle {
+  border-right-style: none;
 }
 
 .suite-sheet-group-tab-left {

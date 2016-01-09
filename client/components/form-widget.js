@@ -35,6 +35,7 @@
       leftTabClass = f.copy(midTabClass),
       rightTabClass = f.copy(midTabClass);
 
+    midTabClass.push("suite-sheet-group-tab-middle");
     leftTabClass.push("suite-sheet-group-tab-left");
     rightTabClass.push("suite-sheet-group-tab-right");
     widget.controller = function () {
@@ -55,6 +56,10 @@
         var className,
           tabs = vm.config().tabs || [],
           last = tabs.length - 1;
+
+        tabs = tabs.map(function (tab) {
+          return tab.name;
+        });
 
         return tabs.map(function (name, idx) {
           switch (idx)
@@ -93,7 +98,7 @@
             style: {}
           };
 
-          if (item.label === false) {
+          if (item.showLabel === false) {
             labelOpts.style.display = "none";
           }
 
