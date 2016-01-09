@@ -1,0 +1,47 @@
+[
+  {
+    "name": "Setup",
+    "module": "Core",
+    "description": "Setup definitions",
+    "launchConfig": {
+      "icon": "gear",
+      "color": "white",
+      "backgroundColor": "orange"
+    },
+    "defaultConfig": [
+      {
+        "name": "Roles",
+        "feather": "Role",
+        "form": {
+          "name": "Role",
+          "attrs": [{
+              "attr": "name"
+            }, {
+              "attr": "description"
+            }, {
+              "attr": "createdBy"
+            }, {
+              "attr": "updated"
+            }, {
+              "attr": "updatedBy"
+            }
+          ]
+        },
+        "list": {
+          "columns": [{
+              "attr": "name"
+            }, {
+              "attr": "description"
+            }, {
+              "attr": "createdBy"
+            }, {
+              "attr": "updated"
+            }, {
+              "attr": "updatedBy"
+            }
+          ]
+        }
+      }
+    ]
+  }
+]

@@ -94,6 +94,71 @@
                 "type": "object"
             }
         }
+    },
+    {
+        "name": "Form",
+        "plural": "Forms",
+        "description": "Form definitions",
+        "authorization": false,
+        "properties": {
+            "name": {
+                "description": "Name",
+                "type": "string",
+                "isUnique": true,
+                "isRequired": true
+            },
+            "description": {
+                "description": "Description",
+                "type": "string",
+                "isRequired": true
+            }
+        }
+    },
+    {
+        "name": "FormTab",
+        "plural": "FormTabs",
+        "description": "Form tab definitions",
+        "authorization": false,
+        "properties": {
+            "parent": {
+                "description": "Parent form",
+                "type": {
+                    "relation": "Form",
+                    "childOf": "tabs"
+                }
+            },
+            "tab": {
+                "description": "Tab name",
+                "type": "string"
+            }
+        }
+    },
+    {
+        "name": "FormAttr",
+        "plural": "FormAttrs",
+        "description": "Form attribute definitions",
+        "authorization": false,
+        "properties": {
+            "parent": {
+                "description": "Parent form",
+                "type": {
+                    "relation": "Form",
+                    "childOf": "attrs"
+                }
+            },
+            "attr": {
+                "description": "Attribute name",
+                "type": "string"
+            },
+            "grid": {
+                "description": "Grid (pane) number",
+                "type": "integer"
+            },
+            "unit": {
+                "description": "Unit (column) number",
+                "type": "integer"
+            }
+        }
     }
 ]
 

@@ -12,6 +12,15 @@
         {
             "type": "execute",
             "path": "pg/populate.js"
+        },
+        {
+            "type": "module",
+            "name": "Core",
+            "path": "pg/module.js"
+        },
+        {
+            "type": "workbook",
+            "path": "pg/workbooks.json"
         }
     ]
 }

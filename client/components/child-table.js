@@ -76,7 +76,7 @@
     vm.buttonAdd(button.viewModel({
       onclick: vm.tableWidget().modelNew,
       title: "Add",
-      hotkey: "A",
+      hotkey: "D",
       icon: "plus-circle",
       style: {backgroundColor: "white"}
     }));

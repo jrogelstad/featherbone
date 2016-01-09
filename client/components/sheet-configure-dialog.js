@@ -85,7 +85,7 @@
         m("div", {class: "pure-control-group"}, [
           m("label", {
             for: featherId
-          }, "Class:"),
+          }, "Table:"),
           m("select", {
             value: d.feather(),
             required: true,
@@ -95,7 +95,7 @@
         m("div", {class: "pure-control-group"}, [
           m("label", {
             for: formNameId
-          }, "Form Name:"),
+          }, "Form:"),
           m("input", {
             value: d.form().data.name(),
             required: true,
