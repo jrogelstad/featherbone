@@ -62,8 +62,7 @@
     };
 
     grantEveryoneGlobal = function (err) {
-      var reqRole, reqLog,
-        req;
+      var req, reqRole, reqLog, reqForm;
 
       req = function () {
         return {
@@ -96,6 +95,9 @@
       reqLog = req();
       reqLog.data.id = "log";
       datasource.request(reqLog);
+      reqForm = req();
+      reqForm.data.id = "form";
+      datasource.request(reqForm);
     };
 
     doneGrants = function (err) {
@@ -105,7 +107,7 @@
       }
 
       c += 1;
-      if (c < 2) { return; }
+      if (c < 3) { return; }
 
       obj.callback(null, true);
     };
