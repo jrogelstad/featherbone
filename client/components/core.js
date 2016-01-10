@@ -134,12 +134,15 @@
 
     that = function (options) {
       options = options || {};
-      var w = relationWidget({
+      var form, w,
+        id = options.form || relopts.form;
+      form = catalog.store().forms()[id];
+      w = relationWidget({
         parentViewModel: options.parentViewModel,
         parentProperty: options.parentProperty || relopts.parentProperty,
         valueProperty: options.valueProperty || relopts.valueProperty,
         labelProperty: options.labelProperty || relopts.labelProperty,
-        form: options.form || relopts.form,
+        form: form,
         list: options.list || relopts.list,
         style: options.style || relopts.style,
         isCell: options.isCell === undefined ?
