@@ -457,7 +457,7 @@
       var sql, col, key, child, pk, n, dkeys, fkeys, len, msg, props, prop,
         value, result, afterGetFeather, afterIdCheck, afterNextVal,
         afterAuthorized, buildInsert, afterGetPk, afterHandleRelations,
-        afterInsert, afterDoSelect, afterLog,
+        insertChildren, afterInsert, afterDoSelect, afterLog,
         payload = {name: obj.name, client: obj.client},
         data = JSON.parse(JSON.stringify(obj.data)),
         args = [obj.name.toSnakeCase()],
@@ -530,7 +530,6 @@
       };
 
       afterAuthorized = function (err, authorized) {
-        var ckeys;
         if (err) {
           obj.callback(err);
           return;
@@ -541,31 +540,6 @@
           obj.callback({statusCode: 401, message: msg});
           return;
         }
-
-        // Get keys for properties of child arrays.
-        // Count expected callbacks along the way.
-        ckeys = Object.keys(props).filter(function (key) {
-          if (typeof props[key].type === "object" &&
-              props[key].type.parentOf &&
-              data[key] !== undefined) {
-            clen += data[key].length;
-            return true;
-          }
-        });
-
-        // Insert children recursively
-        ckeys.forEach(function (key) {
-          var rel = props[key].type.relation;
-          data[key].forEach(function (row) {
-            row[props[key].type.parentOf] = {id: data.id};
-            that.doInsert({
-              name: rel,
-              data: row,
-              client: obj.client,
-              callback: afterInsert
-            }, true);
-          });
-        });
 
         // Set some system controlled values
         data.updated = f.now();
@@ -682,7 +656,7 @@
         sql = sql.format(args);
 
         // Perform the insert
-        obj.client.query(sql, values, afterInsert);
+        obj.client.query(sql, values, insertChildren);
       };
 
       afterGetPk = function (err, id) {
@@ -722,6 +696,41 @@
         }
 
         buildInsert();
+      };
+
+      insertChildren = function (err) {
+        var ckeys;
+        if (err) {
+          obj.callback(err);
+          return;
+        }
+
+        // Get keys for properties of child arrays.
+        // Count expected callbacks along the way.
+        ckeys = Object.keys(props).filter(function (key) {
+          if (typeof props[key].type === "object" &&
+              props[key].type.parentOf &&
+              data[key] !== undefined) {
+            clen += data[key].length;
+            return true;
+          }
+        });
+
+        // Insert children recursively
+        ckeys.forEach(function (key) {
+          var rel = props[key].type.relation;
+          data[key].forEach(function (row) {
+            row[props[key].type.parentOf] = {id: data.id};
+            that.doInsert({
+              name: rel,
+              data: row,
+              client: obj.client,
+              callback: afterInsert
+            }, true);
+          });
+        });
+
+        afterInsert();
       };
 
       afterInsert = function (err) {
