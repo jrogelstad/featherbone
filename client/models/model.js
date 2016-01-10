@@ -384,8 +384,7 @@
 
     doDelete = function (context) {
       var result = f.prop({}),
-        id = that.idProperty(),
-        payload = {method: "DELETE", path: that.path(that.name, d[id]())},
+        payload = {method: "DELETE", path: that.path(that.name, d.id())},
         callback = function () {
           that.set(result(), true, true);
           state.send('deleted');
@@ -405,8 +404,7 @@
 
     doFetch = function (context) {
       var result = f.prop({}),
-        id = that.idProperty(),
-        payload = {method: "GET", path: that.path(that.name, that.data[id]())},
+        payload = {method: "GET", path: that.path(that.name, that.id())},
         handleErr = function (err) {
           console.log(err);
         },
@@ -439,8 +437,7 @@
       var ds = dataSource,
         result = f.prop({}),
         patch = jsonpatch.compare(lastFetched, that.toJSON()),
-        id = that.idProperty(),
-        payload = {method: "PATCH", path: that.path(that.name, that.data[id]()),
+        payload = {method: "PATCH", path: that.path(that.name, that.id()),
           data: {data: patch}},
         callback = function () {
           jsonpatch.apply(lastFetched, patch); // Update to sent changes
@@ -571,11 +568,10 @@
         };
 
         ary.remove = function (value) {
-          var result, idx, find,
-            id = that.idProperty();
+          var result, idx, find;
 
           find = function (item, i) {
-            if (value.data[id]() === item.data[id]()) {
+            if (value.id() === item.id()) {
               idx = i;
               return true;
             }
