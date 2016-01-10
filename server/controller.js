@@ -3345,7 +3345,7 @@
 
   /** private */
   propagateViews = function (obj) {
-    var props, cprops, catalog,
+    var cprops, catalog,
       afterGetCatalog, afterCreateView,
       name = obj.name,
       statements = obj.statements || [],
@@ -3369,7 +3369,7 @@
     };
 
     afterCreateView = function (err, resp) {
-      var keys, next,
+      var keys, next, propagateUp,
         functions = [],
         i = 0;
 
@@ -3394,6 +3394,7 @@
           statements.push({level: level, sql: resp});
         }
 
+        // Iterate to next function to build statement
         o = functions[i];
         i += 1;
 
@@ -3408,6 +3409,7 @@
           return;
         }
 
+        // If here then ready to execute
         // Sort by level
         statements.sort(function (a, b) {
           if (a.level === b.level || a.level < b.level) {
@@ -3476,21 +3478,29 @@
       });
 
       /* Propagate up */
-      props = catalog[name].properties;
-      keys = Object.keys(props);
-      keys.forEach(function (key) {
-        if (typeof props[key].type === "object" && props[key].type.childOf) {
-          functions.push({
-            func: createView,
-            payload: {
-              name: props[key].type.relation,
-              client: obj.client,
-              callback: next,
-              execute: false
-            }
-          });
-        }
-      });
+      propagateUp = function (name, plevel) {
+        var pkeys, props;
+        plevel = plevel - 1;
+        props = catalog[name].properties;
+        pkeys = Object.keys(props);
+        pkeys.forEach(function (key) {
+          var type = props[key].type;
+          if (typeof type === "object" && type.childOf) {
+            functions.push({
+              func: createView,
+              payload: {
+                name: type.relation,
+                client: obj.client,
+                callback: next,
+                execute: false
+              }
+            });
+            propagateUp(type.relation, plevel);
+          }
+        });
+      };
+
+      propagateUp(name, level);
 
       next();
     };
