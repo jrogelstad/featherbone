@@ -1733,6 +1733,8 @@
         params.push(obj.name);
       }
 
+      sql += " ORDER BY _pk";
+
       obj.client.query(sql, params, function (err, resp) {
         if (err) {
           obj.callback(err);
