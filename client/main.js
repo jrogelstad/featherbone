@@ -97,7 +97,7 @@
     return dataSource.request(payload).then(data).then(function () {
       // Loop through each form record and load into catalog
       data().forEach(function (form) {
-        forms[form.name] = form;
+        forms[form.id] = form;
       });
 
       return true;

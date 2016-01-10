@@ -209,6 +209,12 @@
     if (workbook.localConfig.length) {
       config = workbook.localConfig;
     }
+    // Resolve form
+    config.forEach(function(sheet){
+      if (typeof sheet.form === "string") {
+        sheet.form = catalog.store().forms()[sheet.form];
+      }
+    });
     return config;
   };
 
