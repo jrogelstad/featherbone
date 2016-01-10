@@ -30,6 +30,7 @@
     datasource = require("./server/datasource"),
     pgConfig = require("./server/pgconfig"),
     f = require("./common/core.js"),
+    format = require("pg-format"),
     dir = path.resolve(__dirname, process.argv[2] || "."),
     filename = path.format({root: "/", dir: dir, base: "manifest.json"}),
     i = 0;
@@ -47,10 +48,7 @@
       client = new pg.Client(conn);
 
       client.connect(function (err) {
-        if (err) {
-          console.error(err);
-          return;
-        }
+        if (err) { return console.error(err); }
 
         callback();
       });
@@ -563,8 +561,46 @@
       return;
     }
 
-    manifest = JSON.parse(data);
-    connect(begin);
+    var execute = function () {
+      manifest = JSON.parse(data);
+      connect(begin);
+    };
+
+    pgConfig(function (config) {
+      var pgclient,
+        conn = "postgres://" +
+        config.user + ":" +
+        config.password + "@" +
+        config.server + ":" +
+        config.port + "/" + "postgres";
+
+      pgclient = new pg.Client(conn);
+
+      pgclient.connect(function (err) {
+        if (err) { return console.error(err); }
+
+        var sql = "SELECT datname FROM pg_database " +
+          "WHERE datistemplate = false AND datname = $1";
+
+        pgclient.query(sql, [config.database], function (err, resp) {
+          if (err) { return console.error(err); }
+
+          // If database exists, get started
+          if (resp.rows.length === 1) {
+            execute();
+          // Otherwise created database first
+          } else {
+            console.log('Creating database "' + config.database + '"');
+            sql = "create database %I;";
+            sql = format(sql, config.database, config.user);
+            pgclient.query(sql, function () {
+              if (err) { return console.error(err); }
+              execute();         
+            });
+          }
+        });
+      });
+    });
   });
 }());
 

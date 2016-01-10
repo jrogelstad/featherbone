@@ -17,6 +17,7 @@ Short term
 Long term
 
 * Report writer
+* Drag 'n Drop form editor
 * Basic modules
   - Contacts
   - Customers
