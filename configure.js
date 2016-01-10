@@ -588,7 +588,7 @@
           // If database exists, get started
           if (resp.rows.length === 1) {
             execute();
-          // Otherwise created database first
+          // Otherwise create database first
           } else {
             console.log('Creating database "' + config.database + '"');
             sql = "create database %I;";

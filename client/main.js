@@ -88,6 +88,22 @@
     });
   });
 
+  // Load forms
+  f.init(function () {
+    var data = m.prop([]),
+      payload = {method: "GET", path: "/data/forms"},
+      forms = catalog.register("forms");
+
+    return dataSource.request(payload).then(data).then(function () {
+      // Loop through each form record and load into catalog
+      data().forEach(function (form) {
+        forms[form.name] = form;
+      });
+
+      return true;
+    });
+  });
+
   // Load workbooks
   f.init(function () {
     var payload = {method: "GET", path: "/workbooks/"};

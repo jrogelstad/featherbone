@@ -90,6 +90,10 @@
                 "description": "Description",
                 "type": "string",
                 "isRequired": true
+            },
+            "module": {
+                "description": "Module",
+                "type": "string"
             }
         }
     },

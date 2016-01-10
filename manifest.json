@@ -21,6 +21,10 @@
         {
             "type": "workbook",
             "path": "pg/workbooks.json"
+        },
+        {
+            "type": "batch",
+            "path": "pg/data.json"
         }
     ]
 }

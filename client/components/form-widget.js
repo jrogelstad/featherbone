@@ -27,11 +27,17 @@
     catalog = require("catalog");
 
   formWidget.viewModel = function (options) {
-    var vm = {},
+    var vm = {}, form,
       name = options.feather.toCamelCase(),
       models = catalog.store().models();
 
-    vm.config = m.prop(options.config);
+    if (typeof options.config === "string") {
+      form = catalog.store().forms()[options.config];
+    } else {
+      form = options.config;
+    }
+
+    vm.config = m.prop(form);
     vm.selectedTab = m.prop(1);
     vm.isFirstLoad = m.prop(true);
     vm.model = m.prop(models[name]({id: options.id}));

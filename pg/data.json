@@ -1,0 +1,23 @@
+[
+    {
+        "name": "Form",
+        "method": "POST",
+        "id": "dbflv6oz3d10",
+        "data": {
+            "name": "Role",
+            "description": "Role form",
+            "module": "Core",
+            "attrs": [{
+                  "attr": "name"
+                }, {
+                  "attr": "description"
+                }, {
+                  "attr": "createdBy"
+                }, {
+                  "attr": "updated"
+                }, {
+                  "attr": "updatedBy"
+            }]
+        }
+    }
+]

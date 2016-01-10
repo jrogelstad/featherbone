@@ -12,21 +12,7 @@
       {
         "name": "Roles",
         "feather": "Role",
-        "form": {
-          "name": "Role",
-          "attrs": [{
-              "attr": "name"
-            }, {
-              "attr": "description"
-            }, {
-              "attr": "createdBy"
-            }, {
-              "attr": "updated"
-            }, {
-              "attr": "updatedBy"
-            }
-          ]
-        },
+        "form": "Role",
         "list": {
           "columns": [{
               "attr": "name"
