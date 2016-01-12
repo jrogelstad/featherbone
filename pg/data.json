@@ -5,6 +5,7 @@
     "data": {
         "name": "Role",
         "description": "Role form",
+        "feather": "Role",
         "module": "Core",
         "attrs": [{
             "attr": "name"
@@ -25,6 +26,7 @@
     "data": {
         "name": "Form",
         "description": "Form form",
+        "feather": "Form",
         "module": "Core",
         "tabs": [{
             "name": "Attributes"
@@ -41,6 +43,14 @@
             "attr": "description",
             "grid": 0,
             "unit": 0
+        }, {
+            "attr": "module",
+            "grid": 0,
+            "unit": 1
+        }, {
+            "attr": "feather",
+            "grid": 0,
+            "unit": 1
         }, {
             "attr": "attrs",
             "grid": 1,

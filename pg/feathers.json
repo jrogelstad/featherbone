@@ -94,6 +94,11 @@
             "module": {
                 "description": "Module",
                 "type": "string"
+            },
+            "feather": {
+                "description": "Feather",
+                "type": "string",
+                "isRequired": true
             }
         }
     },

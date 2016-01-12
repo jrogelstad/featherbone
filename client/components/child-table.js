@@ -122,10 +122,7 @@
       title: "Open",
       hotkey: "O",
       icon: "folder-open",
-      style: {
-        backgroundColor: "white",
-        float: "right"
-      }
+      style: { backgroundColor: "white" }
     }));
     vm.buttonOpen().disable();
 
@@ -202,9 +199,9 @@
 
       view = m("div", [
         m.component(button.component({viewModel: vm.buttonAdd()})),
-        m.component(button.component({viewModel: vm.buttonOpen()})),
         m.component(button.component({viewModel: vm.buttonRemove()})),
         m.component(button.component({viewModel: vm.buttonUndo()})),
+        m.component(button.component({viewModel: vm.buttonOpen()})),
         //m.component(formDialog.component({viewModel: vm.formDialog()})),
         m.component(tableWidget.component({viewModel: vm.tableWidget()}))
       ]);
