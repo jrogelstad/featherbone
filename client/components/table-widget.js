@@ -98,7 +98,6 @@
         vm.select(list[idx]);
       }
     };
-    vm.heightMargin = m.prop(options.heightMargin || 6);
     vm.ids = m.prop({
       header: f.createId(),
       rows: f.createId()
@@ -212,7 +211,6 @@
         break;
       }
     };
-    vm.outsideElementIds = m.prop(options.outsideElementIds || []);
     vm.onscroll = function () {
       var ids = vm.ids(),
         header = document.getElementById(ids.header),
@@ -328,7 +326,6 @@
     // PRIVATE
     //
 
-    vm.outsideElementIds().push(vm.ids().header);
     vm.filter(f.copy(options.config.filter || {}));
     if (!options.models) {
       vm.models = catalog.store().models()[modelName].list({
@@ -479,18 +476,15 @@
         return false;
       };
 
-      // Define scrolling behavior for table body
+      // Determine appropriate height based on surroundings
       tbodyConfig = function (e) {
-        var margin = vm.heightMargin(),
-          bodyHeight = math.subtract(window.innerHeight, margin),
-          eids = vm.outsideElementIds();
+        var bottomHeight,
+          yPosition = f.getElementPosition(e).y,
+          winHeight = window.innerHeight,
+          bodyHeight = document.body.offsetHeight;
 
-        eids.forEach(function (id) {
-          var h = document.getElementById(id).clientHeight;
-          bodyHeight = math.subtract(bodyHeight, h);
-        });
-
-        e.style.height = bodyHeight + "px";
+        bottomHeight = bodyHeight - yPosition - e.offsetHeight;
+        e.style.height = winHeight - yPosition - bottomHeight + "px";
 
         // Key down handler for up down movement
         e.addEventListener("keydown", vm.onkeydownCell);

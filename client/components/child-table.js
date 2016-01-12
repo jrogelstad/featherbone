@@ -83,10 +83,8 @@
     vm.tableWidget(tableWidget.viewModel({
       config: options.config,
       models: options.models,
-      feather: options.feather,
-      //ondblclick: vm.formDialog().show,
-      outsideElementIds: [],
-      heightMargin: 0
+      feather: options.feather
+      //ondblclick: vm.formDialog().show
     }));
     vm.tableWidget().toggleEdit();
 

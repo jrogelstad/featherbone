@@ -300,8 +300,7 @@
       config: vm.sheet().list,
       feather: vm.sheet().feather,
       search: vm.searchInput().value,
-      ondblclick: vm.modelOpen,
-      outsideElementIds: ["toolbar", "tabs"]
+      ondblclick: vm.modelOpen
     }));
 
     // Create dalog view models

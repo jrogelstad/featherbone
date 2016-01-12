@@ -221,6 +221,25 @@
     return config;
   };
 
+  /*
+    Returns the exact x, y coordinents of an HTML element.
+
+    Thanks to:
+    http://www.kirupa.com/html5/get_element_position_using_javascript.htm
+  */
+  f.getElementPosition = function (element) {
+    var xPosition = 0,
+      yPosition = 0;
+  
+    while (element) {
+      xPosition += (element.offsetLeft - element.scrollLeft + element.clientLeft);
+      yPosition += (element.offsetTop - element.scrollTop + element.clientTop);
+      element = element.offsetParent;
+    }
+
+    return { x: xPosition, y: yPosition };
+  };
+
   /** @private  Helper function recursive list of feather properties */
   f.resolveProperties = function (feather, properties, ary, prefix) {
     prefix = prefix || "";
