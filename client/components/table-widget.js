@@ -24,7 +24,6 @@
     tableWidget = {},
     m = require("mithril"),
     f = require("component-core"),
-    math = require("mathjs"),
     statechart = require("statechartjs"),
     catalog = require("catalog"),
     outer = document.createElement("div"),
@@ -74,6 +73,7 @@
       return result || [{attr: "id"}];
     };
     vm.config = m.prop(options.config);
+    vm.containerId = m.prop(options.containerId);
     vm.defaultFocus = function (model) {
       var col = vm.attrs().find(function (attr) {
         return !model.data[attr] || !model.data[attr].isReadOnly();
@@ -478,12 +478,13 @@
 
       // Determine appropriate height based on surroundings
       tbodyConfig = function (e) {
-        var bottomHeight,
-          yPosition = f.getElementPosition(e).y,
+        var yPosition = f.getElementPosition(e).y,
           winHeight = window.innerHeight,
-          bodyHeight = document.body.offsetHeight;
+          id = vm.containerId(),
+          container = id ? document.getElementById(id) : document.body,
+          containerHeight = container.offsetHeight + f.getElementPosition(container).y,
+          bottomHeight = containerHeight - yPosition - e.offsetHeight;
 
-        bottomHeight = bodyHeight - yPosition - e.offsetHeight;
         e.style.height = winHeight - yPosition - bottomHeight + "px";
 
         // Key down handler for up down movement

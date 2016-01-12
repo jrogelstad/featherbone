@@ -83,7 +83,8 @@
         outsideElementIds: [
           vm.ids().header,
           vm.ids().buttonOk
-        ]
+        ],
+        containerId: vm.ids().dialog
       }));
     });
     substate.content = function () {

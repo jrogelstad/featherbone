@@ -49,7 +49,7 @@
   */
   childTable.viewModel = function (options) {
     var tableState,
-      root = findRoot(options.parentModel),
+      root = findRoot(options.parentViewModel.model()),
       vm = {};
 
     // ..........................................................
@@ -62,6 +62,7 @@
     vm.buttonUndo = m.prop();
     //vm.formDialog = m.prop();
     vm.tableWidget = m.prop();
+    vm.parentViewModel = m.prop(options.parentViewModel);
     vm.refresh = function () {
       vm.tableWidget().refresh();
     };
@@ -83,7 +84,8 @@
     vm.tableWidget(tableWidget.viewModel({
       config: options.config,
       models: options.models,
-      feather: options.feather
+      feather: options.feather,
+      containerId: vm.parentViewModel().containerId()
       //ondblclick: vm.formDialog().show
     }));
     vm.tableWidget().toggleEdit();
@@ -185,7 +187,7 @@
       // Set up viewModel if required
       if (!relations[parentProperty]) {
         relations[parentProperty] = childTable.viewModel({
-          parentModel: parentViewModel.model(),
+          parentViewModel: parentViewModel,
           models: models,
           feather: feather,
           config: config

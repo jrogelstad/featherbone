@@ -97,12 +97,7 @@
       feather: options.config.feather,
       search: vm.searchInput().value,
       ondblclick: vm.ok,
-      outsideElementIds: [
-        vm.ids().header,
-        vm.ids().buttonOk,
-        vm.searchInput().id()
-      ],
-      heightMargin: 115
+      containerId: vm.ids().dialog
     }));
 
     // Create dalog view models

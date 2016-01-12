@@ -32,6 +32,7 @@
       models = catalog.store().models();
 
     vm.config = m.prop(options.config);
+    vm.containerId = m.prop(options.containerId);
     vm.selectedTab = m.prop(1);
     vm.isFirstLoad = m.prop(true);
     vm.model = m.prop(models[name]({id: options.id}));
