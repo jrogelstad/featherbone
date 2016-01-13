@@ -104,6 +104,25 @@
     });
   });
 
+  // Load relation widgets
+  f.init(function () {
+    var data = m.prop([]),
+      payload = {method: "GET", path: "/data/relation-widgets"};
+
+    return dataSource.request(payload).then(data).then(function () {
+      // Loop through each record and build widget
+      data().forEach(function (item) {
+        // Some transformation
+        item.form = item.form.id;
+        item.list = {columns: item.searchColumns};
+        delete item.searchColumns;
+        f.buildRelationWidget(item);
+      });
+
+      return true;
+    });
+  });
+
   // Load workbooks
   f.init(function () {
     var payload = {method: "GET", path: "/workbooks/"};

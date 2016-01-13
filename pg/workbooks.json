@@ -38,6 +38,31 @@
             }, {
               "attr": "description"
             }, {
+              "attr": "feather"
+            }, {
+              "attr": "created"
+            }, {
+              "attr": "createdBy"
+            }, {
+              "attr": "updated"
+            }, {
+              "attr": "updatedBy"
+            }
+          ]
+        }
+      },
+      {
+        "name": "Relations",
+        "feather": "RelationWidget",
+        "form": "qrupon4yc3t8",
+        "list": {
+          "columns": [{
+              "attr": "name"
+            }, {
+              "attr": "description"
+            }, {
+              "attr": "feather"
+            }, {
               "attr": "created"
             }, {
               "attr": "createdBy"
