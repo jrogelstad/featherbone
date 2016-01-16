@@ -66,7 +66,7 @@
   that.request = function (obj, isSuperUser) {
     isSuperUser = isSuperUser === undefined ? false : isSuperUser;
 
-    var client, done, transaction, connect,
+    var client, done, transaction, connect, isChild,
       doRequest, afterTransaction, afterRequest,
       callback = obj.callback,
       externalClient = false;
@@ -105,6 +105,7 @@
       // Otherwise handle as model
       } else {
         obj.client = client;
+        isChild = false;
 
         switch (obj.method) {
         case "GET":
@@ -145,7 +146,7 @@
 
       // Passed client must handle its own transaction wrapping
       obj.callback = afterRequest;
-      transaction(obj, false, isSuperUser);
+      transaction(obj, isChild, isSuperUser);
     };
 
     afterTransaction = function (err, resp) {
