@@ -23,8 +23,7 @@
     m = require("mithril"),
     f = require("component-core"),
     catalog = require("catalog"),
-    tableDialog = require("table-dialog"),
-    statechart = require("statechartjs");
+    tableDialog = require("table-dialog");
 
   /**
     View model for sort dialog.
@@ -35,10 +34,9 @@
   */
   sheetConfigureDialog.viewModel = function (options) {
     options = options || {};
-    var vm, state, currentState, tableView,
-      cache = f.copy(options.parentViewModel.sheet()),
-      leftTabClass = ["pure-button", "suite-sheet-group-tab", "suite-sheet-group-tab-left"],
-      rightTabClass = ["pure-button", "suite-sheet-group-tab", "suite-sheet-group-tab-right"];
+    var vm, tableView,
+      createModel = catalog.store().models().workbookLocalConfig,
+      cache = f.copy(options.parentViewModel.sheet());
 
     options.onOk = function () {
       var route,
@@ -46,6 +44,7 @@
         sheet = vm.model().toJSON(),
         workbook = vm.workbook();
 
+      sheet.form = catalog.store().forms()[sheet.form];
       vm.sheet(id, sheet);
       workbook.data.localConfig(vm.config());
       f.buildRoutes(workbook.toJSON());
@@ -77,14 +76,19 @@
     };
     vm.config = options.parentViewModel.config;
     vm.content = function () {
-      var feathers,
+      var feathers, forms,
         d = vm.model().data,
-        nameId = f.createId(),
-        featherId = f.createId(),
-        formNameId = f.createId();
+        ids = vm.ids(),
+        nameId = ids.name,
+        featherId = ids.feather,
+        formId = ids.form;
 
       feathers = vm.feathers().map(function (feather) {
         return m("option", feather);
+      });
+
+      forms = vm.forms().map(function (form) {
+        return m("option", form);
       });
 
       return m("div", {
@@ -112,23 +116,19 @@
         ]),
         m("div", {class: "pure-control-group"}, [
           m("label", {
-            for: formNameId
+            for: formId
           }, "Form:"),
-          m("input", {
-            value: d.form().data.name(),
+          m("select", {
+            value: vm.form(),
             required: true,
-            oninput: m.withAttr("value", d.form().data.name)
-          })
+            oninput: m.withAttr("value", vm.form)
+          }, forms)
         ]),
         m("div", {class: "suite-sheet-configure-tabs"} , [
           m("button", {
-            class: leftTabClass.join(" "),
-            onclick: state.send.bind(state, "list")
-          }, "List"),
-          m("button", {
-            class: rightTabClass.join(" "),
-            onclick: state.send.bind(state, "form")
-          }, "Form")
+            class: "pure-button pure-button-primary",
+            style: { borderRadius: "4px"}
+          }, "List")
         ]),
         m("div", {class: "suite-sheet-configure-group-box"}, [
           tableView()
@@ -136,7 +136,7 @@
       ]);
     };
     vm.data = function () { 
-      return currentState().data(); 
+      return vm.model().data.list().data.columns();
     };
     vm.hasAttr = function (item) { 
       return item.attr === this;
@@ -148,7 +148,35 @@
         }).sort();
       return result;
     };
-    vm.model = f.prop(catalog.store().models().workbookLocalConfig(cache));
+    vm.form = function (name) {
+      var forms, form,
+        prop = vm.model().data.form;
+      if (arguments.length) {
+        forms = catalog.store().forms();
+        form = Object.keys(forms).find(function (key) {
+          return forms[key].name === name;
+        });
+        prop(form);
+      }
+      return prop() ? prop().name : "";
+    };
+    vm.forms = function () {
+      var result,
+        forms = catalog.store().forms(),
+        feather = vm.model().data.feather();
+
+      // Only forms that have matching feather
+      result = Object.keys(forms).filter(function (id) {
+        return forms[id].feather === feather;
+      });
+      // Just return names
+      result = result.map(function (id) {
+        return forms[id].name;
+      }).sort();
+
+      return result;
+    };
+    vm.model = f.prop(createModel(cache));
     vm.okDisabled = function () {
       return !vm.model().isValid();
     };
@@ -156,10 +184,12 @@
       return vm.model().lastError();
     };
     vm.sheetId = m.prop(options.sheetId);
+    vm.relations = m.prop({});
     vm.reset = function () {
       var id = vm.sheetId();
       cache = f.copy(vm.sheet(id));
-      vm.model(catalog.store().models().workbookLocalConfig(cache));
+      cache.form = cache.form.id;
+      vm.model(createModel(cache));
       if (!cache.list.columns.length) { vm.add(); }
       vm.selection(0);
     };
@@ -172,7 +202,7 @@
     vm.viewHeaders = function () {
       var ids = vm.viewHeaderIds();
       return [
-        m("th", {style: {minWidth: "165px"}, id: ids.column }, currentState().attrName()),
+        m("th", {style: {minWidth: "165px"}, id: ids.column }, "Column"),
         m("th", {style: {minWidth: "220px"}, id: ids.label }, "Label")
       ];
     };
@@ -215,57 +245,10 @@
     // PRIVATE
     //
 
+    vm.ids().name = f.createId();
+    vm.ids().feather = f.createId();
+    vm.ids().form = f.createId();
     vm.style().width = "510px";
-
-    currentState = function () {
-      return state.resolve(state.current()[0]);
-    };
-
-    // Statechart
-    state = statechart.define(function () {
-      var primaryOn, primaryOff;
-
-      primaryOn = function () {
-        this.push("suite-sheet-group-tab-active");
-      };
-
-      primaryOff = function () {
-        this.pop();
-      };
-
-      this.state("Group", function () {
-        this.state("List", function () {
-          this.event("form", function () {
-            this.goto("../Form");
-          });
-          this.enter(primaryOn.bind(leftTabClass));
-          this.exit(primaryOff.bind(leftTabClass));
-          this.attrName = m.prop("Column");
-          this.data = function () {
-            return vm.model().data.list().data.columns();
-          };
-        });
-        this.state("Form", function () {
-          this.event("list", function () {
-            this.goto("../List");
-          });
-          this.enter(primaryOn.bind(rightTabClass));
-          this.exit(primaryOff.bind(rightTabClass));
-          this.attrName = m.prop("Attribute");
-          this.data = function () {
-            return vm.model().data.form().data.attrs();
-          };
-        });
-      });
-    });
-    state.goto();
-  
-    // Always clear undo function when done
-    vm.state().resolve("/Display/Showing").enter(vm.reset);
-    vm.state().resolve("/Display/Closed").enter(function () {
-      vm.onCancel = m.prop();
-    });
-
     vm.reset();
 
     return vm;

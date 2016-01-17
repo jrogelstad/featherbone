@@ -67,7 +67,7 @@
       isSystem: {
         description: "Internal sytem object",
         type: "boolean",
-        default: true
+        default: false
       },
       isChild: {
         description: "Indicates child status",

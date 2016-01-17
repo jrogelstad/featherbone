@@ -21,7 +21,7 @@
 
   var workbook, workbookModel, workbookChild,
     workbookDefaultConifg, workbookLocalConfig,
-    workbookForm, workbookList, models, feathers,
+    workbookList, models, feathers,
     f = require("feather-core"),
     model = require("model"),
     dataSource = require("datasource"),
@@ -89,7 +89,9 @@
       },
       form: {
         description: "Form layout",
-        type: "object"
+        type: {
+          relation: "Form"
+        }
       },
       list: {
         description: "List layout",
@@ -99,22 +101,6 @@
         description: "Zoom level",
         type: "string",
         default: "100"
-      }
-    }
-  };
-
-  workbookForm = {
-    description: "Workbook form definition",
-    isChild: true,
-    properties: {
-      name: {
-        description: "Form name",
-        type: "string",
-        isRequired: true
-      },
-      attrs: {
-        description: "Attributes",
-        type: "object"
       }
     }
   };
@@ -137,10 +123,6 @@
   workbookLocalConfig = f.copy(workbookDefaultConifg);
   workbookLocalConfig.description = "Workbook local sheet definition";
   workbookLocalConfig.properties.parent.type.childOf = "localConfig";
-  workbookLocalConfig.properties.form = {
-    description: "Parent of \"parent\" on \"WorkbookForm\"",
-    type: {relation: "WorkbookForm"}
-  };
   workbookLocalConfig.properties.list = {
     description: "Parent of \"parent\" on \"WorkbookList\"",
     type: {relation: "WorkbookList"}
@@ -150,7 +132,6 @@
   feathers.Workbook = workbook;
   feathers.WorkbookDefaultConfig = workbookDefaultConifg;
   feathers.WorkbookLocalConfig = workbookLocalConfig;
-  feathers.WorkbookForm = workbookForm;
   feathers.WorkbookList = workbookList;
 
   /**
@@ -221,24 +202,37 @@
   workbookChild = function (data) {
     var that = model(data, workbookLocalConfig);
 
+    // When feather changes, automatically assign the first
+    // available form.
+    that.onChanged("feather", function (property) {
+      var id, forms, keys,
+        value = property.newValue();
+      if (value) {
+        forms = catalog.store().forms();
+        keys = Object.keys(forms).sort(function (a, b) {
+          if (forms[a].name < forms[b].name) { return -1; }
+          return 1;
+        });
+        id = keys.find(function (key) {
+          return value === forms[key].feather;
+        });
+      }
+      that.data.form(id);
+    });
+
     that.onValidate(function () {
-      var list = that.data.list(),
-        form = that.data.form();
+      var list = that.data.list();
 
       if (!that.data.name()) {
         throw "A worksheet name is required.";
       }
 
-      if (!form.data.name()) {
-        throw "A form name is required.";
+      if (!that.data.form()) {
+        throw "A form selection is required.";
       }
 
       if (!list.data.columns().length) {
         throw "List must include at least one column.";
-      }
-
-      if (!form.data.attrs().length) {
-        throw "Form must include at least one attribute.";
       }
     });
 
