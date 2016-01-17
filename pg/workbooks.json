@@ -29,6 +29,29 @@
         }
       },
       {
+        "name": "Feathers",
+        "feather": "Feather",
+        "form": "em4go8hrytdm",
+        "list": {
+          "columns": [{
+              "attr": "name"
+            }, {
+              "attr": "description"
+            }, {
+              "attr": "plural"
+            }, {
+              "attr": "module"
+            }, {
+              "attr": "inherits"
+            }, {
+              "attr": "isSystem"
+            }, {
+              "attr": "isChild"
+            }
+          ]
+        }
+      },
+      {
         "name": "Forms",
         "feather": "Form",
         "form": "b7198t6p0a3h",

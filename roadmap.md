@@ -12,6 +12,7 @@ Short term
 * Import\export modules (JSON)
 * Authentication support
 * Import\export Excel
+* Lazy loading lists
 * Generic support for UOM conversion
 
 Long term

@@ -2,6 +2,7 @@
     {
         "name": "Role",
         "plural": "Roles",
+        "module": "Core",
         "description": "User authorization role",
         "authorization": false,
         "properties": {
@@ -20,6 +21,7 @@
     },
     {
         "name": "RoleMember",
+        "module": "Core",
         "description": "Member reference to a parent role",
         "authorization": false,
         "properties": {
@@ -38,6 +40,7 @@
     },
     {
         "name": "Document",
+        "module": "Core",
         "plural": "Documents",
         "description": "Base document class",
         "authorization": false,
@@ -56,6 +59,7 @@
     },
     {
         "name": "Log",
+        "module": "Core",
         "plural": "Logs",
         "description": "Logs all data changes",
         "authorization": false,
@@ -77,6 +81,7 @@
     {
         "name": "Form",
         "plural": "Forms",
+        "module": "Core",
         "description": "Form definitions",
         "authorization": false,
         "properties": {
@@ -105,6 +110,7 @@
     {
         "name": "FormTab",
         "plural": "FormTabs",
+        "module": "Core",
         "description": "Form tab definitions",
         "authorization": false,
         "properties": {
@@ -124,6 +130,7 @@
     {
         "name": "FormAttr",
         "plural": "FormAttrs",
+        "module": "Core",
         "description": "Form attribute definitions",
         "authorization": false,
         "properties": {
@@ -160,6 +167,7 @@
     {
         "name": "FormAttrColumn",
         "plural": "FormAttrColumns",
+        "module": "Core",
         "description": "Form attribute column definitions for child tables",
         "authorization": false,
         "properties": {
@@ -183,6 +191,7 @@
     {
         "name": "RelationWidget",
         "plural": "RelationWidgets",
+        "module": "Core",
         "description": "Relation widget definitions",
         "authorization": false,
         "properties": {
@@ -238,6 +247,7 @@
     {
         "name": "RelationSearchColumn",
         "plural": "RelationSearchColumns",
+        "module": "Core",
         "description": "Columns shown on relation widget search",
         "authorization": false,
         "properties": {

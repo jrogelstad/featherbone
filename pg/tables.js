@@ -251,6 +251,7 @@
               JSON.stringify({
                 Object: {
                   description: "Abstract object class from which all feathers will inherit",
+                  module: "Core",
                   discriminator: "objectType",
                   plural: "Objects",
                   properties: {

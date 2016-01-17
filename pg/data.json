@@ -22,6 +22,68 @@
 }, {
     "name": "Form",
     "method": "POST",
+    "id": "em4go8hrytdm",
+    "data": {
+        "name": "Feather",
+        "description": "Feather form",
+        "feather": "Feather",
+        "module": "Core",
+        "tabs": [{
+            "name": "Properties"
+        }, {
+            "name": "Other"
+        }],
+        "attrs": [{
+            "attr": "name",
+            "grid": 0,
+            "unit": 0
+        }, {
+            "attr": "plural",
+            "grid": 0,
+            "unit": 0
+        }, {
+            "attr": "description",
+            "grid": 0,
+            "unit": 0
+        }, {
+            "attr": "module",
+            "grid": 0,
+            "unit": 1
+        }, {
+            "attr": "inherits",
+            "grid": 0,
+            "unit": 1
+        }, {
+            "attr": "isSystem",
+            "grid": 2,
+            "unit": 0
+        }, {
+            "attr": "isChild",
+            "grid": 2,
+            "unit": 0
+        }, {
+            "attr": "properties",
+            "grid": 1,
+            "unit": 0,
+            "showLabel": false,
+            "columns": [{
+                "attr": "name"
+            }, {
+                "attr": "description"
+            }, {
+                "attr": "default"
+            }, {
+                "attr": "isRequired"
+            }, {
+                "attr": "isReadOnly"
+            }, {
+                "attr": "inheritedFrom"
+            }]
+        }]
+    }
+}, {
+    "name": "Form",
+    "method": "POST",
     "id": "b7198t6p0a3h",
     "data": {
         "name": "Form",
