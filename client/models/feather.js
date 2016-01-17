@@ -234,6 +234,25 @@
       });
     });
 
+    // Update catalog feather locally when specification updated
+    state.resolve("/Ready/Fetched/Clean").enter(function () {
+      var name = that.id(),
+        value = catalog.data()[name] || {},
+        json = that.toJSON();
+
+      // Change properties iteratively so anything pointing to
+      // the feather gets the changes.
+      Object.keys(value).forEach(function (key) {
+        delete value[key];
+      });
+      Object.keys(json).forEach(function (key) {
+        value[key] = json[key];
+      });
+
+      // Reset catalog in case this is new
+      catalog.data()[name] = value;
+    });
+
     if (data) { that.set(data); }
 
     return that;
