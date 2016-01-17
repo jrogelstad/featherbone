@@ -104,8 +104,12 @@
 
       @returns {String}
     */
-    that.id = function () {
-      return d[that.idProperty()]();
+    that.id = function (value) {
+      var prop = that.idProperty();
+      if (arguments.length) {
+        return d[prop](value);
+      }
+      return d[prop]();
     };
 
     /*

@@ -55,6 +55,10 @@
         description: "Plural name",
         type: "string"
       },
+      module: {
+        description: "Module name",
+        type: "string"
+      },
       inherits: {
         description: "Feather inherited from",
         type: "string",
@@ -112,6 +116,11 @@
       default: {
         description: "Default value or function",
         type: "string"
+      },
+      isRequired: {
+        description: "Flags whether attribute is required",
+        type: "boolean",
+        default: false
       },
       isReadOnly: {
         description: "Flags whether attribute is read only by default",

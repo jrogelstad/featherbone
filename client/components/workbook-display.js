@@ -303,7 +303,7 @@
       ondblclick: vm.modelOpen
     }));
 
-    // Create dalog view models
+    // Create dialog view models
     vm.filterDialog(filterDialog.viewModel({
       filter: vm.tableWidget().filter,
       list: vm.tableWidget().models(),

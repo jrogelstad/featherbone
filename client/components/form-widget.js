@@ -27,7 +27,8 @@
     catalog = require("catalog");
 
   formWidget.viewModel = function (options) {
-    var vm = {},
+    var model,
+      vm = {},
       name = options.feather.toCamelCase(),
       models = catalog.store().models();
 
@@ -35,7 +36,7 @@
     vm.containerId = m.prop(options.containerId);
     vm.selectedTab = m.prop(1);
     vm.isFirstLoad = m.prop(true);
-    vm.model = m.prop(models[name]({id: options.id}));
+    vm.model = m.prop();
     vm.outsideElementIds = m.prop(options.outsideElementIds || []);
     vm.relations = m.prop({});
 
@@ -43,7 +44,8 @@
     // PRIVATE
     //
 
-    if (options.id) { vm.model().fetch(); }
+    model = vm.model(models[name]());
+    if (model.id(options.id)) { vm.model().fetch(); }
 
     return vm;
   };
