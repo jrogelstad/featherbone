@@ -91,7 +91,8 @@
         description: "Form layout",
         type: {
           relation: "Form"
-        }
+        },
+        isRequired: true
       },
       list: {
         description: "List layout",
@@ -205,7 +206,11 @@
     that.onChanged("feather", function (property) {
       var id, forms, keys, invalid, feather,
         value = property.newValue(),
-        columns = that.data.list().data.columns();
+        list = that.data.list(),
+        columns = list.data.columns(),
+        filter = list.data.filter(),
+        sort = filter ? filter.sort : false,
+        criteria = filter ? filter.criteria : false;
 
       if (value) {
         // When feather changes, automatically assign
@@ -228,8 +233,33 @@
           var idx = columns.indexOf(item);
           columns.splice(idx, 1);
         });
+
+        // Remove mismatched sort
+        if (sort) {
+          invalid = sort.filter(function (item) {
+            return !feather.properties[item.property];
+          });
+          invalid.forEach(function (item) {
+            var idx = sort.indexOf(item);
+            sort.splice(idx, 1);
+          });
+        }
+
+        // Remove mismatched criteria
+        if (criteria) {
+          invalid = criteria.filter(function (item) {
+            return !feather.properties[item.property];
+          });
+          invalid.forEach(function (item) {
+            var idx = criteria.indexOf(item);
+            criteria.splice(idx, 1);
+          });         
+        }
       } else {
         columns.length = 0;
+        Object.keys(filter).forEach(function (key) {
+          delete filter[key];
+        });
       }
 
       that.data.form(forms[id]);
@@ -237,14 +267,6 @@
 
     that.onValidate(function () {
       var list = that.data.list();
-
-      if (!that.data.name()) {
-        throw "A worksheet name is required.";
-      }
-
-      if (!that.data.form()) {
-        throw "A form selection is required.";
-      }
 
       if (!list.data.columns().length) {
         throw "List must include at least one column.";
