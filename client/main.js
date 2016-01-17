@@ -204,5 +204,12 @@
     m.redraw(true);
   };
 
+  // Expose some stuff globally for debugging purposes
+  featherbone = {
+    global: f,
+    catalog: catalog,
+    workbooks: workbooks
+  };
+
 }());
 
