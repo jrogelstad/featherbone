@@ -17,6 +17,7 @@ Short term
 
 Long term
 
+* Push notifications of updates
 * Report writer
 * Drag 'n Drop form editor
 * Basic modules
