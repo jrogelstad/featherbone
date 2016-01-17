@@ -24,8 +24,8 @@
     "method": "POST",
     "id": "em4go8hrytdm",
     "data": {
-        "name": "Feather",
-        "description": "Feather form",
+        "name": "Table",
+        "description": "Table form",
         "feather": "Feather",
         "module": "Core",
         "tabs": [{
@@ -111,6 +111,7 @@
             "unit": 1
         }, {
             "attr": "feather",
+            "label": "Table",
             "grid": 0,
             "unit": 1
         }, {

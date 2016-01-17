@@ -29,7 +29,7 @@
         }
       },
       {
-        "name": "Feathers",
+        "name": "Tables",
         "feather": "Feather",
         "form": "em4go8hrytdm",
         "list": {
@@ -61,7 +61,8 @@
             }, {
               "attr": "description"
             }, {
-              "attr": "feather"
+              "attr": "feather",
+              "label": "Table"
             }, {
               "attr": "created"
             }, {
