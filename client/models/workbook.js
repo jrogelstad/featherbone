@@ -202,12 +202,14 @@
   workbookChild = function (data) {
     var that = model(data, workbookLocalConfig);
 
-    // When feather changes, automatically assign the first
-    // available form.
     that.onChanged("feather", function (property) {
-      var id, forms, keys,
-        value = property.newValue();
+      var id, forms, keys, invalid, feather,
+        value = property.newValue(),
+        columns = that.data.list().data.columns();
+
       if (value) {
+        // When feather changes, automatically assign
+        // the first available form.
         forms = catalog.store().forms();
         keys = Object.keys(forms).sort(function (a, b) {
           if (forms[a].name < forms[b].name) { return -1; }
@@ -216,7 +218,20 @@
         id = keys.find(function (key) {
           return value === forms[key].feather;
         });
+
+        // Remove mismatched columns
+        feather = catalog.getFeather(value);
+        invalid = columns.filter(function (column) {
+          return !feather.properties[column.attr];
+        });
+        invalid.forEach(function (item) {
+          var idx = columns.indexOf(item);
+          columns.splice(idx, 1);
+        });
+      } else {
+        columns.length = 0;
       }
+
       that.data.form(forms[id]);
     });
 

@@ -214,17 +214,21 @@
           onclick: vm.selection.bind(this, item.index, true),
           style: {backgroundColor: vm.rowColor(item.index)}
         },[
-          m("td", {style: {minWidth: "165px", maxWidth: "165px"}}, m("select", {
+          m("td", {style: {minWidth: "165px", maxWidth: "165px"}},
+            m("select", {
+              id: f.createId(),
               value: item.attr,
               onchange: m.withAttr(
                 "value",
                 vm.itemChanged.bind(this, item.index, "attr"))
             }, vm.attrs().map(function (attr) {
-                return m("option", {value: attr}, attr.toName());
+                return m("option", {
+                  value: attr}, attr.toName());
               })
             )
           ),
-          m("td", {style: {minWidth: "220px", maxWidth: "220px"}}, m("input", {
+          m("td", {style: {minWidth: "220px", maxWidth: "220px"}},
+            m("input", {
               value: item.label || item.attr.toName(),
               onchange: m.withAttr(
                 "value",
