@@ -19,13 +19,24 @@
 (function () {
   "use strict";
 
-  var feather, featherModel, feathers,
+  var feather, featherProperty, featherModel,
+    featherPropertyModel, feathers, deleteObjectProperties,
     m = require("mithril"),
     f = require("feather-core"),
     dataSource = require("datasource"),
     model = require("model"),
     list = require("list"),
     catalog = require("catalog");
+
+  deleteObjectProperties = function (d) {
+    delete d.id;
+    delete d.created;
+    delete d.createdBy;
+    delete d.updated;
+    delete d.updatedBy;
+    delete d.isDeleted;
+    delete d.objectType;
+  };
 
   feather = {
     name: "Feather",
@@ -54,20 +65,69 @@
         type: "boolean",
         default: true
       },
-      properties: {
-        description: "Properties",
-        type: "array"
-      },
       isChild: {
         description: "Indicates child status",
         type: "boolean",
         default: "false"
+      },
+      properties: {
+        description: "Parent of \"parent\" of \"Feather Properties\"",
+        type: {
+          parentOf: "parent",
+          relation: "FeatherProperty"
+        }
+      }
+    }
+  };
+
+  featherProperty = {
+    name: "FeatherProperty",
+    description: "Persistence class property definition",
+    isChild: true,
+    properties: {
+      parent: {
+        description: "Parent feather",
+        type: {
+          relation: "Feather",
+          childOf: "properties"
+        }
+      },
+      name: {
+        description: "Feather name",
+        type: "string"
+      },
+      description: {
+        description: "Description",
+        type: "string"
+      },
+      type: {
+        description: "JSON data type",
+        type: "object",
+        default: "string"
+      },
+      format: {
+        description: "Data format",
+        type: "string"
+      },
+      default: {
+        description: "Default value or function",
+        type: "string"
+      },
+      isReadOnly: {
+        description: "Flags whether attribute is read only by default",
+        type: "boolean",
+        default: false
+      },
+      inheritedFrom: {
+        description: "Feather property is inherited from",
+        type: "string"
       }
     }
   };
 
   feathers = catalog.data();
   feathers.Feather = feather;
+  feathers.featherProperty = featherProperty;
 
   /**
     A factory that returns a persisting object based on a definition call a
@@ -82,12 +142,12 @@
     // PUBLIC
     //
 
-    that = model(data, feather);
+    that = model(null, feather);
     d = that.data;
     that.idProperty("name");
 
     that.path = function (name, id) {
-      var ret = "/feather/" + name.toSpinalCase();
+      var ret = "/" + name.toSpinalCase();
       if (id) { ret += "/" + id; }
       return ret;
     };
@@ -96,13 +156,7 @@
     // PRIVATE
     //
 
-    delete d.id;
-    delete d.created;
-    delete d.createdBy;
-    delete d.updated;
-    delete d.updatedBy;
-    delete d.isDeleted;
-    delete d.objectType;
+    deleteObjectProperties(d);
 
     doPut = function (context) {
       var result = f.prop(),
@@ -122,7 +176,7 @@
     };
 
     // Convert properties from array to object
-    toJSON = d.properties.toJSON();
+    toJSON = d.properties.toJSON;
     d.properties.toJSON = function () {
       var obj = {},
         ary = toJSON();
@@ -152,6 +206,7 @@
 
       return p(ary);
     };
+    // Reapply previous property's properties
     Object.keys(p).forEach(function (key) {
       d.properties[key] = p[key];
     });
@@ -169,6 +224,8 @@
         context: {deferred: deferred}
       });
     });
+
+    if (data) { that.set(data); }
 
     return that;
   };
@@ -221,7 +278,23 @@
     };
   }());
 
+  /**
+    Feather property model.
+
+    @param {Object} Default data
+    return {Object}
+  */
+  featherPropertyModel = function (data) {
+    var that = model(data, featherProperty);
+
+    that.idProperty("name");
+    deleteObjectProperties(that.data);
+
+    return that;
+  };
+
   catalog.register("models", "feather", featherModel);
+  catalog.register("models", "featherProperty", featherPropertyModel);
   module.exports = featherModel;
 
 }());

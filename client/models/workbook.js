@@ -154,8 +154,7 @@
   feathers.WorkbookList = workbookList;
 
   /**
-    A factory that returns a persisting object based on a definition call a
-    `feather`. Can be extended by modifying the return object directly.
+    Model with special rest API handling for Workbook saves.
     @param {Object} Default data
     return {Object}
   */
@@ -214,8 +213,8 @@
   };
 
   /**
-    A factory that returns a persisting object based on a definition call a
-    `feather`. Can be extended by modifying the return object directly.
+    Workbook configuration model.
+
     @param {Object} Default data
     return {Object}
   */
