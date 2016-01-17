@@ -44,7 +44,6 @@
         sheet = vm.model().toJSON(),
         workbook = vm.workbook();
 
-      sheet.form = catalog.store().forms()[sheet.form];
       vm.sheet(id, sheet);
       workbook.data.localConfig(vm.config());
       f.buildRoutes(workbook.toJSON());
@@ -188,7 +187,6 @@
     vm.reset = function () {
       var id = vm.sheetId();
       cache = f.copy(vm.sheet(id));
-      cache.form = cache.form.id;
       vm.model(createModel(cache));
       if (!cache.list.columns.length) { vm.add(); }
       vm.selection(0);

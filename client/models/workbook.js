@@ -217,7 +217,7 @@
           return value === forms[key].feather;
         });
       }
-      that.data.form(id);
+      that.data.form(forms[id]);
     });
 
     that.onValidate(function () {
