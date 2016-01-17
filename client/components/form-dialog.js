@@ -86,17 +86,20 @@
         ],
         containerId: vm.ids().dialog
       }));
+      delete vm.style().display;
     });
     substate.content = function () {
       return  m.component(formWidget.component({viewModel: vm.formWidget()}));
     };
     substate.exit(function () {
       vm.formWidget(undefined);
+      vm.style().display = "none";
     });
 
     vm.style().width = undefined;
     vm.style().margin = "25px";
     vm.style().top = "0px";
+    vm.style().display = "none";
 
     return vm;
   };

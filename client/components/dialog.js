@@ -66,7 +66,6 @@
     vm.displayCancel = function () {
       return vm.onOk() ? "inline-block" : "none";
     };
-    vm.isShowing = m.prop(false);
     vm.message = m.prop(options.message || "Your message here");
     vm.onCancel = m.prop(options.onCancel);
     vm.onOk = m.prop(options.onOk);
@@ -100,7 +99,6 @@
             var  id = vm.ids().dialog,
               dlg = document.getElementById(id);
             if (dlg) { dlg.close(); }
-            vm.isShowing(false);
           });
           this.event("show", function () {
             this.goto("../Showing");
@@ -110,7 +108,6 @@
           this.enter(function () {
             var id = vm.ids().dialog,
               dlg = document.getElementById(id);
-            vm.isShowing(true);
             if (dlg) { dlg.showModal(); }
           });
           this.event("close", function () {
@@ -151,10 +148,6 @@
 
       if (vm.okTitle()) {
         okOpts.title = vm.okTitle();
-      }
-
-      if (!vm.isShowing()) {
-        style.display = "none";
       }
 
       view = m("dialog", {
