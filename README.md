@@ -18,4 +18,6 @@ $ node configure
 $ node server
 ```
 
+From your browser navigate to <http://localhost:10001/>
+
 Additional an example module may be loaded [here] (https://github.com/jrogelstad/cardinal)
