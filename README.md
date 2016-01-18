@@ -1,4 +1,22 @@
-# featherbone
-A JavaScript based persistence framework for building object relational database applications
+Featherbone
+===========
+A JavaScript based persistence framework for building object relational database applications.
 
-Sorry, not much to see here right now. Come back later.
+# Prerequisites
+  [PostgreSQL v4.5] (http://www.postgresql.org/)
+  [NodeJS] (https://nodejs.org/en/)
+  
+# Install
+
+Make sure Postgres installation matches the credentials here <https://github.com/jrogelstad/featherbone/blob/master/config/pg.json>, or modify the file to match your administrator credentials.
+
+Clone this repository and from the cloned location:
+
+```text
+$ npm install
+$ node configure
+$ node server
+```
+
+Additional an example module may be loaded here:
+<https://github.com/jrogelstad/cardinal.>
