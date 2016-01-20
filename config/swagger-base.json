@@ -1,17 +1,32 @@
 {
   "swagger": "2.0",
   "info": {
-    "version": "0.0.1",
+    "version": "0.1.0",
     "title": "Featherbone data service",
+    "description": "REST data service for featherbone based applications.",
     "license": {
-      "name": "GPLv3"
+      "name": "Affero GPLv3",
+      "url": "http://www.gnu.org/licenses/agpl.txt"
     }
   },
-  "host": "localhost:10010",
+  "host": "localhost:1001",
   "basePath": "/",
+  "tags": [
+      {
+          "name": "feather",
+          "description": "Data class specifications"
+      },
+      {
+          "name": "settings",
+          "description": "Application settings url"
+      },
+      {
+          "name": "data",
+          "description": "Data APIs"
+      }
+  ],
   "schemes": [
-    "http",
-    "https"
+    "http"
   ],
   "consumes": [
     "application/json"
@@ -20,24 +35,12 @@
     "application/json"
   ],
   "paths": {
-    "/favicon.ico": {
-      "x-swagger-router-controller": "data",
-      "get": {
-        "description": "Placeholder for chrome. Returns nothing for now",
-        "operationId": "favicon",
-        "responses": {
-          "200": {
-            "description": "Success",
-            "schema": {
-              "$ref": "#/definitions/FaviconResponse"
-            }
-          }
-        }
-      }
-    },
     "/settings/{name}": {
       "x-swagger-router-controller": "data",
       "get": {
+        "tags": [
+          "settings"
+        ],
         "summary": "Get settings by name",
         "parameters": [
           {
@@ -63,6 +66,9 @@
         }
       },
       "put": {
+        "tags": [
+          "settings"
+        ],
         "summary": "Save new settings",
         "parameters": [
           {
@@ -88,10 +94,13 @@
         }
       }
     },
-    "/model/{name}": {
+    "/feather/{name}": {
       "x-swagger-router-controller": "data",
       "get": {
-        "summary": "Get model by name",
+        "tags": [
+          "feather"
+        ],
+        "summary": "Get feather by name",
         "parameters": [
           {
             "name": "name",
@@ -116,13 +125,15 @@
         }
       },
       "put": {
-        "summary": "Save model",
-        "operationId": "doSaveSattings",
+        "tags": [
+          "feather"
+        ],
+        "summary": "Save feather",
         "parameters": [
           {
             "name": "name",
             "in": "path",
-            "description": "The name of the settings",
+            "description": "Save a feather definition",
             "type": "string"
           }
         ],
@@ -142,7 +153,10 @@
         }
       },
       "delete": {
-        "summary": "Delete model",
+        "tags": [
+          "feather"
+        ],
+        "summary": "Delete feather",
         "parameters": [
           {
             "name": "name",
@@ -170,16 +184,6 @@
   },
   "definitions": {
     "ErrorResponse": {
-      "required": [
-        "message"
-      ],
-      "properties": {
-        "message": {
-          "type": "string"
-        }
-      }
-    },
-    "FaviconResponse": {
       "required": [
         "message"
       ],
