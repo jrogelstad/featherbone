@@ -269,20 +269,27 @@
       // Loop through each feather and append to swagger api
       keys = Object.keys(catalog);
       keys.forEach(function (key) {
-        var definition,
+        var definition, tag,
           feather = catalog[key],
           properties = {},
           inherits = feather.inherits || "Object",
-          pathName = "/" + key.toSpinalCase() + "/{id}";
+          pathName = "data/" + key.toSpinalCase() + "/{id}";
         name = key.toProperCase();
 
         feather.name = key; // For error trapping later
 
         // Append singluar path
         if (!feather.isChild) {
+          tag = {
+            name: key.toSpinalCase(),
+            description: feather.description
+          };
+          swagger.tags.push(tag);
+
           path = {
             "x-swagger-router-controller": "data",
             get: {
+              tags: [key.toSpinalCase()],
               summary: "Info for a specific " + name,
               parameters: [
                 {
@@ -308,6 +315,7 @@
               }
             },
             patch: {
+              tags: [key.toSpinalCase()],
               summary: "Update an existing " + name,
               parameters: [
                 {
@@ -333,6 +341,7 @@
               }
             },
             delete: {
+              tags: [key.toSpinalCase()],
               summary: "Delete a " + name,
               operationId: "doHandleOne",
               parameters: [
@@ -367,6 +376,7 @@
             path = {
               "x-swagger-router-controller": "data",
               get: {
+                tags: [key.toSpinalCase()],
                 description: key + " data",
                 operationId: "doGet",
                 parameters: [
@@ -403,6 +413,7 @@
                 }
               },
               post: {
+                tags: [key.toSpinalCase()],
                 summary: "Add a new " + name + " to the database",
                 operationId: "doUpsert",
                 responses: {
@@ -422,7 +433,7 @@
               }
             };
 
-            pathName = "/" + feather.plural.toSnakeCase();
+            pathName = "data/" + feather.plural.toSnakeCase();
             swagger.paths[pathName] = path;
           }
         }

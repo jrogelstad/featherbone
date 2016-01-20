@@ -19,10 +19,6 @@
       {
           "name": "settings",
           "description": "Application settings url"
-      },
-      {
-          "name": "data",
-          "description": "Data APIs"
       }
   ],
   "schemes": [
