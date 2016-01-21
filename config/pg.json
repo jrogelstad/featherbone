@@ -3,6 +3,5 @@
   "database": "demo",
   "port": 5432,
   "user": "postgres",
-  "password": "password",
-  "defaultLimit": 2000
+  "password": "password"
 }
