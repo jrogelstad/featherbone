@@ -3317,16 +3317,9 @@
   isChildFeather = function (feather) {
     var props = feather.properties;
 
-    Object.keys(props).forEach(function (key) {
-      if (props.hasOwnProperty(key)) {
-        if (typeof props[key].type === "object" &&
-            props[key].type.childOf) {
-          return true;
-        }
-      }
+    return Object.keys(props).some(function (key) {
+      return !!props[key].type.childOf;
     });
-
-    return false;
   };
 
   /** private */
