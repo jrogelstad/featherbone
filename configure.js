@@ -273,7 +273,7 @@
           feather = catalog[key],
           properties = {},
           inherits = feather.inherits || "Object",
-          pathName = "data/" + key.toSpinalCase() + "/{id}";
+          pathName = "/data/" + key.toSpinalCase() + "/{id}";
         name = key.toProperCase();
 
         feather.name = key; // For error trapping later
@@ -433,7 +433,7 @@
               }
             };
 
-            pathName = "data/" + feather.plural.toSnakeCase();
+            pathName = "/data/" + feather.plural.toSnakeCase();
             swagger.paths[pathName] = path;
           }
         }
