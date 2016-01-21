@@ -9,7 +9,7 @@
       "url": "http://www.gnu.org/licenses/agpl.txt"
     }
   },
-  "host": "localhost:1001",
+  "host": "localhost:10001",
   "basePath": "/",
   "tags": [
       {
