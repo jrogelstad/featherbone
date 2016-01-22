@@ -45,7 +45,10 @@
     //
 
     model = vm.model(models[name]());
-    if (model.id(options.id)) { vm.model().fetch(); }
+    if (options.id) {
+      model.id(options.id);
+      vm.model().fetch();
+    }
 
     return vm;
   };
