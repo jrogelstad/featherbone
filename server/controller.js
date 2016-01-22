@@ -2375,8 +2375,16 @@
 
                 /* Handle standard types */
                 } else {
-                  if (prop.format && formats[prop.format]) {
-                    sql += formats[prop.format].type;
+                  if (prop.format) {
+                    if (formats[prop.format]) {
+                      console.log("Eh?", prop.format, formats[prop.format])
+                  console.log("WTF")
+                      sql += formats[prop.format].type;
+                    } else {
+                      err = 'Invalid format "' + prop.format + '" for property "' +
+                        key + '" on class "' + spec.name + '"';
+                      return false;
+                    }
                   } else {
                     sql += type.type;
                     if (type.type === "numeric") {
@@ -2398,18 +2406,18 @@
                   unique.push(key);
                 }
 
-                if (props[key].description) {
+                if (prop.description) {
                   sql += "COMMENT ON COLUMN %I.%I IS %L;";
 
                   tokens = tokens.concat([
                     table,
                     token,
-                    props[key].description || ""
+                    prop.description || ""
                   ]);
                 }
               }
             } else {
-              err = 'Invalid type "' + props[key].type + '" for property "' +
+              err = 'Invalid type "' + prop.type + '" for property "' +
                 key + '" on class "' + spec.name + '"';
               return false;
             }
