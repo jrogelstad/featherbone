@@ -2322,7 +2322,7 @@
                 }
 
                 /* Handle composite types */
-                if (typeof type === "object") {
+                if (typeof prop.type === "object") {
                   if (type.relation) {
                     sql += "integer;";
                     token = relationColumn(key, type.relation);
