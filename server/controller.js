@@ -2322,31 +2322,35 @@
                 }
 
                 /* Handle composite types */
-                if (type.relation) {
-                  sql += "integer;";
-                  token = relationColumn(key, type.relation);
+                if (typeof type === "object") {
+                  if (type.relation) {
+                    sql += "integer;";
+                    token = relationColumn(key, type.relation);
 
-                  /* Update parent class for children */
-                  if (type.childOf) {
-                    parent = catalog[type.relation];
-                    if (!parent.properties[type.childOf]) {
-                      parent.properties[type.childOf] = {
-                        description: 'Parent of "' + key + '" on "' +
-                          spec.name + '"',
-                        type: {
-                          relation: spec.name,
-                          parentOf: key
-                        }
-                      };
+                    /* Update parent class for children */
+                    if (type.childOf) {
+                      parent = catalog[type.relation];
+                      if (!parent.properties[type.childOf]) {
+                        parent.properties[type.childOf] = {
+                          description: 'Parent of "' + key + '" on "' +
+                            spec.name + '"',
+                          type: {
+                            relation: spec.name,
+                            parentOf: key
+                          }
+                        };
 
-                    } else {
-                      err = 'Property "' + type.childOf +
-                        '" already exists on "' + type.relation + '"';
+                      } else {
+                        err = 'Property "' + type.childOf +
+                          '" already exists on "' + type.relation + '"';
+                      }
+                    } else if (type.parentOf) {
+                      err = 'Can not set parent directly for "' + key + '"';
+                    } else if (!type.properties || !type.properties.length) {
+                      err = 'Properties must be defined for relation "' + key + '"';                 
                     }
-                  } else if (type.parentOf) {
-                    err = 'Can not set parent directly for "' + key + '"';
-                  } else if (!type.properties || !type.properties.length) {
-                    err = 'Properties must be defined for relation "' + key + '"';                 
+                  } else {
+                    err = 'Relation not defined for composite type "' + key + '"';
                   }
 
                   if (err) { return false; }
@@ -2377,8 +2381,6 @@
                 } else {
                   if (prop.format) {
                     if (formats[prop.format]) {
-                      console.log("Eh?", prop.format, formats[prop.format])
-                  console.log("WTF")
                       sql += formats[prop.format].type;
                     } else {
                       err = 'Invalid format "' + prop.format + '" for property "' +
