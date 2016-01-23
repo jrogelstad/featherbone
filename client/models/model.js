@@ -388,7 +388,7 @@
 
     doDelete = function (context) {
       var result = f.prop({}),
-        payload = {method: "DELETE", path: that.path(that.name, d.id())},
+        payload = {method: "DELETE", path: that.path(that.name, that.id())},
         callback = function () {
           that.set(result(), true, true);
           state.send('deleted');
