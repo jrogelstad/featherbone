@@ -107,12 +107,12 @@
       }
     };
     vm.newSheet = function () {
-      var undo, newSheet, sheetName, formName, next,
+      var undo, newSheet, sheetName, next,
         dialogSheetConfigure = vm.sheetConfigureDialog(),
-        forms,
         id = f.createId(),
         config = vm.config(),
         sheets = vm.sheets(),
+        sheet = f.copy(vm.sheet()),
         i = 0;
 
       while (!sheetName) {
@@ -123,28 +123,14 @@
         }
       }
 
-      forms = config.map(function (sheet) {
-        return sheet.form.name;
-      });
-
       i= 0;
-      while (!formName) {
-        i += 1;
-        next = "Form" + i;
-        if (forms.indexOf(next) === -1) {
-          formName = next;
-        }
-      }
 
       newSheet = {
         id: id,
         name: sheetName,
-        feather: null,
-        form: {
-          name: formName,
-          attrs: []
-        },
-        list: {columns: []}
+        feather: sheet.feather,
+        form: sheet.form.id,
+        list: {columns: sheet.list.columns}
       };
 
       undo = function () {
