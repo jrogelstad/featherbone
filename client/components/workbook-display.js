@@ -61,6 +61,7 @@
     }));
     vm.configureSheet = function () {
       var dlg = vm.sheetConfigureDialog();
+      dlg.onCancel(undefined);
       dlg.sheetId(sheetId);
       dlg.show();
     };
@@ -148,6 +149,7 @@
 
       undo = function () {
         config.pop();
+        dialogSheetConfigure.onCancel(undefined);
       };
 
       config.push(newSheet);
