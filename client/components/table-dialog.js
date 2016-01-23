@@ -282,6 +282,10 @@
     });
     state.goto();
 
+    vm.state().resolve("/Display/Showing").enter(function () {
+      vm.reset();
+    });
+
     return vm;
   };
 

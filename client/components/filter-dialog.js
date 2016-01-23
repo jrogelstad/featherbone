@@ -325,8 +325,6 @@
     });
     vm.reset();
 
-    vm.state().resolve("/Display/Showing").enter(vm.reset);
-
     return vm;
   };
 
