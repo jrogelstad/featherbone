@@ -585,8 +585,14 @@
           isSelected = vm.isSelected(model),
           currentState = model.state().current()[0],
           d = model.data,
-          cellOpts = {},
-          rowOpts = {};
+          rowOpts = {},
+          cellOpts = {
+            style: {
+              borderColor: "blue",
+              borderWidth: "thin",
+              borderStyle: "solid"
+            }
+          };
 
         // Build row
         if (isSelected) {
@@ -663,14 +669,6 @@
 
         // Build editable row
         } else {
-          cellOpts = {
-            style: {
-              borderColor: "blue",
-              borderWidth: "thin",
-              borderStyle: "solid"
-            }
-          };
-
           // Build cells
           idx = 0;
           tds = vm.attrs().map(function (col) {
@@ -711,8 +709,18 @@
                 }
               };
             } else {
-              tdOpts = cellOpts;
+              tdOpts = {
+                style: {
+                  borderColor: "blue",
+                  borderWidth: "thin",
+                  borderStyle: "solid"
+                }
+              };
             }
+
+            tdOpts.style.minWidth = columnWidth;
+            tdOpts.style.maxWidth = columnWidth;
+            tdOpts.style.fontSize = zoom;
 
             cell = m("td", tdOpts, [
               f.buildInputComponent({
