@@ -19,7 +19,7 @@
 (function () {
   "use strict";
 
-  var list,
+  var list, createList,
     m = require("mithril"),
     qs = require("Qs"),
     catalog = require("catalog"),
@@ -43,11 +43,41 @@
     @return {Function}
   */
   list = function (feather) {
-    var models, plural, state, doFetch, doSave, onClean, onDirty, onDelete,
+    // Instantiate the list, optionally auto fetch
+    // and return a property that contains the array.
+    return function (options) {
+      options = options || {};
+      var plural,
+        ary = options.value || createList(feather),
+        prop = m.prop(ary);
+
+      if (options.path) { 
+        ary.path(options.path);
+      } else {
+        plural = catalog.getFeather(feather).plural.toSpinalCase();
+        ary.path("/data/" + plural + "/");
+      }
+
+      if (options.fetch !== false) {
+        ary.fetch(options.filter, options.merge);
+      } else {
+        ary.filter(options.filter || {});
+      }
+
+      return prop;
+    };
+  };
+
+  // ..........................................................
+  // PRIVATE
+  //
+
+  createList = function (feather) {
+    var state, doFetch, doSave, onClean, onDirty, onDelete,
+      models = catalog.store().models(),
       name = feather.toCamelCase(),
       ary = [],
-      dirty = [],
-      prop = m.prop(ary);
+      dirty = [];
 
     // ..........................................................
     // PUBLIC
@@ -93,7 +123,7 @@
     ary.index = m.prop({});
 
     ary.path = m.prop();
- 
+
     /*
       Array of properties to fetch if only a subset required.
       If undefined, then all properties returned.
@@ -242,28 +272,7 @@
     });
     state.goto();
 
-    // Instantiate the list, optionally auto fetch
-    // and return a property that contains the array.
-    return function (options) {
-      options = options || {};
-      ary = options.value || ary;
-      models = catalog.store().models();
-
-      if (options.path) { 
-        ary.path(options.path);
-      } else {
-        plural = catalog.getFeather(feather).plural.toSpinalCase();
-        ary.path("/data/" + plural + "/");
-      }
-
-      if (options.fetch !== false) {
-        ary.fetch(options.filter, options.merge);
-      } else {
-        ary.filter(options.filter || {});
-      }
-
-      return prop;
-    };
+    return ary;
   };
 
   module.exports = list;
