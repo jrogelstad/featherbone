@@ -81,11 +81,20 @@
           disabled: opts.disabled,
           style: opts.style
         });
-
       } else {
         opts.onchange = m.withAttr("value", prop);
         opts.value = prop();
-        component = m("input", opts);
+
+        // If options were passed in, used a select element
+        if (obj.dataList) {
+          component = m("select", opts, obj.dataList.map(function (item) {
+            return m("option", {value: item.value}, item.label);
+          }));
+
+        // Otherwise standard input
+        } else {
+          component = m("input", opts);
+        }
       }
 
       return component;

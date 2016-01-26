@@ -111,10 +111,14 @@
       // Build elements
       buildFieldset = function (attrs) {
         return attrs.map(function (item) {
-          var result, labelOpts,
+          var result, labelOpts, dataList,
             key = item.attr,
             prop = d[key],
             value = prop();
+
+          if (item.dataList) {
+            dataList = f.resolveProperty(model, item.dataList)();
+          }
 
           labelOpts = {
             for: key,
@@ -148,6 +152,7 @@
             f.buildInputComponent({
               model: model,
               key: key,
+              dataList: dataList,
               viewModel: vm
             })
           ]);
