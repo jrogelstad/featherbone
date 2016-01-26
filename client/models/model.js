@@ -55,6 +55,35 @@
     // PUBLIC
     //
 
+    /**
+      Add a calculated property to "data."
+
+      @param {Object} Options
+      @param {String} [options.name] Name (required)
+      @param {String} [options.description] Description
+      @param {Function} [options.function] Function (required)
+      @param {String} [options.type] Return type (default "string")
+      @param {String} [options.format] Return format
+      @param {Boolean} [options.isReadOnly] Read only (default true)
+      @returns Receiver
+    */
+    that.addCalculated = function (options) {
+      var fn = options.function;
+
+      fn.isCalculated = true;
+      fn.isChild = m.prop(false);
+      fn.isParent = m.prop(false);
+      fn.key = options.name;
+      fn.description = options.description || "";
+      fn.type = options.type || "string";
+      fn.format = options.format;
+      fn.isRequired = m.prop(false);
+      fn.isReadOnly = m.prop(options.isReadOnly || false);
+      d[options.name] = fn;
+
+      return this;
+    };
+
     that.canSave = function () {
       return state.resolve(state.current()[0]).canSave();
     };
@@ -302,7 +331,9 @@
       var keys = Object.keys(d);
 
       keys.forEach(function (key) {
-        d[key].state().send(str);
+        if (d[key].state) {
+          d[key].state().send(str);
+        }
       });
 
       return this;
@@ -349,7 +380,9 @@
         result = {};
 
       keys.forEach(function (key) {
-        result[key] = d[key].toJSON();
+        if (!d[key].isCalculated) {
+          result[key] = d[key].toJSON();
+        }
       });
 
       return result;
@@ -746,6 +779,7 @@
         prop.default = func || defaultValue;
         prop.isRequired(props[key].isRequired);
         prop.isReadOnly(props[key].isReadOnly);
+        prop.isCalculated = false;
 
         // Add state to map for event helper functions
         stateMap[key] = prop.state();
