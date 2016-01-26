@@ -87,6 +87,7 @@
   featherProperty = {
     name: "FeatherProperty",
     description: "Persistence class property definition",
+    isSystem: true,
     isChild: true,
     properties: {
       parent: {
@@ -145,7 +146,7 @@
     return {Object}
   */
   featherModel = function (data) {
-    var that, d, state, substate, doPut, p, toJSON;
+    var that, d, state, substate, doPut, p, toJSON, fn;
 
     // ..........................................................
     // PUBLIC
@@ -251,6 +252,24 @@
 
       // Reset catalog in case this is new
       catalog.data()[name] = value;
+    });
+
+    // Add list of feathers as calculated property
+    fn = function () {
+      var tables = catalog.data(),
+        keys = Object.keys(feathers);
+      keys = keys.filter(function (key) {
+        return !tables[key].isSystem;
+      }).sort();
+
+      return keys.map(function (key) {
+        return {value: key, label: key};
+      });
+    };
+    that.addCalculated({
+      name: "feathers",
+      type: "array",
+      function: fn
     });
 
     if (data) { that.set(data); }

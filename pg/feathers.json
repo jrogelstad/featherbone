@@ -161,6 +161,10 @@
             "label": {
                 "description": "Alternate attribute label",
                 "type": "string"
+            },
+            "dataList": {
+                "description": "Property that returns an array of options",
+                "type": "string"
             }
         }
     },

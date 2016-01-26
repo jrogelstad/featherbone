@@ -68,6 +68,7 @@
 
   workbookDefaultConifg = {
     description: "Workbook default sheet definition",
+    isSystem: true,
     isChild: true,
     properties: {
       parent: {
@@ -108,6 +109,7 @@
 
   workbookList = {
     description: "Workbook list definition",
+    isSystem: true,
     isChild: true,
     properties: {
       columns: {

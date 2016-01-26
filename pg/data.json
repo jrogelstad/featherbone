@@ -51,6 +51,7 @@
             "unit": 1
         }, {
             "attr": "inherits",
+            "dataList": "feathers",
             "grid": 0,
             "unit": 1
         }, {
