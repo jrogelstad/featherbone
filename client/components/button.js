@@ -122,12 +122,8 @@
           this.event("disable", function () {
             this.goto("../Disabled");
           });
-          this.class = function () {
-            return "";
-          };
-          this.isDisabled = function () {
-            return false;
-          };
+          this.class = m.prop("");
+          this.isDisabled = m.prop(false);
         });
         this.state("Active", function () {
           this.event("deactivate", function () {
@@ -139,9 +135,7 @@
           this.class = function () {
             return "pure-button-active";
           };
-          this.isDisabled = function () {
-            return false;
-          };
+          this.isDisabled = m.prop(false);
         });
         this.state("Disabled", function () {
           this.event("enable", function () {
@@ -150,12 +144,8 @@
           this.event("activate", function () {
             this.goto("../Active");
           });
-          this.class = function () {
-            return "";
-          };
-          this.isDisabled = function () {
-            return true;
-          };
+          this.class = m.prop("");
+          this.isDisabled = m.prop(true);
         });
       });
       this.state("Primary", function () {
@@ -163,17 +153,13 @@
           this.event("primaryOn", function () {
             this.goto("../On");
           });
-          this.class = function () {
-            return "";
-          };
+          this.class = m.prop("");
         });
         this.state("On", function () {
           this.event("primaryOff", function () {
             this.goto("../Off");
           });
-          this.class = function () {
-            return "pure-button-primary";
-          };
+          this.class = m.prop("pure-button-primary");
         });
       });
       this.state("Display", function () {
@@ -181,17 +167,13 @@
           this.event("hide", function () {
             this.goto("../Off");
           });
-          this.hidden = function () {
-            return "";
-          };
+          this.hidden = m.prop("");
         });
         this.state("Off", function () {
           this.event("show", function () {
             this.goto("../On");
           });
-          this.hidden = function () {
-            return "pure-button-hidden";
-          };
+          this.hidden = m.prop("pure-button-hidden");
         });
       });
     });
