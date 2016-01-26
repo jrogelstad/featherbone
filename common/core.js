@@ -20,7 +20,7 @@
 (function () {
   "use strict";
 
-  var that, waiting, isToMany, isToOne, isChild,
+  var that, waiting, isToMany, isToOne, isChild, lastTick,
     callbacks = [], queue = [], thenables = [],
     statechart = require("statechartjs"),
     i = 0;
@@ -418,6 +418,20 @@
       scale =  scale || 0;
       var power = Math.pow(10, scale);
       return Math.round(value * power) / power;
+    },
+
+    /**
+      Return milliseconds since last tick. Useful for basic
+      debugging for length of time to process a routine.
+
+      @returns {Number}
+    */
+    tick: function () {
+      var result,
+        d = new Date();
+      result = lastTick ? d - lastTick : 0;
+      lastTick = d;
+      return result;
     },
 
     /**
