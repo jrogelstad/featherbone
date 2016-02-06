@@ -147,11 +147,13 @@
             },
             "grid": {
                 "description": "Grid (pane) number",
-                "type": "integer"
+                "type": "integer",
+                "default": 0
             },
             "unit": {
                 "description": "Unit (column) number",
-                "type": "integer"
+                "type": "integer",
+                "default": 0
             },
             "showLabel": {
                 "description": "Flag to show or hide label",
@@ -188,6 +190,10 @@
             },
             "label": {
                 "description": "Alternate column label",
+                "type": "string"
+            },
+            "dataList": {
+                "description": "Property that returns an array of options",
                 "type": "string"
             }
         }
