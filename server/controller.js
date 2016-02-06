@@ -201,7 +201,7 @@
           rels = [];
 
           if (!table || !catalog[name]) {
-            obj.callback("Class not found");
+            obj.callback("Feather not found");
             return;
           }
 
