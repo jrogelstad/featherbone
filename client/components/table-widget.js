@@ -347,7 +347,7 @@
       vm.refresh();
     });
 
-    // Create workbook statechart
+    // Create table widget statechart
     vm.state(statechart.define({concurrent: true}, function () {
       this.state("Mode", function () {
         this.state("View", function () {
@@ -578,6 +578,7 @@
       }());
 
       // Build rows
+      idx = 0;
       rows = vm.models().map(function (model) {
         var tds, row, thContent, onclick,
           currentMode = vm.mode().current()[0],
@@ -586,13 +587,7 @@
           currentState = model.state().current()[0],
           d = model.data,
           rowOpts = {},
-          cellOpts = {
-            style: {
-              borderColor: "blue",
-              borderWidth: "thin",
-              borderStyle: "solid"
-            }
-          };
+          cellOpts = {};
 
         // Build row
         if (isSelected) {
@@ -669,13 +664,22 @@
 
         // Build editable row
         } else {
+          cellOpts = {
+            style: {
+              borderColor: "blue",
+              borderWidth: "thin",
+              borderStyle: "solid"
+            }
+          };
+
           // Build cells
           idx = 0;
           tds = vm.attrs().map(function (col) {
             var cell, tdOpts, inputOpts,
               prop = f.resolveProperty(model, col),
               id = "input" + col.toCamelCase(true),
-              columnWidth = config.columns[idx].width || COL_WIDTH_DEFAULT;
+              columnWidth = config.columns[idx].width || COL_WIDTH_DEFAULT,
+              dataList = config.columns[idx].dataList;
 
             inputOpts = {
               id: id,
@@ -722,10 +726,15 @@
             tdOpts.style.maxWidth = columnWidth;
             tdOpts.style.fontSize = zoom;
 
+            if (dataList) {
+              dataList = f.resolveProperty(model, dataList)();
+            }
+
             cell = m("td", tdOpts, [
               f.buildInputComponent({
                 model: model,
                 key: col,
+                dataList: dataList,
                 viewModel: vm,
                 options: inputOpts
               })
@@ -771,6 +780,8 @@
         // Build row
         rowOpts.style = { backgroundColor: color };
         row = m("tr", rowOpts, tds);
+
+        idx += 1;
 
         return row;
       });
