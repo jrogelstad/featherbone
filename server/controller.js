@@ -2438,7 +2438,12 @@
           obj.client.query(sql, createSequence);
         };
 
-        createSequence = function () {
+        createSequence = function (err) {
+          if (err) {
+            obj.callback(err);
+            return;
+          }
+
           if (!autonumber) {
             afterUpdateSchema();
             return;
