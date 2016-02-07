@@ -2299,7 +2299,13 @@
           spec.properties = spec.properties || {};
           props = spec.properties;
           keys = Object.keys(props).filter(function (item) {
-            return !props[item].inheritedFrom;
+            var prop = props[item];
+            if (prop.autonumber) {
+              autonumber = prop.autonumber;
+              autonumber.key = item;
+            }
+
+            return !prop.inheritedFrom;
           });
           keys.every(function (key) {
             var vSql, prop = props[key];
@@ -2316,11 +2322,6 @@
 
                 changed = true;
                 sql += "ALTER TABLE %I ADD COLUMN %I ";
-
-                if (prop.autonumber) {
-                  autonumber = prop.autonumber;
-                  autonumber.key = key;
-                }
 
                 /* Handle composite types */
                 if (typeof prop.type === "object") {
