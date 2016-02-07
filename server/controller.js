@@ -139,7 +139,7 @@
         }
 
         // Drop table(s)
-        sql = ("DROP VIEW %I; DROP TABLE %I;");
+        sql = "DROP VIEW %I; DROP TABLE %I;" + sql;
         sql = sql.format(["_" + table, table]);
         obj.client.query(sql, function (err) {
           if (err) {
@@ -194,6 +194,7 @@
       };
 
       next = function () {
+        sql = "";
         if (o < names.length) {
           name = names[o];
           o += 1;
