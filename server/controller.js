@@ -47,7 +47,7 @@
       string: {type: "text", default: "''"},
       boolean: {type: "boolean", default: "false"},
       date: {type: "date", default: "today()"},
-      dateTime: {type: "timestamp with time zone", default: "minDate()"},
+      dateTime: {type: "timestamp with time zone", default: "now()"},
       password: {type: "text", default: ""}
     };
 
