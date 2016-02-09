@@ -22,4 +22,4 @@ From your browser navigate to <http://localhost:10001> to run the application.
 
 Navigate to <http://localhost:10001/swagger.html> to browse the REST API as configured.
 
-Additional an example module may be loaded [here] (https://github.com/jrogelstad/cardinal)
+An additional example module may be loaded [here] (https://github.com/jrogelstad/cardinal)
