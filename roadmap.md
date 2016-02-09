@@ -13,7 +13,7 @@ Short term
 * Authentication support
 * Import\export Excel
 * Lazy loading lists
-* Generic support for UOM conversion
+* Generic support for transactions
 
 Long term
 
