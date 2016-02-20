@@ -21,8 +21,8 @@
 
   exports.execute = function (obj) {
     var createCamelCase, createObject, createFeather, createAuth,
-      createModule, createWorkbook, createSettings, createUser, sqlCheck,
-      done, sql, params;
+      createModule, createRoute, createWorkbook, createSettings,
+      createUser, sqlCheck, done, sql, params;
 
     sqlCheck = function (table, callback) {
       var sqlChk = "SELECT * FROM pg_tables WHERE schemaname = 'public' AND tablename = $1;";
@@ -152,6 +152,32 @@
             "COMMENT ON COLUMN \"$module\".name IS 'Primary key';" +
             "COMMENT ON COLUMN \"$module\".script IS 'JavaScript';" +
             "COMMENT ON COLUMN \"$module\".version IS 'Version number';";
+          obj.client.query(sql, createRoute());
+          return;
+        }
+        createRoute();
+      });
+    };
+
+    // Create the route table
+    createRoute = function () {
+      sqlCheck('$route', function (err, exists) {
+        if (err) {
+          obj.callback(err);
+          return;
+        }
+
+        if (!exists) {
+          sql = "CREATE TABLE \"$route\" (" +
+            "name text PRIMARY KEY," +
+            "module text REFERENCES \"$module\" (name)," +
+            "script text," +
+            "version text);" +
+            "COMMENT ON TABLE \"$route\" IS 'Internal table for storing JavaScript routes';" +
+            "COMMENT ON COLUMN \"$route\".name IS 'Primary key';" +
+            "COMMENT ON COLUMN \"$route\".module IS 'Module reference';" +
+            "COMMENT ON COLUMN \"$route\".script IS 'JavaScript';" +
+            "COMMENT ON COLUMN \"$route\".version IS 'Version number';";
           obj.client.query(sql, createWorkbook());
           return;
         }

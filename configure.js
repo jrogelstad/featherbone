@@ -22,8 +22,8 @@
   require("./common/extend-string.js");
 
   var manifest, file, content, result, execute, name, createFunction, buildApi,
-    saveModule, saveFeathers, rollback, connect, commit, begin, processFile, ext,
-    client, user, processProperties, executeSql, runBatch,
+    saveModule, saveRoute, saveFeathers, rollback, connect, commit, begin, 
+    processFile, ext, client, user, processProperties, executeSql, runBatch,
     pg = require("pg"),
     fs = require("fs"),
     path = require("path"),
@@ -127,7 +127,10 @@
         execute(filename);
         break;
       case "module":
-        saveModule(file.name || name, content, manifest.version);
+        saveModule(manifest.module, content, manifest.version);
+        break;
+      case "route":
+        saveRoute(file.name || name, manifest.module, content, manifest.version);
         break;
       case "feather":
         saveFeathers(JSON.parse(content));
@@ -168,6 +171,30 @@
       client.query(sql, processFile);
     });
   };
+
+  saveRoute = function (name, module, script, version) {
+    var sql = "SELECT * FROM \"$route\" WHERE name='" + name + "';";
+
+    client.query(sql, function (err, result) {
+      if (err) {
+        rollback();
+        console.error(err);
+        return;
+      }
+      if (result.rows.length) {
+        sql = "UPDATE \"$route\" SET " +
+          "script=$$" + script + "$$," +
+          "version='" + version + "' " +
+          "WHERE name='" + name + "';";
+      } else {
+        sql = "INSERT INTO \"$route\" VALUES ('" + name +
+          "','" + module + "',$$" + script + "$$, '" + version + "');";
+      }
+
+      client.query(sql, processFile);
+    });
+  };
+
 
   saveFeathers = function (feathers) {
     var callback, payload;

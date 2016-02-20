@@ -98,6 +98,7 @@
 
       // If registered function, execute it
       if (typeof registered[obj.method][obj.name] === "function") {
+        obj.data = obj.data || {};
         obj.data.client = client;
         transaction = registered[obj.method][obj.name];
         obj = obj.data;
@@ -302,6 +303,7 @@
   that.registerFunction("GET", "getAuthorization", controller.getAuthorization);
   that.registerFunction("GET", "getFeather", controller.getFeather);
   that.registerFunction("GET", "getModules", controller.getModules);
+  that.registerFunction("GET", "getRoutes", controller.getRoutes);
   that.registerFunction("GET", "getSettings", controller.getSettings);
   that.registerFunction("GET", "getWorkbook", controller.getWorkbook);
   that.registerFunction("GET", "getWorkbooks", controller.getWorkbooks);

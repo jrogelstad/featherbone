@@ -20,7 +20,7 @@
   "use strict";
   require('./common/extend-string.js');
 
-  var catalog, init, resolveName, getCatalog, getCurrentUser,
+  var catalog, init, resolveName, getCatalog, getRoutes, getCurrentUser,
     doGetSettings, doGetFeather, doGetModules, doRequest,
     doGetMethod, doSaveFeather, doDeleteFeather, registerDataRoutes,
     doDeleteMethod, doDeleteWorkbook, doGetWorkbooks, doSaveWorkbook,
@@ -30,6 +30,7 @@
     bodyParser = require("body-parser"),
     qs = require("qs"),
     app = express(),
+    routes = [],
     port = process.env.PORT || 10001,
     dataRouter = express.Router(),
     featherRouter = express.Router(),
@@ -51,7 +52,7 @@
       }
 
       catalog = resp;
-      callback();
+      getRoutes(callback);
     };
 
     payload = {
@@ -70,6 +71,29 @@
   getCurrentUser = function () {
     // TODO: Make this real
     return "postgres";
+  };
+
+  getRoutes = function (callback) {
+    var payload, after;
+
+    after = function (err, resp) {
+      if (err) {
+        console.error(err);
+        return;
+      }
+
+      routes = resp;
+      callback();
+    };
+
+    payload = {
+      method: "GET",
+      name: "getRoutes",
+      user: "postgres",
+      callback: after
+    };
+
+    datasource.request(payload);
   };
 
   init = function (callback) {
@@ -345,7 +369,8 @@
       .put(doSaveWorkbook)
       .delete(doDeleteWorkbook);
 
-    // REGISTER OUR ROUTES -------------------------------
+    // REGISTER CORE ROUTES -------------------------------
+    console.log("Registering core routes");
     app.use('/data', dataRouter);
     app.use('/feather', featherRouter);
     app.use('/module', moduleRouter);
@@ -353,6 +378,12 @@
     app.use('/settings', settingsRouter);
     app.use('/workbook', workbookRouter);
     app.use('/workbooks', workbookRouter);
+
+    // REGISTER MODULE ROUTES 
+    routes.forEach(function (route) {
+      console.log("Registering module route:", route.name);
+      eval(route.script);
+    });
 
     // START THE SERVER
     // ========================================================================

@@ -1603,7 +1603,7 @@
     },
 
     /**
-      Return settings.
+      Return modules.
 
       @param {Object} Request payload
       @param {Object} [payload.client] Database client
@@ -1614,6 +1614,29 @@
       var sql = "SELECT * FROM \"$module\" ";
 
       // Query modules
+      obj.client.query(sql, function (err, resp) {
+        if (err) {
+          obj.callback(err);
+          return;
+        }
+
+        // Send back result
+        obj.callback(null, resp.rows);
+      });
+    },
+
+    /**
+      Return routes.
+
+      @param {Object} Request payload
+      @param {Object} [payload.client] Database client
+      @param {Function} [payload.callback] callback
+      @return {Object}
+    */
+    getRoutes: function (obj) {
+      var sql = "SELECT * FROM \"$route\";";
+
+      // Query routes
       obj.client.query(sql, function (err, resp) {
         if (err) {
           obj.callback(err);
