@@ -2367,6 +2367,7 @@
                       type.properties.unshift("id");
                     }
 
+                    i = 0;
                     while (i < type.properties.length) {
                       cols.push("%I");
                       args.push(type.properties[i].toSnakeCase());
