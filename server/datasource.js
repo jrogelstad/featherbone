@@ -69,7 +69,8 @@
     var client, done, transaction, connect, isChild,
       doRequest, afterTransaction, afterRequest,
       callback = obj.callback,
-      externalClient = false;
+      externalClient = false,
+      wrap = false;
 
     connect = function () {
       pg.connect(conn, function (err, c, d) {
@@ -98,6 +99,7 @@
 
       // If registered function, execute it
       if (typeof registered[obj.method][obj.name] === "function") {
+        wrap = !obj.client;
         obj.data = obj.data || {};
         obj.data.client = client;
         transaction = registered[obj.method][obj.name];
@@ -132,9 +134,9 @@
       }
 
       // Wrap transactions
-      if (transaction && !obj.client) {
+      if (wrap) {
         obj.callback = afterTransaction;
-        obj.client.query("BEGIN;", function (err) {
+        client.query("BEGIN;", function (err) {
           if (err) {
             obj.callback(err);
             return;
