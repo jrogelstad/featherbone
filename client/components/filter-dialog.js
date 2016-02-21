@@ -253,6 +253,7 @@
         rel = type.relation.toCamelCase();
         w = catalog.store().components()[rel + "Relation"]({
           parentProperty: attr,
+          parentViewModel: vm,
           isCell: true
         });
 
