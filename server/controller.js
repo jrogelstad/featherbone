@@ -1528,10 +1528,10 @@
       @param {Object} [payload.name] Feather name
       @param {Object} [payload.client] Database client
       @param {Function} [payload.callback] callback
-      @param {Boolean} Include inherited or not. Defult = true.
+      @param {Boolean} Include inherited or not. Default = true.
       @return receiver
     */
-    getFeather: function (obj, includeInherited) {
+    getFeather: function (obj) {
       var callback, name = obj.name;
 
       callback = function (err, catalog) {
@@ -1576,7 +1576,7 @@
         });
 
         /* Want inherited properites before class properties */
-        if (includeInherited !== false && name !== "Object") {
+        if (obj.includeInherited !== false && name !== "Object") {
           result.properties = {};
           result = appendParent(result, result.inherits);
         } else {
@@ -2830,8 +2830,9 @@
         that.getFeather({
           name: spec.name,
           client: obj.client,
-          callback: afterGetFeather
-        }, false);
+          callback: afterGetFeather,
+          includeInherited: false
+        });
       };
 
       // Real work starts here
