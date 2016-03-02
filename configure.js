@@ -22,8 +22,9 @@
   require("./common/extend-string.js");
 
   var manifest, file, content, result, execute, name, createFunction, buildApi,
-    saveModule, saveRoute, saveFeathers, rollback, connect, commit, begin, 
-    processFile, ext, client, user, processProperties, executeSql, runBatch,
+    saveModule, saveController, saveRoute, saveFeathers, rollback, connect,
+    commit, begin, processFile, ext, client, user, processProperties, executeSql,
+    runBatch,
     pg = require("pg"),
     fs = require("fs"),
     path = require("path"),
@@ -129,6 +130,9 @@
       case "module":
         saveModule(manifest.module, content, manifest.version);
         break;
+      case "controller":
+        saveController(file.name || name, manifest.module, content, manifest.version);
+        break;
       case "route":
         saveRoute(file.name || name, manifest.module, content, manifest.version);
         break;
@@ -172,6 +176,30 @@
     });
   };
 
+  saveController = function (name, module, script, version) {
+    var sql = "SELECT * FROM \"$controller\" WHERE name='" + name + "';";
+
+    client.query(sql, function (err, result) {
+      if (err) {
+        rollback();
+        console.error(err);
+        return;
+      }
+      if (result.rows.length) {
+        sql = "UPDATE \"$controller\" SET " +
+          "script=$$" + script + "$$," +
+          "version='" + version + "' " +
+          "WHERE name='" + name + "';";
+      } else {
+        sql = "INSERT INTO \"$controller\" VALUES ('" + name +
+          "','" + module + "',$$" + script + "$$, '" + version + "');";
+      }
+
+      client.query(sql, processFile);
+    });
+  };
+
+
   saveRoute = function (name, module, script, version) {
     var sql = "SELECT * FROM \"$route\" WHERE name='" + name + "';";
 
@@ -194,7 +222,6 @@
       client.query(sql, processFile);
     });
   };
-
 
   saveFeathers = function (feathers) {
     var callback, payload;

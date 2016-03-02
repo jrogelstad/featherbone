@@ -303,6 +303,7 @@
 
   // Register certain functions
   that.registerFunction("GET", "getAuthorization", controller.getAuthorization);
+  that.registerFunction("GET", "getControllers", controller.getControllers);
   that.registerFunction("GET", "getFeather", controller.getFeather);
   that.registerFunction("GET", "getModules", controller.getModules);
   that.registerFunction("GET", "getRoutes", controller.getRoutes);

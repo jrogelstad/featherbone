@@ -20,8 +20,8 @@
   "use strict";
   require('./common/extend-string.js');
 
-  var catalog, init, resolveName, getCatalog, getRoutes, getCurrentUser,
-    doGetSettings, doGetFeather, doGetModules, doRequest,
+  var catalog, init, resolveName, getCatalog, getControllers, getRoutes,
+    getCurrentUser,doGetSettings, doGetFeather, doGetModules, doRequest,
     doGetMethod, doSaveFeather, doDeleteFeather, registerDataRoutes,
     doDeleteMethod, doDeleteWorkbook, doGetWorkbooks, doSaveWorkbook,
     doSaveMethod, doGetWorkbook,
@@ -30,6 +30,7 @@
     bodyParser = require("body-parser"),
     qs = require("qs"),
     app = express(),
+    controllers = [],
     routes = [],
     port = process.env.PORT || 10001,
     dataRouter = express.Router(),
@@ -52,7 +53,7 @@
       }
 
       catalog = resp;
-      getRoutes(callback);
+      getControllers(callback);
     };
 
     payload = {
@@ -63,6 +64,29 @@
       data: {
         name: "catalog"
       }
+    };
+
+    datasource.request(payload);
+  };
+
+  getControllers = function (callback) {
+    var payload, after;
+
+    after = function (err, resp) {
+      if (err) {
+        console.error(err);
+        return;
+      }
+
+      controllers = resp;
+      getRoutes(callback);
+    };
+
+    payload = {
+      method: "GET",
+      name: "getControllers",
+      user: "postgres",
+      callback: after
     };
 
     datasource.request(payload);
@@ -378,6 +402,12 @@
     app.use('/settings', settingsRouter);
     app.use('/workbook', workbookRouter);
     app.use('/workbooks', workbookRouter);
+
+    // REGISTER MODULE CONTROLLERS 
+    controllers.forEach(function (controller) {
+      console.log("Registering module controller:", controller.name);
+      eval(controller.script);
+    });
 
     // REGISTER MODULE ROUTES 
     routes.forEach(function (route) {

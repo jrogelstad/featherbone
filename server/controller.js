@@ -1361,6 +1361,29 @@
     },
 
     /**
+      Return controllers.
+
+      @param {Object} Request payload
+      @param {Object} [payload.client] Database client
+      @param {Function} [payload.callback] callback
+      @return {Object}
+    */
+    getControllers: function (obj) {
+      var sql = "SELECT * FROM \"$controller\" ";
+
+      // Query modules
+      obj.client.query(sql, function (err, resp) {
+        if (err) {
+          obj.callback(err);
+          return;
+        }
+
+        // Send back result
+        obj.callback(null, resp.rows);
+      });
+    },
+
+    /**
       Get the primary key for a given id.
 
       @param {Object} Request payload
