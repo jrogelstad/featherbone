@@ -313,6 +313,7 @@
   that.registerFunction("GET", "getWorkbooks", controller.getWorkbooks);
   that.registerFunction("GET", "isAuthorized", controller.isAuthorized);
   that.registerFunction("GET", "isSuperUser", controller.isSuperUser);
+  that.registerFunction("POST", "doInsert", controller.doInsert);
   that.registerFunction("POST", "doUpsert", controller.doUpsert);
   that.registerFunction("PUT", "saveAuthorization",
     controller.saveAuthorization);

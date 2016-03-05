@@ -299,6 +299,7 @@
         method: "GET",
         name: "getControllers",
         user: "postgres",
+        client: client,
         callback: after
       };
 
