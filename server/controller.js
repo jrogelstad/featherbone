@@ -1328,6 +1328,10 @@
       @return receiver
     */
     doUpsert: function (obj) {
+      if (!obj.id) {
+        obj.callback("Id must be provided to post an indvidual object.");
+        return;
+      }
       var afterSelect = function (err, resp) {
         if (err) {
           obj.callback(err);

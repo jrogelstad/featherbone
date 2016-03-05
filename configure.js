@@ -276,9 +276,34 @@
   };
 
   runBatch = function (data) {
-    var nextItem,
+    var getControllers, nextItem,
       len = data.length,
       b = 0;
+
+    getControllers = function (callback) {
+      var payload, after;
+
+      after = function (err, resp) {
+        if (err) {
+          console.error(err);
+          return;
+        }
+
+        resp.forEach(function (controller) {
+          eval(controller.script);
+        });
+        nextItem();
+      };
+
+      payload = {
+        method: "GET",
+        name: "getControllers",
+        user: "postgres",
+        callback: after
+      };
+
+      datasource.request(payload);
+    };
 
     // Iterate recursively
     nextItem = function (err, resp) {
@@ -304,7 +329,7 @@
     };
 
     // Start processing
-    nextItem();
+    getControllers();
   };
 
   buildApi = function () {

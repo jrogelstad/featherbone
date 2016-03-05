@@ -101,6 +101,7 @@
       if (typeof registered[obj.method][obj.name] === "function") {
         wrap = !obj.client;
         obj.data = obj.data || {};
+        obj.data.id = obj.data.id || obj.id;
         obj.data.client = client;
         transaction = registered[obj.method][obj.name];
         obj = obj.data;
@@ -312,7 +313,7 @@
   that.registerFunction("GET", "getWorkbooks", controller.getWorkbooks);
   that.registerFunction("GET", "isAuthorized", controller.isAuthorized);
   that.registerFunction("GET", "isSuperUser", controller.isSuperUser);
-  that.registerFunction("POST", "doInsert", controller.doInsert);
+  that.registerFunction("POST", "doUpsert", controller.doUpsert);
   that.registerFunction("PUT", "saveAuthorization",
     controller.saveAuthorization);
   that.registerFunction("PUT", "saveFeather", controller.saveFeather);
