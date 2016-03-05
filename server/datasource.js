@@ -154,14 +154,14 @@
 
     afterTransaction = function (err, resp) {
       if (err) {
-        obj.client.query("ROLLBACK;", function () {
+        client.query("ROLLBACK;", function () {
           afterRequest(err);
         });
 
         return;
       }
 
-      obj.client.query("COMMIT;", function (err) {
+      client.query("COMMIT;", function (err) {
         if (err) {
           afterRequest(err);
           return;
@@ -312,6 +312,7 @@
   that.registerFunction("GET", "getWorkbooks", controller.getWorkbooks);
   that.registerFunction("GET", "isAuthorized", controller.isAuthorized);
   that.registerFunction("GET", "isSuperUser", controller.isSuperUser);
+  that.registerFunction("POST", "doInsert", controller.doInsert);
   that.registerFunction("PUT", "saveAuthorization",
     controller.saveAuthorization);
   that.registerFunction("PUT", "saveFeather", controller.saveFeather);

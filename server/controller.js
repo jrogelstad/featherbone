@@ -447,6 +447,7 @@
       Insert records for a passed object.
 
       @param {Object} Request payload
+      @param {Object} [payload.name] Object type name
       @param {Object} [payload.data] Data to insert
       @param {Object} [payload.client] Database client
       @param {Function} [payload.callback] callback
