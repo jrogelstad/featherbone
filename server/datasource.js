@@ -95,6 +95,10 @@
         return;
       }
 
+      if (!obj.user) { 
+        obj.callback("User undefined.");
+        return;
+      }
       client.currentUser = obj.user;
 
       // If registered function, execute it

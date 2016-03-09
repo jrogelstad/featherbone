@@ -59,7 +59,7 @@
     payload = {
       method: "GET",
       name: "getSettings",
-      user: "postgres",
+      user: getCurrentUser(),
       callback: after,
       data: {
         name: "catalog"
@@ -85,7 +85,7 @@
     payload = {
       method: "GET",
       name: "getControllers",
-      user: "postgres",
+      user: getCurrentUser(),
       callback: after
     };
 
@@ -113,7 +113,7 @@
     payload = {
       method: "GET",
       name: "getRoutes",
-      user: "postgres",
+      user: getCurrentUser(),
       callback: after
     };
 
