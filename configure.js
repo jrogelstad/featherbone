@@ -513,7 +513,7 @@
               }
             };
 
-            pathName = "/data/" + feather.plural.toSnakeCase();
+            pathName = "/data/" + feather.plural.toSpinalCase();
             swagger.paths[pathName] = path;
           }
         }
