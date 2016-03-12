@@ -95,11 +95,12 @@
         return;
       }
 
-      if (!obj.user) { 
-        obj.callback("User undefined.");
+      if (!client.currentUser && !obj.user) {
+        obj.callback("User undefined." + obj.method + obj.name);
         return;
+      } else if (!client.currentUser) {
+        client.currentUser = obj.user;
       }
-      client.currentUser = obj.user;
 
       // If registered function, execute it
       if (typeof registered[obj.method][obj.name] === "function") {
