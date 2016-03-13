@@ -829,6 +829,11 @@
           return;
         }
 
+        if (!feather.name) {
+          obj.callback("Feather \"" + obj.name + "\" not found.");
+          return;
+        }
+
         table = "_" + feather.name.toSnakeCase();
         keys = obj.properties || Object.keys(feather.properties);
 
@@ -2185,8 +2190,8 @@
       }
 
      * @param {Object} Payload
-     * @param {Object | Array} [payload.client] Database client.
-     * @param {Object | Array} [payload.callback] callback.
+     * @param {Object} [payload.client] Database client.
+     * @param {Function} [payload.callback] callback.
      * @param {Object | Array} [payload.spec] Feather specification(s).
      * @param {String} [payload.spec.name] Name
      * @param {String} [payload.spec.description] Description
@@ -3061,7 +3066,7 @@
       @param {Object} Payload
       @param {String} [payload.user] User
       @param {Object} [payload.client] Database client
-      @param {String} [payload.callback] Callback
+      @param {Function} [payload.callback] Callback
     */
     setSuperUser: function (obj, isSuper) {
       isSuper = obj.isSuper === undefined ? true : obj.isSuper;
