@@ -98,7 +98,9 @@
       if (!client.currentUser && !obj.user) {
         obj.callback("User undefined." + obj.method + obj.name);
         return;
-      } else if (!client.currentUser) {
+      }
+
+      if (!client.currentUser) {
         client.currentUser = obj.user;
       }
 
@@ -318,7 +320,9 @@
   that.registerFunction("GET", "getWorkbooks", controller.getWorkbooks);
   that.registerFunction("GET", "isAuthorized", controller.isAuthorized);
   that.registerFunction("GET", "isSuperUser", controller.isSuperUser);
+  that.registerFunction("POST", "doDelete", controller.doDelete);
   that.registerFunction("POST", "doInsert", controller.doInsert);
+  that.registerFunction("POST", "doUpdate", controller.doUpdate);
   that.registerFunction("POST", "doUpsert", controller.doUpsert);
   that.registerFunction("PUT", "saveAuthorization",
     controller.saveAuthorization);
