@@ -110,7 +110,8 @@
       Remove a class from the database.
 
         @param {Object} Request payload
-        @param {Object | Array} [payload.name] Name(s) of feather(s) to delete
+        @param {Object} [payload.data] Payload data
+        @param {Object | Array} [payload.data.name] Name(s) of feather(s) to delete
         @param {Object} [payload.client] Database client
         @param {Function} [payload.callback] Callback
         @return {Boolean}
@@ -118,7 +119,7 @@
     deleteFeather: function (obj) {
       var name, table, catalog, sql, rels, props, view, type, keys,
         afterGetCatalog, next, createViews, dropTables,
-        names = Array.isArray(obj.name) ? obj.name : [obj.name],
+        names = Array.isArray(obj.data.name) ? obj.data.name : [obj.data.name],
         o = 0,
         c = 0;
 
@@ -229,10 +230,12 @@
           /* Update catalog settings */
           delete catalog[name];
           that.saveSettings({
-            name: "catalog",
-            data: catalog,
             client: obj.client,
-            callback: createViews
+            callback: createViews,
+            data: { 
+              name: "catalog",
+              data: catalog
+            }
           });
           return;
         }
@@ -242,9 +245,9 @@
       };
 
       that.getSettings({
-        name: 'catalog',
         client: obj.client,
-        callback: afterGetCatalog
+        callback: afterGetCatalog,
+        data: { name: "catalog" }
       });
 
       return this;
@@ -254,7 +257,8 @@
       Remove a class from the database.
 
         @param {Object} Request payload
-        @param {Object | Array} [payload.name] Name of workbook to delete
+        @param {Object} [payload.data] Payload data
+        @param {Object | Array} [payload.data.name] Name of workbook to delete
         @param {Object} [payload.client] Database client
         @param {Function} [payload.callback] Callback
         @return {Boolean}
@@ -262,7 +266,7 @@
     deleteWorkbook: function (obj) {
       var sql = "DELETE FROM \"$workbook\" WHERE name=$1;";
 
-      obj.client.query(sql, [obj.name], function (err) {
+      obj.client.query(sql, [obj.data.name], function (err) {
         if (err) {
           obj.callback(err);
           return;
@@ -314,10 +318,12 @@
 
         if (isSuperUser === false) {
           that.isAuthorized({
-            action: "canDelete",
-            id: obj.id,
             client: obj.client,
-            callback: afterAuthorization
+            callback: afterAuthorization,
+            data: {
+              id: obj.id,
+              action: "canDelete"
+            }
           });
           return;
         }
@@ -437,9 +443,9 @@
 
       // Kick off query by getting feather, the rest falls through callbacks
       that.getFeather({
-        name: obj.name,
         client: obj.client,
-        callback: afterGetFeather
+        callback: afterGetFeather,
+        data: { name: obj.name }
       });
     },
 
@@ -460,7 +466,7 @@
         value, result, afterGetFeather, afterIdCheck, afterNextVal,
         afterAuthorized, buildInsert, afterGetPk, afterHandleRelations,
         insertChildren, afterInsert, afterDoSelect, afterLog,
-        payload = {name: obj.name, client: obj.client},
+        payload = {data: {name: obj.name}, client: obj.client},
         data = JSON.parse(JSON.stringify(obj.data)),
         args = [obj.name.toSnakeCase()],
         tokens = [],
@@ -520,10 +526,12 @@
 
         if (!isChild && isSuperUser === false) {
           that.isAuthorized({
-            action: "canCreate",
-            feather: obj.name,
             client: obj.client,
-            callback: afterAuthorized
+            callback: afterAuthorized,
+            data: {
+              feather: obj.name,
+              action: "canCreate"
+            }
           });
           return;
         }
@@ -819,7 +827,7 @@
     doSelect: function (obj, isChild, isSuperUser) {
       var sql, table, keys,
         afterGetFeather, afterGetKey, afterGetKeys, mapKeys,
-        payload = {name: obj.name, client: obj.client},
+        payload = {data: {name: obj.name}, client: obj.client},
         tokens = [],
         cols = [];
 
@@ -1011,10 +1019,12 @@
 
         if (isSuperUser === false) {
           that.isAuthorized({
-            action: "canUpdate",
-            id: id,
             client: obj.client,
-            callback: afterAuthorization
+            callback: afterAuthorization,
+            data: {
+              id: id,
+              action: "canUpdate"
+            }
           });
           return;
         }
@@ -1313,9 +1323,9 @@
 
       // Kick off query by getting feather, the rest falls through callbacks
       that.getFeather({
-        name: obj.name,
         client: obj.client,
-        callback: afterGetFeather
+        callback: afterGetFeather,
+        data: { name: obj.name }
       });
 
       return this;
@@ -1561,11 +1571,11 @@
       @param {Object} [payload.name] Feather name
       @param {Object} [payload.client] Database client
       @param {Function} [payload.callback] callback
-      @param {Boolean} Include inherited or not. Default = true.
+      @param {Boolean} [payload.includeInherited] Include inherited or not. Default = true.
       @return receiver
     */
     getFeather: function (obj) {
-      var callback, name = obj.name;
+      var callback, name = obj.data.name;
 
       callback = function (err, catalog) {
         var resultProps, featherProps, keys, appendParent,
@@ -1609,7 +1619,7 @@
         });
 
         /* Want inherited properites before class properties */
-        if (obj.includeInherited !== false && name !== "Object") {
+        if (obj.data.includeInherited !== false && name !== "Object") {
           result.properties = {};
           result = appendParent(result, result.inherits);
         } else {
@@ -1629,9 +1639,9 @@
 
       /* First, get catalog */
       that.getSettings({
-        name: "catalog",
         client: obj.client,
-        callback: callback
+        callback: callback,
+        data: { name: "catalog" }
       });
     },
 
@@ -1685,14 +1695,15 @@
       Return settings.
 
       @param {Object} Request payload
-      @param {Object} [payload.name] Settings name
+      @param {Object} [payload.data] Data
+      @param {Object} [payload.data.name] Settings name
       @param {Object} [payload.client] Database client
       @param {Function} [payload.callback] callback
       @return {Object}
     */
     getSettings: function (obj) {
       var callback,
-        name = obj.name;
+        name = obj.data.name;
 
       callback = function (err, ok) {
         var sql = "SELECT id, etag, data FROM \"$settings\" WHERE name = $1";
@@ -1759,7 +1770,7 @@
         };
 
       that.getWorkbooks({
-        name: obj.name,
+        data: obj.data,
         client: obj.client,
         callback: callback
       });
@@ -1770,7 +1781,8 @@
       only that workbook will be returned.
 
       @param {Object} Request payload
-      @param {Object} [payload.name] Workbook name
+      @param {Object} [payload.data] Workbook data
+      @param {Object} [payload.data.name] Workbook name
       @param {Object} [payload.client] Database client
       @param {Function} [payload.callback] callback
       @return receiver
@@ -1794,9 +1806,9 @@
           "  ) AS data " +
           "  WHERE can_read)";
 
-      if (obj.name) {
+      if (obj.data.name) {
         sql += " AND name=$2";
-        params.push(obj.name);
+        params.push(obj.data.name);
       }
 
       sql += " ORDER BY _pk";
@@ -1820,20 +1832,21 @@
       "canCreate" will only check feather names.
 
       @param {Object} Payload
-      @param {String} [payload.action] Required
-      @param {String} [payload.feather] Class
-      @param {String} [payload.id] Object id
-      @param {String} [payload.user] User. Defaults to current user
+      @param {Object} [payload.data] Payload data
+      @param {String} [payload.data.action] Required
+      @param {String} [payload.data.feather] Class
+      @param {String} [payload.data.id] Object id
+      @param {String} [payload.data.user] User. Defaults to current user
       @param {String} [payload.client] Datobase client
       @param {String} [payload.callback] Callback
         action
     */
     isAuthorized: function (obj) {
       var table, pk, authSql, sql, params,
-        user = obj.user || obj.client.currentUser,
-        feather = obj.feather,
-        action = obj.action,
-        id = obj.id,
+        user = obj.data.user || obj.client.currentUser,
+        feather = obj.data.feather,
+        action = obj.data.action,
+        id = obj.data.id,
         tokens = [],
         result = false;
 
@@ -1937,21 +1950,22 @@
         }
 
       @param {Object} Payload
-      @param {String} [payload.id] Object id
-      @param {String} [payload.role] Role
-      @param {Object} [payload.actions] Required
-      @param {Boolean} [payload.actions.canCreate]
-      @param {Boolean} [payload.actions.canRead]
-      @param {Boolean} [payload.actions.canUpdate]
-      @param {Boolean} [payload.actions.canDelete]
+      @param {Object} [payload.data] Payload data
+      @param {String} [payload.data.id] Object id
+      @param {String} [payload.daat.role] Role
+      @param {Object} [payload.data.actions] Required
+      @param {Boolean} [payload.data.actions.canCreate]
+      @param {Boolean} [payload.data.actions.canRead]
+      @param {Boolean} [payload.data.actions.canUpdate]
+      @param {Boolean} [payload.daat.actions.canDelete]
     */
     saveAuthorization: function (obj) {
       var result, sql, pk, feather, params, objPk, rolePk,
         afterGetObjKey, afterGetRoleKey, afterGetFeatherName,
         afterGetFeather, checkSuperUser, afterCheckSuperUser,
         afterQueryAuth, done,
-        id = obj.feather ? obj.feather.toSnakeCase() : obj.id,
-        actions = obj.actions || {},
+        id = obj.data.feather ? obj.data.feather.toSnakeCase() : obj.data.id,
+        actions = obj.data.actions || {},
         isMember = false,
         hasAuth = false;
 
@@ -1970,7 +1984,7 @@
         }
 
         that.getKey({
-          id: obj.role,
+          id: obj.data.role,
           client: obj.client,
           callback: afterGetRoleKey
         });
@@ -2009,9 +2023,9 @@
         feather = resp.rows[0].feather.toCamelCase(true);
 
         that.getFeather({
-          name: feather,
           client: obj.client,
-          callback: afterGetFeather
+          callback: afterGetFeather,
+          data: { name: feather }
         });
       };
 
@@ -2214,7 +2228,7 @@
     */
     saveFeather: function (obj) {
       var spec, nextSpec, parent,
-        specs = Array.isArray(obj.specs) ? obj.specs : [obj.specs],
+        specs = Array.isArray(obj.data.specs) ? obj.data.specs : [obj.data.specs],
         c = 0,
         len = specs.length;
 
@@ -2270,9 +2284,9 @@
           feather = resp;
 
           that.getSettings({
-            name: "catalog",
             client: obj.client,
-            callback: afterGetCatalog
+            callback: afterGetCatalog,
+            data: { name: "catalog" }
           });
         };
 
@@ -2701,10 +2715,12 @@
           spec.isChild = isChildFeather(spec);
 
           that.saveSettings({
-            name: "catalog",
-            data: catalog,
             client: obj.client,
-            callback: afterUpdateCatalog
+            callback: afterUpdateCatalog,
+            data: { 
+              name: "catalog",
+              data: catalog
+            }
           });
         };
 
@@ -2729,9 +2745,9 @@
 
           if (!feather) {
             that.getFeather({
-              name: name,
               client: obj.client,
-              callback: callback
+              callback: callback,
+              data: { name: name }
             });
             return;
           }
@@ -2811,13 +2827,15 @@
           // If no specific authorization, make one
           if (authorization === undefined) {
             authorization = {
-              feather: name,
-              role: "everyone",
-              actions: {
-                canCreate: true,
-                canRead: true,
-                canUpdate: true,
-                canDelete: true
+              data: {
+                feather: name,
+                role: "everyone",
+                actions: {
+                  canCreate: true,
+                  canRead: true,
+                  canUpdate: true,
+                  canDelete: true
+                }
               },
               client: obj.client,
               callback: afterSaveAuthorization
@@ -2861,10 +2879,12 @@
         }
 
         that.getFeather({
-          name: spec.name,
           client: obj.client,
           callback: afterGetFeather,
-          includeInherited: false
+          data: { 
+            name: obj.name,
+            includeInherited: false
+          }
         });
       };
 
@@ -2878,8 +2898,9 @@
       Create or upate settings.
 
       @param {Object} Payload
-      @param {String} [payload.name] Name of settings
-      @param {Object} [payload.data] Settings data
+      @param {String} [payload.data] Payload data
+      @param {String} [payload.data.name] Name of settings
+      @param {Object} [payload.data.data] Settings data
       @param {Object} [payload.client] Database client
       @param {Function} [payload.callback] Callback
       @return {String}
@@ -2887,8 +2908,8 @@
     saveSettings: function (obj) {
       var row, done,
         sql = "SELECT * FROM \"$settings\" WHERE name = $1;",
-        name = obj.name,
-        data = obj.data,
+        name = obj.data.name,
+        data = obj.data.data,
         etag = f.createId(),
         params = [name, data];
 
@@ -2944,7 +2965,8 @@
       Create or upate settings.
 
       @param {Object} Payload
-      @param {Object | Array} [payload.spec] Workbook specification(s).
+      @param {Object | Array} [payload.data] Workbook data.
+      @param {Object | Array} [payload.data.specs] Workbook specification(s).
       @param {Object} [payload.client] Database client
       @param {Function} [payload.callback] Callback
       @return {String}
@@ -2952,7 +2974,7 @@
     saveWorkbook: function (obj) {
       var row, nextWorkbook, wb, sql, params, authorization, id,
         findSql = "SELECT * FROM \"$workbook\" WHERE name = $1;",
-        workbooks = Array.isArray(obj.specs) ? obj.specs : [obj.specs],
+        workbooks = Array.isArray(obj.data.specs) ? obj.data.specs : [obj.data.specs],
         len = workbooks.length,
         n = 0;
 
@@ -3026,18 +3048,20 @@
               // If no specific authorization, make one
               if (authorization === undefined) {
                 authorization = {
-                  role: "everyone",
-                  actions: {
-                    canCreate: true,
-                    canRead: true,
-                    canUpdate: true,
-                    canDelete: true
+                  data: {
+                    role: "everyone",
+                    actions: {
+                      canCreate: true,
+                      canRead: true,
+                      canUpdate: true,
+                      canDelete: true
+                    }
                   },
                   client: obj.client,
                   callback: nextWorkbook
                 };
               }
-              authorization.id = id;
+              authorization.data.id = id;
               authorization.client = obj.client;
               authorization.callback = nextWorkbook;
 
@@ -3303,9 +3327,9 @@
     };
 
     that.getFeather({
-      name: obj.name,
       client: obj.client,
-      callback: afterGetFeather
+      callback: afterGetFeather,
+      data: { name: obj.name }
     });
   };
 
@@ -3337,9 +3361,9 @@
           cParent = cProps[cKey].type.relation;
 
           that.getFeather({
-            name: obj.parent,
             client: obj.client,
-            callback: afterGetParentFeather
+            callback: afterGetParentFeather,
+            data: { name: obj.parent }
           });
 
           return false;
@@ -3382,9 +3406,9 @@
     };
 
     that.getFeather({
-      name: obj.child,
       client: obj.client,
-      callback: afterGetChildFeather
+      callback: afterGetChildFeather,
+      data: { name: obj.child }
     });
   };
 
@@ -3587,9 +3611,9 @@
     };
 
     that.getSettings({
-      name: "catalog",
       client: obj.client,
-      callback: afterGetCatalog
+      callback: afterGetCatalog,
+      data: { name: "catalog" }
     });
   };
 

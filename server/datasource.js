@@ -109,9 +109,8 @@
         wrap = !obj.client;
         obj.data = obj.data || {};
         obj.data.id = obj.data.id || obj.id;
-        obj.data.client = client;
+        obj.client = client;
         transaction = registered[obj.method][obj.name];
-        obj = obj.data;
 
       // Otherwise handle as model
       } else {
@@ -310,7 +309,6 @@
   });
 
   // Register certain functions
-  that.registerFunction("GET", "getAuthorization", controller.getAuthorization);
   that.registerFunction("GET", "getControllers", controller.getControllers);
   that.registerFunction("GET", "getFeather", controller.getFeather);
   that.registerFunction("GET", "getModules", controller.getModules);
@@ -319,7 +317,6 @@
   that.registerFunction("GET", "getWorkbook", controller.getWorkbook);
   that.registerFunction("GET", "getWorkbooks", controller.getWorkbooks);
   that.registerFunction("GET", "isAuthorized", controller.isAuthorized);
-  that.registerFunction("GET", "isSuperUser", controller.isSuperUser);
   that.registerFunction("POST", "doDelete", controller.doDelete);
   that.registerFunction("POST", "doInsert", controller.doInsert);
   that.registerFunction("POST", "doUpdate", controller.doUpdate);
@@ -328,7 +325,6 @@
     controller.saveAuthorization);
   that.registerFunction("PUT", "saveFeather", controller.saveFeather);
   that.registerFunction("PUT", "saveSettings", controller.saveSettings);
-  that.registerFunction("PUT", "setSuperUser", controller.setSuperUser);
   that.registerFunction("PUT", "saveWorkbook", controller.saveWorkbook);
   that.registerFunction("DELETE", "deleteFeather", controller.deleteFeather);
   that.registerFunction("DELETE", "deleteWorkbook", controller.deleteWorkbook);
