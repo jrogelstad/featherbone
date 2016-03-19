@@ -2885,7 +2885,7 @@
           client: obj.client,
           callback: afterGetFeather,
           data: { 
-            name: obj.name,
+            name: spec.name,
             includeInherited: false
           }
         });
