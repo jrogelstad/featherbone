@@ -827,7 +827,7 @@
     doSelect: function (obj, isChild, isSuperUser) {
       var sql, table, keys,
         afterGetFeather, afterGetKey, afterGetKeys, mapKeys,
-        payload = {data: {name: obj.name}, client: obj.client},
+        payload = {name: obj.name, client: obj.client},
         tokens = [],
         cols = [];
 
@@ -955,8 +955,11 @@
       };
 
       // Kick off query by getting feather, the rest falls through callbacks
-      payload.callback = afterGetFeather;
-      that.getFeather(payload);
+      that.getFeather({
+        client: obj.client,
+        callback: afterGetFeather,
+        data: {name: obj.name} 
+      });
 
       return this;
     },
@@ -2004,7 +2007,7 @@
           return;
         }
 
-        if (obj.id && obj.isMember) {
+        if (obj.data.id && obj.data.isMember) {
           sql = "SELECT tableoid::regclass::text AS feather " +
             "FROM object WHERE id=$1";
           obj.client.query(sql, [id], afterGetFeatherName);
@@ -2100,7 +2103,7 @@
           "JOIN object ON object._pk=object_pk " +
           "JOIN role ON role._pk=role_pk " +
           "WHERE object.id=$1 AND role.id=$2 AND is_member_auth=$3 ";
-        obj.client.query(sql, [id, obj.role, isMember], afterQueryAuth);
+        obj.client.query(sql, [id, obj.data.role, isMember], afterQueryAuth);
       };
 
       afterQueryAuth = function (err, resp) {
