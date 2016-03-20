@@ -240,23 +240,18 @@
 
       var fn, callback, datasource = require(./datasource);
 
-      // Create a function that queries something
+      // Create a function that updates something specific
       fn = function (obj) {
-        var sql = "SELECT foo FROM bar WHERE id=$1;",
+        var sql = "UPDATE foo SET bar = false WHERE id=$1;",
           params = [obj.id];
 
         obj.client.query(sql, params, function (err, resp) {
-          if (err) {
-            obj.callback(err);
-            return;
-          }
-
-          obj.callback(null, resp.rows);
+          obj.callback(err, resp.rows);
         })
       }
 
       // Register the function
-      datasource.registerFunction("GET", "myQuery", fn);
+      datasource.registerFunction("POST", "myUpdate", fn);
 
       // Define a callback to use when calling our function
       callback = function (err, resp) {
@@ -272,13 +267,14 @@
       // via the callback
       datasource.request({
         method: "GET",
-        name: "myQuery",
+        name: "myUpdate",
         callback: callback,
         data: {
           id: "HTJ28n"
         }
       });
 
+    @seealso requestFunction
     @param {String} Function name
     @param {String} Method. "GET", "POST", "PUT", "PATCH", or "DELETE"
     @param {Function} Function
@@ -301,6 +297,64 @@
     });
 
     return result;
+  };
+
+  /**
+    Helper to expose a registered function to the public API. Use by binding
+    the name of the registered function to be called. The function will transform
+    the data on a routed requset to the proper format to make a `POST` request
+    on the registered function.
+
+      // Expose the example function described on `registerFunction` to a router.
+      (function (app, datasource) {
+        "strict";
+
+        // Register route to the public
+        var express = require("express");
+          router = express.Router(),
+          func = datasource.postFunction.bind("myUpdate");
+
+        router.route("/my-update").post(func);
+        app.use('/my-app', router);
+
+      }(app, datasource));
+
+    @param {Object} Request
+    @param {Object} Response
+    @seealso registerFunction
+    @return receiver
+  */
+  that.postFunction = function (req, res) {
+   var payload, callback,
+      args = req.body;
+
+    callback = function (err, resp) {
+      if (err) {
+        res.status(err.statusCode).json(err.message);
+        return;
+      }
+
+      if (resp === undefined) {
+        res.statusCode = 204;
+      }
+
+      // No caching... ever
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate"); // HTTP 1.1.
+      res.setHeader("Pragma", "no-cache"); // HTTP 1.0.
+      res.setHeader("Expires", "0"); //
+      res.json(resp);
+    };
+
+    payload = {
+      method: "POST",
+      name: this,
+      user: "postgres", //getCurrentUser(),
+      callback: callback,
+      data: args
+    };
+
+    console.log(JSON.stringify(payload, null, 2));
+    that.request(payload);
   };
 
   // Set properties on exports
