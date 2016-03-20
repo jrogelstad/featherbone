@@ -1372,26 +1372,25 @@
         return;
       }
       var afterSelect = function (err, resp) {
-        if (err) {
-          obj.callback(err);
-          return;
-        }
+        try {
+          if (err) { throw err; }
 
-        if (resp) {
-          obj.data = jsonpatch.compare(resp, obj.data).filter(function (item) {
-            return item.op !== 'remove';
-          });
-          if (obj.data.length) {
-            that.doUpdate(obj);
+          if (resp) {
+            obj.data = jsonpatch.compare(resp, obj.data).filter(function (item) {
+              return item.op !== 'remove';
+            });
+            if (obj.data.length) {
+              that.doUpdate(obj);
+            } else {
+              obj.callback(null, []);
+            }
           } else {
-            obj.callback(null, []);
+            obj.data.id = obj.id;
+            that.doInsert(obj);
           }
-        } else {
-          obj.data.id = obj.id;
-          that.doInsert(obj);
+        } catch (e) {
+          obj.callback(e);
         }
-
-        return;
       };
 
       that.doSelect({
