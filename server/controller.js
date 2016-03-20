@@ -832,111 +832,113 @@
         cols = [];
 
       afterGetFeather = function (err, feather) {
-        if (err) {
-          obj.callback(err);
-          return;
+        try {
+          if (err) { throw err; }
+
+          if (!feather.name) {
+            throw "Feather \"" + obj.name + "\" not found.";
+          }
+
+          table = "_" + feather.name.toSnakeCase();
+          keys = obj.properties || Object.keys(feather.properties);
+
+          /* Validate */
+          if (!isChild && feather.isChild) {
+            throw "Can not query directly on a child class";
+          }
+
+          keys.forEach(function (key) {
+            tokens.push("%I");
+            cols.push(key.toSnakeCase());
+          });
+
+          cols.push(table);
+          sql = ("SELECT to_json((" +  tokens.toString(",") +
+            ")) AS result FROM %I");
+          sql = sql.format(cols);
+
+          /* Get one result by key */
+          if (obj.id) {
+            payload.id = obj.id;
+            payload.callback = afterGetKey;
+            that.getKey(payload, isSuperUser);
+
+          /* Get a filtered result */
+          } else {
+            payload.filter = obj.filter;
+            payload.callback = afterGetKeys;
+            that.getKeys(payload, isSuperUser);
+          }
+        } catch (e) {
+          obj.callback(e);
         }
-
-        if (!feather.name) {
-          obj.callback("Feather \"" + obj.name + "\" not found.");
-          return;
-        }
-
-        table = "_" + feather.name.toSnakeCase();
-        keys = obj.properties || Object.keys(feather.properties);
-
-        /* Validate */
-        if (!isChild && feather.isChild) {
-          obj.callback("Can not query directly on a child class");
-          return;
-        }
-
-        keys.forEach(function (key) {
-          tokens.push("%I");
-          cols.push(key.toSnakeCase());
-        });
-
-        cols.push(table);
-        sql = ("SELECT to_json((" +  tokens.toString(",") +
-          ")) AS result FROM %I");
-        sql = sql.format(cols);
-
-        /* Get one result by key */
-        if (obj.id) {
-          payload.id = obj.id;
-          payload.callback = afterGetKey;
-          that.getKey(payload, isSuperUser);
-
-        /* Get a filtered result */
-        } else {
-          payload.filter = obj.filter;
-          payload.callback = afterGetKeys;
-          that.getKeys(payload, isSuperUser);
-        }
-
-        return this;
       };
 
       afterGetKey = function (err, key) {
-        if (err) {
-          obj.callback(err);
-          return;
-        }
+        try {
+          if (err) { throw err; }
 
-        if (key === undefined) {
-          obj.callback(null, undefined);
-          return;
-        }
-
-        sql +=  " WHERE _pk = $1";
-        obj.client.query(sql, [key], function (err, resp) {
-          var result;
-
-          if (err) {
-            obj.callback(err);
+          if (key === undefined) {
+            obj.callback(null, undefined);
             return;
           }
 
-          result = sanitize(mapKeys(resp.rows[0]));
-          obj.callback(null, result);
-        });
-      };
+          sql +=  " WHERE _pk = $1";
 
-      afterGetKeys = function (err, keys) {
-        if (err) {
-          obj.callback(err);
-          return;
-        }
+          obj.client.query(sql, [key], function (err, resp) {
+            var result;
 
-        var result,
-          sort = obj.filter ? obj.filter.sort || [] : [],
-          i = 0;
-
-        if (keys.length) {
-          tokens = [];
-
-          while (keys[i]) {
-            i += 1;
-            tokens.push("$" + i);
-          }
-
-          sql += " WHERE _pk IN (" + tokens.toString(",") + ")";
-
-          tokens = [];
-          sql += processSort(sort, tokens);
-          sql = sql.format(tokens);
-
-          obj.client.query(sql, keys, function (err, resp) {
             if (err) {
               obj.callback(err);
               return;
             }
 
-            result = sanitize(resp.rows.map(mapKeys));
+            result = sanitize(mapKeys(resp.rows[0]));
+
             obj.callback(null, result);
           });
-        } else {
-          obj.callback(null, []);
+        } catch (e) {
+          obj.callback(e);
+        }
+      };
+
+      afterGetKeys = function (err, keys) {
+        try {
+          if (err) { throw err; }
+
+          var result,
+            sort = obj.filter ? obj.filter.sort || [] : [],
+            i = 0;
+
+          if (keys.length) {
+            tokens = [];
+
+            while (keys[i]) {
+              i += 1;
+              tokens.push("$" + i);
+            }
+
+            sql += " WHERE _pk IN (" + tokens.toString(",") + ")";
+
+            tokens = [];
+            sql += processSort(sort, tokens);
+            sql = sql.format(tokens);
+
+            obj.client.query(sql, keys, function (err, resp) {
+              if (err) {
+                obj.callback(err);
+                return;
+              }
+
+              result = sanitize(resp.rows.map(mapKeys));
+
+              obj.callback(null, result);
+            });
+          } else {
+            obj.callback(null, []);
+          }
+        } catch (e) {
+          obj.callback(e);
         }
       };
 
@@ -1005,71 +1007,76 @@
       };
 
       afterGetFeather = function (err, resp) {
-        if (err) {
-          obj.callback(err);
-          return;
+        try {
+          if (err) { throw err; }
+
+          if (!resp) {
+            throw "Feather \"" + obj.name + "\" not found.";
+          }
+
+          feather = resp;
+          tokens = [feather.name.toSnakeCase()];
+          props = feather.properties;
+
+          /* Validate */
+          if (!isChild && feather.isChild) {
+            throw "Can not directly update a child class";
+          }
+
+          if (isSuperUser === false) {
+            that.isAuthorized({
+              client: obj.client,
+              callback: afterAuthorization,
+              data: {
+                id: id,
+                action: "canUpdate"
+              }
+            });
+            return;
+          }
+
+          afterAuthorization(null, true);
+        } catch (e) {
+          obj.callback(e);
         }
-
-        feather = resp;
-        tokens = [feather.name.toSnakeCase()];
-        props = feather.properties;
-
-        /* Validate */
-        if (!isChild && feather.isChild) {
-          obj.callback("Can not directly update a child class");
-          return;
-        }
-
-        if (isSuperUser === false) {
-          that.isAuthorized({
-            client: obj.client,
-            callback: afterAuthorization,
-            data: {
-              id: id,
-              action: "canUpdate"
-            }
-          });
-          return;
-        }
-
-        afterAuthorization(null, true);
       };
 
       afterAuthorization = function (err, authorized) {
-        if (err) {
-          obj.callback(err);
-          return;
-        }
+        try {
+          if (err) { throw err; }
 
-        if (!authorized) {
-          obj.callback("Not authorized to update \"" + id + "\"");
-          return;
-        }
+          if (!authorized) {
+            throw "Not authorized to update \"" + id + "\"";
+          }
 
-        that.getKey({
-          id: id,
-          client: obj.client,
-          callback: afterGetKey
-        });
+          that.getKey({
+            id: id,
+            client: obj.client,
+            callback: afterGetKey
+          });
+        } catch (e) {
+          obj.callback(e);
+        }
       };
 
       afterGetKey = function (err, resp) {
-        if (err) {
-          obj.callback(err);
-          return;
+        try {
+          if (err) { throw err; }
+
+          pk = resp;
+          keys = Object.keys(props);
+
+          // Get existing record
+          that.doSelect({
+            name: obj.name,
+            id: obj.id,
+            properties: keys.filter(noChildProps),
+            client: obj.client,
+            callback: afterDoSelect
+          }, isChild);
+        } catch (e) {
+          obj.callback(e);
         }
-
-        pk = resp;
-        keys = Object.keys(props);
-
-        // Get existing record
-        that.doSelect({
-          name: obj.name,
-          id: obj.id,
-          properties: keys.filter(noChildProps),
-          client: obj.client,
-          callback: afterDoSelect
-        }, isChild);
       };
 
       afterDoSelect = function (err, resp) {
@@ -1080,248 +1087,259 @@
             }
           };
 
-        if (err) {
-          obj.callback(err);
-          return;
+        try {
+          if (err) { throw err; }
+
+          oldRec = resp;
+
+          if (!Object.keys(oldRec).length || oldRec.isDeleted) {
+            obj.callback(null, false);
+            return;
+          }
+
+          newRec = JSON.parse(JSON.stringify(oldRec));
+          jsonpatch.apply(newRec, patches);
+
+          if (!patches.length) {
+            afterUpdate();
+            return;
+          }
+
+          updRec = JSON.parse(JSON.stringify(newRec));
+          updRec.created = oldRec.created;
+          updRec.createdBy = oldRec.createdBy;
+          updRec.updated = new Date().toJSON();
+          updRec.updatedBy = obj.client.currentUser;
+          if (props.etag) {
+            updRec.etag = f.createId();
+          }
+
+          // Check required properties
+          if (keys.some(requiredIsNull)) {
+            throw "\"" + key + "\" is required.";
+          }
+
+          // Process properties
+          nextProp();
+        } catch (e) {
+          obj.callback(e);
         }
-
-        oldRec = resp;
-
-        if (!Object.keys(oldRec).length || oldRec.isDeleted) {
-          obj.callback(null, false);
-          return;
-        }
-
-        newRec = JSON.parse(JSON.stringify(oldRec));
-        jsonpatch.apply(newRec, patches);
-
-        if (!patches.length) {
-          afterUpdate();
-          return;
-        }
-
-        updRec = JSON.parse(JSON.stringify(newRec));
-        updRec.created = oldRec.created;
-        updRec.createdBy = oldRec.createdBy;
-        updRec.updated = new Date().toJSON();
-        updRec.updatedBy = obj.client.currentUser;
-        if (props.etag) {
-          updRec.etag = f.createId();
-        }
-
-        // Check required properties
-        if (keys.some(requiredIsNull)) {
-          obj.callback("\"" + key + "\" is required.");
-          return;
-        }
-
-        // Process properties
-        nextProp();
       };
 
       nextProp = function () {
         var updProp, oldProp;
 
-        key = keys[n];
-        n += 1;
+        try {
+          key = keys[n];
+          n += 1;
 
-        if (n <= keys.length) {
-          /* Handle composite types */
-          if (typeof props[key].type === "object") {
-            updProp = updRec[key] || {};
-            oldProp = oldRec[key] || {};
+          if (n <= keys.length) {
+            /* Handle composite types */
+            if (typeof props[key].type === "object") {
+              updProp = updRec[key] || {};
+              oldProp = oldRec[key] || {};
 
-            /* Handle child records */
-            if (Array.isArray(updRec[key])) {
-              relation = props[key].type.relation;
+              /* Handle child records */
+              if (Array.isArray(updRec[key])) {
+                relation = props[key].type.relation;
 
-              /* Process deletes */
-              oldRec[key].forEach(function (row) {
-                var cid = row.id;
+                /* Process deletes */
+                oldRec[key].forEach(function (row) {
+                  var cid = row.id;
 
-                if (!find(updRec[key], cid)) {
-                  clen += 1;
-                  doList.push({
-                    func: that.doDelete,
-                    payload: {
-                      name: relation,
-                      id: cid,
-                      client: obj.client,
-                      callback: afterUpdate
-                    }
-                  });
-                }
-              });
-
-              /* Process inserts and updates */
-              updRec[key].forEach(function (cNewRec) {
-                if (!cNewRec) { return; }
-
-                var cid = cNewRec.id || null,
-                  cOldRec = find(oldRec[key], cid);
-
-                if (cOldRec) {
-                  cpatches = jsonpatch.compare(cOldRec, cNewRec);
-
-                  if (cpatches.length) {
+                  if (!find(updRec[key], cid)) {
                     clen += 1;
                     doList.push({
-                      func: that.doUpdate,
+                      func: that.doDelete,
                       payload: {
                         name: relation,
                         id: cid,
-                        data: cpatches,
                         client: obj.client,
                         callback: afterUpdate
                       }
                     });
                   }
-                } else {
-                  cNewRec[props[key].type.parentOf] = {id: updRec.id};
-                  clen += 1;
-                  doList.push({
-                    func: that.doInsert,
-                    payload: {
-                      name: relation,
-                      data: cNewRec,
-                      client: obj.client,
-                      callback: afterUpdate
-                    }
-                  });
-                }
-              });
-
-            /* Handle to one relations */
-            } else if (!props[key].type.childOf &&
-                updProp.id !== oldProp.id) {
-
-              if (updProp.id) {
-                that.getKey({
-                  id: updRec[key].id,
-                  client: obj.client,
-                  callback: afterGetRelKey
                 });
-              } else {
-                afterGetRelKey(null, -1);
+
+                /* Process inserts and updates */
+                updRec[key].forEach(function (cNewRec) {
+                  if (!cNewRec) { return; }
+
+                  var cid = cNewRec.id || null,
+                    cOldRec = find(oldRec[key], cid);
+
+                  if (cOldRec) {
+                    cpatches = jsonpatch.compare(cOldRec, cNewRec);
+
+                    if (cpatches.length) {
+                      clen += 1;
+                      doList.push({
+                        func: that.doUpdate,
+                        payload: {
+                          name: relation,
+                          id: cid,
+                          data: cpatches,
+                          client: obj.client,
+                          callback: afterUpdate
+                        }
+                      });
+                    }
+                  } else {
+                    cNewRec[props[key].type.parentOf] = {id: updRec.id};
+                    clen += 1;
+                    doList.push({
+                      func: that.doInsert,
+                      payload: {
+                        name: relation,
+                        data: cNewRec,
+                        client: obj.client,
+                        callback: afterUpdate
+                      }
+                    });
+                  }
+                });
+
+              /* Handle to one relations */
+              } else if (!props[key].type.childOf &&
+                  updProp.id !== oldProp.id) {
+
+                if (updProp.id) {
+                  that.getKey({
+                    id: updRec[key].id,
+                    client: obj.client,
+                    callback: afterGetRelKey
+                  });
+                } else {
+                  afterGetRelKey(null, -1);
+                }
+                return;
               }
-              return;
+            /* Handle regular data types */
+            } else if (updRec[key] !== oldRec[key] && key !== "objectType") {
+              tokens.push(key.toSnakeCase());
+              ary.push("%I = $" + p);
+              params.push(updRec[key]);
+              p += 1;
             }
-          /* Handle regular data types */
-          } else if (updRec[key] !== oldRec[key] && key !== "objectType") {
-            tokens.push(key.toSnakeCase());
-            ary.push("%I = $" + p);
-            params.push(updRec[key]);
-            p += 1;
+
+            nextProp();
+            return;
           }
 
-          nextProp();
-          return;
+          // Done, move on
+          afterProperties();
+        } catch (e) {
+          obj.callback(e);
         }
-
-        // Done, move on
-        afterProperties();
       };
 
       afterGetRelKey = function (err, resp) {
-        if (err) {
-          obj.callback(err);
-          return;
+        try {
+          if (err) { throw err; }
+
+          value = resp;
+          relation = props[key].type.relation;
+
+          if (value === undefined) {
+            throw "Relation not found in \"" + relation +
+              "\" for \"" + key + "\" with id \"" + updRec[key].id + "\"";
+          }
+
+          tokens.push(relationColumn(key, relation));
+          ary.push("%I = $" + p);
+          params.push(value);
+          p += 1;
+
+          nextProp();
+        } catch (e) {
+          obj.callback(e);
         }
-
-        value = resp;
-        relation = props[key].type.relation;
-
-        if (value === undefined) {
-          obj.callback("Relation not found in \"" + relation +
-            "\" for \"" + key + "\" with id \"" + updRec[key].id + "\"");
-          return;
-        }
-
-        tokens.push(relationColumn(key, relation));
-        ary.push("%I = $" + p);
-        params.push(value);
-        p += 1;
-
-        nextProp();
       };
 
       afterProperties = function () {
-        // Execute top level object change
-        sql = ("UPDATE %I SET " + ary.join(",") + " WHERE _pk = $" + p);
-        sql = sql.format(tokens);
-        params.push(pk);
-        clen += 1;
+        try {
+          // Execute top level object change
+          sql = ("UPDATE %I SET " + ary.join(",") + " WHERE _pk = $" + p);
+          sql = sql.format(tokens);
+          params.push(pk);
+          clen += 1;
 
-        obj.client.query(sql, params, afterUpdate);
+          obj.client.query(sql, params, afterUpdate);
 
-        // Execute child changes
-        doList.forEach(function (item) {
-          item.func(item.payload, true);
-        });
+          // Execute child changes
+          doList.forEach(function (item) {
+            item.func(item.payload, true);
+          });
+        } catch (e) {
+          obj.callback(e);
+        }
       };
 
       afterUpdate = function (err) {
-        if (err) {
-          obj.callback(err);
-          return;
+        try {
+          if (err) { throw err; }
+
+          // Don't proceed until all callbacks report back
+          c += 1;
+          if (c < clen) { return; }
+
+          // If child, we're done here
+          if (isChild) {
+            obj.callback();
+            return;
+          }
+
+          // If a top level record, return patch of what changed
+          that.doSelect({
+            name: feather.name,
+            id: id,
+            client: obj.client,
+            callback: afterSelectUpdated
+          });
+        } catch (e) {
+          obj.callback(e);
         }
-
-        // Don't proceed until all callbacks report back
-        c += 1;
-        if (c < clen) { return; }
-
-        // If child, we're done here
-        if (isChild) {
-          obj.callback();
-          return;
-        }
-
-        // If a top level record, return patch of what changed
-        that.doSelect({
-          name: feather.name,
-          id: id,
-          client: obj.client,
-          callback: afterSelectUpdated
-        });
       };
 
       afterSelectUpdated = function (err, resp) {
-        if (err) {
-          obj.callback(err);
-          return;
-        }
+        try {
+          if (err) { throw err; }
 
-        result = resp;
+          result = resp;
 
-        // Handle change log
-        if (updRec) {
-          that.doInsert({
-            name: "Log",
-            data: {
-              objectId: id,
-              action: "PATCH",
-              created: updRec.updated,
-              createdBy: updRec.updatedBy,
-              updated: updRec.updated,
-              updatedBy: updRec.updatedBy,
-              change: JSON.stringify(jsonpatch.compare(oldRec, result))
-            },
-            client: obj.client,
-            callback: done
-          }, true);
-          return;
+          // Handle change log
+          if (updRec) {
+            that.doInsert({
+              name: "Log",
+              data: {
+                objectId: id,
+                action: "PATCH",
+                created: updRec.updated,
+                createdBy: updRec.updatedBy,
+                updated: updRec.updated,
+                updatedBy: updRec.updatedBy,
+                change: JSON.stringify(jsonpatch.compare(oldRec, result))
+              },
+              client: obj.client,
+              callback: done
+            }, true);
+            return;
+          }
+          done();
+        } catch (e) {
+          obj.callback(e);
         }
-        done();
       };
 
       done = function (err) {
-        if (err) {
-          obj.callback(err);
-          return;
-        }
+        try {
+          if (err) { throw err; }
 
-        // Send back the differences between what user asked for and result
-        obj.callback(null, jsonpatch.compare(newRec, result));
+          // Send back the differences between what user asked for and result
+          obj.callback(null, jsonpatch.compare(newRec, result));
+        } catch (e) {
+          obj.callback(e);
+        }
       };
 
       // Kick off query by getting feather, the rest falls through callbacks
@@ -1903,6 +1921,7 @@
               }
 
               result = resp.rows.length > 0;
+
               obj.callback(null, result);
             });
           }
