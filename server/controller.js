@@ -305,140 +305,140 @@
       };
 
       afterGetFeather = function (err, feather) {
-        if (err) {
-          obj.callback(err);
-          return;
+        try {
+          if (err) { throw err; }
+
+          props = feather.properties;
+
+          if (!isChild && feather.isChild) {
+            throw "Can not directly delete a child class";
+          }
+
+          if (isSuperUser === false) {
+            that.isAuthorized({
+              client: obj.client,
+              callback: afterAuthorization,
+              data: {
+                id: obj.id,
+                action: "canDelete"
+              }
+            });
+            return;
+          }
+
+          afterAuthorization(null, true);
+        } catch (e) {
+          obj.callback(e);
         }
-
-        props = feather.properties;
-
-        if (!isChild && feather.isChild) {
-          obj.callback("Can not directly delete a child class");
-        }
-
-        if (isSuperUser === false) {
-          that.isAuthorized({
-            client: obj.client,
-            callback: afterAuthorization,
-            data: {
-              id: obj.id,
-              action: "canDelete"
-            }
-          });
-          return;
-        }
-
-        afterAuthorization(null, true);
       };
 
       afterAuthorization = function (err, authorized) {
-        if (err) {
-          obj.callback(err);
-          return;
-        }
+        try {
+          if (err) { throw err; }
 
-        if (!authorized) {
-          obj.callback("Not authorized to delete \"" + obj.id + "\"");
-        }
+          if (!authorized) {
+            throw "Not authorized to delete \"" + obj.id + "\"";
+          }
 
-        // Get old record, bail if it doesn't exist
-        // Exclude childOf relations when we select
-        that.doSelect({
-          name: obj.name,
-          id: obj.id,
-          showDeleted: true,
-          properties: Object.keys(props).filter(noChildProps),
-          client: obj.client,
-          callback: afterDoSelect
-        }, true);
+          // Get old record, bail if it doesn't exist
+          // Exclude childOf relations when we select
+          that.doSelect({
+            name: obj.name,
+            id: obj.id,
+            showDeleted: true,
+            properties: Object.keys(props).filter(noChildProps),
+            client: obj.client,
+            callback: afterDoSelect
+          }, true);
+        } catch (e) {
+          obj.callback(e);
+        }
       };
 
       afterDoSelect = function (err, resp) {
-        if (err) {
-          obj.callback(err);
-          return;
-        }
-
-        oldRec = resp;
-
-        if (!oldRec) {
-          obj.callback("Record " + obj.id + " not found.");
-          return;
-        }
-
-        if (oldRec.isDeleted) {
-          obj.callback("Record " + obj.id + " already deleted.");
-          return;
-        }
-
-        // Get keys for properties of child arrays.
-        // Count expected callbacks along the way.
-        keys = Object.keys(props).filter(function (key) {
-          if (typeof props[key].type === "object" &&
-              props[key].type.parentOf) {
-            clen += oldRec[key].length;
-            return true;
+        try {
+          if (err) {
+            obj.callback(err);
+            return;
           }
-        });
 
-        // Delete children recursively
-        keys.forEach(function (key) {
-          var rel = props[key].type.relation;
-          oldRec[key].forEach(function (row) {
-            that.doDelete({
-              name: rel,
-              id: row.id,
-              client: obj.client,
-              callback: afterDelete
-            }, true);
+          oldRec = resp;
+
+          if (!oldRec) {
+            throw "Record " + obj.id + " not found.";
+          }
+
+          if (oldRec.isDeleted) {
+            throw "Record " + obj.id + " already deleted.";
+          }
+
+          // Get keys for properties of child arrays.
+          // Count expected callbacks along the way.
+          keys = Object.keys(props).filter(function (key) {
+            if (typeof props[key].type === "object" &&
+                props[key].type.parentOf) {
+              clen += oldRec[key].length;
+              return true;
+            }
           });
-        });
 
-        // Finally, delete parent object
-        obj.client.query(sql, [obj.id], afterDelete);
+          // Delete children recursively
+          keys.forEach(function (key) {
+            var rel = props[key].type.relation;
+            oldRec[key].forEach(function (row) {
+              that.doDelete({
+                name: rel,
+                id: row.id,
+                client: obj.client,
+                callback: afterDelete
+              }, true);
+            });
+          });
+
+          // Finally, delete parent object
+          obj.client.query(sql, [obj.id], afterDelete);
+        } catch (e) {
+          obj.callback(e);
+        }
       };
 
       // Handle change log
       afterDelete = function (err) {
-        var now = f.now();
+        try {
+          var now = f.now();
 
-        if (err) {
-          obj.callback(err);
-          return;
+          if (err) { throw err; }
+
+          // Move on only after all callbacks report back
+          c += 1;
+          if (c < clen) { return; }
+
+          if (isChild) {
+            afterLog();
+            return;
+          }
+
+          // Log the completed deletion
+          that.doInsert({
+            name: "Log",
+            data: {
+              objectId: obj.id,
+              action: "DELETE",
+              created: now,
+              createdBy: now,
+              updated: now,
+              updatedBy: now
+            },
+            client: obj.client,
+            callback: afterLog
+          }, true);
+        } catch (e) {
+          obj.callback(e);
         }
-
-        // Move on only after all callbacks report back
-        c += 1;
-        if (c < clen) { return; }
-
-        if (isChild) {
-          afterLog();
-          return;
-        }
-
-        // Log the completed deletion
-        that.doInsert({
-          name: "Log",
-          data: {
-            objectId: obj.id,
-            action: "DELETE",
-            created: now,
-            createdBy: now,
-            updated: now,
-            updatedBy: now
-          },
-          client: obj.client,
-          callback: afterLog
-        }, true);
       };
 
       afterLog = function (err) {
-        if (err) {
-          obj.callback(err);
-          return;
-        }
-
-        obj.callback(null, true);
+        obj.callback(err, true);
       };
 
       // Kick off query by getting feather, the rest falls through callbacks
