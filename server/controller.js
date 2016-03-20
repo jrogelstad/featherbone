@@ -468,7 +468,8 @@
         insertChildren, afterInsert, afterDoSelect, afterLog,
         payload = {data: {name: obj.name}, client: obj.client},
         data = JSON.parse(JSON.stringify(obj.data)),
-        args = [obj.name.toSnakeCase()],
+        name = obj.name || "",
+        args = [name.toSnakeCase()],
         tokens = [],
         params = [],
         values = [],
@@ -477,104 +478,105 @@
         p = 2;
 
       afterGetFeather = function (err, feather) {
-        if (err) {
-          obj.callback(err);
-          return;
-        }
+        try {
+          if (err) { throw err; }
 
-        if (!feather) {
-          obj.callback("Class \"" + obj.name + "\" not found");
-          return;
-        }
+          if (!feather) {
+            throw "Class \"" + name + "\" not found";
+          }
 
-        props = feather.properties;
-        fkeys = Object.keys(props);
-        dkeys = Object.keys(data);
+          props = feather.properties;
+          fkeys = Object.keys(props);
+          dkeys = Object.keys(data);
 
-        /* Validate properties are valid */
-        len = dkeys.length;
-        for (n = 0; n < len; n += 1) {
-          if (fkeys.indexOf(dkeys[n]) === -1) {
-            obj.callback("Feather \"" + obj.name +
-              "\" does not contain property \"" + dkeys[n] + "\"");
+          /* Validate properties are valid */
+          len = dkeys.length;
+          for (n = 0; n < len; n += 1) {
+            if (fkeys.indexOf(dkeys[n]) === -1) {
+               throw "Feather \"" + name +
+                "\" does not contain property \"" + dkeys[n] + "\"";
+            }
+          }
+
+          /* Check id for existence and uniqueness and regenerate if needed */
+          if (!data.id) {
+            afterIdCheck(null, -1);
             return;
           }
-        }
 
-        /* Check id for existence and uniqueness and regenerate if needed */
-        if (!data.id) {
-          afterIdCheck(null, -1);
-          return;
+          that.getKey({
+            id: data.id,
+            client: obj.client,
+            callback: afterIdCheck
+          }, true);
+        } catch (e) {
+          obj.callback(e);
         }
-
-        that.getKey({
-          id: data.id,
-          client: obj.client,
-          callback: afterIdCheck
-        }, true);
       };
 
       afterIdCheck = function (err, id) {
-        if (err) {
-          obj.callback(err);
-          return;
-        }
+        try {
+          if (err) { throw err; }
 
-        if (id !== undefined) {
-          data.id = f.createId();
-        }
+          if (id !== undefined) {
+            data.id = f.createId();
+          }
 
-        if (!isChild && isSuperUser === false) {
-          that.isAuthorized({
-            client: obj.client,
-            callback: afterAuthorized,
-            data: {
-              feather: obj.name,
-              action: "canCreate"
-            }
-          });
-          return;
-        }
+          if (!isChild && isSuperUser === false) {
+            that.isAuthorized({
+              client: obj.client,
+              callback: afterAuthorized,
+              data: {
+                feather: name,
+                action: "canCreate"
+              }
+            });
+            return;
+          }
 
-        afterAuthorized(null, true);
+          afterAuthorized(null, true);
+        } catch (e) {
+          obj.callback(e);
+        }
       };
 
       afterAuthorized = function (err, authorized) {
-        if (err) {
-          obj.callback(err);
-          return;
+        try {
+          if (err) { throw err; }
+
+          if (!authorized) {
+            msg = "Not authorized to create \"" + obj.name + "\"";
+            throw {statusCode: 401, message: msg};
+          }
+
+          // Set some system controlled values
+          data.updated = f.now();
+          data.created = data.updated;
+          data.createdBy = obj.client.currentUser;
+          data.updatedBy = obj.client.currentUser;
+
+          // Get primary key
+          sql = "select nextval('object__pk_seq')";
+          obj.client.query(sql, afterNextVal);
+        } catch (e) {
+          obj.callback(e);
         }
-
-        if (!authorized) {
-          msg = "Not authorized to create \"" + obj.name + "\"";
-          obj.callback({statusCode: 401, message: msg});
-          return;
-        }
-
-        // Set some system controlled values
-        data.updated = f.now();
-        data.created = data.updated;
-        data.createdBy = obj.client.currentUser;
-        data.updatedBy = obj.client.currentUser;
-
-        // Get primary key
-        sql = "select nextval('object__pk_seq')";
-        obj.client.query(sql, afterNextVal);
       };
 
       afterNextVal = function (err, resp) {
-        if (err) {
-          obj.callback(err);
-          return;
+        try {
+          if (err) { throw err; }
+
+          pk = resp.rows[0].nextval;
+          values.push(pk);
+
+          /* Build values */
+          len = fkeys.length;
+          n = 0;
+          buildInsert();
+        } catch (e) {
+          obj.callback(e);
         }
-
-        pk = resp.rows[0].nextval;
-        values.push(pk);
-
-        /* Build values */
-        len = fkeys.length;
-        n = 0;
-        buildInsert();
       };
 
       buildInsert = function () {
@@ -670,33 +672,30 @@
       };
 
       afterGetPk = function (err, id) {
-        if (err) {
-          obj.callback(err);
-          return;
+        try {
+          if (err) { throw err; }
+
+          value = id;
+
+          if (value === undefined) {
+            err = 'Relation not found in "' + prop.type.relation +
+              '" for "' + key + '" with id "' + data[key].id + '"';
+          } else if (!isChild && prop.type.childOf) {
+            err = "Child records may only be created from the parent.";
+          }
+
+          if (err) { throw err; }
+
+          afterHandleRelations();
+        } catch (e) {
+          obj.callback(e);
         }
-
-        value = id;
-
-        if (value === undefined) {
-          err = 'Relation not found in "' + prop.type.relation +
-            '" for "' + key + '" with id "' + data[key].id + '"';
-        } else if (!isChild && prop.type.childOf) {
-          err = "Child records may only be created from the parent.";
-        }
-
-        if (err) {
-          obj.callback(err);
-          return;
-        }
-
-        afterHandleRelations();
       };
 
       afterHandleRelations = function () {
         if (!child) {
           if (prop.isRequired && value === null) {
-            obj.callback("\"" + key + "\" is required.\"");
-            return;
+            throw "\"" + key + "\" is required.\"";
           }
           args.push(col);
           tokens.push("%I");
@@ -710,100 +709,104 @@
 
       insertChildren = function (err) {
         var ckeys;
-        if (err) {
-          obj.callback(err);
-          return;
-        }
+        try {
+          if (err) { throw err; }
 
-        // Get keys for properties of child arrays.
-        // Count expected callbacks along the way.
-        ckeys = Object.keys(props).filter(function (key) {
-          if (typeof props[key].type === "object" &&
-              props[key].type.parentOf &&
-              data[key] !== undefined) {
-            clen += data[key].length;
-            return true;
-          }
-        });
-
-        // Insert children recursively
-        ckeys.forEach(function (key) {
-          var rel = props[key].type.relation;
-          data[key].forEach(function (row) {
-            row[props[key].type.parentOf] = {id: data.id};
-            that.doInsert({
-              name: rel,
-              data: row,
-              client: obj.client,
-              callback: afterInsert
-            }, true);
+          // Get keys for properties of child arrays.
+          // Count expected callbacks along the way.
+          ckeys = Object.keys(props).filter(function (key) {
+            if (typeof props[key].type === "object" &&
+                props[key].type.parentOf &&
+                data[key] !== undefined) {
+              clen += data[key].length;
+              return true;
+            }
           });
-        });
 
-        afterInsert();
+          // Insert children recursively
+          ckeys.forEach(function (key) {
+            var rel = props[key].type.relation;
+            data[key].forEach(function (row) {
+              row[props[key].type.parentOf] = {id: data.id};
+              that.doInsert({
+                name: rel,
+                data: row,
+                client: obj.client,
+                callback: afterInsert
+              }, true);
+            });
+          });
+
+          afterInsert();
+        } catch (e) {
+          obj.callback(e);
+        }
       };
 
       afterInsert = function (err) {
-        if (err) {
-          obj.callback(err);
-          return;
+        try {
+          if (err) { throw err; }
+
+          // Done only when all callbacks report back
+          c += 1;
+          if (c < clen) { return; }
+
+          // We're done here if child
+          if (isChild) {
+            obj.callback(null, result);
+            return;
+          }
+
+          // Otherwise we'll move on to log the change
+          that.doSelect({
+            name: obj.name,
+            id: data.id,
+            client: obj.client,
+            callback: afterDoSelect
+          });
+        } catch (e) {
+          obj.callback(e);
         }
-
-        // Done only when all callbacks report back
-        c += 1;
-        if (c < clen) { return; }
-
-        // We're done here if child
-        if (isChild) {
-          obj.callback(null, result);
-          return;
-        }
-
-        // Otherwise we'll move on to log the change
-        that.doSelect({
-          name: obj.name,
-          id: data.id,
-          client: obj.client,
-          callback: afterDoSelect
-        });
       };
 
       afterDoSelect = function (err, resp) {
-        if (err) {
-          obj.callback(err);
-          return;
+        try {
+          if (err) { throw err; }
+
+          result = resp;
+
+          /* Handle change log */
+          that.doInsert({
+            name: "Log",
+            data: {
+              objectId: data.id,
+              action: "POST",
+              created: data.created,
+              createdBy: data.createdBy,
+              updated: data.updated,
+              updatedBy: data.updatedBy,
+              change: JSON.parse(JSON.stringify(result))
+            },
+            client: obj.client,
+            callback: afterLog
+          }, true);
+        } catch (e) {
+          obj.callback(e);
         }
-
-        result = resp;
-
-        /* Handle change log */
-        that.doInsert({
-          name: "Log",
-          data: {
-            objectId: data.id,
-            action: "POST",
-            created: data.created,
-            createdBy: data.createdBy,
-            updated: data.updated,
-            updatedBy: data.updatedBy,
-            change: JSON.parse(JSON.stringify(result))
-          },
-          client: obj.client,
-          callback: afterLog
-        }, true);
       };
 
       afterLog = function (err) {
-        if (err) {
-          obj.callback(err);
-          return;
+        try {
+          if (err) { throw err; }
+
+          // We're geing to return the changes
+          result = jsonpatch.compare(obj.data, result);
+
+          // Report back result
+          obj.callback(null, result);
+        } catch (e) {
+          obj.callback(e);
         }
-
-        // We're geing to return the changes
-        result = jsonpatch.compare(obj.data, result);
-
-        // Report back result
-        obj.callback(null, result);
       };
 
       // Kick off query by getting feather, the rest falls through callbacks
