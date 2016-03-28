@@ -2470,7 +2470,7 @@
                       i += 1;
                     }
 
-                    args.push(type.relation.toSnakeCase());
+                    args.push("_" + type.relation.toSnakeCase());
                     vSql = "CREATE VIEW %I AS SELECT " + cols.join(",") +
                       " FROM %I WHERE NOT is_deleted;";
                     sql += vSql.format(args);
