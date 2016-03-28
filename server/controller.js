@@ -554,6 +554,7 @@
           data.created = data.updated;
           data.createdBy = obj.client.currentUser;
           data.updatedBy = obj.client.currentUser;
+          data.isDeleted = false;
 
           // Get primary key
           sql = "select nextval('object__pk_seq')";
@@ -1113,6 +1114,7 @@
           updRec.createdBy = oldRec.createdBy;
           updRec.updated = new Date().toJSON();
           updRec.updatedBy = obj.client.currentUser;
+          updRec.isDeleted = false;
           if (props.etag) {
             updRec.etag = f.createId();
           }
