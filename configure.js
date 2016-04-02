@@ -24,7 +24,8 @@
   var manifest, file, content, result, execute, name, createFunction, buildApi,
     saveModule, saveController, saveRoute, saveFeathers, rollback, connect,
     commit, begin, processFile, ext, client, user, processProperties, executeSql,
-    runBatch,
+    runBatch, configure,
+    MANIFEST = "manifest.json",
     pg = require("pg"),
     fs = require("fs"),
     path = require("path"),
@@ -33,7 +34,7 @@
     f = require("./common/core.js"),
     format = require("pg-format"),
     dir = path.resolve(__dirname, process.argv[2] || "."),
-    filename = path.format({root: "/", dir: dir, base: "manifest.json"}),
+    filename = path.format({root: "/", dir: dir, base: MANIFEST}),
     i = 0;
 
   connect = function (callback) {
@@ -91,7 +92,7 @@
   };
 
   processFile = function (err) {
-    var filepath;
+    var filepath, module, version;
 
     if (err) {
       console.error(err);
@@ -112,6 +113,8 @@
     ext = path.extname(filename);
     name = path.parse(filename).name;
     filepath = path.format({root: "/", dir: dir, base: filename});
+    module = file.module || manifest.module;
+    version = file.version || manifest.version;
 
     fs.readFile(filepath, "utf8", function (err, data) {
       if (err) {
@@ -124,17 +127,20 @@
       console.log("Configuring " + filename);
 
       switch (file.type) {
+      case "configure":
+        configure(filename);
+        break;
       case "execute":
         execute(filename);
         break;
       case "module":
-        saveModule(manifest.module, content, manifest.version);
+        saveModule(module, content, version);
         break;
       case "controller":
-        saveController(file.name || name, manifest.module, content, manifest.version);
+        saveController(file.name || name, module, content, version);
         break;
       case "route":
-        saveRoute(file.name || name, manifest.module, content, manifest.version);
+        saveRoute(file.name || name, module, content, version);
         break;
       case "feather":
         saveFeathers(JSON.parse(content));
@@ -150,6 +156,30 @@
         rollback();
         return;
       }
+    });
+  };
+
+  configure = function(filename) {
+    var submanifest,
+      subfilepath = path.format({root: "/", dir: dir, base: filename}),
+      subdir = path.parse(filename).dir,
+      n = i;
+
+    fs.readFile(subfilepath, "utf8", function (err, data) {
+      if (err) {
+        console.error(err);
+        return;
+      }
+
+      submanifest = JSON.parse(data);
+      submanifest.files.forEach(function (file) {
+        file.path = subdir + "/" + file.path;
+        file.module = file.module || submanifest.module || manifest.module;
+        file.version = file.version || submanifest.version || manifest.version;
+        manifest.files.splice(n, 0, file);
+        n += 1;
+      });
+      processFile();
     });
   };
 
