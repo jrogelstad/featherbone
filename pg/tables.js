@@ -147,11 +147,15 @@
           sql = "CREATE TABLE \"$module\" (" +
             "name text PRIMARY KEY," +
             "script text," +
-            "version text);" +
+            "version text," +
+            "dependencies json," +
+            "is_active boolean DEFAULT true);" +
             "COMMENT ON TABLE \"$module\" IS 'Internal table for storing JavaScript';" +
             "COMMENT ON COLUMN \"$module\".name IS 'Primary key';" +
             "COMMENT ON COLUMN \"$module\".script IS 'JavaScript';" +
-            "COMMENT ON COLUMN \"$module\".version IS 'Version number';";
+            "COMMENT ON COLUMN \"$module\".version IS 'Version number';" +
+            "COMMENT ON COLUMN \"$module\".dependencies IS 'Module dependencies';" +
+            "COMMENT ON COLUMN \"$module\".dependencies IS 'Active state';";
           obj.client.query(sql, createController());
           return;
         }
