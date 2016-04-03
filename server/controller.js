@@ -597,8 +597,13 @@
             } else {
               col = relationColumn(key, prop.type.relation);
               if (data[key] === null || data[key] === undefined) {
-                value = -1;
-              } else {
+                if (prop.default !== undefined) {
+                  data[key] = prop.default;
+                } else {
+                  value = -1;
+                }
+              }
+              if (value !== -1) {
                 that.getKey({
                   id: data[key].id,
                   client: obj.client,
