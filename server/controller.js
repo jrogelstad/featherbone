@@ -599,8 +599,10 @@
               if (data[key] === null || data[key] === undefined) {
                 if (prop.default !== undefined) {
                   data[key] = prop.default;
-                } else {
+                } else if (prop.isRequired !== true) {
                   value = -1;
+                } else {
+                  throw "Property " + key + " is required.";
                 }
               }
               if (value !== -1) {
