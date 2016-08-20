@@ -3,7 +3,7 @@ Featherbone
 A JavaScript based persistence framework for building object relational database applications.
 
 # Prerequisites
-* [PostgreSQL v4.5] (http://www.postgresql.org/)
+* [PostgreSQL v9.5.1] (http://www.postgresql.org/)
 * [NodeJS v4.5] (https://nodejs.org/en/)
   
 # Install
