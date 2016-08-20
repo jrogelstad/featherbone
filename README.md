@@ -4,7 +4,7 @@ A JavaScript based persistence framework for building object relational database
 
 # Prerequisites
 * [PostgreSQL v4.5] (http://www.postgresql.org/)
-* [NodeJS] (https://nodejs.org/en/)
+* [NodeJS v4.5] (https://nodejs.org/en/)
   
 # Install
 
