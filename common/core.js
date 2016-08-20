@@ -16,13 +16,14 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-/*global m, window*/
+/*global window*/
 (function () {
   "use strict";
 
   var that, waiting, isToMany, isToOne, isChild, lastTick,
     callbacks = [], queue = [], thenables = [],
     statechart = require("statechartjs"),
+    m = require("mithril"),
     i = 0;
 
   that = {

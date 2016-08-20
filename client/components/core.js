@@ -23,7 +23,8 @@
   require("workbook");
 
   var f = require("feather-core"),
-    catalog = require("catalog");
+    catalog = require("catalog"),
+    m = require("mithril");
 
   /**
     Object to define what input type to use for data

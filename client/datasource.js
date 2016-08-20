@@ -16,11 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-/*global window, m, f */
+/*global window, f */
 (function () {
   "use strict";
 
-  var that = {};
+  var that = {},
+    m = require("mithril");
 
   /**
     Returns the base url used to fetch and post data
