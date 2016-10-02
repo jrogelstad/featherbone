@@ -27,7 +27,9 @@
     statechart = require("statechartjs"),
     catalog = require("catalog"),
     outer = document.createElement("div"),
-    COL_WIDTH_DEFAULT = "150px";
+    COL_WIDTH_DEFAULT = "150px",
+    LIMIT = 20,
+    ROW_COUNT = 2;
 
   // Calculate scroll bar width
   // http://stackoverflow.com/questions/13382516/getting-scroll-bar-width-using-javascript
@@ -56,9 +58,10 @@
   tableWidget.viewModel = function (options) {
     options = options || {};
     var fromWidthIdx, dataTransfer,
-      selectionChanged, selectionFetched,
+      selectionChanged, selectionFetched, fetch,
       feather = catalog.getFeather(options.feather),
       modelName = options.feather.toCamelCase(),
+      offset = 0,
       vm = {};
 
     // ..........................................................
@@ -211,53 +214,25 @@
         break;
       }
     };
-    vm.onscroll = function () {
+    vm.onscroll = function (evt) {
       var ids = vm.ids(),
+        e = evt.srcElement,
+        remainScroll = e.scrollHeight - e.clientHeight - e.scrollTop,
+        childHeight = e.lastChild.clientHeight,
         header = document.getElementById(ids.header),
         rows = document.getElementById(ids.rows);
 
+      // Lazy load: fetch more rows if near bottom and more possible
+      if (remainScroll < childHeight * ROW_COUNT
+          && vm.models().length >= offset) {
+        offset = offset + LIMIT;
+        fetch();
+      }
       // Sync header position with table body position
       header.scrollLeft = rows.scrollLeft;
     };
     vm.refresh = function () {
-      var fattrs, formatOf, criterion,
-        value = vm.search(),
-        filter= f.copy(vm.filter());
-
-      // Recursively resolve type
-      formatOf = function (feather, property) {
-        var prefix, suffix, rel, prop,
-          idx = property.indexOf(".");
-
-        if (idx > -1) {
-          prefix = property.slice(0, idx);
-          suffix = property.slice(idx + 1, property.length);
-          rel = feather.properties[prefix].type.relation;
-          return formatOf(catalog.getFeather(rel), suffix);
-        }
-
-        prop = feather.properties[property];
-        return prop.format || prop.type;
-      };
-
-      // Only search on text attributes
-      if (value) {
-        fattrs = vm.attrs().filter(function (attr) {
-          return formatOf(vm.feather(), attr) === "string";
-        });
-
-        if (fattrs.length) {
-          criterion = {
-            property: fattrs,
-            operator: "~*",
-            value: value
-          };
-          filter.criteria = filter.criteria || [];
-          filter.criteria.push(criterion);
-        }
-      }
-
-      vm.models().fetch(filter, false);
+      fetch(true);
     };
     vm.relations = m.prop({});
     vm.save = function () {
@@ -327,11 +302,57 @@
     //
 
     vm.filter(f.copy(options.config.filter || {}));
+    vm.filter().limit = vm.filter().limit || LIMIT;
     if (!options.models) {
       vm.models = catalog.store().models()[modelName].list({
         filter: vm.filter()
       });
     }
+
+    fetch = function (refresh) {
+      var fattrs, formatOf, criterion,
+        value = vm.search(),
+        filter= f.copy(vm.filter());
+
+      if (refresh) { offset = 0; }
+
+      filter.offset = offset;
+
+      // Recursively resolve type
+      formatOf = function (feather, property) {
+        var prefix, suffix, rel, prop,
+          idx = property.indexOf(".");
+
+        if (idx > -1) {
+          prefix = property.slice(0, idx);
+          suffix = property.slice(idx + 1, property.length);
+          rel = feather.properties[prefix].type.relation;
+          return formatOf(catalog.getFeather(rel), suffix);
+        }
+
+        prop = feather.properties[property];
+        return prop.format || prop.type;
+      };
+
+      // Only search on text attributes
+      if (value) {
+        fattrs = vm.attrs().filter(function (attr) {
+          return formatOf(vm.feather(), attr) === "string";
+        });
+
+        if (fattrs.length) {
+          criterion = {
+            property: fattrs,
+            operator: "~*",
+            value: value
+          };
+          filter.criteria = filter.criteria || [];
+          filter.criteria.push(criterion);
+        }
+      }
+
+      vm.models().fetch(filter, refresh !== true);
+    };
 
     selectionChanged = function () {
       vm.state().send("changed");

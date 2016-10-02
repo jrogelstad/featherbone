@@ -23,7 +23,8 @@
     m = require("mithril"),
     qs = require("Qs"),
     catalog = require("catalog"),
-    statechart = require("statechartjs");
+    statechart = require("statechartjs"),
+    LIMIT = 20;
 
   /**
     Return a function that when called will return an array of models
@@ -192,6 +193,7 @@
       }
       if (ary.filter()) {
         query.filter = ary.filter();
+        query.filter.limit = query.filter.limit || LIMIT;
       }
       query = qs.stringify(query);
       url = ary.path() + query;
