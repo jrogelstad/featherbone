@@ -24,6 +24,7 @@
   // Load pre-requisites
   require("extend-string");
   require("feather");
+  require("form");
 
   // These get pre-registered for
   // on-the-fly instantiation
@@ -61,11 +62,11 @@
 
             return obj;
           };
+        }
 
-          // List instance
-          if (plural) {
-            models[name].list = list(feather);
-          }
+        // List instance
+        if (plural) {
+          models[name].list = list(feather);
         }
       });
 

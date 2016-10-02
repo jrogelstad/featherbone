@@ -28,7 +28,7 @@
     statechart = require("statechartjs");
 
   /**
-    A factory that returns a persisting object based on a definition call a
+    A factory that returns a persisting object based on a definition called a
     `feather`. Can be extended by modifying the return object directly.
 
     @param {Object} Default data

@@ -23,15 +23,14 @@
     catalog = require("catalog"),
     model = require("model");
 
-
   /**
-    A factory that returns a persisting object based on a definition call a
+    A factory that returns a persisting object based on a definition called a
     `feather`. Can be extended by modifying the return object directly.
     @param {Object} Default data
     return {Object}
   */
   formModel = function (data) {
-    var that, fn,
+    var that, properties, modules, feathers,
       feather = catalog.getFeather("Form");
 
     // ..........................................................
@@ -40,7 +39,7 @@
 
     that = model(data, feather);
 
-    fn = function () {
+    properties = function () {
       var keys,
         formFeather = that.data.feather(),
         result = [];
@@ -54,7 +53,45 @@
     that.addCalculated({
       name: "properties",
       type: "array",
-      function: fn
+      function: properties
+    });
+
+    feathers = function () {
+      var tables = catalog.data(),
+        keys = Object.keys(tables);
+      keys = keys.filter(function (key) {
+        return !tables[key].isSystem;
+      }).sort();
+
+      return keys.map(function (key) {
+        return {value: key, label: key};
+      });
+    };
+    that.addCalculated({
+      name: "feathers",
+      type: "array",
+      function: feathers
+    });
+
+    modules = function () {
+      var tables = catalog.data(),
+        keys = Object.keys(tables),
+        ary = [];
+      keys.forEach(function (key) {
+        var mod = tables[key].module;
+        if (mod && ary.indexOf(mod) === -1) {
+          ary.push(mod);
+        }
+      });
+
+      return ary.map(function (item) {
+        return {value: item, label: item};
+      });
+    };
+    that.addCalculated({
+      name: "modules",
+      type: "array",
+      function: modules
     });
 
     return that;

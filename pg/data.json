@@ -108,10 +108,12 @@
             "unit": 0
         }, {
             "attr": "module",
+            "dataList": "modules",
             "grid": 0,
             "unit": 1
         }, {
             "attr": "feather",
+            "dataList": "feathers",
             "label": "Table",
             "grid": 0,
             "unit": 1
