@@ -114,6 +114,7 @@
       return saveTitle();
     };
     toggleNew = function (isNew) {
+      vm.buttonSaveAndNew().title("");
       if (isNew) {
         vm.buttonSaveAndNew().label("&New");
         vm.buttonSaveAndNew().onclick(vm.doNew);    
