@@ -79,6 +79,8 @@
       fn.format = options.format;
       fn.isRequired = m.prop(false);
       fn.isReadOnly = m.prop(options.isReadOnly || false);
+      fn.isToMany = m.prop(false);
+      fn.isToOne = m.prop(false);
       d[options.name] = fn;
 
       return this;
