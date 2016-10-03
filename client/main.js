@@ -23,7 +23,7 @@
 
   // Load pre-requisites
   require("extend-string");
-  require("feather");
+  require("table");
   require("form");
 
   // These get pre-registered for

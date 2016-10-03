@@ -1,5 +1,123 @@
 [
     {
+        "name": "Table",
+        "plural": "Tables",
+        "module": "Core",
+        "description": "Table definitions",
+        "authorization": false,
+        "properties": {
+            "name": {
+                "description": "Name",
+                "type": "string",
+                "isUnique": true,
+                "isRequired": true
+            },
+            "description": {
+                "description": "Description",
+                "type": "string",
+                "isRequired": true
+            },
+            "plural": {
+                "description": "Plural",
+                "type": "string",
+                "isRequired": false
+            },
+            "module": {
+                "description": "Module",
+                "type": "string",
+                "isRequired": true
+            },
+            "inherits": {
+                "description": "Inherits",
+                "type": "string",
+                "default": "Object",
+                "isRequired": true
+            },
+            "isSystem": {
+                "description": "System flag",
+                "type": "boolean",
+                "default": false,
+                "isRequired": true
+            },
+            "isChild": {
+                "description": "Child flag",
+                "type": "boolean",
+                "default": false,
+                "isRequired": true
+            }
+        }
+    },
+    {
+        "name": "TableProperty",
+        "plural": "TableProperties",
+        "module": "Core",
+        "description": "Table properties",
+        "authorization": false,
+        "properties": {
+            "parent": {
+                "description": "Parent table",
+                "type": {
+                    "relation": "Table",
+                    "childOf": "properties"
+                }
+            },
+            "name": {
+                "description": "Name",
+                "type": "string",
+                "isUnique": true,
+                "isRequired": true
+            },
+            "description": {
+                "description": "Description",
+                "type": "string",
+                "isRequired": true
+            },
+            "type": {
+                "description": "Type",
+                "type": "object",
+                "isRequired": true
+            },
+            "format": {
+                "description": "Data format",
+                "type": "string",
+                "isRequired": false
+            },
+            "default": {
+                "description": "Default",
+                "type": "string",
+                "isRequired": false
+            },
+            "autonumber": {
+                "description": "Type",
+                "type": "object",
+                "isRequired": false
+            },
+            "isReadOnly": {
+                "description": "Ready only flag",
+                "type": "boolean",
+                "default": false,
+                "isRequired": true
+            },
+            "isRequired": {
+                "description": "Required flag",
+                "type": "boolean",
+                "default": false,
+                "isRequired": true
+            },
+            "isUnique": {
+                "description": "Unique flag",
+                "type": "boolean",
+                "default": false,
+                "isRequired": true
+            },
+            "inheritedFrom": {
+                "description": "Unique flag",
+                "type": "string",
+                "isRequired": false
+            }      
+        }
+    },
+    {
         "name": "Role",
         "plural": "Roles",
         "module": "Core",
