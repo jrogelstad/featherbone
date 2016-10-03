@@ -65,7 +65,7 @@
         }
 
         // List instance
-        if (plural) {
+        if (plural && !models[name].list) {
           models[name].list = list(feather);
         }
       });
