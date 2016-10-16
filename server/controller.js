@@ -624,6 +624,11 @@
             value = data[key];
             col = key.toSnakeCase();
 
+            // Handle objects whose values are actually strings
+            if (prop.type === "object" && typeof value === "string") {
+              value = '"' + value + '"';
+            }
+
             // Handle autonumber
             if (prop.autonumber && (value === undefined || prop.isReadOnly)) {
               obj.client.query("SELECT nextval($1) AS seq",

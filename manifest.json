@@ -7,16 +7,22 @@
             "path": "pg/tables.js"
         },
         {
+            "type": "module",
+            "path": "pg/module.js"
+        },
+        {
+            "type": "controller",
+            "name": "Table",
+            "path": "pg/controllers.js"
+        },
+        {
             "type": "feather",
-            "path": "pg/feathers.json"
+            "path": "pg/feathers.json",
+            "isSystem": true
         },
         {
             "type": "execute",
             "path": "pg/populate.js"
-        },
-        {
-            "type": "module",
-            "path": "pg/module.js"
         },
         {
             "type": "workbook",

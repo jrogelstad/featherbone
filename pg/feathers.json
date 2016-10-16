@@ -27,6 +27,10 @@
                 "type": "string",
                 "isRequired": true
             },
+            "authorization": {
+                "description": "Module",
+                "type": "object"
+            },
             "inherits": {
                 "description": "Inherits",
                 "type": "string",
@@ -64,7 +68,6 @@
             "name": {
                 "description": "Name",
                 "type": "string",
-                "isUnique": true,
                 "isRequired": true
             },
             "description": {
@@ -80,6 +83,26 @@
             "format": {
                 "description": "Data format",
                 "type": "string",
+                "isRequired": false
+            },
+            "scale": {
+                "description": "Numeric scale",
+                "type": "number",
+                "isRequired": false
+            },
+            "precision": {
+                "description": "Numeric precision",
+                "type": "number",
+                "isRequired": false
+            },
+            "min": {
+                "description": "Numeric minimum",
+                "type": "number",
+                "isRequired": false
+            },
+            "max": {
+                "description": "Numeric maximum",
+                "type": "number",
                 "isRequired": false
             },
             "default": {
@@ -111,7 +134,7 @@
                 "isRequired": true
             },
             "inheritedFrom": {
-                "description": "Unique flag",
+                "description": "Inherited source table",
                 "type": "string",
                 "isRequired": false
             }      

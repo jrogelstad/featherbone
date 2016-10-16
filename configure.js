@@ -143,7 +143,7 @@
         saveRoute(file.name || name, module, content, version);
         break;
       case "feather":
-        saveFeathers(JSON.parse(content));
+        saveFeathers(JSON.parse(content), file.isSystem);
         break;
       case "batch":
         runBatch(JSON.parse(content));
@@ -253,30 +253,56 @@
     });
   };
 
-  saveFeathers = function (feathers) {
-    var callback, payload;
+  saveFeathers = function (feathers, isSystem) {
+    var callback, payload,
+      data = [];
 
-    callback = function (err) {
-      if (err) {
-        rollback();
-        return;
-      }
+    // System feathers don't get to be tables
+    if (isSystem) {
+      callback = function (err) {
+        if (err) {
+          rollback();
+          return;
+        }
 
-      processFile();
-    };
+        processFile();
+      };
 
-    payload = {
-      method: "PUT",
-      name: "saveFeather",
-      user: user,
-      client: client,
-      callback: callback,
-      data: {
-        specs: feathers
-      }
-    };
+      payload = {
+        method: "PUT",
+        name: "saveFeather",
+        user: user,
+        client: client,
+        callback: callback,
+        data: {
+          specs: feathers
+        }
+      };
 
-    datasource.request(payload);
+      datasource.request(payload);
+      return;
+    }
+
+    // Map feather structure to table structure
+    feathers.forEach(function (feather) {
+      var keys = Object.keys(feather.properties || {}),
+        props = feather.properties;
+
+      feather.properties = keys.map(function (key) {
+        var prop = props[key];
+        prop.name = key;
+        return prop;
+      });
+
+      data.push({
+        name: "Table",
+        method: "POST",
+        id: feather.name,
+        data: feather
+      });
+    });
+
+    runBatch(data);
   };
 
   saveWorkbooks = function (workbooks) {
