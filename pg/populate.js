@@ -80,7 +80,7 @@
     };
 
     grantEveryoneGlobal = function (err) {
-      var req, reqRole, reqLog, reqForm, reqWidget;
+      var req, reqRole, reqLog, reqForm, reqWidget, reqTable;
 
       req = function () {
         return {
@@ -116,6 +116,9 @@
       reqForm = req();
       reqForm.data.id = "form";
       datasource.request(reqForm);
+      reqTable = req();
+      reqTable.data.id = "table";
+      datasource.request(reqTable);
       reqWidget = req();
       reqWidget.data.id = "relation_widget";
       datasource.request(reqWidget);
@@ -128,7 +131,7 @@
       }
 
       c += 1;
-      if (c < 4) { return; }
+      if (c < 5) { return; }
 
       obj.callback(null, true);
     };
