@@ -625,7 +625,8 @@
             col = key.toSnakeCase();
 
             // Handle objects whose values are actually strings
-            if (prop.type === "object" && typeof value === "string") {
+            if (prop.type === "object" && typeof value === "string" &&
+                value.slice(0,1) !== "[") {
               value = '"' + value + '"';
             }
 
@@ -812,7 +813,7 @@
         try {
           if (err) { throw err; }
 
-          // We're geing to return the changes
+          // We're going to return the changes
           result = jsonpatch.compare(obj.data, result);
 
           // Report back result
