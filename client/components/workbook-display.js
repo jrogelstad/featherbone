@@ -286,6 +286,7 @@
     // Create table widget view model
     vm.tableWidget(tableWidget.viewModel({
       config: vm.sheet().list,
+      isEditModeEnabled: vm.sheet().isEditModeEnabled,
       feather: vm.sheet().feather,
       search: vm.searchInput().value,
       ondblclick: vm.modelOpen
@@ -316,6 +317,9 @@
       hotkey: "E",
       icon: "pencil"
     }));
+    if (!vm.tableWidget().isEditModeEnabled()) {
+      vm.buttonEdit().disable();
+    }
 
     vm.buttonHome(button.viewModel({
       onclick: vm.goHome,

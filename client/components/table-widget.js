@@ -75,6 +75,7 @@
         });
       return result || [{attr: "id"}];
     };
+    vm.isEditModeEnabled = m.prop(options.isEditModeEnabled !== false);
     vm.config = m.prop(options.config);
     vm.containerId = m.prop(options.containerId);
     vm.defaultFocus = function (model) {
@@ -373,7 +374,9 @@
       this.state("Mode", function () {
         this.state("View", function () {
           this.event("edit", function () {
-            this.goto("../Edit");
+            if (vm.isEditModeEnabled()) {
+              this.goto("../Edit");
+            }
           });
           this.modelDelete = function () {
             var selection = vm.selection();
