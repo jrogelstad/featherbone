@@ -654,12 +654,35 @@
 
       // Loop through each model property and instantiate a data property
       keys.forEach(function (key) {
-        var prop, func, defaultValue, name, cFeather, cKeys, cArray, relation,
-          toType, scale,
+        var prop, defaultValue, name, cFeather, cKeys, cArray, relation,
+          toType, scale, handleDefault,
           p = props[key],
           type = p.type,
           value = data[key],
           formatter = {};
+
+        handleDefault = function (prop, frmt) {
+          if (!prop.default && !frmt) { return; }
+          frmt = frmt || {};
+          var def;
+
+          // Handle default
+          if (prop.default !== undefined) {
+            def = prop.default;
+          } else if (typeof frmt.default === "function") {
+            def = frmt.default();
+          } else {
+            def = frmt.default;
+          }
+
+          // Handle default that is a function
+          if (typeof def === "string" &&
+              def.match(/\(\)$/)) {
+            def = f[def.replace(/\(\)$/, "")];
+          }
+
+          return def;
+        };
 
         // Create properties for relations
         if (typeof p.type === "object") {
@@ -700,6 +723,12 @@
 
               return result;
             };
+
+            defaultValue = handleDefault(p);
+            if (value === undefined) {
+              value = typeof defaultValue === "function" ?
+                defaultValue() : defaultValue;
+            }
 
             // Create property
             prop = f.prop(value, formatter);
@@ -750,23 +779,11 @@
             };
           }
 
-          // Handle default
-          if (p.default !== undefined) {
-            defaultValue = p.default;
-          } else if (typeof formatter.default === "function") {
-            defaultValue = formatter.default();
-          } else {
-            defaultValue = formatter.default;
-          }
-
-          // Handle default that is a function
-          if (typeof defaultValue === "string" &&
-              defaultValue.match(/\(\)$/)) {
-            func = f[defaultValue.replace(/\(\)$/, "")];
-          }
+          defaultValue = handleDefault(p, formatter);
 
           if (value === undefined) {
-            value = func ? func() : defaultValue;
+            value = typeof defaultValue === "function" ?
+              defaultValue() : defaultValue;
           }
 
           // Create property
@@ -778,7 +795,7 @@
         prop.description = props[key].description;
         prop.type = props[key].type;
         prop.format = props[key].format;
-        prop.default = func || defaultValue;
+        prop.default = defaultValue;
         prop.isRequired(props[key].isRequired);
         prop.isReadOnly(props[key].isReadOnly);
         prop.isCalculated = false;
