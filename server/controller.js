@@ -2950,7 +2950,7 @@
         name = obj.data.name,
         data = obj.data.data,
         etag = f.createId(),
-        params = [name, data];
+        params = [name, data, etag, obj.client.currentUser];
 
       done = function (err) {
         if (err) {
@@ -2972,27 +2972,28 @@
           return;
         }
 
-        params.push(etag);
-
         // If found existing, update
         if (resp.rows.length) {
           row = resp.rows[0];
 
-          if (settings[name].etag !== row.etag) {
+          if (settings[name] && settings[name].etag !== row.etag) {
             obj.callback('Settings for "' + name +
               '" changed by another user. Save failed.');
             return;
           }
 
-          sql = "UPDATE \"$settings\" SET data = $2, etag = $3 " +
+          sql = "UPDATE \"$settings\" SET " +
+            " data = $2, etag = $3, " +
+            " updated = now(), updated_by = $4 " +
             "WHERE name = $1;";
           obj.client.query(sql, params, done);
           return;
         }
 
         // otherwise create new
-        sql = "INSERT INTO \"$settings\" (name, data, etag) " +
-          "VALUES ($1, $2, $3);";
+        sql = "INSERT INTO \"$settings\" (name, data, etag, id, " +
+          " created, created_by, updated, updated_by, is_deleted) " +
+          "VALUES ($1, $2, $3, $1, now(), $4, now(), $4, false);";
 
         obj.client.query(sql, params, done);
       });

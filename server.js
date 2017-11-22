@@ -23,8 +23,8 @@
   var catalog, init, resolveName, getCatalog, getControllers, getRoutes,
     getCurrentUser,doGetSettings, doGetFeather, doGetModules, doRequest,
     doGetMethod, doSaveFeather, doDeleteFeather, registerDataRoutes,
-    doDeleteMethod, doDeleteWorkbook, doGetWorkbooks, doSaveWorkbook,
-    doSaveMethod, doGetWorkbook,
+    doDeleteMethod, doDeleteWorkbook, doGetWorkbooks, doSaveSettings,
+    doSaveWorkbook, doSaveMethod, doGetWorkbook,
     datasource = require("./server/datasource"),
     express = require("express"),
     bodyParser = require("body-parser"),
@@ -292,6 +292,37 @@
     datasource.request(payload);
   };
 
+  doSaveSettings = function (req, res) {
+    var payload, callback,
+      data = {};
+
+    data.name = req.params.name;
+    data.data = req.body;
+
+    callback = function (err, resp) {
+      if (err) {
+        res.status(err.statusCode).json(err.message);
+        return;
+      }
+
+      getCatalog(function () {
+        registerDataRoutes();
+        res.json(resp);
+      });
+    };
+
+    payload = {
+      method: "PUT",
+      name: "saveSettings",
+      user: getCurrentUser(),
+      callback: callback,
+      data: data
+    };
+
+    console.log(JSON.stringify(payload, null, 2));
+    datasource.request(payload);
+  };
+
   doDeleteFeather = function (req, res) {
     doDeleteMethod("deleteFeather", req, res);
   };
@@ -385,7 +416,8 @@
     moduleRouter.route("/")
       .get(doGetModules);
     settingsRouter.route("/:name")
-      .get(doGetSettings);
+      .get(doGetSettings)
+      .put(doSaveSettings);
     workbookRouter.route("/")
       .get(doGetWorkbooks);
     workbookRouter.route("/:name")
