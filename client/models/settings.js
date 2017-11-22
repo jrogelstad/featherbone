@@ -20,18 +20,19 @@
   "use strict";
 
   var settings,
+    store = {},
     f = require("feather-core"),
     m = require("mithril"),
     dataSource = require("datasource"),
     statechart = require("statechartjs");
 
   settings = function (name) {
-    var state, doFetch, doPost,
-      that = {};
+    var that, state, doFetch, doPost;
 
     if (!name) { throw "Settings name is required"; }
-
-    that.data = f.prop({});
+    store[name] = store[name] || {};
+    that = store[name];
+    that.data = that.data || f.prop({});
 
     // Send event to fetch data based on the current id from the server.
     that.fetch = function (merge) {
@@ -63,8 +64,7 @@
     };
 
     doPost = function () {
-      // TODO: Finish this
-      console.error("Save settings not implemented yet.");
+      // TODO
     };
 
     state = statechart.define(function () {

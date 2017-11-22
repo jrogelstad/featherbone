@@ -103,6 +103,10 @@
       return store;
     };
 
+    that.settings = function () {
+      return settings;
+    }
+
     return that;
   }());
 
