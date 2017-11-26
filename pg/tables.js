@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2016  John Rogelstad
+    Copyright (C) 2018  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -287,12 +287,14 @@
         if (!exists) {
           sql = "CREATE TABLE \"$settings\" (" +
             "name text," +
+            "definition json," +
             "data json," +
             "etag text," +
             "CONSTRAINT settings_pkey PRIMARY KEY (_pk), " +
             "CONSTRAINT settings_id_key UNIQUE (id)) INHERITS (object);" +
             "COMMENT ON TABLE \"$settings\" IS 'Internal table for storing system settings';" +
             "COMMENT ON COLUMN \"$settings\".name IS 'Name of settings';" +
+            "COMMENT ON COLUMN \"$settings\".definition IS 'Attribute types definition';" +
             "COMMENT ON COLUMN \"$settings\".data IS 'Object containing settings';";
           obj.client.query(sql, function (err) {
             if (err) {
@@ -300,7 +302,7 @@
               return;
             }
 
-            sql = "INSERT INTO \"$settings\" VALUES (nextval('object__pk_seq'), $1, now(), CURRENT_USER, now(), CURRENT_USER, false, $2, $3);";
+            sql = "INSERT INTO \"$settings\" VALUES (nextval('object__pk_seq'), $1, now(), CURRENT_USER, now(), CURRENT_USER, false, $2, NULL, $3);";
             params = [
               "catalog",
               "catalog",

@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2016  John Rogelstad
+    Copyright (C) 2018  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -151,6 +151,9 @@
       case "workbook":
         saveWorkbooks(JSON.parse(content));
         break;
+      case "settings":
+        defineSettings(JSON.parse(content));
+        break;
       default:
         console.error("Unknown type.");
         rollback();
@@ -180,6 +183,29 @@
         n += 1;
       });
       processFile();
+    });
+  };
+
+  defineSettings = function (settings) {
+    var sql = "SELECT * FROM \"$settings\" WHERE name='" + settings.name + "';",
+      params = [settings.name, settings, user];
+
+    client.query(sql, function (err, result) {
+      if (err) {
+        rollback();
+        console.error(err);
+        return;
+      }
+      if (result.rows.length) {
+        sql = "UPDATE \"$settings\" SET " +
+          "definition=$2 WHERE name=$1;";
+      } else {
+        sql = "INSERT INTO \"$settings\" (name, definition, id, " +
+          " created, created_by, updated, updated_by, is_deleted) " +
+          "VALUES ($1, $2, $1, now(), $3, now(), $3, false);";
+      }
+
+      client.query(sql, params, processFile);
     });
   };
 
