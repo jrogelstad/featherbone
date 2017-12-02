@@ -140,10 +140,10 @@
           }
           result = m("div", {
             config: function () {
-              var doc;
+              var e;
               if (focusAttr === key && vm.isFirstLoad()) {
-                doc = document.getElementById(key).focus();
-                if (doc) { doc.focus(); }
+                e = document.getElementById(key);
+                if (e) { e.focus(); }
                 vm.isFirstLoad(false);
               }
             },
