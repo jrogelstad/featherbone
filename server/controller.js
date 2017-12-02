@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2016  John Rogelstad
+    Copyright (C) 2018  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -1730,11 +1730,11 @@
     },
 
     /**
-      Return settings.
+      Return settings data.
 
       @param {Object} Request payload
       @param {Object} [payload.data] Data
-      @param {Object} [payload.data.name] Settings name
+      @param {String} [payload.data.name] Settings name
       @param {Object} [payload.client] Database client
       @param {Function} [payload.callback] callback
       @return {Object}
@@ -1795,6 +1795,30 @@
 
       // Request the settings from the database
       callback(null, false);
+    },
+
+    /**
+      Return settings definition.
+
+      @param {Object} Request payload
+      @param {Object} [payload.data] Data
+      @param {String} [payload.data.name] Settings name
+      @param {Object} [payload.client] Database client
+      @param {Function} [payload.callback] callback
+      @return {Object}
+    */
+    getSettingsDefinition: function (obj) {
+      var sql = "SELECT definition FROM \"$settings\" WHERE name = $1";
+
+      obj.client.query(sql, [obj.data.name], function (err, resp) {
+        if (err) {
+          obj.callback(err);
+          return;
+        }
+
+        // Send back the definition if any were found, otherwise "false"
+        obj.callback(null, resp.rows.length ? resp.rows[0] : false);
+      });
     },
 
     getWorkbook: function (obj) {

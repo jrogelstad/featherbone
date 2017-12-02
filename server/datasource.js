@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2016  John Rogelstad
+    Copyright (C) 2018  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -375,6 +375,8 @@
   that.registerFunction("GET", "getModules", controller.getModules);
   that.registerFunction("GET", "getRoutes", controller.getRoutes);
   that.registerFunction("GET", "getSettings", controller.getSettings);
+  that.registerFunction("GET", "getSettingsDefinition", 
+    controller.getSettingsDefinition);
   that.registerFunction("GET", "getWorkbook", controller.getWorkbook);
   that.registerFunction("GET", "getWorkbooks", controller.getWorkbooks);
   that.registerFunction("GET", "isAuthorized", controller.isAuthorized);

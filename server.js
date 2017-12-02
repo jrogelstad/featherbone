@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2016  John Rogelstad
+    Copyright (C) 2018  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -24,7 +24,7 @@
     getCurrentUser,doGetSettings, doGetFeather, doGetModules, doRequest,
     doGetMethod, doSaveFeather, doDeleteFeather, registerDataRoutes,
     doDeleteMethod, doDeleteWorkbook, doGetWorkbooks, doSaveSettings,
-    doSaveWorkbook, doSaveMethod, doGetWorkbook,
+    doSaveWorkbook, doSaveMethod, doGetWorkbook, doGetSettingsDefinition,
     datasource = require("./server/datasource"),
     express = require("express"),
     bodyParser = require("body-parser"),
@@ -37,6 +37,7 @@
     featherRouter = express.Router(),
     moduleRouter = express.Router(),
     settingsRouter = express.Router(),
+    settingsDefinitionRouter = express.Router(),
     workbookRouter = express.Router();
 
   // ..........................................................
@@ -212,6 +213,10 @@
 
   doGetSettings = function (req, res) {
     doGetMethod("getSettings", req, res);
+  };
+
+  doGetSettingsDefinition = function (req, res) {
+    doGetMethod("getSettingsDefinition", req, res);
   };
 
   doGetWorkbook = function (req, res) {
@@ -418,6 +423,8 @@
     settingsRouter.route("/:name")
       .get(doGetSettings)
       .put(doSaveSettings);
+    settingsDefinitionRouter.route("/:name")
+      .get(doGetSettingsDefinition);
     workbookRouter.route("/")
       .get(doGetWorkbooks);
     workbookRouter.route("/:name")
@@ -432,6 +439,7 @@
     app.use('/module', moduleRouter);
     app.use('/modules', moduleRouter);
     app.use('/settings', settingsRouter);
+    app.use('/settings/definition', settingsDefinitionRouter);
     app.use('/workbook', workbookRouter);
     app.use('/workbooks', workbookRouter);
 
