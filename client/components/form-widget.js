@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2016  John Rogelstad
+    Copyright (C) 2018  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -140,8 +140,10 @@
           }
           result = m("div", {
             config: function () {
+              var doc;
               if (focusAttr === key && vm.isFirstLoad()) {
-                document.getElementById(key).focus();
+                doc = document.getElementById(key).focus();
+                if (doc) { doc.focus(); }
                 vm.isFirstLoad(false);
               }
             },
