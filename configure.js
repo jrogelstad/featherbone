@@ -188,7 +188,7 @@
 
   defineSettings = function (settings) {
     var sql = "SELECT * FROM \"$settings\" WHERE name='" + settings.name + "';",
-      params = [settings.name, settings, user];
+      params = [settings.name, settings];
 
     client.query(sql, function (err, result) {
       if (err) {
@@ -200,6 +200,7 @@
         sql = "UPDATE \"$settings\" SET " +
           "definition=$2 WHERE name=$1;";
       } else {
+        params.push(user);
         sql = "INSERT INTO \"$settings\" (name, definition, id, " +
           " created, created_by, updated, updated_by, is_deleted) " +
           "VALUES ($1, $2, $1, now(), $3, now(), $3, false);";
