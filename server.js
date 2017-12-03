@@ -423,7 +423,7 @@
     settingsRouter.route("/:name")
       .get(doGetSettings)
       .put(doSaveSettings);
-    settingsDefinitionRouter.route("/:name")
+    settingsDefinitionRouter.route("/")
       .get(doGetSettingsDefinition);
     workbookRouter.route("/")
       .get(doGetWorkbooks);
@@ -439,7 +439,7 @@
     app.use('/module', moduleRouter);
     app.use('/modules', moduleRouter);
     app.use('/settings', settingsRouter);
-    app.use('/settings/definition', settingsDefinitionRouter);
+    app.use('/settings-definition', settingsDefinitionRouter);
     app.use('/workbook', workbookRouter);
     app.use('/workbooks', workbookRouter);
 

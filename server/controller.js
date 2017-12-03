@@ -1801,23 +1801,25 @@
       Return settings definition.
 
       @param {Object} Request payload
-      @param {Object} [payload.data] Data
-      @param {String} [payload.data.name] Settings name
       @param {Object} [payload.client] Database client
       @param {Function} [payload.callback] callback
       @return {Object}
     */
     getSettingsDefinition: function (obj) {
-      var sql = "SELECT definition FROM \"$settings\" WHERE name = $1";
+      var sql = "SELECT definition FROM \"$settings\" WHERE definition is NOT NULL",
+        result;
 
-      obj.client.query(sql, [obj.data.name], function (err, resp) {
+      obj.client.query(sql, function (err, resp) {
         if (err) {
           obj.callback(err);
           return;
         }
 
-        // Send back the definition if any were found, otherwise "false"
-        obj.callback(null, resp.rows.length ? resp.rows[0] : false);
+        result = resp.rows.map(function (row) {
+          return row.definition;
+        });
+
+        obj.callback(null, result);
       });
     },
 
