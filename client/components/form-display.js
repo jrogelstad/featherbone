@@ -58,7 +58,7 @@
       });
     };
     vm.formWidget = m.prop(formWidget.viewModel({
-      feather: options.feather,
+      model: options.feather.toCamelCase(),
       id: options.id,
       config: options.config,
       outsideElementIds: ["toolbar"]

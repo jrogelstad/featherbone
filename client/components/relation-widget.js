@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2016  John Rogelstad
+    Copyright (C) 2018  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -181,7 +181,7 @@
 
     // Create form dialog
     vm.formDialog(formDialog.viewModel({
-      feather: type.relation,
+      model: type.relation.toCamelCase(),
       config: vm.formConfig(),
       onOk: function (model) {
         modelValue(model);

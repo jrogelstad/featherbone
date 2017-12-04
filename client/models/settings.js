@@ -21,18 +21,49 @@
 
   var settings,
     store = {},
-    f = require("feather-core"),
+    f = require("component-core"),
     m = require("mithril"),
     dataSource = require("datasource"),
     statechart = require("statechartjs");
 
-  settings = function (name) {
-    var that, state, doFetch, doPost;
+  /*
+    Model for handling settings.
+
+    @param {String} Name
+    @param {Object} [definition] Definition
+    @param {Object} [definition.properties] Properties of definition
+    @return {Object}
+  */
+  settings = function (name, definition) {
+    var that, state, keys, doFetch, doPost,
+      props = definition.properties;
 
     if (!name) { throw "Settings name is required"; }
     store[name] = store[name] || {};
     that = store[name];
-    that.data = that.data || f.prop({});
+    that.data = store[name].data || {};
+
+    // If we have a formal definition, then set up each property as a mithril property
+    keys = Object.keys(props);
+    keys.forEach(function (key) {
+      var d,
+        prop = f.prop();
+        if (typeof props[key].type === "object") {
+          d = {data: {id: f.prop()}};
+          props[key].type.properties.forEach(function (p) {
+            d.data[p] = f.prop();
+          });
+          prop(d);
+        }
+        prop.key = key; // Use of 'name' property is not allowed here
+        prop.description = props[key].description;
+        prop.type = props[key].type;
+        prop.format = props[key].format;
+        prop.isRequired(props[key].isRequired);
+        prop.isReadOnly(props[key].isReadOnly);
+        prop.isCalculated = false;
+        that.data[key] = prop;
+    });
 
     // Send event to fetch data based on the current id from the server.
     that.fetch = function (merge) {
@@ -41,20 +72,34 @@
       return deferred.promise;
     };
 
+    that.id = function () {
+      return name;
+    };
+
+    that.canSave = function () {
+      return false; // TODO: Add functional authorization
+    };
+
+    that.lastError = function () {
+      return null; // TODO: Implement
+    };
+
     doFetch = function (context) {
       var result = m.prop(),
         payload = {method: "GET", path: "/settings/" + name},
         callback = function () {
-          var merge,
-            data = result() || {};
-          if (context.merge) {
-            merge = that.data();
-            Object.keys(data).forEach(function (key) {
-              merge[key] = data[key];
-            });
-            data = merge;
-          }
-          that.data(data);
+          var data = result() || {};
+
+          Object.keys(props).forEach(function (key) {
+            if (typeof props[key].type === "object") {
+              props[key].type.properties.forEach(function (prop) {
+                that.data[key]().data[prop](data[key][prop]);
+              });
+              return;
+            }
+            that.data[key](data[key]);
+          });
+
           state.send('fetched');
           context.deferred.resolve(that.data);
         };
@@ -63,9 +108,8 @@
       dataSource.request(payload).then(result).then(callback);
     };
 
-    doPost = function () {
-      // TODO
-    };
+
+    doPost = function () {}; // TODO
 
     state = statechart.define(function () {
       this.state("Ready", function () {

@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2016  John Rogelstad
+    Copyright (C) 2018  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -19,15 +19,89 @@
 (function () {
   "use strict";
 
-  var store = {},
+  var settings, store = {},
+    f = require("feather-core"),
     m = require("mithril"),
-    settings = require("settings");
+    dataSource = require("datasource"),
+    statechart = require("statechartjs");
 
   store.data = m.prop({});
 
+  settings = function () {
+    var state, doFetch,
+      that = {};
+
+    that.data = f.prop({});
+
+    // Send event to fetch feather data from the server.
+    that.fetch = function (merge) {
+      var deferred = m.deferred();
+      state.send("fetch", {deferred: deferred, merge: merge});
+      return deferred.promise;
+    };
+
+    doFetch = function (context) {
+      var result = m.prop(),
+        payload = {method: "GET", path: "/settings/catalog"},
+        callback = function () {
+          var merge,
+            data = result() || {};
+          if (context.merge) {
+            merge = that.data();
+            Object.keys(data).forEach(function (key) {
+              merge[key] = data[key];
+            });
+            data = merge;
+          }
+          that.data(data);
+          state.send('fetched');
+          context.deferred.resolve(that.data);
+        };
+
+      state.goto("/Busy");
+      dataSource.request(payload).then(result).then(callback);
+    };
+
+    state = statechart.define(function () {
+      this.state("Ready", function () {
+        this.event("fetch", function (context) {
+          this.goto("/Busy", {
+            context: context
+          });
+        });
+        this.state("New");
+        this.state("Fetched", function () {
+          this.state("Clean");
+        });
+      });
+
+      this.state("Busy", function () {
+        this.state("Fetching", function () {
+          this.enter(doFetch);
+        });
+        this.event("fetched", function () {
+          this.goto("/Ready/Fetched");
+        });
+        this.event("error", function () {
+          this.goto("/Error");
+        });
+      });
+
+      this.state("Error", function () {
+        // Prevent exiting from this state
+        this.canExit = function () { return false; };
+      });
+    });
+
+    // Initialize
+    state.goto();
+
+    return that;
+  };
+
   // Invoke catalog settings as an object
   module.exports = (function () {
-    var that = settings("catalog");
+    var that = settings();
 
     /**
       Return a model specification (feather) including inherited properties.
@@ -102,10 +176,6 @@
     that.store = function () {
       return store;
     };
-
-    that.settings = function () {
-      return settings;
-    }
 
     return that;
   }());

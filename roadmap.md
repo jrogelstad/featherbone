@@ -12,19 +12,19 @@ Short term
 * Import\export modules (JSON)
 * Authentication support
 * Import\export Excel
-* Lazy loading lists
 * Generic support for transactions
+* Basic modules (cardinal)
+  - Ledger
 
 Long term
 
 * Push notifications of updates
 * Report writer
 * Drag 'n Drop form editor
-* Basic modules
+* Basic modules (cardinal)
   - Contacts
   - Customers
   - Vendors
-  - Ledger
   - Item master
   - Sales Order
   - Inventory

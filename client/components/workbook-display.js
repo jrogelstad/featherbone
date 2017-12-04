@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2016  John Rogelstad
+    Copyright (C) 2018  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -28,6 +28,7 @@
     dialog = require("dialog"),
     filterDialog = require("filter-dialog"),
     searchInput = require("search-input"),
+    settingsDialog = require("settings-dialog"),
     sortDialog = require("sort-dialog"),
     sheetConfigureDialog = require("sheet-configure-dialog"),
     tableWidget = require("table-widget");
@@ -194,6 +195,7 @@
       m.route(route);
     };
     vm.searchInput = m.prop();
+    vm.settingsDialog = m.prop();
     vm.share = function () {
       var doShare,
         confirmDialog = vm.confirmDialog();
@@ -250,6 +252,11 @@
       }
     };
     vm.showMenu = m.prop(false);
+    vm.showSettingsDialog = function () {
+      if (options.settings) { 
+        vm.settingsDialog().show(); 
+      }
+    };
     vm.showSortDialog = function () {
       if (vm.tableWidget().models().canFilter()) {
         vm.sortDialog().show();
@@ -298,6 +305,12 @@
       list: vm.tableWidget().models(),
       feather: feather
     }));
+
+    if (options.settings) {
+      vm.settingsDialog(settingsDialog.viewModel({
+        model: options.settings
+      }));
+    }
 
     vm.sheetConfigureDialog(sheetConfigureDialog.viewModel({
       parentViewModel: vm,
@@ -531,6 +544,7 @@
           m.component(sortDialog.component({viewModel: vm.filterDialog()})),
           m.component(sheetConfigureDialog.component({viewModel: vm.sheetConfigureDialog()})),
           m.component(dialog.component({viewModel: vm.confirmDialog()})),
+          m.component(settingsDialog.component({viewModel: vm.settingsDialog()})),
           m.component(button.component({viewModel: vm.buttonHome()})),
           m.component(button.component({viewModel: vm.buttonList()})),
           m.component(button.component({viewModel: vm.buttonEdit()})),
@@ -587,7 +601,6 @@
                 id: "nav-subtotal",
                 class: "pure-menu-link pure-menu-disabled",
                 title: "Edit subtotals"
-                //onclick: vm.filterDialog().show
               }, [m("div", {style: {
                 display: "inline",
                 fontWeight: "bold",
@@ -619,7 +632,18 @@
                 onclick: vm.revert
               }, [m("i", {class:"fa fa-reply", style: {
                 marginRight: "4px"
-              }})], "Revert")
+              }})], "Revert"),
+              m("li", {
+                id: "nav-settings",
+                class: options.settings ? "pure-menu-link" : "pure-menu-link pure-menu-disabled",
+                style: {
+                  borderTop: "solid thin lightgrey"
+                },
+                title: "Change module settings",
+                onclick: vm.showSettingsDialog
+              }, [m("i", {class:"fa fa-wrench", style: {
+                marginRight: "4px"
+              }})], "Settings")
             ])
           ])     
         ]),

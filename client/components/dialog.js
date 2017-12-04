@@ -85,7 +85,7 @@
     vm.state = function () {
       return state;
     };
-    vm.style = m.prop({width: "350px"});
+    vm.style = m.prop({width: "450px"});
 
     // ..........................................................
     // PRIVATE
@@ -98,7 +98,7 @@
           this.enter(function () {
             var  id = vm.ids().dialog,
               dlg = document.getElementById(id);
-            if (dlg) { dlg.close(); }
+            if (dlg && dlg.open) { dlg.close(); }
           });
           this.event("show", function () {
             this.goto("../Showing");

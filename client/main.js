@@ -37,6 +37,7 @@
   var m = require("mithril"),
     f = require("component-core"),
     model = require("model"),
+    settings = require("settings"),
     catalog = require("catalog"),
     dataSource = require("datasource"),
     list = require("list"),
@@ -68,6 +69,35 @@
         if (plural && !models[name].list) {
           models[name].list = list(feather);
         }
+      });
+
+      return true;
+    });
+  });
+
+  // Load settings definition
+  f.init(function () {
+    var definitions = m.prop(),
+      payload = {method: "GET", path: "/settings-definition"},
+      models = catalog.register("models");
+
+    return dataSource.request(payload).then(definitions).then(function () {
+
+      // Loop through each definition and build a settings model function
+      definitions().forEach(function (definition) {
+        var name = definition.name;
+        // Implement generic function to object from model
+        if (typeof models[name] !== "function") {
+          // Model instance
+          models[name] = function () {
+            return settings(name, definition);
+          };
+        } 
+
+        // Allow retrieving of definition directly from object
+        models[name].definition = function () {
+          return definition;
+        };       
       });
 
       return true;

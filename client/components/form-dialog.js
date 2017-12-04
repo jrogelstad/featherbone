@@ -37,7 +37,7 @@
     // PUBLIC
     //
 
-    options.title = options.title || options.feather.toName();
+    options.title = options.title || options.model.toName();
     options.icon = options.icon || "file-text";
     options.onOk = function () {
       var model = vm.formWidget().model();
@@ -77,7 +77,7 @@
     substate.enter(function () {
       // Create dalog view models
       vm.formWidget(formWidget.viewModel({
-        feather: options.feather,
+        model: options.model,
         config: options.config,
         id: vm.modelId(),
         outsideElementIds: [

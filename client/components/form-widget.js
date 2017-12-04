@@ -29,7 +29,7 @@
   formWidget.viewModel = function (options) {
     var model,
       vm = {},
-      name = options.feather.toCamelCase(),
+      name = options.model,
       models = catalog.store().models();
 
     vm.config = m.prop(options.config);
@@ -47,7 +47,7 @@
     model = vm.model(models[name]());
     if (options.id) {
       model.id(options.id);
-      vm.model().fetch();
+      model.fetch();
     }
 
     return vm;

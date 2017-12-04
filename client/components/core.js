@@ -16,7 +16,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-/*global window, m */
 (function () {
   "use strict";
 
@@ -199,7 +198,8 @@
         name: workbook.name,
         feather: feather,
         config: config,
-        id: item.id
+        id: item.id,
+        settings: workbook.launchConfig.settings
       });
 
       app[formname + "FormDisplay"] = components.formDisplay({
