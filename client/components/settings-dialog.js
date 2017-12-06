@@ -32,9 +32,7 @@
     options = options || {};
     var vm, form = {},
       models = catalog.store().models(),
-      definition = models[options.model].definition(),
-      store = {};
-
+      definition = models[options.model].definition();
 
     // Build form from settings definition
     form.name = definition.name;
@@ -48,9 +46,6 @@
       });
     });
 
-    options.onOk = function () {
-      // Save
-    };
     options.title = options.title || "Settings";
     options.icon = options.icon || "wrench";
     options.model = options.model;
@@ -62,12 +57,11 @@
     //
 
     vm = formDialog.viewModel(options);
-    vm.model = function () { return store; };
+    vm.style().width = "600px";
 
     // ..........................................................
     // PRIVATE
     //
-
 
     return vm;
   };

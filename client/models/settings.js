@@ -35,35 +35,51 @@
     @return {Object}
   */
   settings = function (name, definition) {
-    var that, state, keys, doFetch, doPost,
+    var that, state, init, doFetch, doPost, 
+      lastError, doError, validator, d,
+      errHandlers = [],
+      stateMap = {},
+      validators = [],
       props = definition.properties;
 
     if (!name) { throw "Settings name is required"; }
     store[name] = store[name] || {};
     that = store[name];
     that.data = store[name].data || {};
+    d = that.data;
 
-    // If we have a formal definition, then set up each property as a mithril property
-    keys = Object.keys(props);
-    keys.forEach(function (key) {
-      var d,
-        prop = f.prop();
-        if (typeof props[key].type === "object") {
-          d = {data: {id: f.prop()}};
-          props[key].type.properties.forEach(function (p) {
-            d.data[p] = f.prop();
-          });
-          prop(d);
-        }
-        prop.key = key; // Use of 'name' property is not allowed here
-        prop.description = props[key].description;
-        prop.type = props[key].type;
-        prop.format = props[key].format;
-        prop.isRequired(props[key].isRequired);
-        prop.isReadOnly(props[key].isReadOnly);
-        prop.isCalculated = false;
-        that.data[key] = prop;
-    });
+    // If we have a formal definition, then set up each property as
+    // a featherbone property
+    init = function () {
+      var keys = Object.keys(props);
+
+      keys.forEach(function (key) {
+        var rel,
+          prop = f.prop();
+          if (typeof props[key].type === "object") {
+            rel = {data: {id: f.prop()}};
+            props[key].type.properties.forEach(function (p) {
+              rel.data[p] = f.prop();
+            });
+            prop(rel);
+          }
+          prop.key = key; // Use of 'name' property is not allowed here
+          prop.description = props[key].description;
+          prop.type = props[key].type;
+          prop.format = props[key].format;
+          prop.isRequired(props[key].isRequired);
+          prop.isReadOnly(props[key].isReadOnly);
+          prop.isCalculated = false;
+
+          // Add state to map for event helper functions
+          stateMap[key] = prop.state();
+
+          // Report property changed event up to model
+          that.onChanged(key, function () { state.send("changed"); });
+
+          that.data[key] = prop;
+      });
+    };
 
     // Send event to fetch data based on the current id from the server.
     that.fetch = function (merge) {
@@ -77,11 +93,63 @@
     };
 
     that.canSave = function () {
-      return false; // TODO: Add functional authorization
+      return state.resolve(state.current()[0]).canSave();
     };
 
+    /*
+      Returns whether the object is in a valid state to save.
+      @return {Boolean}
+    */
+    that.isValid = function () {
+      try {
+        validators.forEach(function (validator) {
+          validator();
+        });
+      } catch (e) {
+        doError(e);
+        return false;
+      }
+
+      lastError = "";
+      return true;
+    };
+
+    /*
+      Return the last error raised.
+      @return {String}
+    */
     that.lastError = function () {
-      return null; // TODO: Implement
+      return lastError;
+    };
+
+    that.onChange = function (name, callback) {
+      var func = function () { callback(this); };
+
+      stateMap[name].substateMap.Changing.enter(func.bind(d[name]));
+
+      return this;
+    };
+
+    that.onChanged = function (name, callback) {
+      var func = function () { callback(this); };
+
+      stateMap[name].substateMap.Changing.exit(func.bind(d[name]));
+
+      return this;
+    };
+
+    that.onValidate = function (callback) {
+      validators.push(callback);
+
+      return this;
+    };
+
+    doError = function (err) {
+      lastError = err;
+      errHandlers.forEach(function (handler) {
+        handler(err);
+      });
+      state.send("error");
     };
 
     doFetch = function (context) {
@@ -119,12 +187,16 @@
           });
         });
 
-        this.state("New");
+        this.state("New", function () {
+          this.canSave = m.prop(false);
+        });
+
         this.state("Fetched", function () {
           this.state("Clean", function () {
             this.event("changed", function () {
               this.goto("../Dirty");
             });
+            this.canSave = m.prop(false);
           });
 
           this.state("Dirty", function () {
@@ -133,6 +205,7 @@
                 context: context
               });
             });
+            this.canSave = that.isValid;
           });
         });
       });
@@ -140,9 +213,11 @@
       this.state("Busy", function () {
         this.state("Fetching", function () {
           this.enter(doFetch);
+          this.canSave = m.prop(false);
         });
         this.state("Saving", function () {
           this.enter(doPost);
+          this.canSave = m.prop(false);
         });
 
         this.event("fetched", function () {
@@ -156,18 +231,32 @@
       this.state("Error", function () {
         // Prevent exiting from this state
         this.canExit = function () { return false; };
+        this.canSave = m.prop(false);
       });
     });
 
-    // Expose specific state capabilities users can see and manipulate
-    that.state = {
-      send: function (str) {
-        return state.send(str);
-      },
-      current: function () {
-        return state.current();
+    // Add standard validator that checks required properties
+    validator = function () {
+      var pname,
+        keys = Object.keys(d),
+        requiredIsNull = function (key) {
+          var prop = d[key];
+          if (prop.isRequired() && (prop() === null ||
+            (prop.type === "string" && !prop()))) {
+            pname = key;
+            return true;
+          }
+        };
+
+      // Validate required values
+      if (keys.some(requiredIsNull)) {
+        throw "\"" + pname.toName() + "\" is required";
       }
+
     };
+    that.onValidate(validator);
+
+    init();
 
     // Initialize
     state.goto();
