@@ -24,7 +24,8 @@
     f = require("component-core"),
     m = require("mithril"),
     dataSource = require("datasource"),
-    statechart = require("statechartjs");
+    statechart = require("statechartjs"),
+    jsonpatch = require("fast-json-patch");
 
   /*
     Model for handling settings.
@@ -35,7 +36,7 @@
     @return {Object}
   */
   settings = function (name, definition) {
-    var that, state, init, doFetch, doPost, 
+    var that, state, init, doFetch, doPut, doSend,
       lastError, doError, validator, d,
       errHandlers = [],
       stateMap = {},
@@ -82,10 +83,8 @@
     };
 
     // Send event to fetch data based on the current id from the server.
-    that.fetch = function (merge) {
-      var deferred = m.deferred();
-      state.send("fetch", {deferred: deferred, merge: merge});
-      return deferred.promise;
+    that.fetch = function () {
+      doSend("fetch");
     };
 
     that.id = function () {
@@ -144,6 +143,33 @@
       return this;
     };
 
+    that.save = function () {
+      return doSend("save");
+    };
+
+    that.set = function (data) {
+      Object.keys(props).forEach(function (key) {
+        if (typeof props[key].type === "object") {
+          props[key].type.properties.forEach(function (prop) {
+            that.data[key]().data[prop](data[key][prop]);
+          });
+          return;
+        }
+        that.data[key](data[key]);
+      });
+    };
+
+    that.toJSON = function () {
+      var keys = Object.keys(d),
+        result = {};
+
+      keys.forEach(function (key) {
+        result[key] = d[key].toJSON();
+      });
+
+      return result;
+    };
+
     doError = function (err) {
       lastError = err;
       errHandlers.forEach(function (handler) {
@@ -157,33 +183,44 @@
         payload = {method: "GET", path: "/settings/" + name},
         callback = function () {
           var data = result() || {};
-
-          Object.keys(props).forEach(function (key) {
-            if (typeof props[key].type === "object") {
-              props[key].type.properties.forEach(function (prop) {
-                that.data[key]().data[prop](data[key][prop]);
-              });
-              return;
-            }
-            that.data[key](data[key]);
-          });
-
+          that.set(data);
           state.send('fetched');
-          context.deferred.resolve(that.data);
+          context.deferred.resolve(d);
         };
 
       state.goto("/Busy");
       dataSource.request(payload).then(result).then(callback);
     };
 
+    doPut = function (context) {
+      var ds = dataSource,
+        result = f.prop({}),
+        cache = that.toJSON(),
+        payload = {method: "PUT", path: "/settings/" + name,
+          data: {data: cache}},
+        callback = function () {
+          jsonpatch.apply(cache, result());
+          that.set(cache);
+          state.send('fetched');
+          context.deferred.resolve(d);
+        };
 
-    doPost = function () {}; // TODO
+      if (that.isValid()) {
+        ds.request(payload).then(result).then(callback);
+      }
+    };
+
+    doSend = function (evt) {
+      var deferred = m.deferred();
+      state.send(evt, deferred);
+      return deferred.promise;
+    };
 
     state = statechart.define(function () {
       this.state("Ready", function () {
-        this.event("fetch", function (context) {
+        this.event("fetch", function (deferred) {
           this.goto("/Busy", {
-            context: context
+            context: {deferred: deferred}
           });
         });
 
@@ -200,9 +237,9 @@
           });
 
           this.state("Dirty", function () {
-            this.event("save", function (context) {
+            this.event("save", function (deferred) {
               this.goto("/Busy/Saving", {
-                context: context
+                context: {deferred: deferred}
               });
             });
             this.canSave = that.isValid;
@@ -216,7 +253,7 @@
           this.canSave = m.prop(false);
         });
         this.state("Saving", function () {
-          this.enter(doPost);
+          this.enter(doPut);
           this.canSave = m.prop(false);
         });
 
