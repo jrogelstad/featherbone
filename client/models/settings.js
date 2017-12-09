@@ -56,13 +56,15 @@
 
       keys.forEach(function (key) {
         var rel,
+          isToOne = false,
           prop = f.prop();
           if (typeof props[key].type === "object") {
-            rel = {data: {id: f.prop()}};
+            rel = {data: {}};
             props[key].type.properties.forEach(function (p) {
               rel.data[p] = f.prop();
             });
             prop(rel);
+            isToOne = true;
           }
           prop.key = key; // Use of 'name' property is not allowed here
           prop.description = props[key].description;
@@ -70,6 +72,7 @@
           prop.format = props[key].format;
           prop.isRequired(props[key].isRequired);
           prop.isReadOnly(props[key].isReadOnly);
+          prop.isToOne = m.prop(isToOne);
           prop.isCalculated = false;
 
           // Add state to map for event helper functions
@@ -160,10 +163,19 @@
     };
 
     that.toJSON = function () {
-      var keys = Object.keys(d),
+      var keys = Object.keys(props),
         result = {};
 
       keys.forEach(function (key) {
+        // Only include specified properties on relations
+        if (d[key].isToOne()) {
+          var val = {};
+          props[key].type.properties.forEach(function (pkey) {
+            val[pkey] = d[key]().data[pkey].toJSON();
+          });
+          result[key] = val;
+          return;
+        }
         result[key] = d[key].toJSON();
       });
 
@@ -197,7 +209,7 @@
         result = f.prop({}),
         cache = that.toJSON(),
         payload = {method: "PUT", path: "/settings/" + name,
-          data: {data: cache}},
+          data: cache},
         callback = function () {
           jsonpatch.apply(cache, result());
           that.set(cache);
