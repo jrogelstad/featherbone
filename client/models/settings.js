@@ -55,16 +55,25 @@
       var keys = Object.keys(props);
 
       keys.forEach(function (key) {
-        var rel,
+        var rel, 
           isToOne = false,
           prop = f.prop();
           if (typeof props[key].type === "object") {
-            rel = {data: {}};
+            rel = {data: {id: f.prop()}};
             props[key].type.properties.forEach(function (p) {
               rel.data[p] = f.prop();
             });
             prop(rel);
             isToOne = true;
+
+            // Only include specified properties on relations
+            prop.toJSON = function () {
+              var val = {id: d[key]().data.id()};
+              props[key].type.properties.forEach(function (pkey) {
+                val[pkey] = d[key]().data[pkey].toJSON();
+              });
+              return val;
+            };
           }
           prop.key = key; // Use of 'name' property is not allowed here
           prop.description = props[key].description;
@@ -73,6 +82,7 @@
           prop.isRequired(props[key].isRequired);
           prop.isReadOnly(props[key].isReadOnly);
           prop.isToOne = m.prop(isToOne);
+          prop.isToMany = m.prop(false);
           prop.isCalculated = false;
 
           // Add state to map for event helper functions
@@ -87,7 +97,7 @@
 
     // Send event to fetch data based on the current id from the server.
     that.fetch = function () {
-      doSend("fetch");
+      return doSend("fetch");
     };
 
     that.id = function () {
@@ -153,6 +163,7 @@
     that.set = function (data) {
       Object.keys(props).forEach(function (key) {
         if (typeof props[key].type === "object") {
+          that.data[key]().data.id(data[key].id);
           props[key].type.properties.forEach(function (prop) {
             that.data[key]().data[prop](data[key][prop]);
           });
@@ -167,15 +178,6 @@
         result = {};
 
       keys.forEach(function (key) {
-        // Only include specified properties on relations
-        if (d[key].isToOne()) {
-          var val = {};
-          props[key].type.properties.forEach(function (pkey) {
-            val[pkey] = d[key]().data[pkey].toJSON();
-          });
-          result[key] = val;
-          return;
-        }
         result[key] = d[key].toJSON();
       });
 
