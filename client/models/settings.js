@@ -36,7 +36,7 @@
     @return {Object}
   */
   settings = function (name, definition) {
-    var that, state, init, doFetch, doPut, doSend,
+    var that, state, doInit, doFetch, doPut, doSend,
       lastError, doError, validator, d,
       errHandlers = [],
       stateMap = {},
@@ -48,52 +48,6 @@
     that = store[name];
     that.data = store[name].data || {};
     d = that.data;
-
-    // If we have a formal definition, then set up each property as
-    // a featherbone property
-    init = function () {
-      var keys = Object.keys(props);
-
-      keys.forEach(function (key) {
-        var rel, 
-          isToOne = false,
-          prop = f.prop();
-          if (typeof props[key].type === "object") {
-            rel = {data: {id: f.prop()}};
-            props[key].type.properties.forEach(function (p) {
-              rel.data[p] = f.prop();
-            });
-            prop(rel);
-            isToOne = true;
-
-            // Only include specified properties on relations
-            prop.toJSON = function () {
-              var val = {id: d[key]().data.id()};
-              props[key].type.properties.forEach(function (pkey) {
-                val[pkey] = d[key]().data[pkey].toJSON();
-              });
-              return val;
-            };
-          }
-          prop.key = key; // Use of 'name' property is not allowed here
-          prop.description = props[key].description;
-          prop.type = props[key].type;
-          prop.format = props[key].format;
-          prop.isRequired(props[key].isRequired);
-          prop.isReadOnly(props[key].isReadOnly);
-          prop.isToOne = m.prop(isToOne);
-          prop.isToMany = m.prop(false);
-          prop.isCalculated = false;
-
-          // Add state to map for event helper functions
-          stateMap[key] = prop.state();
-
-          // Report property changed event up to model
-          that.onChanged(key, function () { state.send("changed"); });
-
-          that.data[key] = prop;
-      });
-    };
 
     // Send event to fetch data based on the current id from the server.
     that.fetch = function () {
@@ -206,6 +160,52 @@
       dataSource.request(payload).then(result).then(callback);
     };
 
+    // If we have a formal definition, then set up each property as
+    // a featherbone property
+    doInit = function () {
+      var keys = Object.keys(props);
+
+      keys.forEach(function (key) {
+        var rel, 
+          isToOne = false,
+          prop = f.prop();
+          if (typeof props[key].type === "object") {
+            rel = {data: {id: f.prop()}};
+            props[key].type.properties.forEach(function (p) {
+              rel.data[p] = f.prop();
+            });
+            prop(rel);
+            isToOne = true;
+
+            // Only include specified properties on relations
+            prop.toJSON = function () {
+              var val = {id: d[key]().data.id()};
+              props[key].type.properties.forEach(function (pkey) {
+                val[pkey] = d[key]().data[pkey].toJSON();
+              });
+              return val;
+            };
+          }
+          prop.key = key; // Use of 'name' property is not allowed here
+          prop.description = props[key].description;
+          prop.type = props[key].type;
+          prop.format = props[key].format;
+          prop.isRequired(props[key].isRequired);
+          prop.isReadOnly(props[key].isReadOnly);
+          prop.isToOne = m.prop(isToOne);
+          prop.isToMany = m.prop(false);
+          prop.isCalculated = false;
+
+          // Add state to map for event helper functions
+          stateMap[key] = prop.state();
+
+          // Report property changed event up to model
+          that.onChanged(key, function () { state.send("changed"); });
+
+          that.data[key] = prop;
+      });
+    };
+
     doPut = function (context) {
       var ds = dataSource,
         result = f.prop({}),
@@ -231,6 +231,7 @@
     };
 
     state = statechart.define(function () {
+      this.enter(doInit);
       this.state("Ready", function () {
         this.event("fetch", function (deferred) {
           this.goto("/Busy", {
@@ -306,8 +307,6 @@
 
     };
     that.onValidate(validator);
-
-    init();
 
     // Initialize
     state.goto();
