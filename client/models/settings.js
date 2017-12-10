@@ -49,6 +49,12 @@
     that.data = store[name].data || {};
     d = that.data;
 
+    that.canSave = function () {
+      return state.resolve(state.current()[0]).canSave();
+    };
+
+    that.etag = m.prop();
+
     // Send event to fetch data based on the current id from the server.
     that.fetch = function () {
       return doSend("fetch");
@@ -56,10 +62,6 @@
 
     that.id = function () {
       return name;
-    };
-
-    that.canSave = function () {
-      return state.resolve(state.current()[0]).canSave();
     };
 
     /*
@@ -151,7 +153,8 @@
         payload = {method: "GET", path: "/settings/" + name},
         callback = function () {
           var data = result() || {};
-          that.set(data);
+          that.set(data.data);
+          that.etag(data.etag);
           state.send('fetched');
           context.deferred.resolve(d);
         };
@@ -209,7 +212,7 @@
     doPut = function (context) {
       var ds = dataSource,
         result = f.prop({}),
-        cache = that.toJSON(),
+        cache = {etag: that.etag(), data: that.toJSON()},
         payload = {method: "PUT", path: "/settings/" + name,
           data: cache},
         callback = function () {

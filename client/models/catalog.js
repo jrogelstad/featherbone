@@ -46,6 +46,7 @@
         callback = function () {
           var merge,
             data = result() || {};
+          data = data.data;
           if (context.merge) {
             merge = that.data();
             Object.keys(data).forEach(function (key) {

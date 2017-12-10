@@ -375,6 +375,7 @@
   that.registerFunction("GET", "getModules", controller.getModules);
   that.registerFunction("GET", "getRoutes", controller.getRoutes);
   that.registerFunction("GET", "getSettings", controller.getSettings);
+  that.registerFunction("GET", "getSettingsRow", controller.getSettingsRow);
   that.registerFunction("GET", "getSettingsDefinition", 
     controller.getSettingsDefinition);
   that.registerFunction("GET", "getWorkbook", controller.getWorkbook);

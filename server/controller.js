@@ -1823,6 +1823,34 @@
       });
     },
 
+    /**
+      Return settings definition, including etag.
+
+      @param {Object} Request payload
+      @param {Object} [payload.client] Database client
+      @param {Function} [payload.callback] callback
+      @return {Object}
+    */
+    getSettingsRow: function (obj) {
+      var ret = {},
+        callback = obj.callback;
+      obj.callback = function (err, resp) {
+        if (err) {
+          callback(err);
+          return;
+        }
+
+        if (resp !== false) {
+          ret.etag = settings[obj.data.name].etag;
+          ret.data = settings[obj.data.name].data;
+          callback(null, ret);
+          return;
+        }
+        callback(null, false);
+      };
+      that.getSettings(obj);
+    },
+
     getWorkbook: function (obj) {
       var callback = function (err, resp) {
            if (err) {
@@ -2965,6 +2993,7 @@
       @param {Object} Payload
       @param {String} [payload.data] Payload data
       @param {String} [payload.data.name] Name of settings
+      @param {String} [payload.data.etag] Etag
       @param {Object} [payload.data.data] Settings data
       @param {Object} [payload.client] Database client
       @param {Function} [payload.callback] Callback
@@ -2975,7 +3004,7 @@
         sql = "SELECT * FROM \"$settings\" WHERE name = $1;",
         name = obj.data.name,
         data = obj.data.data,
-        etag = f.createId(),
+        etag = obj.etag || f.createId(),
         params = [name, data, etag, obj.client.currentUser];
 
       done = function (err) {

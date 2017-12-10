@@ -21,7 +21,7 @@
   require('./common/extend-string.js');
 
   var catalog, init, resolveName, getCatalog, getControllers, getRoutes,
-    getCurrentUser,doGetSettings, doGetFeather, doGetModules, doRequest,
+    getCurrentUser, doGetSettingsRow, doGetFeather, doGetModules, doRequest,
     doGetMethod, doSaveFeather, doDeleteFeather, registerDataRoutes,
     doDeleteMethod, doDeleteWorkbook, doGetWorkbooks, doSaveSettings,
     doSaveWorkbook, doSaveMethod, doGetWorkbook, doGetSettingsDefinition,
@@ -211,8 +211,8 @@
     doGetMethod("getModules", req, res);
   };
 
-  doGetSettings = function (req, res) {
-    doGetMethod("getSettings", req, res);
+  doGetSettingsRow = function (req, res) {
+    doGetMethod("getSettingsRow", req, res);
   };
 
   doGetSettingsDefinition = function (req, res) {
@@ -302,7 +302,8 @@
       data = {};
 
     data.name = req.params.name;
-    data.data = req.body;
+    data.etag = req.body.etag;
+    data.data = req.body.data;
 
     callback = function (err, resp) {
       if (err) {
@@ -421,7 +422,7 @@
     moduleRouter.route("/")
       .get(doGetModules);
     settingsRouter.route("/:name")
-      .get(doGetSettings)
+      .get(doGetSettingsRow)
       .put(doSaveSettings);
     settingsDefinitionRouter.route("/")
       .get(doGetSettingsDefinition);
