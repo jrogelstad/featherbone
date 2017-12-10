@@ -717,6 +717,9 @@
               state.resolve("/Busy/Fetching").enter(onFetching.bind(result));
               state.resolve("/Ready/Fetched").enter(onFetched.bind(result));
 
+              // Remove original do fetch event on child
+              result.state().resolve("/Busy/Fetching").enters.shift();
+
               // Disable save event on children
               result.state().resolve("/Ready/New").event("save");
               result.state().resolve("/Ready/Fetched/Dirty").event("save");
