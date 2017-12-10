@@ -373,6 +373,7 @@
       label: "&Delete",
       icon: "remove"
     }));
+    vm.buttonDelete().disable();
 
     vm.buttonUndo(button.viewModel({
       onclick: vm.tableWidget().undo,
@@ -444,8 +445,13 @@
       vm.buttonUndo().hide();
     });
     tableState.resolve("/Selection/On").enter(function () {
+      var model = vm.tableWidget().selection();
+      if (model && model.canDelete()) {
+        vm.buttonDelete().enable();
+      } else {
+        vm.buttonDelete().disable();
+      }
       vm.buttonOpen().enable();
-      vm.buttonDelete().enable();
     });
     tableState.resolve("/Selection/On/Clean").enter(function () {
       vm.buttonDelete().show();

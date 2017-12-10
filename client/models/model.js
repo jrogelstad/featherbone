@@ -42,11 +42,12 @@
     feather = feather || {};
 
     var  doClear, doDelete, doError, doFetch, doInit, doPatch, doPost, doSend,
-      doFreeze, doThaw, doRevert, validator, lastError, state,
+      doFreeze, doThaw, doRevert, lastError, state,
       that = {data: {}, name: feather.name || "Object", plural: feather.plural},
       d = that.data,
       errHandlers = [],
       validators = [],
+      deleteChecks = [],
       stateMap = {},
       lastFetched = {},
       freezeCache = {};
@@ -95,7 +96,9 @@
     };
 
     that.canDelete = function () {
-      return state.resolve(state.current()[0]).canDelete();
+      return deleteChecks.every(function(check) {
+        return check();
+      });
     };
 
     /*
@@ -181,6 +184,34 @@
     */
     that.lastError = function () {
       return lastError;
+    };
+
+    /*
+      Add a function that returns a boolean to execute when the
+      `canDelete` function is called. The function should validate
+      whether a record will be allowed to be deleted.
+
+        var contact,
+          catalog = require("catalog"),
+          model = require("model");
+
+        transaction = function (data, feather) {
+          var shared = feather || catalog.getFeather("Transaction"),
+            that = model(data, shared),
+            deleteCheck function () {
+              return !that.data.isPosted())
+            };
+          // Add a check
+          that.oncanDelete(deleteCheck);
+        }
+      @seealso canDelete
+      @param {Function} Test function to execute when running canDelete
+      @return Reciever
+    */
+    that.onCanDelete = function (callback) {
+      deleteChecks.push(callback);
+
+      return this;
     };
 
     /*
@@ -957,7 +988,7 @@
 
     // Add standard validator that checks required properties
     // and validates children
-    validator = function () {
+    that.onValidate(function () {
       var name,
         keys = Object.keys(d),
         requiredIsNull = function (key) {
@@ -982,9 +1013,13 @@
       if (keys.some(requiredIsNull)) {
         throw "\"" + name.toName() + "\" is required";
       }
+    });
 
-    };
-    that.onValidate(validator);
+
+    // Add standard check for 'canDelete'
+    that.onCanDelete(function () {
+      return state.resolve(state.current()[0]).canDelete();
+    });
 
     // Initialize
     state.goto({context: {}});
