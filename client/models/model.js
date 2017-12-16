@@ -20,8 +20,8 @@
   "use strict";
 
   var model, isChild, isToOne, isToMany,
-    f = require("feather-core"),
-    m = require("mithril"),
+    f = require("common-core"),
+    stream = require("stream"),
     catalog = require("catalog"),
     dataSource = require("datasource"),
     jsonpatch = require("fast-json-patch"),
@@ -72,16 +72,16 @@
       var fn = options.function;
 
       fn.isCalculated = true;
-      fn.isChild = m.prop(false);
-      fn.isParent = m.prop(false);
+      fn.isChild = stream(false);
+      fn.isParent = stream(false);
       fn.key = options.name;
       fn.description = options.description || "";
       fn.type = options.type || "string";
       fn.format = options.format;
-      fn.isRequired = m.prop(false);
-      fn.isReadOnly = m.prop(options.isReadOnly || false);
-      fn.isToMany = m.prop(false);
-      fn.isToOne = m.prop(false);
+      fn.isRequired = stream(false);
+      fn.isReadOnly = stream(options.isReadOnly || false);
+      fn.isToMany = stream(false);
+      fn.isToOne = stream(false);
       d[options.name] = fn;
 
       return this;
@@ -111,23 +111,24 @@
 
     /*
       Send event to delete the current object from the server.
-      Returns a deferred promise with a boolean passed back as the value.
+      Returns a promise with a boolean passed back as the value.
 
       @param {Boolean} Automatically commit. Default false.
     */
     that.delete = function (autoSave) {
-      var result = m.deferred();
       state.send("delete");
       if (autoSave) {
-        result = doSend("save");
+        return doSend("save");
       }
-      return result;
+      return new Promise(function (resolve) {
+        resolve(true);
+      });
     };
 
     /*
       Send event to fetch data based on the current id from the server.
-      Returns a deferred promise with model.data passed back as the value.
-      @return {Object} Deferred promise
+      Returns a promise with model.data passed back as the value.
+      @return {Object} promise
     */
     that.fetch = function () {
       return doSend("fetch");
@@ -153,7 +154,7 @@
       @param {String}
       @returns {String}
     */
-    that.idProperty = m.prop("id");
+    that.idProperty = stream("id");
 
     /*
       Property that indicates object is a model (i.e. class).
@@ -348,8 +349,8 @@
       Send the save event to persist current data to the server.
       Only results in action in the "/Ready/Fetched/Dirty" and
       "/Ready/New" states.
-      Returns a deferred promise with model.data as the value.
-      @return {Object} Deferred promise
+      Returns a promise with model.data as the value.
+      @return {Object} promise
     */
     that.save = function () {
       return doSend("save");
@@ -453,15 +454,14 @@
     };
 
     doDelete = function (context) {
-      var result = f.prop({}),
-        payload = {method: "DELETE", path: that.path(that.name, that.id())},
-        callback = function () {
-          that.set(result(), true, true);
+      var payload = {method: "DELETE", path: that.path(that.name, that.id())},
+        callback = function (result) {
+          that.set(result, true, true);
           state.send('deleted');
-          context.deferred.resolve(true);
+          context.resolve(true);
         };
 
-      dataSource.request(payload).then(result).then(callback);
+      dataSource.request(payload).then(callback);
     };
 
     doError = function (err) {
@@ -473,18 +473,14 @@
     };
 
     doFetch = function (context) {
-      var result = f.prop({}),
-        payload = {method: "GET", path: that.path(that.name, that.id())},
-        handleErr = function (err) {
-          console.log(err);
-        },
-        callback = function () {
-          that.set(result(), true, true);
+      var payload = {method: "GET", path: that.path(that.name, that.id())},
+        callback = function (result) {
+          that.set(result, true, true);
           state.send('fetched');
-          context.deferred.resolve(d);
+          context.resolve(d);
         };
 
-      dataSource.request(payload).then(result, handleErr).then(callback);
+      dataSource.request(payload).then(callback);
     };
 
     doFreeze = function () {
@@ -505,38 +501,36 @@
 
     doPatch = function (context) {
       var ds = dataSource,
-        result = f.prop({}),
         patch = jsonpatch.compare(lastFetched, that.toJSON()),
         payload = {method: "PATCH", path: that.path(that.name, that.id()),
           data: {data: patch}},
-        callback = function () {
+        callback = function (result) {
           jsonpatch.apply(lastFetched, patch); // Update to sent changes
-          jsonpatch.apply(lastFetched, result()); // Update server side changes
+          jsonpatch.apply(lastFetched, result); // Update server side changes
           that.set(lastFetched, true);
           state.send('fetched');
-          context.deferred.resolve(d);
+          context.resolve(d);
         };
 
       if (that.isValid()) {
-        ds.request(payload).then(result).then(callback);
+        ds.request(payload).then(callback);
       }
     };
 
     doPost = function (context) {
       var ds = dataSource,
-        result = f.prop({}),
         cache = that.toJSON(),
         payload = {method: "POST", path: that.path(that.plural),
           data: {data: cache}},
-        callback = function () {
-          jsonpatch.apply(cache, result());
+        callback = function (result) {
+          jsonpatch.apply(cache, result);
           that.set(cache, true, true);
           state.send('fetched');
-          context.deferred.resolve(d);
+          context.resolve(d);
         };
 
       if (that.isValid()) {
-        ds.request(payload).then(result).then(callback);
+        ds.request(payload).then(callback);
       }
     };
 
@@ -546,9 +540,9 @@
     };
 
     doSend = function (evt) {
-      var deferred = m.deferred();
-      state.send(evt, deferred);
-      return deferred.promise;
+      return new Promise (function (resolve) {
+        state.send(evt, resolve);
+      });
     };
 
     doThaw = function () {
@@ -849,9 +843,9 @@
       this.enter(doInit);
 
       this.state("Ready", {H: "*"}, function () {
-        this.event("fetch",  function (deferred) {
+        this.event("fetch",  function (resolve) {
           this.goto("/Busy", {
-            context: {deferred: deferred}
+            context: {resolve: resolve}
           });
         });
 
@@ -860,17 +854,17 @@
           this.event("clear",  function () {
             this.goto("/Ready/New", {force: true});
           });
-          this.event("save", function (deferred) {
+          this.event("save", function (resolve) {
             this.goto("/Busy/Saving", {
-              context: {deferred: deferred}
+              context: {resolve: resolve}
             });
           });
           this.event("delete", function () {
             this.goto("/Deleted");
           });
-          this.canDelete = m.prop(true);
+          this.canDelete = stream(true);
           this.canSave = that.isValid;
-          this.canUndo = m.prop(false);
+          this.canUndo = stream(false);
         });
 
         this.state("Fetched", function () {
@@ -885,21 +879,21 @@
             this.event("changed", function () {
               this.goto("../Dirty");
             });
-            this.canDelete = m.prop(true);
-            this.canSave = m.prop(false);
-            this.canUndo = m.prop(false);
+            this.canDelete = stream(true);
+            this.canSave = stream(false);
+            this.canUndo = stream(false);
           });
 
           this.state("Dirty", function () {
             this.event("undo", doRevert);
-            this.event("save", function (deferred) {
+            this.event("save", function (resolve) {
               this.goto("/Busy/Saving/Patching", {
-                context: {deferred: deferred}
+                context: {resolve: resolve}
               });
             });
-            this.canDelete = m.prop(false);
+            this.canDelete = stream(false);
             this.canSave = that.isValid;
-            this.canUndo = m.prop(true);
+            this.canUndo = stream(true);
           });
         });
       });
@@ -907,24 +901,24 @@
       this.state("Busy", function () {
         this.state("Fetching", function () {
           this.enter(doFetch);
-          this.canDelete = m.prop(false);
-          this.canUndo = m.prop(false);
+          this.canDelete = stream(false);
+          this.canUndo = stream(false);
         });
         this.state("Saving", function () {
           this.state("Posting", function () {
             this.enter(doPost);
-            this.canDelete = m.prop(false);
-            this.canSave = m.prop(false);
-            this.canUndo = m.prop(false);
+            this.canDelete = stream(false);
+            this.canSave = stream(false);
+            this.canUndo = stream(false);
           });
           this.state("Patching", function () {
             this.enter(doPatch);
-            this.canDelete = m.prop(false);
-            this.canUndo = m.prop(false);
+            this.canDelete = stream(false);
+            this.canUndo = stream(false);
           });
-          this.canDelete = m.prop(false);
-          this.canSave = m.prop(false);
-          this.canUndo = m.prop(false);
+          this.canDelete = stream(false);
+          this.canSave = stream(false);
+          this.canUndo = stream(false);
         });
         this.state("Deleting", function () {
           this.enter(doDelete);
@@ -932,9 +926,9 @@
           this.event("deleted", function () {
             this.goto("/Deleted");
           });
-          this.canDelete = m.prop(false);
-          this.canSave = m.prop(false);
-          this.canUndo = m.prop(false);
+          this.canDelete = stream(false);
+          this.canSave = stream(false);
+          this.canUndo = stream(false);
         });
 
         this.event("fetched", function () {
@@ -950,9 +944,9 @@
       this.state("Delete", function () {
         this.enter(doFreeze);
 
-        this.event("save",  function (deferred) {
+        this.event("save",  function (resolve) {
           this.goto("/Busy/Deleting", {
-            context: {deferred: deferred}
+            context: {resolve: resolve}
           });
         });
 
@@ -960,18 +954,18 @@
           doThaw();
           this.goto("/Ready");
         });
-        this.canDelete = m.prop(false);
-        this.canSave = m.prop(false);
-        this.canUndo = m.prop(true);
+        this.canDelete = stream(false);
+        this.canSave = stream(false);
+        this.canUndo = stream(true);
       });
 
       this.state("Deleted", function () {
         this.event("clear",  function () {
           this.goto("/Ready/New");
         });
-        this.canDelete = m.prop(false);
-        this.canSave = m.prop(false);
-        this.canUndo = m.prop(false);
+        this.canDelete = stream(false);
+        this.canSave = stream(false);
+        this.canUndo = stream(false);
       });
 
       this.state("Deleting", function () {
@@ -980,9 +974,9 @@
         this.event("deleted",  function () {
           this.goto("/Deleted");
         });
-        this.canDelete = m.prop(false);
-        this.canSave = m.prop(false);
-        this.canUndo = m.prop(false);
+        this.canDelete = stream(false);
+        this.canSave = stream(false);
+        this.canUndo = stream(false);
       });
     });
 

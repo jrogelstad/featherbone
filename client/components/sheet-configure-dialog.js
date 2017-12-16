@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2016  John Rogelstad
+    Copyright (C) 2018  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -21,6 +21,7 @@
 
   var sheetConfigureDialog = {},
     m = require("mithril"),
+    stream = require("stream"),
     f = require("component-core"),
     catalog = require("catalog"),
     tableDialog = require("table-dialog");
@@ -182,8 +183,8 @@
     vm.okTitle = function () {
       return vm.model().lastError();
     };
-    vm.sheetId = m.prop(options.sheetId);
-    vm.relations = m.prop({});
+    vm.sheetId = stream(options.sheetId);
+    vm.relations = stream({});
     vm.reset = function () {
       var id = vm.sheetId();
       cache = f.copy(vm.sheet(id));
@@ -193,7 +194,7 @@
     };
     vm.sheet = options.parentViewModel.sheet;
     vm.workbook = options.parentViewModel.workbook;
-    vm.viewHeaderIds = m.prop({
+    vm.viewHeaderIds = stream({
       column: f.createId(),
       label: f.createId()
     });

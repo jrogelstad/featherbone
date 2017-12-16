@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2016  John Rogelstad
+    Copyright (C) 2018  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -23,6 +23,7 @@
   var scrWidth, inner, widthNoScroll, widthWithScroll,
     tableWidget = {},
     m = require("mithril"),
+    stream = require("stream"),
     f = require("component-core"),
     statechart = require("statechartjs"),
     catalog = require("catalog"),
@@ -75,16 +76,16 @@
         });
       return result || [{attr: "id"}];
     };
-    vm.isEditModeEnabled = m.prop(options.isEditModeEnabled !== false);
-    vm.config = m.prop(options.config);
-    vm.containerId = m.prop(options.containerId);
+    vm.isEditModeEnabled = stream(options.isEditModeEnabled !== false);
+    vm.config = stream(options.config);
+    vm.containerId = stream(options.containerId);
     vm.defaultFocus = function (model) {
       var col = vm.attrs().find(function (attr) {
         return !model.data[attr] || !model.data[attr].isReadOnly();
       });
       return col ? col.toCamelCase(true) : undefined;
     };
-    vm.feather = m.prop(feather);
+    vm.feather = stream(feather);
     vm.filter = f.prop();
     vm.goNextRow = function () {
       var list = vm.models(),
@@ -102,7 +103,7 @@
         vm.select(list[idx]);
       }
     };
-    vm.ids = m.prop({
+    vm.ids = stream({
       header: f.createId(),
       rows: f.createId()
     });
@@ -128,8 +129,8 @@
     vm.modelNew = function () {
       return vm.mode().modelNew();
     };
-    vm.models = m.prop(options.models);
-    vm.nextFocus = m.prop();
+    vm.models = stream(options.models);
+    vm.nextFocus = stream();
     vm.ondblclick = function (model) {
       vm.select(model);
       if (options.ondblclick) {
@@ -194,13 +195,13 @@
             } catch (ignore) {}
           }
           // Navigate in desired direction
-          m.startComputation();
+          //m.startComputation();
           vm[name]();
-          m.endComputation();
+          //m.endComputation();
           // Set focus on the same cell we left
-          m.startComputation();
+          //m.startComputation();
           document.getElementById(id).focus();
-          m.endComputation();
+          //m.endComputation();
         };
 
       switch (key)
@@ -235,12 +236,12 @@
     vm.refresh = function () {
       fetch(true);
     };
-    vm.relations = m.prop({});
+    vm.relations = stream({});
     vm.save = function () {
       vm.models().save();
     };
-    vm.scrollbarWidth = m.prop(scrWidth);
-    vm.search = options.search || m.prop("");
+    vm.scrollbarWidth = stream(scrWidth);
+    vm.search = options.search || stream("");
     vm.select = function (model) {
       var idx, state,
         selection = vm.selection();
@@ -278,11 +279,11 @@
 
       return vm.selection();
     };
-    vm.selection = m.prop();
+    vm.selection = stream();
     vm.selectedColor = function () {
       return vm.mode().selectedColor();
     };
-    vm.state = m.prop();
+    vm.state = stream();
     vm.toggleEdit = function () {
       vm.state().send("edit");
     };
@@ -296,7 +297,7 @@
       var selection = vm.selection();
       if (selection) { selection.undo(); }
     };
-    vm.zoom = m.prop(100);
+    vm.zoom = stream(100);
 
     // ..........................................................
     // PRIVATE
@@ -385,7 +386,7 @@
               vm.models().remove(selection);
             });
           };
-          this.modelNew = m.prop(false); // Do nothing
+          this.modelNew = stream(false); // Do nothing
           this.selectedColor = function () {
             return "LightSkyBlue";
           };
@@ -470,14 +471,14 @@
   tableWidget.component = function (options) {
     var component = {};
 
-    component.controller = function () {
-      this.vm = options.viewModel;
+    component.oninit = function (vnode) {
+      vnode.vm = options.viewModel;
     };
 
-    component.view = function (ctrl) {
+    component.view = function (vnode) {
       var tbodyConfig, findFilterIndex,
         header, rows, view, rel,
-        vm = ctrl.vm,
+        vm = vnode.vm,
         ids = vm.ids(),
         config = vm.config(),
         filter = vm.filter(),
@@ -709,7 +710,7 @@
               id: id,
               onclick: vm.toggleSelection.bind(this, model, col),
               value: prop(),
-              config: function (e) {
+              oncreate: function (e) {
                 if (vm.nextFocus() === id) {
                   e.focus();
                   vm.nextFocus(undefined);
@@ -821,7 +822,7 @@
           id: ids.rows,
           class: "suite-table-body",
           onscroll: vm.onscroll,
-          config: tbodyConfig
+          oncreate: tbodyConfig
         }, rows)
       ]);
 

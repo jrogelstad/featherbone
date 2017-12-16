@@ -22,6 +22,7 @@
 
   var workbookDisplay = {},
     m = require("mithril"),
+    stream = require("stream"),
     f = require("component-core"),
     button = require("button"),
     catalog = require("catalog"),
@@ -45,18 +46,18 @@
     // PUBLIC
     //
 
-    vm.buttonClear = m.prop();
-    vm.buttonDelete = m.prop();
-    vm.buttonEdit = m.prop();
-    vm.buttonHome = m.prop();
-    vm.buttonList = m.prop();
-    vm.buttonNew = m.prop();
-    vm.buttonOpen = m.prop();
-    vm.buttonRefresh = m.prop();
-    vm.buttonSave = m.prop();
-    vm.buttonUndo = m.prop();
-    vm.config = m.prop(options.config); 
-    vm.confirmDialog = m.prop(dialog.viewModel({
+    vm.buttonClear = stream();
+    vm.buttonDelete = stream();
+    vm.buttonEdit = stream();
+    vm.buttonHome = stream();
+    vm.buttonList = stream();
+    vm.buttonNew = stream();
+    vm.buttonOpen = stream();
+    vm.buttonRefresh = stream();
+    vm.buttonSave = stream();
+    vm.buttonUndo = stream();
+    vm.config = stream(options.config); 
+    vm.confirmDialog = stream(dialog.viewModel({
       icon: "question-circle",
       title: "Confirmation"
     }));
@@ -86,14 +87,14 @@
       confirmDialog.onOk(doDelete);
       confirmDialog.show();
     };
-    vm.didLeave = m.prop(false);
+    vm.didLeave = stream(false);
     vm.filter = f.prop();
-    vm.filterDialog = m.prop();
+    vm.filterDialog = stream();
     vm.goHome = function () {
       vm.didLeave(true);
       m.route("/home");
     };
-    vm.isDraggingTab = m.prop(false);
+    vm.isDraggingTab = stream(false);
     vm.modelNew = function () {
       if (!vm.tableWidget().modelNew()) {
         vm.didLeave(true);
@@ -194,8 +195,8 @@
       route = route.toSpinalCase();
       m.route(route);
     };
-    vm.searchInput = m.prop();
-    vm.settingsDialog = m.prop();
+    vm.searchInput = stream();
+    vm.settingsDialog = stream();
     vm.share = function () {
       var doShare,
         confirmDialog = vm.confirmDialog();
@@ -245,13 +246,13 @@
         return sheet.name;
       });
     };
-    vm.sheetConfigureDialog = m.prop();
+    vm.sheetConfigureDialog = stream();
     vm.showFilterDialog = function () {
       if (vm.tableWidget().models().canFilter()) {
         vm.filterDialog().show();
       }
     };
-    vm.showMenu = m.prop(false);
+    vm.showMenu = stream(false);
     vm.showSettingsDialog = function () {
       if (options.settings) { 
         vm.settingsDialog().show(); 
@@ -262,13 +263,13 @@
         vm.sortDialog().show();
       }
     };
-    vm.sortDialog = m.prop();
+    vm.sortDialog = stream();
     vm.tabClicked = function (sheet) {
       var route = "/" + options.name + "/" + sheet;
       route = route.toSpinalCase();
       m.route(route);
     };
-    vm.tableWidget = m.prop();
+    vm.tableWidget = stream();
     vm.workbook = function () {
       return catalog.store().workbooks()[options.name.toCamelCase()];
     };
@@ -470,18 +471,18 @@
     var viewModel,
       component = {};
 
-    component.controller = function () {
+    component.oninit = function (vnode) {
       viewModel = viewModel || workbookDisplay.viewModel(options);
-      this.vm = viewModel;
+      vnode.vm = viewModel;
       if (viewModel.didLeave()) {
         viewModel.didLeave(false);
         viewModel.refresh(); 
       }
     };
 
-    component.view = function (ctrl) {
+    component.view = function (vnode) {
       var filterMenuClass, tabs, view,
-        vm = ctrl.vm,
+        vm = vnode.vm,
         activeSheet = vm.sheet(),
         config = vm.config(),
         idx = 0;
@@ -546,22 +547,22 @@
             id: "toolbar",
             class: "suite-toolbar"
           }, [
-          m.component(sortDialog.component({viewModel: vm.sortDialog()})),
-          m.component(sortDialog.component({viewModel: vm.filterDialog()})),
-          m.component(sheetConfigureDialog.component({viewModel: vm.sheetConfigureDialog()})),
-          m.component(dialog.component({viewModel: vm.confirmDialog()})),
-          m.component(settingsDialog.component({viewModel: vm.settingsDialog()})),
-          m.component(button.component({viewModel: vm.buttonHome()})),
-          m.component(button.component({viewModel: vm.buttonList()})),
-          m.component(button.component({viewModel: vm.buttonEdit()})),
-          m.component(button.component({viewModel: vm.buttonSave()})),
-          m.component(button.component({viewModel: vm.buttonOpen()})),
-          m.component(button.component({viewModel: vm.buttonNew()})),
-          m.component(button.component({viewModel: vm.buttonDelete()})),
-          m.component(button.component({viewModel: vm.buttonUndo()})),
-          m.component(searchInput.component({viewModel: vm.searchInput()})),
-          m.component(button.component({viewModel: vm.buttonRefresh()})),
-          m.component(button.component({viewModel: vm.buttonClear()})),
+          m(sortDialog.component({viewModel: vm.sortDialog()})),
+          m(sortDialog.component({viewModel: vm.filterDialog()})),
+          m(sheetConfigureDialog.component({viewModel: vm.sheetConfigureDialog()})),
+          m(dialog.component({viewModel: vm.confirmDialog()})),
+          m(settingsDialog.component({viewModel: vm.settingsDialog()})),
+          m(button.component({viewModel: vm.buttonHome()})),
+          m(button.component({viewModel: vm.buttonList()})),
+          m(button.component({viewModel: vm.buttonEdit()})),
+          m(button.component({viewModel: vm.buttonSave()})),
+          m(button.component({viewModel: vm.buttonOpen()})),
+          m(button.component({viewModel: vm.buttonNew()})),
+          m(button.component({viewModel: vm.buttonDelete()})),
+          m(button.component({viewModel: vm.buttonUndo()})),
+          m(searchInput.component({viewModel: vm.searchInput()})),
+          m(button.component({viewModel: vm.buttonRefresh()})),
+          m(button.component({viewModel: vm.buttonClear()})),
           m("div", {
             id: "nav-div",
             class: "pure-menu custom-restricted-width suite-menu",
@@ -653,7 +654,7 @@
             ])
           ])     
         ]),
-        m.component(tableWidget.component({viewModel: vm.tableWidget()})),
+        m(tableWidget.component({viewModel: vm.tableWidget()})),
         m("div", {id: "tabs"}, [
           tabs,
           m("i", {class: "fa fa-search-plus suite-zoom-icon suite-zoom-right-icon"}),

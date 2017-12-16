@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2016  John Rogelstad
+    Copyright (C) 2018  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -21,6 +21,7 @@
 
   var searchInput = {},
     m = require("mithril"),
+    stream = require("stream"),
     f = require("component-core"),
     statechart = require("statechartjs");
 
@@ -44,7 +45,7 @@
       vm.end();
     };
     vm.end = function () { state.send("end"); };
-    vm.id = m.prop(f.createId());
+    vm.id = stream(f.createId());
     vm.onkeydown = function (e) {
       var key = e.key || e.keyIdentifier;
       if (key === "Enter") { vm.refresh(); }
@@ -59,7 +60,7 @@
     vm.style = function () { 
       return state.resolve(state.current()[0]).style();
     };
-    vm.text = m.prop();
+    vm.text = stream();
     vm.value = function () {
       return state.resolve(state.current()[0]).value();
     };
@@ -127,13 +128,13 @@
       @param {Object} Options
       @param {Object} [options.viewModel] View model
     */
-    component.controller = function () {
-      this.vm =  options.viewModel || searchInput.viewModel(options);
+    component.oninit = function (vnode) {
+      vnode.vm =  options.viewModel || searchInput.viewModel(options);
     };
 
-    component.view = function (ctrl) {
+    component.view = function (vnode) {
       var opts, view,
-        vm = ctrl.vm;
+        vm = vnode.vm;
 
       opts = {
         id: vm.id(),

@@ -20,8 +20,9 @@
   "use strict";
 
   var button = {},
-    f = require("feather-core"),
+    f = require("common-core"),
     m = require("mithril"),
+    stream = require("stream"),
     statechart = require("statechartjs");
 
   /**
@@ -65,8 +66,8 @@
       }
       return hotkey;
     };
-    vm.icon = m.prop(options.icon || "");
-    vm.id = m.prop(f.createId());
+    vm.icon = stream(options.icon || "");
+    vm.id = stream(f.createId());
     vm.label = function (value) {
       var idx, ary;
 
@@ -88,7 +89,7 @@
       }
       return label;
     };
-    vm.onclick = m.prop(options.onclick);
+    vm.onclick = stream(options.onclick);
     vm.onkeydown = function (e) {
       var id;
       if (e.altKey && e.which === vm.hotKey()) {
@@ -101,7 +102,7 @@
     vm.show = function () { state.send("show"); };
     vm.state = function () { return state; };
     vm.style = function () { return options.style || {}; };
-    vm.title = m.prop(options.title || "");
+    vm.title = stream(options.title || "");
 
     // ..........................................................
     // PRIVATE
@@ -122,8 +123,8 @@
           this.event("disable", function () {
             this.goto("../Disabled");
           });
-          this.class = m.prop("");
-          this.isDisabled = m.prop(false);
+          this.class = stream("");
+          this.isDisabled = stream(false);
         });
         this.state("Active", function () {
           this.event("deactivate", function () {
@@ -135,7 +136,7 @@
           this.class = function () {
             return "pure-button-active";
           };
-          this.isDisabled = m.prop(false);
+          this.isDisabled = stream(false);
         });
         this.state("Disabled", function () {
           this.event("enable", function () {
@@ -144,8 +145,8 @@
           this.event("activate", function () {
             this.goto("../Active");
           });
-          this.class = m.prop("");
-          this.isDisabled = m.prop(true);
+          this.class = stream("");
+          this.isDisabled = stream(true);
         });
       });
       this.state("Primary", function () {
@@ -153,13 +154,13 @@
           this.event("primaryOn", function () {
             this.goto("../On");
           });
-          this.class = m.prop("");
+          this.class = stream("");
         });
         this.state("On", function () {
           this.event("primaryOff", function () {
             this.goto("../Off");
           });
-          this.class = m.prop("pure-button-primary");
+          this.class = stream("pure-button-primary");
         });
       });
       this.state("Display", function () {
@@ -167,13 +168,13 @@
           this.event("hide", function () {
             this.goto("../Off");
           });
-          this.hidden = m.prop("");
+          this.hidden = stream("");
         });
         this.state("Off", function () {
           this.event("show", function () {
             this.goto("../On");
           });
-          this.hidden = m.prop("pure-button-hidden");
+          this.hidden = stream("pure-button-hidden");
         });
       });
     });
@@ -203,13 +204,13 @@
       @param {Object} Options
       @param {Object} [options.viewModel] View model
     */
-    component.controller = function () {
-      this.vm =  options.viewModel || f.viewModels.buttonViewModel(options);
+    component.oninit = function (vnode) {
+      vnode.vm =  options.viewModel || f.viewModels.buttonViewModel(options);
     };
 
-    component.view = function (ctrl) {
+    component.view = function (vnode) {
       var opts, view, iconView,
-        vm = ctrl.vm,
+        vm = vnode.vm,
         classes = ["pure-button suite-button"],
         style = vm.style(),
         title = vm.title(),

@@ -21,7 +21,8 @@
 
   var relationWidget = {},
     m = require("mithril"),
-    f = require("feather-core"),
+    stream = require("stream"),
+    f = require("common-core"),
     catalog = require("catalog"),
     searchDialog = require("search-dialog"),
     formDialog = require("form-dialog");
@@ -46,7 +47,7 @@
       labelProperty = options.labelProperty,
       modelValue = parent.model().data[parentProperty],
       current = modelValue() ? modelValue().data[valueProperty]() : null,
-      inputValue = m.prop(current),
+      inputValue = stream(current),
       type =  modelValue.type,
       modelName = type.relation.toCamelCase(),
       filter = {
@@ -57,7 +58,7 @@
       modelList = list({filter: filter}),
       searchConfig;
 
-    vm.listId = m.prop(f.createId());
+    vm.listId = stream(f.createId());
     vm.fetch = function () {
       list({
         value: modelList(),
@@ -65,13 +66,13 @@
         merge: false
       });
     };
-    vm.formConfig = m.prop(options.form);
-    vm.formDialog = m.prop();
+    vm.formConfig = stream(options.form);
+    vm.formDialog = stream();
     vm.label = function () {
       var model = modelValue();
       return (labelProperty && model) ? model.data[labelProperty]() : "";
     };
-    vm.listConfig = m.prop(options.list);
+    vm.listConfig = stream(options.list);
     vm.model = function () {
       return modelValue();
     };
@@ -142,9 +143,9 @@
     vm.onmouseoutmenu = function () {
       vm.showMenu(false);
     };
-    vm.searchDialog = m.prop();
-    vm.showMenu = m.prop(false);
-    vm.style = m.prop({});
+    vm.searchDialog = stream();
+    vm.showMenu = stream(false);
+    vm.style = stream({});
     vm.value = function (value) {
       var result;
       if (hasFocus) {
@@ -170,7 +171,7 @@
     };
     searchConfig.list = vm.listConfig();
     vm.searchDialog(searchDialog.viewModel({
-      config: searchConfig,
+      oncreate: searchConfig,
       onOk: function () {
         var selection = vm.searchDialog().tableWidget().selection();
         if (selection) {
@@ -182,7 +183,7 @@
     // Create form dialog
     vm.formDialog(formDialog.viewModel({
       model: type.relation.toCamelCase(),
-      config: vm.formConfig(),
+      oncreate: vm.formConfig(),
       onOk: function (model) {
         modelValue(model);
       }
@@ -207,7 +208,7 @@
       valueProperty = options.valueProperty,
       labelProperty = options.labelProperty;
 
-    widget.controller = function () {
+    widget.oninit = function (vnode) {
       var relations = parentViewModel.relations();
 
       // Set up viewModel if required
@@ -222,14 +223,14 @@
           isCell: options.isCell
         });
       }
-      this.vm = relations[parentProperty];
-      this.vm.style(options.style || {});
+      vnode.vm = relations[parentProperty];
+      vnode.vm.style(options.style || {});
     };
 
-    widget.view = function (ctrl) {
+    widget.view = function (vnode) {
       var listOptions, view,
         inputStyle, menuStyle, maxWidth,
-        vm = ctrl.vm,
+        vm = vnode.vm,
         style = vm.style(),
         openMenuClass = "pure-menu-link",
         buttonStyle = {
@@ -284,8 +285,8 @@
 
       // Build the view
       view = m("div", {style: style}, [
-        m.component(searchDialog.component({viewModel: vm.searchDialog()})),
-        m.component(formDialog.component({viewModel: vm.formDialog()})),
+        m(searchDialog.component({viewModel: vm.searchDialog()})),
+        m(formDialog.component({viewModel: vm.formDialog()})),
         m("input", {
           style: inputStyle,
           list: vm.listId(),

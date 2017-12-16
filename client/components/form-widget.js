@@ -22,6 +22,7 @@
 
   var formWidget = {},
     m = require("mithril"),
+    stream = require("stream"),
     f = require("component-core"),
     math = require("mathjs"),
     catalog = require("catalog");
@@ -32,13 +33,13 @@
       name = options.model,
       models = catalog.store().models();
 
-    vm.config = m.prop(options.config);
-    vm.containerId = m.prop(options.containerId);
-    vm.selectedTab = m.prop(1);
-    vm.isFirstLoad = m.prop(true);
-    vm.model = m.prop();
-    vm.outsideElementIds = m.prop(options.outsideElementIds || []);
-    vm.relations = m.prop({});
+    vm.config = stream(options.config);
+    vm.containerId = stream(options.containerId);
+    vm.selectedTab = stream(1);
+    vm.isFirstLoad = stream(true);
+    vm.model = stream();
+    vm.outsideElementIds = stream(options.outsideElementIds || []);
+    vm.relations = stream({});
 
     // ..........................................................
     // PRIVATE
@@ -62,14 +63,14 @@
     midTabClass.push("suite-sheet-group-tab-middle");
     leftTabClass.push("suite-sheet-group-tab-left");
     rightTabClass.push("suite-sheet-group-tab-right");
-    widget.controller = function () {
-      this.vm = options.viewModel;
+    widget.oninit = function (vnode) {
+      vnode.vm = options.viewModel;
     };
 
-    widget.view = function (ctrl) {
+    widget.view = function (vnode) {
       var focusAttr, buildFieldset,
         buildUnit, buildButtons,
-        vm = ctrl.vm,
+        vm = vnode.vm,
         attrs = vm.config().attrs || [],
         selectedTab = vm.selectedTab(),
         model = vm.model(),
@@ -139,7 +140,7 @@
             labelOpts.style.color = "Red";
           }
           result = m("div", {
-            config: function () {
+            oncreate: function () {
               var e;
               if (focusAttr === key && vm.isFirstLoad()) {
                 e = document.getElementById(key);
@@ -212,7 +213,7 @@
 
       return m("div", {
         class: "suite-form-content",
-        config: function (e) {
+        oncreate: function (e) {
           var bodyHeight = window.innerHeight,
             eids = vm.outsideElementIds();
 

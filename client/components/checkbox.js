@@ -21,7 +21,7 @@
 
   var checkbox = {},
     m = require("mithril"),
-    f = require("feather-core"),
+    f = require("common-core"),
     catalog = require("catalog");
 
   // Define checkbox component

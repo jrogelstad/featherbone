@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2016  John Rogelstad
+    Copyright (C) 2018  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -21,6 +21,7 @@
 
   var list, createList,
     m = require("mithril"),
+    stream = require("stream"),
     qs = require("Qs"),
     catalog = require("catalog"),
     statechart = require("statechartjs"),
@@ -50,7 +51,7 @@
       options = options || {};
       var plural,
         ary = options.value || createList(feather),
-        prop = m.prop(ary);
+        prop = stream(ary);
 
       if (options.path) { 
         ary.path(options.path);
@@ -112,24 +113,24 @@
       }
     };
 
-    ary.canFilter = m.prop(true);
+    ary.canFilter = stream(true);
 
     ary.fetch = function (filter, merge) {
       ary.filter(filter || {});
       state.send("fetch", merge);
     };
 
-    ary.filter = m.prop({});
+    ary.filter = stream({});
 
-    ary.index = m.prop({});
+    ary.index = stream({});
 
-    ary.path = m.prop();
+    ary.path = stream();
 
     /*
       Array of properties to fetch if only a subset required.
       If undefined, then all properties returned.
     */
-    ary.properties = m.prop();
+    ary.properties = stream();
 
     // Remove a model from the list
     ary.remove = function (model) {

@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2016  John Rogelstad
+    Copyright (C) 2018  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -21,6 +21,7 @@
 
   var filterDialog = {},
     m = require("mithril"),
+    stream = require("stream"),
     f = require("component-core"),
     catalog = require("catalog"),
     model = require("model"),
@@ -75,8 +76,8 @@
       vm.data()[index].value = getDefault(value);
       vm.data()[index].operator = "=";
     };
-    vm.feather = m.prop(options.feather);
-    vm.filter = m.prop();
+    vm.feather = stream(options.feather);
+    vm.filter = stream();
     vm.model = function () { return store; };
     vm.operators = function (attr) {
       var ops, prop, format,
@@ -129,8 +130,8 @@
 
       return ops;
     };
-    vm.propertyName = m.prop(options.propertyName || "criteria");
-    vm.relations = m.prop({});
+    vm.propertyName = stream(options.propertyName || "criteria");
+    vm.relations = stream({});
     vm.reset = function () {
       var name = vm.propertyName(),
         filter = f.copy(options.filter());
@@ -139,7 +140,7 @@
       if (!filter[name].length) { vm.add(); }
       vm.selection(0);
     };
-    vm.viewHeaderIds = m.prop({
+    vm.viewHeaderIds = stream({
       column: f.createId(),
       operator: f.createId(),
       value: f.createId()
@@ -258,7 +259,7 @@
         });
 
         if (w) {
-          return m.component(w, {
+          return m(w, {
             viewModel: vm,
             style: obj.style
           });

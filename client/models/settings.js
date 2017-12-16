@@ -21,8 +21,8 @@
 
   var settings,
     store = {},
-    f = require("component-core"),
-    m = require("mithril"),
+    f = require("common-core"),
+    stream = require("stream"),
     dataSource = require("datasource"),
     statechart = require("statechartjs"),
     jsonpatch = require("fast-json-patch");
@@ -53,7 +53,7 @@
       return state.resolve(state.current()[0]).canSave();
     };
 
-    that.etag = m.prop();
+    that.etag = stream();
 
     // Send event to fetch data based on the current id from the server.
     that.fetch = function () {
@@ -149,18 +149,17 @@
     };
 
     doFetch = function (context) {
-      var result = m.prop(),
-        payload = {method: "GET", path: "/settings/" + name},
-        callback = function () {
-          var data = result() || {};
+      var payload = {method: "GET", path: "/settings/" + name},
+        callback = function (result) {
+          var data = result || {};
           that.set(data.data);
           that.etag(data.etag);
           state.send('fetched');
-          context.deferred.resolve(d);
+          context.resolve(d);
         };
 
       state.goto("/Busy");
-      dataSource.request(payload).then(result).then(callback);
+      dataSource.request(payload).then(callback);
     };
 
     // If we have a formal definition, then set up each property as
@@ -195,8 +194,8 @@
           prop.format = props[key].format;
           prop.isRequired(props[key].isRequired);
           prop.isReadOnly(props[key].isReadOnly);
-          prop.isToOne = m.prop(isToOne);
-          prop.isToMany = m.prop(false);
+          prop.isToOne = stream(isToOne);
+          prop.isToMany = stream(false);
           prop.isCalculated = false;
 
           // Add state to map for event helper functions
@@ -211,39 +210,38 @@
 
     doPut = function (context) {
       var ds = dataSource,
-        result = f.prop({}),
         cache = {etag: that.etag(), data: that.toJSON()},
         payload = {method: "PUT", path: "/settings/" + name,
           data: cache},
-        callback = function () {
-          jsonpatch.apply(cache, result());
+        callback = function (result) {
+          jsonpatch.apply(cache, result);
           that.set(cache);
           state.send('fetched');
-          context.deferred.resolve(d);
+          context.resolve(d);
         };
 
       if (that.isValid()) {
-        ds.request(payload).then(result).then(callback);
+        ds.request(payload).then(callback);
       }
     };
 
     doSend = function (evt) {
-      var deferred = m.deferred();
-      state.send(evt, deferred);
-      return deferred.promise;
+      return new Promise (function (resolve) {
+        state.send(evt, resolve);
+      });
     };
 
     state = statechart.define(function () {
       this.enter(doInit);
       this.state("Ready", function () {
-        this.event("fetch", function (deferred) {
+        this.event("fetch", function (resolve) {
           this.goto("/Busy", {
-            context: {deferred: deferred}
+            context: {resolve: resolve}
           });
         });
 
         this.state("New", function () {
-          this.canSave = m.prop(false);
+          this.canSave = stream(false);
         });
 
         this.state("Fetched", function () {
@@ -251,13 +249,13 @@
             this.event("changed", function () {
               this.goto("../Dirty");
             });
-            this.canSave = m.prop(false);
+            this.canSave = stream(false);
           });
 
           this.state("Dirty", function () {
-            this.event("save", function (deferred) {
+            this.event("save", function (resolve) {
               this.goto("/Busy/Saving", {
-                context: {deferred: deferred}
+                context: {resolve: resolve}
               });
             });
             this.canSave = that.isValid;
@@ -268,11 +266,11 @@
       this.state("Busy", function () {
         this.state("Fetching", function () {
           this.enter(doFetch);
-          this.canSave = m.prop(false);
+          this.canSave = stream(false);
         });
         this.state("Saving", function () {
           this.enter(doPut);
-          this.canSave = m.prop(false);
+          this.canSave = stream(false);
         });
 
         this.event("fetched", function () {
@@ -286,7 +284,7 @@
       this.state("Error", function () {
         // Prevent exiting from this state
         this.canExit = function () { return false; };
-        this.canSave = m.prop(false);
+        this.canSave = stream(false);
       });
     });
 

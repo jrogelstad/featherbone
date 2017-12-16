@@ -19,7 +19,7 @@
     "fast-json-patch": "^0.5.7",
     "font-awesome": "^4.7.0",
     "mathjs": "^2.7.0",
-    "mithril": "^0.2.8",
+    "mithril": "^1.1.6",
     "pg": "^4.5.7",
     "pg-format": "^0.1.4",
     "purecss": "^0.6.2",

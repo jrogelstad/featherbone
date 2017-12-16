@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2016  John Rogelstad
+    Copyright (C) 2018  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -21,7 +21,8 @@
 
   var sortDialog = {},
     m = require("mithril"),
-    f = require("feather-core"),
+    stream = require("stream"),
+    f = require("common-core"),
     filterDialog = require("filter-dialog");
 
   /**
@@ -51,7 +52,7 @@
         return true;
       }
     };
-    vm.viewHeaderIds = m.prop({
+    vm.viewHeaderIds = stream({
       column: f.createId(),
       order: f.createId()
     });

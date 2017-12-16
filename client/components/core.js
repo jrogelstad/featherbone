@@ -21,9 +21,13 @@
 
   require("workbook");
 
-  var f = require("feather-core"),
+  var waiting,
+    thenables = [], callbacks = [], queue = [],
+    i = 0,
+    f = require("common-core"),
     catalog = require("catalog"),
-    m = require("mithril");
+    m = require("mithril"),
+    stream = require("stream");
 
   /**
     Object to define what input type to use for data
@@ -110,7 +114,7 @@
         style: opts.style
       });
 
-      if (w) { return m.component(w); }
+      if (w) { return m(w); }
     }
 
     if (prop.isToMany()) {
@@ -118,7 +122,7 @@
         parentViewModel: obj.viewModel,
         parentProperty: key
       });
-      if (w) { return m.component(w); }
+      if (w) { return m(w); }
     }
 
     console.log("Widget for property '" + key + "' is unknown");
@@ -250,6 +254,133 @@
     return { x: xPosition, y: yPosition };
   };
 
+  /**
+    Add an asynchronous function call that should 
+    be executed when the application is intialized.
+    Functions are executed serially such that the
+    most recent isn't executed until all preceding
+    callbacks are executed.
+
+    Functions passed in should return a value using
+    promises to ensure proper completion of the
+    queue.
+
+    Init itself returns a promise that will be
+    resolved when all queued callbacks are complete.
+    As such  `init` can be called passing no callback
+    followed by `then` and another function to
+    be executed when the application is completetly
+    initialized.
+
+      var myAsync, reportProgress, reportFinish;
+
+      // Define an async function
+      myAsync = function(msec) {
+        return new Promise(function (resolve) {
+          setTimeout(function() {
+            resolve(true);
+          }, msec || 1000);
+        };
+      };
+
+      // A function that reports back incremental progress
+      reportProgress = function () {
+        var n = f.initCount(),
+          i = n - f.initRemaining();
+        console.log("myAsync completed " + i + " of " + n + " calls.");
+      };
+
+      // A function that reports back end results
+      reportFinish = function () {
+        console.log("myAsync complete!");
+      };
+
+      // Attached progress report
+      f.initEach(reportProgress);
+
+      // Kick off first async (no argument)
+      f.init(myAsync);
+
+      // Kick off second async (includes argument)
+      f.init(myAsync.bind(this, 500));
+
+      // Report results after all are initializations are complete
+      f.init().then(reportFinish);  
+
+      // "myAsync completed 1 of 2 calls."
+      // "myAsync completed 2 of 2 calls."
+      // "myAsync complete!"
+
+    @seealso initCount
+    @seealso initEach
+    @seealso initRemaining
+    @param {Function} Callback
+    returns {Object} promise
+  */
+  f.init = function (callback) {
+    var func, next,
+      promise = new Promise(callback);
+
+    thenables.push(promise);
+
+    if (typeof callback === "function") {
+      i += 1;
+      queue.push(callback);
+    }
+    if (waiting) {
+      return promise;
+    }
+    if (!queue.length) {
+      while (thenables.length) {
+        thenables.shift().resolve(true);
+      }
+      return promise;
+    }
+
+    waiting = true;
+    func = queue.shift();
+
+    next = function () {
+      waiting = false;
+      callbacks.forEach(function (callback) {
+        callback();
+      });
+      return true;
+    };
+
+    func().then(next).then(f.init);
+
+    return promise;
+  };
+
+  /**
+    Return the total number of functions queued to
+    initialize.
+
+    @return {Number}
+  */
+  f.initCount = function () {
+    return i;
+  };
+
+  /*
+    Add a callback to be executed when each
+    initialization is complete.
+  */
+  f.initEach = function (callback) {
+    callbacks.push(callback);
+  };
+
+  /**
+    Return the remaining functions queued to
+    initialize.
+
+    @return {Number}
+  */
+  f.initRemaining = function () {
+    return queue.length;
+  };
+
   /** @private  Helper function recursive list of feather properties */
   f.resolveProperties = function (feather, properties, ary, prefix) {
     prefix = prefix || "";
@@ -275,7 +406,7 @@
     var prefix, suffix,
       idx = property.indexOf(".");
 
-    if (!model) { return m.prop(null); }
+    if (!model) { return stream(null); }
 
     if (idx > -1) {
       prefix = property.slice(0, idx);

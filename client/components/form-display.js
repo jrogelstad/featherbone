@@ -22,6 +22,7 @@
 
   var formDisplay = {},
     m = require("mithril"),
+    stream = require("stream"),
     button = require("button"),
     catalog = require("catalog"),
     formWidget = require("form-widget");
@@ -34,10 +35,10 @@
     wbkroute = wbkroute.toSpinalCase();
     frmroute = frmroute.toSpinalCase();
 
-    vm.buttonApply = m.prop();
-    vm.buttonDone = m.prop();
-    vm.buttonSave = m.prop();
-    vm.buttonSaveAndNew = m.prop();
+    vm.buttonApply = stream();
+    vm.buttonDone = stream();
+    vm.buttonSave = stream();
+    vm.buttonSaveAndNew = stream();
     vm.doApply = function () {
       vm.formWidget().model().save();
     };
@@ -57,7 +58,7 @@
         m.route(frmroute);
       });
     };
-    vm.formWidget = m.prop(formWidget.viewModel({
+    vm.formWidget = stream(formWidget.viewModel({
       model: options.feather.toCamelCase(),
       id: options.id,
       config: options.config,
@@ -134,8 +135,8 @@
   formDisplay.component = function (options) {
     var widget = {};
 
-    widget.controller = function () {
-      this.vm = formDisplay.viewModel({
+    widget.oninit = function (vnode) {
+      vnode.vm = formDisplay.viewModel({
         workbook: options.workbook,
         sheet: options.sheet,
         form: options.form,
@@ -145,9 +146,9 @@
       });
     };
 
-    widget.view = function (ctrl) {
+    widget.view = function (vnode) {
       var view,
-        vm = ctrl.vm;
+        vm = vnode.vm;
 
       // Build view
       view = m("div", [
@@ -155,12 +156,12 @@
           id: "toolbar",
           class: "suite-header"
         }, [
-          m.component(button.component({viewModel: vm.buttonDone()})),
-          m.component(button.component({viewModel: vm.buttonApply()})),
-          m.component(button.component({viewModel: vm.buttonSave()})),
-          m.component(button.component({viewModel: vm.buttonSaveAndNew()}))
+          m(button.component({viewModel: vm.buttonDone()})),
+          m(button.component({viewModel: vm.buttonApply()})),
+          m(button.component({viewModel: vm.buttonSave()})),
+          m(button.component({viewModel: vm.buttonSaveAndNew()}))
         ]),
-        m.component(formWidget.component({viewModel: vm.formWidget()}))
+        m(formWidget.component({viewModel: vm.formWidget()}))
       ]);
 
       return view;

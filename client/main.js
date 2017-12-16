@@ -35,13 +35,14 @@
   require("child-table");
 
   var m = require("mithril"),
+    stream = require("stream"),
     f = require("component-core"),
     model = require("model"),
     settings = require("settings"),
     catalog = require("catalog"),
     dataSource = require("datasource"),
     list = require("list"),
-    workbooks = m.prop();
+    workbooks = stream();
 
   // Load catalog and process models
   f.init(function () {
@@ -77,7 +78,7 @@
 
   // Load settings definition
   f.init(function () {
-    var definitions = m.prop(),
+    var definitions = stream(),
       payload = {method: "GET", path: "/settings-definition"},
       models = catalog.register("models");
 
@@ -106,7 +107,7 @@
 
   // Load modules
   f.init(function () {
-    var modules = m.prop([]),
+    var modules = stream([]),
       payload = {method: "GET", path: "/modules/"};
 
     return dataSource.request(payload).then(modules).then(function () {
@@ -121,7 +122,7 @@
 
   // Load forms
   f.init(function () {
-    var data = m.prop([]),
+    var data = stream([]),
       payload = {method: "GET", path: "/data/forms"},
       forms = catalog.register("forms");
 
@@ -137,7 +138,7 @@
 
   // Load relation widgets
   f.init(function () {
-    var data = m.prop([]),
+    var data = stream([]),
       payload = {method: "GET", path: "/data/relation-widgets"};
 
     return dataSource.request(payload).then(data).then(function () {
@@ -168,9 +169,7 @@
 
     // Build home navigation page
     app.Home = {
-      controller: function () {
-        var that = this;
-
+      oninit: function (vnode) {
         workbooks().forEach(function (workbook) {
           var config = f.getConfig(workbook),
             sheetname = config[0].name,
@@ -178,12 +177,12 @@
             route = "/" + workbook.name + "/" + sheetname;
           route = route.toSpinalCase();
 
-          that["go" + name] = function () {
-            m.route(route);
+          vnode["go" + name] = function () {
+            m.route.set(route);
           };
         });
       },
-      view: function (ctrl) {
+      view: function (vnode) {
         var buttons = workbooks().map(function (workbook) {
             var config = f.getConfig(workbook),
               sheet = config[0].name,
@@ -197,7 +196,7 @@
                 color: launchConfig.color,
                 margin: "3px"
               },
-              onclick: ctrl["go" + name]
+              onclick: vnode["go" + name]
             }, [m("i", {
               class: className, 
               style: {

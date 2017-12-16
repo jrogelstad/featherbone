@@ -24,7 +24,8 @@
 
   var dialog = {},
     m = require("mithril"),
-    f = require("feather-core"),
+    stream = require("stream"),
+    f = require("common-core"),
     statechart = require("statechartjs");
 
   /**
@@ -45,8 +46,8 @@
     //
 
     vm = {};
-    vm.icon = m.prop(options.icon);
-    vm.ids = m.prop({
+    vm.icon = stream(options.icon);
+    vm.ids = stream({
       dialog: options.id || f.createId(),
       header: f.createId(),
       buttonOk: f.createId(),
@@ -66,9 +67,9 @@
     vm.displayCancel = function () {
       return vm.onOk() ? "inline-block" : "none";
     };
-    vm.message = m.prop(options.message || "Your message here");
-    vm.onCancel = m.prop(options.onCancel);
-    vm.onOk = m.prop(options.onOk);
+    vm.message = stream(options.message || "Your message here");
+    vm.onCancel = stream(options.onCancel);
+    vm.onOk = stream(options.onOk);
     vm.ok = function () {
       var doOk = vm.onOk();
       if (typeof doOk === "function") {
@@ -76,16 +77,16 @@
       }
       state.send("close");
     };
-    vm.okDisabled = m.prop(false);
-    vm.okTitle = m.prop("");
+    vm.okDisabled = stream(false);
+    vm.okTitle = stream("");
     vm.show = function () {
       state.send("show");
     };
-    vm.title = m.prop(options.title || "");
+    vm.title = stream(options.title || "");
     vm.state = function () {
       return state;
     };
-    vm.style = m.prop({width: "450px"});
+    vm.style = stream({width: "450px"});
 
     // ..........................................................
     // PRIVATE
@@ -129,13 +130,13 @@
   dialog.component = function (options) {
     var component = {};
 
-    component.controller = function () {
-      this.vm = options.viewModel || dialog.viewModel(options);
+    component.onint = function (vnode) {
+      vnode.vm = options.viewModel || dialog.viewModel(options);
     };
 
-    component.view = function (ctrl) {
+    component.view = function (vnode) {
       var view, okOpts,
-        vm = ctrl.vm,
+        vm = vnode.vm,
         ids = vm.ids(),
         style = f.copy(vm.style());
 
@@ -154,7 +155,7 @@
           id: ids.dialog,
           class: "suite-dialog",
           style: style,
-          config: function (dlg) {
+          oncreate: function (dlg) {
             // Make Chrome style dialog available for all browsers
             if (!dlg.showModal) { dialogPolyfill.registerDialog(dlg); }
           }

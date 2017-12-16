@@ -21,6 +21,7 @@
 
   var formDialog = {},
     m = require("mithril"),
+    stream = require("stream"),
     dialog = require("dialog"),
     formWidget = require("form-widget");
 
@@ -47,8 +48,8 @@
     };
 
     vm = dialog.viewModel(options);
-    vm.formWidget = m.prop();
-    vm.modelId = m.prop(options.id);
+    vm.formWidget = stream();
+    vm.modelId = stream(options.id);
     vm.okDisabled = function () {
       var w = vm.formWidget();
       return w ? !w.model().canSave() : true;
@@ -89,7 +90,7 @@
       delete vm.style().display;
     });
     substate.content = function () {
-      return  m.component(formWidget.component({viewModel: vm.formWidget()}));
+      return  m(formWidget.component({viewModel: vm.formWidget()}));
     };
     substate.exit(function () {
       vm.formWidget(undefined);

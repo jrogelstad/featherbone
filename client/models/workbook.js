@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2016  John Rogelstad
+    Copyright (C) 2018  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -22,7 +22,7 @@
   var workbook, workbookModel, workbookChild,
     workbookDefaultConifg, workbookLocalConfig,
     workbookList, models, feathers,
-    f = require("feather-core"),
+    f = require("common-core"),
     model = require("model"),
     dataSource = require("datasource"),
     catalog = require("catalog");
@@ -163,19 +163,18 @@
     //
 
     doPut = function (context) {
-      var result = f.prop(),
-        cache = that.toJSON(),
+      var cache = that.toJSON(),
         payload = {method: "PUT", path: that.path(that.name, that.data.name()),
           data: cache},
-        callback = function () {
-          if (result()) {
+        callback = function (result) {
+          if (result) {
             state.send('fetched');
-            context.deferred.resolve(that.data);
+            context.promise.resolve(that.data);
           }
         };
 
       if (that.isValid()) {
-        dataSource.request(payload).then(result).then(callback);
+        dataSource.request(payload).then(callback);
       }
     };
 
@@ -187,9 +186,9 @@
     substate.substates.length = 0;
     substate.enter(doPut);
     substate = state.resolve("/Ready/Fetched/Dirty");
-    substate.event("save", function (deferred) {
+    substate.event("save", function (promise) {
       substate.goto("/Busy/Saving", {
-        context: {deferred: deferred}
+        context: {promise: promise}
       });
     });
 

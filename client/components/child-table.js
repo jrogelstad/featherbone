@@ -22,9 +22,9 @@
   var findRoot,
     childTable = {},
     m = require("mithril"),
+    stream = require("stream"),
     button = require("button"),
     catalog = require("catalog"),
-    //formDialog = require("form-dialog"),
     tableWidget = require("table-widget");
 
   findRoot = function (model) {
@@ -56,13 +56,13 @@
     // PUBLIC
     //
 
-    vm.buttonAdd = m.prop();
-    vm.buttonOpen = m.prop();
-    vm.buttonRemove = m.prop();
-    vm.buttonUndo = m.prop();
-    //vm.formDialog = m.prop();
-    vm.tableWidget = m.prop();
-    vm.parentViewModel = m.prop(options.parentViewModel);
+    vm.buttonAdd = stream();
+    vm.buttonOpen = stream();
+    vm.buttonRemove = stream();
+    vm.buttonUndo = stream();
+    //vm.formDialog = stream();
+    vm.tableWidget = stream();
+    vm.parentViewModel = stream(options.parentViewModel);
     vm.refresh = function () {
       vm.tableWidget().refresh();
     };
@@ -178,7 +178,7 @@
       return item.attr === parentProperty;
     });
 
-    component.controller = function () {
+    component.oninit = function (vnode) {
       var relations = options.parentViewModel.relations();
 
       // Set up viewModel if required
@@ -190,20 +190,20 @@
           config: config
         });
       }
-      this.vm = relations[parentProperty];
+      vnode.vm = relations[parentProperty];
     };
 
-    component.view = function (ctrl) {
+    component.view = function (vnode) {
       var view,
-        vm = ctrl.vm;
+        vm = vnode.vm;
 
       view = m("div", [
-        m.component(button.component({viewModel: vm.buttonAdd()})),
-        m.component(button.component({viewModel: vm.buttonRemove()})),
-        m.component(button.component({viewModel: vm.buttonUndo()})),
-        m.component(button.component({viewModel: vm.buttonOpen()})),
-        //m.component(formDialog.component({viewModel: vm.formDialog()})),
-        m.component(tableWidget.component({viewModel: vm.tableWidget()}))
+        m(button.component({viewModel: vm.buttonAdd()})),
+        m(button.component({viewModel: vm.buttonRemove()})),
+        m(button.component({viewModel: vm.buttonUndo()})),
+        m(button.component({viewModel: vm.buttonOpen()})),
+        //m(formDialog.component({viewModel: vm.formDialog()})),
+        m(tableWidget.component({viewModel: vm.tableWidget()}))
       ]);
 
       return view;

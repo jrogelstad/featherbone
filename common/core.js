@@ -20,11 +20,8 @@
 (function () {
   "use strict";
 
-  var that, waiting, isToMany, isToOne, isChild, lastTick,
-    callbacks = [], queue = [], thenables = [],
-    statechart = require("statechartjs"),
-    m = require("mithril"),
-    i = 0;
+  var that, isToMany, isToOne, isChild, lastTick,
+    statechart = require("statechartjs");
 
   that = {
     PRECISION_DEFAULT: 18,
@@ -104,133 +101,6 @@
     */
     getCurrentUser: function () {
       return "admin";
-    },
-
-    /**
-      Add an asynchronous function call that should 
-      be executed when the application is intialized.
-      Functions are executed serially such that the
-      most recent isn't executed until all preceding
-      callbacks are executed.
-
-      Functions passed in should return a value using
-      deferred promises to ensure proper completion of the
-      queue.
-
-      Init itself returns a deferred promise that will be
-      resolved when all queued callbacks are complete.
-      As such  `init` can be called passing no callback
-      followed by `then` and another function to
-      be executed when the application is completetly
-      initialized.
-
-        var myAsync, reportProgress, reportFinish;
-
-        // Define an async function
-        myAsync = function(msec) {
-          var deferred = m.deferred();
-          setTimeout(function() {
-            deferred.resolve(true);
-          }, msec || 1000);
-          return deferred.promise;
-        };
-
-        // A function that reports back incremental progress
-        reportProgress = function () {
-          var n = f.initCount(),
-            i = n - f.initRemaining();
-          console.log("myAsync completed " + i + " of " + n + " calls.");
-        };
-
-        // A function that reports back end results
-        reportFinish = function () {
-          console.log("myAsync complete!");
-        };
-
-        // Attached progress report
-        f.initEach(reportProgress);
-
-        // Kick off first async (no argument)
-        f.init(myAsync);
-
-        // Kick off second async (includes argument)
-        f.init(myAsync.bind(this, 500));
-
-        // Report results after all are initializations are complete
-        f.init().then(reportFinish);  
-
-        // "myAsync completed 1 of 2 calls."
-        // "myAsync completed 2 of 2 calls."
-        // "myAsync complete!"
-
-      @seealso initCount
-      @seealso initEach
-      @seealso initRemaining
-      @param {Function} Callback
-      returns {Object} Deferred promise
-    */
-    init: function (callback) {
-      var func, next,
-        deferred = m.deferred();
-
-      thenables.push(deferred);
-
-      if (typeof callback === "function") {
-        i += 1;
-        queue.push(callback);
-      }
-      if (waiting) {
-        return deferred.promise;
-      }
-      if (!queue.length) {
-        while (thenables.length) {
-          thenables.shift().resolve(true);
-        }
-        return deferred.promise;
-      }
-
-      waiting = true;
-      func = queue.shift();
-
-      next = function () {
-        waiting = false;
-        callbacks.forEach(function (callback) {
-          callback();
-        });
-        return true;
-      };
-
-      func().then(next).then(that.init);
-
-      return deferred.promise;
-    },
-
-    /**
-      Return the total number of functions queued to
-      initialize.
-
-      @return {Number}
-    */
-    initCount: function () {
-      return i;
-    },
-
-    /*
-      Add a callback to be executed when each
-      initialization is complete.
-    */
-    initEach: function (callback) {
-      callbacks.push(callback);
-    },
-
-    /**
-      Return the remaining functions queued to
-      initialize.
-
-      @return {Number}
-    */
-    initRemaining: function () {
-      return queue.length;
     },
 
     /**

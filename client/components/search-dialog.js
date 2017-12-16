@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2016  John Rogelstad
+    Copyright (C) 2018  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -21,6 +21,7 @@
 
   var searchDialog = {},
     m = require("mithril"),
+    stream = require("stream"),
     f = require("component-core"),
     button = require("button"),
     dialog = require("dialog"),
@@ -47,11 +48,11 @@
     options.icon = options.icon || "search";
 
     vm = dialog.viewModel(options);
-    vm.buttonClear = m.prop();
-    vm.buttonFilter = m.prop();
-    vm.buttonRefresh = m.prop();
-    vm.buttonSort = m.prop();
-    vm.filterDialog = m.prop();
+    vm.buttonClear = stream();
+    vm.buttonFilter = stream();
+    vm.buttonRefresh = stream();
+    vm.buttonSort = stream();
+    vm.filterDialog = stream();
     vm.okDisabled = function () {
       return !vm.tableWidget().selection();
     };
@@ -61,19 +62,19 @@
       }
       return "";
     };
-    vm.sortDialog = m.prop();
-    vm.searchInput = m.prop();
-    vm.tableWidget = m.prop();
+    vm.sortDialog = stream();
+    vm.searchInput = stream();
+    vm.tableWidget = stream();
     vm.content = function () {
       return m("div", [
-        m.component(searchInput.component({viewModel: vm.searchInput()})),
-        m.component(button.component({viewModel: vm.buttonRefresh()})),
-        m.component(button.component({viewModel: vm.buttonClear()})),
-        m.component(button.component({viewModel: vm.buttonSort()})),
-        m.component(button.component({viewModel: vm.buttonFilter()})),
-        m.component(sortDialog.component({viewModel: vm.sortDialog()})),
-        m.component(filterDialog.component({viewModel: vm.filterDialog()})),
-        m.component(tableWidget.component({viewModel: vm.tableWidget()}))
+        m(searchInput.component({viewModel: vm.searchInput()})),
+        m(button.component({viewModel: vm.buttonRefresh()})),
+        m(button.component({viewModel: vm.buttonClear()})),
+        m(button.component({viewModel: vm.buttonSort()})),
+        m(button.component({viewModel: vm.buttonFilter()})),
+        m(sortDialog.component({viewModel: vm.sortDialog()})),
+        m(filterDialog.component({viewModel: vm.filterDialog()})),
+        m(tableWidget.component({viewModel: vm.tableWidget()}))
       ]);
     };
     vm.refresh = function () {

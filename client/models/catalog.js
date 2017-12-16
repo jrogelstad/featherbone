@@ -20,12 +20,12 @@
   "use strict";
 
   var settings, store = {},
-    f = require("feather-core"),
-    m = require("mithril"),
+    f = require("common-core"),
+    stream = require("stream"),
     dataSource = require("datasource"),
     statechart = require("statechartjs");
 
-  store.data = m.prop({});
+  store.data = stream({});
 
   settings = function () {
     var state, doFetch,
@@ -35,17 +35,16 @@
 
     // Send event to fetch feather data from the server.
     that.fetch = function (merge) {
-      var deferred = m.deferred();
-      state.send("fetch", {deferred: deferred, merge: merge});
-      return deferred.promise;
+      return new Promise (function (resolve) {
+        state.send("fetch", {resove: resolve, merge: merge});
+      });
     };
 
     doFetch = function (context) {
-      var result = m.prop(),
-        payload = {method: "GET", path: "/settings/catalog"},
-        callback = function () {
+      var payload = {method: "GET", path: "/settings/catalog"},
+        callback = function (result) {
           var merge,
-            data = result() || {};
+            data = result || {};
           data = data.data;
           if (context.merge) {
             merge = that.data();
@@ -56,11 +55,11 @@
           }
           that.data(data);
           state.send('fetched');
-          context.deferred.resolve(that.data);
+          context.resolve(that.data);
         };
 
       state.goto("/Busy");
-      dataSource.request(payload).then(result).then(callback);
+      dataSource.request(payload).then(callback);
     };
 
     state = statechart.define(function () {
@@ -163,7 +162,7 @@
 
     that.register = function (property, name, value) {
       if (!store[property]) {
-        store[property] = m.prop({});
+        store[property] = stream({});
       }
       if (arguments.length > 1) {
         store[property]()[name] = value;

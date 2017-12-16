@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2016  John Rogelstad
+    Copyright (C) 2018  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -21,7 +21,8 @@
 
   var tableDialog = {},
     m = require("mithril"),
-    f = require("feather-core"),
+    stream = require("stream"),
+    f = require("common-core"),
     dialog = require("dialog"),
     button = require("button"),
     statechart = require("statechartjs");
@@ -40,7 +41,7 @@
     options = options || {};
     var vm, state, createButton, buttonAdd, buttonRemove,
       buttonClear, buttonDown, buttonUp,
-      selection = m.prop();
+      selection = stream();
 
     // ..........................................................
     // PUBLIC
@@ -88,11 +89,11 @@
     };
     vm.content = function () {
       return [
-        m.component(button.component({viewModel: vm.buttonAdd()})),
-        m.component(button.component({viewModel: vm.buttonRemove()})),
-        m.component(button.component({viewModel: vm.buttonClear()})),
-        m.component(button.component({viewModel: vm.buttonDown()})),
-        m.component(button.component({viewModel: vm.buttonUp()})),
+        m(button.component({viewModel: vm.buttonAdd()})),
+        m(button.component({viewModel: vm.buttonRemove()})),
+        m(button.component({viewModel: vm.buttonClear()})),
+        m(button.component({viewModel: vm.buttonDown()})),
+        m(button.component({viewModel: vm.buttonUp()})),
         m("table", {
           class: "pure-table"
         }, [
@@ -111,7 +112,7 @@
               overflowY: "auto",
               display: "inline-block"
             },
-            config: function (e) {
+            oncreate: function (e) {
               if (vm.scrollBottom()) {
                 e.scrollTop = e.scrollHeight;
               }
@@ -145,7 +146,7 @@
     vm.hasAttr = function (item) { 
       return item.property === this;
     };
-    vm.list = m.prop(options.list);
+    vm.list = stream(options.list);
     vm.moveDown = function () {
       var ary = vm.data(),
         idx = vm.selection(),
@@ -188,11 +189,11 @@
       }
       return "White";
     };
-    vm.title = m.prop(options.title);
-    vm.viewHeaderIds = m.prop();
+    vm.title = stream(options.title);
+    vm.viewHeaderIds = stream();
     vm.viewHeaders = function () {};
     vm.viewRows = function () {};
-    vm.scrollBottom = m.prop(false);
+    vm.scrollBottom = stream(false);
     vm.selection = function (index, select) {
       var ary = vm.data();
 
