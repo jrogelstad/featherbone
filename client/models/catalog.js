@@ -36,7 +36,7 @@
     // Send event to fetch feather data from the server.
     that.fetch = function (merge) {
       return new Promise (function (resolve) {
-        state.send("fetch", {resove: resolve, merge: merge});
+        state.send("fetch", {resolve: resolve, merge: merge});
       });
     };
 
@@ -55,7 +55,7 @@
           }
           that.data(data);
           state.send('fetched');
-          context.resolve(that.data);
+          context.resolve(data);
         };
 
       state.goto("/Busy");

@@ -34,7 +34,9 @@
   require("relation-widget");
   require("child-table");
 
-  var m = require("mithril"),
+  var loadCatalog, loadSettings, loadModules,
+    loadForms, loadRelationWidgets, loadWorkbooks,
+    m = require("mithril"),
     stream = require("stream"),
     f = require("component-core"),
     model = require("model"),
@@ -45,12 +47,12 @@
     workbooks = stream();
 
   // Load catalog and process models
-  f.init(function () {
-    return catalog.fetch(true).then(function (data) {
+  loadCatalog = new Promise(function (resolve) {
+    catalog.fetch(true).then(function (data) {
       var feathers,
         models = catalog.register("models");
 
-      feathers = Object.keys(data());
+      feathers = Object.keys(data);
       feathers.forEach(function (feather) {
         var name = feather.toCamelCase(),
           plural = catalog.getFeather(feather, false).plural;
@@ -72,20 +74,20 @@
         }
       });
 
-      return true;
+      console.log("Catalog loaded");
+      resolve();
     });
   });
 
   // Load settings definition
-  f.init(function () {
-    var definitions = stream(),
-      payload = {method: "GET", path: "/settings-definition"},
+  loadSettings = new Promise(function (resolve) {
+    var payload = {method: "GET", path: "/settings-definition"},
       models = catalog.register("models");
 
-    return dataSource.request(payload).then(definitions).then(function () {
+    dataSource.request(payload).then(function (definitions) {
 
       // Loop through each definition and build a settings model function
-      definitions().forEach(function (definition) {
+      definitions.forEach(function (definition) {
         var name = definition.name;
         // Implement generic function to object from model
         if (typeof models[name] !== "function") {
@@ -101,49 +103,49 @@
         };       
       });
 
-      return true;
+      console.log("Settings loaded");
+      resolve();
     });
   });
 
   // Load modules
-  f.init(function () {
-    var modules = stream([]),
-      payload = {method: "GET", path: "/modules/"};
+  loadModules = new Promise (function (resolve) {
+    var payload = {method: "GET", path: "/modules/"};
 
-    return dataSource.request(payload).then(modules).then(function () {
+    dataSource.request(payload).then(function (modules) {
       // Loop through each module record and run script
-      modules().forEach(function (module) {
+      modules.forEach(function (module) {
         eval(module.script);
       });
 
-      return true;
+      console.log("Modules loaded");
+      resolve();
     });
   });
 
   // Load forms
-  f.init(function () {
-    var data = stream([]),
-      payload = {method: "GET", path: "/data/forms"},
+  loadForms = new Promise (function (resolve) {
+    var payload = {method: "GET", path: "/data/forms"},
       forms = catalog.register("forms");
 
-    return dataSource.request(payload).then(data).then(function () {
+    dataSource.request(payload).then(function (data) {
       // Loop through each form record and load into catalog
-      data().forEach(function (form) {
+      data.forEach(function (form) {
         forms[form.id] = form;
       });
 
-      return true;
+      console.log("Forms loaded");
+      resolve();
     });
   });
 
   // Load relation widgets
-  f.init(function () {
-    var data = stream([]),
-      payload = {method: "GET", path: "/data/relation-widgets"};
+  loadRelationWidgets = new Promise (function (resolve) {
+    var payload = {method: "GET", path: "/data/relation-widgets"};
 
-    return dataSource.request(payload).then(data).then(function () {
+    return dataSource.request(payload).then(function (data) {
       // Loop through each record and build widget
-      data().forEach(function (item) {
+      data.forEach(function (item) {
         // Some transformation
         item.form = item.form.id;
         item.list = {columns: item.searchColumns};
@@ -151,19 +153,30 @@
         f.buildRelationWidget(item);
       });
 
-      return true;
+      console.log("Relation widgets loaded");
+      resolve();
     });
   });
 
   // Load workbooks
-  f.init(function () {
+  loadWorkbooks = new Promise(function (resolve) {
     var payload = {method: "GET", path: "/workbooks/"};
 
-    return dataSource.request(payload).then(workbooks);
+    dataSource.request(payload).then(function (data) {
+      workbooks(data);
+      resolve("Workbooks loaded");
+    });
   });
 
   // When all intialization done, construct app.
-  f.init().then(function () {
+  Promise.all([
+    loadCatalog,
+    loadSettings,
+    loadForms,
+    loadModules,
+    loadRelationWidgets,
+    loadWorkbooks])
+  .then(function () {
     var routes,
       app = {};
 
