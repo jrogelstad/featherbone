@@ -473,7 +473,7 @@
 
     component.oninit = function (vnode) {
       viewModel = viewModel || workbookDisplay.viewModel(options);
-      vnode.vm = viewModel;
+      vnode.attrs.vm = viewModel;
       if (viewModel.didLeave()) {
         viewModel.didLeave(false);
         viewModel.refresh(); 
@@ -482,7 +482,7 @@
 
     component.view = function (vnode) {
       var filterMenuClass, tabs, view,
-        vm = vnode.vm,
+        vm = vnode.attrs.vm,
         activeSheet = vm.sheet(),
         config = vm.config(),
         idx = 0;

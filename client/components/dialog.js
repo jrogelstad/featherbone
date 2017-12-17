@@ -130,13 +130,13 @@
   dialog.component = function (options) {
     var component = {};
 
-    component.onint = function (vnode) {
-      vnode.vm = options.viewModel || dialog.viewModel(options);
+    component.oninit = function (vnode) {
+      vnode.attrs.vm = options.viewModel || dialog.viewModel(options);
     };
 
     component.view = function (vnode) {
       var view, okOpts,
-        vm = vnode.vm,
+        vm = vnode.attrs.vm,
         ids = vm.ids(),
         style = f.copy(vm.style());
 
@@ -155,8 +155,9 @@
           id: ids.dialog,
           class: "suite-dialog",
           style: style,
-          oncreate: function (dlg) {
+          oncreate: function (vnode) {
             // Make Chrome style dialog available for all browsers
+            var dlg = document.getElementById(vnode.dom.id);
             if (!dlg.showModal) { dialogPolyfill.registerDialog(dlg); }
           }
         }, [

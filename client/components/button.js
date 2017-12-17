@@ -205,12 +205,12 @@
       @param {Object} [options.viewModel] View model
     */
     component.oninit = function (vnode) {
-      vnode.vm =  options.viewModel || f.viewModels.buttonViewModel(options);
+      vnode.attrs.vm =  options.viewModel || f.viewModels.buttonViewModel(options);
     };
 
     component.view = function (vnode) {
       var opts, view, iconView,
-        vm = vnode.vm,
+        vm = vnode.attrs.vm,
         classes = ["pure-button suite-button"],
         style = vm.style(),
         title = vm.title(),

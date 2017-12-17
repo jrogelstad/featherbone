@@ -136,7 +136,7 @@
     var widget = {};
 
     widget.oninit = function (vnode) {
-      vnode.vm = formDisplay.viewModel({
+      vnode.attrs.vm = formDisplay.viewModel({
         workbook: options.workbook,
         sheet: options.sheet,
         form: options.form,
@@ -148,7 +148,7 @@
 
     widget.view = function (vnode) {
       var view,
-        vm = vnode.vm;
+        vm = vnode.attrs.vm;
 
       // Build view
       view = m("div", [

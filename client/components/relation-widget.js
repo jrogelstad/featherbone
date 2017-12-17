@@ -223,14 +223,14 @@
           isCell: options.isCell
         });
       }
-      vnode.vm = relations[parentProperty];
-      vnode.vm.style(options.style || {});
+      vnode.attrs.vm = relations[parentProperty];
+      vnode.attrs.vm.style(options.style || {});
     };
 
     widget.view = function (vnode) {
       var listOptions, view,
         inputStyle, menuStyle, maxWidth,
-        vm = vnode.vm,
+        vm = vnode.attrs.vm,
         style = vm.style(),
         openMenuClass = "pure-menu-link",
         buttonStyle = {

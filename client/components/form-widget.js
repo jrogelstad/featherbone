@@ -64,13 +64,13 @@
     leftTabClass.push("suite-sheet-group-tab-left");
     rightTabClass.push("suite-sheet-group-tab-right");
     widget.oninit = function (vnode) {
-      vnode.vm = options.viewModel;
+      vnode.attrs.vm = options.viewModel;
     };
 
     widget.view = function (vnode) {
       var focusAttr, buildFieldset,
         buildUnit, buildButtons,
-        vm = vnode.vm,
+        vm = vnode.attrs.vm,
         attrs = vm.config().attrs || [],
         selectedTab = vm.selectedTab(),
         model = vm.model(),

@@ -190,12 +190,12 @@
           config: config
         });
       }
-      vnode.vm = relations[parentProperty];
+      vnode.attrs.vm = relations[parentProperty];
     };
 
     component.view = function (vnode) {
       var view,
-        vm = vnode.vm;
+        vm = vnode.attrs.vm;
 
       view = m("div", [
         m(button.component({viewModel: vm.buttonAdd()})),

@@ -472,13 +472,13 @@
     var component = {};
 
     component.oninit = function (vnode) {
-      vnode.vm = options.viewModel;
+      vnode.attrs.vm = options.viewModel;
     };
 
     component.view = function (vnode) {
       var tbodyConfig, findFilterIndex,
         header, rows, view, rel,
-        vm = vnode.vm,
+        vm = vnode.attrs.vm,
         ids = vm.ids(),
         config = vm.config(),
         filter = vm.filter(),
@@ -502,8 +502,9 @@
       };
 
       // Determine appropriate height based on surroundings
-      tbodyConfig = function (e) {
-        var yPosition = f.getElementPosition(e).y,
+      tbodyConfig = function (vnode) {
+        var e = document.getElementById(vnode.dom.id),
+          yPosition = f.getElementPosition(e).y,
           winHeight = window.innerHeight,
           id = vm.containerId(),
           container = id ? document.getElementById(id) : document.body,
