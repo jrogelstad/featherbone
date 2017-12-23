@@ -474,7 +474,6 @@
     component.oninit = function (vnode) {
       viewModel = viewModel || workbookDisplay.viewModel(options);
       vnode.attrs.vm = viewModel;
-      vnode.attrs.key = vnode.attrs.key || f.createId();
       if (viewModel.didLeave()) {
         viewModel.didLeave(false);
         viewModel.refresh(); 

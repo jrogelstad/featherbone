@@ -225,7 +225,6 @@
       }
       vnode.attrs.vm = relations[parentProperty];
       vnode.attrs.vm.style(options.style || {});
-      vnode.attrs.key = vnode.attrs.key || f.createId();
     };
 
     widget.view = function (vnode) {

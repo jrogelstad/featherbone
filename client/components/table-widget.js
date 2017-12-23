@@ -806,6 +806,7 @@
 
         // Build row
         rowOpts.style = { backgroundColor: color };
+        rowOpts.key = model.id();
         row = m("tr", rowOpts, tds);
 
         idx += 1;

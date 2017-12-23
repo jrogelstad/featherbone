@@ -22,7 +22,6 @@
 
   var formDisplay = {},
     m = require("mithril"),
-    f = require("common-core"),
     stream = require("stream"),
     button = require("button"),
     catalog = require("catalog"),
@@ -145,7 +144,6 @@
         id: vnode.attrs.id,
         config: options.config
       });
-      vnode.attrs.key = vnode.attrs.key || f.createId();
     };
 
     widget.view = function (vnode) {

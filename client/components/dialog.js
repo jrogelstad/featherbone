@@ -132,7 +132,6 @@
 
     component.oninit = function (vnode) {
       vnode.attrs.vm = options.viewModel || dialog.viewModel(options);
-      vnode.attrs.key = vnode.attrs.key || f.createId();
     };
 
     component.view = function (vnode) {

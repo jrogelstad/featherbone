@@ -65,7 +65,6 @@
     rightTabClass.push("suite-sheet-group-tab-right");
     widget.oninit = function (vnode) {
       vnode.attrs.vm = options.viewModel;
-      vnode.attrs.key = vnode.attrs.key || f.createId();
     };
 
     widget.view = function (vnode) {
@@ -213,7 +212,7 @@
       });
 
       return m("div", {
-        id: vnode.attrs.key,
+        id: model.id(),
         class: "suite-form-content",
         oncreate: function (vnode) {
           var e = document.getElementById(vnode.dom.id),

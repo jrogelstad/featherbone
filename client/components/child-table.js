@@ -21,7 +21,6 @@
 
   var findRoot,
     childTable = {},
-    f = require("common-core"),
     m = require("mithril"),
     stream = require("stream"),
     button = require("button"),
@@ -192,7 +191,6 @@
         });
       }
       vnode.attrs.vm = relations[parentProperty];
-      vnode.attrs.key = vnode.attrs.key || f.createId();
     };
 
     component.view = function (vnode) {
