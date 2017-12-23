@@ -112,7 +112,8 @@
               overflowY: "auto",
               display: "inline-block"
             },
-            oncreate: function (e) {
+            oncreate: function (vnode) {
+              var e = document.getElementById(vnode.dom.id);
               if (vm.scrollBottom()) {
                 e.scrollTop = e.scrollHeight;
               }

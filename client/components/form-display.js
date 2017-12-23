@@ -22,6 +22,7 @@
 
   var formDisplay = {},
     m = require("mithril"),
+    f = require("common-core"),
     stream = require("stream"),
     button = require("button"),
     catalog = require("catalog"),
@@ -43,19 +44,19 @@
       vm.formWidget().model().save();
     };
     vm.doList = function () {
-      m.route(wbkroute);
+      m.route.set(wbkroute);
     };
     vm.doNew = function () {
-      m.route(frmroute);
+      m.route.set(frmroute);
     };
     vm.doSave = function () {
       vm.model().save().then(function () {
-        m.route(wbkroute);
+        m.route.set(wbkroute);
       });
     };
     vm.doSaveAndNew = function () {
       vm.model().save().then(function () {
-        m.route(frmroute);
+        m.route.set(frmroute);
       });
     };
     vm.formWidget = stream(formWidget.viewModel({
@@ -141,9 +142,10 @@
         sheet: options.sheet,
         form: options.form,
         feather: options.feather,
-        id: m.route.param("id"),
+        id: vnode.attrs.id,
         config: options.config
       });
+      vnode.attrs.key = vnode.attrs.key || f.createId();
     };
 
     widget.view = function (vnode) {

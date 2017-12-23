@@ -65,6 +65,7 @@
     rightTabClass.push("suite-sheet-group-tab-right");
     widget.oninit = function (vnode) {
       vnode.attrs.vm = options.viewModel;
+      vnode.attrs.key = vnode.attrs.key || f.createId();
     };
 
     widget.view = function (vnode) {
@@ -140,10 +141,10 @@
             labelOpts.style.color = "Red";
           }
           result = m("div", {
-            oncreate: function () {
+            oncreate: function (vnode) {
               var e;
               if (focusAttr === key && vm.isFirstLoad()) {
-                e = document.getElementById(key);
+                e = document.getElementById(vnode.dom.id);
                 if (e) { e.focus(); }
                 vm.isFirstLoad(false);
               }
@@ -212,9 +213,11 @@
       });
 
       return m("div", {
+        id: vnode.attrs.key,
         class: "suite-form-content",
-        oncreate: function (e) {
-          var bodyHeight = window.innerHeight,
+        oncreate: function (vnode) {
+          var e = document.getElementById(vnode.dom.id),
+            bodyHeight = window.innerHeight,
             eids = vm.outsideElementIds();
 
           eids.forEach(function (id) {

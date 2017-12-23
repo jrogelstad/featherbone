@@ -180,6 +180,9 @@
     var routes,
       app = {};
 
+    // Go with straight prefix, we don't care about IE
+    m.route.prefix("");
+
     // Build home navigation page
     app.Home = {
       oninit: function (vnode) {

@@ -92,20 +92,20 @@
     vm.filterDialog = stream();
     vm.goHome = function () {
       vm.didLeave(true);
-      m.route("/home");
+      m.route.set("/home");
     };
     vm.isDraggingTab = stream(false);
     vm.modelNew = function () {
       if (!vm.tableWidget().modelNew()) {
         vm.didLeave(true);
-        m.route(frmroute);
+        m.route.set(frmroute);
       }
     };
     vm.modelOpen = function () {
       var selection = vm.tableWidget().selection();
       if (selection) {
         vm.didLeave(true);
-        m.route(frmroute + "/" + selection.id());
+        m.route.set(frmroute + "/" + selection.id());
       }
     };
     vm.newSheet = function () {
@@ -193,7 +193,7 @@
       f.buildRoutes(workbook);
       route = "/" + workbook.name + "/" + sheet.name;
       route = route.toSpinalCase();
-      m.route(route);
+      m.route.set(route);
     };
     vm.searchInput = stream();
     vm.settingsDialog = stream();
@@ -267,7 +267,7 @@
     vm.tabClicked = function (sheet) {
       var route = "/" + options.name + "/" + sheet;
       route = route.toSpinalCase();
-      m.route(route);
+      m.route.set(route);
     };
     vm.tableWidget = stream();
     vm.workbook = function () {
@@ -474,6 +474,7 @@
     component.oninit = function (vnode) {
       viewModel = viewModel || workbookDisplay.viewModel(options);
       vnode.attrs.vm = viewModel;
+      vnode.attrs.key = vnode.attrs.key || f.createId();
       if (viewModel.didLeave()) {
         viewModel.didLeave(false);
         viewModel.refresh(); 

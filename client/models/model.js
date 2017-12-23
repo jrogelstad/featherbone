@@ -902,6 +902,7 @@
         this.state("Fetching", function () {
           this.enter(doFetch);
           this.canDelete = stream(false);
+          this.canSave = stream(false);
           this.canUndo = stream(false);
         });
         this.state("Saving", function () {
@@ -914,6 +915,7 @@
           this.state("Patching", function () {
             this.enter(doPatch);
             this.canDelete = stream(false);
+            this.canSave = stream(false);
             this.canUndo = stream(false);
           });
           this.canDelete = stream(false);

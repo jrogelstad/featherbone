@@ -50,7 +50,7 @@
       f.buildRoutes(workbook.toJSON());
       route = "/" + workbook.data.name() + "/" + sheet.name;
       route = route.toSpinalCase();
-      m.route(route);
+      m.route.set(route);
       vm.state().send("close");
     };
     options.icon = "gear";

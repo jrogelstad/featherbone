@@ -28,6 +28,10 @@
   checkbox.component = function (options) {
     var component = {};
 
+    component.oninit = function (vnode) {
+      vnode.attrs.key = vnode.attrs.key || f.createId();
+    };
+
     component.view = function () {
       var view, opts,
         value = options.value,

@@ -711,7 +711,8 @@
               id: id,
               onclick: vm.toggleSelection.bind(this, model, col),
               value: prop(),
-              oncreate: function (e) {
+              oncreate: function (vnode) {
+                var e = document.getElementById(vnode.dom.id);
                 if (vm.nextFocus() === id) {
                   e.focus();
                   vm.nextFocus(undefined);

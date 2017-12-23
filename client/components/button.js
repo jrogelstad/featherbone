@@ -206,6 +206,7 @@
     */
     component.oninit = function (vnode) {
       vnode.attrs.vm =  options.viewModel || f.viewModels.buttonViewModel(options);
+      vnode.attrs.key = vnode.attrs.key || f.createId();
     };
 
     component.view = function (vnode) {

@@ -171,7 +171,7 @@
     };
     searchConfig.list = vm.listConfig();
     vm.searchDialog(searchDialog.viewModel({
-      oncreate: searchConfig,
+      config: searchConfig,
       onOk: function () {
         var selection = vm.searchDialog().tableWidget().selection();
         if (selection) {
@@ -183,7 +183,7 @@
     // Create form dialog
     vm.formDialog(formDialog.viewModel({
       model: type.relation.toCamelCase(),
-      oncreate: vm.formConfig(),
+      config: vm.formConfig(),
       onOk: function (model) {
         modelValue(model);
       }
@@ -225,6 +225,7 @@
       }
       vnode.attrs.vm = relations[parentProperty];
       vnode.attrs.vm.style(options.style || {});
+      vnode.attrs.key = vnode.attrs.key || f.createId();
     };
 
     widget.view = function (vnode) {
