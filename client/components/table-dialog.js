@@ -89,11 +89,11 @@
     };
     vm.content = function () {
       return [
-        m(button.component({viewModel: vm.buttonAdd()})),
-        m(button.component({viewModel: vm.buttonRemove()})),
-        m(button.component({viewModel: vm.buttonClear()})),
-        m(button.component({viewModel: vm.buttonDown()})),
-        m(button.component({viewModel: vm.buttonUp()})),
+        m(button.component, {viewModel: vm.buttonAdd()}),
+        m(button.component, {viewModel: vm.buttonRemove()}),
+        m(button.component, {viewModel: vm.buttonClear()}),
+        m(button.component, {viewModel: vm.buttonDown()}),
+        m(button.component, {viewModel: vm.buttonUp()}),
         m("table", {
           class: "pure-table"
         }, [

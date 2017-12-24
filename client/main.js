@@ -37,14 +37,13 @@
   var loadCatalog, loadSettings, loadModules,
     loadForms, loadRelationWidgets, loadWorkbooks,
     m = require("mithril"),
-    stream = require("stream"),
     f = require("component-core"),
     model = require("model"),
     settings = require("settings"),
     catalog = require("catalog"),
     dataSource = require("datasource"),
     list = require("list"),
-    workbooks = stream();
+    workbooks = catalog.register("workbooks");
 
   // Load catalog and process models
   loadCatalog = new Promise(function (resolve) {
@@ -74,7 +73,6 @@
         }
       });
 
-      console.log("Catalog loaded");
       resolve();
     });
   });
@@ -103,7 +101,6 @@
         };       
       });
 
-      console.log("Settings loaded");
       resolve();
     });
   });
@@ -118,7 +115,6 @@
         eval(module.script);
       });
 
-      console.log("Modules loaded");
       resolve();
     });
   });
@@ -134,7 +130,6 @@
         forms[form.id] = form;
       });
 
-      console.log("Forms loaded");
       resolve();
     });
   });
@@ -153,7 +148,6 @@
         f.buildRelationWidget(item);
       });
 
-      console.log("Relation widgets loaded");
       resolve();
     });
   });
@@ -163,8 +157,12 @@
     var payload = {method: "GET", path: "/workbooks/"};
 
     dataSource.request(payload).then(function (data) {
-      workbooks(data);
-      resolve("Workbooks loaded");
+      var workbookModel = catalog.store().models().workbook;
+
+      data.forEach(function (workbook) {
+        workbooks[workbook.name.toSpinalCase().toCamelCase()] = workbookModel(workbook);
+      });
+      resolve();
     });
   });
 
@@ -177,30 +175,28 @@
     loadRelationWidgets,
     loadWorkbooks])
   .then(function () {
-    var routes,
-      app = {};
+    var home,
+      components = catalog.store().components();
 
     // Build home navigation page
-    app.Home = {
+    home = {
       oninit: function (vnode) {
-        workbooks().forEach(function (workbook) {
-          var config = f.getConfig(workbook),
-            sheetname = config[0].name,
-            name = workbook.name + sheetname,
-            route = "/" + workbook.name + "/" + sheetname;
-          route = route.toSpinalCase();
+        Object.keys(workbooks).forEach(function (key) {
+          var workbook = workbooks[key],
+            config = workbook.getConfig();
 
-          vnode["go" + name] = function () {
-            m.route.set(route);
+          vnode["go" + workbook.data.name()] = function () {
+            m.route.set("/workbook/:workbook/:sheet", {
+              workbook: workbook.data.name().toSpinalCase(),
+              sheet: config[0].name.toSpinalCase()
+            });
           };
         });
       },
       view: function (vnode) {
-        var buttons = workbooks().map(function (workbook) {
-            var config = f.getConfig(workbook),
-              sheet = config[0].name,
-              name = workbook.name + sheet,
-              launchConfig = workbook.launchConfig,
+        var buttons = Object.keys(workbooks).map(function (key) {
+            var workbook = workbooks[key],
+              launchConfig = workbook.data.launchConfig(),
               className = "fa fa-" + launchConfig.icon || "gear";
             return m("button[type=button]", {
               class: "pure-button",
@@ -209,7 +205,7 @@
                 color: launchConfig.color,
                 margin: "3px"
               },
-              onclick: vnode["go" + name]
+              onclick: vnode["go" + workbook.data.name()]
             }, [m("i", {
               class: className, 
               style: {
@@ -217,7 +213,7 @@
                 fontSize: "xx-large",
                 margin: "8px"
               }
-            })], workbook.name.toName());
+            })], workbook.data.name().toName());
           });
         return m("div", [
           m("h2", {
@@ -232,12 +228,13 @@
         ]);
       }
     };
-    routes = catalog.register("routes", "/home", app.Home);
 
-    // Build workbook for each configured object
-    workbooks().forEach(f.buildRoutes);
-
-    m.route(document.body, "/home", routes);
+    m.route(document.body, "/home", {
+      "/home": home,
+      "/workbook/:workbook/:sheet": components.workbookDisplay,
+      "/edit/:form": components.formDisplay,
+      "/edit/:form/:id": components.formDisplay
+    });
   });
 
   // Let displays handle their own overflow locally

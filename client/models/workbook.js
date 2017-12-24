@@ -158,6 +158,21 @@
       return ret;
     };
 
+    that.getConfig = function () {
+      var d = that.data,
+        config = d.defaultConfig();
+      if (d.localConfig().length) {
+        config = d.localConfig();
+      }
+      // Resolve form
+      config.forEach(function(sheet){
+        if (typeof sheet.form === "string") {
+          sheet.form = catalog.store().forms()[sheet.form];
+        }
+      });
+      return config.toJSON();  
+    };
+
     // ..........................................................
     // PRIVATE
     //

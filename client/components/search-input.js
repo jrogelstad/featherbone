@@ -129,10 +129,12 @@
       @param {Object} [options.viewModel] View model
     */
     component.oninit = function (vnode) {
+      console.log("Init search...");
       vnode.attrs.vm =  options.viewModel || searchInput.viewModel(options);
     };
 
     component.view = function (vnode) {
+      console.log("View search...");
       var opts, view,
         vm = vnode.attrs.vm;
 

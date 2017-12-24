@@ -68,10 +68,10 @@
     vm.content = function () {
       return m("div", [
         m(searchInput.component({viewModel: vm.searchInput()})),
-        m(button.component({viewModel: vm.buttonRefresh()})),
-        m(button.component({viewModel: vm.buttonClear()})),
-        m(button.component({viewModel: vm.buttonSort()})),
-        m(button.component({viewModel: vm.buttonFilter()})),
+        m(button.component, {viewModel: vm.buttonRefresh()}),
+        m(button.component, {viewModel: vm.buttonClear()}),
+        m(button.component, {viewModel: vm.buttonSort()}),
+        m(button.component, {viewModel: vm.buttonFilter()}),
         m(sortDialog.component({viewModel: vm.sortDialog()})),
         m(filterDialog.component({viewModel: vm.filterDialog()})),
         m(tableWidget.component({viewModel: vm.tableWidget()}))

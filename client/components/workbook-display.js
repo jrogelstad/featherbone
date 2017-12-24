@@ -37,9 +37,12 @@
   // Define workbook view model
   workbookDisplay.viewModel = function (options) {
     var listState, tableState, searchState, currentSheet, 
-      frmroute,
-      feather = catalog.getFeather(options.feather),
-      sheetId = options.id,
+      feather, frmroute,
+      workbook = catalog.store().workbooks()[options.workbook.toCamelCase()], 
+      config = workbook.getConfig(),
+      sheetId = config.find(function (sheet) {
+        return sheet.name.toSpinalCase() === options.sheet;
+      }).id,
       vm = {};
 
     // ..........................................................
@@ -56,7 +59,7 @@
     vm.buttonRefresh = stream();
     vm.buttonSave = stream();
     vm.buttonUndo = stream();
-    vm.config = stream(options.config); 
+    vm.config = stream(config); 
     vm.confirmDialog = stream(dialog.viewModel({
       icon: "question-circle",
       title: "Confirmation"
@@ -73,12 +76,11 @@
         confirmDialog = vm.confirmDialog();
 
       doDelete = function () {
-        var config = vm.config(),
-          activeSheetId = vm.sheet().id,
-          deleteSheetId = config[idx].id;
-        config.splice(idx, 1);
+        var activeSheetId = vm.sheet().id,
+          deleteSheetId = vm.config()[idx].id;
+        vm.config().splice(idx, 1);
         if (activeSheetId === deleteSheetId) {
-          if (idx === config.length) { idx -= 1; }
+          if (idx === vm.config().length) { idx -= 1; }
           vm.tabClicked(config[idx].name);
         }
       };
@@ -112,7 +114,6 @@
       var undo, newSheet, sheetName, next,
         dialogSheetConfigure = vm.sheetConfigureDialog(),
         id = f.createId(),
-        config = vm.config(),
         sheets = vm.sheets(),
         sheet = f.copy(vm.sheet()),
         i = 0;
@@ -136,11 +137,11 @@
       };
 
       undo = function () {
-        config.pop();
+        vm.config().pop();
         dialogSheetConfigure.onCancel(undefined);
       };
 
-      config.push(newSheet);
+      vm.config().push(newSheet);
       dialogSheetConfigure.sheetId(id);
       dialogSheetConfigure.onCancel(undo);
       dialogSheetConfigure.show();
@@ -180,18 +181,17 @@
     };
     vm.revert = function () {
       var route,
-         workbook = vm.workbook().toJSON(),
+         workbookJSON = vm.workbook().toJSON(),
         localConfig = vm.config(),
-        defaultConfig = workbook.defaultConfig,
+        defaultConfig = workbookJSON.defaultConfig,
         sheet = defaultConfig[0];
       
       localConfig.length = 0;
       defaultConfig.forEach(function (item) {
         localConfig.push(item);
       });
-      workbook.localConfig = localConfig;
-      f.buildRoutes(workbook);
-      route = "/" + workbook.name + "/" + sheet.name;
+      workbookJSON.localConfig = localConfig;
+      route = "workbook/" + workbookJSON.name + "/" + sheet.name;
       route = route.toSpinalCase();
       m.route.set(route);
     };
@@ -202,9 +202,7 @@
         confirmDialog = vm.confirmDialog();
 
       doShare = function () {
-        var workbook = vm.workbook(),
-        config = f.copy(vm.config());
-        workbook.data.localConfig(config);
+        workbook.data.localConfig(vm.config());
         workbook.save();
       };
 
@@ -214,8 +212,7 @@
       confirmDialog.show();
     };
     vm.sheet = function (id, value) {
-      var idx = 0,
-        config = vm.config();
+      var idx = 0;
 
       if (id) {
         if (typeof id === "object") {
@@ -235,14 +232,13 @@
         if (id === item.id) { return true; }
         idx += 1;
       });
-      if (value) { config.splice(idx, 1, value); }
-      currentSheet = config[idx];
+      if (value) { vm.config().splice(idx, 1, value); }
+      currentSheet = vm.config()[idx];
 
       return currentSheet;
     };
     vm.sheets = function () {
-      var config = vm.config();
-      return config.map(function (sheet) {
+      return vm.config().map(function (sheet) {
         return sheet.name;
       });
     };
@@ -254,7 +250,7 @@
     };
     vm.showMenu = stream(false);
     vm.showSettingsDialog = function () {
-      if (options.settings) { 
+      if (workbook.data.launchConfig().settings) { 
         vm.settingsDialog().show(); 
       }
     };
@@ -265,13 +261,13 @@
     };
     vm.sortDialog = stream();
     vm.tabClicked = function (sheet) {
-      var route = "/" + options.name + "/" + sheet;
+      var route = "/" + workbook.data.name() + "/" + sheet;
       route = route.toSpinalCase();
       m.route.set(route);
     };
     vm.tableWidget = stream();
     vm.workbook = function () {
-      return catalog.store().workbooks()[options.name.toCamelCase()];
+      return workbook;
     };
     vm.zoom = function (value) {
       var w = vm.tableWidget();
@@ -282,8 +278,8 @@
     // ..........................................................
     // PRIVATE
     //
-
-    frmroute = "/" + options.name + "/" + vm.sheet().form.name;
+    feather = catalog.getFeather(vm.sheet().feather);
+    frmroute = "edit/" + vm.sheet().form.name;
     frmroute = frmroute.toSpinalCase();
 
     // Create search widget view model
@@ -307,9 +303,9 @@
       feather: feather
     }));
 
-    if (options.settings) {
+    if (workbook.data.defaultConfig().settings) {
       vm.settingsDialog(settingsDialog.viewModel({
-        model: options.settings
+        model: workbook.data.DefaultConfig().settings
       }));
     }
 
@@ -467,20 +463,19 @@
   };
 
   // Define workbook component
-  workbookDisplay.component = function (options) {
-    var viewModel,
-      component = {};
-
-    component.oninit = function (vnode) {
-      viewModel = viewModel || workbookDisplay.viewModel(options);
+  workbookDisplay.component =  {
+    oninit: function (vnode) {
+      console.log("init workbook...");
+      var viewModel = workbookDisplay.viewModel(vnode.attrs);
       vnode.attrs.vm = viewModel;
+      // Does this still make any sense?
       if (viewModel.didLeave()) {
         viewModel.didLeave(false);
         viewModel.refresh(); 
       }
-    };
+    },
 
-    component.view = function (vnode) {
+    view: function (vnode) {
       var filterMenuClass, tabs, view,
         vm = vnode.attrs.vm,
         activeSheet = vm.sheet(),
@@ -552,17 +547,17 @@
           m(sheetConfigureDialog.component({viewModel: vm.sheetConfigureDialog()})),
           m(dialog.component({viewModel: vm.confirmDialog()})),
           m(settingsDialog.component({viewModel: vm.settingsDialog()})),
-          m(button.component({viewModel: vm.buttonHome()})),
-          m(button.component({viewModel: vm.buttonList()})),
-          m(button.component({viewModel: vm.buttonEdit()})),
-          m(button.component({viewModel: vm.buttonSave()})),
-          m(button.component({viewModel: vm.buttonOpen()})),
-          m(button.component({viewModel: vm.buttonNew()})),
-          m(button.component({viewModel: vm.buttonDelete()})),
-          m(button.component({viewModel: vm.buttonUndo()})),
+          m(button.component, {viewModel: vm.buttonHome()}),
+          m(button.component, {viewModel: vm.buttonList()}),
+          m(button.component, {viewModel: vm.buttonEdit()}),
+          m(button.component, {viewModel: vm.buttonSave()}),
+          m(button.component, {viewModel: vm.buttonOpen()}),
+          m(button.component, {viewModel: vm.buttonNew()}),
+          m(button.component, {viewModel: vm.buttonDelete()}),
+          m(button.component, {viewModel: vm.buttonUndo()}),
           m(searchInput.component({viewModel: vm.searchInput()})),
-          m(button.component({viewModel: vm.buttonRefresh()})),
-          m(button.component({viewModel: vm.buttonClear()})),
+          m(button.component, {viewModel: vm.buttonRefresh()}),
+          m(button.component, {viewModel: vm.buttonClear()}),
           m("div", {
             id: "nav-div",
             class: "pure-menu custom-restricted-width suite-menu",
@@ -642,7 +637,7 @@
               }})], "Revert"),
               m("li", {
                 id: "nav-settings",
-                class: options.settings ? "pure-menu-link" : "pure-menu-link pure-menu-disabled",
+                class: vnode.attrs.settings ? "pure-menu-link" : "pure-menu-link pure-menu-disabled",
                 style: {
                   borderTop: "solid thin lightgrey"
                 },
@@ -673,9 +668,7 @@
       ]);
 
       return view;
-    };
-
-    return component;
+    }
   };
 
   catalog.register("components", "workbookDisplay", workbookDisplay.component);

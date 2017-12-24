@@ -196,19 +196,20 @@
   };
 
   // Define button component
-  button.component = function (options) {
-    options = options || {};
-    var component = {};
-
+  button.component =  {
     /**
       @param {Object} Options
       @param {Object} [options.viewModel] View model
     */
-    component.oninit = function (vnode) {
-      vnode.attrs.vm =  options.viewModel || f.viewModels.buttonViewModel(options);
-    };
+    oninit: function (vnode) {
+      vnode.attrs.vm =  vnode.attrs.viewModel || f.viewModels.buttonViewModel(vnode.attrs);
+      console.log("init button->", vnode.attrs.vm.title());
+    },
 
-    component.view = function (vnode) {
+    view: function (vnode) {
+      if (!vnode.attrs.vm) {
+        console.log("BAD->", vnode.attrs.viewModel.title());
+      }
       var opts, view, iconView,
         vm = vnode.attrs.vm,
         classes = ["pure-button suite-button"],
@@ -249,9 +250,7 @@
       view = m("button", opts, iconView, label);
 
       return view;
-    };
-
-    return component;
+    }
   };
 
   module.exports = button;

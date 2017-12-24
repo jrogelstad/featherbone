@@ -198,10 +198,10 @@
         vm = vnode.attrs.vm;
 
       view = m("div", [
-        m(button.component({viewModel: vm.buttonAdd()})),
-        m(button.component({viewModel: vm.buttonRemove()})),
-        m(button.component({viewModel: vm.buttonUndo()})),
-        m(button.component({viewModel: vm.buttonOpen()})),
+        m(button.component, {viewModel: vm.buttonAdd()}),
+        m(button.component, {viewModel: vm.buttonRemove()}),
+        m(button.component, {viewModel: vm.buttonUndo()}),
+        m(button.component, {viewModel: vm.buttonOpen()}),
         //m(formDialog.component({viewModel: vm.formDialog()})),
         m(tableWidget.component({viewModel: vm.tableWidget()}))
       ]);

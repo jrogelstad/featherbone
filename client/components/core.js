@@ -173,13 +173,10 @@
 
   f.buildRoutes = function (workbook) {
     var config = f.getConfig(workbook),
-      models = catalog.store().models(),
       components = catalog.store().components(),
-      workbooks = catalog.register("workbooks"),
       routes = catalog.register("routes"),
       app = {};
 
-    workbooks[workbook.name.toCamelCase()] = models.workbook(workbook);
     config.forEach(function (item) {
       var sheet = item.name,
         form = item.form.name,
@@ -216,20 +213,6 @@
       routes[frmroute] = app[formname + "FormDisplay"];
       routes[frmroute + "/:id"] = app[formname + "FormDisplay"];
     });
-  };
-
-  f.getConfig = function (workbook) {
-    var config = workbook.defaultConfig;
-    if (workbook.localConfig.length) {
-      config = workbook.localConfig;
-    }
-    // Resolve form
-    config.forEach(function(sheet){
-      if (typeof sheet.form === "string") {
-        sheet.form = catalog.store().forms()[sheet.form];
-      }
-    });
-    return config;
   };
 
   /*

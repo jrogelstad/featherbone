@@ -156,10 +156,10 @@
           id: "toolbar",
           class: "suite-header"
         }, [
-          m(button.component({viewModel: vm.buttonDone()})),
-          m(button.component({viewModel: vm.buttonApply()})),
-          m(button.component({viewModel: vm.buttonSave()})),
-          m(button.component({viewModel: vm.buttonSaveAndNew()}))
+          m(button.component, {viewModel: vm.buttonDone()}),
+          m(button.component, {viewModel: vm.buttonApply()}),
+          m(button.component, {viewModel: vm.buttonSave()}),
+          m(button.component, {viewModel: vm.buttonSaveAndNew()})
         ]),
         m(formWidget.component({viewModel: vm.formWidget()}))
       ]);
