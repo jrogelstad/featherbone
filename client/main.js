@@ -186,9 +186,9 @@
             config = workbook.getConfig();
 
           vnode["go" + workbook.data.name()] = function () {
-            m.route.set("/workbook/:workbook/:sheet", {
+            m.route.set("/workbook/:workbook/:key", {
               workbook: workbook.data.name().toSpinalCase(),
-              sheet: config[0].name.toSpinalCase()
+              key: config[0].name.toSpinalCase()
             });
           };
         });
@@ -231,9 +231,9 @@
 
     m.route(document.body, "/home", {
       "/home": home,
-      "/workbook/:workbook/:sheet": components.workbookDisplay,
+      "/workbook/:workbook/:key": components.workbookDisplay,
       "/edit/:feather": components.formDisplay,
-      "/edit/:feather/:id": components.formDisplay
+      "/edit/:feather/:key": components.formDisplay
     });
   });
 

@@ -40,7 +40,7 @@
       workbook = catalog.store().workbooks()[options.workbook.toCamelCase()], 
       config = workbook.getConfig(),
       sheetId = config.find(function (sheet) {
-        return sheet.name.toSpinalCase() === options.sheet;
+        return sheet.name.toSpinalCase() === options.key;
       }).id,
       vm = {};
 
@@ -108,9 +108,9 @@
       var selection = vm.tableWidget().selection();
       if (selection) {
         vm.didLeave(true);
-        m.route.set("/edit/:feather/:id", {
+        m.route.set("/edit/:feather/:key", {
           feather: feather.name.toSpinalCase(),
-          id: selection.id()
+          key: selection.id()
         });
       }
     };
@@ -265,7 +265,7 @@
     vm.sortDialog = stream();
     vm.tabClicked = function (sheet) {
       m.route.set("/workbook/:workbook/:sheet", {
-        workbook: workbookDisplay.data.name().toSpinalCase(),
+        workbook: workbook.data.name().toSpinalCase(),
         sheet: sheet.toSpinalCase()
       });
     };

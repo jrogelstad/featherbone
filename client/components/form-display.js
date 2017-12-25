@@ -64,7 +64,7 @@
     };
     vm.formWidget = stream(formWidget.viewModel({
       model: options.feather.toCamelCase(),
-      id: options.id,
+      id: options.key,
       config: form,
       outsideElementIds: ["toolbar"]
     }));
