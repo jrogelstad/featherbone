@@ -202,16 +202,12 @@
       @param {Object} [options.viewModel] View model
     */
     oninit: function (vnode) {
-      vnode.attrs.vm =  vnode.attrs.viewModel || f.viewModels.buttonViewModel(vnode.attrs);
-      console.log("init button->", vnode.attrs.vm.title());
+      vnode.attrs.viewMoel =  vnode.attrs.viewModel || f.viewModels.buttonViewModel(vnode.attrs);
     },
 
     view: function (vnode) {
-      if (!vnode.attrs.vm) {
-        console.log("BAD->", vnode.attrs.viewModel.title());
-      }
       var opts, view, iconView,
-        vm = vnode.attrs.vm,
+        vm = vnode.attrs.viewModel,
         classes = ["pure-button suite-button"],
         style = vm.style(),
         title = vm.title(),

@@ -36,8 +36,7 @@
 
   // Define workbook view model
   workbookDisplay.viewModel = function (options) {
-    var listState, tableState, searchState, currentSheet, 
-      feather, frmroute,
+    var listState, tableState, searchState, currentSheet, feather,
       workbook = catalog.store().workbooks()[options.workbook.toCamelCase()], 
       config = workbook.getConfig(),
       sheetId = config.find(function (sheet) {
@@ -100,14 +99,19 @@
     vm.modelNew = function () {
       if (!vm.tableWidget().modelNew()) {
         vm.didLeave(true);
-        m.route.set(frmroute);
+        m.route.set("/edit/:feather", {
+          feather: feather.name.toSpinalCase()
+        });
       }
     };
     vm.modelOpen = function () {
       var selection = vm.tableWidget().selection();
       if (selection) {
         vm.didLeave(true);
-        m.route.set(frmroute + "/" + selection.id());
+        m.route.set("/edit/:feather/:id", {
+          feather: feather.name.toSpinalCase(),
+          id: selection.id()
+        });
       }
     };
     vm.newSheet = function () {
@@ -132,7 +136,6 @@
         id: id,
         name: sheetName,
         feather: sheet.feather,
-        form: sheet.form.id,
         list: {columns: sheet.list.columns}
       };
 
@@ -180,8 +183,7 @@
       vm.tableWidget().refresh(); 
     };
     vm.revert = function () {
-      var route,
-         workbookJSON = vm.workbook().toJSON(),
+      var workbookJSON = vm.workbook().toJSON(),
         localConfig = vm.config(),
         defaultConfig = workbookJSON.defaultConfig,
         sheet = defaultConfig[0];
@@ -191,9 +193,10 @@
         localConfig.push(item);
       });
       workbookJSON.localConfig = localConfig;
-      route = "workbook/" + workbookJSON.name + "/" + sheet.name;
-      route = route.toSpinalCase();
-      m.route.set(route);
+      m.route.set("/workbook/:workbook/:sheet", {
+        workbook: workbookJSON.name.toSpinalCase(),
+        sheet: sheet.name.toSpinalCase()
+      });
     };
     vm.searchInput = stream();
     vm.settingsDialog = stream();
@@ -261,9 +264,10 @@
     };
     vm.sortDialog = stream();
     vm.tabClicked = function (sheet) {
-      var route = "/" + workbook.data.name() + "/" + sheet;
-      route = route.toSpinalCase();
-      m.route.set(route);
+      m.route.set("/workbook/:workbook/:sheet", {
+        workbook: workbookDisplay.data.name().toSpinalCase(),
+        sheet: sheet.toSpinalCase()
+      });
     };
     vm.tableWidget = stream();
     vm.workbook = function () {
@@ -279,8 +283,6 @@
     // PRIVATE
     //
     feather = catalog.getFeather(vm.sheet().feather);
-    frmroute = "edit/" + vm.sheet().form.name;
-    frmroute = frmroute.toSpinalCase();
 
     // Create search widget view model
     vm.searchInput(searchInput.viewModel({
@@ -467,8 +469,11 @@
     oninit: function (vnode) {
       console.log("init workbook...");
       var viewModel = workbookDisplay.viewModel(vnode.attrs);
-      vnode.attrs.vm = viewModel;
-      // Does this still make any sense?
+      vnode.attrs.viewModel = viewModel;
+    },
+
+    onupdate: function (vnode) {
+      var viewModel = vnode.attrs.viewModel;
       if (viewModel.didLeave()) {
         viewModel.didLeave(false);
         viewModel.refresh(); 
@@ -477,7 +482,7 @@
 
     view: function (vnode) {
       var filterMenuClass, tabs, view,
-        vm = vnode.attrs.vm,
+        vm = vnode.attrs.viewModel,
         activeSheet = vm.sheet(),
         config = vm.config(),
         idx = 0;

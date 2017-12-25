@@ -54,28 +54,23 @@
     return vm;
   };
 
-  formWidget.component = function (options) {
-    var widget = {},
-      midTabClass = ["pure-button", "suite-sheet-group-tab", "suite-sheet-group-tab-form"],
-      leftTabClass = f.copy(midTabClass),
-      rightTabClass = f.copy(midTabClass);
-
-    midTabClass.push("suite-sheet-group-tab-middle");
-    leftTabClass.push("suite-sheet-group-tab-left");
-    rightTabClass.push("suite-sheet-group-tab-right");
-    widget.oninit = function (vnode) {
-      vnode.attrs.vm = options.viewModel;
-    };
-
-    widget.view = function (vnode) {
-      var focusAttr, buildFieldset,
+  formWidget.component = {
+    view: function (vnode) {
+      var midTabClass = ["pure-button", "suite-sheet-group-tab", "suite-sheet-group-tab-form"],
+        leftTabClass = f.copy(midTabClass),
+        rightTabClass = f.copy(midTabClass),
+        focusAttr, buildFieldset,
         buildUnit, buildButtons,
-        vm = vnode.attrs.vm,
+        vm = vnode.attrs.viewModel,
         attrs = vm.config().attrs || [],
         selectedTab = vm.selectedTab(),
         model = vm.model(),
         d = model.data,
         grids = [];
+
+      midTabClass.push("suite-sheet-group-tab-middle");
+      leftTabClass.push("suite-sheet-group-tab-left");
+      rightTabClass.push("suite-sheet-group-tab-right");
 
       buildButtons = function () {
         var className,
@@ -227,9 +222,7 @@
           e.style.maxHeight = bodyHeight + "px";
         }
       }, grids);
-    };
-
-    return widget;
+    }
   };
 
   catalog.register("components", "formWidget", formWidget.component);

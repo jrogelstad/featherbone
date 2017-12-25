@@ -232,8 +232,8 @@
     m.route(document.body, "/home", {
       "/home": home,
       "/workbook/:workbook/:sheet": components.workbookDisplay,
-      "/edit/:form": components.formDisplay,
-      "/edit/:form/:id": components.formDisplay
+      "/edit/:feather": components.formDisplay,
+      "/edit/:feather/:id": components.formDisplay
     });
   });
 

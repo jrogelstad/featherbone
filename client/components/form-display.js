@@ -28,40 +28,44 @@
     formWidget = require("form-widget");
 
   formDisplay.viewModel = function (options) {
-    var vm = {}, state, toggleNew, isDisabled, applyTitle, saveTitle,
-      wbkroute = "/" + options.workbook + "/" + options.sheet.name,
-      frmroute = "/" + options.workbook + "/" + options.form;
-
-    wbkroute = wbkroute.toSpinalCase();
-    frmroute = frmroute.toSpinalCase();
+    var state, toggleNew, isDisabled, applyTitle, saveTitle,
+      feather = options.feather.toProperCase(),
+      forms = catalog.store().forms(),
+      formId = Object.keys(forms).find(function (id) {
+        return forms[id].feather === feather;
+      }),
+      form = forms[formId],
+      vm = {};
 
     vm.buttonApply = stream();
-    vm.buttonDone = stream();
+    vm.buttonBack = stream();
     vm.buttonSave = stream();
     vm.buttonSaveAndNew = stream();
     vm.doApply = function () {
       vm.formWidget().model().save();
     };
-    vm.doList = function () {
-      m.route.set(wbkroute);
+    vm.doBack = function () {
+      window.history.back();
     };
     vm.doNew = function () {
-      m.route.set(frmroute);
+      m.route.set("/edit/:form", {
+        form: options.form
+      });
     };
     vm.doSave = function () {
       vm.model().save().then(function () {
-        m.route.set(wbkroute);
+        vm.doBack();
       });
     };
     vm.doSaveAndNew = function () {
       vm.model().save().then(function () {
-        m.route.set(frmroute);
+        vm.doNew();
       });
     };
     vm.formWidget = stream(formWidget.viewModel({
       model: options.feather.toCamelCase(),
       id: options.id,
-      config: options.config,
+      config: form,
       outsideElementIds: ["toolbar"]
     }));
     vm.model = function () {
@@ -73,8 +77,8 @@
     //
 
     // Create button view models
-    vm.buttonDone(button.viewModel({
-      onclick: vm.doList,
+    vm.buttonBack(button.viewModel({
+      onclick: vm.doBack,
       label: "&Back",
       icon: "arrow-left"
     }));
@@ -132,42 +136,28 @@
     return vm;
   };
 
-  formDisplay.component = function (options) {
-    var widget = {};
+  formDisplay.component = {
+    oninit: function (vnode) {
+      vnode.attrs.viewModel = formDisplay.viewModel(vnode.attrs);
+    },
 
-    widget.oninit = function (vnode) {
-      vnode.attrs.vm = formDisplay.viewModel({
-        workbook: options.workbook,
-        sheet: options.sheet,
-        form: options.form,
-        feather: options.feather,
-        id: vnode.attrs.id,
-        config: options.config
-      });
-    };
-
-    widget.view = function (vnode) {
-      var view,
-        vm = vnode.attrs.vm;
+    view: function (vnode) {
+      var vm = vnode.attrs.viewModel;
 
       // Build view
-      view = m("div", [
+      return m("div", [
         m("div", {
           id: "toolbar",
           class: "suite-header"
         }, [
-          m(button.component, {viewModel: vm.buttonDone()}),
+          m(button.component, {viewModel: vm.buttonBack()}),
           m(button.component, {viewModel: vm.buttonApply()}),
           m(button.component, {viewModel: vm.buttonSave()}),
           m(button.component, {viewModel: vm.buttonSaveAndNew()})
         ]),
-        m(formWidget.component({viewModel: vm.formWidget()}))
+        m(formWidget.component, {viewModel: vm.formWidget()})
       ]);
-
-      return view;
-    };
-
-    return widget;
+    }
   };
 
   catalog.register("components", "formDisplay", formDisplay.component);

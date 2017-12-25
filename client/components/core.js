@@ -171,50 +171,6 @@
     catalog.register("components", name, that);
   };
 
-  f.buildRoutes = function (workbook) {
-    var config = f.getConfig(workbook),
-      components = catalog.store().components(),
-      routes = catalog.register("routes"),
-      app = {};
-
-    config.forEach(function (item) {
-      var sheet = item.name,
-        form = item.form.name,
-        sheetname = workbook.name + sheet,
-        formname = workbook.name + form,
-        feather = item.feather,
-        wbkroute = "/" + workbook.name + "/" + sheet,
-        frmroute = "/" + workbook.name + "/" + form;
-      sheetname = sheetname.toCamelCase();
-      formname = formname.toCamelCase();
-      wbkroute = wbkroute.toSpinalCase();
-      frmroute = frmroute.toSpinalCase();
-
-      // Build UI
-      item.id = f.createId(); // Need this to keep track of name changes
-      app[sheetname + "WorkbookDisplay"] = components.workbookDisplay({
-        name: workbook.name,
-        feather: feather,
-        config: config,
-        id: item.id,
-        settings: workbook.launchConfig.settings
-      });
-
-      app[formname + "FormDisplay"] = components.formDisplay({
-        workbook: workbook.name,
-        sheet: item,
-        form: form,
-        feather: feather,
-        config: item.form
-      });
-
-      // Build routes
-      routes[wbkroute] = app[sheetname + "WorkbookDisplay"];
-      routes[frmroute] = app[formname + "FormDisplay"];
-      routes[frmroute + "/:id"] = app[formname + "FormDisplay"];
-    });
-  };
-
   /*
     Returns the exact x, y coordinents of an HTML element.
 

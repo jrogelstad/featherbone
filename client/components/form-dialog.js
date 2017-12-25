@@ -90,7 +90,7 @@
       delete vm.style().display;
     });
     substate.content = function () {
-      return  m(formWidget.component({viewModel: vm.formWidget()}));
+      return  m(formWidget.component, {viewModel: vm.formWidget()});
     };
     substate.exit(function () {
       vm.formWidget(undefined);
