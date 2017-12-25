@@ -494,7 +494,7 @@
         // Build tab
         tabOpts = {
           class: "suite-sheet-tab pure-button" +
-            (activeSheet.name === sheet ? " pure-button-primary" : ""),
+            (activeSheet.name.toName() === sheet.toName() ? " pure-button-primary" : ""),
           onclick: vm.tabClicked.bind(this, sheet)
         };
 
@@ -507,7 +507,7 @@
           tabOpts.style = {webkitUserDrag: "element"};
         }
 
-        tab = m("button[type=button]", tabOpts, sheet);
+        tab = m("button[type=button]", tabOpts, sheet.toName());
         idx += 1;
 
         return tab;
