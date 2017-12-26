@@ -197,14 +197,6 @@
 
   // Define button component
   button.component =  {
-    /**
-      @param {Object} Options
-      @param {Object} [options.viewModel] View model
-    */
-    oninit: function (vnode) {
-      vnode.attrs.viewMoel =  vnode.attrs.viewModel || f.viewModels.buttonViewModel(vnode.attrs);
-    },
-
     view: function (vnode) {
       var opts, view, iconView,
         vm = vnode.attrs.viewModel,

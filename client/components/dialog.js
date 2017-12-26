@@ -127,16 +127,10 @@
 
     @params {Object} View model
   */
-  dialog.component = function (options) {
-    var component = {};
-
-    component.oninit = function (vnode) {
-      vnode.attrs.vm = options.viewModel || dialog.viewModel(options);
-    };
-
-    component.view = function (vnode) {
+  dialog.component = {
+    view: function (vnode) {
       var view, okOpts,
-        vm = vnode.attrs.vm,
+        vm = vnode.attrs.viewModel,
         ids = vm.ids(),
         style = f.copy(vm.style());
 
@@ -182,9 +176,7 @@
       ]);
 
       return view;
-    };
-
-    return component;
+    }
   };
 
   module.exports = dialog;

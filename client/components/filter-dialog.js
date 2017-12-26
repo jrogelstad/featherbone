@@ -232,7 +232,7 @@
       // Handle input types
       if (typeof type === "string") {
         if (type === "boolean") {
-          component = checkbox.component({
+          component = m(checkbox.component, {
             value: value,
             onclick: vm.itemChanged.bind(this, index, "value")
           });

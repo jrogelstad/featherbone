@@ -285,8 +285,8 @@
 
       // Build the view
       view = m("div", {style: style}, [
-        m(searchDialog.component({viewModel: vm.searchDialog()})),
-        m(formDialog.component({viewModel: vm.formDialog()})),
+        m(searchDialog.component, {viewModel: vm.searchDialog()}),
+        m(formDialog.component, {viewModel: vm.formDialog()}),
         m("input", {
           style: inputStyle,
           list: vm.listId(),

@@ -120,23 +120,21 @@
   };
 
   // Define dialog component
-  searchInput.component = function (options) {
-    options = options || {};
-    var component = {};
+  searchInput.component = {
 
     /**
       @param {Object} Options
       @param {Object} [options.viewModel] View model
     */
-    component.oninit = function (vnode) {
+    oninit: function (vnode) {
       console.log("Init search...");
-      vnode.attrs.vm =  options.viewModel || searchInput.viewModel(options);
-    };
+      vnode.attrs.viewModel =  vnode.attrs.viewModel || searchInput.viewModel(vnode.attrs);
+    },
 
-    component.view = function (vnode) {
+    view: function (vnode) {
       console.log("View search...");
       var opts, view,
-        vm = vnode.attrs.vm;
+        vm = vnode.attrs.viewModel;
 
       opts = {
         id: vm.id(),
@@ -151,9 +149,7 @@
       view = m("input", opts);
 
       return view;
-    };
-
-    return component;
+    }
   };
 
   module.exports = searchInput;

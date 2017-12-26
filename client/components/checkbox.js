@@ -25,25 +25,23 @@
     catalog = require("catalog");
 
   // Define checkbox component
-  checkbox.component = function (options) {
-    var component = {};
-
-    component.view = function () {
+  checkbox.component = {
+    view: function (vnode) {
       var view, opts,
-        value = options.value,
-        id = options.id || f.createId();
+        value = vnode.attrs.value,
+        id = vnode.attrs.id || f.createId();
 
       opts = {
         id: id,
         class: "suite-checkbox-input",
         type: "checkbox",
-        onclick: m.withAttr("checked", options.onclick),
+        onclick: m.withAttr("checked", vnode.attrs.onclick),
         checked: value,
-        style: options.style || {}
+        style: vnode.attrs.style || {}
       };
 
-      if (options.required) { opts.required = true; }
-      if (options.disabled) { opts.disabled = true; }
+      if (vnode.attrs.required) { opts.required = true; }
+      if (vnode.attrs.disabled) { opts.disabled = true; }
 
       view = m("div", {
           class: "suite-checkbox"
@@ -59,9 +57,7 @@
         ]);
 
       return view;
-    };
-
-    return component;
+    }
   };
 
   catalog.register("components", "checkbox", checkbox.component);

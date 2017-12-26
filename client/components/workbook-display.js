@@ -96,6 +96,7 @@
       m.route.set("/home");
     };
     vm.isDraggingTab = stream(false);
+    vm.hasSettings = stream(!!workbook.data.launchConfig().settings);
     vm.modelNew = function () {
       if (!vm.tableWidget().modelNew()) {
         vm.didLeave(true);
@@ -199,7 +200,7 @@
       });
     };
     vm.searchInput = stream();
-    vm.settingsDialog = stream();
+    vm.settingsDialog = stream({});
     vm.share = function () {
       var doShare,
         confirmDialog = vm.confirmDialog();
@@ -253,7 +254,7 @@
     };
     vm.showMenu = stream(false);
     vm.showSettingsDialog = function () {
-      if (workbook.data.launchConfig().settings) { 
+      if (vm.hasSettings()) { 
         vm.settingsDialog().show(); 
       }
     };
@@ -305,9 +306,9 @@
       feather: feather
     }));
 
-    if (workbook.data.defaultConfig().settings) {
+    if (vm.hasSettings()) {
       vm.settingsDialog(settingsDialog.viewModel({
-        model: workbook.data.DefaultConfig().settings
+        model: workbook.data.launchConfig().settings
       }));
     }
 
@@ -543,15 +544,14 @@
       view = m("div", {
         class: "pure-form"
       }, [
+        m(sortDialog.component, {viewModel: vm.sortDialog()}),
+        m(sortDialog.component, {viewModel: vm.filterDialog()}),
+        m(sheetConfigureDialog.component, {viewModel: vm.sheetConfigureDialog()}),
+        m(dialog.component, {viewModel: vm.confirmDialog()}),
         m("div", {
             id: "toolbar",
             class: "suite-toolbar"
           }, [
-          m(sortDialog.component({viewModel: vm.sortDialog()})),
-          m(sortDialog.component({viewModel: vm.filterDialog()})),
-          m(sheetConfigureDialog.component({viewModel: vm.sheetConfigureDialog()})),
-          m(dialog.component({viewModel: vm.confirmDialog()})),
-          m(settingsDialog.component({viewModel: vm.settingsDialog()})),
           m(button.component, {viewModel: vm.buttonHome()}),
           m(button.component, {viewModel: vm.buttonList()}),
           m(button.component, {viewModel: vm.buttonEdit()}),
@@ -560,7 +560,7 @@
           m(button.component, {viewModel: vm.buttonNew()}),
           m(button.component, {viewModel: vm.buttonDelete()}),
           m(button.component, {viewModel: vm.buttonUndo()}),
-          m(searchInput.component({viewModel: vm.searchInput()})),
+          m(searchInput.component, {viewModel: vm.searchInput()}),
           m(button.component, {viewModel: vm.buttonRefresh()}),
           m(button.component, {viewModel: vm.buttonClear()}),
           m("div", {
@@ -642,7 +642,7 @@
               }})], "Revert"),
               m("li", {
                 id: "nav-settings",
-                class: vnode.attrs.settings ? "pure-menu-link" : "pure-menu-link pure-menu-disabled",
+                class: vm.hasSettings() ? "pure-menu-link" : "pure-menu-link pure-menu-disabled",
                 style: {
                   borderTop: "solid thin lightgrey"
                 },
@@ -654,7 +654,7 @@
             ])
           ])     
         ]),
-        m(tableWidget.component({viewModel: vm.tableWidget()})),
+        m(tableWidget.component, {viewModel: vm.tableWidget()}),
         m("div", {id: "tabs"}, [
           tabs,
           m("i", {class: "fa fa-search-plus suite-zoom-icon suite-zoom-right-icon"}),
@@ -671,6 +671,12 @@
           m("i", {class: "fa fa-search-minus suite-zoom-icon suite-zoom-left-icon"})
         ])
       ]);
+
+      if (vm.hasSettings()) {
+        view.children.push(
+          m(settingsDialog.component, {viewModel: vm.settingsDialog()})
+        );
+      }
 
       return view;
     }

@@ -468,17 +468,12 @@
   };
 
   // Define table widget component
-  tableWidget.component = function (options) {
-    var component = {};
+  tableWidget.component = {
 
-    component.oninit = function (vnode) {
-      vnode.attrs.vm = options.viewModel;
-    };
-
-    component.view = function (vnode) {
+    view: function (vnode) {
       var tbodyConfig, findFilterIndex,
         header, rows, view, rel,
-        vm = vnode.attrs.vm,
+        vm = vnode.attrs.viewModel,
         ids = vm.ids(),
         config = vm.config(),
         filter = vm.filter(),
@@ -830,9 +825,7 @@
       ]);
 
       return view;
-    };
-
-    return component;
+    }
   };
 
   catalog.register("components", "tableWidget", tableWidget.component);

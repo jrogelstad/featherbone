@@ -202,8 +202,8 @@
         m(button.component, {viewModel: vm.buttonRemove()}),
         m(button.component, {viewModel: vm.buttonUndo()}),
         m(button.component, {viewModel: vm.buttonOpen()}),
-        //m(formDialog.component({viewModel: vm.formDialog()})),
-        m(tableWidget.component({viewModel: vm.tableWidget()}))
+        //m(formDialog.component, {viewModel: vm.formDialog()}),
+        m(tableWidget.component, {viewModel: vm.tableWidget()})
       ]);
 
       return view;

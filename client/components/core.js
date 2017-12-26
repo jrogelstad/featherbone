@@ -74,14 +74,14 @@
       }
 
       if (prop.type === "boolean") {
-        component = m(components.checkbox({
+        component = m(components.checkbox, {
           id: key,
           value: prop(),
           onclick: prop,
           required: opts.required,
           disabled: opts.disabled,
           style: opts.style
-        }));
+        });
       } else {
         opts.onchange = m.withAttr("value", prop);
         opts.value = prop();
