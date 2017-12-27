@@ -195,49 +195,51 @@
     return vm;
   };
 
+  // Helper function to generate button icon
+  var iconView = function (icon) {
+    if (icon) {
+      return [m("i", {
+        class: "fa fa-" + icon,
+        style: {marginRight: "4px"}
+      })];
+    }
+  };
+
   // Define button component
   button.component =  {
-    view: function (vnode) {
-      var opts, view, iconView,
-        vm = vnode.attrs.viewModel,
-        classes = ["pure-button suite-button"],
-        style = vm.style(),
-        title = vm.title(),
-        icon = vm.icon(),
-        label = vm.label();
+    oninit: function (vnode) {
+      var vm =  vnode.attrs.viewModel || f.viewModels.buttonViewModel(vnode.attrs);
+      this.viewModel = vm;
+      this.classes = ["pure-button suite-button"];
+      if (vm.class()) { this.classes.push(vm.class()); }
+      if (vm.primary()) { this.classes.push(vm.primary()); }
+      this.classes.push(vm.hidden());
+    },
 
-      if (vm.class()) { classes.push(vm.class()); }
-      if (vm.primary()) { classes.push(vm.primary()); }
-      classes.push(vm.hidden());
+    view: function () {
+      var vm = this.viewModel;
 
-      opts = {
+      return m("button", {
         id: vm.id(),
         type: "button",
-        class: classes.join(" "),
-        style: style,
+        class: this.classes.join(" "),
+        style: vm.style(),
         disabled: vm.isDisabled(),
-        onclick: vm.onclick()
-      };
-      if (vm.hotKey()) {
-        opts.config = function () {
-          document.addEventListener("keydown", vm.onkeydown);
-        };
-      }
-
-      if (icon) {
-        iconView = [m("i", {
-          class: "fa fa-" + icon,
-          style: {marginRight: "4px"}
-        })];
-      }
-
-      if (title) {
-        opts.title = title;
-      }
-
-      view = m("button", opts, iconView, label);
-
-      return view;
+        onclick: vm.onclick(),
+        title: vm.title(),
+        oncreate: function () {
+          if (vm.hotKey()) {
+            document.addEventListener("keydown", vm.onkeydown);
+          }
+        },
+        onremove: function () {
+          if (vm.hotKey()) {
+            document.removeEventListener("keydown", vm.onkeydown);
+          }
+        }
+      }, 
+      iconView(vm.icon()),
+      vm.label());
     }
   };
 

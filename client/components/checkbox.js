@@ -26,37 +26,34 @@
 
   // Define checkbox component
   checkbox.component = {
+    oninit: function (vnode) {
+      this.id = vnode.attrs.id || f.createId();
+    },
+
     view: function (vnode) {
-      var view, opts,
-        value = vnode.attrs.value,
-        id = vnode.attrs.id || f.createId();
-
-      opts = {
-        id: id,
-        class: "suite-checkbox-input",
-        type: "checkbox",
-        onclick: m.withAttr("checked", vnode.attrs.onclick),
-        checked: value,
-        style: vnode.attrs.style || {}
-      };
-
-      if (vnode.attrs.required) { opts.required = true; }
-      if (vnode.attrs.disabled) { opts.disabled = true; }
-
-      view = m("div", {
+      return m("div", {
           class: "suite-checkbox"
         }, [
-          m("input", opts),
+          m("input", {
+            id: this.id,
+            class: "suite-checkbox-input",
+            type: "checkbox",
+            onclick: m.withAttr("checked", vnode.attrs.onclick),
+            checked: vnode.attrs.value,
+            style: vnode.attrs.style || {},
+            required: !!vnode.attrs.required,
+            disabled: !!vnode.attrs.disabled
+          }),
           m("label", {
-            for: id,
+            for: this.id,
             class: "suite-checkbox-label"
           }, m("i", {
             class:"fa fa-check",
-            style: {visibility: value ? "visible" : "hidden"}
+            style: {
+              visibility: vnode.attrs.value ? "visible" : "hidden"
+            }
           }))
         ]);
-
-      return view;
     }
   };
 

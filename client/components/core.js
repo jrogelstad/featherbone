@@ -115,11 +115,13 @@
     }
 
     if (prop.isToMany()) {
-      w = catalog.store().components().childTable({
-        parentViewModel: obj.viewModel,
-        parentProperty: key
-      });
-      if (w) { return m(w); }
+      w = catalog.store().components().childTable;
+      if (w) { 
+        return m(w, {
+          parentViewModel: obj.viewModel,
+          parentProperty: key
+        }); 
+      }
     }
 
     console.log("Widget for property '" + key + "' is unknown");

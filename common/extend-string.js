@@ -40,7 +40,7 @@
      @returns {String}
   */
   String.prototype.toName = function () {
-    return this.replace(/\./g,' _').toCamelCase().toProperCase(true);
+    return this.replace(/\./g,' _').toCamelCase().toProperCase();
   };
 
   /**

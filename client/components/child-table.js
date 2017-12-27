@@ -165,21 +165,19 @@
 
     @params {Object} View model
   */
-  childTable.component = function (options) {
-    var config,
-      component = {},
-      parentViewModel = options.parentViewModel,
-      parentProperty = options.parentProperty,
-      prop = parentViewModel.model().data[parentProperty],
-      models = prop(),
-      feather = prop.type.relation;
+  childTable.component = {
+    oninit: function (vnode) {
+      var config,
+        parentProperty = vnode.attrs.parentProperty,
+        parentViewModel = vnode.attrs.parentViewModel,
+        prop = parentViewModel.model().data[parentProperty],
+        models = prop(),
+        feather = prop.type.relation,
+        relations = vnode.attrs.parentViewModel.relations();
 
-    config = parentViewModel.config().attrs.find(function (item)  {
-      return item.attr === parentProperty;
-    });
-
-    component.oninit = function (vnode) {
-      var relations = options.parentViewModel.relations();
+      config = parentViewModel.config().attrs.find(function (item)  {
+        return item.attr === parentProperty;
+      });
 
       // Set up viewModel if required
       if (!relations[parentProperty]) {
@@ -190,26 +188,20 @@
           config: config
         });
       }
-      vnode.attrs.vm = relations[parentProperty];
-    };
+      this.viewModel = relations[parentProperty];
+    },
 
-    component.view = function (vnode) {
-      var view,
-        vm = vnode.attrs.vm;
+    view: function () {
+      var vm = this.viewModel;
 
-      view = m("div", [
+      return m("div", [
         m(button.component, {viewModel: vm.buttonAdd()}),
         m(button.component, {viewModel: vm.buttonRemove()}),
         m(button.component, {viewModel: vm.buttonUndo()}),
         m(button.component, {viewModel: vm.buttonOpen()}),
-        //m(formDialog.component, {viewModel: vm.formDialog()}),
         m(tableWidget.component, {viewModel: vm.tableWidget()})
       ]);
-
-      return view;
-    };
-
-    return component;
+    }
   };
 
   catalog.register("components", "childTable", childTable.component);

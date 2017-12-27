@@ -29,7 +29,7 @@
 
   formDisplay.viewModel = function (options) {
     var state, toggleNew, isDisabled, applyTitle, saveTitle,
-      feather = options.feather.toProperCase(),
+      feather = options.feather.toCamelCase(true),
       forms = catalog.store().forms(),
       formId = Object.keys(forms).find(function (id) {
         return forms[id].feather === feather;
