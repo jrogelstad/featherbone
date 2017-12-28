@@ -30,7 +30,6 @@
   formWidget.viewModel = function (options) {
     var model,
       vm = {},
-      name = options.model,
       models = catalog.store().models();
 
     vm.config = stream(options.config);
@@ -44,11 +43,14 @@
     // ..........................................................
     // PRIVATE
     //
-
-    model = vm.model(models[name]());
-    if (options.id) {
-      model.id(options.id);
-      model.fetch();
+    if (typeof options.model === "object") {
+      vm.model(options.model);
+    } else {
+      model = vm.model(models[options.model]());
+      if (options.id) {
+        model.id(options.id);
+        model.fetch();
+      }
     }
 
     return vm;

@@ -24,8 +24,7 @@
     stream = require("stream"),
     f = require("common-core"),
     catalog = require("catalog"),
-    searchDialog = require("search-dialog"),
-    formDialog = require("form-dialog");
+    searchDialog = require("search-dialog");
 
   /**
     @param {Object} Options
@@ -39,7 +38,7 @@
     @params {Boolean} [options.isCell] Use style for cell in table
   */
   relationWidget.viewModel = function (options) {
-    var vm = {},
+    var vm = {}, registerReceiver,
       hasFocus = false,
       parent = options.parentViewModel,
       parentProperty = options.parentProperty,
@@ -67,7 +66,6 @@
       });
     };
     vm.formConfig = stream(options.form);
-    vm.formDialog = stream();
     vm.isCell = stream(!!options.isCell);
     vm.label = function () {
       var model = modelValue();
@@ -85,16 +83,17 @@
       hasFocus = false;
     };
     vm.onclicknew = function () {
-      vm.formDialog().modelId(undefined);
-      vm.formDialog().show();
+      m.route.set("/edit/:feather", {
+        feather: type.relation.toSpinalCase(),
+        receiver: registerReceiver()
+      });
     };
     vm.onclickopen = function () {
-      var id,
-        model = modelValue();
-      if (!model) { return; }
-      id = model.id();
-      vm.formDialog().modelId(id);
-      vm.formDialog().show();
+      m.route.set("/edit/:feather/:key", {
+        feather: type.relation.toSpinalCase(),
+        key: modelValue().id(),
+        receiver: registerReceiver()
+      });
     };
     vm.onclicksearch = function () {
       vm.searchDialog().show();
@@ -169,6 +168,19 @@
     };
     vm.valueProperty = stream(valueProperty);
 
+    // Helper function for registering callbacks
+    registerReceiver = function () {
+      var receiverKey = f.createId();
+
+      catalog.register("receivers", receiverKey, {
+        callback: function (model) {
+          modelValue(model);
+        }
+      });
+
+      return receiverKey;
+    };
+
     // Create search dialog
     searchConfig = {
       feather: type.relation,
@@ -182,15 +194,6 @@
         if (selection) {
           modelValue(selection);
         }
-      }
-    }));
-
-    // Create form dialog
-    vm.formDialog(formDialog.viewModel({
-      model: type.relation.toCamelCase(),
-      config: vm.formConfig(),
-      onOk: function (model) {
-        modelValue(model);
       }
     }));
 
@@ -290,7 +293,6 @@
       // Build the view
       return m("div", {style: style}, [
         m(searchDialog.component, {viewModel: vm.searchDialog()}),
-        m(formDialog.component, {viewModel: vm.formDialog()}),
         m("input", {
           style: inputStyle,
           list: vm.listId(),

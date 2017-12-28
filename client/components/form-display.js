@@ -29,6 +29,8 @@
 
   formDisplay.viewModel = function (options) {
     var state, toggleNew, isDisabled, applyTitle, saveTitle,
+      callReceiver, model,
+      instances = catalog.register("instances"),
       feather = options.feather.toCamelCase(true),
       forms = catalog.store().forms(),
       formId = Object.keys(forms).find(function (id) {
@@ -37,14 +39,25 @@
       form = forms[formId],
       vm = {};
 
+    // Check if we've already got a model instantiated
+    if (options.key && instances[options.key]) {
+      model = instances[options.key];
+    } else {
+      model = options.feather.toCamelCase();
+    }
+
     vm.buttonApply = stream();
     vm.buttonBack = stream();
     vm.buttonSave = stream();
     vm.buttonSaveAndNew = stream();
     vm.doApply = function () {
-      vm.formWidget().model().save();
+      vm.formWidget().model().save().then(function () {
+        callReceiver();
+      });
     };
     vm.doBack = function () {
+      // Once we consciously leave, purge memoize
+      delete instances[vm.model().id()];
       window.history.back();
     };
     vm.doNew = function () {
@@ -54,6 +67,7 @@
     };
     vm.doSave = function () {
       vm.model().save().then(function () {
+        callReceiver();
         vm.doBack();
       });
     };
@@ -63,7 +77,7 @@
       });
     };
     vm.formWidget = stream(formWidget.viewModel({
-      model: options.feather.toCamelCase(),
+      model: model,
       id: options.key,
       config: form,
       outsideElementIds: ["toolbar"]
@@ -75,6 +89,19 @@
     // ..........................................................
     // PRIVATE
     //
+
+    // Memoize our model instance in case we leave and come back
+    instances[vm.model().id()] = vm.model();
+
+    // Helper function to pass back data to sending model
+    callReceiver = function () {
+      var receivers;
+      if (options.receiver) {
+        receivers = catalog.register("receivers");
+        receivers[options.receiver].callback(vm.model());
+        delete receivers[options.receiver];
+      }
+    };
 
     // Create button view models
     vm.buttonBack(button.viewModel({
