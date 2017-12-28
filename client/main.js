@@ -35,7 +35,7 @@
   require("child-table");
 
   var loadCatalog, loadSettings, loadModules,
-    loadForms, loadRelationWidgets, loadWorkbooks,
+    loadForms, loadRelationWidgets, loadWorkbooks, buildRelationWidget,
     m = require("mithril"),
     f = require("component-core"),
     model = require("model"),
@@ -44,6 +44,39 @@
     dataSource = require("datasource"),
     list = require("list"),
     workbooks = catalog.register("workbooks");
+
+  // Helper function for building relation widgets.
+  buildRelationWidget = function (relopts) {
+    var that,
+      relationWidget = catalog.store().components().relationWidget,
+      name = relopts.feather.toCamelCase() + "Relation";
+
+    that = {
+      oninit: function (vnode) {
+        var options = vnode.attrs,
+          id = vnode.attrs.form || relopts.form,
+          oninit = relationWidget.oninit.bind(this);
+
+        options.parentProperty = options.parentProperty || relopts.parentProperty;
+        options.valueProperty = options.valueProperty || relopts.valueProperty;
+        options.labelProperty = options.labelProperty || relopts.labelProperty;
+        options.form = catalog.store().forms()[id];
+        options.list = options.list || relopts.list;
+        options.style = options.style || relopts.style;
+        options.isCell = options.isCell === undefined ? relopts.isCell : options.isCell;
+        oninit(vnode);
+      },
+      view: relationWidget.view
+    };
+
+    that.labelProperty = function () {
+      return relopts.labelProperty;
+    };
+    that.valueProperty = function () {
+      return relopts.valueProperty;
+    };
+    catalog.register("components", name, that);
+  };
 
   // Load catalog and process models
   loadCatalog = new Promise(function (resolve) {
@@ -145,7 +178,7 @@
         item.form = item.form.id;
         item.list = {columns: item.searchColumns};
         delete item.searchColumns;
-        f.buildRelationWidget(item);
+        buildRelationWidget(item);
       });
 
       resolve();

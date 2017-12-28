@@ -138,11 +138,11 @@
 
   formDisplay.component = {
     oninit: function (vnode) {
-      vnode.attrs.viewModel = formDisplay.viewModel(vnode.attrs);
+      this.viewModel = vnode.attrs.viewModel || formDisplay.viewModel(vnode.attrs);
     },
 
-    view: function (vnode) {
-      var vm = vnode.attrs.viewModel;
+    view: function () {
+      var vm = this.viewModel;
 
       // Build view
       return m("div", [

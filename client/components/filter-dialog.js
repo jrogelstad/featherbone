@@ -252,16 +252,13 @@
       // Handle relations
       if (!type.childOf && !type.parentOf) {
         rel = type.relation.toCamelCase();
-        w = catalog.store().components()[rel + "Relation"]({
-          parentProperty: attr,
-          parentViewModel: vm,
-          isCell: true
-        });
+        w = catalog.store().components()[rel + "Relation"];
 
         if (w) {
           return m(w, {
-            viewModel: vm,
-            style: obj.style
+            parentProperty: attr,
+            parentViewModel: vm,
+            isCell: true
           });
         }
       }

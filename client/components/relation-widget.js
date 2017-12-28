@@ -68,10 +68,12 @@
     };
     vm.formConfig = stream(options.form);
     vm.formDialog = stream();
+    vm.isCell = stream(!!options.isCell);
     vm.label = function () {
       var model = modelValue();
       return (labelProperty && model) ? model.data[labelProperty]() : "";
     };
+    vm.labelProperty = stream(options.labelProperty);
     vm.listConfig = stream(options.list);
     vm.model = function () {
       return modelValue();
@@ -143,6 +145,8 @@
     vm.onmouseoutmenu = function () {
       vm.showMenu(false);
     };
+    vm.parentProperty = stream(options.parentProperty);
+    vm.parantViewModel = stream(options.parentViewModel);
     vm.searchDialog = stream();
     vm.showMenu = stream(false);
     vm.style = stream({});
@@ -163,6 +167,7 @@
       }
       return result.data[valueProperty]();
     };
+    vm.valueProperty = stream(valueProperty);
 
     // Create search dialog
     searchConfig = {
@@ -201,15 +206,14 @@
     @param {String} [options.valueProperty] Value property
     @params {Boolean} [options.isCell] Use style for cell in table
   */
-  relationWidget.component = function (options) {
-    var widget = {},
-      parentViewModel = options.parentViewModel,
-      parentProperty = options.parentProperty,
-      valueProperty = options.valueProperty,
-      labelProperty = options.labelProperty;
-
-    widget.oninit = function (vnode) {
-      var relations = parentViewModel.relations();
+  relationWidget.component = {
+    oninit: function (vnode) {
+      var options = vnode.attrs,
+        parentViewModel = options.parentViewModel,
+        parentProperty = options.parentProperty,
+        valueProperty = options.valueProperty,
+        labelProperty = options.labelProperty,
+        relations = parentViewModel.relations();
 
       // Set up viewModel if required
       if (!relations[parentProperty]) {
@@ -223,14 +227,14 @@
           isCell: options.isCell
         });
       }
-      vnode.attrs.vm = relations[parentProperty];
-      vnode.attrs.vm.style(options.style || {});
-    };
+      this.viewModel = relations[parentProperty];
+      this.viewModel.style(options.style || {});
+    },
 
-    widget.view = function (vnode) {
-      var listOptions, view,
+    view: function () {
+      var listOptions, 
         inputStyle, menuStyle, maxWidth,
-        vm = vnode.attrs.vm,
+        vm = this.viewModel,
         style = vm.style(),
         openMenuClass = "pure-menu-link",
         buttonStyle = {
@@ -248,7 +252,7 @@
         border: "1px solid lightgrey"
       };
 
-      if (options.isCell) {
+      if (vm.isCell()) {
         inputStyle = {
           minWidth: "100px",
           maxWidth: "100%"
@@ -264,8 +268,8 @@
 
       // Generate picker list
       listOptions = vm.models().map(function (model) {
-        var content = {value: model.data[valueProperty]()};
-        if (labelProperty) { content.label = model.data[labelProperty](); }
+        var content = {value: model.data[vm.valueProperty()]()};
+        if (vm.labelProperty()) { content.label = model.data[vm.labelProperty()](); }
         return m("option", content);
       });
 
@@ -284,7 +288,7 @@
       }
 
       // Build the view
-      view = m("div", {style: style}, [
+      return m("div", {style: style}, [
         m(searchDialog.component, {viewModel: vm.searchDialog()}),
         m(formDialog.component, {viewModel: vm.formDialog()}),
         m("input", {
@@ -345,11 +349,7 @@
           id: vm.listId()
         }, listOptions)
       ]);
- 
-      return view;
-    };
-
-    return widget;
+    }
   };
 
   catalog.register("components", "relationWidget", relationWidget.component);

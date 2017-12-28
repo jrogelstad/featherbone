@@ -128,27 +128,18 @@
     @params {Object} View model
   */
   dialog.component = {
-    view: function (vnode) {
-      var view, okOpts,
-        vm = vnode.attrs.viewModel,
-        ids = vm.ids(),
-        style = f.copy(vm.style());
+    oninit: function (vnode) {
+      this.viewModel = vnode.attrs.viewModel || dialog.viewModel(vnode.attrs);
+    },
 
-      okOpts = {
-        id: ids.buttonOk,
-        class: "pure-button  pure-button-primary suite-dialog-button-ok",
-        onclick: vm.ok,
-        disabled: vm.okDisabled()
-      };
+    view: function () {
+      var vm = this.viewModel,
+        ids = vm.ids();
 
-      if (vm.okTitle()) {
-        okOpts.title = vm.okTitle();
-      }
-
-      view = m("dialog", {
+      return m("dialog", {
           id: ids.dialog,
           class: "suite-dialog",
-          style: style,
+          style: f.copy(vm.style()),
           oncreate: function (vnode) {
             // Make Chrome style dialog available for all browsers
             var dlg = document.getElementById(vnode.dom.id);
@@ -164,7 +155,13 @@
         m("div", {class: "suite-dialog-content-frame"}, [
           vm.content(),
           m("br"),
-          m("button", okOpts, "Ok"),
+          m("button", {
+            id: ids.buttonOk,
+            class: "pure-button  pure-button-primary suite-dialog-button-ok",
+            onclick: vm.ok,
+            disabled: vm.okDisabled(),
+            title: vm.okTitle()
+          }, "Ok"),
           m("button", {
             id: ids.buttonCancel,
             class: "pure-button",
@@ -174,8 +171,6 @@
           }, "Cancel")
         ])
       ]);
-
-      return view;
     }
   };
 

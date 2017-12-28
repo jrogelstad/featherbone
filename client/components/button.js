@@ -208,7 +208,7 @@
   // Define button component
   button.component =  {
     oninit: function (vnode) {
-      var vm =  vnode.attrs.viewModel || f.viewModels.buttonViewModel(vnode.attrs);
+      var vm =  vnode.attrs.viewModel || button.viewModel(vnode.attrs);
       this.viewModel = vm;
       this.classes = ["pure-button suite-button"];
       if (vm.class()) { this.classes.push(vm.class()); }

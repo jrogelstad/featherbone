@@ -104,14 +104,16 @@
     // Handle relations
     if (prop.isToOne()) {
       rel = prop.type.relation.toCamelCase();
-      w = catalog.store().components()[rel + "Relation"]({
-        parentViewModel: obj.viewModel,
-        parentProperty: key,
-        isCell: opts.isCell,
-        style: opts.style
-      });
+      w = catalog.store().components()[rel + "Relation"];
 
-      if (w) { return m(w); }
+      if (w) { 
+        return m(w,{
+          parentViewModel: obj.viewModel,
+          parentProperty: key,
+          isCell: opts.isCell,
+          style: opts.style
+        }); 
+      }
     }
 
     if (prop.isToMany()) {
@@ -125,52 +127,6 @@
     }
 
     console.log("Widget for property '" + key + "' is unknown");
-  };
-
-  /**
-    Helper function for building relation widgets.
-
-    Use of this function requires that the Relation Widget object has been pre-registered,
-    (i.e. "required") in the application before it is called.
-
-    @param {Object} Options
-    @param {Object} [options.parentProperty] Default name of parent property on parent model
-    @param {String} [options.valueProperty] Default name of value property on relation model
-    @param {Object} {options.labelProperty} Default name of label property on relation model
-    @param {Object} {options.isCell} Whether to use table cell style
-  */
-  f.buildRelationWidget = function (relopts) {
-    var that,
-      relationWidget = catalog.store().components().relationWidget,
-      name = relopts.feather.toCamelCase() + "Relation";
-
-    that = function (options) {
-      options = options || {};
-      var form, w,
-        id = options.form || relopts.form;
-      form = catalog.store().forms()[id];
-      w = relationWidget({
-        parentViewModel: options.parentViewModel,
-        parentProperty: options.parentProperty || relopts.parentProperty,
-        valueProperty: options.valueProperty || relopts.valueProperty,
-        labelProperty: options.labelProperty || relopts.labelProperty,
-        form: form,
-        list: options.list || relopts.list,
-        style: options.style || relopts.style,
-        isCell: options.isCell === undefined ?
-          relopts.isCell : options.isCell
-      });
-
-      return w;
-    };
-
-    that.labelProperty = function () {
-      return relopts.labelProperty;
-    };
-    that.valueProperty = function () {
-      return relopts.valueProperty;
-    };
-    catalog.register("components", name, that);
   };
 
   /*
