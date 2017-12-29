@@ -85,6 +85,9 @@
     vm.model = function () {
       return vm.formWidget().model();
     };
+    vm.title = function () {
+      return options.feather.toName();
+    };
 
     // ..........................................................
     // PRIVATE
@@ -177,13 +180,16 @@
       return m("div", [
         m("div", {
           id: "toolbar",
-          class: "suite-header"
+          class: "suite-toolbar"
         }, [
           m(button.component, {viewModel: vm.buttonBack()}),
           m(button.component, {viewModel: vm.buttonApply()}),
           m(button.component, {viewModel: vm.buttonSave()}),
           m(button.component, {viewModel: vm.buttonSaveAndNew()})
         ]),
+        m("div", {
+          class: "suite-title"
+        }, vm.title()),
         m(formWidget.component, {viewModel: vm.formWidget()})
       ]);
     }
