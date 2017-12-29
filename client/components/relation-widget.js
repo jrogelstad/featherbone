@@ -23,8 +23,7 @@
     m = require("mithril"),
     stream = require("stream"),
     f = require("common-core"),
-    catalog = require("catalog"),
-    searchDialog = require("search-dialog");
+    catalog = require("catalog");
 
   /**
     @param {Object} Options
@@ -55,7 +54,7 @@
       },
       list =  catalog.store().models()[modelName].list,
       modelList = list({filter: filter}),
-      searchConfig;
+      configId = f.createId();
 
     vm.listId = stream(f.createId());
     vm.fetch = function () {
@@ -72,7 +71,6 @@
       return (labelProperty && model) ? model.data[labelProperty]() : "";
     };
     vm.labelProperty = stream(options.labelProperty);
-    vm.listConfig = stream(options.list);
     vm.model = function () {
       return modelValue();
     };
@@ -96,7 +94,12 @@
       });
     };
     vm.onclicksearch = function () {
-      vm.searchDialog().show();
+      catalog.register("config", configId, options.list);
+      m.route.set("/search/:feather", {
+        feather: type.relation.toSpinalCase(),
+        config: configId,
+        receiver: registerReceiver()
+      });
     };
     vm.onchange = function (value) {
       var models = vm.models(),
@@ -146,7 +149,6 @@
     };
     vm.parentProperty = stream(options.parentProperty);
     vm.parantViewModel = stream(options.parentViewModel);
-    vm.searchDialog = stream();
     vm.showMenu = stream(false);
     vm.style = stream({});
     vm.value = function (value) {
@@ -180,22 +182,6 @@
 
       return receiverKey;
     };
-
-    // Create search dialog
-    searchConfig = {
-      feather: type.relation,
-      list: {}
-    };
-    searchConfig.list = vm.listConfig();
-    vm.searchDialog(searchDialog.viewModel({
-      config: searchConfig,
-      onOk: function () {
-        var selection = vm.searchDialog().tableWidget().selection();
-        if (selection) {
-          modelValue(selection);
-        }
-      }
-    }));
 
     return vm;
   };
@@ -292,7 +278,6 @@
 
       // Build the view
       return m("div", {style: style}, [
-        m(searchDialog.component, {viewModel: vm.searchDialog()}),
         m("input", {
           style: inputStyle,
           list: vm.listId(),

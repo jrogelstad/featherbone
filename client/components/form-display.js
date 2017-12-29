@@ -98,8 +98,10 @@
       var receivers;
       if (options.receiver) {
         receivers = catalog.register("receivers");
-        receivers[options.receiver].callback(vm.model());
-        delete receivers[options.receiver];
+        if (receivers[options.receiver]) {
+          receivers[options.receiver].callback(vm.model());
+          delete receivers[options.receiver];
+        }
       }
     };
 

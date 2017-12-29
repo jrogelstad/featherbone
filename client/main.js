@@ -30,6 +30,7 @@
   // on-the-fly instantiation
   require("form-display");
   require("workbook-display");
+  require("search-page");
   require("checkbox");
   require("relation-widget");
   require("child-table");
@@ -266,7 +267,8 @@
       "/home": home,
       "/workbook/:workbook/:key": components.workbookDisplay,
       "/edit/:feather": components.formDisplay,
-      "/edit/:feather/:key": components.formDisplay
+      "/edit/:feather/:key": components.formDisplay,
+      "/search/:feather": components.searchPage
     });
   });
 

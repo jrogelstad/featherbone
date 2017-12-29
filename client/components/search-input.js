@@ -127,16 +127,13 @@
       @param {Object} [options.viewModel] View model
     */
     oninit: function (vnode) {
-      console.log("Init search...");
-      vnode.attrs.viewModel =  vnode.attrs.viewModel || searchInput.viewModel(vnode.attrs);
+      this.viewModel =  vnode.attrs.viewModel || searchInput.viewModel(vnode.attrs);
     },
 
-    view: function (vnode) {
-      console.log("View search...");
-      var opts, view,
-        vm = vnode.attrs.viewModel;
+    view: function () {
+      var vm = this.viewModel;
 
-      opts = {
+      return m("input", {
         id: vm.id(),
         value: vm.text(),
         style: vm.style(),
@@ -144,11 +141,7 @@
         onblur: vm.end,
         oninput:  m.withAttr("value", vm.text),
         onkeydown: vm.onkeydown
-      };
-
-      view = m("input", opts);
-
-      return view;
+      });
     }
   };
 

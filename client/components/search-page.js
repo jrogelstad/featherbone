@@ -16,67 +16,54 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
+/*global window*/
 (function () {
   "use strict";
 
-  var searchDialog = {},
+  var searchPage = {},
     m = require("mithril"),
     stream = require("stream"),
-    f = require("component-core"),
     button = require("button"),
-    dialog = require("dialog"),
     catalog = require("catalog"),
     searchInput = require("search-input"),
     tableWidget = require("table-widget"),
     sortDialog = require("sort-dialog"),
     filterDialog = require("filter-dialog");
 
-  /**
-    View model for table dialog.
-
-    @param {Object} Options
-  */
-  searchDialog.viewModel = function (options) {
-    var vm,
-      feather = catalog.getFeather(options.config.feather);
+  searchPage.viewModel = function (options) {
+    var vm = {},
+      feather = catalog.getFeather(options.feather.toCamelCase(true)),
+      config = catalog.register("config")[options.config];
 
     // ..........................................................
     // PUBLIC
     //
 
-    options.title = options.title || feather.plural.toName();
-    options.icon = options.icon || "search";
-
-    vm = dialog.viewModel(options);
+    vm.buttonBack = stream();
+    vm.buttonSelect = stream();
     vm.buttonClear = stream();
     vm.buttonFilter = stream();
     vm.buttonRefresh = stream();
     vm.buttonSort = stream();
-    vm.filterDialog = stream();
-    vm.okDisabled = function () {
-      return !vm.tableWidget().selection();
+    vm.doBack = function () {
+      window.history.back();
     };
-    vm.okTitle = function () {
-      if (vm.okDisabled()) {
-        return "A row must be selected";
+    vm.doSelect = function () {
+      var receivers, selection;
+      if (options.receiver) {
+        receivers = catalog.register("receivers");
+          if (receivers[options.receiver]) {
+            selection = vm.tableWidget().selection();
+            receivers[options.receiver].callback(selection);
+            delete receivers[options.receiver];
+          }
       }
-      return "";
+      vm.doBack();
     };
+    vm.filterDialog = stream();
     vm.sortDialog = stream();
     vm.searchInput = stream();
     vm.tableWidget = stream();
-    vm.content = function () {
-      return m("div", [
-        m(searchInput.component, {viewModel: vm.searchInput()}),
-        m(button.component, {viewModel: vm.buttonRefresh()}),
-        m(button.component, {viewModel: vm.buttonClear()}),
-        m(button.component, {viewModel: vm.buttonSort()}),
-        m(button.component, {viewModel: vm.buttonFilter()}),
-        m(sortDialog.component, {viewModel: vm.sortDialog()}),
-        m(filterDialog.component, {viewModel: vm.filterDialog()}),
-        m(tableWidget.component, {viewModel: vm.tableWidget()})
-      ]);
-    };
     vm.refresh = function () {
       vm.tableWidget().refresh();
     };
@@ -85,8 +72,6 @@
     // PRIVATE
     //
 
-    vm.ids().searchInput = f.createId();
-
     // Create search input view model
     vm.searchInput(searchInput.viewModel({
       refresh: vm.refresh
@@ -94,11 +79,10 @@
 
     // Create table widget view model
     vm.tableWidget(tableWidget.viewModel({
-      config: options.config.list,
-      feather: options.config.feather,
+      config: config,
+      feather: options.feather.toCamelCase(true),
       search: vm.searchInput().value,
-      ondblclick: vm.ok,
-      containerId: vm.ids().dialog
+      ondblclick: vm.doSelect
     }));
 
     // Create dalog view models
@@ -115,6 +99,28 @@
     }));
 
     // Create button view models
+    vm.buttonBack(button.viewModel({
+      onclick: vm.doBack,
+      label: "&Back",
+      icon: "arrow-left"
+    }));
+
+    vm.buttonSelect(button.viewModel({
+      onclick: vm.doSelect,
+      label: "&Select",
+      title: vm.selectTitle,
+      disabled: vm.selectDisabled
+    }));
+    vm.buttonSelect().isDisabled = function () {
+      return !vm.tableWidget().selection();
+    };
+    vm.buttonSelect().title = function () {
+      if (vm.buttonSelect().isDisabled()) {
+        return "A row must be selected";
+      }
+      return "";
+    };
+
     vm.buttonRefresh(button.viewModel({
       onclick: vm.refresh,
       title: "Refresh",
@@ -166,20 +172,40 @@
       style: {backgroundColor: "white"}
     }));
 
-    vm.style().width = undefined;
-    vm.style().margin = "25px";
-    vm.style().top = "0px";
-
     return vm;
   };
 
-  /**
-    Search dialog component
+  searchPage.component = {
+    oninit: function (vnode) {
+      this.viewModel = vnode.attrs.viewModel || searchPage.viewModel(vnode.attrs);
+    },
 
-    @params {Object} View model
-  */
-  searchDialog.component = dialog.component;
+    onremove: function (vnode) {
+      delete catalog.register("config")[vnode.attrs.config];
+    },
 
-  module.exports = searchDialog;
+    view: function () {
+      var vm = this.viewModel;
+
+      // Build view
+      return m("div", [
+        m(button.component, {viewModel: vm.buttonBack()}),
+        m(button.component, {viewModel: vm.buttonSelect()}),
+        m(searchInput.component, {viewModel: vm.searchInput()}),
+        m(button.component, {viewModel: vm.buttonRefresh()}),
+        m(button.component, {viewModel: vm.buttonClear()}),
+        m(button.component, {viewModel: vm.buttonSort()}),
+        m(button.component, {viewModel: vm.buttonFilter()}),
+        m(sortDialog.component, {viewModel: vm.sortDialog()}),
+        m(filterDialog.component, {viewModel: vm.filterDialog()}),
+        m(tableWidget.component, {viewModel: vm.tableWidget()})
+      ]);
+    }
+  };
+
+  catalog.register("components", "searchPage", searchPage.component);
+  module.exports = searchPage;
 
 }());
+
+
