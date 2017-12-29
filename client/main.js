@@ -31,6 +31,7 @@
   require("form-display");
   require("workbook-display");
   require("search-page");
+  require("settings-page");
   require("checkbox");
   require("relation-widget");
   require("child-table");
@@ -268,7 +269,8 @@
       "/workbook/:workbook/:key": components.workbookDisplay,
       "/edit/:feather": components.formDisplay,
       "/edit/:feather/:key": components.formDisplay,
-      "/search/:feather": components.searchPage
+      "/search/:feather": components.searchPage,
+      "/settings/:settings": components.settingsPage
     });
   });
 

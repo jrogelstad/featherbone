@@ -29,7 +29,6 @@
     dialog = require("dialog"),
     filterDialog = require("filter-dialog"),
     searchInput = require("search-input"),
-    settingsDialog = require("settings-dialog"),
     sortDialog = require("sort-dialog"),
     sheetConfigureDialog = require("sheet-configure-dialog"),
     tableWidget = require("table-widget");
@@ -94,6 +93,11 @@
     vm.goHome = function () {
       vm.didLeave(true);
       m.route.set("/home");
+    };
+    vm.goSettings = function () {
+      m.route.set("/settings/:settings", {
+        settings: workbook.data.launchConfig().settings
+      });
     };
     vm.isDraggingTab = stream(false);
     vm.hasSettings = stream(!!workbook.data.launchConfig().settings);
@@ -200,7 +204,6 @@
       });
     };
     vm.searchInput = stream();
-    vm.settingsDialog = stream({});
     vm.share = function () {
       var doShare,
         confirmDialog = vm.confirmDialog();
@@ -253,11 +256,6 @@
       }
     };
     vm.showMenu = stream(false);
-    vm.showSettingsDialog = function () {
-      if (vm.hasSettings()) { 
-        vm.settingsDialog().show(); 
-      }
-    };
     vm.showSortDialog = function () {
       if (vm.tableWidget().models().canFilter()) {
         vm.sortDialog().show();
@@ -305,12 +303,6 @@
       list: vm.tableWidget().models(),
       feather: feather
     }));
-
-    if (vm.hasSettings()) {
-      vm.settingsDialog(settingsDialog.viewModel({
-        model: workbook.data.launchConfig().settings
-      }));
-    }
 
     vm.sheetConfigureDialog(sheetConfigureDialog.viewModel({
       parentViewModel: vm,
@@ -482,7 +474,7 @@
     },
 
     view: function (vnode) {
-      var filterMenuClass, tabs, view,
+      var filterMenuClass, tabs,
         vm = vnode.attrs.viewModel,
         activeSheet = vm.sheet(),
         config = vm.config(),
@@ -541,7 +533,8 @@
       if (!vm.tableWidget().models().canFilter()) {
         filterMenuClass += " pure-menu-disabled";
       }
-      view = m("div", {
+      
+      return m("div", {
         class: "pure-form"
       }, [
         m(sortDialog.component, {viewModel: vm.sortDialog()}),
@@ -647,7 +640,7 @@
                   borderTop: "solid thin lightgrey"
                 },
                 title: "Change module settings",
-                onclick: vm.showSettingsDialog
+                onclick: vm.goSettings
               }, [m("i", {class:"fa fa-wrench", style: {
                 marginRight: "4px"
               }})], "Settings")
@@ -671,14 +664,6 @@
           m("i", {class: "fa fa-search-minus suite-zoom-icon suite-zoom-left-icon"})
         ])
       ]);
-
-      if (vm.hasSettings()) {
-        view.children.push(
-          m(settingsDialog.component, {viewModel: vm.settingsDialog()})
-        );
-      }
-
-      return view;
     }
   };
 

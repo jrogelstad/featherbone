@@ -189,7 +189,12 @@
         ]),
         m("div", {
           class: "suite-title"
-        }, vm.title()),
+        }, [
+        m("i", {
+          class:"fa fa-file-text suite-title-icon"
+        }),
+        m("label", vm.title())
+        ]),
         m(formWidget.component, {viewModel: vm.formWidget()})
       ]);
     }

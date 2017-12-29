@@ -215,7 +215,7 @@
           data: cache},
         callback = function (result) {
           jsonpatch.apply(cache, result);
-          that.set(cache);
+          that.set(cache.data);
           state.send('fetched');
           context.resolve(d);
         };
