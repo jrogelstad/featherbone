@@ -28,8 +28,8 @@
 
   // These get pre-registered for
   // on-the-fly instantiation
-  require("form-display");
-  require("workbook-display");
+  require("form-page");
+  require("workbook-page");
   require("search-page");
   require("settings-page");
   require("checkbox");
@@ -266,9 +266,9 @@
 
     m.route(document.body, "/home", {
       "/home": home,
-      "/workbook/:workbook/:key": components.workbookDisplay,
-      "/edit/:feather": components.formDisplay,
-      "/edit/:feather/:key": components.formDisplay,
+      "/workbook/:workbook/:key": components.workbookPage,
+      "/edit/:feather": components.formPage,
+      "/edit/:feather/:key": components.formPage,
       "/search/:feather": components.searchPage,
       "/settings/:settings": components.settingsPage
     });

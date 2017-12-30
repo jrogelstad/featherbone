@@ -20,7 +20,7 @@
 (function () {
   "use strict";
 
-  var workbookDisplay = {},
+  var workbookPage = {},
     m = require("mithril"),
     stream = require("stream"),
     f = require("component-core"),
@@ -34,7 +34,7 @@
     tableWidget = require("table-widget");
 
   // Define workbook view model
-  workbookDisplay.viewModel = function (options) {
+  workbookPage.viewModel = function (options) {
     var listState, tableState, searchState, currentSheet, feather,
       workbook = catalog.store().workbooks()[options.workbook.toCamelCase()], 
       config = workbook.getConfig(),
@@ -458,10 +458,10 @@
   };
 
   // Define workbook component
-  workbookDisplay.component =  {
+  workbookPage.component =  {
     oninit: function (vnode) {
       console.log("init workbook...");
-      var viewModel = workbookDisplay.viewModel(vnode.attrs);
+      var viewModel = workbookPage.viewModel(vnode.attrs);
       vnode.attrs.viewModel = viewModel;
     },
 
@@ -667,7 +667,7 @@
     }
   };
 
-  catalog.register("components", "workbookDisplay", workbookDisplay.component);
-  module.exports = workbookDisplay;
+  catalog.register("components", "workbookPage", workbookPage.component);
+  module.exports = workbookPage;
 
 }());

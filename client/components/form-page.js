@@ -20,14 +20,14 @@
 (function () {
   "use strict";
 
-  var formDisplay = {},
+  var formPage = {},
     m = require("mithril"),
     stream = require("stream"),
     button = require("button"),
     catalog = require("catalog"),
     formWidget = require("form-widget");
 
-  formDisplay.viewModel = function (options) {
+  formPage.viewModel = function (options) {
     var state, toggleNew, isDisabled, applyTitle, saveTitle,
       callReceiver, model,
       instances = catalog.register("instances"),
@@ -168,9 +168,9 @@
     return vm;
   };
 
-  formDisplay.component = {
+  formPage.component = {
     oninit: function (vnode) {
-      this.viewModel = vnode.attrs.viewModel || formDisplay.viewModel(vnode.attrs);
+      this.viewModel = vnode.attrs.viewModel || formPage.viewModel(vnode.attrs);
     },
 
     view: function () {
@@ -200,8 +200,8 @@
     }
   };
 
-  catalog.register("components", "formDisplay", formDisplay.component);
-  module.exports = formDisplay;
+  catalog.register("components", "formPage", formPage.component);
+  module.exports = formPage;
 
 }());
 
