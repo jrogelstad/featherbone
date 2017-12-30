@@ -121,11 +121,6 @@
 
   // Define dialog component
   searchInput.component = {
-
-    /**
-      @param {Object} Options
-      @param {Object} [options.viewModel] View model
-    */
     oninit: function (vnode) {
       this.viewModel =  vnode.attrs.viewModel || searchInput.viewModel(vnode.attrs);
     },

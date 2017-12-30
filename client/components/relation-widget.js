@@ -123,6 +123,7 @@
     };
     vm.onfocus = function () {
       hasFocus = true;
+      inputValue(modelValue().data[options.valueProperty]());
     };
     vm.oninput = function (value) {
       var fetch = false,
