@@ -463,7 +463,7 @@
 
     view: function (vnode) {
       var findFilterIndex,
-        header, rows,  rel,
+        header, rows,  rel, resize,
         vm = vnode.attrs.viewModel,
         ids = vm.ids(),
         config = vm.config(),
@@ -471,6 +471,19 @@
         sort = filter.sort || [],
         idx = 0,
         zoom = vm.zoom() + "%";
+
+      // Resize according to surroundings
+      resize = function (vnode) {
+        var e = document.getElementById(vnode.dom.id),
+          yPosition = f.getElementPosition(e).y,
+          winHeight = window.innerHeight,
+          id = vm.containerId(),
+          container = id ? document.getElementById(id) : document.body,
+          containerHeight = container.offsetHeight + f.getElementPosition(container).y,
+          bottomHeight = containerHeight - yPosition - e.offsetHeight;
+
+        e.style.height = winHeight - yPosition - bottomHeight + "px";
+      };
 
       findFilterIndex = function (col, name) {
         name = name || "criteria";
@@ -799,19 +812,9 @@
             // Key down handler for up down movement
             var e = document.getElementById(vnode.dom.id);
             e.addEventListener("keydown", vm.onkeydownCell);
+            resize(vnode);
           },
-          onupdate: function (vnode) {
-            // Resize according to surroundings
-            var e = document.getElementById(vnode.dom.id),
-              yPosition = f.getElementPosition(e).y,
-              winHeight = window.innerHeight,
-              id = vm.containerId(),
-              container = id ? document.getElementById(id) : document.body,
-              containerHeight = container.offsetHeight + f.getElementPosition(container).y,
-              bottomHeight = containerHeight - yPosition - e.offsetHeight;
-
-            e.style.height = winHeight - yPosition - bottomHeight + "px";
-          },
+          onupdate: resize,
           onremove: function (vnode) {
             // Key down handler for up down movement
             var e = document.getElementById(vnode.dom.id);
