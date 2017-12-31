@@ -20,13 +20,12 @@
 (function () {
   "use strict";
 
-  require("dialog-polyfill");
-
   var dialog = {},
     m = require("mithril"),
     stream = require("stream"),
     f = require("common-core"),
-    statechart = require("statechartjs");
+    statechart = require("statechartjs"),
+    dialogPolyfill = require("dialog-polyfill");
 
   /**
     View model for sort dialog.
@@ -142,8 +141,8 @@
           style: f.copy(vm.style()),
           oncreate: function (vnode) {
             // Make Chrome style dialog available for all browsers
-            //var dlg = document.getElementById(vnode.dom.id);
-            //if (!dlg.showModal) { dialogPolyfill.registerDialog(dlg); }
+            var dlg = document.getElementById(vnode.dom.id);
+            if (!dlg.showModal) { dialogPolyfill.registerDialog(dlg); }
           }
         }, [
         m("h3", {
