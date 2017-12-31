@@ -142,8 +142,8 @@
           style: f.copy(vm.style()),
           oncreate: function (vnode) {
             // Make Chrome style dialog available for all browsers
-            var dlg = document.getElementById(vnode.dom.id);
-            if (!dlg.showModal) { dialogPolyfill.registerDialog(dlg); }
+            //var dlg = document.getElementById(vnode.dom.id);
+            //if (!dlg.showModal) { dialogPolyfill.registerDialog(dlg); }
           }
         }, [
         m("h3", {

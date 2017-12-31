@@ -184,34 +184,25 @@
       }
     };
     vm.onkeydownCell = function (e) {
-      var id, step,
+      var id,
         key = e.key || e.keyIdentifier,
         nav = function (name) {
-          id = e.srcElement.id;
-          // Counter potential data changes made by this keystroke
-          if (typeof e.srcElement[step] === "function") {
-            try {
-              e.srcElement[step]();
-            } catch (ignore) {}
-          }
+          id = e.target.id;
           // Navigate in desired direction
-          //m.startComputation();
           vm[name]();
-          //m.endComputation();
+          m.redraw();
           // Set focus on the same cell we left
-          //m.startComputation();
           document.getElementById(id).focus();
-          //m.endComputation();
         };
 
       switch (key)
       {
       case "Up":
-        step = "stepDown";
+      case "ArrowUp":
         nav("goPrevRow");
         break;
       case "Down":
-        step = "stepUp";
+      case "ArrowDown":
         nav("goNextRow");
         break;
       }
@@ -805,8 +796,8 @@
           class: "suite-table-body",
           onscroll: vm.onscroll,
           oncreate: function (vnode) {
-            var e = document.getElementById(vnode.dom.id);
             // Key down handler for up down movement
+            var e = document.getElementById(vnode.dom.id);
             e.addEventListener("keydown", vm.onkeydownCell);
           },
           onupdate: function (vnode) {
@@ -820,6 +811,11 @@
               bottomHeight = containerHeight - yPosition - e.offsetHeight;
 
             e.style.height = winHeight - yPosition - bottomHeight + "px";
+          },
+          onremove: function (vnode) {
+            // Key down handler for up down movement
+            var e = document.getElementById(vnode.dom.id);
+            e.removeEventListener("keydown", vm.onkeydownCell);         
           }
         }, rows)
       ]);

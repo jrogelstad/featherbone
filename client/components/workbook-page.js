@@ -346,6 +346,7 @@
       label: "&Save",
       icon: "cloud-upload"
     }));
+    vm.buttonSave().hide();
 
     vm.buttonOpen(button.viewModel({
       onclick: vm.modelOpen,
