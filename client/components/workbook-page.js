@@ -105,7 +105,8 @@
       if (!vm.tableWidget().modelNew()) {
         vm.didLeave(true);
         m.route.set("/edit/:feather", {
-          feather: feather.name.toSpinalCase()
+          feather: feather.name.toSpinalCase(),
+          form: vm.sheet().form.id
         });
       }
     };
@@ -115,7 +116,8 @@
         vm.didLeave(true);
         m.route.set("/edit/:feather/:key", {
           feather: feather.name.toSpinalCase(),
-          key: selection.id()
+          key: selection.id(),
+          form: vm.sheet().form.id
         });
       }
     };

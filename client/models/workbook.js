@@ -137,6 +137,14 @@
   feathers.WorkbookLocalConfig = workbookLocalConfig;
   feathers.WorkbookList = workbookList;
 
+  var resolveForms = function (config) {
+    config.forEach(function(sheet){
+      if (typeof sheet.form === "string" && sheet.form.length) {
+        sheet.form = catalog.store().forms()[sheet.form];
+      }
+    });
+  };
+
   /**
     Model with special rest API handling for Workbook saves.
     @param {Object} Default data
@@ -149,6 +157,9 @@
     // PUBLIC
     //
 
+    data = data || {};
+    if (data.localConfig) { resolveForms(data.localConfig); }
+    if (data.defaultConfig) { resolveForms(data.defaultConfig); }
     that = model(data, workbook);
     that.idProperty("name");
 
@@ -164,12 +175,6 @@
       if (d.localConfig().length) {
         config = d.localConfig();
       }
-      // Resolve form
-      config.forEach(function(sheet){
-        if (typeof sheet.form === "string") {
-          sheet.form = catalog.store().forms()[sheet.form];
-        }
-      });
       return config.toJSON();  
     };
 

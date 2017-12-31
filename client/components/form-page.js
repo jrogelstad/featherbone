@@ -33,7 +33,7 @@
       instances = catalog.register("instances"),
       feather = options.feather.toCamelCase(true),
       forms = catalog.store().forms(),
-      formId = Object.keys(forms).find(function (id) {
+      formId = options.form || Object.keys(forms).find(function (id) {
         return forms[id].feather === feather;
       }),
       form = forms[formId],

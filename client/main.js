@@ -36,7 +36,7 @@
   require("relation-widget");
   require("child-table");
 
-  var loadCatalog, loadSettings, loadModules, modules,
+  var loadCatalog, loadSettings, loadModules, moduleData, workbookData,
     loadForms, loadRelationWidgets, loadWorkbooks, buildRelationWidget,
     m = require("mithril"),
     f = require("component-core"),
@@ -145,7 +145,7 @@
     var payload = {method: "GET", path: "/modules/"};
 
     dataSource.request(payload).then(function (data) {
-      modules = data;
+      moduleData = data;
       resolve();
     });
   });
@@ -188,11 +188,7 @@
     var payload = {method: "GET", path: "/workbooks/"};
 
     dataSource.request(payload).then(function (data) {
-      var workbookModel = catalog.store().models().workbook;
-
-      data.forEach(function (workbook) {
-        workbooks[workbook.name.toSpinalCase().toCamelCase()] = workbookModel(workbook);
-      });
+      workbookData = data;
       resolve();
     });
   });
@@ -207,11 +203,17 @@
     loadWorkbooks])
   .then(function () {
     var home,
-      components = catalog.store().components();
+      components = catalog.store().components(),
+      workbookModel = catalog.store().models().workbook;
 
     // Process modules
-    modules.forEach(function (module) {
+    moduleData.forEach(function (module) {
       eval(module.script);
+    });
+
+    // Process workbooks
+    workbookData.forEach(function (workbook) {
+      workbooks[workbook.name.toSpinalCase().toCamelCase()] = workbookModel(workbook);
     });
 
     // Build home navigation page
