@@ -405,7 +405,11 @@
       return this;
     };
 
-    that.state = function () {
+    that.state = function (statechart) {
+      if (arguments.length) {
+        state = statechart;
+      }
+
       return state;
     };
 
@@ -564,7 +568,8 @@
     doInit = function () {
       var onFetching, onFetched, extendArray,
         props = feather.properties,
-        keys = Object.keys(props || {});
+        keys = Object.keys(props || {}),
+        initData = this;
 
       onFetching = function () {
         this.state().goto("/Busy/Fetching");
@@ -683,7 +688,7 @@
           toType, scale, handleDefault,
           p = props[key],
           type = p.type,
-          value = data[key],
+          value = initData[key],
           formatter = {};
 
         handleDefault = function (prop, frmt) {
@@ -840,7 +845,7 @@
 
     // Define state
     state = statechart.define(function () {
-      this.enter(doInit);
+      this.enter(doInit.bind(data));
 
       this.state("Ready", {H: "*"}, function () {
         this.event("fetch",  function (resolve) {

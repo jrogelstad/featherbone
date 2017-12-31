@@ -36,7 +36,7 @@
   require("relation-widget");
   require("child-table");
 
-  var loadCatalog, loadSettings, loadModules,
+  var loadCatalog, loadSettings, loadModules, modules,
     loadForms, loadRelationWidgets, loadWorkbooks, buildRelationWidget,
     m = require("mithril"),
     f = require("component-core"),
@@ -126,7 +126,7 @@
         if (typeof models[name] !== "function") {
           // Model instance
           models[name] = function () {
-            return settings(name, definition);
+            return settings(definition);
           };
         } 
 
@@ -144,12 +144,8 @@
   loadModules = new Promise (function (resolve) {
     var payload = {method: "GET", path: "/modules/"};
 
-    dataSource.request(payload).then(function (modules) {
-      // Loop through each module record and run script
-      modules.forEach(function (module) {
-        eval(module.script);
-      });
-
+    dataSource.request(payload).then(function (data) {
+      modules = data;
       resolve();
     });
   });
@@ -212,6 +208,11 @@
   .then(function () {
     var home,
       components = catalog.store().components();
+
+    // Process modules
+    modules.forEach(function (module) {
+      eval(module.script);
+    });
 
     // Build home navigation page
     home = {

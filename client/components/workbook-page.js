@@ -460,7 +460,6 @@
   // Define workbook component
   workbookPage.component =  {
     oninit: function (vnode) {
-      console.log("init workbook...");
       var viewModel = workbookPage.viewModel(vnode.attrs);
       vnode.attrs.viewModel = viewModel;
     },

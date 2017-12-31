@@ -21,7 +21,7 @@
 
   var settings,
     store = {},
-    f = require("common-core"),
+    model = require("model"),
     stream = require("stream"),
     dataSource = require("datasource"),
     statechart = require("statechartjs"),
@@ -30,123 +30,37 @@
   /*
     Model for handling settings.
 
-    @param {String} Name
     @param {Object} [definition] Definition
+    @param {String} [definition.name] Definition name
     @param {Object} [definition.properties] Properties of definition
     @return {Object}
   */
-  settings = function (name, definition) {
-    var that, state, doInit, doFetch, doPut, doSend,
-      lastError, doError, validator, d,
-      errHandlers = [],
-      stateMap = {},
-      validators = [],
-      props = definition.properties;
+  settings = function (definition) {
+    var that, doInit, doFetch, doPut,
+      name = definition.name;
 
     if (!name) { throw "Settings name is required"; }
-    store[name] = store[name] || {};
+
+    // If we've already instantiated these settings, just return them
+    if (store[name]) { return store[name]; }
+    
+    // Otherwise build the model
+    store[name] = model(undefined, definition);
     that = store[name];
-    that.data = store[name].data || {};
-    d = that.data;
 
-    that.canSave = function () {
-      return state.resolve(state.current()[0]).canSave();
-    };
-
-    that.etag = stream();
-
-    // Send event to fetch data based on the current id from the server.
-    that.fetch = function () {
-      return doSend("fetch");
-    };
+    // ..........................................................
+    // PUBLIC
+    //
 
     that.id = function () {
       return name;
     };
 
-    /*
-      Returns whether the object is in a valid state to save.
-      @return {Boolean}
-    */
-    that.isValid = function () {
-      try {
-        validators.forEach(function (validator) {
-          validator();
-        });
-      } catch (e) {
-        doError(e);
-        return false;
-      }
+    that.etag = stream();
 
-      lastError = "";
-      return true;
-    };
-
-    /*
-      Return the last error raised.
-      @return {String}
-    */
-    that.lastError = function () {
-      return lastError;
-    };
-
-    that.onChange = function (name, callback) {
-      var func = function () { callback(this); };
-
-      stateMap[name].substateMap.Changing.enter(func.bind(d[name]));
-
-      return this;
-    };
-
-    that.onChanged = function (name, callback) {
-      var func = function () { callback(this); };
-
-      stateMap[name].substateMap.Changing.exit(func.bind(d[name]));
-
-      return this;
-    };
-
-    that.onValidate = function (callback) {
-      validators.push(callback);
-
-      return this;
-    };
-
-    that.save = function () {
-      return doSend("save");
-    };
-
-    that.set = function (data) {
-      Object.keys(props).forEach(function (key) {
-        if (typeof props[key].type === "object") {
-          that.data[key]().data.id(data[key].id);
-          props[key].type.properties.forEach(function (prop) {
-            that.data[key]().data[prop](data[key][prop]);
-          });
-          return;
-        }
-        that.data[key](data[key]);
-      });
-    };
-
-    that.toJSON = function () {
-      var keys = Object.keys(props),
-        result = {};
-
-      keys.forEach(function (key) {
-        result[key] = d[key].toJSON();
-      });
-
-      return result;
-    };
-
-    doError = function (err) {
-      lastError = err;
-      errHandlers.forEach(function (handler) {
-        handler(err);
-      });
-      state.send("error");
-    };
+    // ..........................................................
+    // PRIVATE
+    //
 
     doFetch = function (context) {
       var payload = {method: "GET", path: "/settings/" + name},
@@ -154,58 +68,12 @@
           var data = result || {};
           that.set(data.data);
           that.etag(data.etag);
-          state.send('fetched');
-          context.resolve(d);
+          that.state().send('fetched');
+          context.resolve(that.data);
         };
 
-      state.goto("/Busy");
+      that.state().goto("/Busy");
       dataSource.request(payload).then(callback);
-    };
-
-    // If we have a formal definition, then set up each property as
-    // a featherbone property
-    doInit = function () {
-      var keys = Object.keys(props);
-
-      keys.forEach(function (key) {
-        var rel, 
-          isToOne = false,
-          prop = f.prop();
-          if (typeof props[key].type === "object") {
-            rel = {data: {id: f.prop()}};
-            props[key].type.properties.forEach(function (p) {
-              rel.data[p] = f.prop();
-            });
-            prop(rel);
-            isToOne = true;
-
-            // Only include specified properties on relations
-            prop.toJSON = function () {
-              var val = {id: d[key]().data.id()};
-              props[key].type.properties.forEach(function (pkey) {
-                val[pkey] = d[key]().data[pkey].toJSON();
-              });
-              return val;
-            };
-          }
-          prop.key = key; // Use of 'name' property is not allowed here
-          prop.description = props[key].description;
-          prop.type = props[key].type;
-          prop.format = props[key].format;
-          prop.isRequired(props[key].isRequired);
-          prop.isReadOnly(props[key].isReadOnly);
-          prop.isToOne = stream(isToOne);
-          prop.isToMany = stream(false);
-          prop.isCalculated = false;
-
-          // Add state to map for event helper functions
-          stateMap[key] = prop.state();
-
-          // Report property changed event up to model
-          that.onChanged(key, function () { state.send("changed"); });
-
-          that.data[key] = prop;
-      });
     };
 
     doPut = function (context) {
@@ -216,8 +84,8 @@
         callback = function (result) {
           jsonpatch.apply(cache, result);
           that.set(cache.data);
-          state.send('fetched');
-          context.resolve(d);
+          that.state().send('fetched');
+          context.resolve(that.data);
         };
 
       if (that.isValid()) {
@@ -225,14 +93,12 @@
       }
     };
 
-    doSend = function (evt) {
-      return new Promise (function (resolve) {
-        state.send(evt, resolve);
-      });
-    };
+    // Pickup originial init function from model
+    doInit = that.state().enters.shift();
 
-    state = statechart.define(function () {
-      this.enter(doInit);
+    // Redfine statechart for this purpose
+    that.state(statechart.define(function () {
+      this.enter(doInit.bind({}));
       this.state("Ready", function () {
         this.event("fetch", function (resolve) {
           this.goto("/Busy", {
@@ -286,31 +152,9 @@
         this.canExit = function () { return false; };
         this.canSave = stream(false);
       });
-    });
+    }));
 
-    // Add standard validator that checks required properties
-    validator = function () {
-      var pname,
-        keys = Object.keys(d),
-        requiredIsNull = function (key) {
-          var prop = d[key];
-          if (prop.isRequired() && (prop() === null ||
-            (prop.type === "string" && !prop()))) {
-            pname = key;
-            return true;
-          }
-        };
-
-      // Validate required values
-      if (keys.some(requiredIsNull)) {
-        throw "\"" + pname.toName() + "\" is required";
-      }
-
-    };
-    that.onValidate(validator);
-
-    // Initialize
-    state.goto();
+    that.state().goto();
 
     return that;
   };

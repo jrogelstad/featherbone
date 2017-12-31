@@ -37,6 +37,7 @@
     var vm = {},
       form = {},
       models = catalog.store().models(),
+      model = models[options.settings](),
       definition = models[options.settings].definition();
 
     // Build form from settings definition
@@ -56,11 +57,10 @@
     //
     vm.buttonDone = stream();
     vm.doDone = function () {
-      var model = vm.formWidget().model();
       if (model.canSave()) {
-        vm.formWidget().model().save();//.then(function () {
-        //  window.history.back();
-        //});
+        vm.formWidget().model().save().then(function () {
+          window.history.back();
+        });
         return;
       }
 
@@ -68,12 +68,13 @@
     };
 
     vm.formWidget = stream(formWidget.viewModel({
-      model: options.settings,
+      model: model,
       id: options.settings,
       config: form,
       outsideElementIds: ["toolbar"]
     }));
 
+    vm.model = stream(model);
     vm.title = function () {
       return options.settings.toName();
     };
@@ -81,10 +82,15 @@
     // ..........................................................
     // PRIVATE
     //
+
     vm.buttonDone(button.viewModel({
       onclick: vm.doDone,
       label: "&Done"
     }));
+
+    if (model.state().current()[0] === "/Ready/New") {
+      model.fetch();
+    }
 
     return vm;
   };
