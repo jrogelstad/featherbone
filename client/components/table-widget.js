@@ -471,8 +471,8 @@
   tableWidget.component = {
 
     view: function (vnode) {
-      var tbodyConfig, findFilterIndex,
-        header, rows, view, rel,
+      var findFilterIndex,
+        header, rows,  rel,
         vm = vnode.attrs.viewModel,
         ids = vm.ids(),
         config = vm.config(),
@@ -494,22 +494,6 @@
 
         if (ary.some(hasCol)) { return i; }
         return false;
-      };
-
-      // Determine appropriate height based on surroundings
-      tbodyConfig = function (vnode) {
-        var e = document.getElementById(vnode.dom.id),
-          yPosition = f.getElementPosition(e).y,
-          winHeight = window.innerHeight,
-          id = vm.containerId(),
-          container = id ? document.getElementById(id) : document.body,
-          containerHeight = container.offsetHeight + f.getElementPosition(container).y,
-          bottomHeight = containerHeight - yPosition - e.offsetHeight;
-
-        e.style.height = winHeight - yPosition - bottomHeight + "px";
-
-        // Key down handler for up down movement
-        e.addEventListener("keydown", vm.onkeydownCell);
       };
 
       // Build header
@@ -809,7 +793,7 @@
         return row;
       });
 
-      view = m("table", {
+      return m("table", {
           class: "pure-table suite-table"
         }, [
           m("thead", {
@@ -820,11 +804,25 @@
           id: ids.rows,
           class: "suite-table-body",
           onscroll: vm.onscroll,
-          oncreate: tbodyConfig
+          oncreate: function (vnode) {
+            var e = document.getElementById(vnode.dom.id);
+            // Key down handler for up down movement
+            e.addEventListener("keydown", vm.onkeydownCell);
+          },
+          onupdate: function (vnode) {
+            // Resize according to surroundings
+            var e = document.getElementById(vnode.dom.id),
+              yPosition = f.getElementPosition(e).y,
+              winHeight = window.innerHeight,
+              id = vm.containerId(),
+              container = id ? document.getElementById(id) : document.body,
+              containerHeight = container.offsetHeight + f.getElementPosition(container).y,
+              bottomHeight = containerHeight - yPosition - e.offsetHeight;
+
+            e.style.height = winHeight - yPosition - bottomHeight + "px";
+          }
         }, rows)
       ]);
-
-      return view;
     }
   };
 
