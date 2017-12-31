@@ -71,7 +71,9 @@
 }
 
 .suite-column-header-grabber {
-  padding: 3px !important;
+  padding: 0px !important;
+  min-width: 6px !important;
+  max-width: 6px !important;
   border-left: none !important;
   cursor: w-resize;
 }

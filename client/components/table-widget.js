@@ -575,7 +575,7 @@
                 ondragover: vm.ondragover.bind(this, idx),
                 draggable: true,
                 ondragstart: vm.ondragstart.bind(this, idx, "width"),
-                class: "pure-table td pure-table th suite-column-header-grabber"
+                class: "suite-column-header-grabber"
               })
             ];
 
