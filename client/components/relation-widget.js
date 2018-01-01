@@ -178,6 +178,7 @@
       catalog.register("receivers", receiverKey, {
         callback: function (model) {
           modelValue(model);
+          vm.showMenu(false);
         }
       });
 
