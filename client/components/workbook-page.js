@@ -463,21 +463,20 @@
   // Define workbook component
   workbookPage.component =  {
     oninit: function (vnode) {
-      var viewModel = workbookPage.viewModel(vnode.attrs);
-      vnode.attrs.viewModel = viewModel;
+      this.viewModel = workbookPage.viewModel(vnode.attrs);
     },
 
-    onupdate: function (vnode) {
-      var viewModel = vnode.attrs.viewModel;
+    onupdate: function () {
+      var viewModel = this.viewModel;
       if (viewModel.didLeave()) {
         viewModel.didLeave(false);
         viewModel.refresh(); 
       }
     },
 
-    view: function (vnode) {
+    view: function () {
       var filterMenuClass, tabs,
-        vm = vnode.attrs.viewModel,
+        vm = this.viewModel,
         activeSheet = vm.sheet(),
         config = vm.config(),
         idx = 0;

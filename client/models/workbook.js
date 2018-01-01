@@ -51,17 +51,11 @@
       },
       defaultConfig: {
         description: "Parent of \"parent\" on \"WorkbookDefaultConfig\"",
-        type: {
-          parentOf: "parent",
-          relation: "WorkbookDefaultConfig"
-        }
+        type: "object"
       },
       localConfig: {
         description: "Parent of \"parent\" on \"WorkbookLocalConfig\"",
-        type: {
-          parentOf: "parent",
-          relation: "WorkbookLocalConfig"
-        }
+        type: "object"
       }
     }
   };
@@ -137,8 +131,9 @@
   feathers.WorkbookLocalConfig = workbookLocalConfig;
   feathers.WorkbookList = workbookList;
 
-  var resolveForms = function (config) {
+  var resolveConfig = function (config) {
     config.forEach(function(sheet){
+      if (!sheet.id) { sheet.id = f.createId(); }
       if (typeof sheet.form === "string" && sheet.form.length) {
         sheet.form = catalog.store().forms()[sheet.form];
       }
@@ -158,8 +153,8 @@
     //
 
     data = data || {};
-    if (data.localConfig) { resolveForms(data.localConfig); }
-    if (data.defaultConfig) { resolveForms(data.defaultConfig); }
+    if (data.localConfig) { resolveConfig(data.localConfig); }
+    if (data.defaultConfig) { resolveConfig(data.defaultConfig); }
     that = model(data, workbook);
     that.idProperty("name");
 
@@ -175,7 +170,7 @@
       if (d.localConfig().length) {
         config = d.localConfig();
       }
-      return config.toJSON();  
+      return config;  
     };
 
     // ..........................................................
