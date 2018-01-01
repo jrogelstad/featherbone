@@ -36,6 +36,7 @@
   // Define workbook view model
   workbookPage.viewModel = function (options) {
     var listState, tableState, searchState, currentSheet, feather,
+      registerReceiver,
       workbook = catalog.store().workbooks()[options.workbook.toCamelCase()], 
       config = workbook.getConfig(),
       sheetId = config.find(function (sheet) {
@@ -103,21 +104,21 @@
     vm.hasSettings = stream(!!workbook.data.launchConfig().settings);
     vm.modelNew = function () {
       if (!vm.tableWidget().modelNew()) {
-        vm.didLeave(true);
         m.route.set("/edit/:feather", {
           feather: feather.name.toSpinalCase(),
-          form: vm.sheet().form.id
+          form: vm.sheet().form.id,
+          receiver: registerReceiver()
         });
       }
     };
     vm.modelOpen = function () {
       var selection = vm.tableWidget().selection();
       if (selection) {
-        vm.didLeave(true);
         m.route.set("/edit/:feather/:key", {
           feather: feather.name.toSpinalCase(),
           key: selection.id(),
-          form: vm.sheet().form.id
+          form: vm.sheet().form.id,
+          receiver: registerReceiver(vm.tableWidget().selection())
         });
       }
     };
@@ -284,6 +285,28 @@
     // PRIVATE
     //
     feather = catalog.getFeather(vm.sheet().feather);
+
+    // Helper function for registering callbacks
+    registerReceiver = function (tableModel) {
+      var receiverKey = f.createId();
+
+      catalog.register("receivers", receiverKey, {
+        callback: function (model) {
+          var w;
+          if (tableModel) {
+            tableModel.set(model.toJSON());
+          } else {
+            w = vm.tableWidget();
+            w.toggleEdit();
+            w.modelNew();
+            w.selection().set(model.toJSON());
+            w.toggleView();
+          }
+        }
+      });
+
+      return receiverKey;
+    };
 
     // Create search widget view model
     vm.searchInput(searchInput.viewModel({
