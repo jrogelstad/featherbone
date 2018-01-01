@@ -486,7 +486,24 @@
   // Define workbook component
   workbookPage.component =  {
     oninit: function (vnode) {
+      var workbook = vnode.attrs.workbook,
+        sheet = vnode.attrs.key,
+        viewModels = catalog.register("workbookViewModels");
+
+      if (viewModels[workbook] &&
+          viewModels[workbook][sheet]) {
+        this.viewModel = viewModels[workbook][sheet];
+        return;
+      }
+
       this.viewModel = workbookPage.viewModel(vnode.attrs);
+
+      // Memoize the model for total state persistence
+      if (!viewModels[workbook]) {
+        viewModels[workbook] = {};
+      }
+
+      viewModels[workbook][sheet] = this.viewModel;
     },
 
     onupdate: function () {

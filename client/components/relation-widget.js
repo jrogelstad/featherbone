@@ -245,7 +245,8 @@
       if (vm.isCell()) {
         inputStyle = {
           minWidth: "100px",
-          maxWidth: "100%"
+          maxWidth: "100%",
+          border: "none"
         };
         buttonStyle = {
           position: "absolute",
