@@ -37,7 +37,8 @@
         return forms[id].feather === feather;
       }),
       form = forms[formId],
-      vm = {};
+      vm = {},
+      pageIdx = options.index || 1;
 
     // Check if we've already got a model instantiated
     if (options.key && instances[options.key]) {
@@ -52,7 +53,7 @@
     vm.buttonSaveAndNew = stream();
     vm.doApply = function () {
       vm.formWidget().model().save().then(function () {
-        callReceiver();
+        callReceiver(false);
       });
     };
     vm.doBack = function () {
@@ -61,18 +62,25 @@
       window.history.back();
     };
     vm.doNew = function () {
-      m.route.set("/edit/:form", {
-        form: options.form
-      });
+      var opts = {
+          feather: options.feather,
+          form: options.form,
+          index: pageIdx + 1
+        };
+      if (options.receiver) {
+        opts.receiver = options.receiver;
+      }
+      m.route.set("/edit/:feather", opts);
     };
-    vm.doSave = function () {
+    vm.doSave = function (delRecvr) {
       vm.model().save().then(function () {
-        callReceiver();
-        vm.doBack();
+        callReceiver(delRecvr);
+        delete instances[vm.model().id()];
+        window.history.go(pageIdx * -1);
       });
     };
     vm.doSaveAndNew = function () {
-      vm.model().save().then(function () {
+      vm.model().save(false).then(function () {
         vm.doNew();
       });
     };
@@ -97,13 +105,15 @@
     instances[vm.model().id()] = vm.model();
 
     // Helper function to pass back data to sending model
-    callReceiver = function () {
+    callReceiver = function (delRecvr) {
       var receivers;
       if (options.receiver) {
         receivers = catalog.register("receivers");
         if (receivers[options.receiver]) {
           receivers[options.receiver].callback(vm.model());
-          delete receivers[options.receiver];
+          if (delRecvr !== false) {
+            delete receivers[options.receiver];
+          }
         }
       }
     };
