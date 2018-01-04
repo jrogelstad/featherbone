@@ -289,19 +289,13 @@
     // Register callback
     catalog.register("receivers", receiverKey, {
       callback: function (model) {
-        var w,
-          tableModel = vm.tableWidget().selection();
+        var tableModel = vm.tableWidget().selection();
 
         if (tableModel && tableModel.id() === model.id()) {
           tableModel.set(model.toJSON());
           tableModel.state().goto("/Ready/Fetched/Clean");
         } else {
-          w = vm.tableWidget();
-          w.toggleEdit();
-          w.modelNew();
-          w.selection().set(model.toJSON());
-          w.selection().state().goto("/Ready/Fetched/Clean");
-          w.toggleView();
+          vm.tableWidget().models().add(model);
         }
       }
     });

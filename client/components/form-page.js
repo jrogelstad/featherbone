@@ -28,8 +28,8 @@
     formWidget = require("form-widget");
 
   formPage.viewModel = function (options) {
-    var state, toggleNew, isDisabled, applyTitle, saveTitle,
-      callReceiver, model,
+    var toggleNew, isDisabled, applyTitle, saveTitle,
+      callReceiver, model, createForm,
       instances = catalog.register("instances"),
       feather = options.feather.toCamelCase(true),
       forms = catalog.store().forms(),
@@ -59,7 +59,7 @@
     vm.doBack = function () {
       // Once we consciously leave, purge memoize
       delete instances[vm.model().id()];
-      window.history.back();
+      window.history.go(pageIdx * -1);
     };
     vm.doNew = function () {
       var opts = {
@@ -81,15 +81,16 @@
     };
     vm.doSaveAndNew = function () {
       vm.model().save(false).then(function () {
-        vm.doNew();
+        callReceiver();
+        createForm({
+          model: model,
+          config: form,
+          outsideElementIds: ["toolbar"]
+        });
+        toggleNew(false);
       });
     };
-    vm.formWidget = stream(formWidget.viewModel({
-      model: model,
-      id: options.key,
-      config: form,
-      outsideElementIds: ["toolbar"]
-    }));
+    vm.formWidget = stream();
     vm.model = function () {
       return vm.formWidget().model();
     };
@@ -101,8 +102,27 @@
     // PRIVATE
     //
 
-    // Memoize our model instance in case we leave and come back
-    instances[vm.model().id()] = vm.model();
+    toggleNew = function (isNew) {
+      vm.buttonSaveAndNew().title("");
+      if (isNew) {
+        vm.buttonSaveAndNew().label("&New");
+        vm.buttonSaveAndNew().onclick(vm.doNew);    
+      } else {
+        vm.buttonSaveAndNew().label("Save and &New");
+        vm.buttonSaveAndNew().onclick(vm.doSaveAndNew);  
+      }
+    };
+
+    createForm = function (opts) {
+      var state,
+        w = formWidget.viewModel(opts);
+
+      vm.formWidget(w);
+      state = w.model().state();
+      state.resolve("/Ready/New").enter(toggleNew.bind(this, false));
+      state.resolve("/Ready/Fetched/Clean").enter(toggleNew.bind(this, true));
+      state.resolve("/Ready/Fetched/Dirty").enter(toggleNew.bind(this, false));      
+    };
 
     // Helper function to pass back data to sending model
     callReceiver = function () {
@@ -114,6 +134,17 @@
         }
       }
     };
+
+    // Create form widget
+    createForm({
+      model: model,
+      id: options.key,
+      config: form,
+      outsideElementIds: ["toolbar"]
+    });
+
+    // Memoize our model instance in case we leave and come back
+    instances[vm.model().id()] = vm.model();
 
     // Create button view models
     vm.buttonBack(button.viewModel({
@@ -157,20 +188,6 @@
       }
       return saveTitle();
     };
-    toggleNew = function (isNew) {
-      vm.buttonSaveAndNew().title("");
-      if (isNew) {
-        vm.buttonSaveAndNew().label("&New");
-        vm.buttonSaveAndNew().onclick(vm.doNew);    
-      } else {
-        vm.buttonSaveAndNew().label("Save and &New");
-        vm.buttonSaveAndNew().onclick(vm.doSaveAndNew);  
-      }
-    };
-    state = vm.model().state();
-    state.resolve("/Ready/New").enter(toggleNew.bind(this, false));
-    state.resolve("/Ready/Fetched/Clean").enter(toggleNew.bind(this, true));
-    state.resolve("/Ready/Fetched/Dirty").enter(toggleNew.bind(this, false));
 
     return vm;
   };
