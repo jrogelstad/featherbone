@@ -36,9 +36,9 @@
   // Define workbook view model
   workbookPage.viewModel = function (options) {
     var listState, tableState, searchState, currentSheet, feather,
-      registerReceiver,
       workbook = catalog.store().workbooks()[options.workbook.toCamelCase()], 
       config = workbook.getConfig(),
+      receiverKey = f.createId(),
       sheetId = config.find(function (sheet) {
         return sheet.name.toSpinalCase() === options.key;
       }).id,
@@ -107,7 +107,7 @@
         m.route.set("/edit/:feather", {
           feather: feather.name.toSpinalCase(),
           form: vm.sheet().form.id,
-          receiver: registerReceiver()
+          receiver: receiverKey
         });
       }
     };
@@ -118,7 +118,7 @@
           feather: feather.name.toSpinalCase(),
           key: selection.id(),
           form: vm.sheet().form.id,
-          receiver: registerReceiver(vm.tableWidget().selection())
+          receiver: receiverKey
         });
       }
     };
@@ -286,29 +286,25 @@
     //
     feather = catalog.getFeather(vm.sheet().feather);
 
-    // Helper function for registering callbacks
-    registerReceiver = function (tableModel) {
-      var receiverKey = f.createId();
+    // Register callback
+    catalog.register("receivers", receiverKey, {
+      callback: function (model) {
+        var w,
+          tableModel = vm.tableWidget().selection();
 
-      catalog.register("receivers", receiverKey, {
-        callback: function (model) {
-          var w;
-          if (tableModel && tableModel.id() === model.id()) {
-            tableModel.set(model.toJSON());
-            tableModel.state().goto("/Ready/Fetched/Clean");
-          } else {
-            w = vm.tableWidget();
-            w.toggleEdit();
-            w.modelNew();
-            w.selection().set(model.toJSON());
-            w.selection().state().goto("/Ready/Fetched/Clean");
-            w.toggleView();
-          }
+        if (tableModel && tableModel.id() === model.id()) {
+          tableModel.set(model.toJSON());
+          tableModel.state().goto("/Ready/Fetched/Clean");
+        } else {
+          w = vm.tableWidget();
+          w.toggleEdit();
+          w.modelNew();
+          w.selection().set(model.toJSON());
+          w.selection().state().goto("/Ready/Fetched/Clean");
+          w.toggleView();
         }
-      });
-
-      return receiverKey;
-    };
+      }
+    });
 
     // Create search widget view model
     vm.searchInput(searchInput.viewModel({

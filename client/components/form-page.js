@@ -72,9 +72,9 @@
       }
       m.route.set("/edit/:feather", opts);
     };
-    vm.doSave = function (delRecvr) {
+    vm.doSave = function () {
       vm.model().save().then(function () {
-        callReceiver(delRecvr);
+        callReceiver();
         delete instances[vm.model().id()];
         window.history.go(pageIdx * -1);
       });
@@ -105,15 +105,12 @@
     instances[vm.model().id()] = vm.model();
 
     // Helper function to pass back data to sending model
-    callReceiver = function (delRecvr) {
+    callReceiver = function () {
       var receivers;
       if (options.receiver) {
         receivers = catalog.register("receivers");
         if (receivers[options.receiver]) {
           receivers[options.receiver].callback(vm.model());
-          if (delRecvr !== false) {
-            delete receivers[options.receiver];
-          }
         }
       }
     };
