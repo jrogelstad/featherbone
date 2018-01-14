@@ -92,46 +92,59 @@
       });
 
       return m("div", {
-        class: "pure-form pure-form-aligned suite-sheet-configure-content"
-      }, [
-        m("div", {class: "pure-control-group"}, [
-          m("label", {
-            for: nameId
-          }, "Name:"),
-          m("input", {
-            value: d.name(),
-            required: true,
-            oninput: m.withAttr("value", d.name)
-          })
-        ]),
-        m("div", {class: "pure-control-group"}, [
-          m("label", {
-            for: featherId
-          }, "Table:"),
-          m("select", {
-            value: d.feather(),
-            required: true,
-            oninput: m.withAttr("value", d.feather)
-          }, feathers)
-        ]),
-        m("div", {class: "pure-control-group"}, [
-          m("label", {
-            for: formId
-          }, "Form:"),
-          m("select", {
-            value: vm.form(),
-            required: true,
-            oninput: m.withAttr("value", vm.form)
-          }, forms)
-        ]),
-        m("div", {class: "suite-sheet-configure-tabs"} , [
-          m("button", {
-            class: "pure-button pure-button-primary",
-            style: { borderRadius: "4px"}
-          }, "List")
-        ]),
-        m("div", {class: "suite-sheet-configure-group-box"}, [
-          tableView()
+          class: "pure-form pure-form-aligned suite-sheet-configure-content"
+        }, [
+          m("div", {class: "suite-sheet-configure-tabs"} , [
+            m("button", {
+              class: "pure-button pure-button-primary",
+              style: { borderRadius: "4px 0px 0px 4px"}
+            }, "Sheet"),
+            m("button", {
+              class: "pure-button",
+              style: { borderRadius: "0px 4px 4px 0px"}
+            }, "List")
+          ]),
+          m("div", {class: "suite-sheet-configure-group-box"}, [
+            m("div", {
+              class: "suite-tabbed-panes-hidden"
+            }, [
+              m("div", {class: "pure-control-group"}, [
+                m("label", {
+                  for: nameId
+                }, "Name:"),
+                m("input", {
+                  value: d.name(),
+                  required: true,
+                  oninput: m.withAttr("value", d.name)
+                })
+              ]),
+              m("div", {class: "pure-control-group"}, [
+                m("label", {
+                  for: featherId
+                }, "Table:"),
+                m("select", {
+                  value: d.feather(),
+                  required: true,
+                  oninput: m.withAttr("value", d.feather)
+                }, feathers)
+              ]),
+              m("div", {class: "pure-control-group"}, [
+                m("label", {
+                  for: formId
+                }, "Form:"),
+                m("select", {
+                  value: vm.form(),
+                  required: true,
+                  oninput: m.withAttr("value", vm.form)
+                }, forms)
+              ])
+            ]
+          ),
+          m("div", {
+            //class: "suite-tabbed-panes-hidden"
+          }, [
+            tableView()
+          ])
         ])
       ]);
     };
