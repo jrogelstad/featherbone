@@ -38,7 +38,8 @@
       }),
       form = forms[formId],
       vm = {},
-      pageIdx = options.index || 1;
+      pageIdx = options.index || 1,
+      isNew = options.create && options.isNew !== false;
 
     // Check if we've already got a model instantiated
     if (options.key && instances[options.key]) {
@@ -52,7 +53,7 @@
     vm.buttonSave = stream();
     vm.buttonSaveAndNew = stream();
     vm.doApply = function () {
-      vm.formWidget().model().save().then(function () {
+      vm.model().save().then(function () {
         callReceiver(false);
       });
     };
@@ -137,13 +138,22 @@
 
     // Create form widget
     createForm({
+      isNew: isNew,
       model: model,
       id: options.key,
       config: form,
       outsideElementIds: ["toolbar"]
     });
 
-    // Memoize our model instance in case we leave and come back
+    // Once model instantiated let history know already created so we know 
+    // to fetch if navigating back here through history
+    if (isNew) {
+      options.isNew = false;
+      m.route.set(m.route.get(), null, {replace: true, state: options});
+    }
+
+    // Memoize our model instance in case we leave and come back while zooming
+    // deeper into detail
     instances[vm.model().id()] = vm.model();
 
     // Create button view models

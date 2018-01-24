@@ -104,10 +104,12 @@
     vm.hasSettings = stream(!!workbook.data.launchConfig().settings);
     vm.modelNew = function () {
       if (!vm.tableWidget().modelNew()) {
-        m.route.set("/edit/:feather", {
+        m.route.set("/edit/:feather/:key", {
           feather: feather.name.toSpinalCase(),
           form: vm.sheet().form.id,
-          receiver: receiverKey
+          receiver: receiverKey,
+          key: f.createId(),
+          create: true
         });
       }
     };

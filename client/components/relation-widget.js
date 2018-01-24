@@ -81,9 +81,11 @@
       hasFocus = false;
     };
     vm.onclicknew = function () {
-      m.route.set("/edit/:feather", {
+      m.route.set("/edit/:feather/:key", {
         feather: type.relation.toSpinalCase(),
-        receiver: registerReceiver()
+        key: f.createId(),
+        receiver: registerReceiver(),
+        create: true
       });
     };
     vm.onclickopen = function () {

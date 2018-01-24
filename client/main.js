@@ -270,7 +270,6 @@
     m.route(document.body, "/home", {
       "/home": home,
       "/workbook/:workbook/:key": components.workbookPage,
-      "/edit/:feather": components.formPage,
       "/edit/:feather/:key": components.formPage,
       "/search/:feather": components.searchPage,
       "/settings/:settings": components.settingsPage

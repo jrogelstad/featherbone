@@ -49,7 +49,9 @@
       model = vm.model(models[options.model]());
       if (options.id) {
         model.id(options.id);
-        model.fetch();
+        if (!options.isNew) {
+          model.fetch();
+        }
       }
     }
 
