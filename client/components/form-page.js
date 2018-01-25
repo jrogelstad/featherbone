@@ -69,30 +69,26 @@
           key: f.createId()
         },
         state = {
-          form: options.form,
-          index: pageIdx + 1
+          state: {
+            form: options.form,
+            index: pageIdx + 1,
+            create: true,
+            receiver: options.receiver
+          }
         };
-      if (options.receiver) {
-        state.receiver = options.receiver;
-      }
       m.route.set("/edit/:feather/:key", opts, state);
     };
     vm.doSave = function () {
       vm.model().save().then(function () {
         callReceiver();
-        delete instances[vm.model().id()];
-        window.history.go(pageIdx * -1);
+        vm.doBack();
       });
     };
     vm.doSaveAndNew = function () {
-      vm.model().save(false).then(function () {
+      vm.model().save().then(function () {
         callReceiver();
-        createForm({
-          model: model,
-          config: form,
-          outsideElementIds: ["toolbar"]
-        });
-        toggleNew(false);
+        delete instances[vm.model().id()];
+        vm.doNew();
       });
     };
     vm.formWidget = stream();
