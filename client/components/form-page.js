@@ -22,6 +22,7 @@
 
   var formPage = {},
     m = require("mithril"),
+    f = require("common-core"),
     stream = require("stream"),
     button = require("button"),
     catalog = require("catalog"),
@@ -65,13 +66,16 @@
     vm.doNew = function () {
       var opts = {
           feather: options.feather,
+          key: f.createId()
+        },
+        state = {
           form: options.form,
           index: pageIdx + 1
         };
       if (options.receiver) {
-        opts.receiver = options.receiver;
+        state.receiver = options.receiver;
       }
-      m.route.set("/edit/:feather", opts);
+      m.route.set("/edit/:feather/:key", opts, state);
     };
     vm.doSave = function () {
       vm.model().save().then(function () {

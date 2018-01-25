@@ -106,11 +106,13 @@
       if (!vm.tableWidget().modelNew()) {
         m.route.set("/edit/:feather/:key", {
           feather: feather.name.toSpinalCase(),
+          key: f.createId()
+        }, {
+        state: {
           form: vm.sheet().form.id,
           receiver: receiverKey,
-          key: f.createId(),
           create: true
-        });
+        }});
       }
     };
     vm.modelOpen = function () {
@@ -118,10 +120,12 @@
       if (selection) {
         m.route.set("/edit/:feather/:key", {
           feather: feather.name.toSpinalCase(),
-          key: selection.id(),
+          key: selection.id()
+        }, {
+        state: {
           form: vm.sheet().form.id,
           receiver: receiverKey
-        });
+        }});
       }
     };
     vm.newSheet = function () {

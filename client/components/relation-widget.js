@@ -83,24 +83,34 @@
     vm.onclicknew = function () {
       m.route.set("/edit/:feather/:key", {
         feather: type.relation.toSpinalCase(),
-        key: f.createId(),
-        receiver: registerReceiver(),
-        create: true
-      });
+        key: f.createId()
+      }, {
+        state: {
+          receiver: registerReceiver(),
+          create: true
+        }
+      }
+      );
     };
     vm.onclickopen = function () {
       m.route.set("/edit/:feather/:key", {
         feather: type.relation.toSpinalCase(),
-        key: modelValue().id(),
-        receiver: registerReceiver()
+        key: modelValue().id()
+      }, {
+        state: {
+          receiver: registerReceiver()
+        }
       });
     };
     vm.onclicksearch = function () {
       catalog.register("config", configId, options.list);
       m.route.set("/search/:feather", {
         feather: type.relation.toSpinalCase(),
-        config: configId,
-        receiver: registerReceiver()
+        config: configId
+      }, {
+        state: {
+          receiver: registerReceiver()
+        }
       });
     };
     vm.onchange = function (value) {
