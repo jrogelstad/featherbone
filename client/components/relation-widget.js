@@ -134,8 +134,11 @@
       }
     };
     vm.onfocus = function () {
+      var value = modelValue();
+      
       hasFocus = true;
-      inputValue(modelValue().data[options.valueProperty]());
+      value = value ? value.data[options.valueProperty]() : null;
+      inputValue(value);
     };
     vm.oninput = function (value) {
       var fetch = false,
