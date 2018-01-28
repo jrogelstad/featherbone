@@ -38,10 +38,7 @@
     var vm, tableView,
       createModel = catalog.store().models().workbookLocalConfig,
       cache = f.copy(options.parentViewModel.sheet()),
-      sheetButtonClass = "pure-button pure-button-primary",
-      listButtonClass = "pure-button",
-      sheetTabClass = "",
-      listTabClass = "suite-tabbed-panes-hidden";
+      sheetButtonClass, listButtonClass, sheetTabClass, listTabClass;
 
     options.onOk = function () {
       var id = vm.sheetId(),
@@ -208,6 +205,10 @@
       vm.model(createModel(cache));
       if (!cache.list.columns.length) { vm.add(); }
       vm.selection(0);
+      sheetButtonClass = "pure-button pure-button-primary";
+      listButtonClass = "pure-button";
+      sheetTabClass = "";
+      listTabClass = "suite-tabbed-panes-hidden";
     };
     vm.sheet = options.parentViewModel.sheet;
     vm.toggleTab = function () {
