@@ -190,7 +190,7 @@
 
       return result;
     };
-    vm.model = f.prop(createModel(cache));
+    vm.model = f.prop();
     vm.okDisabled = function () {
       return !vm.model().isValid();
     };
@@ -202,7 +202,10 @@
     vm.reset = function () {
       var id = vm.sheetId();
       cache = f.copy(vm.sheet(id));
-      vm.model(createModel(cache));
+      vm.model(createModel(cache))
+        .onChanged("form", function () {
+          m.redraw();
+        });
       if (!cache.list.columns.length) { vm.add(); }
       vm.selection(0);
       sheetButtonClass = "pure-button pure-button-primary";
