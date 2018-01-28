@@ -49,7 +49,10 @@
         tableWidget = options.parentViewModel.tableWidget();
 
       vm.sheet(id, sheet);
-      tableWidget.config(sheet.list);
+      // If we updated current sheet (not new), update list
+      if (vm.sheet().id === id) {
+        tableWidget.config(sheet.list);
+      }
       vm.state().send("close");
     };
     options.icon = "gear";
@@ -103,7 +106,7 @@
               class: listButtonClass,
               style: { borderRadius: "0px 4px 4px 0px"},
               onclick: vm.toggleTab
-            }, "List")
+            }, "Columns")
           ]),
           m("div", {class: "suite-sheet-configure-group-box"}, [
             m("div", {
@@ -170,9 +173,9 @@
         form = Object.keys(forms).find(function (key) {
           return forms[key].name === name;
         });
-        prop(form);
+        prop(forms[form]);
       }
-      return prop() ? prop().name : "";
+      return prop() ? prop().data.name() : "";
     };
     vm.forms = function () {
       var result,
