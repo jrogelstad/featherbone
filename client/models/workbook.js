@@ -65,6 +65,11 @@
     isSystem: true,
     isChild: true,
     properties: {
+      id: {
+        description: "Unique identifier",
+        type: "string",
+        default: "createId"
+      },
       parent: {
         description: "Workbook name",
         type: {

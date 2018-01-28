@@ -37,20 +37,19 @@
     options = options || {};
     var vm, tableView,
       createModel = catalog.store().models().workbookLocalConfig,
-      cache = f.copy(options.parentViewModel.sheet());
+      cache = f.copy(options.parentViewModel.sheet()),
+      sheetButtonClass = "pure-button pure-button-primary",
+      listButtonClass = "pure-button",
+      sheetTabClass = "",
+      listTabClass = "suite-tabbed-panes-hidden";
 
     options.onOk = function () {
-      var route,
-        id = vm.sheetId(),
+      var id = vm.sheetId(),
         sheet = vm.model().toJSON(),
-        workbook = vm.workbook();
+        tableWidget = options.parentViewModel.tableWidget();
 
       vm.sheet(id, sheet);
-      workbook.data.localConfig(vm.config());
-      f.buildRoutes(workbook.toJSON());
-      route = "/" + workbook.data.name() + "/" + sheet.name;
-      route = route.toSpinalCase();
-      m.route.set(route);
+      tableWidget.config(sheet.list);
       vm.state().send("close");
     };
     options.icon = "gear";
@@ -96,17 +95,19 @@
         }, [
           m("div", {class: "suite-sheet-configure-tabs"} , [
             m("button", {
-              class: "pure-button pure-button-primary",
-              style: { borderRadius: "4px 0px 0px 4px"}
+              class: sheetButtonClass,
+              style: { borderRadius: "4px 0px 0px 4px"},
+              onclick: vm.toggleTab
             }, "Sheet"),
             m("button", {
-              class: "pure-button",
-              style: { borderRadius: "0px 4px 4px 0px"}
+              class: listButtonClass,
+              style: { borderRadius: "0px 4px 4px 0px"},
+              onclick: vm.toggleTab
             }, "List")
           ]),
           m("div", {class: "suite-sheet-configure-group-box"}, [
             m("div", {
-              class: "suite-tabbed-panes-hidden"
+              class: sheetTabClass
             }, [
               m("div", {class: "pure-control-group"}, [
                 m("label", {
@@ -141,7 +142,7 @@
             ]
           ),
           m("div", {
-            //class: "suite-tabbed-panes-hidden"
+            class: listTabClass
           }, [
             tableView()
           ])
@@ -206,6 +207,19 @@
       vm.selection(0);
     };
     vm.sheet = options.parentViewModel.sheet;
+    vm.toggleTab = function () {
+      if (sheetTabClass) {
+        sheetButtonClass = "pure-button pure-button-primary";
+        listButtonClass = "pure-button";
+        sheetTabClass = "";
+        listTabClass = "suite-tabbed-panes-hidden";
+      } else {
+        sheetButtonClass = "pure-button";
+        listButtonClass = "pure-button pure-button-primary";
+        sheetTabClass = "suite-tabbed-panes-hidden";
+        listTabClass = "";
+      }
+    };
     vm.workbook = options.parentViewModel.workbook;
     vm.viewHeaderIds = stream({
       column: f.createId(),
