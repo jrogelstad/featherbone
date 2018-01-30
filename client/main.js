@@ -35,6 +35,7 @@
   require("checkbox");
   require("relation-widget");
   require("child-table");
+  require("mathjs");
 
   var loadCatalog, loadSettings, loadModules, moduleData, workbookData,
     loadForms, loadRelationWidgets, loadWorkbooks, buildRelationWidget,
