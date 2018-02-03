@@ -195,18 +195,6 @@
     return vm;
   };
 
-  // Helper function to generate button icon
-  /*
-  var iconView = function (icon) {
-    if (icon) {
-      return [m("i", {
-        class: "fa fa-" + icon,
-        style: {marginRight: "4px"}
-      })];
-    }
-  };
-  */
-
   // Define button component
   button.component =  {
     oninit: function (vnode) {

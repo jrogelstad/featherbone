@@ -599,11 +599,13 @@
         ary.add = function (value) {
           var result;
           prop.state().send("change");
-          if (value && value.isModel) { value = value.toJSON(); }
-
-          // Create an instance
-          result = catalog.store().models()[name]();
-          result.set(value, true, true);
+          if (value && value.isModel) {
+            result = value;
+          }  else {
+            // Create an instance
+            result = catalog.store().models()[name]();
+            result.set(value, true, true);
+          }
 
           // Synchronize statechart
           state.resolve("/Busy/Fetching").enter(onFetching.bind(result));
