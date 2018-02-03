@@ -19,6 +19,10 @@
   background-color: Snow;
 }
 
+.suite-button-disabled {
+    pointer-events: auto !important;
+}
+
 .suite-checkbox {
   display: inline-block;
 }

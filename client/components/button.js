@@ -205,24 +205,30 @@
     view: function () {
       var opts, view, iconView,
         vm = this.viewModel,
-        classes = ["pure-button suite-button"],
+        classes = ["pure-button"],
         style = vm.style(),
         title = vm.title(),
         icon = vm.icon(),
         label = vm.label();
 
-      if (vm.class()) { classes.push(vm.class()); }
-      if (vm.primary()) { classes.push(vm.primary()); }
-      classes.push(vm.hidden());
-
       opts = {
         id: vm.id(),
         type: "button",
-        class: classes.join(" "),
         style: style,
         disabled: vm.isDisabled(),
         onclick: vm.onclick()
       };
+
+      if (vm.isDisabled()) {
+        classes.push("pure-button-disabled suite-button-disabled");
+      }
+
+      classes.push("suite-button");
+      if (vm.class()) { classes.push(vm.class()); }
+      if (vm.primary()) { classes.push(vm.primary()); }
+      classes.push(vm.hidden());
+      opts.class = classes.join(" ");
+
       if (vm.hotKey()) {
         opts.oncreate = function () {
           document.addEventListener("keydown", vm.onkeydown);
