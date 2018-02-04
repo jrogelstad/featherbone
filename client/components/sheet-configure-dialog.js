@@ -35,7 +35,7 @@
   */
   sheetConfigureDialog.viewModel = function (options) {
     options = options || {};
-    var vm, tableView,
+    var vm, tableView, example,
       createModel = catalog.store().models().workbookLocalConfig,
       cache = f.copy(options.parentViewModel.sheet()),
       sheetButtonClass, listButtonClass, sheetTabClass, listTabClass;
@@ -61,6 +61,9 @@
 
     vm = tableDialog.viewModel(options);
     tableView = vm.content;
+    vm.alias = function (attr) {
+      return example.data[attr].alias();
+    };
     vm.addAttr = function (attr) {
       if (!this.some(vm.hasAttr.bind(attr))) {
         this.push({attr: attr});
@@ -200,18 +203,26 @@
     vm.sheetId = stream(options.sheetId);
     vm.relations = stream({});
     vm.reset = function () {
-      var id = vm.sheetId();
+      var model, feather,
+        id = vm.sheetId();
+
+      // Setup local model
       cache = f.copy(vm.sheet(id));
-      vm.model(createModel(cache))
-        .onChanged("form", function () {
-          m.redraw();
-        });
+      model = createModel(cache);
+      model.onChanged("form", m.redraw);
+      vm.model(model);
       if (!cache.list.columns.length) { vm.add(); }
       vm.selection(0);
+
+      // Set button orientation
       sheetButtonClass = "pure-button pure-button-primary";
       listButtonClass = "pure-button";
       sheetTabClass = "";
       listTabClass = "suite-tabbed-panes-hidden";
+
+      // For resolving alias
+      feather = model.data.feather().toCamelCase();
+      example = catalog.store().models()[feather]();
     };
     vm.sheet = options.parentViewModel.sheet;
     vm.toggleTab = function () {
@@ -264,7 +275,7 @@
           ),
           m("td", {style: {minWidth: "220px", maxWidth: "220px"}},
             m("input", {
-              value: item.label || item.attr.toName(),
+              value: item.label || vm.alias(item.attr),
               onchange: m.withAttr(
                 "value",
                 vm.itemChanged.bind(this, item.index, "label"))

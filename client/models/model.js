@@ -834,6 +834,7 @@
         prop.isRequired(props[key].isRequired);
         prop.isReadOnly(props[key].isReadOnly);
         prop.isCalculated = false;
+        prop.alias(props[key].alias || key.toName());
 
         // Add state to map for event helper functions
         stateMap[key] = prop.state();

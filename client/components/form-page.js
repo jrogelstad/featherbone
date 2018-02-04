@@ -105,7 +105,7 @@
 
     toggleNew = function (isNew) {
       vm.buttonSaveAndNew().title("");
-      if (isNew) {
+      if (isNew || !vm.model().canSave()) {
         vm.buttonSaveAndNew().label("&New");
         vm.buttonSaveAndNew().onclick(vm.doNew);    
       } else {

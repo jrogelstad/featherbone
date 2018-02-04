@@ -75,6 +75,10 @@
                 "type": "string",
                 "isRequired": true
             },
+            "alias": {
+                "description": "Alternate name for property",
+                "type": "string"
+            },
             "type": {
                 "description": "Type",
                 "type": "object",

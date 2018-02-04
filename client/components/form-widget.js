@@ -150,7 +150,7 @@
             class: "pure-control-group"
           }, [
             m("label", labelOpts,
-              item.label || key.toProperCase() + ":"),
+              item.label || prop.alias() + ":"),
             f.buildInputComponent({
               model: model,
               key: key,

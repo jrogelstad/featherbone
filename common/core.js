@@ -142,7 +142,7 @@
     prop: function (store, formatter) {
       formatter = formatter || {};
 
-      var newValue, oldValue, p, state, revert,
+      var newValue, oldValue, p, state, revert, alias,
         isReadOnly = false,
         isRequired = false,
         defaultTransform = function (value) { return value; };
@@ -209,6 +209,13 @@
         }
 
         return formatter.fromType(store);
+      };
+
+      p.alias = function (value) {
+        if (arguments.length) {
+          alias = value;
+        }
+        return alias;
       };
 
       /*
