@@ -688,6 +688,7 @@
       keys.forEach(function (key) {
         var prop, defaultValue, name, cFeather, cKeys, cArray, relation,
           toType, scale, handleDefault,
+          alias = props[key].alias ? props[key].alias.toName() : key.toName(),
           p = props[key],
           type = p.type,
           value = initData[key],
@@ -834,7 +835,7 @@
         prop.isRequired(props[key].isRequired);
         prop.isReadOnly(props[key].isReadOnly);
         prop.isCalculated = false;
-        prop.alias(props[key].alias || key.toName());
+        prop.alias(alias);
 
         // Add state to map for event helper functions
         stateMap[key] = prop.state();
@@ -999,7 +1000,7 @@
           var prop = d[key];
           if (prop.isRequired() && (prop() === null ||
             (prop.type === "string" && !prop()))) {
-            name = key;
+            name = prop.alias();
             return true;
           }
 
@@ -1015,7 +1016,7 @@
 
       // Validate required values
       if (keys.some(requiredIsNull)) {
-        throw "\"" + name.toName() + "\" is required";
+        throw "\"" + name + "\" is required";
       }
     });
 
