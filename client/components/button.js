@@ -220,7 +220,7 @@
       };
 
       if (vm.isDisabled()) {
-        classes.push("pure-button-disabled suite-button-disabled");
+        classes.push("suite-button-disabled");
       }
 
       classes.push("suite-button");

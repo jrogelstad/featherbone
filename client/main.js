@@ -37,7 +37,7 @@
   require("child-table");
   require("mathjs");
 
-  var loadCatalog, loadSettings, loadModules, moduleData, workbookData,
+  var loadCatalog, loadModules, moduleData, workbookData,
     loadForms, loadRelationWidgets, loadWorkbooks, buildRelationWidget,
     m = require("mithril"),
     f = require("component-core"),
@@ -85,7 +85,9 @@
   loadCatalog = new Promise(function (resolve) {
     catalog.fetch(true).then(function (data) {
       var feathers,
-        models = catalog.register("models");
+        models = catalog.register("models"),
+        payload = {method: "GET", path: "/settings-definition"},
+        initSettings = [];
 
       feathers = Object.keys(data);
       feathers.forEach(function (feather) {
@@ -109,35 +111,33 @@
         }
       });
 
-      resolve();
-    });
-  });
+      // Load settings
+      dataSource.request(payload).then(function (definitions) {
 
-  // Load settings definition
-  loadSettings = new Promise(function (resolve) {
-    var payload = {method: "GET", path: "/settings-definition"},
-      models = catalog.register("models");
+        // Loop through each definition and build a settings model function
+        definitions.forEach(function (definition) {
+          var name = definition.name;
+          // Implement generic function to object from model
+          if (typeof models[name] !== "function") {
+            // Model instance
+            models[name] = function () {
+              return settings(definition);
+            };
+          } 
 
-    dataSource.request(payload).then(function (definitions) {
-
-      // Loop through each definition and build a settings model function
-      definitions.forEach(function (definition) {
-        var name = definition.name;
-        // Implement generic function to object from model
-        if (typeof models[name] !== "function") {
-          // Model instance
-          models[name] = function () {
-            return settings(definition);
+          // Allow retrieving of definition directly from object
+          models[name].definition = function () {
+            return definition;
           };
-        } 
 
-        // Allow retrieving of definition directly from object
-        models[name].definition = function () {
-          return definition;
-        };       
+          // Instantiate settings models
+          initSettings.push(new Promise (function(presolve) {
+            models[name]().fetch().then(presolve);
+          }));
+        });
+
+        Promise.all(initSettings).then(resolve);
       });
-
-      resolve();
     });
   });
 
@@ -197,7 +197,6 @@
   // When all intialization done, construct app.
   Promise.all([
     loadCatalog,
-    loadSettings,
     loadForms,
     loadModules,
     loadRelationWidgets,

@@ -35,7 +35,7 @@
 
   // Define workbook view model
   workbookPage.viewModel = function (options) {
-    var listState, tableState, searchState, currentSheet, feather,
+    var listState, tableState, searchState, currentSheet, feather, staticModel,
       workbook = catalog.store().workbooks()[options.workbook.toCamelCase()], 
       config = workbook.getConfig(),
       receiverKey = f.createId(),
@@ -48,13 +48,51 @@
     // PUBLIC
     //
 
+    vm.actions = function () {
+      var menu, 
+        actions = vm.sheet().actions || [],
+        selections = vm.tableWidget().selections(),
+        obj = {
+          selections: selections,
+          dialog: vm.confirmDialog()
+        };
+
+      menu = actions.map(function (action) {
+        var opts,
+          method = staticModel[action.method].bind(obj);
+
+        action.id = action.id || f.createId();
+
+        opts = {
+          id: action.id,
+          class: "pure-menu-link",
+          title: action.title
+        };
+
+        if (action.isSelectedOnly && !selections.length) {
+          opts.class = "pure-menu-link pure-menu-disabled";
+        } else {
+          opts.onclick = method;
+        }
+
+        if (action.hasSeparator) {
+          opts.style = {};
+          opts.style.borderTop = "solid thin lightgrey";
+        }
+
+        return m("li", opts, 
+          [m("i", {class:"fa fa-thumbtack", style: {
+          marginRight: "4px"
+        }})], action.name);     
+      });
+
+      return menu;
+    };
     vm.buttonClear = stream();
     vm.buttonDelete = stream();
     vm.buttonEdit = stream();
     vm.buttonHome = stream();
-    vm.buttonList = stream();
     vm.buttonNew = stream();
-    vm.buttonOpen = stream();
     vm.buttonRefresh = stream();
     vm.buttonSave = stream();
     vm.buttonUndo = stream();
@@ -184,6 +222,15 @@
       }
       vm.isDraggingTab(false);
     };
+    vm.onmouseoveractions = function () {
+      vm.showActions(true);
+    };
+    vm.onmouseoutactions = function (ev) {
+      if (!ev || !ev.toElement || !ev.toElement.id ||
+          ev.toElement.id.indexOf("nav-") === -1) {
+        vm.showActions(false);
+      }
+    };
     vm.onmouseovermenu = function () {
       vm.showMenu(true);
     };
@@ -264,6 +311,7 @@
         vm.filterDialog().show();
       }
     };
+    vm.showActions = stream(false);
     vm.showMenu = stream(false);
     vm.showSortDialog = function () {
       if (vm.tableWidget().models().canFilter()) {
@@ -291,6 +339,7 @@
     // PRIVATE
     //
     feather = catalog.getFeather(vm.sheet().feather);
+    staticModel = catalog.store().models()[feather.name.toCamelCase()];
 
     // Register callback
     catalog.register("receivers", receiverKey, {
@@ -340,7 +389,7 @@
 
     // Create button view models
     vm.buttonEdit(button.viewModel({
-      onclick: vm.tableWidget().toggleEdit,
+      onclick: vm.tableWidget().toggleMode,
       title: "Edit mode",
       hotkey: "E",
       icon: "pencil"
@@ -356,27 +405,12 @@
       icon: "home"
     }));
 
-    vm.buttonList(button.viewModel({
-      onclick: vm.tableWidget().toggleView,
-      title: "List mode",
-      hotkey: "L",
-      icon: "list"
-    }));
-    vm.buttonList().activate();
-
     vm.buttonSave(button.viewModel({
       onclick: vm.tableWidget().save,
       label: "&Save",
       icon: "cloud-upload"
     }));
     vm.buttonSave().hide();
-
-    vm.buttonOpen(button.viewModel({
-      onclick: vm.modelOpen,
-      label: "&Open",
-      icon: "folder-open"
-    }));
-    vm.buttonOpen().disable();
 
     vm.buttonNew(button.viewModel({
       onclick: vm.modelNew,
@@ -444,18 +478,13 @@
     tableState = vm.tableWidget().state();
     tableState.resolve("/Mode/View").enter(function () {
       vm.buttonEdit().deactivate();
-      vm.buttonList().activate();
       vm.buttonSave().hide();
-      vm.buttonOpen().show();
     });
     tableState.resolve("/Mode/Edit").enter(function () {
       vm.buttonEdit().activate();
-      vm.buttonList().deactivate();
       vm.buttonSave().show();
-      vm.buttonOpen().hide();
     });
     tableState.resolve("/Selection/Off").enter(function () {
-      vm.buttonOpen().disable();
       vm.buttonDelete().disable();
       vm.buttonDelete().show();
       vm.buttonUndo().hide();
@@ -467,7 +496,6 @@
       } else {
         vm.buttonDelete().disable();
       }
-      vm.buttonOpen().enable();
     });
     tableState.resolve("/Selection/On/Clean").enter(function () {
       vm.buttonDelete().show();
@@ -517,7 +545,8 @@
         vm = this.viewModel,
         activeSheet = vm.sheet(),
         config = vm.config(),
-        idx = 0;
+        idx = 0,
+        actionsDisabled = !Array.isArray(activeSheet.actions) || !activeSheet.actions.length; 
 
       // Build tabs
       tabs = vm.sheets().map(function (sheet) {
@@ -585,10 +614,27 @@
             class: "suite-toolbar"
           }, [
           m(button.component, {viewModel: vm.buttonHome()}),
-          m(button.component, {viewModel: vm.buttonList()}),
           m(button.component, {viewModel: vm.buttonEdit()}),
+          m("div", {
+            id: "nav-div",
+            class: "pure-menu custom-restricted-width suite-menu",
+            onmouseover: vm.onmouseoveractions,
+            onmouseout: vm.onmouseoutactions
+          }, [
+            m("span", {
+              id: "nav-button",
+              class:"pure-button fa fa-bolt suite-menu-button",
+              disabled: actionsDisabled
+            }),
+            m("ul", {
+              id: "nav-menu-list",
+              class: "pure-menu-list suite-menu-list",
+              style: {
+                display: vm.showActions() ? "block" : "none"
+              }
+            }, vm.actions())
+          ]),
           m(button.component, {viewModel: vm.buttonSave()}),
-          m(button.component, {viewModel: vm.buttonOpen()}),
           m(button.component, {viewModel: vm.buttonNew()}),
           m(button.component, {viewModel: vm.buttonDelete()}),
           m(button.component, {viewModel: vm.buttonUndo()}),
@@ -628,6 +674,7 @@
               }, [m("i", {class:"fa fa-filter", style: {
                 marginRight: "4px"
               }})], "Filter"),
+              /*
               m("li", {
                 id: "nav-format",
                 class: "pure-menu-link pure-menu-disabled",
@@ -645,6 +692,7 @@
                 fontWeight: "bold",
                 fontStyle: "Italic"
               }}, "∑")], " Totals"),
+              */
               m("li", {
                 id: "nav-configure",
                 class: "pure-menu-link",

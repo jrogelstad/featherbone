@@ -274,15 +274,19 @@
       return vm.selection();
     };
     vm.selection = stream();
+    vm.selections = function () {
+      var ret = [];
+      if (vm.selection()) {
+        ret.push(vm.selection());
+      }
+      return ret;
+    };
     vm.selectedColor = function () {
       return vm.mode().selectedColor();
     };
     vm.state = stream();
-    vm.toggleEdit = function () {
-      vm.state().send("edit");
-    };
-    vm.toggleView = function () {
-      vm.state().send("view");
+    vm.toggleMode = function () {
+      vm.state().send("toggle");
     };
     vm.toggleSelection = function (model, col) {
       return vm.mode().toggleSelection(model, col);
@@ -376,6 +380,11 @@
               this.goto("../Edit");
             }
           });
+          this.event("toggle", function () {
+            if (vm.isEditModeEnabled()) {
+              this.goto("../Edit");
+            }
+          });
           this.modelDelete = function () {
             var selection = vm.selection();
             selection.delete(true).then(function () {
@@ -400,6 +409,9 @@
         });
         this.state("Edit", function () {
           this.event("view", function () {
+            this.goto("../View");
+          });
+          this.event("toggle", function () {
             this.goto("../View");
           });
           this.modelDelete = function () {
