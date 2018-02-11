@@ -285,6 +285,12 @@
       return vm.mode().selectedColor();
     };
     vm.state = stream();
+    vm.toggleEdit = function () {
+      vm.state().send("edit");
+    };
+    vm.toggleView = function () {
+      vm.state().send("view");
+    };
     vm.toggleMode = function () {
       vm.state().send("toggle");
     };
