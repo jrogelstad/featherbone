@@ -148,6 +148,22 @@
     return { x: xPosition, y: yPosition };
   };
 
+  /** @private  Helper function to resolve property dot notation */
+  f.resolveAlias = function (featherName, attr) {
+    var prefix, suffix, ret,
+      feather = catalog.getFeather(featherName),
+      idx = attr.indexOf(".");
+
+    if (idx > -1) {
+      prefix = attr.slice(0, idx);
+      suffix = attr.slice(idx + 1, attr.length);
+      return f.resolveAlias(feather.properties[prefix].type.relation, suffix);
+    }
+
+    ret = feather.properties[attr].alias || attr;
+    return ret.toName();
+  };
+
   /** @private  Helper function recursive list of feather properties */
   f.resolveProperties = function (feather, properties, ary, prefix) {
     prefix = prefix || "";

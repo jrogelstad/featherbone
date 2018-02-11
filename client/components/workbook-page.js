@@ -123,6 +123,7 @@
       };
 
       confirmDialog.message("Are you sure you want to delete this sheet?");
+      confirmDialog.icon("question-circle");
       confirmDialog.onOk(doDelete);
       confirmDialog.show();
     };
@@ -271,6 +272,7 @@
 
       confirmDialog.message("Are you sure you want to share your workbook " +
         "configuration with all other users?");
+      confirmDialog.icon("question-circle");
       confirmDialog.onOk(doShare);
       confirmDialog.show();
     };

@@ -58,7 +58,7 @@
   // Define workbook view model
   tableWidget.viewModel = function (options) {
     options = options || {};
-    var fromWidthIdx, dataTransfer, example,
+    var fromWidthIdx, dataTransfer,
       selectionChanged, selectionFetched, fetch,
       feather = catalog.getFeather(options.feather),
       modelName = options.feather.toCamelCase(),
@@ -70,7 +70,7 @@
     //
 
     vm.alias = function (attr) {
-      return example.data[attr].alias();
+      return f.resolveAlias(vm.feather().name, attr);
     };
     vm.attrs = function () {
       var columns = vm.config().columns,
@@ -306,9 +306,6 @@
     // ..........................................................
     // PRIVATE
     //
-
-    // Used to resolve aliases
-    example = catalog.store().models()[vm.feather().name.toCamelCase()]();
 
     vm.filter(f.copy(options.config.filter || {}));
     vm.filter().limit = vm.filter().limit || LIMIT;

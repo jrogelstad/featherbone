@@ -35,7 +35,7 @@
   */
   sheetConfigureDialog.viewModel = function (options) {
     options = options || {};
-    var vm, tableView, example,
+    var vm, tableView,
       createModel = catalog.store().models().workbookLocalConfig,
       cache = f.copy(options.parentViewModel.sheet()),
       sheetButtonClass, listButtonClass, sheetTabClass, listTabClass;
@@ -62,7 +62,10 @@
     vm = tableDialog.viewModel(options);
     tableView = vm.content;
     vm.alias = function (attr) {
-      return example.data[attr].alias();
+      // For resolving alias
+      var feather = vm.model().data.feather();
+
+      return f.resolveAlias(feather, attr);
     };
     vm.addAttr = function (attr) {
       if (!this.some(vm.hasAttr.bind(attr))) {
@@ -203,7 +206,7 @@
     vm.sheetId = stream(options.sheetId);
     vm.relations = stream({});
     vm.reset = function () {
-      var model, feather,
+      var model,
         id = vm.sheetId();
 
       // Setup local model
@@ -219,10 +222,6 @@
       listButtonClass = "pure-button";
       sheetTabClass = "";
       listTabClass = "suite-tabbed-panes-hidden";
-
-      // For resolving alias
-      feather = model.data.feather().toCamelCase();
-      example = catalog.store().models()[feather]();
     };
     vm.sheet = options.parentViewModel.sheet;
     vm.toggleTab = function () {
