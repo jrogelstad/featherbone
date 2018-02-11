@@ -219,6 +219,21 @@
       }
       vm.isDraggingTab(false);
     };
+    vm.onkeydown = function (ev) {
+      var key = ev.key || ev.keyIdentifier;
+
+      switch (key)
+      {
+      case "Up":
+      case "ArrowUp":
+        vm.tableWidget().goPrevRow();
+        break;
+      case "Down":
+      case "ArrowDown":
+        vm.tableWidget().goNextRow();
+        break;
+      }
+    };
     vm.onmouseoveractions = function () {
       vm.showActions(true);
     };
@@ -609,7 +624,8 @@
         m(dialog.component, {viewModel: vm.confirmDialog()}),
         m("div", {
             id: "toolbar",
-            class: "suite-toolbar"
+            class: "suite-toolbar",
+            onkeydown: vm.onkeydown
           }, [
           m(button.component, {viewModel: vm.buttonHome()}),
           m(button.component, {viewModel: vm.buttonEdit()}),

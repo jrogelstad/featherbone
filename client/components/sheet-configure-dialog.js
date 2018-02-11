@@ -62,7 +62,6 @@
     vm = tableDialog.viewModel(options);
     tableView = vm.content;
     vm.alias = function (attr) {
-      // For resolving alias
       var feather = vm.model().data.feather();
 
       return f.resolveAlias(feather, attr);

@@ -92,8 +92,11 @@
     vm.filter = f.prop();
     vm.goNextRow = function () {
       var list = vm.models(),
+        ids = list.map(function (model) { 
+          return model.id();
+        }),
         model = vm.model(),
-        idx = list.indexOf(model) + 1;
+        idx = model ? ids.indexOf(model.id()) + 1 : 0;
       if (list.length > idx) {
         vm.select(list[idx]);
       }
