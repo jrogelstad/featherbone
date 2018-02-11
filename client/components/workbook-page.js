@@ -51,15 +51,11 @@
     vm.actions = function () {
       var menu, 
         actions = vm.sheet().actions || [],
-        selections = vm.tableWidget().selections(),
-        obj = {
-          selections: selections,
-          dialog: vm.confirmDialog()
-        };
+        selections = vm.tableWidget().selections();
 
       menu = actions.map(function (action) {
         var opts,
-          method = staticModel[action.method].bind(obj);
+          method = staticModel[action.method];
 
         action.id = action.id || f.createId();
 
@@ -72,7 +68,7 @@
         if (action.isSelectedOnly && !selections.length) {
           opts.class = "pure-menu-link pure-menu-disabled";
         } else {
-          opts.onclick = method;
+          opts.onclick = method.bind(this, selections, vm.confirmDialog());
         }
 
         if (action.hasSeparator) {
