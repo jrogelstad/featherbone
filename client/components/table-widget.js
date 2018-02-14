@@ -116,6 +116,7 @@
     vm.isSelected = function (model) {
       return vm.selectionIds().indexOf(model.id()) > -1;
     };
+    vm.lastSelected = stream();
     vm.mode = function () {
       var state = vm.state();
       return state.resolve(state.current()[0]);
@@ -449,23 +450,51 @@
             return "LightSkyBlue";
           };
           this.toggleSelection = function (model, col, optKey) {
-            var isSelected = vm.isSelected(model);
+            var isSelected = vm.isSelected(model),
+              startIdx, endIdx, lastIdx, currentIdx,
+              i, models, modelIds, adds;
 
             switch (optKey) 
             {
               case "ctrlKey":
                 if (isSelected) {
                   vm.unselect(model);
+                  vm.lastSelected(undefined);
                   return;
                 }
                 vm.select([model]);
+                vm.lastSelected(model);
                 break;
               case "shiftKey":
+                document.getSelection().removeAllRanges();
+                adds = [];
+                models = vm.models();
+                modelIds = vm.models().map(function (item) {
+                  return item.id();
+                });
+                lastIdx = Math.max(modelIds.indexOf(vm.lastSelected().id()), 0);
+                currentIdx = modelIds.indexOf(model.id());
+
+                if (currentIdx > lastIdx) {
+                  startIdx = lastIdx;
+                  endIdx = currentIdx;
+                } else {
+                  startIdx = currentIdx;
+                  endIdx = lastIdx;
+                }
+
+                for (i = startIdx; i <= endIdx; i += 1) {
+                  adds.push(models[i]);
+                }
+
+                vm.select(adds);
+                vm.lastSelected(model);
                 break;
               default:
                 vm.unselect();
                 if (!isSelected) {
                   vm.select(model);
+                  vm.lastSelected(model);
                 }
             }
 
@@ -474,6 +503,14 @@
           };
         });
         this.state("Edit", function () {
+          this.enter(function () {
+            var last;
+            if (vm.selections().length > 1) {
+              last = vm.lastSelected();
+              vm.unselect();
+              vm.select(last);
+            }
+          });
           this.event("view", function () {
             this.goto("../View");
           });
@@ -494,6 +531,7 @@
           };
           this.toggleSelection = function (model, col) {
             vm.select(model);
+            vm.lastSelected(model);
             vm.nextFocus("input" + col.toCamelCase(true));
             return true;
           };
