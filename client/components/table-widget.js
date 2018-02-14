@@ -114,13 +114,7 @@
       rows: f.createId()
     });
     vm.isSelected = function (model) {
-      var prop,
-        selection = vm.selection();
-      if (selection && model) {
-        prop = selection.idProperty();
-        return selection.data[prop]() === model.data[prop]();
-      }
-      return false;
+      return vm.selectionIds().indexOf(model.id()) > -1;
     };
     vm.mode = function () {
       var state = vm.state();
@@ -239,51 +233,47 @@
     };
     vm.scrollbarWidth = stream(scrWidth);
     vm.search = options.search || stream("");
-    vm.select = function (model) {
-      var idx, state,
-        selection = vm.selection();
-      if (selection !== model) {
-        // Remove old state binding
-        if (selection) {
-          state = selection.state().resolve("/Ready/Fetched/Dirty");
-          idx = state.enters.indexOf(selectionChanged);
-          state.enters.splice(idx, 1);
-          state = selection.state().resolve("/Delete");
-          idx = state.enters.indexOf(selectionChanged);
-          state.enters.splice(idx, 1);
-          state = selection.state().resolve("/Ready/Fetched/Clean");
-          idx = state.enters.indexOf(selectionFetched);
-          state.enters.splice(idx, 1);
+    vm.select = function (models) {
+      var state, 
+        selections = vm.selections(),
+        ids = vm.selectionIds();
+
+      if (!Array.isArray(models)) {
+        if (selections.length !== 1 ||
+          selections[0].id() !== models.id()) {
+          vm.unselect(selections);
         }
-        vm.relations({});
-        vm.selection(model);
-        // Add new state binding
-        if (model) {
+        models = [models];
+      }
+
+      models.forEach(function(model) {
+        if (ids.indexOf(model.id()) === -1) {
           state = model.state().resolve("/Ready/Fetched/Dirty");
           state.enter(selectionChanged);
           state = model.state().resolve("/Delete");
           state.enter(selectionChanged);
           state = model.state().resolve("/Ready/Fetched/Clean");
           state.enter(selectionFetched);
+
+          selections.push(model);
         }
-      }
-
-      if (vm.selection()) {
+      });
+ 
+      if (selections.length) {
         vm.state().send("selected");
-      } else {
-        vm.state().send("unselected");
       }
 
-      return vm.selection();
+      return selections;
     };
-    vm.selection = stream();
-    vm.selections = function () {
-      var ret = [];
-      if (vm.selection()) {
-        ret.push(vm.selection());
-      }
-      return ret;
+    vm.selection = function () {
+      return vm.selections()[0];
     };
+    vm.selectionIds = function () {
+      return vm.selections().map(function(selection) {
+        return selection.id();
+      });
+    };
+    vm.selections = stream([]);
     vm.selectedColor = function () {
       return vm.mode().selectedColor();
     };
@@ -297,12 +287,75 @@
     vm.toggleMode = function () {
       vm.state().send("toggle");
     };
-    vm.toggleSelection = function (model, col) {
-      return vm.mode().toggleSelection(model, col);
+    vm.toggleSelection = function (model, col, optKey) {
+      return vm.mode().toggleSelection(model, col, optKey);
     };
     vm.undo = function () {
       var selection = vm.selection();
       if (selection) { selection.undo(); }
+    };
+    vm.unselect = function (models) {
+      var idx, state, 
+        ids = [],
+        selections = vm.selections(),
+        remaining = [];
+
+      // Cache model ids if applicable
+      if (models) {
+        if (Array.isArray(models)) {
+          ids = models.map(function (model) {
+            return model.id();
+          });
+        } else {
+          ids = [models.id()];
+          models = [models];
+        }
+      }
+
+      // Make sure we're working with the exact same list of objects
+      // (i.e. no mixup up of interal pointers)
+      if (models) {
+        models = selections.filter(function (selection) {
+          var isClearing = ids.some(function (id) {
+              return selection.id() === id;
+            });
+
+          if (!isClearing) {
+            remaining.push(selection);
+          }
+          return isClearing;
+        });
+      } else {
+        models = selections.map(function (selection) {
+          return selection;
+        });
+      }
+
+      // Remove old state bindings
+      models.forEach(function(selection) {
+        state = selection.state().resolve("/Ready/Fetched/Dirty");
+        idx = state.enters.indexOf(selectionChanged);
+        state.enters.splice(idx, 1);
+        state = selection.state().resolve("/Delete");
+        idx = state.enters.indexOf(selectionChanged);
+        state.enters.splice(idx, 1);
+        state = selection.state().resolve("/Ready/Fetched/Clean");
+        idx = state.enters.indexOf(selectionFetched);
+        state.enters.splice(idx, 1);
+      });
+
+      // Clear selections
+      selections.length = 0;
+
+      // Reapply selections we wanted to leave in tact
+      if (remaining.length) {
+        remaining.forEach(function (model) {
+          selections.push(model);
+        });
+        return;
+      }
+
+      vm.state().send("unselected");
     };
     vm.zoom = stream(100);
 
@@ -391,24 +444,31 @@
               this.goto("../Edit");
             }
           });
-          this.modelDelete = function () {
-            var selection = vm.selection();
-            selection.delete(true).then(function () {
-              vm.select();
-              vm.models().remove(selection);
-            });
-          };
           this.modelNew = stream(false); // Do nothing
           this.selectedColor = function () {
             return "LightSkyBlue";
           };
-          this.toggleSelection = function (model, col) {
-            if (vm.selection() === model) {
-              vm.select(undefined);
-              return false;
+          this.toggleSelection = function (model, col, optKey) {
+            var isSelected = vm.isSelected(model);
+
+            switch (optKey) 
+            {
+              case "ctrlKey":
+                if (isSelected) {
+                  vm.unselect(model);
+                  return;
+                }
+                vm.select([model]);
+                break;
+              case "shiftKey":
+                break;
+              default:
+                vm.unselect();
+                if (!isSelected) {
+                  vm.select(model);
+                }
             }
 
-            vm.select(model);
             vm.nextFocus("input" + col.toCamelCase(true));
             return true;
           };
@@ -420,14 +480,6 @@
           this.event("toggle", function () {
             this.goto("../View");
           });
-          this.modelDelete = function () {
-            var selection = vm.selection(),
-              prevState = selection.state().current()[0];
-            selection.delete();
-            if (prevState === "/Ready/New") {
-              vm.models().remove(selection);
-            }
-          };
           this.modelNew = function () {
             var  name = vm.feather().name.toCamelCase(),
               model = catalog.store().models()[name](),
@@ -638,7 +690,15 @@
               format = prop.format || prop.type,
               columnWidth = config.columns[idx].width || COL_WIDTH_DEFAULT,
               tdOpts = {
-                onclick: vm.toggleSelection.bind(this, model, col),
+                onclick: function (ev) {
+                  var optKey;
+                  if (ev.shiftKey) {
+                    optKey = "shiftKey";
+                  } else if (ev.ctrlKey) {
+                    optKey = "ctrlKey";
+                  }
+                  vm.toggleSelection(model, col, optKey);
+                },
                 class: "suite-cell-view",
                 style: {
                   minWidth: columnWidth,
