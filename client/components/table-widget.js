@@ -919,6 +919,11 @@
         return row;
       });
 
+      // Put a dummy row in to manage spacing correctly if none otherwise.
+      if (!rows.length) {
+        rows.push(m("tr", {style: {height: "50px"}}));
+      }
+
       return m("table", {
           class: "pure-table suite-table"
         }, [
