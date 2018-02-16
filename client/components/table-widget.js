@@ -445,6 +445,13 @@
               this.goto("../Edit");
             }
           });
+          this.modelDelete = function () {
+            var selection = vm.selection();
+            selection.delete(true).then(function () {
+              vm.select();
+              vm.models().remove(selection);
+            });
+          };
           this.modelNew = stream(false); // Do nothing
           this.selectedColor = function () {
             return "LightSkyBlue";
@@ -517,6 +524,14 @@
           this.event("toggle", function () {
             this.goto("../View");
           });
+          this.modelDelete = function () {
+            var selection = vm.selection(),
+              prevState = selection.state().current()[0];
+            selection.delete();
+            if (prevState === "/Ready/New") {
+              vm.models().remove(selection);
+            }
+          };
           this.modelNew = function () {
             var  name = vm.feather().name.toCamelCase(),
               model = catalog.store().models()[name](),
@@ -888,7 +903,7 @@
         } else if (currentState === "/Ready/New") {
           thContent = m("i", {
             onclick: onclick,
-            class:"fa fa-asterisk"
+            class:"fa fa-plus"
           });
         } else if (model.canUndo()) {
           thContent = m("i", {
