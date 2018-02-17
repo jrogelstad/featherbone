@@ -38,7 +38,7 @@
   */
   relationWidget.viewModel = function (options) {
     var vm = {}, registerReceiver,
-      hasFocus = false,
+      init = false,
       parent = options.parentViewModel,
       parentProperty = options.parentProperty,
       valueProperty = options.valueProperty,
@@ -65,6 +65,7 @@
       });
     };
     vm.formConfig = stream(options.form);
+    vm.id = stream();
     vm.isCell = stream(!!options.isCell);
     vm.label = function () {
       var model = modelValue();
@@ -76,9 +77,6 @@
     };
     vm.models = function () {
       return modelList();
-    };
-    vm.onblur = function () {
-      hasFocus = false;
     };
     vm.onclicknew = function () {
       m.route.set("/edit/:feather/:key", {
@@ -136,7 +134,7 @@
     vm.onfocus = function () {
       var value = modelValue();
       
-      hasFocus = true;
+      init = true;
       value = value ? value.data[options.valueProperty]() : null;
       inputValue(value);
     };
@@ -169,7 +167,7 @@
     vm.style = stream({});
     vm.value = function (value) {
       var result;
-      if (hasFocus) {
+      if (init) {
         if (arguments.length) {
           result = inputValue(value);
         } else {
@@ -299,9 +297,9 @@
         m("input", {
           style: inputStyle,
           list: vm.listId(),
+          id: vm.parentProperty(),
           onchange: m.withAttr("value", vm.onchange),
           onfocus: vm.onfocus,
-          onblur: vm.onblur,
           oninput: m.withAttr("value", vm.oninput),
           value: vm.value()
         }),
