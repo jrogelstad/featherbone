@@ -264,6 +264,8 @@
           selections.push(model);
         }
       });
+
+      vm.relations({});
  
       if (selections.length) {
         vm.state().send("selected");
