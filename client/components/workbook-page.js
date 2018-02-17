@@ -503,8 +503,12 @@
       vm.buttonUndo().hide();
     });
     tableState.resolve("/Selection/On").enter(function () {
-      var model = vm.tableWidget().selection();
-      if (model && model.canDelete()) {
+      var canDelete = function(selection) {
+          return selection.canDelete();
+        },
+        enableButton = vm.tableWidget().selections().some(canDelete);
+
+      if (enableButton) {
         vm.buttonDelete().enable();
       } else {
         vm.buttonDelete().disable();

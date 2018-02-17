@@ -93,16 +93,16 @@
     // Create button view models
     vm.buttonAdd(button.viewModel({
       onclick: vm.tableWidget().modelNew,
-      title: "Add",
-      hotkey: "D",
+      title: "Insert",
+      hotkey: "I",
       icon: "plus-circle",
       style: {backgroundColor: "white"}
     }));
 
     vm.buttonRemove(button.viewModel({
       onclick: vm.tableWidget().modelDelete,
-      title: "Remove",
-      hotkey: "V",
+      title: "Delete",
+      hotkey: "D",
       icon: "remove",
       style: {backgroundColor: "white"}
     }));
