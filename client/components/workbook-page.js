@@ -65,7 +65,7 @@
           title: action.title
         };
 
-        if (action.isSelectedOnly && !selections.length) {
+        if (action.validator && !staticModel[action.validator](selections)) {
           opts.class = "pure-menu-link pure-menu-disabled";
         } else {
           opts.onclick = method.bind(this, selections, vm.confirmDialog());
