@@ -27,6 +27,7 @@
     f = require("component-core"),
     statechart = require("statechartjs"),
     catalog = require("catalog"),
+    dialog = require("dialog"),
     outer = document.createElement("div"),
     COL_WIDTH_DEFAULT = "150px",
     LIMIT = 20,
@@ -82,6 +83,10 @@
     vm.isEditModeEnabled = stream(options.isEditModeEnabled !== false);
     vm.config = stream(options.config);
     vm.containerId = stream(options.containerId);
+    vm.confirmDialog = stream(dialog.viewModel({
+      icon: "question-circle",
+      title: "Confirmation"
+    }));
     vm.defaultFocus = function (model) {
       var col = vm.attrs().find(function (attr) {
         return !model.data[attr] || !model.data[attr].isReadOnly();
@@ -446,11 +451,18 @@
             }
           });
           this.modelDelete = function () {
-            var selection = vm.selection();
-            selection.delete(true).then(function () {
-              vm.select();
-              vm.models().remove(selection);
+            var confirmDialog = vm.confirmDialog();
+            
+            confirmDialog.message("Are you sure you want to delete the selected rows?");
+            confirmDialog.onOk(function () {
+                vm.selections().forEach(function (selection) {
+                  return selection.delete(true).then(function () {
+                    vm.unselect(selection);
+                    vm.models().remove(selection);
+                  });
+                });
             });
+            confirmDialog.show();
           };
           this.modelNew = stream(false); // Do nothing
           this.selectedColor = function () {
@@ -939,30 +951,35 @@
         rows.push(m("tr", {style: {height: "50px"}}));
       }
 
-      return m("table", {
-          class: "pure-table suite-table"
+      return m("div", {
+          class: "pure-form"
         }, [
-          m("thead", {
-          id: ids.header,
-          class: "suite-table-header"
-        }, [header]),
-        m("tbody", {
-          id: ids.rows,
-          class: "suite-table-body",
-          onscroll: vm.onscroll,
-          oncreate: function (vnode) {
-            // Key down handler for up down movement
-            var e = document.getElementById(vnode.dom.id);
-            e.addEventListener("keydown", vm.onkeydownCell);
-            resize(vnode);
-          },
-          onupdate: resize,
-          onremove: function (vnode) {
-            // Key down handler for up down movement
-            var e = document.getElementById(vnode.dom.id);
-            e.removeEventListener("keydown", vm.onkeydownCell);         
-          }
-        }, rows)
+          m(dialog.component, {viewModel: vm.confirmDialog()}),
+          m("table", {
+            class: "pure-table suite-table"
+          }, [
+            m("thead", {
+            id: ids.header,
+            class: "suite-table-header"
+          }, [header]),
+          m("tbody", {
+            id: ids.rows,
+            class: "suite-table-body",
+            onscroll: vm.onscroll,
+            oncreate: function (vnode) {
+              // Key down handler for up down movement
+              var e = document.getElementById(vnode.dom.id);
+              e.addEventListener("keydown", vm.onkeydownCell);
+              resize(vnode);
+            },
+            onupdate: resize,
+            onremove: function (vnode) {
+              // Key down handler for up down movement
+              var e = document.getElementById(vnode.dom.id);
+              e.removeEventListener("keydown", vm.onkeydownCell);         
+            }
+          }, rows)
+        ])
       ]);
     }
   };
