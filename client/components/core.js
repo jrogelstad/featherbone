@@ -62,7 +62,7 @@
 
     // Handle input types
     if (typeof prop.type === "string" || isPath) {
-      opts.id = key;
+      opts.id = opts.id || key;
       opts.type = f.inputMap[format];
 
       if (isPath || prop.isReadOnly()) {
@@ -75,7 +75,7 @@
 
       if (prop.type === "boolean") {
         component = m(components.checkbox, {
-          id: key,
+          id: opts.id,
           value: prop(),
           onclick: prop,
           required: opts.required,
@@ -112,7 +112,8 @@
           parentProperty: key,
           isCell: opts.isCell,
           style: opts.style,
-          onCreate: opts.oncreate
+          onCreate: opts.oncreate,
+          id: opts.id || key
         }); 
       }
     }

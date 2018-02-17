@@ -87,14 +87,23 @@
       icon: "question-circle",
       title: "Confirmation"
     }));
+    /*
+      Return the id of the input element which can recive focus
+
+      @param {Object} Model to evaluate
+      @return {String}
+    */
     vm.defaultFocus = function (model) {
       var col = vm.attrs().find(function (attr) {
         return !model.data[attr] || !model.data[attr].isReadOnly();
       });
-      return col ? col.toCamelCase(true) : undefined;
+      return col ? vm.formatInputId(col) : undefined;
     };
     vm.feather = stream(feather);
     vm.filter = f.prop();
+    vm.formatInputId = function(col) {
+      return "input" + col.toCamelCase(true);
+    };
     vm.goNextRow = function () {
       var list = vm.models(),
         ids = list.map(function (model) { 
@@ -121,6 +130,27 @@
     vm.isSelected = function (model) {
       return vm.selectionIds().indexOf(model.id()) > -1;
     };
+    /*
+      Return the name of the last attribute which can recive focus.
+
+      @param {Object} Model to evaluate
+      @returns {String}
+    */
+    vm.lastFocus = function (model) {
+      var col, attrs = vm.attrs().slice().reverse();
+
+      col = attrs.find(function (attr) {
+        return !model.data[attr] || !model.data[attr].isReadOnly();
+      });
+      return col ? vm.formatInputId(col) : undefined;
+    };
+    /*
+
+      Set or return the last model that was selected in the list.
+
+      @param {Object} Model selected
+      @returns {Object} Last model selected
+    */
     vm.lastSelected = stream();
     vm.mode = function () {
       var state = vm.state();
@@ -189,7 +219,7 @@
         }
       }
     };
-    vm.onkeydownCell = function (e) {
+    vm.onkeydown = function (e) {
       var id,
         key = e.key || e.keyIdentifier,
         nav = function (name) {
@@ -295,8 +325,8 @@
     vm.toggleMode = function () {
       vm.state().send("toggle");
     };
-    vm.toggleSelection = function (model, col, optKey) {
-      return vm.mode().toggleSelection(model, col, optKey);
+    vm.toggleSelection = function (model, id, optKey) {
+      return vm.mode().toggleSelection(model, id, optKey);
     };
     vm.undo = function () {
       var selection = vm.selection();
@@ -470,7 +500,7 @@
           this.selectedColor = function () {
             return "LightSkyBlue";
           };
-          this.toggleSelection = function (model, col, optKey) {
+          this.toggleSelection = function (model, id, optKey) {
             var isSelected = vm.isSelected(model),
               startIdx, endIdx, lastIdx, currentIdx,
               i, models, modelIds, adds;
@@ -519,7 +549,7 @@
                 }
             }
 
-            vm.nextFocus("input" + col.toCamelCase(true));
+            vm.nextFocus(id);
             return true;
           };
         });
@@ -549,7 +579,7 @@
           this.modelNew = function () {
             var  name = vm.feather().name.toCamelCase(),
               model = catalog.store().models()[name](),
-              input = "input" + vm.defaultFocus(model).toCamelCase(true);
+              input = vm.defaultFocus(model);
             vm.models().add(model);
             vm.nextFocus(input);
             vm.select(model);
@@ -558,10 +588,10 @@
           this.selectedColor = function () {
             return "Azure";
           };
-          this.toggleSelection = function (model, col) {
+          this.toggleSelection = function (model, id) {
             vm.select(model);
             vm.lastSelected(model);
-            vm.nextFocus("input" + col.toCamelCase(true));
+            vm.nextFocus(id);
             return true;
           };
         });
@@ -733,6 +763,8 @@
       idx = 0;
       rows = vm.models().map(function (model) {
         var tds, row, thContent, onclick,
+          lastFocusId, ontab, onshifttab,
+          defaultFocusId = vm.defaultFocus(model),
           currentMode = vm.mode().current()[0],
           color = "White",
           isSelected = vm.isSelected(model),
@@ -764,7 +796,7 @@
                   } else if (ev.ctrlKey) {
                     optKey = "ctrlKey";
                   }
-                  vm.toggleSelection(model, col, optKey);
+                  vm.toggleSelection(model, vm.formatInputId(col), optKey);
                 },
                 class: "suite-cell-view",
                 style: {
@@ -832,26 +864,36 @@
             }
           };
 
+          lastFocusId = vm.lastFocus(model);
+          ontab = function (e) {
+            var key = e.key || e.keyIdentifier;
+            if (key === "Tab" && !e.shiftKey) {
+              e.preventDefault();
+              document.getElementById(defaultFocusId).focus();
+            }
+          };
+
+          onshifttab = function (e) {
+            var key = e.key || e.keyIdentifier;
+            if (key === "Tab" && e.shiftKey) {
+              e.preventDefault();
+              document.getElementById(lastFocusId).focus();
+            }
+          };
+
           // Build cells
           idx = 0;
           tds = vm.attrs().map(function (col) {
             var cell, tdOpts, inputOpts,
               prop = f.resolveProperty(model, col),
-              id = "input" + col.toCamelCase(true),
+              id = vm.formatInputId(col),
               columnWidth = config.columns[idx].width || COL_WIDTH_DEFAULT,
               dataList = config.columns[idx].dataList;
 
             inputOpts = {
               id: id,
-              onclick: vm.toggleSelection.bind(this, model, col),
+              onclick: vm.toggleSelection.bind(this, model, id),
               value: prop(),
-              oncreate: function (vnode) {
-                var e = document.getElementById(vnode.dom.id);
-                if (vm.nextFocus() === id) {
-                  e.focus();
-                  vm.nextFocus(undefined);
-                }
-              },
               style: {
                 minWidth: columnWidth,
                 maxWidth: columnWidth,
@@ -863,6 +905,57 @@
               },
               isCell: true
             };
+
+            // Set up self focus
+            if (vm.nextFocus() === id && id === defaultFocusId) {
+              inputOpts.oncreate = function (vnode) {
+                var e = document.getElementById(vnode.dom.id);
+
+                e.addEventListener("keydown", onshifttab);
+                e.focus();
+              };
+              inputOpts.onremove = function (vnode) {
+                // Key down handler for up down movement
+                document.getElementById(vnode.dom.id)
+                  .removeEventListener("keydown", onshifttab);         
+              };        
+              vm.nextFocus(undefined);
+
+            } else if (vm.nextFocus() === id && id !== defaultFocusId) {
+              inputOpts.oncreate = function (vnode) {
+                document.getElementById(vnode.dom.id).focus();
+              };
+              vm.nextFocus(undefined);
+            } else if (id === defaultFocusId) {
+               inputOpts.oncreate = function (vnode) {
+                // Key down handler for up down movement
+                document.getElementById(vnode.dom.id)
+                  .addEventListener("keydown", onshifttab);
+              };
+
+              inputOpts.onremove = function (vnode) {
+                // Key down handler for up down movement
+                document.getElementById(vnode.dom.id)
+                  .removeEventListener("keydown", onshifttab);         
+              };             
+            }
+
+            // We want tab out of last cell to loop back to the first
+            if (lastFocusId === id) {
+
+              inputOpts.oncreate = function (vnode) {
+                // Key down handler for up down movement
+                document.getElementById(vnode.dom.id)
+                  .addEventListener("keydown", ontab);
+              };
+
+              inputOpts.onremove = function (vnode) {
+                // Key down handler for up down movement
+                document.getElementById(vnode.dom.id)
+                  .removeEventListener("keydown", ontab);         
+              };
+
+            }
 
             if (prop.isRequired && prop.isRequired() && 
               (prop() === null || prop() === undefined)) {
@@ -908,7 +1001,7 @@
         }
 
         // Front cap header navigation
-        onclick = vm.toggleSelection.bind(this, model, vm.defaultFocus(model));
+        onclick = vm.toggleSelection.bind(this, model, defaultFocusId);
         if (currentState === "/Delete") {
           thContent = m("i", {
             onclick: onclick,
@@ -971,14 +1064,14 @@
             oncreate: function (vnode) {
               // Key down handler for up down movement
               var e = document.getElementById(vnode.dom.id);
-              e.addEventListener("keydown", vm.onkeydownCell);
+              e.addEventListener("keydown", vm.onkeydown);
               resize(vnode);
             },
             onupdate: resize,
             onremove: function (vnode) {
               // Key down handler for up down movement
               var e = document.getElementById(vnode.dom.id);
-              e.removeEventListener("keydown", vm.onkeydownCell);         
+              e.removeEventListener("keydown", vm.onkeydown);         
             }
           }, rows)
         ])

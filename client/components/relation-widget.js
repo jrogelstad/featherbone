@@ -65,7 +65,7 @@
       });
     };
     vm.formConfig = stream(options.form);
-    vm.id = stream();
+    vm.id = stream(options.id);
     vm.isCell = stream(!!options.isCell);
     vm.label = function () {
       var model = modelValue();
@@ -228,7 +228,8 @@
           labelProperty: labelProperty,
           form: options.form,
           list: options.list,
-          isCell: options.isCell
+          isCell: options.isCell,
+          id: options.id
         });
       }
       this.viewModel = relations[parentProperty];
@@ -297,7 +298,7 @@
         m("input", {
           style: inputStyle,
           list: vm.listId(),
-          id: vm.parentProperty(),
+          id: vm.id(),
           onchange: m.withAttr("value", vm.onchange),
           onfocus: vm.onfocus,
           oninput: m.withAttr("value", vm.oninput),
