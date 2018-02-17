@@ -111,7 +111,8 @@
           parentViewModel: obj.viewModel,
           parentProperty: key,
           isCell: opts.isCell,
-          style: opts.style
+          style: opts.style,
+          onCreate: opts.oncreate
         }); 
       }
     }

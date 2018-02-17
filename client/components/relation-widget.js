@@ -235,7 +235,7 @@
       this.viewModel.style(options.style || {});
     },
 
-    view: function () {
+    view: function (vnode) {
       var listOptions, 
         inputStyle, menuStyle, maxWidth,
         vm = this.viewModel,
@@ -301,7 +301,8 @@
           onchange: m.withAttr("value", vm.onchange),
           onfocus: vm.onfocus,
           oninput: m.withAttr("value", vm.oninput),
-          value: vm.value()
+          value: vm.value(),
+          oncreate: vnode.attrs.onCreate
         }),
         m("div", {
           style: {
