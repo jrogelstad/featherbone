@@ -35,7 +35,6 @@
     vm.config = stream(options.config);
     vm.containerId = stream(options.containerId);
     vm.selectedTab = stream(1);
-    vm.isFirstLoad = stream(true);
     vm.model = stream();
     vm.outsideElementIds = stream(options.outsideElementIds || []);
     vm.relations = stream({});
@@ -114,7 +113,8 @@
           var result, labelOpts, dataList,
             key = item.attr,
             prop = d[key],
-            value = prop();
+            value = prop(),
+            options = {};
 
           if (item.dataList) {
             dataList = f.resolveProperty(model, item.dataList)();
@@ -132,6 +132,9 @@
 
           if (!prop.isReadOnly() && !focusAttr) {
             focusAttr = key;
+            options.oncreate = function (vnode) {
+              document.getElementById(vnode.dom.id).focus();
+            };
           }
 
           if (prop.isRequired() && (value === null ||
@@ -139,14 +142,6 @@
             labelOpts.style.color = "Red";
           }
           result = m("div", {
-            oncreate: function (vnode) {
-              var e;
-              if (focusAttr === key && vm.isFirstLoad()) {
-                e = document.getElementById(vnode.dom.id);
-                if (e) { e.focus(); }
-                vm.isFirstLoad(false);
-              }
-            },
             class: "pure-control-group"
           }, [
             m("label", labelOpts,
@@ -155,7 +150,8 @@
               model: model,
               key: key,
               dataList: dataList,
-              viewModel: vm
+              viewModel: vm,
+              options: options
             })
           ]);
           return result;
