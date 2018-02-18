@@ -48,6 +48,10 @@
                 "type": "boolean",
                 "default": false,
                 "isRequired": true
+            },
+            "overloads  ": {
+                "description": "Property overloads",
+                "type": "object"
             }
         }
     },

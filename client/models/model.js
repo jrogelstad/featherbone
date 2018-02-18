@@ -40,6 +40,7 @@
   model = function (data, feather) {
     data = data || {};
     feather = feather || {};
+    feather.overloads = feather.overloads || {};
 
     var  doClear, doDelete, doError, doFetch, doInit, doPatch, doPost, doSend,
       doFreeze, doThaw, doRevert, lastError, state,
@@ -575,6 +576,7 @@
     doInit = function () {
       var onFetching, onFetched, extendArray,
         props = feather.properties,
+        overloads = feather.overloads,
         keys = Object.keys(props || {}),
         initData = this;
 
@@ -695,11 +697,14 @@
       keys.forEach(function (key) {
         var prop, defaultValue, name, cFeather, cKeys, cArray, relation,
           toType, scale, handleDefault,
-          alias = props[key].alias ? props[key].alias.toName() : key.toName(),
+          overload = overloads[key] || {},
+          alias = overload.alias || props[key].alias || key,
           p = props[key],
           type = p.type,
           value = initData[key],
           formatter = {};
+
+        alias = alias.toName();
 
         handleDefault = function (prop, frmt) {
           if (!prop.default && !frmt) { return; }
@@ -836,7 +841,7 @@
         // Carry other property definitions forward
         prop.key = key; // Use of 'name' property is not allowed here
         prop.description = props[key].description;
-        prop.type = props[key].type;
+        prop.type = overload.asType || props[key].type;
         prop.format = props[key].format;
         prop.default = defaultValue;
         prop.isRequired(props[key].isRequired);
