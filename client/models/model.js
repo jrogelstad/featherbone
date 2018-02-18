@@ -50,7 +50,8 @@
       deleteChecks = [],
       stateMap = {},
       lastFetched = {},
-      freezeCache = {};
+      freezeCache = {},
+      pending = [];
 
     // ..........................................................
     // PUBLIC
@@ -465,7 +466,9 @@
           context.resolve(true);
         };
 
-      dataSource.request(payload).then(callback);
+      dataSource.request(payload)
+                .then(callback)
+                .catch(doError);
     };
 
     doError = function (err) {
@@ -484,7 +487,9 @@
           context.resolve(d);
         };
 
-      dataSource.request(payload).then(callback);
+      dataSource.request(payload)
+                .then(callback)
+                .catch(doError);
     };
 
     doFreeze = function () {
@@ -504,8 +509,7 @@
     };
 
     doPatch = function (context) {
-      var ds = dataSource,
-        patch = jsonpatch.compare(lastFetched, that.toJSON()),
+      var patch = jsonpatch.compare(lastFetched, that.toJSON()),
         payload = {method: "PATCH", path: that.path(that.name, that.id()),
           data: {data: patch}},
         callback = function (result) {
@@ -517,13 +521,14 @@
         };
 
       if (that.isValid()) {
-        ds.request(payload).then(callback);
+        dataSource.request(payload)
+                  .then(callback)
+                  .catch(doError);
       }
     };
 
     doPost = function (context) {
-      var ds = dataSource,
-        cache = that.toJSON(),
+      var cache = that.toJSON(),
         payload = {method: "POST", path: that.path(that.plural),
           data: {data: cache}},
         callback = function (result) {
@@ -534,7 +539,9 @@
         };
 
       if (that.isValid()) {
-        ds.request(payload).then(callback);
+        dataSource.request(payload)
+                  .then(callback)
+                  .catch(doError);
       }
     };
 

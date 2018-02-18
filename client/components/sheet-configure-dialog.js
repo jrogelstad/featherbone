@@ -262,6 +262,7 @@
             m("select", {
               id: f.createId(),
               value: item.attr,
+              style: {maxWidth: "165px"},
               onchange: m.withAttr(
                 "value",
                 vm.itemChanged.bind(this, item.index, "attr"))
