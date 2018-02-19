@@ -61,8 +61,9 @@
     options = options || {};
     var fromWidthIdx, dataTransfer,
       selectionChanged, selectionFetched, fetch,
-      feather = catalog.getFeather(options.feather),
-      modelName = options.feather.toCamelCase(),
+      feather = typeof options.feather === "object" ? 
+        options.feather : catalog.getFeather(options.feather),
+      modelName = feather.name.toCamelCase(),
       offset = 0,
       vm = {};
 
@@ -71,7 +72,7 @@
     //
 
     vm.alias = function (attr) {
-      return f.resolveAlias(vm.feather().name, attr);
+      return f.resolveAlias(vm.feather(), attr);
     };
     vm.attrs = function () {
       var columns = vm.config().columns,

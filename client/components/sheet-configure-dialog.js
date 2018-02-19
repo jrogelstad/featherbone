@@ -62,7 +62,7 @@
     vm = tableDialog.viewModel(options);
     tableView = vm.content;
     vm.alias = function (attr) {
-      var feather = vm.model().data.feather();
+      var feather = catalog.getFeather(vm.model().data.feather());
 
       return f.resolveAlias(feather, attr);
     };

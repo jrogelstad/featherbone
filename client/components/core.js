@@ -151,9 +151,9 @@
   };
 
   /** @private  Helper function to resolve property dot notation */
-  f.resolveAlias = function (featherName, attr) {
+  f.resolveAlias = function (feather, attr) {
     var prefix, suffix, ret,
-      feather = catalog.getFeather(featherName),
+      overload = feather.overloads ? feather.overloads[attr] || {} : {},
       idx = attr.indexOf(".");
 
     if (idx > -1) {
@@ -162,7 +162,7 @@
       return f.resolveAlias(feather.properties[prefix].type.relation, suffix);
     }
 
-    ret = feather.properties[attr].alias || attr;
+    ret = overload.alias || feather.properties[attr].alias || attr;
     return ret.toName();
   };
 

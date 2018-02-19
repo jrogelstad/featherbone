@@ -167,17 +167,29 @@
   */
   childTable.component = {
     oninit: function (vnode) {
-      var config,
+      var config, overload, keys,
         parentProperty = vnode.attrs.parentProperty,
         parentViewModel = vnode.attrs.parentViewModel,
         prop = parentViewModel.model().data[parentProperty],
         models = prop(),
-        feather = prop.type.relation,
+        feather = catalog.getFeather(prop.type.relation),
+        parentFeather = catalog.getFeather(parentViewModel.model().name),
+        overloads = parentFeather.overloads || {},
         relations = vnode.attrs.parentViewModel.relations();
 
       config = parentViewModel.config().attrs.find(function (item)  {
         return item.attr === parentProperty;
       });
+
+      // Apply parent defined overloads to child feather
+      overload = overloads[parentProperty];
+      if (overload) {
+        feather.overloads = feather.overloads || {};
+        keys = Object.keys(overload);
+        keys.forEach(function (key) {
+          feather.overloads[key] = overload[key];
+        });
+      }
 
       // Set up viewModel if required
       if (!relations[parentProperty]) {
