@@ -49,7 +49,7 @@
                 "default": false,
                 "isRequired": true
             },
-            "overloads  ": {
+            "overloads": {
                 "description": "Property overloads",
                 "type": "object"
             }

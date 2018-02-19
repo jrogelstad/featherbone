@@ -334,6 +334,53 @@
       return this;
     };
 
+    /**
+      Overload properties. Supported overloads are alias and type.
+      Can be used by the user interface to apply a more specific name or
+      type mask.
+
+        model.overload({
+          name: {
+            alias: "job"
+          },
+          kind: {
+            alias: "product",
+            type: {
+              relation: "Product",
+              "properties": ["code", "description", "kind"
+            }
+          }
+        });
+
+      @param {Object} Overload definition
+      @returns Receiver
+    */
+    that.overload = function (overloads) {
+      if (!overloads) { return that; }
+
+      var keys = Object.keys(overloads);
+
+      keys.forEach(function (key) {
+        var overload = overloads[key],
+          prop = d[key];
+
+        // Update the feather
+        feather.overloads[key] = overload;
+
+        // Update alias property
+        if (overload.alias) {
+          prop.alias(overload.alias.toName());
+        }
+
+        // Update alias type
+        if (overload.type) {
+          prop.type = overload.type;
+        }
+      });
+
+      return that;
+    };
+
     /*
       Returns a path to execute server requests.
 
@@ -588,7 +635,9 @@
       };
 
       // Function to extend child array if applicable
-      extendArray = function (prop, name) {
+      extendArray = function (prop, name, overloads) {
+        overloads = overloads || {};
+
         var isNew = true,
           cache = [],
           ary = prop();
@@ -607,6 +656,7 @@
         // Extend array
         ary.add = function (value) {
           var result;
+
           prop.state().send("change");
           if (value && value.isModel) {
             result = value;
@@ -615,6 +665,9 @@
             result = catalog.store().models()[name]();
             result.set(value, true, true);
           }
+
+          // Carry overloads set at parent on down
+          result.overload(overloads);
 
           // Synchronize statechart
           state.resolve("/Busy/Fetching").enter(onFetching.bind(result));
@@ -805,7 +858,7 @@
 
             // Create property
             prop = f.prop(cArray, formatter);
-            extendArray(prop, name);
+            extendArray(prop, name, overload);
             prop(value);
           }
 
@@ -841,7 +894,7 @@
         // Carry other property definitions forward
         prop.key = key; // Use of 'name' property is not allowed here
         prop.description = props[key].description;
-        prop.type = overload.asType || props[key].type;
+        prop.type = overload.type || props[key].type;
         prop.format = props[key].format;
         prop.default = defaultValue;
         prop.isRequired(props[key].isRequired);

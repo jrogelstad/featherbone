@@ -137,6 +137,7 @@
       var id = model.id(),
         idx = ary.index(),
         i = idx[id];
+
       if (!isNaN(i)) {
         ary.splice(i, 1);
         Object.keys(idx).forEach(function (key) {

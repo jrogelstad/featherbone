@@ -556,6 +556,7 @@
         this.state("Edit", function () {
           this.enter(function () {
             var last;
+
             if (vm.selections().length > 1) {
               last = vm.lastSelected();
               vm.unselect();
@@ -571,6 +572,7 @@
           this.modelDelete = function () {
             var selection = vm.selection(),
               prevState = selection.state().current()[0];
+
             selection.delete();
             if (prevState === "/Ready/New") {
               vm.models().remove(selection);
@@ -580,6 +582,7 @@
             var  name = vm.feather().name.toCamelCase(),
               model = catalog.store().models()[name](),
               input = vm.defaultFocus(model);
+
             vm.models().add(model);
             vm.nextFocus(input);
             vm.select(model);

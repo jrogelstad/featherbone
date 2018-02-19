@@ -119,17 +119,26 @@
         var model = catalog[parent],
           parentProps = model.properties,
           childProps = child.properties,
+          modelOverloads = model.overloads || {},
           keys = Object.keys(parentProps);
 
         if (parent !== "Object") {
           appendParent(child, model.inherits || "Object");
         }
 
+        // Inherit properties from parent
         keys.forEach(function (key) {
           if (childProps[key] === undefined) {
             childProps[key] = parentProps[key];
             childProps[key].inheritedFrom = parent;
           }
+        });
+
+        // Inherit overloads from parent
+        child.overloads = child.overloads || {};
+        keys = Object.keys(modelOverloads);
+        keys.forEach(function (key) {
+          child.overloads[key] = modelOverloads[key];
         });
 
         return child;
