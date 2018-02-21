@@ -116,6 +116,7 @@
       Returns a promise with a boolean passed back as the value.
 
       @param {Boolean} Automatically commit. Default false.
+      @returns {Object} promise
     */
     that.delete = function (autoSave) {
       state.send("delete");
@@ -130,7 +131,7 @@
     /*
       Send event to fetch data based on the current id from the server.
       Returns a promise with model.data passed back as the value.
-      @return {Object} promise
+      @returns {Object} promise
     */
     that.fetch = function () {
       return doSend("fetch");

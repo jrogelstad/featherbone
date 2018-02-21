@@ -20,8 +20,8 @@
   "use strict";
   require('./common/extend-string.js');
 
-  var catalog, init, resolveName, getCatalog, getControllers, getRoutes,
-    getCurrentUser, doGetSettingsRow, doGetFeather, doGetModules, doRequest,
+  var catalog, init, resolveName,
+    doGetSettingsRow, doGetFeather, doGetModules, doRequest,
     doGetMethod, doSaveFeather, doDeleteFeather, registerDataRoutes,
     doDeleteMethod, doDeleteWorkbook, doGetWorkbooks, doSaveSettings,
     doSaveWorkbook, doSaveMethod, doGetWorkbook, doGetSettingsDefinition,
@@ -44,85 +44,17 @@
   // CONTROLLERS
   //
 
-  getCatalog = function (callback) {
-    var payload, after;
-
-    after = function (err, resp) {
-      if (err) {
-        console.error(err);
-        return;
-      }
-
-      catalog = resp;
-      getControllers(callback);
-    };
-
-    payload = {
-      method: "GET",
-      name: "getSettings",
-      user: getCurrentUser(),
-      callback: after,
-      data: {
-        name: "catalog"
-      }
-    };
-
-    datasource.request(payload);
-  };
-
-  getControllers = function (callback) {
-    var payload, after;
-
-    after = function (err, resp) {
-      if (err) {
-        console.error(err);
-        return;
-      }
-
-      controllers = resp;
-      getRoutes(callback);
-    };
-
-    payload = {
-      method: "GET",
-      name: "getControllers",
-      user: getCurrentUser(),
-      callback: after
-    };
-
-    datasource.request(payload);
-  };
-
-  getCurrentUser = function () {
-    // TODO: Make this real
-    return "postgres";
-  };
-
-  getRoutes = function (callback) {
-    var payload, after;
-
-    after = function (err, resp) {
-      if (err) {
-        console.error(err);
-        return;
-      }
-
-      routes = resp;
-      callback();
-    };
-
-    payload = {
-      method: "GET",
-      name: "getRoutes",
-      user: getCurrentUser(),
-      callback: after
-    };
-
-    datasource.request(payload);
-  };
-
   init = function (callback) {
-    getCatalog(callback);
+    datasource.getCatalog().then(function (data) {
+      catalog = data;
+      datasource.getControllers().then(function (data) {
+        controllers = data;
+        datasource.getRoutes().then(function (data) {
+          routes = data;
+          callback();
+        });
+      });
+    });
   };
 
   resolveName = function (apiPath) {
@@ -187,7 +119,7 @@
 
     payload.name = name;
     payload.method = req.method;
-    payload.user = getCurrentUser();
+    payload.user = datasource.getCurrentUser();
     payload.callback = callback;
 
     if (id) {
@@ -199,7 +131,7 @@
     }
 
     console.log(JSON.stringify(payload, null, 2));
-    datasource.request(payload);
+    datasource.request(payload, false, true);
   };
 
   doGetFeather = function (req, res) {
@@ -248,7 +180,7 @@
     payload = {
       method: "GET",
       name: fn,
-      user: getCurrentUser(),
+      user: datasource.getCurrentUser(),
       callback: callback,
       data: {
         name: name
@@ -277,7 +209,8 @@
         return;
       }
 
-      getCatalog(function () {
+      datasource.getCatalog().then(function (data) {
+        catalog = data;
         registerDataRoutes();
         res.json(resp);
       });
@@ -286,7 +219,7 @@
     payload = {
       method: "PUT",
       name: fn,
-      user: getCurrentUser(),
+      user: datasource.getCurrentUser(),
       callback: callback,
       data: {
         specs: data
@@ -311,7 +244,8 @@
         return;
       }
 
-      getCatalog(function () {
+      datasource.getCatalog.then(function (data) {
+        catalog = data;
         registerDataRoutes();
         res.json(resp);
       });
@@ -320,7 +254,7 @@
     payload = {
       method: "PUT",
       name: "saveSettings",
-      user: getCurrentUser(),
+      user: datasource.getCurrentUser(),
       callback: callback,
       data: data
     };
@@ -353,7 +287,7 @@
     payload = {
       method: "DELETE",
       name: fn,
-      user: getCurrentUser(),
+      user: datasource.getCurrentUser(),
       callback: callback,
       data: {
         name: name

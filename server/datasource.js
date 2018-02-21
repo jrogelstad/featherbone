@@ -32,6 +32,104 @@
     that = {};
 
   /**
+    Fetch catalog.
+
+    @returns {Object} promise
+  */
+  that.getCatalog = function () {
+    return new Promise (function (resolve, reject) {
+      var payload, after;
+
+      after = function (err, resp) {
+        if (err) {
+          console.error(err);
+          reject(err);
+          return;
+        }
+
+        resolve(resp);
+      };
+
+      payload = {
+        method: "GET",
+        name: "getSettings",
+        user: that.getCurrentUser(),
+        callback: after,
+        data: {
+          name: "catalog"
+        }
+      };
+
+      that.request(payload);
+    });
+  };
+
+  /**
+    Fetch controllers.
+
+    @returns {Object} promise
+  */
+  that.getControllers = function () {
+    return new Promise (function (resolve, reject) {
+      var payload, after;
+
+      after = function (err, resp) {
+        if (err) {
+          console.error(err);
+          reject(err);
+          return;
+        }
+
+        resolve(resp);
+      };
+
+      payload = {
+        method: "GET",
+        name: "getControllers",
+        user: that.getCurrentUser(),
+        callback: after
+      };
+
+      that.request(payload);
+    });
+  };
+
+  that.getCurrentUser = function () {
+    // TODO: Make this real
+    return "postgres";
+  };
+
+  /**
+    Fetch routes.
+
+    @returns {Object} promise
+  */
+  that.getRoutes = function () {
+    return new Promise (function (resolve, reject) {
+      var payload, after;
+
+      after = function (err, resp) {
+        if (err) {
+          console.error(err);
+          reject(err);
+          return;
+        }
+
+        resolve(resp);
+      };
+
+      payload = {
+        method: "GET",
+        name: "getRoutes",
+        user: that.getCurrentUser(),
+        callback: after
+      };
+
+      that.request(payload);
+    });
+  };
+
+  /**
     Request.
 
     Example payload:
@@ -61,13 +159,15 @@
       be intialized by default and wrapped in a transaction if necessary.
     @param {String} [payload.callback] Callback  
     @param {Boolean} Bypass authorization checks. Default = false.
+    @param {Boolean} Ignore registration and treat as data. Default = false.
     @return receiver
   */
-  that.request = function (obj, isSuperUser) {
+  that.request = function (obj, isSuperUser, isData) {
     isSuperUser = isSuperUser === undefined ? false : isSuperUser;
 
     var client, done, transaction, connect, isChild,
       doRequest, afterTransaction, afterRequest,
+      isRegistered = typeof registered[obj.method][obj.name] === "function",
       callback = obj.callback,
       externalClient = false,
       wrap = false;
@@ -105,7 +205,7 @@
       }
 
       // If registered function, execute it
-      if (typeof registered[obj.method][obj.name] === "function") {
+      if (isRegistered && !isData) {
         wrap = !obj.client;
         obj.data = obj.data || {};
         obj.data.id = obj.data.id || obj.id;
