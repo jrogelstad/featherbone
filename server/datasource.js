@@ -18,7 +18,7 @@
 
 (function (exports) {
   "strict";
-  var conn, catalog,
+  var conn,
     pg = require("pg"),
     controller = require("./controller"),
     readPgConfig = require("./pgconfig"),
@@ -29,7 +29,8 @@
       PATCH: {},
       DELETE: {}
     },
-    that = {};
+    that = {},
+    catalog = {};
 
   /**
     Fetch catalog.
@@ -47,6 +48,7 @@
           return;
         }
 
+        catalog = resp;
         resolve(resp);
       };
 
@@ -227,6 +229,7 @@
         wrap = !options.client;
         options.data = options.data || {};
         options.data.id = options.data.id || options.id;
+        obj.client = client;
         transaction = registered[options.method][options.name];
         doExecute(options).then(resolve).catch(reject);
       });
@@ -260,7 +263,7 @@
 
       doExecute(obj)   
         .then(function (resp) { afterTransaction(null, resp); })
-        .reject(function (err) { afterTransaction(err); });
+        .catch(function (err) { afterTransaction(err); });
     };
 
     doRequest = function (err) {
@@ -278,19 +281,15 @@
         client.currentUser = obj.user;
       }
 
-      // Pass 'get' straight through
-      if (obj.method === "GET") {
-        doQuery();
-
       // If alter data, process it
-      } else if (catalog[obj.name]) {
+      if (catalog[obj.name]) {
         doTraverse(obj.method, obj.name, obj.data);
 
       // If function, execute it
       } else if (isRegistered(obj.method, obj.name)) {
         doMethod(obj)
           .then(function (resp) { afterTransaction(null, resp); })
-          .reject(function (err) { afterTransaction(err); });
+          .catch(function (err) { afterTransaction(err); });
 
       // Young fool, now you will die.
       } else {
@@ -310,14 +309,18 @@
 
       // If business logic defined, do it
       if (isRegistered(method, name)) {
-        doMethod(options, false).then(function(data) {
-          if (name === "Object") {
-            doQuery();
-            return;
-          }
+        doMethod(options, false)
+          .then(function(data) {
+            if (name === "Object") {
+              doQuery();
+              return;
+            }
 
-          doTraverse(method, parent, data);
-        });
+            doTraverse(method, parent, data);
+          }).
+          catch(function (err) {
+            callback(err);
+          });
 
       // If traversal done, forward to database
       } else if (name === "Object") {
@@ -567,11 +570,6 @@
   that.registerFunction("PUT", "saveWorkbook", controller.saveWorkbook);
   that.registerFunction("DELETE", "deleteFeather", controller.deleteFeather);
   that.registerFunction("DELETE", "deleteWorkbook", controller.deleteWorkbook);
-
-  // Fetch catalog
-  that.getCatalog().then(function (data) {
-    catalog = data;
-  });
 
 }(exports));
 

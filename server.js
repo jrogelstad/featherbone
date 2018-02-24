@@ -45,16 +45,23 @@
   //
 
   init = function (callback) {
-    datasource.getCatalog().then(function (data) {
-      catalog = data;
-      datasource.getControllers().then(function (data) {
-        controllers = data;
-        datasource.getRoutes().then(function (data) {
-          routes = data;
-          callback();
-        });
-      });
-    });
+    var exit = process.exit;
+    datasource.getCatalog()
+      .then(function (data) {
+        catalog = data;
+        datasource.getControllers()
+          .then(function (data) {
+            controllers = data;
+            datasource.getRoutes()
+              .then(function (data) {
+                  routes = data;
+                  callback();
+              })
+              .catch(exit);
+          })
+          .catch(exit);
+      })
+      .catch(exit);
   };
 
   resolveName = function (apiPath) {
@@ -209,11 +216,15 @@
         return;
       }
 
-      datasource.getCatalog().then(function (data) {
-        catalog = data;
-        registerDataRoutes();
-        res.json(resp);
-      });
+      datasource.getCatalog()
+        .then(function (data) {
+          catalog = data;
+          registerDataRoutes();
+          res.json(resp);
+        })
+        .reject(function (err) {
+          res.status(err.statusCode).json(err.message);
+        });
     };
 
     payload = {
@@ -244,11 +255,15 @@
         return;
       }
 
-      datasource.getCatalog.then(function (data) {
-        catalog = data;
-        registerDataRoutes();
-        res.json(resp);
-      });
+      datasource.getCatalog
+        .then(function (data) {
+          catalog = data;
+          registerDataRoutes();
+          res.json(resp);
+        })
+        .reject(function (err) {
+          res.status(err.statusCode).json(err.message);
+        });
     };
 
     payload = {
