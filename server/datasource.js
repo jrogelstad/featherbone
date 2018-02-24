@@ -18,7 +18,7 @@
 
 (function (exports) {
   "strict";
-  var conn,
+  var conn, catalog,
     pg = require("pg"),
     controller = require("./controller"),
     readPgConfig = require("./pgconfig"),
@@ -162,15 +162,19 @@
     @param {Boolean} Ignore registration and treat as data. Default = false.
     @return receiver
   */
-  that.request = function (obj, isSuperUser, isData) {
+  that.request = function (obj, isSuperUser) {
     isSuperUser = isSuperUser === undefined ? false : isSuperUser;
 
-    var client, done, transaction, connect, isChild,
-      doRequest, afterTransaction, afterRequest,
-      isRegistered = typeof registered[obj.method][obj.name] === "function",
+    var client, done, transaction, connect, isChild, isRegistered, doRequest,
+      afterTransaction, afterRequest, doExecute, doMethod, doQuery, doTraverse,
+      wrapped,
       callback = obj.callback,
       externalClient = false,
       wrap = false;
+
+    isRegistered = function (method, name) {
+      return typeof registered[method][name] === "function";
+    };
 
     connect = function () {
       pg.connect(conn, function (err, c, d) {
@@ -189,6 +193,76 @@
       });
     };
 
+    doExecute = function (options) {
+      return new Promise (function (resolve, reject) {
+        // Wrap transactions
+        options.callback = function (err, resp) {
+          if (err) {
+            reject(err);
+            return;
+          }
+          resolve(resp);
+        };
+
+        if (wrap && !wrapped) {
+          client.query("BEGIN;", function (err) {
+            if (err) {
+              reject(err);
+              return;
+            }
+
+            wrapped = true;
+            transaction(obj, false, isSuperUser);
+          });
+          return;
+        }
+
+        // Passed client must handle its own transaction wrapping
+        transaction(obj, isChild, isSuperUser);
+      });
+    };
+
+    doMethod = function (options) {
+      return new Promise (function (resolve, reject) {
+        wrap = !options.client;
+        options.data = options.data || {};
+        options.data.id = options.data.id || options.id;
+        transaction = registered[options.method][options.name];
+        doExecute(options).then(resolve).catch(reject);
+      });
+    };
+
+    doQuery = function () {
+      obj.client = client;
+      isChild = false;
+
+      switch (obj.method) {
+      case "GET":
+        obj.callback = afterRequest;
+        controller.doSelect(obj, false, isSuperUser);
+        return;
+      case "POST":
+        if (obj.id) {
+          transaction = controller.doUpsert;
+        } else {
+          transaction = controller.doInsert;
+        }
+        break;
+      case "PATCH":
+        transaction = controller.doUpdate;
+        break;
+      case "DELETE":
+        transaction = controller.doDelete;
+        break;
+      default:
+        obj.callback("method \"" + obj.method + "\" unknown");
+      }
+
+      doExecute(obj)   
+        .then(function (resp) { afterTransaction(null, resp); })
+        .reject(function (err) { afterTransaction(err); });
+    };
+
     doRequest = function (err) {
       if (err) {
         afterRequest(err);
@@ -204,78 +278,79 @@
         client.currentUser = obj.user;
       }
 
-      // If registered function, execute it
-      if (isRegistered && !isData) {
-        wrap = !obj.client;
-        obj.data = obj.data || {};
-        obj.data.id = obj.data.id || obj.id;
-        obj.client = client;
-        transaction = registered[obj.method][obj.name];
+      // Pass 'get' straight through
+      if (obj.method === "GET") {
+        doQuery();
 
-      // Otherwise handle as model
+      // If alter data, process it
+      } else if (catalog[obj.name]) {
+        doTraverse(obj.method, obj.name, obj.data);
+
+      // If function, execute it
+      } else if (isRegistered(obj.method, obj.name)) {
+        doMethod(obj)
+          .then(function (resp) { afterTransaction(null, resp); })
+          .reject(function (err) { afterTransaction(err); });
+
+      // Young fool, now you will die.
       } else {
-        obj.client = client;
-        isChild = false;
-
-        switch (obj.method) {
-        case "GET":
-          obj.callback = afterRequest;
-          controller.doSelect(obj, false, isSuperUser);
-          return;
-        case "POST":
-          if (obj.id) {
-            transaction = controller.doUpsert;
-          } else {
-            transaction = controller.doInsert;
-          }
-          break;
-        case "PATCH":
-          transaction = controller.doUpdate;
-          break;
-        case "DELETE":
-          transaction = controller.doDelete;
-          break;
-        default:
-          obj.callback("method \"" + obj.method + "\" unknown");
-        }
+        obj.callback("Function " + obj.method + " " + obj.name + " is not registered.");
       }
+    };
 
-      // Wrap transactions
-      if (wrap) {
-        obj.callback = afterTransaction;
-        client.query("BEGIN;", function (err) {
-          if (err) {
-            obj.callback(err);
+    doTraverse = function (method, name, data) {
+      var feather = catalog[name],
+        parent = feather.inherits || "Object",
+        options = {
+          method: method,
+          name: name,
+          client: client,
+          data: data
+        };
+
+      // If business logic defined, do it
+      if (isRegistered(method, name)) {
+        doMethod(options, false).then(function(data) {
+          if (name === "Object") {
+            doQuery();
             return;
           }
 
-          transaction(obj, false, isSuperUser);
+          doTraverse(method, parent, data);
         });
-        return;
-      }
 
-      // Passed client must handle its own transaction wrapping
-      obj.callback = afterRequest;
-      transaction(obj, isChild, isSuperUser);
+      // If traversal done, forward to database
+      } else if (name === "Object") {
+        doQuery();
+
+      // If no logic, but parent, traverse up the tree
+      } else {
+        doTraverse(method, parent, data);
+      }
     };
 
     afterTransaction = function (err, resp) {
-      if (err) {
-        client.query("ROLLBACK;", function () {
-          afterRequest(err);
-        });
-
-        return;
-      }
-
-      client.query("COMMIT;", function (err) {
+      if (wrapped) {
         if (err) {
-          afterRequest(err);
+          client.query("ROLLBACK;", function () {
+            afterRequest(err);
+          });
+
           return;
         }
 
-        afterRequest(null, resp);
-      });
+        client.query("COMMIT;", function (err) {
+          if (err) {
+            afterRequest(err);
+            return;
+          }
+
+          afterRequest(null, resp);
+        });
+        return;
+      }
+      
+      afterRequest(err, resp);
     };
 
     afterRequest = function (err, resp) {
@@ -492,6 +567,11 @@
   that.registerFunction("PUT", "saveWorkbook", controller.saveWorkbook);
   that.registerFunction("DELETE", "deleteFeather", controller.deleteFeather);
   that.registerFunction("DELETE", "deleteWorkbook", controller.deleteWorkbook);
+
+  // Fetch catalog
+  that.getCatalog().then(function (data) {
+    catalog = data;
+  });
 
 }(exports));
 
