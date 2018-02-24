@@ -3180,6 +3180,15 @@
     },
 
     /**
+      Returns settings object used internally by controller.
+
+      @returns {Object} Settings
+    */
+    settings: function () {
+      return settings;
+    },
+
+    /**
       Sets a user as super user or not.
 
       @param {Object} Payload

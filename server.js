@@ -20,7 +20,7 @@
   "use strict";
   require('./common/extend-string.js');
 
-  var catalog, init, resolveName,
+  var init, resolveName,
     doGetSettingsRow, doGetFeather, doGetModules, doRequest,
     doGetMethod, doSaveFeather, doDeleteFeather, registerDataRoutes,
     doDeleteMethod, doDeleteWorkbook, doGetWorkbooks, doSaveSettings,
@@ -38,7 +38,8 @@
     moduleRouter = express.Router(),
     settingsRouter = express.Router(),
     settingsDefinitionRouter = express.Router(),
-    workbookRouter = express.Router();
+    workbookRouter = express.Router(),
+    settings = datasource.settings();
 
   // ..........................................................
   // CONTROLLERS
@@ -47,8 +48,7 @@
   init = function (callback) {
     var exit = process.exit;
     datasource.getCatalog()
-      .then(function (data) {
-        catalog = data;
+      .then(function () {
         datasource.getControllers()
           .then(function (data) {
             controllers = data;
@@ -65,9 +65,8 @@
   };
 
   resolveName = function (apiPath) {
-    var name,
-      keys,
-      found;
+    var name, keys, found,
+      catalog = settings.catalog.data;
 
     if (apiPath.lastIndexOf("/") > 0) {
       name = apiPath.match("[/](.*)[/]")[1].toCamelCase(true);
@@ -210,21 +209,13 @@
     var payload, callback,
       data = req.body;
 
-    callback = function (err, resp) {
+    callback = function (err) {
       if (err) {
         res.status(err.statusCode).json(err.message);
         return;
       }
 
-      datasource.getCatalog()
-        .then(function (data) {
-          catalog = data;
-          registerDataRoutes();
-          res.json(resp);
-        })
-        .reject(function (err) {
-          res.status(err.statusCode).json(err.message);
-        });
+      registerDataRoutes();
     };
 
     payload = {
@@ -249,21 +240,13 @@
     data.etag = req.body.etag;
     data.data = req.body.data;
 
-    callback = function (err, resp) {
+    callback = function (err) {
       if (err) {
         res.status(err.statusCode).json(err.message);
         return;
       }
 
-      datasource.getCatalog
-        .then(function (data) {
-          catalog = data;
-          registerDataRoutes();
-          res.json(resp);
-        })
-        .reject(function (err) {
-          res.status(err.statusCode).json(err.message);
-        });
+      registerDataRoutes();
     };
 
     payload = {
@@ -313,7 +296,8 @@
   };
 
   registerDataRoutes = function () {
-    var keys, name;
+    var keys, name,
+      catalog = settings.catalog.data;
 
     keys = Object.keys(catalog);
     keys.forEach(function (key) {

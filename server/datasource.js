@@ -30,7 +30,7 @@
       DELETE: {}
     },
     that = {},
-    catalog = {};
+    settings = controller.settings();
 
   /**
     Fetch catalog.
@@ -48,7 +48,6 @@
           return;
         }
 
-        catalog = resp;
         resolve(resp);
       };
 
@@ -170,9 +169,12 @@
     var client, done, transaction, connect, isChild, isRegistered, doRequest,
       afterTransaction, afterRequest, doExecute, doMethod, doQuery, doTraverse,
       wrapped,
+      catalog = settings.catalog || {},
       callback = obj.callback,
       externalClient = false,
       wrap = false;
+
+    catalog = catalog.data || {};
 
     isRegistered = function (method, name) {
       return typeof registered[method][name] === "function";
@@ -298,7 +300,7 @@
     };
 
     doTraverse = function (method, name, data) {
-      var feather = catalog[name],
+      var feather = settings.catalog.data[name],
         parent = feather.inherits || "Object",
         options = {
           method: method,
@@ -475,6 +477,13 @@
     });
 
     return result;
+  };
+
+  /**
+    @return {Object} Internal settings object maintained by controller
+  */
+  that.settings = function () {
+    return settings;
   };
 
   /**
