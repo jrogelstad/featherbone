@@ -159,7 +159,8 @@
     if (idx > -1) {
       prefix = attr.slice(0, idx);
       suffix = attr.slice(idx + 1, attr.length);
-      return f.resolveAlias(feather.properties[prefix].type.relation, suffix);
+      feather = catalog.getFeather(feather.properties[prefix].type.relation);
+      return f.resolveAlias(feather, suffix);
     }
 
     ret = overload.alias || feather.properties[attr].alias || attr;
