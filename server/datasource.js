@@ -306,7 +306,7 @@
 
       // If traversal done, finish transaction
       } else if (name === "Object") {
-        afterTransaction();
+        afterTransaction(null, obj.response);
 
       // If no logic, but parent, traverse up the tree
       } else {
