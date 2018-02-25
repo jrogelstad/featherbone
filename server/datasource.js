@@ -277,13 +277,13 @@
       });
     }
 
-    function doMethod () {
+    function doMethod (name) {
       return new Promise (function (resolve, reject) {
         wrap = !obj.client;
         obj.data = obj.data || {};
         obj.data.id = obj.data.id || obj.id;
         obj.client = client;
-        transaction = registered[obj.method][obj.name];
+        transaction = registered[obj.method][name];
         doExecute().then(resolve).catch(reject);
       });
     }
@@ -295,12 +295,12 @@
       // If business logic defined, do it
       if (isRegistered(obj.method, name, TRIGGER_AFTER)) {
         if (name === "Object") {
-          doMethod(false)
+          doMethod(name)
             .then(afterTransaction)
             .catch(callback);
           return;
         }
-        doMethod(false)
+        doMethod(name)
           .then(doTraverseAfter.bind(this, parent))
           .catch(callback);
 
@@ -356,13 +356,13 @@
       // If business logic defined, do it
       if (isRegistered(obj.method, name, TRIGGER_BEFORE)) {
         if (name === "Object") {
-          doMethod(false)
+          doMethod(name)
             .then(doQuery)
             .catch(callback);
           return;
         }
 
-        doMethod(false)
+        doMethod(name)
           .then(doTraverseBefore.bind(this, parent))
           .catch(callback);
 
@@ -397,7 +397,7 @@
 
       // If function, execute it
       } else if (isRegistered(obj.method, obj.name)) {
-        doMethod()
+        doMethod(obj.name)
           .then(function (resp) { afterTransaction(null, resp); })
           .catch(afterRequest);
 
