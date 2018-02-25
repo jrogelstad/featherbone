@@ -68,8 +68,9 @@
     });
   };
 
-  rollback = function () {
+  rollback = function (err) {
     client.query("ROLLBACK;", function () {
+      console.error(err);
       console.error("Configuration failed.");
       client.end();
       process.exit();
@@ -81,8 +82,7 @@
       exp = require(dep),
       callback = function (err, resp) {
         if (err) {
-          console.error(err);
-          rollback();
+          rollback(err);
         }
 
         processFile();
@@ -95,8 +95,7 @@
     var filepath, module, version;
 
     if (err) {
-      console.error(err);
-      rollback();
+      rollback(err);
       return;
     }
 
@@ -155,8 +154,7 @@
         defineSettings(JSON.parse(content));
         break;
       default:
-        console.error("Unknown type.");
-        rollback();
+        rollback("Unknown type.");
         return;
       }
     });
@@ -192,8 +190,7 @@
 
     client.query(sql, function (err, result) {
       if (err) {
-        rollback();
-        console.error(err);
+        rollback(err);
         return;
       }
       if (result.rows.length) {
@@ -215,8 +212,7 @@
 
     client.query(sql, function (err, result) {
       if (err) {
-        rollback();
-        console.error(err);
+        rollback(err);
         return;
       }
       if (result.rows.length) {
@@ -238,8 +234,7 @@
 
     client.query(sql, function (err, result) {
       if (err) {
-        rollback();
-        console.error(err);
+        rollback(err);
         return;
       }
       if (result.rows.length) {
@@ -262,8 +257,7 @@
 
     client.query(sql, function (err, result) {
       if (err) {
-        rollback();
-        console.error(err);
+        rollback(err);
         return;
       }
       if (result.rows.length) {
@@ -288,7 +282,7 @@
     if (isSystem) {
       callback = function (err) {
         if (err) {
-          rollback();
+          rollback(err);
           return;
         }
 
@@ -337,7 +331,7 @@
 
     callback = function (err) {
       if (err) {
-        rollback();
+        rollback(err);
         return;
       }
 
@@ -394,7 +388,7 @@
       var payload;
 
       if (err) {
-        rollback();
+        rollback(err);
         return;
       }
 
@@ -728,6 +722,8 @@
     });
   };
 
+
+
   /* Real work starts here */
   fs.readFile(filename, "utf8", function (err, data) {
     if (err) {
@@ -761,7 +757,7 @@
 
           // If database exists, get started
           if (resp.rows.length === 1) {
-            execute();
+            datasource.getCatalog().then(execute);
           // Otherwise create database first
           } else {
             console.log('Creating database "' + config.database + '"');
@@ -769,7 +765,7 @@
             sql = format(sql, config.database, config.user);
             pgclient.query(sql, function () {
               if (err) { return console.error(err); }
-              execute();         
+              execute();        
             });
           }
         });

@@ -39,6 +39,6 @@
     }, true);
   };
 
-  datasource.registerFunction("POST", "Table", doUpsertTable);
+  datasource.registerFunction("POST", "Table", doUpsertTable, datasource.TRIGGER_BEFORE);
 
 }(datasource));

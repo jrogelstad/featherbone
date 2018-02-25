@@ -30,10 +30,35 @@
       DELETE: {}
     },
     that = {},
-    settings = controller.settings(),
-    TRIGGER_BEFORE = 1,
+    settings = controller.settings();
+
+  const TRIGGER_BEFORE = 1,
     TRIGGER_AFTER = 2;
 
+
+  // ..........................................................
+  // PRIVATE
+  //
+
+  function isRegistered (method, name, trigger) {
+    var fn = registered[method][name],
+      ret = typeof fn === "function";
+
+    if (ret && trigger) {
+      if (!(trigger === TRIGGER_BEFORE &&
+        fn.trigger === TRIGGER_BEFORE) || 
+        (trigger === TRIGGER_AFTER &&
+        fn.trigger === TRIGGER_AFTER)) {
+        ret = false;
+      }
+    }
+
+    return ret;
+  }
+
+  // ..........................................................
+  // PUBLIC
+  //
 
   that.TRIGGER_BEFORE = TRIGGER_BEFORE;
   that.TRIGGER_AFTER = TRIGGER_AFTER;
@@ -172,54 +197,61 @@
   that.request = function (obj, isSuperUser) {
     isSuperUser = isSuperUser === undefined ? false : isSuperUser;
 
-    var client, done, transaction, connect, isChild, isRegistered, doRequest,
-      afterTransaction, afterRequest, doExecute, doMethod, doQuery,
-      doTraverseBefore, doTraverseAfter,
-      wrapped,
-      catalog = settings.catalog || {},
+    var client, done, transaction, isChild, wrapped,
+      catalog = settings.catalog ? settings.catalog.data : {},
       callback = obj.callback,
       externalClient = false,
       wrap = false;
 
-    catalog = catalog.data || {};
+    function afterRequest (err, resp) {
+      // Passed client will handle it's own connection
+      if (!externalClient) { done(); }
 
-    isRegistered = function (method, name, trigger) {
-      var fn = registered[method][name],
-        ret = typeof fn === "function";
-
-      if (ret && trigger) {
-        if (!(trigger === TRIGGER_BEFORE &&
-          method.trigger === TRIGGER_BEFORE) || 
-          (trigger === TRIGGER_AFTER &&
-          method.trigger === TRIGGER_AFTER)) {
-          ret = false;
+      // Format errors into objects that can be handled by server
+      if (err) {
+        console.error(err);
+        if (typeof err === "object") {
+          err = {message: err.message, statusCode: err.statusCode || 500};
+        } else {
+          err = {message: err, statusCode: 500};
         }
+        err.isError = true;
+        callback(err);
+        return;
       }
 
-      return ret;
-    };
+      // Otherwise return response
+      callback(null, resp);
+    }
 
-    connect = function () {
-      pg.connect(conn, function (err, c, d) {
-        client = c;
-        done = d;
-
-        // handle an error from the connection
+    function afterTransaction (err, resp) {
+      if (wrapped) {
         if (err) {
-          controller.setCurrentUser(undefined);
-          console.error("Could not connect to server", err);
-          obj.callback(err);
+          client.query("ROLLBACK;", function () {
+            afterRequest(err);
+          });
+
           return;
         }
 
-        doRequest();
-      });
-    };
+        client.query("COMMIT;", function (err) {
+          if (err) {
+            afterRequest(err);
+            return;
+          }
 
-    doExecute = function (options) {
+          afterRequest(null, resp);
+        });
+        return;
+      }
+      
+      afterRequest(err, resp);
+    }
+
+    function doExecute () {
       return new Promise (function (resolve, reject) {
         // Wrap transactions
-        options.callback = function (err, resp) {
+        obj.callback = function (err, resp) {
           if (err) {
             reject(err);
             return;
@@ -243,20 +275,46 @@
         // Passed client must handle its own transaction wrapping
         transaction(obj, isChild, isSuperUser);
       });
-    };
+    }
 
-    doMethod = function (options) {
+    function doMethod () {
       return new Promise (function (resolve, reject) {
-        wrap = !options.client;
-        options.data = options.data || {};
-        options.data.id = options.data.id || options.id;
+        wrap = !obj.client;
+        obj.data = obj.data || {};
+        obj.data.id = obj.data.id || obj.id;
         obj.client = client;
-        transaction = registered[options.method][options.name];
-        doExecute(options).then(resolve).catch(reject);
+        transaction = registered[obj.method][obj.name];
+        doExecute().then(resolve).catch(reject);
       });
-    };
+    }
 
-    doQuery = function () {
+    function doTraverseAfter (name) {
+      var feather = settings.catalog.data[name],
+        parent = feather.inherits || "Object";
+
+      // If business logic defined, do it
+      if (isRegistered(obj.method, name, TRIGGER_AFTER)) {
+        if (name === "Object") {
+          doMethod(false)
+            .then(afterTransaction)
+            .catch(callback);
+          return;
+        }
+        doMethod(false)
+          .then(doTraverseAfter.bind(this, parent))
+          .catch(callback);
+
+      // If traversal done, finish transaction
+      } else if (name === "Object") {
+        afterTransaction();
+
+      // If no logic, but parent, traverse up the tree
+      } else {
+        doTraverseAfter(parent);
+      }
+    }
+
+    function doQuery () {
       obj.client = client;
       isChild = false;
 
@@ -279,15 +337,46 @@
         transaction = controller.doDelete;
         break;
       default:
-        obj.callback("method \"" + obj.method + "\" unknown");
+        afterRequest("method \"" + obj.method + "\" unknown");
+        return;
       }
 
-      doExecute(obj)   
-        .then(function (resp) { doTraverseAfter(obj.method, obj.name, resp); })
-        .catch(function (err) { afterTransaction(err); });
-    };
+      doExecute()   
+        .then(function (resp) {
+          obj.response = resp;
+          doTraverseAfter(obj.name);
+        })
+        .catch(afterRequest);
+    }
 
-    doRequest = function (err) {
+    function doTraverseBefore (name) {
+      var feather = settings.catalog.data[name],
+        parent = feather.inherits || "Object";
+
+      // If business logic defined, do it
+      if (isRegistered(obj.method, name, TRIGGER_BEFORE)) {
+        if (name === "Object") {
+          doMethod(false)
+            .then(doQuery)
+            .catch(callback);
+          return;
+        }
+
+        doMethod(false)
+          .then(doTraverseBefore.bind(this, parent))
+          .catch(callback);
+
+      // If traversal done, forward to database
+      } else if (name === "Object") {
+        doQuery();
+
+      // If no logic, but parent, traverse up the tree
+      } else {
+        doTraverseBefore(parent);
+      }
+    }
+
+    function doRequest (err) {
       if (err) {
         afterRequest(err);
         return;
@@ -304,128 +393,36 @@
 
       // If alter data, process it
       if (catalog[obj.name]) {
-        doTraverseBefore(obj.method, obj.name, obj.data);
+        doTraverseBefore(obj.name);
 
       // If function, execute it
       } else if (isRegistered(obj.method, obj.name)) {
-        doMethod(obj)
+        doMethod()
           .then(function (resp) { afterTransaction(null, resp); })
-          .catch(function (err) { afterTransaction(err); });
+          .catch(afterRequest);
 
       // Young fool, now you will die.
       } else {
         obj.callback("Function " + obj.method + " " + obj.name + " is not registered.");
       }
-    };
+    }
 
-    doTraverseBefore = function (method, name, data) {
-      var feather = settings.catalog.data[name],
-        parent = feather.inherits || "Object";
+    function connect () {
+      pg.connect(conn, function (err, c, d) {
+        client = c;
+        done = d;
 
-      // If business logic defined, do it
-      if (isRegistered(method, name, TRIGGER_BEFORE)) {
-        doMethod({
-            method: method,
-            name: name,
-            client: client,
-            data: data
-          }, false)
-          .then(function(resp) {
-            if (name === "Object") {
-              doQuery();
-              return;
-            }
-
-            doTraverseBefore(method, parent, resp.data);
-          })
-          .catch(callback);
-
-      // If traversal done, forward to database
-      } else if (name === "Object") {
-        doQuery();
-
-      // If no logic, but parent, traverse up the tree
-      } else {
-        doTraverseBefore(method, parent, data);
-      }
-    };
-
-    doTraverseAfter = function (method, name, data) {
-      var feather = settings.catalog.data[name],
-        parent = feather.inherits || "Object";
-
-      // If business logic defined, do it
-      if (isRegistered(method, name, TRIGGER_AFTER)) {
-        doMethod({
-            method: method,
-            name: name,
-            client: client,
-            data: data
-          }, false)
-          .then(function(resp) {
-            if (name === "Object") {
-              afterTransaction();
-              return;
-            }
-
-            doTraverseAfter(method, parent, resp.data);
-          })
-          .catch(callback);
-
-      // If traversal done, finish transaction
-      } else if (name === "Object") {
-        afterTransaction();
-
-      // If no logic, but parent, traverse up the tree
-      } else {
-        doTraverseAfter(method, parent, data);
-      }
-    };
-
-    afterTransaction = function (err, resp) {
-      if (wrapped) {
+        // handle an error from the connection
         if (err) {
-          client.query("ROLLBACK;", function () {
-            afterRequest(err);
-          });
-
+          controller.setCurrentUser(undefined);
+          console.error("Could not connect to server", err);
+          obj.callback(err);
           return;
         }
 
-        client.query("COMMIT;", function (err) {
-          if (err) {
-            afterRequest(err);
-            return;
-          }
-
-          afterRequest(null, resp);
-        });
-        return;
-      }
-      
-      afterRequest(err, resp);
-    };
-
-    afterRequest = function (err, resp) {
-      // Passed client will handle it's own connection
-      if (!externalClient) { done(); }
-
-      // Format errors into objects that can be handled by server
-      if (err) {
-        console.error(err);
-        if (typeof err === "object") {
-          err = {message: err.message, statusCode: err.statusCode || 500};
-        } else {
-          err = {message: err, statusCode: 500};
-        }
-        err.isError = true;
-        callback(err);
-        return;
-      }
-
-      // Otherwise return response
-      callback(null, resp);
-    };
+        doRequest();
+      });
+    }
 
     if (obj.client) {
       externalClient = true;
@@ -511,7 +508,9 @@
   */
   that.registerFunction = function (method, name, func, trigger) {
     registered[method][name] = func;
-    if (trigger) { func.trigger = trigger; }
+    if (trigger) { 
+      func.trigger = trigger;
+    }
     return that;
   };
 
