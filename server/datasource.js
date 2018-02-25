@@ -45,10 +45,10 @@
       ret = typeof fn === "function";
 
     if (ret && trigger) {
-      if (!(trigger === TRIGGER_BEFORE &&
-        fn.trigger === TRIGGER_BEFORE) || 
+      if ((trigger === TRIGGER_BEFORE &&
+        fn.trigger !== TRIGGER_BEFORE) ||
         (trigger === TRIGGER_AFTER &&
-        fn.trigger === TRIGGER_AFTER)) {
+        fn.trigger !== TRIGGER_AFTER)) {
         ret = false;
       }
     }
