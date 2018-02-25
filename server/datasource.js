@@ -30,7 +30,13 @@
       DELETE: {}
     },
     that = {},
-    settings = controller.settings();
+    settings = controller.settings(),
+    TRIGGER_BEFORE = 1,
+    TRIGGER_AFTER = 2;
+
+
+  that.TRIGGER_BEFORE = TRIGGER_BEFORE;
+  that.TRIGGER_AFTER = TRIGGER_AFTER;
 
   /**
     Fetch catalog.
@@ -167,7 +173,8 @@
     isSuperUser = isSuperUser === undefined ? false : isSuperUser;
 
     var client, done, transaction, connect, isChild, isRegistered, doRequest,
-      afterTransaction, afterRequest, doExecute, doMethod, doQuery, doTraverse,
+      afterTransaction, afterRequest, doExecute, doMethod, doQuery,
+      doTraverseBefore, doTraverseAfter,
       wrapped,
       catalog = settings.catalog || {},
       callback = obj.callback,
@@ -176,8 +183,20 @@
 
     catalog = catalog.data || {};
 
-    isRegistered = function (method, name) {
-      return typeof registered[method][name] === "function";
+    isRegistered = function (method, name, trigger) {
+      var fn = registered[method][name],
+        ret = typeof fn === "function";
+
+      if (ret && trigger) {
+        if (!(trigger === TRIGGER_BEFORE &&
+          method.trigger === TRIGGER_BEFORE) || 
+          (trigger === TRIGGER_AFTER &&
+          method.trigger === TRIGGER_AFTER)) {
+          ret = false;
+        }
+      }
+
+      return ret;
     };
 
     connect = function () {
@@ -264,7 +283,7 @@
       }
 
       doExecute(obj)   
-        .then(function (resp) { afterTransaction(null, resp); })
+        .then(function (resp) { doTraverseAfter(obj.method, obj.name, resp); })
         .catch(function (err) { afterTransaction(err); });
     };
 
@@ -285,7 +304,7 @@
 
       // If alter data, process it
       if (catalog[obj.name]) {
-        doTraverse(obj.method, obj.name, obj.data);
+        doTraverseBefore(obj.method, obj.name, obj.data);
 
       // If function, execute it
       } else if (isRegistered(obj.method, obj.name)) {
@@ -299,30 +318,27 @@
       }
     };
 
-    doTraverse = function (method, name, data) {
+    doTraverseBefore = function (method, name, data) {
       var feather = settings.catalog.data[name],
-        parent = feather.inherits || "Object",
-        options = {
-          method: method,
-          name: name,
-          client: client,
-          data: data
-        };
+        parent = feather.inherits || "Object";
 
       // If business logic defined, do it
-      if (isRegistered(method, name)) {
-        doMethod(options, false)
-          .then(function(data) {
+      if (isRegistered(method, name, TRIGGER_BEFORE)) {
+        doMethod({
+            method: method,
+            name: name,
+            client: client,
+            data: data
+          }, false)
+          .then(function(resp) {
             if (name === "Object") {
               doQuery();
               return;
             }
 
-            doTraverse(method, parent, data);
-          }).
-          catch(function (err) {
-            callback(err);
-          });
+            doTraverseBefore(method, parent, resp.data);
+          })
+          .catch(callback);
 
       // If traversal done, forward to database
       } else if (name === "Object") {
@@ -330,7 +346,39 @@
 
       // If no logic, but parent, traverse up the tree
       } else {
-        doTraverse(method, parent, data);
+        doTraverseBefore(method, parent, data);
+      }
+    };
+
+    doTraverseAfter = function (method, name, data) {
+      var feather = settings.catalog.data[name],
+        parent = feather.inherits || "Object";
+
+      // If business logic defined, do it
+      if (isRegistered(method, name, TRIGGER_AFTER)) {
+        doMethod({
+            method: method,
+            name: name,
+            client: client,
+            data: data
+          }, false)
+          .then(function(resp) {
+            if (name === "Object") {
+              afterTransaction();
+              return;
+            }
+
+            doTraverseAfter(method, parent, resp.data);
+          })
+          .catch(callback);
+
+      // If traversal done, finish transaction
+      } else if (name === "Object") {
+        afterTransaction();
+
+      // If no logic, but parent, traverse up the tree
+      } else {
+        doTraverseAfter(method, parent, data);
       }
     };
 
@@ -458,11 +506,13 @@
     @param {String} Function name
     @param {String} Method. "GET", "POST", "PUT", "PATCH", or "DELETE"
     @param {Function} Function
+    @param {Number} Constant TRIGGER_BEFORE or TRIGGER_AFTER
     @return receiver
   */
-  that.registerFunction = function (method, name, func) {
+  that.registerFunction = function (method, name, func, trigger) {
     registered[method][name] = func;
-    return this;
+    if (trigger) { func.trigger = trigger; }
+    return that;
   };
 
   /**
@@ -581,5 +631,3 @@
   that.registerFunction("DELETE", "deleteWorkbook", controller.deleteWorkbook);
 
 }(exports));
-
-
