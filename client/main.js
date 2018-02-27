@@ -37,7 +37,7 @@
   require("child-table");
   require("mathjs");
 
-  var loadCatalog, loadModules, moduleData, workbookData,
+  var feathers, loadCatalog, loadModules, moduleData, workbookData,
     loadForms, loadRelationWidgets, loadWorkbooks, buildRelationWidget,
     m = require("mithril"),
     f = require("component-core"),
@@ -84,13 +84,13 @@
   // Load catalog and process models
   loadCatalog = new Promise(function (resolve) {
     catalog.fetch(true).then(function (data) {
-      var feathers,
-        models = catalog.register("models"),
+      var models = catalog.register("models"),
         payload = {method: "GET", path: "/settings-definition"},
         initSettings = [];
 
-      feathers = Object.keys(data);
-      feathers.forEach(function (feather) {
+      feathers = data;
+
+      Object.keys(data).forEach(function (feather) {
         var name = feather.toCamelCase(),
           plural = catalog.getFeather(feather, false).plural;
 
@@ -204,12 +204,44 @@
   .then(function () {
     var home,
       components = catalog.store().components(),
-      workbookModel = catalog.store().models().workbook;
+      models = catalog.store().models(),
+      workbookModel = models.workbook,
+      keys = Object.keys(feathers);
 
     // Process modules
     moduleData.forEach(function (module) {
       eval(module.script);
     });
+
+    // Propagate static functions to child classes
+    keys.forEach(function (key) {
+      feathers[key].children = {};
+    });
+
+    keys.forEach(function (key) {
+      var parent = feathers[key].inherits || "Object";
+
+      feathers[parent].children[key] = feathers[key];
+    });
+
+    delete feathers.Object.children.Object;
+
+    function subclass (name, parent) {
+      var feather = feathers[name],
+        funcs = Object.keys(parent);
+
+      Object.keys(feather.children).forEach(function (name) {
+        var child = models[name.toCamelCase()];
+
+        funcs.forEach(function (func) {
+          child[func] = child[func] || parent[func];          
+        });
+
+        subclass(name, child);
+      });
+    }
+
+    subclass("Object", models.object);
 
     // Process workbooks
     workbookData.forEach(function (workbook) {
