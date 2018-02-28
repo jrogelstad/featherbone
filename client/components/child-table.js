@@ -89,6 +89,7 @@
       //ondblclick: vm.formDialog().show
     }));
     vm.tableWidget().toggleEdit();
+    vm.tableWidget().isQuery(false);
 
     // Create button view models
     vm.buttonAdd(button.viewModel({

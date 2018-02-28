@@ -82,6 +82,7 @@
       return result || [{attr: "id"}];
     };
     vm.isEditModeEnabled = stream(options.isEditModeEnabled !== false);
+    vm.isQuery = stream(true);
     vm.config = stream(options.config);
     vm.containerId = stream(options.containerId);
     vm.confirmDialog = stream(dialog.viewModel({
@@ -1064,7 +1065,7 @@
           m("tbody", {
             id: ids.rows,
             class: "suite-table-body",
-            onscroll: vm.onscroll,
+            onscroll: vm.isQuery() ? vm.onscroll : undefined,
             oncreate: function (vnode) {
               // Key down handler for up down movement
               var e = document.getElementById(vnode.dom.id);
