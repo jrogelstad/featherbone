@@ -25,7 +25,8 @@
     catalog = require("catalog"),
     dataSource = require("datasource"),
     jsonpatch = require("fast-json-patch"),
-    statechart = require("statechartjs");
+    statechart = require("statechartjs"),
+    store = catalog.store();
 
   /**
     A factory that returns a persisting object based on a definition called a
@@ -41,9 +42,10 @@
     data = data || {};
     feather = feather || {};
     feather.overloads = feather.overloads || {};
+    feather.inherits = feather.inherits || "Object";
 
     var  doClear, doDelete, doError, doFetch, doInit, doPatch, doPost, doSend,
-      doFreeze, doThaw, doRevert, lastError, state,
+      doFreeze, doThaw, doRevert, lastError, state, parent,
       that = {data: {}, name: feather.name || "Object", plural: feather.plural},
       d = that.data,
       errHandlers = [],
@@ -51,8 +53,14 @@
       deleteChecks = [],
       stateMap = {},
       lastFetched = {},
-      freezeCache = {},
-      pending = [];
+      freezeCache = {};
+
+      // Inherit parent logic via traversal
+      if (feather.inherits && feather.inherits !== "Object") {
+        parent = catalog.getFeather(feather.inherits);
+        feather.inherits = parent.inherits || "Object";
+        return store.models()[parent.name.toCamelCase()](data, feather);
+      }
 
     // ..........................................................
     // PUBLIC

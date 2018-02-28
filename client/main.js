@@ -90,24 +90,22 @@
 
       feathers = data;
 
-      Object.keys(data).forEach(function (feather) {
-        var name = feather.toCamelCase(),
-          plural = catalog.getFeather(feather, false).plural;
+      Object.keys(data).forEach(function (name) {
+        var feather = catalog.getFeather(name);
+        
+        name = name.toCamelCase();
 
         // Implement generic function to object from model
         if (typeof models[name] !== "function") {
           // Model instance
           models[name] = function (data, spec) {
-            var shared = spec || catalog.getFeather(feather),
-              obj = model(data, shared);
-
-            return obj;
+            return model(data, spec || f.copy(feather));
           };
         }
 
         // List instance
-        if (plural && !models[name].list) {
-          models[name].list = list(feather);
+        if (feather.plural && !models[name].list) {
+          models[name].list = list(feather.name);
         }
       });
 
