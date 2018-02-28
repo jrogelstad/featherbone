@@ -25,15 +25,20 @@
     stream = require("stream"),
     f = require("component-core"),
     math = require("mathjs"),
-    catalog = require("catalog");
+    catalog = require("catalog"),
+    dialog = require("dialog");
 
   formWidget.viewModel = function (options) {
-    var model,
+    var model, modelState,
       vm = {},
       models = catalog.store().models();
 
     vm.config = stream(options.config);
     vm.containerId = stream(options.containerId);
+    vm.errorDialog = stream(dialog.viewModel({
+      icon: "exclamation-circle",
+      title: "Error"
+    }));
     vm.selectedTab = stream(1);
     vm.model = stream();
     vm.outsideElementIds = stream(options.outsideElementIds || []);
@@ -53,6 +58,17 @@
         }
       }
     }
+
+    // Bind model state to error event
+    modelState = vm.model().state();
+    modelState.resolve("/Ready").enter(function () {
+      var err = vm.model().lastError();
+
+      if (err) {
+        vm.errorDialog().message(err.message.slice(1, err.message.length -1));
+        vm.errorDialog().show();
+      }
+    });
 
     return vm;
   };
@@ -205,6 +221,8 @@
           m("div", {class: "pure-g suite-tabbed-pane"}, units)
         ]);
       });
+
+      grids.unshift(m(dialog.component, {viewModel: vm.errorDialog()}));
 
       return m("div", {
         id: model.id(),
