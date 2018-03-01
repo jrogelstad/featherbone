@@ -46,22 +46,35 @@
   //
 
   init = function (callback) {
-    var exit = process.exit;
-    datasource.getCatalog()
-      .then(function () {
+    function getControllers() {
+      return new Promise(function (resolve, reject) {
         datasource.getControllers()
           .then(function (data) {
             controllers = data;
-            datasource.getRoutes()
-              .then(function (data) {
-                  routes = data;
-                  callback();
-              })
-              .catch(exit);
+            resolve();
           })
-          .catch(exit);
-      })
-      .catch(exit);
+          .catch(reject);
+      });
+    }
+
+    function getRoutes() {
+      return new Promise(function(resolve, reject) {
+        datasource.getRoutes()
+          .then(function (data) {
+            routes = data;
+            resolve();
+          })
+          .catch(reject);
+      });
+    }
+
+    // Execute
+    Promise.resolve()
+      .then(datasource.getCatalog)
+      .then(getControllers)
+      .then(getRoutes)
+      .then(callback)
+      .catch(process.exit);
   };
 
   resolveName = function (apiPath) {
