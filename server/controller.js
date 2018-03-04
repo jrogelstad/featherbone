@@ -53,6 +53,25 @@
   // PRIVATE
   //
 
+  function promiseWrapper (name) {
+    return function () {
+      var args = arguments;
+
+      return new Promise (function (resolve, reject) {
+        args[0].callback = function (err, resp) {
+          if (err) { 
+            reject(err);
+            return;
+          }
+
+          resolve(resp);
+        };
+
+        that[name].apply(null, args);
+      });
+    };
+  }
+
   function buildAuthSql (action, table, tokens) {
     var actions = [
         "canRead",
@@ -3688,15 +3707,6 @@
     },
 
     /**
-      Returns settings object used internally by controller.
-
-      @returns {Object} Settings
-    */
-    settings: function () {
-      return settings;
-    },
-
-    /**
       Sets a user as super user or not.
 
       @param {Object} Payload
@@ -3773,9 +3783,18 @@
     }
   };
 
+  /**
+    Returns settings object used internally by controller.
+
+    @returns {Object} Settings
+  */
+  exports.settings = function () {
+    return settings;
+  };
+
   // Set properties on exports
   Object.keys(that).forEach(function (key) {
-    exports[key] = that[key];
+    exports[key] = promiseWrapper(key);
   });
 
 }(exports));

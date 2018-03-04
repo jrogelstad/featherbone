@@ -238,31 +238,26 @@
       function doExecute () {
         console.log("EXECUTE->", obj.name, obj.method, transaction.name);
         return new Promise (function (resolve, reject) {
-          // Wrap transactions
-          obj.callback = function (err, resp) {
-            if (err) {
-              reject(err);
-              return;
-            }
-            resolve(resp);
-          };
-
           if (wrap && !wrapped && !isTriggering) {
             client.query("BEGIN;", function (err) {
               if (err) {
                 reject(err);
                 return;
               }
-              console.log("BEGIN");
+              console.log("BEGAN");
 
               wrapped = true;
-              transaction(obj, false, isSuperUser);
+              transaction(obj, false, isSuperUser)
+                .then(resolve)
+                .catch(reject);
             });
             return;
           }
 
           // Passed client must handle its own transaction wrapping
-          transaction(obj, isChild, isSuperUser);
+          transaction(obj, isChild, isSuperUser)
+            .then(resolve)
+            .catch(reject);
         });
       }
 
@@ -304,7 +299,7 @@
 
             if (name === "Object") {
               Promise.resolve()
-                .then(doMethod.bind(this, name))
+                .then(doMethod.bind(null, name))
                 .then(clearTriggerStatus)
                 .then(commit)
                 .then(resolve)
@@ -313,9 +308,9 @@
             }
 
             Promise.resolve()
-              .then(doMethod.bind(this, name))
+              .then(doMethod.bind(null, name))
               .then(clearTriggerStatus)
-              .then(doTraverseAfter.bind(this, parent))
+              .then(doTraverseAfter.bind(null, parent))
               .catch(rollback);
 
           // If traversal done, finish transaction
@@ -337,15 +332,9 @@
 
           switch (obj.method) {
           case "GET":
-            obj.callback = function (err, resp) {
-              if (err) {
-                reject(error);
-                return;
-              }
-
-              close(resp).then(resolve).catch(error);
-            };
-            controller.doSelect(obj, false, isSuperUser);
+            controller.doSelect(obj, false, isSuperUser)
+              .then(resolve)
+              .then(reject);
             return;
           case "POST":
             if (obj.id) {
@@ -387,7 +376,7 @@
             client.isTriggering = true;
             if (name === "Object") {
               Promise.resolve()
-                .then(doMethod.bind(this, name))
+                .then(doMethod.bind(null, name))
                 .then(clearTriggerStatus)
                 .then(doQuery)
                 .then(resolve)
@@ -396,9 +385,9 @@
             }
 
             Promise.resolve()
-              .then(doMethod.bind(this, name))
+              .then(doMethod.bind(null, name))
               .then(clearTriggerStatus)
-              .then(doTraverseBefore.bind(this, parent))
+              .then(doTraverseBefore.bind(null, parent))
               .then(resolve)
               .catch(rollback);
 
@@ -439,7 +428,7 @@
           // If function, execute it
           } else if (isRegistered(obj.method, obj.name)) {
             Promise.resolve()
-              .then(doMethod.bind(this, obj.name))
+              .then(doMethod.bind(null, obj.name))
               .then(commit)
               .then(resolve)
               .catch(rollback);
