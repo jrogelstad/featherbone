@@ -17,125 +17,111 @@
 **/
 
 (function (exports) {
+  'strict';
+
   exports.execute = function (obj) {
-    var afterCurrentUser, getEveryone,
-      createEveryone, grantEveryoneGlobal, doneGrants, user,
-      datasource = require("../server/datasource"),
-      c = 0;
+    return new Promise (function (resolve, reject) {
+      var afterCurrentUser, getEveryone,
+        createEveryone, grantEveryoneGlobal, user,
+        datasource = require("../server/datasource");
 
-    afterCurrentUser = function (err, resp) {
-      if (err) {
-        obj.callback(err);
-        return;
-      }
+      afterCurrentUser = function (err, resp) {
+        if (err) {
+          reject(err);
+          return;
+        }
 
-      user = resp.rows[0].current_user;
-      getEveryone();
-    };
-
-    // Create Everyone role
-    getEveryone = function (err) {
-      if (err) {
-        obj.callback(err);
-        return;
-      }
-
-      datasource.request({
-        name: "Role",
-        method: "GET",
-        user: user,
-        id: "everyone",
-        client: obj.client,
-        callback: createEveryone
-      }, true);
-    };
-
-    createEveryone = function (err, resp) {
-      if (err) {
-        obj.callback(err);
-        return;
-      }
-
-      if (!resp) {
-        datasource.request({
-          name: "Role",
-          method: "POST",
-          user: user,
-          data: {
-            id: "everyone",
-            name: "Everyone",
-            description: "All users",
-            members: [
-              {member: user}
-            ]
-          },
-          client: obj.client,
-          callback: grantEveryoneGlobal
-        }, true);
-        return;
-      }
-
-      // Done
-      obj.callback(null, true);
-    };
-
-    grantEveryoneGlobal = function (err) {
-      var req, reqRole, reqLog, reqForm, reqWidget, reqTable;
-
-      req = function () {
-        return {
-          method: "PUT",
-          name: "saveAuthorization",
-          user: user,
-          data: {
-            id: "role",
-            role: "everyone",
-            actions: {
-              canCreate: true,
-              canRead: true,
-              canUpdate: true,
-              canDelete: true
-            }
-          },
-          client: obj.client,
-          callback: doneGrants
-        };
+        user = resp.rows[0].current_user;
+        getEveryone();
       };
 
-      if (err) {
-        obj.callback(err);
-        return;
-      }
+      // Create Everyone role
+      getEveryone = function (err) {
+        if (err) {
+          reject(err);
+          return;
+        }
 
-      /* Grant everyone access to system objects */
-      reqRole = req();
-      datasource.request(reqRole);
-      reqLog = req();
-      reqLog.data.id = "log";
-      datasource.request(reqLog);
-      reqForm = req();
-      reqForm.data.id = "form";
-      datasource.request(reqForm);
-      reqTable = req();
-      reqTable.data.id = "table";
-      datasource.request(reqTable);
-      reqWidget = req();
-      reqWidget.data.id = "relation_widget";
-      datasource.request(reqWidget);
-    };
+        datasource.request({
+          name: "Role",
+          method: "GET",
+          user: user,
+          id: "everyone",
+          client: obj.client
+        }, true)
+          .then(createEveryone)
+          .catch(reject);
+      };
 
-    doneGrants = function (err) {
-      if (err) {
-        obj.callback(err);
-        return;
-      }
+      createEveryone = function (resp) {
+        if (!resp) {
+          datasource.request({
+            name: "Role",
+            method: "POST",
+            user: user,
+            data: {
+              id: "everyone",
+              name: "Everyone",
+              description: "All users",
+              members: [
+                {member: user}
+              ]
+            },
+            client: obj.client
+          }, true)
+            .then(grantEveryoneGlobal)
+            .catch(reject);
+          return;
+        }
 
-      c += 1;
-      if (c < 5) { return; }
+        // Done
+        resolve(true);
+      };
 
-      obj.callback(null, true);
-    };
+      grantEveryoneGlobal = function () {
+        var req, reqRole, reqLog, reqForm, reqWidget, reqTable,
+          promises = [];
 
-    obj.client.query("SELECT CURRENT_USER", afterCurrentUser);
+        req = function () {
+          return {
+            method: "PUT",
+            name: "saveAuthorization",
+            user: user,
+            data: {
+              id: "role",
+              role: "everyone",
+              actions: {
+                canCreate: true,
+                canRead: true,
+                canUpdate: true,
+                canDelete: true
+              }
+            },
+            client: obj.client
+          };
+        };
+
+        /* Grant everyone access to system objects */
+        reqRole = req();
+        promises.push(datasource.request.bind(null, reqRole));
+        reqLog = req();
+        reqLog.data.id = "log";
+        promises.push(datasource.request.bind(null, reqLog));
+        reqForm = req();
+        reqForm.data.id = "form";
+        promises.push(datasource.request.bind(null, reqForm));
+        reqTable = req();
+        reqTable.data.id = "table";
+        promises.push(datasource.request.bind(null, reqTable));
+        reqWidget = req();
+        reqWidget.data.id = "relation_widget";
+        promises.push(datasource.request.bind(null, reqWidget));
+
+        Promise.all(promises).then(resolve);
+      };
+
+      /* Start */
+      obj.client.query("SELECT CURRENT_USER", afterCurrentUser);
+    });
   };
 }(exports));

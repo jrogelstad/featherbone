@@ -5,6 +5,8 @@ Short term
 
 * Edit feathers (tables) from gui
 * Edit forms from gui
+* Pivot table
+* Tree list
 * User definable format changes (i.e. conditional colors, decoration to row, column or cell)
 * Support for totals
 * Support for subtotals

@@ -35,10 +35,11 @@
     format = require("pg-format"),
     dir = path.resolve(__dirname, process.argv[2] || "."),
     filename = path.format({root: "/", dir: dir, base: MANIFEST}),
+    exit = process.exit,
     i = 0;
 
   connect = function (callback) {
-    pgConfig(function (config) {
+    pgConfig().then(function (config) {
       var conn = "postgres://" +
         config.user + ":" +
         config.password + "@" +
@@ -58,6 +59,7 @@
   };
 
   begin = function () {
+    console.log("BEGIN");
     client.query("BEGIN;", processFile);
   };
 
@@ -79,25 +81,15 @@
 
   execute = function (filename) {
     var dep = path.resolve(filename),
-      exp = require(dep),
-      callback = function (err, resp) {
-        if (err) {
-          rollback(err);
-        }
+      exp = require(dep);
 
-        processFile();
-      };
-
-    exp.execute({user: user, client: client, callback: callback});
+    exp.execute({user: user, client: client })
+      .then(processFile)
+      .catch(rollback);
   };
 
-  processFile = function (err) {
+  processFile = function () {
     var filepath, module, version;
-
-    if (err) {
-      rollback(err);
-      return;
-    }
 
     file = manifest.files[i];
     i++;
@@ -275,32 +267,22 @@
   };
 
   saveFeathers = function (feathers, isSystem) {
-    var callback, payload,
+    var payload,
       data = [];
 
     // System feathers don't get to be tables
     if (isSystem) {
-      callback = function (err) {
-        if (err) {
-          rollback(err);
-          return;
-        }
-
-        processFile();
-      };
-
       payload = {
         method: "PUT",
         name: "saveFeather",
         user: user,
         client: client,
-        callback: callback,
         data: {
           specs: feathers
         }
       };
 
-      datasource.request(payload);
+      datasource.request(payload).then(processFile).catch(exit);
       return;
     }
 
@@ -327,29 +309,19 @@
   };
 
   saveWorkbooks = function (workbooks) {
-    var callback, payload;
+    var payload = {
+        method: "PUT",
+        name: "saveWorkbook",
+        user: user,
+        client: client,
+        data: {
+          specs: workbooks
+        }
+      };
 
-    callback = function (err) {
-      if (err) {
-        rollback(err);
-        return;
-      }
-
-      processFile();
-    };
-
-    payload = {
-      method: "PUT",
-      name: "saveWorkbook",
-      user: user,
-      client: client,
-      callback: callback,
-      data: {
-        specs: workbooks
-      }
-    };
-
-    datasource.request(payload);
+    datasource.request(payload)
+      .then(processFile)
+      .catch(rollback);
   };
 
   runBatch = function (data) {
@@ -360,12 +332,7 @@
     getControllers = function (callback) {
       var payload, after;
 
-      after = function (err, resp) {
-        if (err) {
-          console.error(err);
-          return;
-        }
-
+      after = function (resp) {
         resp.forEach(function (controller) {
           eval(controller.script);
         });
@@ -376,29 +343,24 @@
         method: "GET",
         name: "getControllers",
         user: "postgres",
-        client: client,
-        callback: after
+        client: client
       };
 
-      datasource.request(payload);
+      datasource.request(payload).then(after).catch(exit);
     };
 
     // Iterate recursively
-    nextItem = function (err, resp) {
+    nextItem = function (resp) {
       var payload;
-
-      if (err) {
-        rollback(err);
-        return;
-      }
 
       if (b < len) {
         payload = data[b];
         payload.user = user;
         payload.client = client;
-        payload.callback = nextItem;
         b++;
-        datasource.request(payload);
+        datasource.request(payload)
+          .then(nextItem)
+          .catch(rollback);
         return;
       }
 
@@ -413,13 +375,8 @@
   buildApi = function () {
     var swagger, catalog, payload, callback, keys;
 
-    callback = function (err, resp) {
+    callback = function (resp) {
       var definitions = swagger.definitions;
-
-      if (err) {
-        console.error(err);
-        return;
-      }
 
       catalog = resp;
 
@@ -666,13 +623,12 @@
         method: "GET",
         name: "getSettings",
         user: user,
-        callback: callback,
         data: {
           name: "catalog"
         }
       };
 
-      datasource.request(payload);
+      datasource.request(payload).then(callback).catch(exit);
     });
   };
 
@@ -736,7 +692,7 @@
       connect(begin);
     };
 
-    pgConfig(function (config) {
+    pgConfig().then(function (config) {
       var pgclient,
         conn = "postgres://" +
         config.user + ":" +
@@ -757,7 +713,7 @@
 
           // If database exists, get started
           if (resp.rows.length === 1) {
-            datasource.getCatalog().then(execute);
+            datasource.getCatalog().then(execute).catch(exit);
           // Otherwise create database first
           } else {
             console.log('Creating database "' + config.database + '"');
