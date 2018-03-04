@@ -21,9 +21,7 @@
 
   require("../common/extend-string");
 
-  var that, createView, curry, getParentKey, isChildFeather,
-    propagateViews, buildAuthSql, processSort, resolvePath,
-    relationColumn, sanitize,
+  var that,
     f = require("../common/core"),
     jsonpatch = require("fast-json-patch"),
     format = require("pg-format"),
@@ -50,6 +48,516 @@
       dateTime: {type: "timestamp with time zone", default: "now()"},
       password: {type: "text", default: ""}
     };
+
+  // ..........................................................
+  // PRIVATE
+  //
+
+  function buildAuthSql (action, table, tokens) {
+    var actions = [
+        "canRead",
+        "canUpdate",
+        "canDelete"
+      ],
+      i = 6;
+
+    if (actions.indexOf(action) === -1) {
+      throw "Invalid authorization action for object \"" + action + "\"";
+    }
+
+    while (i) {
+      i -= 1;
+      tokens.push(table);
+    }
+
+    action = action.toSnakeCase();
+
+    return " AND _pk IN (" +
+        "SELECT %I._pk " +
+        "FROM %I " +
+        "  JOIN \"$feather\" ON \"$feather\".id::regclass::oid=%I.tableoid " +
+        "WHERE EXISTS (" +
+        "  SELECT " + action + " FROM ( " +
+        "    SELECT " + action +
+        "    FROM \"$auth\"" +
+        "      JOIN \"role\" on \"$auth\".\"role_pk\"=\"role\".\"_pk\"" +
+        "      JOIN \"role_member\"" +
+        "        ON \"role\".\"_pk\"=\"role_member\".\"_parent_role_pk\"" +
+        "    WHERE member=$1" +
+        "      AND object_pk=\"$feather\".parent_pk" +
+        "    ORDER BY " + action + " DESC" +
+        "    LIMIT 1" +
+        "  ) AS data" +
+        "  WHERE " + action +
+        ") " +
+        "EXCEPT " +
+        "SELECT %I._pk " +
+        "FROM %I " +
+        "WHERE EXISTS ( " +
+        "  SELECT " + action + " FROM (" +
+        "    SELECT " + action +
+        "    FROM \"$auth\"" +
+        "    JOIN \"role\" on \"$auth\".\"role_pk\"=\"role\".\"_pk\"" +
+        "    JOIN \"role_member\" " +
+        "      ON \"role\".\"_pk\"=\"role_member\".\"_parent_role_pk\"" +
+        "    WHERE member=$1" +
+        "      AND object_pk=%I._pk" +
+        "    ORDER BY " + action + " DESC" +
+        "    LIMIT 1 " +
+        "  ) AS data " +
+        "WHERE NOT " + action + "))";
+  }
+
+  function createView (obj) {
+    var parent, alias, type, view, sub, col, feather, props, keys,
+      afterGetFeather,
+      name = obj.name,
+      execute = obj.execute !== false,
+      dropFirst = obj.dropFirst,
+      table = name.toSnakeCase(),
+      args = ["_" + table, "_pk"],
+      cols = ["%I"],
+      sql = "";
+
+    afterGetFeather = function (err, resp) {
+      if (err) {
+        obj.callback(err);
+        return;
+      }
+
+      feather = resp;
+      props = feather.properties;
+      keys = Object.keys(props);
+
+      keys.forEach(function (key) {
+        alias = key.toSnakeCase();
+
+        /* Handle discriminator */
+        if (key === "objectType") {
+          cols.push("%s");
+          args.push("to_camel_case(tableoid::regclass::text) AS " +
+            alias);
+
+        /* Handle relations */
+        } else if (typeof props[key].type === "object") {
+          type = props[key].type;
+          parent =  props[key].inheritedFrom ?
+              props[key].inheritedFrom.toSnakeCase() : table;
+
+          /* Handle to many */
+          if (type.parentOf) {
+            sub = "ARRAY(SELECT %I FROM %I WHERE %I.%I = %I._pk " +
+              "AND NOT %I.is_deleted ORDER BY %I._pk) AS %I";
+            view = "_" + props[key].type.relation.toSnakeCase();
+            col = "_" + type.parentOf.toSnakeCase() + "_" + parent + "_pk";
+            args = args.concat([view, view, view, col, table, view, view,
+              alias]);
+
+          /* Handle to one */
+          } else if (!type.childOf) {
+            col = "_" + key.toSnakeCase() + "_" +
+              props[key].type.relation.toSnakeCase() + "_pk";
+            sub = "(SELECT %I FROM %I WHERE %I._pk = %I) AS %I";
+
+            if (props[key].type.properties) {
+              view = "_" + parent + "$" + key.toSnakeCase();
+            } else {
+              view = "_" + props[key].type.relation.toSnakeCase();
+            }
+
+            args = args.concat([view, view, view, col, alias]);
+          } else {
+            sub = "_" + key.toSnakeCase() + "_" + type.relation.toSnakeCase() +
+               "_pk";
+          }
+
+          cols.push(sub);
+
+        /* Handle regular types */
+        } else {
+          cols.push("%I");
+          args.push(alias);
+        }
+      });
+
+      args.push(table);
+
+      if (dropFirst) {
+        sql = "DROP VIEW IF EXISTS %I CASCADE;";
+        sql = sql.format(["_" + table]);
+      }
+
+      sql += "CREATE OR REPLACE VIEW %I AS SELECT " + cols.join(",") + " FROM %I;";
+      sql = sql.format(args);
+
+      // If execute, run the sql now
+      if (execute) {
+        obj.client.query(sql, function (err) {
+          if (err) {
+            obj.callback(err);
+            return;
+          }
+
+          obj.callback(null, true);
+          return;
+        });
+      }
+
+      // Otherwise send the sql back
+      obj.callback(null, sql);
+    };
+
+    that.getFeather({
+      client: obj.client,
+      callback: afterGetFeather,
+      data: { name: obj.name }
+    });
+  }
+
+  function curry (fn, args) {
+    var ary = [];
+    return function () {
+      return fn.apply(this, args.concat(ary.slice.call(arguments)));
+    };
+  }
+
+  function getParentKey (obj) {
+    var cParent, afterGetChildFeather, afterGetParentFeather, done;
+
+    afterGetChildFeather = function (err, resp) {
+      var cKeys, cProps;
+
+      if (err) {
+        obj.callback(err);
+        return;
+      }
+
+      cProps = resp.properties;
+      cKeys = Object.keys(cProps);
+      cKeys.every(function (cKey) {
+        if (typeof cProps[cKey].type === "object" &&
+            cProps[cKey].type.childOf) {
+          cParent = cProps[cKey].type.relation;
+
+          that.getFeather({
+            client: obj.client,
+            callback: afterGetParentFeather,
+            data: { name: obj.parent }
+          });
+
+          return false;
+        }
+
+        return true;
+      });
+    };
+
+    afterGetParentFeather = function (err, resp) {
+      if (err) {
+        obj.callback(err);
+        return;
+      }
+
+      if (resp.isChildFeather) {
+        getParentKey({
+          child: cParent,
+          parent: obj.parent,
+          client: obj.client,
+          callback: obj.callback
+        });
+        return;
+      }
+
+      that.getKey({
+        name: cParent.toSnakeCase(),
+        client: obj.client,
+        callback: done
+      });
+    };
+
+    done = function (err, resp) {
+      if (err) {
+        obj.callback(err);
+        return;
+      }
+
+      obj.callback(null, resp);
+    };
+
+    that.getFeather({
+      client: obj.client,
+      callback: afterGetChildFeather,
+      data: { name: obj.child }
+    });
+  }
+
+  function isChildFeather (feather) {
+    var props = feather.properties;
+
+    return Object.keys(props).some(function (key) {
+      return !!props[key].type.childOf;
+    });
+  }
+
+  function resolvePath (col, tokens) {
+    var prefix, suffix, ret,
+      idx = col.lastIndexOf(".");
+
+    if (idx > -1) {
+      prefix = col.slice(0, idx);
+      suffix = col.slice(idx + 1, col.length).toSnakeCase();
+      ret = "(" + resolvePath(prefix, tokens) + ").%I";
+      tokens.push(suffix);
+      return ret;
+    }
+
+    tokens.push(col.toSnakeCase());
+    return "%I";
+  }  
+
+  function processSort (sort, tokens) {
+    var order, part, clause = "",
+      i = 0,
+      parts = [];
+
+    // Always sort on primary key as final tie breaker
+    sort.push({property: PKCOL});
+
+    while (sort[i]) {
+      order = (sort[i].order || "ASC");
+      order = order.toUpperCase();
+      if (order !== "ASC" && order !== "DESC") {
+        throw 'Unknown operator "' + order + '"';
+      }
+      part = resolvePath(sort[i].property, tokens);
+      parts.push(part + " " + order);
+      i += 1;
+    }
+
+    if (parts.length) {
+      clause = " ORDER BY " + parts.join(",");
+    }
+
+    return clause;
+  }
+
+  function propagateViews (obj) {
+    var cprops, catalog,
+      afterGetCatalog, afterCreateView,
+      name = obj.name,
+      statements = obj.statements || [],
+      level = obj.level || 0,
+      sql = "";
+
+    afterGetCatalog = function (err, resp) {
+      if (err) {
+        obj.callback(err);
+        return;
+      }
+
+      catalog = resp;
+      createView({
+        name: name,
+        client: obj.client,
+        callback: afterCreateView,
+        dropFirst: true,
+        execute: false
+      });
+    };
+
+    afterCreateView = function (err, resp) {
+      var keys, next, propagateUp,
+        functions = [],
+        i = 0;
+
+      if (err) {
+        obj.callback(err);
+        return;
+      }
+
+      statements.push({level: level, sql: resp});
+
+      // Callback to process functions sequentially
+      next = function (err, resp) {
+        var o;
+
+        if (err) {
+          obj.callback(err);
+          return;
+        }
+
+        // Responses that are result of createView get appended
+        if (typeof resp === "string") {
+          statements.push({level: level, sql: resp});
+        }
+
+        // Iterate to next function to build statement
+        o = functions[i];
+        i += 1;
+
+        if (o) {
+          o.func(o.payload);
+          return;
+        }
+
+        // Only top level will actually execute statements
+        if (level > 0) {
+          obj.callback(null, true);
+          return;
+        }
+
+        // If here then ready to execute
+        // Sort by level
+        statements.sort(function (a, b) {
+          if (a.level === b.level || a.level < b.level) {
+            return 0;
+          }
+          return 1;
+        });
+
+        statements.forEach(function (statement) {
+          sql += statement.sql;
+        });
+
+        obj.client.query(sql, function (err) {
+          if (err) {
+            obj.callback(err);
+            return;
+          }
+
+          obj.callback(null, true);
+        });
+      };
+
+      // Build object to propagate relations */
+      keys = Object.keys(catalog);
+      keys.forEach(function (key) {
+        var ckeys;
+
+        cprops = catalog[key].properties;
+        ckeys = Object.keys(cprops);
+
+        ckeys.forEach(function (ckey) {
+          if (cprops.hasOwnProperty(ckey) &&
+              typeof cprops[ckey].type === "object" &&
+              cprops[ckey].type.relation === name &&
+              !cprops[ckey].type.childOf &&
+              !cprops[ckey].type.parentOf) {
+            functions.push({
+              func: propagateViews,
+              payload: {
+                name: key,
+                client: obj.client,
+                callback: next,
+                statements: statements,
+                level: level + 1
+              }
+            });
+          }
+        });
+      });
+
+      /* Propagate down */
+      keys = Object.keys(catalog);
+      keys.forEach(function (key) {
+        if (catalog[key].inherits === name) {
+          functions.push({
+            func: propagateViews,
+            payload: {
+              name: key,
+              client: obj.client,
+              callback: next,
+              statements: statements,
+              level: level + 1
+            }
+          });
+        }
+      });
+
+      /* Propagate up */
+      propagateUp = function (name, plevel) {
+        var pkeys, props;
+        plevel = plevel - 1;
+        props = catalog[name].properties;
+        pkeys = Object.keys(props);
+        pkeys.forEach(function (key) {
+          var type = props[key].type;
+          if (typeof type === "object" && type.childOf) {
+            functions.push({
+              func: createView,
+              payload: {
+                name: type.relation,
+                client: obj.client,
+                callback: next,
+                execute: false
+              }
+            });
+            propagateUp(type.relation, plevel);
+          }
+        });
+      };
+
+      propagateUp(name, level);
+
+      next();
+    };
+
+    that.getSettings({
+      client: obj.client,
+      callback: afterGetCatalog,
+      data: { name: "catalog" }
+    });
+  }
+
+  function relationColumn (key, relation) {
+    return "_" + key.toSnakeCase() + "_" + relation.toSnakeCase() + "_pk";
+  }
+
+  function sanitize (obj) {
+    var oldObj, newObj, oldKey, newKey, keys, klen, n,
+      isArray = Array.isArray(obj),
+      ary = isArray ? obj : [obj],
+      len = ary.length,
+      i = 0;
+
+    while (i < len) {
+      /* Copy to convert dates back to string for accurate comparisons */
+      oldObj = JSON.parse(JSON.stringify(ary[i]));
+      newObj = {};
+
+      keys = Object.keys(oldObj);
+      klen = keys.length;
+      n = 0;
+
+      while (n < klen) {
+        oldKey = keys[n];
+        n += 1;
+
+        /* Remove internal properties */
+        if (oldKey.match("^_")) {
+          delete oldObj[oldKey];
+        } else {
+          /* Make properties camel case */
+          newKey = oldKey.toCamelCase();
+          newObj[newKey] = oldObj[oldKey];
+
+          /* Recursively sanitize objects */
+          if (typeof newObj[newKey] === "object" && newObj[newKey] !== null) {
+            newObj[newKey] = sanitize(newObj[newKey]);
+          }
+        }
+      }
+
+      ary[i] = newObj;
+      i += 1;
+    }
+
+    return isArray ? ary : ary[0];
+  }
+
+  // ..........................................................
+  // PUBLIC
+  //
 
   /**
     * Escape strings to prevent sql injection
@@ -3269,522 +3777,6 @@
   Object.keys(that).forEach(function (key) {
     exports[key] = that[key];
   });
-
-  // ..........................................................
-  // PRIVATE
-  //
-
-  /** private */
-  buildAuthSql = function (action, table, tokens) {
-    var actions = [
-        "canRead",
-        "canUpdate",
-        "canDelete"
-      ],
-      i = 6;
-
-    if (actions.indexOf(action) === -1) {
-      throw "Invalid authorization action for object \"" + action + "\"";
-    }
-
-    while (i) {
-      i -= 1;
-      tokens.push(table);
-    }
-
-    action = action.toSnakeCase();
-
-    return " AND _pk IN (" +
-        "SELECT %I._pk " +
-        "FROM %I " +
-        "  JOIN \"$feather\" ON \"$feather\".id::regclass::oid=%I.tableoid " +
-        "WHERE EXISTS (" +
-        "  SELECT " + action + " FROM ( " +
-        "    SELECT " + action +
-        "    FROM \"$auth\"" +
-        "      JOIN \"role\" on \"$auth\".\"role_pk\"=\"role\".\"_pk\"" +
-        "      JOIN \"role_member\"" +
-        "        ON \"role\".\"_pk\"=\"role_member\".\"_parent_role_pk\"" +
-        "    WHERE member=$1" +
-        "      AND object_pk=\"$feather\".parent_pk" +
-        "    ORDER BY " + action + " DESC" +
-        "    LIMIT 1" +
-        "  ) AS data" +
-        "  WHERE " + action +
-        ") " +
-        "EXCEPT " +
-        "SELECT %I._pk " +
-        "FROM %I " +
-        "WHERE EXISTS ( " +
-        "  SELECT " + action + " FROM (" +
-        "    SELECT " + action +
-        "    FROM \"$auth\"" +
-        "    JOIN \"role\" on \"$auth\".\"role_pk\"=\"role\".\"_pk\"" +
-        "    JOIN \"role_member\" " +
-        "      ON \"role\".\"_pk\"=\"role_member\".\"_parent_role_pk\"" +
-        "    WHERE member=$1" +
-        "      AND object_pk=%I._pk" +
-        "    ORDER BY " + action + " DESC" +
-        "    LIMIT 1 " +
-        "  ) AS data " +
-        "WHERE NOT " + action + "))";
-  };
-
-  /** private */
-  createView = function (obj) {
-    var parent, alias, type, view, sub, col, feather, props, keys,
-      afterGetFeather,
-      name = obj.name,
-      execute = obj.execute !== false,
-      dropFirst = obj.dropFirst,
-      table = name.toSnakeCase(),
-      args = ["_" + table, "_pk"],
-      cols = ["%I"],
-      sql = "";
-
-    afterGetFeather = function (err, resp) {
-      if (err) {
-        obj.callback(err);
-        return;
-      }
-
-      feather = resp;
-      props = feather.properties;
-      keys = Object.keys(props);
-
-      keys.forEach(function (key) {
-        alias = key.toSnakeCase();
-
-        /* Handle discriminator */
-        if (key === "objectType") {
-          cols.push("%s");
-          args.push("to_camel_case(tableoid::regclass::text) AS " +
-            alias);
-
-        /* Handle relations */
-        } else if (typeof props[key].type === "object") {
-          type = props[key].type;
-          parent =  props[key].inheritedFrom ?
-              props[key].inheritedFrom.toSnakeCase() : table;
-
-          /* Handle to many */
-          if (type.parentOf) {
-            sub = "ARRAY(SELECT %I FROM %I WHERE %I.%I = %I._pk " +
-              "AND NOT %I.is_deleted ORDER BY %I._pk) AS %I";
-            view = "_" + props[key].type.relation.toSnakeCase();
-            col = "_" + type.parentOf.toSnakeCase() + "_" + parent + "_pk";
-            args = args.concat([view, view, view, col, table, view, view,
-              alias]);
-
-          /* Handle to one */
-          } else if (!type.childOf) {
-            col = "_" + key.toSnakeCase() + "_" +
-              props[key].type.relation.toSnakeCase() + "_pk";
-            sub = "(SELECT %I FROM %I WHERE %I._pk = %I) AS %I";
-
-            if (props[key].type.properties) {
-              view = "_" + parent + "$" + key.toSnakeCase();
-            } else {
-              view = "_" + props[key].type.relation.toSnakeCase();
-            }
-
-            args = args.concat([view, view, view, col, alias]);
-          } else {
-            sub = "_" + key.toSnakeCase() + "_" + type.relation.toSnakeCase() +
-               "_pk";
-          }
-
-          cols.push(sub);
-
-        /* Handle regular types */
-        } else {
-          cols.push("%I");
-          args.push(alias);
-        }
-      });
-
-      args.push(table);
-
-      if (dropFirst) {
-        sql = "DROP VIEW IF EXISTS %I CASCADE;";
-        sql = sql.format(["_" + table]);
-      }
-
-      sql += "CREATE OR REPLACE VIEW %I AS SELECT " + cols.join(",") + " FROM %I;";
-      sql = sql.format(args);
-
-      // If execute, run the sql now
-      if (execute) {
-        obj.client.query(sql, function (err) {
-          if (err) {
-            obj.callback(err);
-            return;
-          }
-
-          obj.callback(null, true);
-          return;
-        });
-      }
-
-      // Otherwise send the sql back
-      obj.callback(null, sql);
-    };
-
-    that.getFeather({
-      client: obj.client,
-      callback: afterGetFeather,
-      data: { name: obj.name }
-    });
-  };
-
-  /** private */
-  curry = function (fn, args) {
-    var ary = [];
-    return function () {
-      return fn.apply(this, args.concat(ary.slice.call(arguments)));
-    };
-  };
-
-  /** private */
-  getParentKey = function (obj) {
-    var cParent, afterGetChildFeather, afterGetParentFeather, done;
-
-    afterGetChildFeather = function (err, resp) {
-      var cKeys, cProps;
-
-      if (err) {
-        obj.callback(err);
-        return;
-      }
-
-      cProps = resp.properties;
-      cKeys = Object.keys(cProps);
-      cKeys.every(function (cKey) {
-        if (typeof cProps[cKey].type === "object" &&
-            cProps[cKey].type.childOf) {
-          cParent = cProps[cKey].type.relation;
-
-          that.getFeather({
-            client: obj.client,
-            callback: afterGetParentFeather,
-            data: { name: obj.parent }
-          });
-
-          return false;
-        }
-
-        return true;
-      });
-    };
-
-    afterGetParentFeather = function (err, resp) {
-      if (err) {
-        obj.callback(err);
-        return;
-      }
-
-      if (resp.isChildFeather) {
-        getParentKey({
-          child: cParent,
-          parent: obj.parent,
-          client: obj.client,
-          callback: obj.callback
-        });
-        return;
-      }
-
-      that.getKey({
-        name: cParent.toSnakeCase(),
-        client: obj.client,
-        callback: done
-      });
-    };
-
-    done = function (err, resp) {
-      if (err) {
-        obj.callback(err);
-        return;
-      }
-
-      obj.callback(null, resp);
-    };
-
-    that.getFeather({
-      client: obj.client,
-      callback: afterGetChildFeather,
-      data: { name: obj.child }
-    });
-  };
-
-  /** private */
-  isChildFeather = function (feather) {
-    var props = feather.properties;
-
-    return Object.keys(props).some(function (key) {
-      return !!props[key].type.childOf;
-    });
-  };
-
-  /** private */
-  processSort = function (sort, tokens) {
-    var order, part, clause = "",
-      i = 0,
-      parts = [];
-
-    // Always sort on primary key as final tie breaker
-    sort.push({property: PKCOL});
-
-    while (sort[i]) {
-      order = (sort[i].order || "ASC");
-      order = order.toUpperCase();
-      if (order !== "ASC" && order !== "DESC") {
-        throw 'Unknown operator "' + order + '"';
-      }
-      part = resolvePath(sort[i].property, tokens);
-      parts.push(part + " " + order);
-      i += 1;
-    }
-
-    if (parts.length) {
-      clause = " ORDER BY " + parts.join(",");
-    }
-
-    return clause;
-  };
-
-  /** private */
-  propagateViews = function (obj) {
-    var cprops, catalog,
-      afterGetCatalog, afterCreateView,
-      name = obj.name,
-      statements = obj.statements || [],
-      level = obj.level || 0,
-      sql = "";
-
-    afterGetCatalog = function (err, resp) {
-      if (err) {
-        obj.callback(err);
-        return;
-      }
-
-      catalog = resp;
-      createView({
-        name: name,
-        client: obj.client,
-        callback: afterCreateView,
-        dropFirst: true,
-        execute: false
-      });
-    };
-
-    afterCreateView = function (err, resp) {
-      var keys, next, propagateUp,
-        functions = [],
-        i = 0;
-
-      if (err) {
-        obj.callback(err);
-        return;
-      }
-
-      statements.push({level: level, sql: resp});
-
-      // Callback to process functions sequentially
-      next = function (err, resp) {
-        var o;
-
-        if (err) {
-          obj.callback(err);
-          return;
-        }
-
-        // Responses that are result of createView get appended
-        if (typeof resp === "string") {
-          statements.push({level: level, sql: resp});
-        }
-
-        // Iterate to next function to build statement
-        o = functions[i];
-        i += 1;
-
-        if (o) {
-          o.func(o.payload);
-          return;
-        }
-
-        // Only top level will actually execute statements
-        if (level > 0) {
-          obj.callback(null, true);
-          return;
-        }
-
-        // If here then ready to execute
-        // Sort by level
-        statements.sort(function (a, b) {
-          if (a.level === b.level || a.level < b.level) {
-            return 0;
-          }
-          return 1;
-        });
-
-        statements.forEach(function (statement) {
-          sql += statement.sql;
-        });
-
-        obj.client.query(sql, function (err) {
-          if (err) {
-            obj.callback(err);
-            return;
-          }
-
-          obj.callback(null, true);
-        });
-      };
-
-      // Build object to propagate relations */
-      keys = Object.keys(catalog);
-      keys.forEach(function (key) {
-        var ckeys;
-
-        cprops = catalog[key].properties;
-        ckeys = Object.keys(cprops);
-
-        ckeys.forEach(function (ckey) {
-          if (cprops.hasOwnProperty(ckey) &&
-              typeof cprops[ckey].type === "object" &&
-              cprops[ckey].type.relation === name &&
-              !cprops[ckey].type.childOf &&
-              !cprops[ckey].type.parentOf) {
-            functions.push({
-              func: propagateViews,
-              payload: {
-                name: key,
-                client: obj.client,
-                callback: next,
-                statements: statements,
-                level: level + 1
-              }
-            });
-          }
-        });
-      });
-
-      /* Propagate down */
-      keys = Object.keys(catalog);
-      keys.forEach(function (key) {
-        if (catalog[key].inherits === name) {
-          functions.push({
-            func: propagateViews,
-            payload: {
-              name: key,
-              client: obj.client,
-              callback: next,
-              statements: statements,
-              level: level + 1
-            }
-          });
-        }
-      });
-
-      /* Propagate up */
-      propagateUp = function (name, plevel) {
-        var pkeys, props;
-        plevel = plevel - 1;
-        props = catalog[name].properties;
-        pkeys = Object.keys(props);
-        pkeys.forEach(function (key) {
-          var type = props[key].type;
-          if (typeof type === "object" && type.childOf) {
-            functions.push({
-              func: createView,
-              payload: {
-                name: type.relation,
-                client: obj.client,
-                callback: next,
-                execute: false
-              }
-            });
-            propagateUp(type.relation, plevel);
-          }
-        });
-      };
-
-      propagateUp(name, level);
-
-      next();
-    };
-
-    that.getSettings({
-      client: obj.client,
-      callback: afterGetCatalog,
-      data: { name: "catalog" }
-    });
-  };
-
-  /** @private */
-  relationColumn = function (key, relation) {
-    return "_" + key.toSnakeCase() + "_" + relation.toSnakeCase() + "_pk";
-  };
-
-  /** @private Helper to transform path to composite syntax */
-  resolvePath = function (col, tokens) {
-    var prefix, suffix, ret,
-      idx = col.lastIndexOf(".");
-
-    if (idx > -1) {
-      prefix = col.slice(0, idx);
-      suffix = col.slice(idx + 1, col.length).toSnakeCase();
-      ret = "(" + resolvePath(prefix, tokens) + ").%I";
-      tokens.push(suffix);
-      return ret;
-    }
-
-    tokens.push(col.toSnakeCase());
-    return "%I";
-  };
-
-  /** @private */
-  sanitize = function (obj) {
-    var oldObj, newObj, oldKey, newKey, keys, klen, n,
-      isArray = Array.isArray(obj),
-      ary = isArray ? obj : [obj],
-      len = ary.length,
-      i = 0;
-
-    while (i < len) {
-      /* Copy to convert dates back to string for accurate comparisons */
-      oldObj = JSON.parse(JSON.stringify(ary[i]));
-      newObj = {};
-
-      keys = Object.keys(oldObj);
-      klen = keys.length;
-      n = 0;
-
-      while (n < klen) {
-        oldKey = keys[n];
-        n += 1;
-
-        /* Remove internal properties */
-        if (oldKey.match("^_")) {
-          delete oldObj[oldKey];
-        } else {
-          /* Make properties camel case */
-          newKey = oldKey.toCamelCase();
-          newObj[newKey] = oldObj[oldKey];
-
-          /* Recursively sanitize objects */
-          if (typeof newObj[newKey] === "object" && newObj[newKey] !== null) {
-            newObj[newKey] = sanitize(newObj[newKey]);
-          }
-        }
-      }
-
-      ary[i] = newObj;
-      i += 1;
-    }
-
-    return isArray ? ary : ary[0];
-  };
 
 }(exports));
 
