@@ -19,15 +19,19 @@
 var fs = require("fs"),
   path = require("path");
 
-module.exports = function (callback) {
+module.exports = function () {
+  'strict';
+  return new Promise (function (resolve, reject) {
+
   var filename = path.format({root: "./", base: "config/pg.json"});
 
-  fs.readFile(filename, "utf8", function (err, data) {
-    if (err) {
-      console.error(err);
-      return;
-    }
+    fs.readFile(filename, "utf8", function (err, data) {
+        if (err) {
+          console.error(err);
+          return reject(err);
+        }
 
-    callback(JSON.parse(data));
+        resolve(JSON.parse(data));
+    });
   });
 };

@@ -20,12 +20,7 @@
   "use strict";
   require('./common/extend-string.js');
 
-  var init, resolveName,
-    doGetSettingsRow, doGetFeather, doGetModules, doRequest,
-    doGetMethod, doSaveFeather, doDeleteFeather, registerDataRoutes,
-    doDeleteMethod, doDeleteWorkbook, doGetWorkbooks, doSaveSettings,
-    doSaveWorkbook, doSaveMethod, doGetWorkbook, doGetSettingsDefinition,
-    datasource = require("./server/datasource"),
+  var datasource = require("./server/datasource"),
     express = require("express"),
     bodyParser = require("body-parser"),
     qs = require("qs"),
@@ -41,11 +36,27 @@
     workbookRouter = express.Router(),
     settings = datasource.settings();
 
-  // ..........................................................
-  // CONTROLLERS
-  //
+  // Handle response
+  function respond (resp) {
+    if (resp === undefined) {
+      this.statusCode = 204;
+    }
 
-  init = function (callback) {
+    // No caching... ever
+    this.setHeader("Cache-Control", "no-cache, no-store, must-revalidate"); // HTTP 1.1.
+    this.setHeader("Pragma", "no-cache"); // HTTP 1.0.
+    this.setHeader("Expires", "0"); //
+
+    // Send back a JSON response
+    this.json(resp);
+  }
+
+  // Handle datasource error
+  function error (err) {
+    this.status(err.statusCode).json(err.message);
+  }
+
+  function init (callback) {
     function getControllers() {
       return new Promise(function (resolve, reject) {
         datasource.getControllers()
@@ -75,9 +86,9 @@
       .then(getRoutes)
       .then(callback)
       .catch(process.exit);
-  };
+  }
 
-  resolveName = function (apiPath) {
+  function resolveName (apiPath) {
     var name, keys, found,
       catalog = settings.catalog.data;
 
@@ -103,11 +114,10 @@
 
       return;
     }
-  };
+  }
 
-  doRequest = function (req, res) {
-    var callback,
-      params = req.params,
+  function doRequest (req, res) {
+    var params = req.params,
       name = resolveName(req.url),
       payload = req.body || {},
       id = params.id,
@@ -115,31 +125,9 @@
       properties = query.properties,
       filter = query.filter || {};
 
-    // Handle response
-    callback = function (err, resp) {
-      // Handle datasource error
-      if (err) {
-        res.status(err.statusCode).json(err.message);
-        return;
-      }
-
-      if (resp === undefined) {
-        res.statusCode = 204;
-      }
-
-      // No caching... ever
-      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate"); // HTTP 1.1.
-      res.setHeader("Pragma", "no-cache"); // HTTP 1.0.
-      res.setHeader("Expires", "0"); //
-
-      // Send back a JSON response
-      res.json(resp);
-    };
-
     payload.name = name;
     payload.method = req.method;
     payload.user = datasource.getCurrentUser();
-    payload.callback = callback;
 
     if (id) {
       payload.id = id;
@@ -150,165 +138,55 @@
     }
 
     console.log(JSON.stringify(payload, null, 2));
-    datasource.request(payload, false, true);
-  };
+    datasource.request(payload, false, true)
+      .then(function (data) {
+        respond.bind(res, data)();
+      })
+      .catch(error.bind(res));
+  }
 
-  doGetFeather = function (req, res) {
+  function doGetMethod (fn, req, res) {
+    var payload = {
+        method: "GET",
+        name: fn,
+        user: datasource.getCurrentUser(),
+        data: {
+          name: req.params.name
+        }
+      };
+
+    console.log(JSON.stringify(payload, null, 2));
+    datasource.request(payload)
+      .then(respond.bind(res))
+      .catch(error.bind(res));
+  }
+
+  function doGetFeather (req, res) {
     req.params.name = req.params.name.toCamelCase(true);
     doGetMethod("getFeather", req, res);
-  };
+  }
 
-  doGetModules = function (req, res) {
+  function doGetModules (req, res) {
     doGetMethod("getModules", req, res);
-  };
+  }
 
-  doGetSettingsRow = function (req, res) {
+  function doGetSettingsRow (req, res) {
     doGetMethod("getSettingsRow", req, res);
-  };
+  }
 
-  doGetSettingsDefinition = function (req, res) {
+  function doGetSettingsDefinition (req, res) {
     doGetMethod("getSettingsDefinition", req, res);
-  };
+  }
 
-  doGetWorkbook = function (req, res) {
+  function doGetWorkbook (req, res) {
     doGetMethod("getWorkbook", req, res);
-  };
+  }
 
-  doGetWorkbooks = function (req, res) {
+  function doGetWorkbooks (req, res) {
     doGetMethod("getWorkbooks", req, res);
-  };
+  }
 
-  doGetMethod = function (fn, req, res) {
-    var payload, callback,
-      name = req.params.name;
-
-    callback = function (err, resp) {
-      // Handle error
-      if (err) {
-        res.status(err.statusCode).json(err.message);
-        return res;
-      }
-
-      if (!resp) { res.statusCode = 204; }
-      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate"); // HTTP 1.1.
-      res.setHeader("Pragma", "no-cache"); // HTTP 1.0.
-      res.setHeader("Expires", "0"); //
-      res.json(resp);
-    };
-
-    payload = {
-      method: "GET",
-      name: fn,
-      user: datasource.getCurrentUser(),
-      callback: callback,
-      data: {
-        name: name
-      }
-    };
-
-    console.log(JSON.stringify(payload, null, 2));
-    datasource.request(payload);
-  };
-
-  doSaveFeather = function (req, res) {
-    doSaveMethod("saveFeather", req, res);
-  };
-
-  doSaveWorkbook = function (req, res) {
-    doSaveMethod("saveWorkbook", req, res);
-  };
-
-  doSaveMethod = function (fn, req, res) {
-    var payload, callback,
-      data = req.body;
-
-    callback = function (err) {
-      if (err) {
-        res.status(err.statusCode).json(err.message);
-        return;
-      }
-
-      registerDataRoutes();
-    };
-
-    payload = {
-      method: "PUT",
-      name: fn,
-      user: datasource.getCurrentUser(),
-      callback: callback,
-      data: {
-        specs: data
-      }
-    };
-
-    console.log(JSON.stringify(payload, null, 2));
-    datasource.request(payload);
-  };
-
-  doSaveSettings = function (req, res) {
-    var payload, callback,
-      data = {};
-
-    data.name = req.params.name;
-    data.etag = req.body.etag;
-    data.data = req.body.data;
-
-    callback = function (err) {
-      if (err) {
-        res.status(err.statusCode).json(err.message);
-        return;
-      }
-
-      registerDataRoutes();
-    };
-
-    payload = {
-      method: "PUT",
-      name: "saveSettings",
-      user: datasource.getCurrentUser(),
-      callback: callback,
-      data: data
-    };
-
-    console.log(JSON.stringify(payload, null, 2));
-    datasource.request(payload);
-  };
-
-  doDeleteFeather = function (req, res) {
-    doDeleteMethod("deleteFeather", req, res);
-  };
-
-  doDeleteWorkbook = function (req, res) {
-    doDeleteMethod("deleteWorkbook", req, res);
-  };
-
-  doDeleteMethod = function (fn, req, res) {
-    var payload, callback,
-      name = req.params.name.toCamelCase(true);
-
-    callback = function (err, resp) {
-      if (err) {
-        res.status(err.statusCode).json(err.message);
-        return;
-      }
-
-      res.json(resp);
-    };
-
-    payload = {
-      method: "DELETE",
-      name: fn,
-      user: datasource.getCurrentUser(),
-      callback: callback,
-      data: {
-        name: name
-      }
-    };
-
-    datasource.request(payload);
-  };
-
-  registerDataRoutes = function () {
+  function registerDataRoutes () {
     var keys, name,
       catalog = settings.catalog.data;
 
@@ -330,7 +208,73 @@
           .get(doRequest);
       }
     });
-  };
+  }
+
+  function doSaveMethod (fn, req, res) {
+    var payload = {
+        method: "PUT",
+        name: fn,
+        user: datasource.getCurrentUser(),
+        data: {
+          specs: req.body
+        }
+      };
+
+    console.log(JSON.stringify(payload, null, 2));
+    datasource.request(payload)
+      .then(registerDataRoutes)
+      .catch(error.bind(res));
+  }
+
+  function doSaveFeather (req, res) {
+    doSaveMethod("saveFeather", req, res);
+  }
+
+  function doSaveWorkbook (req, res) {
+    doSaveMethod("saveWorkbook", req, res);
+  }
+
+  function doSaveSettings (req, res) {
+    var payload = {
+        method: "PUT",
+        name: "saveSettings",
+        user: datasource.getCurrentUser(),
+        data: {
+          name: req.params.name,
+          etag: req.body.etag,
+          data: req.body.data
+        }
+      };
+
+    console.log(JSON.stringify(payload, null, 2));
+    datasource.request(payload)
+      .then(registerDataRoutes)
+      .catch(error.bind(res));
+  }
+
+  function doDeleteMethod (fn, req, res) {
+    var name = req.params.name.toCamelCase(true),
+      payload = {
+        method: "DELETE",
+        name: fn,
+        user: datasource.getCurrentUser(),
+        data: {
+          name: name
+        }
+      };
+
+    datasource.request(payload)
+      .then(res.json)
+      .catch(error);
+  }
+
+  function doDeleteFeather (req, res) {
+    doDeleteMethod("deleteFeather", req, res);
+  }
+
+  function doDeleteWorkbook (req, res) {
+    doDeleteMethod("deleteWorkbook", req, res);
+  }
 
   // ..........................................................
   // ROUTES

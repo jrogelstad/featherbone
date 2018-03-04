@@ -65,7 +65,7 @@
       var err = vm.model().lastError();
 
       if (err) {
-        vm.errorDialog().message(err.message.slice(1, err.message.length -1));
+        vm.errorDialog().message(err.message);
         vm.errorDialog().show();
       }
     });
