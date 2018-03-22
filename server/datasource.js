@@ -159,7 +159,7 @@
     return new Promise (function (resolve, reject) {
       isSuperUser = isSuperUser === undefined ? false : isSuperUser;
 
-      var client, done, transaction, isChild, wrapped,
+      var client, done, transaction, isChild,
         catalog = settings.catalog ? settings.catalog.data : {},
         externalClient = false,
         wrap = false,
@@ -195,7 +195,6 @@
       }
 
       function commit (resp) {
-        console.log("COMMIT->", obj.name, obj.method);
         return new Promise (function (resolve, reject) {
           // Forget about committing if recursive
           if (isTriggering) {
@@ -203,8 +202,10 @@
             return;
           }
 
-          if (wrapped) {
+          if (client.wrapped) {
+            console.log("COMMIT->", obj.name, obj.method);
             client.query("COMMIT;", function (err) {
+              client.wrapped = false;
               if (err) {
                 reject(error(err));
                 return;
@@ -221,24 +222,30 @@
       }
 
       function rollback (err) {
+        // If external, let caller deal with transaction
+        if (externalClient) { 
+          reject(err);
+          return;
+        }
+
         console.log("ROLLBACK->", obj.name, obj.method);
-        return new Promise (function (ignore, reject) {
-          if (wrapped) {
-            client.query("ROLLBACK;", function () {
-              console.log("ROLLED BACK");
-              reject(error(err));
-            });
-            return;
-          }
-      
-          reject(error(err));
-        });
+
+        if (client.wrapped) {
+          client.query("ROLLBACK;", function () {
+            console.log("ROLLED BACK");
+            client.wrapped = false;
+            reject(error(err));
+          });
+          return;
+        }
+    
+        reject(error(err));
       }
 
       function doExecute () {
-        console.log("EXECUTE->", obj.name, obj.method, transaction.name);
+        // console.log("EXECUTE->", obj.name, obj.method, transaction.name);
         return new Promise (function (resolve, reject) {
-          if (wrap && !wrapped && !isTriggering) {
+          if (wrap && !client.wrapped && !isTriggering) {
             client.query("BEGIN;", function (err) {
               if (err) {
                 reject(err);
@@ -246,7 +253,7 @@
               }
               console.log("BEGAN");
 
-              wrapped = true;
+              client.wrapped = true;
               transaction(obj, false, isSuperUser)
                 .then(resolve)
                 .catch(reject);
@@ -262,7 +269,7 @@
       }
 
       function doMethod (name) {
-        console.log("METHOD->", obj.name, obj.method, name);
+        // console.log("METHOD->", obj.name, obj.method, name);
         return new Promise (function (resolve, reject) {
           wrap = !obj.client && obj.method !== "GET";
           obj.data = obj.data || {};
@@ -277,7 +284,7 @@
       }
 
       function clearTriggerStatus () {
-        console.log("CLEAR_TRIGGER->", obj.name, obj.method);
+        // console.log("CLEAR_TRIGGER->", obj.name, obj.method);
         return new Promise (function (resolve) {
           if (!isTriggering) {
             client.isTriggering = false;
@@ -288,7 +295,7 @@
       }
 
       function doTraverseAfter (name) {
-        console.log("TRAVERSE_AFTER->", obj.name, obj.method, name);
+        // console.log("TRAVERSE_AFTER->", obj.name, obj.method, name);
         return new Promise (function (resolve, reject) {
           var feather = settings.catalog.data[name],
             parent = feather.inherits || "Object";
@@ -325,7 +332,7 @@
       }
 
       function doQuery () {
-        console.log("QUERY->", obj.name, obj.method);
+        // console.log("QUERY->", obj.name, obj.method);
         return new Promise (function (resolve, reject) {
           obj.client = client;
           isChild = false;
@@ -366,7 +373,7 @@
       }
 
       function doTraverseBefore (name) {
-        console.log("TRAVERSE_BEFORE->", obj.name, obj.method, name);
+        // console.log("TRAVERSE_BEFORE->", obj.name, obj.method, name);
         return new Promise (function (resolve, reject) {
           var feather = settings.catalog.data[name],
             parent = feather.inherits || "Object";
@@ -419,7 +426,10 @@
             if (obj.method === "GET") {
               doQuery().then(resolve).catch(reject);
             } else {
-              wrap = true;
+              if (!externalClient) { 
+                wrap = true;
+              }
+
               doTraverseBefore(obj.name)
                 .then(resolve)
                 .catch(reject);
@@ -441,7 +451,7 @@
       }
 
       function connect () {
-        console.log("CONNECT->", obj.name, obj.method);
+        // console.log("CONNECT->", obj.name, obj.method);
         return new Promise (function (resolve, reject) {
           pg.connect(conn, function (err, c, d) {
             client = c;
@@ -481,7 +491,7 @@
 
       // Read configuration if necessary
       function setCredentials (config) {
-        console.log("SET_CREDS->", obj.name, obj.method);
+        // console.log("SET_CREDS->", obj.name, obj.method);
         return new Promise (function (resolve) {
           conn = "postgres://" +
             config.user + ":" +

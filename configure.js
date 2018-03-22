@@ -65,6 +65,7 @@
 
   commit = function (callback) {
     client.query("COMMIT;", function () {
+      console.log("COMMIT");
       client.end();
       callback();
     });
@@ -73,6 +74,7 @@
   rollback = function (err) {
     client.query("ROLLBACK;", function () {
       console.error(err);
+      console.log("ROLLBACK");
       console.error("Configuration failed.");
       client.end();
       process.exit();
