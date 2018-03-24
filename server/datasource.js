@@ -318,6 +318,7 @@
               .then(doMethod.bind(null, name))
               .then(clearTriggerStatus)
               .then(doTraverseAfter.bind(null, parent))
+              .then(resolve)
               .catch(rollback);
 
           // If traversal done, finish transaction
