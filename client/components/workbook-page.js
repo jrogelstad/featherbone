@@ -151,14 +151,18 @@
       }
     };
     vm.modelOpen = function () {
-      var selection = vm.tableWidget().selection();
+      var selection = vm.tableWidget().selection(),
+        sheet = vm.sheet() || {},
+        form = sheet.form || {},
+        type = vm.tableWidget().model().data.objectType();
+
       if (selection) {
         m.route.set("/edit/:feather/:key", {
-          feather: feather.name.toSpinalCase(),
+          feather: type,
           key: selection.id()
         }, {
         state: {
-          form: vm.sheet().form.id,
+          form: form.id,
           receiver: receiverKey
         }});
       }

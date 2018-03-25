@@ -59,13 +59,13 @@
   };
 
   begin = function () {
-    console.log("BEGIN");
+    //console.log("BEGIN");
     client.query("BEGIN;", processFile);
   };
 
   commit = function (callback) {
     client.query("COMMIT;", function () {
-      console.log("COMMIT");
+      //console.log("COMMIT");
       client.end();
       callback();
     });
@@ -74,7 +74,7 @@
   rollback = function (err) {
     client.query("ROLLBACK;", function () {
       console.error(err);
-      console.log("ROLLBACK");
+      //console.log("ROLLBACK");
       console.error("Configuration failed.");
       client.end();
       process.exit();
