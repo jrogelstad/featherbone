@@ -103,21 +103,23 @@
 
         /* Grant everyone access to system objects */
         reqRole = req();
-        promises.push(datasource.request.bind(null, reqRole));
+        promises.push(datasource.request(reqRole));
         reqLog = req();
         reqLog.data.id = "log";
-        promises.push(datasource.request.bind(null, reqLog));
+        promises.push(datasource.request(reqLog));
         reqForm = req();
         reqForm.data.id = "form";
-        promises.push(datasource.request.bind(null, reqForm));
+        promises.push(datasource.request(reqForm));
         reqTable = req();
         reqTable.data.id = "table";
-        promises.push(datasource.request.bind(null, reqTable));
+        promises.push(datasource.request(reqTable));
         reqWidget = req();
         reqWidget.data.id = "relation_widget";
-        promises.push(datasource.request.bind(null, reqWidget));
+        promises.push(datasource.request(reqWidget));
 
-        Promise.all(promises).then(resolve);
+        Promise.all(promises)
+          .then(resolve)
+          .catch(reject);
       };
 
       /* Start */
