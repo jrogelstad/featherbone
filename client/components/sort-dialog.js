@@ -76,6 +76,7 @@
           m("td", {
            style: {minWidth: "175px", maxWidth: "175px"}
           }, m("select", {
+              style: {minWidth: "175px", maxWidth: "175px"},
               value: item.property,
               onchange: m.withAttr("value", vm.itemChanged.bind(this, item.index, "property"))
             }, vm.attrs().map(function (attr) {
@@ -87,6 +88,7 @@
             style: {minWidth: "175px", maxWidth: "175px"}
           },[
             m("select", {
+              style: {minWidth: "175px", maxWidth: "175px"},
               value: item.order || "ASC",
               onchange: m.withAttr("value", vm.itemChanged.bind(this, item.index, "order"))
             },[
