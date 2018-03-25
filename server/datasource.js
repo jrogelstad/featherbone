@@ -167,15 +167,14 @@
 
       function close (resp) {
         return new Promise (function (resolve) {
-          // Passed client will handle it's own connection
-          if (!externalClient) { done(); }
-
+          //console.log("CLOSING");
+          done(); 
           resolve(resp);
         });
       }
 
       function error (err) {
-        console.log("ERROR->", obj.name, obj.method);
+        //console.log("ERROR->", obj.name, obj.method);
         var statusCode;
 
         // Passed client will handle it's own connection
@@ -203,7 +202,7 @@
           }
 
           if (client.wrapped) {
-            console.log("COMMIT->", obj.name, obj.method);
+            //console.log("COMMIT->", obj.name, obj.method);
             client.query("COMMIT;", function (err) {
               client.wrapped = false;
               if (err) {
@@ -211,13 +210,13 @@
                 return;
               }
 
-              console.log("COMMITED");
-              close(resp).then(resolve);
+              //console.log("COMMITED");
+              resolve(resp);
             });
             return;
           }
-          
-          close(resp).then(resolve);
+
+          resolve(resp);
         });
       }
 
@@ -228,11 +227,11 @@
           return;
         }
 
-        console.log("ROLLBACK->", obj.name, obj.method);
+        //console.log("ROLLBACK->", obj.name, obj.method);
 
         if (client.wrapped) {
           client.query("ROLLBACK;", function () {
-            console.log("ROLLED BACK");
+            //console.log("ROLLED BACK");
             client.wrapped = false;
             reject(error(err));
           });
@@ -251,7 +250,7 @@
                 reject(err);
                 return;
               }
-              console.log("BEGAN");
+              //console.log("BEGAN");
 
               client.wrapped = true;
               transaction(obj, false, isSuperUser)
@@ -411,7 +410,7 @@
       }
 
       function doRequest () {
-        console.log("REQUEST->", obj.name, obj.method);
+        //console.log("REQUEST->", obj.name, obj.method);
         return new Promise (function (resolve, reject) {
           if (!client.currentUser && !obj.user) {
             reject("User undefined." + obj.method + obj.name);
@@ -485,6 +484,7 @@
         Promise.resolve()
           .then(connect)
           .then(doRequest)
+          .then(close)
           .then(resolve)
           .catch(reject);
         return;
@@ -508,6 +508,7 @@
         .then(setCredentials)
         .then(connect)
         .then(doRequest)
+        .then(close)
         .then(resolve)
         .catch(reject);
     });
