@@ -161,7 +161,7 @@
 
       var client, done, transaction, isChild,
         catalog = settings.catalog ? settings.catalog.data : {},
-        externalClient = false,
+        isExternalClient = false,
         wrap = false,
         isTriggering = obj.client ? obj.client.isTriggering : false;
 
@@ -178,7 +178,7 @@
         var statusCode;
 
         // Passed client will handle it's own connection
-        if (!externalClient) { done(); }
+        if (!isExternalClient) { done(); }
 
         // Format errors into objects that can be handled by server
         console.error(err);
@@ -196,7 +196,7 @@
       function commit (resp) {
         return new Promise (function (resolve, reject) {
           // Forget about committing if recursive
-          if (isTriggering) {
+          if (isTriggering || isExternalClient) {
             resolve(resp);
             return;
           }
@@ -222,7 +222,7 @@
 
       function rollback (err) {
         // If external, let caller deal with transaction
-        if (externalClient) { 
+        if (isExternalClient) { 
           reject(err);
           return;
         }
@@ -426,7 +426,7 @@
             if (obj.method === "GET") {
               doQuery().then(resolve).catch(reject);
             } else {
-              if (!externalClient) { 
+              if (!isExternalClient) { 
                 wrap = true;
               }
 
@@ -471,7 +471,7 @@
       }
 
       if (obj.client) {
-        externalClient = true;
+        isExternalClient = true;
         client = obj.client;
         Promise.resolve()
           .then(doRequest)
@@ -626,15 +626,14 @@
     @return receiver
   */
   that.postFunction = function (req, res) {
-   var payload, callback,
+   var payload,
       args = req.body;
 
-    callback = function (err, resp) {
-      if (err) {
-        res.status(err.statusCode).json(err.message);
-        return;
-      }
+	function error (err) {
+      this.status(err.statusCode).json(err.message);
+	}
 
+    function callback (resp) {
       if (resp === undefined) {
         res.statusCode = 204;
       }
@@ -644,18 +643,19 @@
       res.setHeader("Pragma", "no-cache"); // HTTP 1.0.
       res.setHeader("Expires", "0"); //
       res.json(resp);
-    };
+    }
 
     payload = {
       method: "POST",
       name: this,
       user: "postgres", //getCurrentUser(),
-      callback: callback,
       data: args
     };
 
     console.log(JSON.stringify(payload, null, 2));
-    that.request(payload);
+    that.request(payload)
+      .then(callback)
+      .catch(error);
   };
 
   // Set properties on exports
