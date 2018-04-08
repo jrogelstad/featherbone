@@ -629,9 +629,9 @@
    var payload,
       args = req.body;
 
-	function error (err) {
+	  function error (err) {
       this.status(err.statusCode).json(err.message);
-	}
+	  }
 
     function callback (resp) {
       if (resp === undefined) {
@@ -655,7 +655,7 @@
     console.log(JSON.stringify(payload, null, 2));
     that.request(payload)
       .then(callback)
-      .catch(error);
+      .catch(error.bind(res));
   };
 
   // Set properties on exports
