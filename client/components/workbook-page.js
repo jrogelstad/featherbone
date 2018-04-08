@@ -68,7 +68,7 @@
         if (action.validator && !staticModel[action.validator](selections)) {
           opts.class = "pure-menu-link pure-menu-disabled";
         } else {
-          opts.onclick = method.bind(this, selections, vm.confirmDialog());
+          opts.onclick = method.bind(null, vm);
         }
 
         if (action.hasSeparator) {
