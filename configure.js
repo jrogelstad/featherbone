@@ -21,9 +21,9 @@
 
   require("./common/extend-string.js");
 
-  var manifest, file, content, result, execute, name, createFunction, buildApi,
-    saveModule, saveController, saveRoute, saveFeathers, rollback, connect,
-    commit, begin, processFile, ext, client, user, processProperties, executeSql,
+  var manifest, file, content, execute, name, defineSettings,
+    saveModule, saveController, saveRoute, saveFeathers, saveWorkbooks,
+    rollback, connect, commit, begin, processFile, client, user,
     runBatch, configure,
     MANIFEST = "manifest.json",
     pg = require("pg"),
@@ -31,7 +31,6 @@
     path = require("path"),
     datasource = require("./server/datasource"),
     pgConfig = require("./server/pgconfig"),
-    f = require("./common/core.js"),
     format = require("pg-format"),
     dir = path.resolve(__dirname, process.argv[2] || "."),
     filename = path.format({root: "/", dir: dir, base: MANIFEST}),
@@ -94,16 +93,19 @@
     var filepath, module, version;
 
     file = manifest.files[i];
-    i++;
+    i += 1;
 
     // If we've processed all the files, wrap this up
     if (!file) {
-      commit(buildApi);
+      commit(function () {
+        console.log("Configuration completed!");
+        client.end();
+        process.exit();
+      });
       return;
     }
 
     filename = file.path;
-    ext = path.extname(filename);
     name = path.parse(filename).name;
     filepath = path.format({root: "/", dir: dir, base: filename});
     module = file.module || manifest.module;
@@ -331,7 +333,7 @@
       len = data.length,
       b = 0;
 
-    getControllers = function (callback) {
+    getControllers = function () {
       var payload, after;
 
       after = function (resp) {
@@ -352,14 +354,14 @@
     };
 
     // Iterate recursively
-    nextItem = function (resp) {
+    nextItem = function () {
       var payload;
 
       if (b < len) {
         payload = data[b];
         payload.user = user;
         payload.client = client;
-        b++;
+        b += 1;
         datasource.request(payload)
           .then(nextItem)
           .catch(rollback);
@@ -374,314 +376,6 @@
     getControllers();
   };
 
-  buildApi = function () {
-    var swagger, catalog, payload, callback, keys;
-
-    callback = function (resp) {
-      var definitions = swagger.definitions;
-
-      catalog = resp;
-
-      // Loop through each feather and append to swagger api
-      keys = Object.keys(catalog);
-      keys.forEach(function (key) {
-        var definition, tag,
-          feather = catalog[key],
-          properties = {},
-          inherits = feather.inherits || "Object",
-          pathName = "/data/" + key.toSpinalCase() + "/{id}";
-        name = key.toProperCase();
-
-        feather.name = key; // For error trapping later
-
-        // Append singluar path
-        if (!feather.isChild) {
-          tag = {
-            name: key.toSpinalCase(),
-            description: feather.description
-          };
-          swagger.tags.push(tag);
-
-          path = {
-            "x-swagger-router-controller": "data",
-            get: {
-              tags: [key.toSpinalCase()],
-              summary: "Info for a specific " + name,
-              parameters: [
-                {
-                  name: "id",
-                  in: "path",
-                  description: "The id of the " + name + " to retrieve",
-                  type: "string"
-                }
-              ],
-              responses: {
-                200: {
-                  description: "Expected response to a valid request",
-                  schema: {
-                    $ref: "#/definitions/" + key
-                  }
-                },
-                default: {
-                  description: "unexpected error",
-                  schema: {
-                    $ref: "#/definitions/ErrorResponse"
-                  }
-                }
-              }
-            },
-            patch: {
-              tags: [key.toSpinalCase()],
-              summary: "Update an existing " + name,
-              parameters: [
-                {
-                  name: "id",
-                  in: "path",
-                  description: "The id of the " + name + " to update",
-                  type: "string"
-                }
-              ],
-              responses: {
-                200: {
-                  description: "Expected response to a valid request",
-                  schema: {
-                    $ref: "#/definitions/RequestResponse"
-                  }
-                },
-                default: {
-                  description: "unexpected error",
-                  schema: {
-                    $ref: "#/definitions/ErrorResponse"
-                  }
-                }
-              }
-            },
-            delete: {
-              tags: [key.toSpinalCase()],
-              summary: "Delete a " + name,
-              operationId: "doHandleOne",
-              parameters: [
-                {
-                  name: "id",
-                  in: "path",
-                  description: "The id of the " + name + " to delete",
-                  type: "string"
-                }
-              ],
-              responses: {
-                200: {
-                  description: "Expected response to a valid request",
-                  schema: {
-                    $ref: "#/definitions/RequestResponse"
-                  }
-                },
-                default: {
-                  description: "unexpected error",
-                  schema: {
-                    $ref: "#/definitions/ErrorResponse"
-                  }
-                }
-              }
-            },
-          };
-
-          swagger.paths[pathName] = path;
-
-          // Append list path
-          if (feather.plural) {
-            path = {
-              "x-swagger-router-controller": "data",
-              get: {
-                tags: [key.toSpinalCase()],
-                description: key + " data",
-                operationId: "doGet",
-                parameters: [
-                  {
-                    name: "offset",
-                    in: "query",
-                    description: "Offset from first item",
-                    required: false,
-                    type: "integer",
-                    format: "int32"
-                  },
-                  {
-                    name: "limit",
-                    in: "query",
-                    description: "How many items to return",
-                    required: false,
-                    type: "integer",
-                    format: "int32"
-                  }
-                ],
-                responses: {
-                  200: {
-                    description: "Array of " + feather.plural.toProperCase(),
-                    schema: {
-                      $ref: "#/definitions/" + feather.plural
-                    }
-                  },
-                  default: {
-                    description: "Error",
-                    schema: {
-                      $ref: "#/definitions/ErrorResponse"
-                    }
-                  }
-                }
-              },
-              post: {
-                tags: [key.toSpinalCase()],
-                summary: "Add a new " + name + " to the database",
-                operationId: "doUpsert",
-                responses: {
-                  200: {
-                    description: "Expected response to a valid request",
-                    schema: {
-                      $ref: "#/definitions/RequestResponse"
-                    }
-                  },
-                  default: {
-                    description: "unexpected error",
-                    schema: {
-                      $ref: "#/definitions/PgErrorResponse"
-                    }
-                  }
-                }
-              }
-            };
-
-            pathName = "/data/" + feather.plural.toSpinalCase();
-            swagger.paths[pathName] = path;
-          }
-        }
-
-        // Append singular feather definition
-        definition = {};
-
-        if (feather.description) {
-          definition.description = feather.description;
-        }
-
-        if (feather.discriminator) {
-          definition.discriminator = feather.discriminator;
-        }
-
-        processProperties(feather, properties);
-
-        if (key === "Object") {
-          definition.properties = properties;
-        } else {
-          definition.allOf = [
-            {$ref: "#/definitions/" + inherits},
-            {properties: properties}
-          ];
-        }
-
-        if (feather.required) {
-          definition.required = feather.required;
-        }
-
-        definitions[key] = definition;
-
-        // Append plural definition
-        if (feather.plural) {
-          definitions[feather.plural] = {
-            type: "array",
-            items: {
-              $ref: "#/definitions/" + key
-            }
-          };
-        }
-      });
-
-      swagger = JSON.stringify(swagger, null, 2);
-
-      // Save swagger file
-      fs.writeFile("swagger.json", swagger, function (err) {
-        if (err) {
-          console.error(err);
-          return;
-        }
-
-        console.log("Configuration completed!");
-        client.end();
-        process.exit();
-      });
-    };
-
-    // Real work starts here
-    console.log("Building swagger API");
-
-    // Load the baseline swagger file
-    fs.readFile("config/swagger-base.json", "utf8", function (err, data) {
-      if (err) {
-        console.error(err);
-        return;
-      }
-
-      swagger = JSON.parse(data);
-
-      // Load the existing feather catalog from postgres
-      payload = {
-        method: "GET",
-        name: "getSettings",
-        user: user,
-        data: {
-          name: "catalog"
-        }
-      };
-
-      datasource.request(payload).then(callback).catch(exit);
-    });
-  };
-
-  processProperties = function (feather, properties) {
-    var keys = Object.keys(feather.properties);
-
-    keys.forEach(function (key) {
-      var property = feather.properties[key], newProperty,
-        primitives = Object.keys(f.types),
-        formats = Object.keys(f.formats);
-
-      // Bail if child property. Not necessary for api definition
-      if (typeof property.type === "object" && property.type.childOf) { return; }
-
-      newProperty = {};
-
-      if (property.description) {
-        newProperty.description = property.description;
-      }
-
-      if (typeof property.type === "object") {
-        newProperty.type = property.type.parentOf ? "array" : "object";
-        newProperty.items = {
-          $ref: "#/definitions/" + property.type.relation
-        };
-      } else {
-        if (primitives.indexOf(property.type) !== -1) {
-          newProperty.type = property.type;
-        } else {
-          console.error("Property type " + property.type +
-            " not supported on " + key + " for feather " + feather.name);
-          process.exit(1);
-        }
-
-        if (property.format) {
-          if (formats.indexOf(property.format) !== -1) {
-            newProperty.format = property.format.toSpinalCase();
-          } else {
-            console.error("Property format " + property.format +
-              " not supported on " + key + " for feather " + feather.name);
-            process.exit(1);
-          }
-        }
-      }
-
-      properties[key] = newProperty;
-    });
-  };
-
-
-
   /* Real work starts here */
   fs.readFile(filename, "utf8", function (err, data) {
     if (err) {
@@ -689,7 +383,7 @@
       return;
     }
 
-    var execute = function () {
+    var exec = function () {
       manifest = JSON.parse(data);
       connect(begin);
     };
@@ -715,7 +409,7 @@
 
           // If database exists, get started
           if (resp.rows.length === 1) {
-            datasource.getCatalog().then(execute).catch(exit);
+            datasource.getCatalog().then(exec).catch(exit);
           // Otherwise create database first
           } else {
             console.log('Creating database "' + config.database + '"');
@@ -723,7 +417,7 @@
             sql = format(sql, config.database, config.user);
             pgclient.query(sql, function () {
               if (err) { return console.error(err); }
-              execute();        
+              exec();        
             });
           }
         });
