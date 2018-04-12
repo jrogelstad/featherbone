@@ -91,8 +91,7 @@
         description: "Form layout",
         type: {
           relation: "Form"
-        },
-        isRequired: true
+        }
       },
       list: {
         description: "List layout",
