@@ -138,13 +138,14 @@
     vm.isDraggingTab = stream(false);
     vm.hasSettings = stream(!!workbook.data.launchConfig().settings);
     vm.modelNew = function () {
+      var form = vm.sheet().form || {};
       if (!vm.tableWidget().modelNew()) {
         m.route.set("/edit/:feather/:key", {
           feather: feather.name.toSpinalCase(),
           key: f.createId()
         }, {
         state: {
-          form: vm.sheet().form.id,
+          form: form.id,
           receiver: receiverKey,
           create: true
         }});
