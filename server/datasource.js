@@ -20,6 +20,7 @@
   "strict";
   var conn,
     pg = require("pg"),
+    jsonpatch = require("fast-json-patch"),
     controller = require("./controller"),
     readPgConfig = require("./pgconfig"),
     registered = {
@@ -344,11 +345,7 @@
               .then(reject);
             return;
           case "POST":
-            if (obj.id) {
-              transaction = controller.doUpsert;
-            } else {
-              transaction = controller.doInsert;
-            }
+            transaction = controller.doInsert;
             break;
           case "PATCH":
             transaction = controller.doUpdate;
@@ -409,6 +406,34 @@
         });
       }
 
+      // Determine with POST with id is insert or update
+      function doUpsert () {
+        return new Promise (function (resolve, reject) {
+          var payload = {
+            id: obj.id,
+            name: obj.name,
+            client: obj.client
+          };
+          
+          function callback (resp) {
+            if (resp) {
+              obj.method = "PATCH";
+              obj.data = jsonpatch.compare(resp, obj.data).filter(function (item) {
+                return item.op !== 'remove';
+              });
+            } else {
+              obj.data.id = obj.id;
+            }
+
+            resolve();
+          }
+
+          controller.doSelect(payload, false, isSuperUser)
+            .then(callback)
+            .then(reject);
+        });
+      }
+
       function doRequest () {
         //console.log("REQUEST->", obj.name, obj.method);
         return new Promise (function (resolve, reject) {
@@ -425,6 +450,11 @@
           if (catalog[obj.name]) {
             if (obj.method === "GET") {
               doQuery().then(resolve).catch(reject);
+            } else if (obj.method === "POST" && obj.id) {
+              doUpsert()
+                .then(doTraverseBefore.bind(null, obj.name))
+                .then(resolve)
+                .catch(reject);
             } else {
               if (!isExternalClient) { 
                 wrap = true;
@@ -685,7 +715,6 @@
   that.registerFunction("POST", "doDelete", proxy.bind("doDelete"));
   that.registerFunction("POST", "doInsert", proxy.bind("doInsert"));
   that.registerFunction("POST", "doUpdate", proxy.bind("doUpdate"));
-  that.registerFunction("POST", "doUpsert", proxy.bind("doUpsert"));
   that.registerFunction("PUT", "saveAuthorization",
     controller.saveAuthorization);
   that.registerFunction("PUT", "saveFeather", controller.saveFeather);
