@@ -1898,54 +1898,6 @@
     },
 
     /**
-      Update data if matching id found, otherwise insert.
-
-      @param {Object} Request payload
-      @param {Object} [payload.id] Record ID
-      @param {Object} [payload.name] Feather name
-      @param {Object} [payload.data] Data to insert
-      @param {Object} [payload.client] Database client
-      @param {Function} [payload.callback] callback
-      @return receiver
-    */
-    doUpsert: function (obj) {
-      if (!obj.id) {
-        obj.callback("Id must be provided to post an indvidual object.");
-        return;
-      }
-      var afterSelect = function (err, resp) {
-        try {
-          if (err) { throw err; }
-
-          if (resp) {
-            obj.data = jsonpatch.compare(resp, obj.data).filter(function (item) {
-              return item.op !== 'remove';
-            });
-            if (obj.data.length) {
-              that.doUpdate(obj);
-            } else {
-              obj.callback(null, []);
-            }
-          } else {
-            obj.data.id = obj.id;
-            that.doInsert(obj);
-          }
-        } catch (e) {
-          obj.callback(e);
-        }
-      };
-
-      that.doSelect({
-        id: obj.id,
-        name: obj.name,
-        client: obj.client,
-        callback: afterSelect
-      });
-
-      return this;
-    },
-
-    /**
       Return controllers.
 
       @param {Object} Request payload
