@@ -188,7 +188,9 @@
       var vm = this.viewModel;
 
       // Build view
-      return m("div", [
+      return m("div", {
+          class: "pure-form"
+        }, [
         m(button.component, {viewModel: vm.buttonBack()}),
         m(button.component, {viewModel: vm.buttonSelect()}),
         m(searchInput.component, {viewModel: vm.searchInput()}),
