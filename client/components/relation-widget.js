@@ -34,7 +34,8 @@
     @param {String} [options.valueProperty] Value property
     @param {Object} [options.form] Form configuration
     @param {Object} [options.list] (Search) List configuration
-    @params {Boolean} [options.isCell] Use style for cell in table
+    @param {Boolean} [options.isCell] Use style for cell in table
+    @param {Object} [options.filter] Filter object used for search
   */
   relationWidget.viewModel = function (options) {
     var vm = {}, registerReceiver,
@@ -48,7 +49,9 @@
       inputValue = stream(current),
       type =  modelValue.type,
       modelName = type.relation.toCamelCase(),
+      criteria = options.filter ? options.filter.criteria || [] : [],
       filter = {
+        criteria: f.copy(criteria),
         sort: [{property: valueProperty}],
         limit: 10
       },
@@ -101,7 +104,11 @@
       });
     };
     vm.onclicksearch = function () {
-      catalog.register("config", configId, options.list);
+      var searchList = f.copy(options.list);
+      searchList.filter = options.filter || searchList.filter;
+
+      catalog.register("config", configId, searchList);
+
       m.route.set("/search/:feather", {
         feather: type.relation.toSpinalCase(),
         config: configId
@@ -147,11 +154,12 @@
       }
       inputValue(value);
       if (fetch) {
-        filter.criteria = [{
+        filter.criteria = f.copy(criteria);
+        filter.criteria.push({
           property: valueProperty,
           operator: "~*",
           value: "^" + value
-        }];
+        });
         vm.fetch();
       }
     };
@@ -217,6 +225,7 @@
         parentProperty = options.parentProperty,
         valueProperty = options.valueProperty,
         labelProperty = options.labelProperty,
+        filter = options.filter,
         relations = parentViewModel.relations();
 
       // Set up viewModel if required
@@ -228,6 +237,7 @@
           labelProperty: labelProperty,
           form: options.form,
           list: options.list,
+          filter: filter,
           isCell: options.isCell,
           id: options.id
         });

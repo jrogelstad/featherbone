@@ -892,8 +892,10 @@
             var cell, tdOpts, inputOpts,
               prop = f.resolveProperty(model, col),
               id = vm.formatInputId(col),
-              columnWidth = config.columns[idx].width || COL_WIDTH_DEFAULT,
-              dataList = config.columns[idx].dataList;
+              item = config.columns[idx],
+              columnWidth = item.width || COL_WIDTH_DEFAULT,
+              dataList = item.dataList,
+              cfilter = item.filter;
 
             inputOpts = {
               id: id,
@@ -994,6 +996,7 @@
                 model: model,
                 key: col,
                 dataList: dataList,
+                filter: cfilter,
                 viewModel: vm,
                 options: inputOpts
               })

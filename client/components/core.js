@@ -110,6 +110,7 @@
         return m(w,{
           parentViewModel: obj.viewModel,
           parentProperty: key,
+          filter: obj.filter,
           isCell: opts.isCell,
           style: opts.style,
           onCreate: opts.oncreate,
