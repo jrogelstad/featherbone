@@ -58,16 +58,17 @@
       var args = arguments;
 
       return new Promise (function (resolve, reject) {
-        args[0].callback = function (err, resp) {
-          if (err) { 
-            reject(err);
-            return;
-          }
+        try {
+          args[0].callback = function (err, resp) {
+            if (err) { throw new Error(err); }
 
-          resolve(resp);
-        };
+            resolve(resp);
+          };
 
-        that[name].apply(null, args);
+          that[name].apply(null, args);
+        } catch (e) {
+          reject(e);
+        }
       });
     };
   }
