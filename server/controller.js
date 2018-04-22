@@ -541,6 +541,11 @@
       i = 0;
 
     while (i < len) {
+      if (typeof ary[i] === "string") {
+        i += 1;
+        continue;
+      }
+
       /* Copy to convert dates back to string for accurate comparisons */
       oldObj = JSON.parse(JSON.stringify(ary[i]));
       newObj = {};
@@ -1537,6 +1542,11 @@
         c = 0,
         p = 1,
         n = 0;
+
+      if (!patches.length) {
+        obj.callback(null, []);
+        return;
+      }
 
       find = function (ary, id) {
         return ary.filter(function (item) {
