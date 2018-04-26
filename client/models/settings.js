@@ -100,9 +100,9 @@
     that.state(statechart.define(function () {
       this.enter(doInit.bind({}));
       this.state("Ready", function () {
-        this.event("fetch", function (resolve) {
+        this.event("fetch", function (context) {
           this.goto("/Busy", {
-            context: {resolve: resolve}
+            context: context
           });
         });
 
@@ -119,9 +119,9 @@
           });
 
           this.state("Dirty", function () {
-            this.event("save", function (resolve) {
+            this.event("save", function (context) {
               this.goto("/Busy/Saving", {
-                context: {resolve: resolve}
+                context: context
               });
             });
             this.canSave = that.isValid;

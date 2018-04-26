@@ -101,6 +101,10 @@
       });
       return col ? vm.formatInputId(col) : undefined;
     };
+    vm.errorDialog = stream(dialog.viewModel({
+      icon: "exclamation-triangle",
+      title: "Error"
+    }));
     vm.feather = stream(feather);
     vm.filter = f.prop();
     vm.formatInputId = function(col) {
@@ -490,10 +494,16 @@
             confirmDialog.message("Are you sure you want to delete the selected rows?");
             confirmDialog.onOk(function () {
                 vm.selections().forEach(function (selection) {
-                  return selection.delete(true).then(function () {
-                    vm.unselect(selection);
-                    vm.models().remove(selection);
-                  });
+                  return selection.delete(true)
+                    .then(function () {
+                      vm.unselect(selection);
+                      vm.models().remove(selection);
+                    })
+                    .catch(function (err) {
+                      vm.errorDialog().message(err.message);
+                      m.redraw();
+                      vm.errorDialog().show();
+                    });
                 });
             });
             confirmDialog.show();
@@ -1058,6 +1068,7 @@
           class: "pure-form"
         }, [
           m(dialog.component, {viewModel: vm.confirmDialog()}),
+          m(dialog.component, {viewModel: vm.errorDialog()}),
           m("table", {
             class: "pure-table suite-table"
           }, [
