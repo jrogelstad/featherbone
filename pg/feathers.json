@@ -115,7 +115,7 @@
             },
             "default": {
                 "description": "Default",
-                "type": "string",
+                "type": "object",
                 "isRequired": false
             },
             "autonumber": {
