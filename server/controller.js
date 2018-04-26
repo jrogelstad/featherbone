@@ -1493,15 +1493,22 @@
       };
 
       mapKeys = function (row) {
-        var  result = row.result,
-          rkeys = Object.keys(result),
+        var  rkeys,
+          result = row.result,
           ret = {},
           i = 0;
+        
+        if (typeof result === "object") {
+          rkeys = Object.keys(result);
+          rkeys.forEach(function (key) {
+            ret[keys[i]] = result[key];
+            i += 1;
+          });
 
-        rkeys.forEach(function (key) {
-          ret[keys[i]] = result[key];
-          i += 1;
-        });
+        // If only one attribute returned
+        } else {
+          ret[keys[0]] = result;
+        }
 
         return ret;
       };
