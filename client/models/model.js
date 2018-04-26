@@ -525,7 +525,7 @@
 
       dataSource.request(payload)
                 .then(callback)
-                .catch(doError);
+                .catch(doError.bind(context));
     };
 
     doError = function (err) {
@@ -534,6 +534,10 @@
         handler(err);
       });
       state.send("error");
+
+      if (this.reject) {
+        this.reject(err);
+      }
     };
 
     doFetch = function (context) {
@@ -546,7 +550,7 @@
 
       dataSource.request(payload)
                 .then(callback)
-                .catch(doError);
+                .catch(doError.bind(context));
     };
 
     doFreeze = function () {
@@ -580,7 +584,7 @@
       if (that.isValid()) {
         dataSource.request(payload)
                   .then(callback)
-                  .catch(doError);
+                  .catch(doError.bind(context));
       }
     };
 
@@ -598,7 +602,7 @@
       if (that.isValid()) {
         dataSource.request(payload)
                   .then(callback)
-                  .catch(doError);
+                  .catch(doError.bind(context));
       }
     };
 
@@ -608,8 +612,8 @@
     };
 
     doSend = function (evt) {
-      return new Promise (function (resolve) {
-        state.send(evt, resolve);
+      return new Promise (function (resolve, reject) {
+        state.send(evt, {resolve: resolve, reject: reject});
       });
     };
 
@@ -926,9 +930,9 @@
       this.enter(doInit.bind(data));
 
       this.state("Ready", {H: "*"}, function () {
-        this.event("fetch",  function (resolve) {
+        this.event("fetch",  function (context) {
           this.goto("/Busy", {
-            context: {resolve: resolve}
+            context: context
           });
         });
 
@@ -937,9 +941,9 @@
           this.event("clear",  function () {
             this.goto("/Ready/New", {force: true});
           });
-          this.event("save", function (resolve) {
+          this.event("save", function (context) {
             this.goto("/Busy/Saving", {
-              context: {resolve: resolve}
+              context: context
             });
           });
           this.event("delete", function () {
@@ -969,9 +973,9 @@
 
           this.state("Dirty", function () {
             this.event("undo", doRevert);
-            this.event("save", function (resolve) {
+            this.event("save", function (context) {
               this.goto("/Busy/Saving/Patching", {
-                context: {resolve: resolve}
+                context: context
               });
             });
             this.canDelete = stream(false);
@@ -1029,9 +1033,9 @@
       this.state("Delete", function () {
         this.enter(doFreeze);
 
-        this.event("save",  function (resolve) {
+        this.event("save",  function (context) {
           this.goto("/Busy/Deleting", {
-            context: {resolve: resolve}
+            context: context
           });
         });
 
