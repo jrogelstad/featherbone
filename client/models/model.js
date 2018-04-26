@@ -535,7 +535,7 @@
       });
       state.send("error");
 
-      if (this.reject) {
+      if (this && this.reject) {
         this.reject(err);
       }
     };
