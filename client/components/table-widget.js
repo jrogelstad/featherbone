@@ -493,18 +493,22 @@
             
             confirmDialog.message("Are you sure you want to delete the selected rows?");
             confirmDialog.onOk(function () {
-                vm.selections().forEach(function (selection) {
-                  return selection.delete(true)
-                    .then(function () {
-                      vm.unselect(selection);
-                      vm.models().remove(selection);
-                    })
-                    .catch(function (err) {
-                      vm.errorDialog().message(err.message);
-                      m.redraw();
-                      vm.errorDialog().show();
-                    });
-                });
+              var candidates = vm.selections().filter(function (selection) {
+                return selection.canDelete();
+              });
+
+              candidates.forEach(function (selection) {
+                return selection.delete(true)
+                  .then(function () {
+                    vm.unselect(selection);
+                    vm.models().remove(selection);
+                  })
+                  .catch(function (err) {
+                    vm.errorDialog().message(err.message);
+                    m.redraw();
+                    vm.errorDialog().show();
+                  });
+              });
             });
             confirmDialog.show();
           };
