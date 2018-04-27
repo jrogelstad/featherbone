@@ -342,7 +342,7 @@
           case "GET":
             controller.doSelect(obj, false, isSuperUser)
               .then(resolve)
-              .then(reject);
+              .catch(reject);
             return;
           case "POST":
             transaction = controller.doInsert;
@@ -430,7 +430,7 @@
 
           controller.doSelect(payload, false, isSuperUser)
             .then(callback)
-            .then(reject);
+            .catch(reject);
         });
       }
 
