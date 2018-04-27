@@ -58,17 +58,23 @@
       var args = arguments;
 
       return new Promise (function (resolve, reject) {
-        try {
-          args[0].callback = function (err, resp) {
-            if (err) { throw new Error(err); }
+        args[0].callback = function (err, resp) {
+          if (err) { 
+            if (typeof err === "string") {
+              err = {
+                message: err,
+                statusCode: 500
+              };
+            }
 
-            resolve(resp);
-          };
+            reject(err);
+            return;
+          }
 
-          that[name].apply(null, args);
-        } catch (e) {
-          reject(e);
-        }
+          resolve(resp);
+        };
+
+        that[name].apply(null, args);
       });
     };
   }
