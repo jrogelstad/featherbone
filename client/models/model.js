@@ -356,7 +356,7 @@
             alias: "product",
             type: {
               relation: "Product",
-              "properties": ["code", "description", "kind"
+              "properties": ["code", "description", "kind"]
             }
           }
         });
