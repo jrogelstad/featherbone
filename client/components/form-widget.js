@@ -128,6 +128,7 @@
         return attrs.map(function (item) {
           var result, labelOpts, dataList,
             key = item.attr,
+            cfilter = item.filter,
             prop = d[key],
             value = prop(),
             options = {};
@@ -166,6 +167,7 @@
               model: model,
               key: key,
               dataList: dataList,
+              filter: cfilter,
               viewModel: vm,
               options: options
             })

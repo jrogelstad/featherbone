@@ -316,6 +316,10 @@
             "dataList": {
                 "description": "Property that returns an array of options",
                 "type": "string"
+            },
+            "filter": {
+                "description": "Filter definition for relation widget",
+                "type": "object"
             }
         }
     },
