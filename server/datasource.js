@@ -42,19 +42,17 @@
   //
 
   function isRegistered (method, name, trigger) {
-    var fn = registered[method][name],
-      ret = typeof fn === "function";
+    if (trigger &&
+        registered[method][name] &&
+        registered[method][name][trigger]) {
+      return registered[method][name][trigger];
+    } 
 
-    if (ret && trigger) {
-      if ((trigger === TRIGGER_BEFORE &&
-        fn.trigger !== TRIGGER_BEFORE) ||
-        (trigger === TRIGGER_AFTER &&
-        fn.trigger !== TRIGGER_AFTER)) {
-        ret = false;
-      }
+    if (trigger === undefined) {
+      return registered[method][name] || false;
     }
 
-    return ret;
+    return false;
   }
 
   // ..........................................................
@@ -268,14 +266,16 @@
         });
       }
 
-      function doMethod (name) {
+      function doMethod (name, trigger) {
         // console.log("METHOD->", obj.name, obj.method, name);
         return new Promise (function (resolve, reject) {
           wrap = !obj.client && obj.method !== "GET";
           obj.data = obj.data || {};
           obj.data.id = obj.data.id || obj.id;
           obj.client = client;
-          transaction = registered[obj.method][name];
+          transaction = trigger ?
+            registered[obj.method][name][trigger] : 
+            registered[obj.method][name];
           Promise.resolve()
             .then(doExecute)
             .then(resolve)
@@ -306,7 +306,7 @@
 
             if (name === "Object") {
               Promise.resolve()
-                .then(doMethod.bind(null, name))
+                .then(doMethod.bind(null, name, TRIGGER_AFTER))
                 .then(clearTriggerStatus)
                 .then(commit)
                 .then(resolve)
@@ -315,7 +315,7 @@
             }
 
             Promise.resolve()
-              .then(doMethod.bind(null, name))
+              .then(doMethod.bind(null, name, TRIGGER_AFTER))
               .then(clearTriggerStatus)
               .then(doTraverseAfter.bind(null, parent))
               .then(resolve)
@@ -380,7 +380,7 @@
             client.isTriggering = true;
             if (name === "Object") {
               Promise.resolve()
-                .then(doMethod.bind(null, name))
+                .then(doMethod.bind(null, name, TRIGGER_BEFORE))
                 .then(clearTriggerStatus)
                 .then(doQuery)
                 .then(resolve)
@@ -389,7 +389,7 @@
             }
 
             Promise.resolve()
-              .then(doMethod.bind(null, name))
+              .then(doMethod.bind(null, name, TRIGGER_BEFORE))
               .then(clearTriggerStatus)
               .then(doTraverseBefore.bind(null, parent))
               .then(resolve)
@@ -602,9 +602,13 @@
     @return receiver
   */
   that.registerFunction = function (method, name, func, trigger) {
-    registered[method][name] = func;
-    if (trigger) { 
-      func.trigger = trigger;
+    if (trigger) {
+      if (!registered[method][name]) {
+        registered[method][name] = {};
+      }
+      registered[method][name][trigger] = func;
+    } else {
+      registered[method][name] = func;
     }
     return that;
   };
