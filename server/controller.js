@@ -65,6 +65,8 @@
                 message: err,
                 statusCode: 500
               };
+            } else if (err instanceof Error) {
+              err.statusCode = 500;
             }
 
             reject(err);
@@ -1376,6 +1378,7 @@
       @param {Object} [payload.filter] Filter criteria of records to select
       @param {Object} [payload.client] Database client
       @param {Function} [payload.callback] callback
+      @param {Object} [payload.showDeleted] include deleted records
       @param {Boolean} Request as child. Default false.
       @param {Boolean} Request as super user. Default false.
       @return receiver
@@ -1383,7 +1386,11 @@
     doSelect: function (obj, isChild, isSuperUser) {
       var sql, table, keys,
         afterGetFeather, afterGetKey, afterGetKeys, mapKeys,
-        payload = {name: obj.name, client: obj.client},
+        payload = {
+          name: obj.name,
+          client: obj.client,
+          showDeleted: obj.showDeleted
+        },
         tokens = [],
         cols = [];
 
@@ -1399,7 +1406,7 @@
           keys = obj.properties || Object.keys(feather.properties);
 
           /* Validate */
-          if (!isChild && feather.isChild) {
+          if (!isChild && feather.isChild && !isSuperUser) {
             throw "Can not query directly on a child class";
           }
 
@@ -1958,7 +1965,8 @@
       var payload = {
           name: obj.name || "Object",
           filter: {criteria: [{property: "id", value: obj.id}]},
-          client: obj.client
+          client: obj.client,
+          showDeleted: obj.showDeleted
         };
 
       payload.callback = function (err, keys) {
