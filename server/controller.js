@@ -2890,7 +2890,7 @@
         var sqlUpd, token, values, defaultValue, props, keys, recs, type,
           name, isChild, pk, precision, scale, feather, catalog, autonumber,
           afterGetFeather, afterGetCatalog, afterUpdateSchema, updateCatalog,
-          afterUpdateCatalog, afterPropagateViews, afterNextVal,
+          afterUpdateCatalog, afterPropagateViews, afterNextVal, createUnique,
           afterInsertFeather, afterSaveAuthorization, createSequence,
           table, inherits, authorization, dropSql, createDropSql,
           changed = false,
@@ -2900,6 +2900,7 @@
           args = [],
           fns = [],
           cols = [],
+          unique = [],
           i = 0,
           n = 0,
           p = 1;
@@ -2957,6 +2958,7 @@
           if (!feather) {
             sql = "CREATE TABLE %I( " +
               "CONSTRAINT %I PRIMARY KEY (_pk), " +
+              "CONSTRAINT %I UNIQUE (id)) " +
               "INHERITS (%I);";
             tokens = tokens.concat([
               table,
@@ -3129,6 +3131,10 @@
                 adds.push(key);
                 tokens = tokens.concat([table, token]);
 
+                if (prop.isUnique) {
+                  unique.push(key);
+                }
+
                 if (prop.description) {
                   sql += "COMMENT ON COLUMN %I.%I IS %L;";
 
@@ -3239,7 +3245,7 @@
               return;
             }
 
-            updateCatalog();
+            createUnique();
           };
 
           iterateDefaults = function (err, resp) {
@@ -3272,7 +3278,7 @@
               return;
             }
 
-            updateCatalog();
+            createUnique();
           };
 
           // Populate defaults
@@ -3321,6 +3327,31 @@
             return;
           }
 
+          createUnique();
+        };
+
+        createUnique = function (err) {
+          if (err) {
+            obj.callback(err);
+            return;
+          }
+
+          if (unique.length) {
+            sql = "";
+            tokens = [];
+
+            unique.forEach(function (key) {
+              sql += "ALTER TABLE %I ADD CONSTRAINT %I UNIQUE (%I);";
+              tokens = tokens.concat([
+                table,
+                table + "_unique_" + key.toSnakeCase(),
+                key.toSnakeCase()
+              ]);
+            });
+
+            obj.client.query(sql.format(tokens), updateCatalog);
+            return;
+          }
           updateCatalog();
         };
 
@@ -3801,5 +3832,4 @@
   });
 
 }(exports));
-
 
