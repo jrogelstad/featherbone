@@ -1007,6 +1007,7 @@
         value, result, afterGetFeather, afterIdCheck, afterNextVal,
         afterAuthorized, buildInsert, afterGetPk, afterHandleRelations,
         insertChildren, afterInsert, afterDoSelect, afterLog,
+        afterUniqueCheck, feather,
         payload = {data: {name: obj.name}, client: obj.client},
         data = JSON.parse(JSON.stringify(obj.data)),
         name = obj.name || "",
@@ -1014,18 +1015,20 @@
         tokens = [],
         params = [],
         values = [],
+        unique = false,
         clen = 1,
         c = 0,
         p = 2;
 
-      afterGetFeather = function (err, feather) {
+      afterGetFeather = function (err, resp) {
         try {
           if (err) { throw err; }
 
-          if (!feather) {
+          if (!resp) {
             throw "Class \"" + name + "\" not found";
           }
 
+          feather = resp;
           props = feather.properties;
           fkeys = Object.keys(props);
           dkeys = Object.keys(data);
@@ -1061,6 +1064,53 @@
 
           if (id !== undefined) {
             data.id = f.createId();
+          }
+
+          Object.keys(feather.properties).some(function (key) {
+            if (feather.properties[key].isUnique) {
+              unique = {
+                feather: feather.properties[key].inheritedFrom || feather.name,
+                prop: key,
+                value: obj.data[key],
+                label: feather.properties[key].alias || key
+              };
+
+              return true;
+            }
+
+            return false;
+          });
+
+          if (unique) {
+            that.getKeys({
+              client: obj.client,
+              callback: afterUniqueCheck,
+              name: unique.feather,
+              filter: {
+                criteria: [{
+                  property: unique.prop,
+                  value: unique.value
+                }]
+              }
+            });
+            return;
+          }
+
+          afterUniqueCheck();
+        } catch (e) {
+          obj.callback(e);
+        }
+      };
+
+      afterUniqueCheck = function (err, resp) {
+        try {
+          if (err) { throw err; }
+
+          if (resp && resp.length) {
+            throw "Value '" + unique.value + "' assigned to " +
+              unique.label.toName() + " on " +
+              feather.name.toName() + " is not unique to data type " +
+              unique.feather.toName() + ".";
           }
 
           if (!isChild && isSuperUser === false) {
@@ -2840,7 +2890,7 @@
         var sqlUpd, token, values, defaultValue, props, keys, recs, type,
           name, isChild, pk, precision, scale, feather, catalog, autonumber,
           afterGetFeather, afterGetCatalog, afterUpdateSchema, updateCatalog,
-          afterUpdateCatalog, afterPropagateViews, afterNextVal, createUnique,
+          afterUpdateCatalog, afterPropagateViews, afterNextVal,
           afterInsertFeather, afterSaveAuthorization, createSequence,
           table, inherits, authorization, dropSql, createDropSql,
           changed = false,
@@ -2850,7 +2900,6 @@
           args = [],
           fns = [],
           cols = [],
-          unique = [],
           i = 0,
           n = 0,
           p = 1;
@@ -2908,7 +2957,6 @@
           if (!feather) {
             sql = "CREATE TABLE %I( " +
               "CONSTRAINT %I PRIMARY KEY (_pk), " +
-              "CONSTRAINT %I UNIQUE (id)) " +
               "INHERITS (%I);";
             tokens = tokens.concat([
               table,
@@ -3081,10 +3129,6 @@
                 adds.push(key);
                 tokens = tokens.concat([table, token]);
 
-                if (prop.isUnique) {
-                  unique.push(key);
-                }
-
                 if (prop.description) {
                   sql += "COMMENT ON COLUMN %I.%I IS %L;";
 
@@ -3195,7 +3239,7 @@
               return;
             }
 
-            createUnique();
+            updateCatalog();
           };
 
           iterateDefaults = function (err, resp) {
@@ -3228,7 +3272,7 @@
               return;
             }
 
-            createUnique();
+            updateCatalog();
           };
 
           // Populate defaults
@@ -3277,31 +3321,6 @@
             return;
           }
 
-          createUnique();
-        };
-
-        createUnique = function (err) {
-          if (err) {
-            obj.callback(err);
-            return;
-          }
-
-          if (unique.length) {
-            sql = "";
-            tokens = [];
-
-            unique.forEach(function (key) {
-              sql += "ALTER TABLE %I ADD CONSTRAINT %I UNIQUE (%I);";
-              tokens = tokens.concat([
-                table,
-                table + "_unique_" + key.toSnakeCase(),
-                key.toSnakeCase()
-              ]);
-            });
-
-            obj.client.query(sql.format(tokens), updateCatalog);
-            return;
-          }
           updateCatalog();
         };
 

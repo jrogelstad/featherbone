@@ -529,6 +529,10 @@
     };
 
     doError = function (err) {
+      if (err.message && err.message.slice(0,1) === '"') {
+        err.message = err.message.slice(1, err.message.length - 1);
+      }
+
       lastError = err;
       errHandlers.forEach(function (handler) {
         handler(err);

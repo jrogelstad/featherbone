@@ -174,22 +174,11 @@
 
       function error (err) {
         //console.log("ERROR->", obj.name, obj.method);
-        var statusCode;
-
         // Passed client will handle it's own connection
+        console.error(err);
         if (!isExternalClient) { done(); }
 
-        // Format errors into objects that can be handled by server
-        console.error(err);
-        if (typeof err === "object" && !(err instanceof Error)) {
-          statusCode = err.statusCode;
-          err = new Error(err.message);
-        } else {
-          err = new Error(err);
-        }
-
-        err.statusCode = statusCode || 500;
-        return err;
+        reject(err);
       }
 
       function commit (resp) {
