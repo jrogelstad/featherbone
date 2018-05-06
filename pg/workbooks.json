@@ -97,6 +97,45 @@
             }
           ]
         }
+      },
+      {
+        "name": "Units",
+        "feather": "Unit",
+        "list": {
+          "columns": [{
+              "attr": "code"
+            }, {
+              "attr": "description"
+            }, {
+              "attr": "dimension"
+          }]
+        }
+      },
+      {
+        "name": "Currencies",
+        "feather": "Currency",
+        "list": {
+          "columns": [{
+              "attr": "code"
+            }, {
+              "attr": "description"
+            }, {
+              "attr": "symbol"
+          }]
+        }
+      },
+      {
+        "name": "CurrencyUnits",
+        "feather": "CurrencyUnit",
+        "list": {
+          "columns": [{
+              "attr": "code"
+            }, {
+              "attr": "description"
+            }, {
+              "attr": "symbol"
+            }]
+        }
       }
     ]
   }

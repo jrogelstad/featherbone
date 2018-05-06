@@ -25,6 +25,11 @@
             "path": "pg/populate.js"
         },
         {
+            "type": "feather",
+            "path": "pg/feathers-unit.json",
+            "isSystem": true
+        },
+        {
             "type": "workbook",
             "path": "pg/workbooks.json"
         },
