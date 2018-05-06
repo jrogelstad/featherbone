@@ -286,7 +286,9 @@
         }
       };
 
-      datasource.request(payload).then(processFile).catch(exit);
+      datasource.request(payload)
+        .then(processFile)
+        .catch(rollback);
       return;
     }
 
@@ -413,7 +415,7 @@
           // Otherwise create database first
           } else {
             console.log('Creating database "' + config.database + '"');
-            sql = "create database %I;";
+            sql = "CREATE DATABASE %I;";
             sql = format(sql, config.database, config.user);
             pgclient.query(sql, function () {
               if (err) { return console.error(err); }

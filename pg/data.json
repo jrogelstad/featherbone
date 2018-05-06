@@ -268,4 +268,304 @@
             }
         ]
     }
+}, {
+    "name": "Form",
+    "method": "POST",
+    "id": "2natrk2ze6ts",
+    "data": {
+        "name": "Unit",
+        "description": "Unit form",
+        "feather": "Unit",
+        "module": "Core",
+        "attrs": [{
+            "attr": "code"
+        }, {
+            "attr": "description"
+        }, {
+            "attr": "dimension"
+        }]
+    }
+}, {
+    "name": "Form",
+    "method": "POST",
+    "id": "p83bgr800gql",
+    "data": {
+        "name": "Currency",
+        "description": "Currency form",
+        "feather": "Currency",
+        "module": "Core",
+        "attrs": [{
+            "attr": "code"
+        }, {
+            "attr": "description"
+        },{
+            "attr": "symbol"
+        }, {
+            "attr": "minorUnit"
+        },{
+            "attr": "systemUnit"
+        }, {
+            "attr": "hasDisplayUnit"
+        }, {
+            "attr": "displayUnit"
+        }]
+    }
+}, {
+    "name": "Form",
+    "method": "POST",
+    "id": "2natrk2ze6ts",
+    "data": {
+        "name": "Currency Unit",
+        "description": "Currency Unit form",
+        "feather": "CurrencyUnit",
+        "module": "Core",
+        "attrs": [{
+            "attr": "code"
+        }, {
+            "attr": "description"
+        }, {
+            "attr": "dimension"
+        }, {
+            "attr": "symbol"
+        }]
+    }
+}, {
+    "name": "RelationWidget",
+    "method": "POST",
+    "id": "64p4bwkbr2xq",
+    "data": {
+        "name": "Unit",
+        "description": "Unit relation wdiget",
+        "isActive": true,
+        "feather": "Unit",
+        "valueProperty": "code",
+        "labelProperty": "description",
+        "form": {
+            "id": "2natrk2ze6ts"
+        },
+        "searchColumns": [{
+                "attr": "code"
+            }, {
+                "attr": "description"
+            }, {
+                "attr": "dimension"
+            }
+        ]
+    }
+}, {
+    "name": "RelationWidget",
+    "method": "POST",
+    "id": "rr0kdvlblfgp",
+    "data": {
+        "name": "Currency Unit",
+        "description": "Currency Unit relation wdiget",
+        "isActive": true,
+        "feather": "CurrencyUnit",
+        "valueProperty": "code",
+        "labelProperty": "description",
+        "form": {
+            "id": "2natrk2ze6ts"
+        },
+        "searchColumns": [{
+                "attr": "code"
+            }, {
+                "attr": "description"
+            }, {
+                "attr": "symbol"
+            }
+        ]
+    }
+},  {
+    "name": "Unit",
+    "method": "POST",
+    "id": "each",
+    "data": {
+        "code": "EA",
+        "description": "Each",
+        "dimension": "Quantity"
+    }
+},  {
+    "name": "CurrencyUnit",
+    "method": "POST",
+    "id": "BTC",
+    "data": {
+        "code": "BTC",
+        "description": "Bitcoin",
+        "dimension": "Quantity",
+        "symbol": "₿"
+    }
+}, {
+    "name": "CurrencyUnit",
+    "method": "POST",
+    "id": "cBTC",
+    "data": {
+        "code": "cBTC",
+        "description": "Bitcent",
+        "dimension": "Quantity",
+        "symbol": "c₿"
+    }
+}, {
+    "name": "CurrencyUnit",
+    "method": "POST",
+    "id": "mBTC",
+    "data": {
+        "code": "mBTC",
+        "description": "Millibit",
+        "dimension": "Quantity",
+        "symbol": "m₿"
+    }
+}, {
+    "name": "CurrencyUnit",
+    "method": "POST",
+    "id": "μBTC",
+    "data": {
+        "code": "μBTC",
+        "description": "Bit",
+        "dimension": "Quantity",
+        "symbol": "μ₿"
+    }
+}, {
+    "name": "CurrencyUnit",
+    "method": "POST",
+    "id": "sat",
+    "data": {
+        "code": "sat",
+        "description": "Satoshi",
+        "dimension": "Quantity",
+        "symbol": "sat"
+    }
+},  {
+    "name": "Currency",
+    "method": "POST",
+    "id": "4y9dtthuen7z",
+    "data": {
+        "code": "USD",
+        "description": "U.S. Dollar",
+        "symbol": "$",
+        "minorUnit": 2,
+        "isBase": true,
+        "systemUnit": {
+            "id": "each"
+        }
+    }
+}, {
+    "name": "Currency",
+    "method": "POST",
+    "id": "twugl4nqeodj",
+    "data": {
+        "code": "EUR",
+        "description": "Euro",
+        "symbol": "€",
+        "minorUnit": 2,
+        "systemUnit": {
+            "id": "each"
+        }
+    }
+}, {
+    "name": "Currency",
+    "method": "POST",
+    "id": "x8357g1lp7u7",
+    "data": {
+        "code": "MXN",
+        "description": "Mexican Peso",
+        "symbol": "$",
+        "minorUnit": 2,
+        "systemUnit": {
+            "id": "each"
+        }
+    }
+}, {
+    "name": "Currency",
+    "method": "POST",
+    "id": "io3n6r3qd7gt",
+    "data": {
+        "code": "CAD",
+        "description": "Canadian Dollar",
+        "symbol": "$",
+        "minorUnit": 2,
+        "systemUnit": {
+            "id": "each"
+        }
+    }
+}, {
+    "name": "Currency",
+    "method": "POST",
+    "id": "ylmnhsiupyat",
+    "data": {
+        "code": "CNY",
+        "description": "Yuan Renmimbi",
+        "symbol": "¥",
+        "minorUnit": 2,
+        "systemUnit": {
+            "id": "each"
+        }
+    }
+}, {
+    "name": "Currency",
+    "method": "POST",
+    "id": "e856d0hhlyd6",
+    "data": {
+        "code": "JPY",
+        "description": "Yen",
+        "symbol": "¥",
+        "minorUnit": 0,
+        "systemUnit": {
+            "id": "each"
+        }
+    }
+}, {
+    "name": "Currency",
+    "method": "POST",
+    "id": "df1pppb1325i",
+    "data": {
+        "code": "XAU",
+        "description": "Gold",
+        "symbol": "Au",
+        "minorUnit": 6,
+        "systemUnit": {
+            "id": "each"
+        }
+    }
+}, {
+    "name": "Currency",
+    "method": "POST",
+    "id": "rqnd0vik6uj1",
+    "data": {
+        "code": "XAG",
+        "description": "Silver",
+        "symbol": "Ag",
+        "systemUnit": {
+            "id": "each"
+        }
+    }
+}, {
+    "name": "Currency",
+    "method": "POST",
+    "id": "qrp406n3hdtu",
+    "data": {
+        "code": "XBT",
+        "description": "Bitcoin",
+        "symbol": "₿",
+        "minorUnit": 8,
+        "systemUnit": {
+            "id": "BTC"
+        },
+        "hasDisplayUnit": true,
+        "displayUnit": {
+            "id": "mBTC"
+        }
+    }
+}, {
+    "name": "Currency",
+    "method": "POST",
+    "id": "5x0opi3mxd1q",
+    "data": {
+        "code": "XDR",
+        "description": "Special Drawing Right",
+        "symbol": "SDR",
+        "minorUnit": 6,
+        "systemUnit": {
+            "id": "each"
+        }
+    }
 }]

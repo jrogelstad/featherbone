@@ -1,0 +1,108 @@
+[
+    {
+        "name": "Kind",
+        "plural": "Kinds",
+        "module": "Core",
+        "description": "Base class for physical types",
+        "properties": {
+            "code": {
+                "description": "Natural key",
+                "type": "string",
+                "isUnique": true,
+                "isRequired": true
+            },
+            "description": {
+                "description": "Description",
+                "type": "string"
+            },
+            "note": {
+                "description": "Note",
+                "type": "string"
+            },
+            "type": {
+                "description": "Kind type",
+                "type": "string",
+                "default": "Asset"
+            }
+        }
+    },
+    {
+        "name": "Unit",
+        "plural": "Units",
+        "module": "Core",
+        "description": "Unit of measure",
+        "properties": {
+            "code": {
+                "description": "Natural key",
+                "type": "string",
+                "isUnique": true,
+                "isRequired": true
+            },
+            "description": {
+                "description": "Description",
+                "type": "string"
+            },
+            "dimension": {
+                "description": "Dimension",
+                "type": "string"
+            }
+        }
+    },
+    {
+        "name": "CurrencyUnit",
+        "plural": "CurrencyUnits",
+        "module": "Core",
+        "description": "Currency Unit of measure",
+        "inherits": "Unit",
+        "properties": {
+            "symbol": {
+                "type": "string",
+                "description": "Currency unit symbol"
+            }
+        }
+    },
+    {
+        "name": "Currency",
+        "plural": "Currencies",
+        "module": "Core",
+        "description": "Currency",
+        "inherits": "Kind",
+        "properties": {
+            "symbol": {
+                "description": "Symbol",
+                "type": "string"
+            },
+            "minorUnit": {
+                "description": "Precision",
+                "type": "integer",
+                "default": 2
+            },
+            "isBase": {
+                "description": "System base currency flag",
+                "type": "boolean"
+            },
+            "systemUnit": {
+                "description": "Use unit of mesaure",
+                "type": {
+                    "relation": "Unit",
+                    "properties": ["code", "description", "dimension"]
+                },
+                "isRequired": true
+            },
+            "hasDisplayUnit": {
+                "description": "Use alternate unit of mesaure in display",
+                "type": "boolean",
+                "isRequired": true,
+                "default": false
+            },
+            "displayUnit": {
+                "type": {
+                    "relation": "CurrencyUnit",
+                    "properties": ["code", "description", "dimension"]
+                },
+                "description": "Display unit of mesaure"
+            }
+        }
+    }
+]
+
