@@ -1602,6 +1602,7 @@
         oldRec, newRec, cpatches, feather, tokens, find, noChildProps,
         afterGetFeather, afterGetKey, afterAuthorization, afterDoSelect,
         afterUpdate, afterSelectUpdated, done, nextProp, afterProperties,
+        afterUniqueCheck, unique,
         afterGetRelKey,
         patches = obj.data || [],
         id = obj.id,
@@ -1710,6 +1711,20 @@
               key = fkey;
               return true;
             }
+          },
+          uniqueChanged = function (fkey) {
+            if (props[fkey].isUnique &&
+                updRec[fkey] !== oldRec[fkey]) {
+
+               unique = {
+                feather: props[fkey].inheritedFrom || feather.name,
+                prop: fkey,
+                value: updRec[fkey],
+                label: props[fkey].alias || fkey
+              };
+
+              return true;
+            }
           };
 
         try {
@@ -1745,7 +1760,40 @@
             throw "\"" + key + "\" is required.";
           }
 
+          // Check unique properties
+          if (keys.some(uniqueChanged)) {
+            that.getKeys({
+              client: obj.client,
+              callback: afterUniqueCheck,
+              name: unique.feather,
+              filter: {
+                criteria: [{
+                  property: unique.prop,
+                  value: unique.value
+                }]
+              }
+            });
+            return;
+          }          
+
           // Process properties
+          nextProp();
+        } catch (e) {
+          obj.callback(e);
+        }
+      };
+
+      afterUniqueCheck = function (err, resp) {
+        try {
+          if (err) { throw err; }
+
+          if (resp && resp.length) {
+            throw "Value '" + unique.value + "' assigned to " +
+              unique.label.toName() + " on " +
+              feather.name.toName() + " is not unique to data type " +
+              unique.feather.toName() + ".";
+          }
+
           nextProp();
         } catch (e) {
           obj.callback(e);
