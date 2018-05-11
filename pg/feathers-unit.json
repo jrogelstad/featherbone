@@ -49,6 +49,43 @@
         }
     },
     {
+        "name": "UnitConversion",
+        "plural": "UnitConversions",
+        "module": "Core",
+        "description": "Conversion rates",
+        "properties": {
+            "fromUnit": {
+                "description": "From unit of measure",
+                "type": {
+                  "relation": "Unit",
+                  "properties": ["code", "description"]
+                },
+                "isRequired": true
+            },
+            "toUnit": {
+                "description": "To unit of measure",
+                "type": {
+                  "relation": "Unit",
+                  "properties": ["code", "description"]
+                },
+                "isRequired": true
+            },
+            "ratio": {
+                "description": "conversion ratio",
+                "type": "number",
+                "default": 1,
+                "isRequired": true
+            },
+            "effective": {
+                "description": "Effective date",
+                "type": "string",
+                "format": "date",
+                "isRequired": true,
+                "default": "startOfTime()"
+            }
+        }
+    },
+    {
         "name": "CurrencyUnit",
         "plural": "CurrencyUnits",
         "module": "Core",
@@ -101,6 +138,22 @@
                     "properties": ["code", "description", "dimension"]
                 },
                 "description": "Display unit of mesaure"
+            }
+        }
+    },
+    {
+        "name": "CurrencyUnitConversion",
+        "plural": "CurrencyUnitConversions",
+        "module": "Core",
+        "description": "Currency Unit Conversion",
+        "inherits": "UnitConversion",
+        "properties": {
+            "parent": {
+                "description": "Parent",
+                "type": {
+                    "relation": "Currency",
+                    "childOf": "conversions"
+                }
             }
         }
     }
