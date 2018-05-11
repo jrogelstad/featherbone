@@ -294,6 +294,9 @@
         "description": "Currency form",
         "feather": "Currency",
         "module": "Core",
+        "tabs": [{
+            "name": "Conversions"
+        }],
         "attrs": [{
             "attr": "code"
         }, {
@@ -303,11 +306,27 @@
         }, {
             "attr": "minorUnit"
         },{
-            "attr": "systemUnit"
+            "attr": "systemUnit",
+            "unit": 1
         }, {
-            "attr": "hasDisplayUnit"
+            "attr": "hasDisplayUnit",
+            "unit": 1
         }, {
-            "attr": "displayUnit"
+            "attr": "displayUnit",
+            "unit": 1
+        }, {
+            "attr": "conversions",
+            "showLabel": false,
+            "grid": 1,
+            "unit": 0,
+            "columns": [{
+                "attr": "toUnit"
+            }, {
+                "attr": "toUnit.description",
+                "label": "Description"
+            }, {
+                "attr": "ratio"
+            }]
         }]
     }
 }, {
@@ -553,7 +572,44 @@
         "hasDisplayUnit": true,
         "displayUnit": {
             "id": "mBTC"
-        }
+        },
+        "conversions": [{
+            "id": "om15klk6xeoa",
+            "fromUnit": {
+                "id": "BTC"
+            },
+            "toUnit": {
+                "id": "cBTC"
+            },
+            "ratio": 0.01
+        }, {
+            "id": "3thfca9ejk1f",
+            "fromUnit": {
+                "id": "BTC"
+            },
+            "toUnit": {
+                "id": "mBTC"
+            },
+            "ratio": 0.001
+        }, {
+            "id": "r0c8hrgwllhu",
+            "fromUnit": {
+                "id": "BTC"
+            },
+            "toUnit": {
+                "id": "μBTC"
+            },
+            "ratio": 0.000001
+        }, {
+            "id": "o81m1d215ro2",
+            "fromUnit": {
+                "id": "BTC"
+            },
+            "toUnit": {
+                "id": "sat"
+            },
+            "ratio": 0.00000001
+        }]
     }
 }, {
     "name": "Currency",

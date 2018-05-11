@@ -25,7 +25,7 @@
 
   that = {
     PRECISION_DEFAULT: 18,
-    SCALE_DEFAULT: 6,
+    SCALE_DEFAULT: 8,
 
     /**
       Make a deep copy of an object.
@@ -324,6 +324,10 @@
       d.setMilliseconds(0);
 
       return d.toISOString().slice(0, 10);
+    },
+
+    startOfTime: function () {
+      return "1970-01-01";
     },
 
     types: {
