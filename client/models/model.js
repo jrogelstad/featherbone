@@ -46,7 +46,8 @@
 
     var  doClear, doDelete, doError, doFetch, doInit, doPatch, doPost, doSend,
       doFreeze, doThaw, doRevert, lastError, state, parent,
-      that = {data: {}, name: feather.name || "Object", plural: feather.plural},
+      that = {data: {}, name: feather.name || "Object", plural: feather.plural,
+        parent: f.prop()},
       d = that.data,
       errHandlers = [],
       validators = [],
@@ -682,6 +683,8 @@
             result = catalog.store().models()[name]();
             result.set(value, true, true);
           }
+
+          result.parent(that);
 
           // Carry overloads set at parent on down
           result.overload(overloads);
