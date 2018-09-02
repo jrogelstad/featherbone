@@ -114,7 +114,8 @@
           isCell: opts.isCell,
           style: opts.style,
           onCreate: opts.oncreate,
-          id: opts.id || key
+          id: opts.id || key,
+          disabled: prop.isReadOnly()
         }); 
       }
     }
