@@ -23,6 +23,33 @@
     model = require("model"),
     list = require("list");
 
+  function currencyModel (data) {
+    var that,
+      feather = catalog.getFeather("Currency");
+
+    // ..........................................................
+    // PUBLIC
+    //
+
+    that = model(data, feather);
+    that.data.displayUnit.isReadOnly = function () {
+  		return !that.data.hasDisplayUnit();
+  	};
+  	that.data.displayUnit.isRequired = that.data.hasDisplayUnit;
+    that.onChanged("hasDisplayUnit", function (prop) {
+      if (!prop()) {
+      	that.data.displayUnit(null);
+      }
+    });
+
+    return that;
+  }
+
+  currencyModel.list = list("Currency");
+
+  catalog.register("models", "currency", currencyModel);
+  module.exports = currencyModel;
+
   function currencyUnitConversionModel (data) {
     var that,
       feather = catalog.getFeather("CurrencyUnitConversion");

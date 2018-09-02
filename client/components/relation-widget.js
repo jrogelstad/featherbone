@@ -221,35 +221,44 @@
   relationWidget.component = {
     oninit: function (vnode) {
       var options = vnode.attrs,
-        parentViewModel = options.parentViewModel,
         parentProperty = options.parentProperty,
-        valueProperty = options.valueProperty,
-        labelProperty = options.labelProperty,
-        filter = options.filter,
-        relations = parentViewModel.relations();
+        relations = options.parentViewModel.relations(),
+        that = this;
 
       // Set up viewModel if required
       if (!relations[parentProperty]) {
         relations[parentProperty] = relationWidget.viewModel({
-          parentViewModel: parentViewModel,
+          parentViewModel: options.parentViewModel,
           parentProperty: parentProperty,
-          valueProperty: valueProperty,
-          labelProperty: labelProperty,
+          valueProperty: options.valueProperty,
+          labelProperty: options.labelProperty,
           form: options.form,
           list: options.list,
-          filter: filter,
+          filter: options.filter,
           isCell: options.isCell,
-          id: options.id
+          id: options.id,
+          disabled: options.disabled
         });
       }
       this.viewModel = relations[parentProperty];
       this.viewModel.style(options.style || {});
+
+      // Make sure data changes made by biz logic in the model are recognized
+      options.parentViewModel.model().onChanged(parentProperty, function (prop) {
+        var value = prop();
+        if (value) {
+          that.viewModel.value(value.data[options.valueProperty]());
+        } else {
+          that.viewModel.value("");
+        }
+      });
     },
 
     view: function (vnode) {
       var listOptions, 
         inputStyle, menuStyle, maxWidth,
         vm = this.viewModel,
+        disabled = vnode.attrs.disabled === true,
         style = vm.style(),
         openMenuClass = "pure-menu-link",
         buttonStyle = {
@@ -313,7 +322,8 @@
           onfocus: vm.onfocus,
           oninput: m.withAttr("value", vm.oninput),
           value: vm.value(),
-          oncreate: vnode.attrs.onCreate
+          oncreate: vnode.attrs.onCreate,
+          disabled: disabled
         }),
         m("div", {
           style: {
@@ -323,7 +333,7 @@
         }, [
           m("div", {
             class: "pure-menu custom-restricted-width",
-            onmouseover: vm.onmouseovermenu,
+            onmouseover: disabled ? undefined : vm.onmouseovermenu,
             onmouseout: vm.onmouseoutmenu,
             style: {
               position: "absolute",
@@ -332,7 +342,8 @@
           }, [
             m("span", {
               class:"pure-button fa fa-bars",
-              style: buttonStyle
+              style: buttonStyle,
+              disabled: disabled
             }),
             m("ul", {
               class: "pure-menu-list",
