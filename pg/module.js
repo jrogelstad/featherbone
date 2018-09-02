@@ -33,12 +33,27 @@
 
     that = model(data, feather);
     that.data.displayUnit.isReadOnly = function () {
-  		return !that.data.hasDisplayUnit();
-  	};
-  	that.data.displayUnit.isRequired = that.data.hasDisplayUnit;
+      return !that.data.hasDisplayUnit();
+    };
+    that.data.displayUnit.isRequired = that.data.hasDisplayUnit;
     that.onChanged("hasDisplayUnit", function (prop) {
       if (!prop()) {
-      	that.data.displayUnit(null);
+        that.data.displayUnit(null);
+      }
+    });
+    that.onValidate(function () {
+      var id,
+        displayUnit = that.data.displayUnit(),
+        conversions = that.data.conversions(),
+        containsDisplayUnit = function (model) {
+          return model.data.toUnit().id() === id;
+        };
+
+      if (displayUnit) {
+        id = displayUnit.id();
+        if (!conversions.some(containsDisplayUnit)) {
+          throw "A conversion must exist for the display unit.";
+        }
       }
     });
 
