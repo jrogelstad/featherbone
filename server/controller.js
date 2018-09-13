@@ -1890,6 +1890,13 @@
               }
             /* Handle regular data types */
             } else if (updRec[key] !== oldRec[key] && key !== "objectType") {
+
+              // Handle objects whose values are actually strings
+              if (props[key].type === "object" && typeof updRec[key] === "string" &&
+                  updRec[key].slice(0,1) !== "[") {
+                updRec[key] = '"' + value + '"';
+              }
+
               tokens.push(key.toSnakeCase());
               ary.push("%I = $" + p);
               params.push(updRec[key]);
@@ -2576,7 +2583,7 @@
       /* Otherwise check object authorization */
       } else if (id) {
         /* Find object */
-        sql = "SELECT _pk, tableoid::regclass::text AS \"table\"" +
+        sql = "SELECT _pk, tableoid::regclass::text AS \"t\" " +
           "FROM object WHERE id = $1;";
         obj.client.query(sql, [id], function (err, resp) {
           if (err) {
@@ -2586,7 +2593,7 @@
 
           /* If object found, check authorization */
           if (resp.rows.length > 0) {
-            table = resp.rows[0].table;
+            table = resp.rows[0].t;
             pk = resp.rows[0][PKCOL];
 
             tokens.push(table);

@@ -111,7 +111,7 @@
         reqForm.data.id = "form";
         promises.push(datasource.request(reqForm));
         reqTable = req();
-        reqTable.data.id = "table";
+        reqTable.data.id = "table_spec";
         promises.push(datasource.request(reqTable));
         reqWidget = req();
         reqWidget.data.id = "relation_widget";
