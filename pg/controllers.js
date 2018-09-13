@@ -4,7 +4,7 @@
 
   var f = require("./common/core");
 
-  var doUpsertTable = function (obj) {
+  var doUpsertTableSpec = function (obj) {
     return new Promise (function (resolve, reject) {
       var table = obj.data,
         feather = f.copy(table);
@@ -30,6 +30,6 @@
     });
   };
 
-  datasource.registerFunction("POST", "Table", doUpsertTable, datasource.TRIGGER_BEFORE);
+  datasource.registerFunction("POST", "TableSpec", doUpsertTableSpec, datasource.TRIGGER_BEFORE);
 
 }(datasource));

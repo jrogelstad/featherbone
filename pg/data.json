@@ -26,7 +26,7 @@
     "data": {
         "name": "Table",
         "description": "Table form",
-        "feather": "Table",
+        "feather": "TableSpec",
         "module": "Core",
         "tabs": [{
             "name": "Properties"

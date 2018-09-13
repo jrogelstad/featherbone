@@ -1,7 +1,7 @@
 [
     {
-        "name": "Table",
-        "plural": "Tables",
+        "name": "TableSpec",
+        "plural": "TableSpecs",
         "module": "Core",
         "description": "Table definitions",
         "authorization": false,
@@ -65,7 +65,7 @@
             "parent": {
                 "description": "Parent table",
                 "type": {
-                    "relation": "Table",
+                    "relation": "TableSpec",
                     "childOf": "properties"
                 }
             },

@@ -19,7 +19,7 @@
 (function () {
   "use strict";
 
-  var tableModel,
+  var tableSpecModel,
     catalog = require("catalog"),
     model = require("model");
 
@@ -29,9 +29,9 @@
     @param {Object} Default data
     return {Object}
   */
-  tableModel = function (data) {
+  tableSpecModel = function (data) {
     var that, feathers, modules,
-      feather = catalog.getFeather("Table");
+      feather = catalog.getFeather("TableSpec");
 
     // ..........................................................
     // PUBLIC
@@ -80,7 +80,7 @@
     return that;
   };
 
-  catalog.register("models", "table", tableModel);
-  module.exports = tableModel;
+  catalog.register("models", "tableSpec", tableSpecModel);
+  module.exports = tableSpecModel;
 
 }());

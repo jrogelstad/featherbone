@@ -304,7 +304,7 @@
       });
 
       data.push({
-        name: "Table",
+        name: "TableSpec",
         method: "POST",
         id: feather.name,
         data: feather
