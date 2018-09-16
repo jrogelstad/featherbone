@@ -88,7 +88,11 @@
 
         // If options were passed in, used a select element
         if (obj.dataList) {
-          component = m("select", opts, obj.dataList.map(function (item) {
+          component = m("select", {
+            id: opts.id, onchange: 
+            opts.onchange, 
+            value: (opts.value === "" ? undefined : opts.value)
+          }, obj.dataList.map(function (item) {
             return m("option", {value: item.value}, item.label);
           }));
 
