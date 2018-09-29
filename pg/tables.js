@@ -58,7 +58,7 @@
             sql = "CREATE TYPE mono AS (" +
                   "   amount numeric," +
                   "   currency text," +
-                  "   posted timestamp with time zone," +
+                  "   effective timestamp with time zone," +
                   "   ratio numeric" +
                   ");";
             obj.client.query(sql, createObject);
