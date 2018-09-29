@@ -41,6 +41,34 @@
     tel: "tel"
   };
 
+  f.baseCurrency = function () {
+    var ret = catalog.store().data().currencies().find(function (currency) {
+        return currency.data.isBase();
+      });
+
+    return ret;
+  };
+
+  /**
+    Return a money object.
+
+    @param {Number} Amount.
+    @param {String} Currency code.
+    @param {Date} Effective date.
+    @param {Number} Ratio.
+    @return {Object}
+  */
+  f.money = function (amount, currency, effective, ratio) {
+    var ret = {
+        amount: amount || 0,
+        currency: currency || f.baseCurrency().data.code(),
+        effective: effective || null,
+        ratio: ratio || null
+      };
+
+    return ret;
+  };
+
   /**
     Helper function for building input elements
 

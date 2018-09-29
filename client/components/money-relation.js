@@ -31,12 +31,11 @@
       currencyList = catalog.store().data().currencies;
 
     prop = parent.model().data[options.parentProperty];
-    prop(prop() || f.money(0, currencyList[0]));
 
     vm.id = stream(options.id);
     vm.isCell = stream(!!options.isCell);
     vm.label = function () {
-      return "USD";
+      return f.baseCurrency().data.code();
     };
     vm.amount = function (value) {
       var money;
@@ -61,7 +60,15 @@
       return prop().currency;
     };
     vm.currencies = function () {
-      return currencyList();
+      var ret = currencyList();
+
+      ret.sort(function (a, b) {
+        var attrA = a.data.hasDisplayUnit() ? a.data.displayUnit() : a.data.code(),
+          attrB = b.data.hasDisplayUnit() ? b.data.displayUnit() : b.data.code();
+        return attrA > attrB ? 1 : -1;
+      });
+
+      return ret;
     };
     vm.style = stream({});
     vm.value = stream();
@@ -97,19 +104,22 @@
     },
 
     view: function (vnode) {
-      var inputStyle,
-        vm = this.viewModel,
+      var vm = this.viewModel,
         disabled = vnode.attrs.disabled === true,
         style = vm.style(),
         labelStyle = {
           display: "inline"
+        },
+        inputStyle = {
+          marginRight: "4px"
         };
 
       if (vm.isCell()) {
         inputStyle = {
           minWidth: "100px",
           maxWidth: "100%",
-          border: "none"
+          border: "none",
+          marginRight: "4px"
         };
         labelStyle.display = "none";
       }
@@ -131,7 +141,10 @@
           value: vm.currency(),
           disabled: disabled
         }, vm.currencies().map(function (item) {
-          return m("option", item.data.code());
+          var value = item.data.hasDisplayUnit() ? 
+            item.data.displayUnit().data.code() : item.data.code();
+
+          return m("option", value);
         }))
       ]);
     }
