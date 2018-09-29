@@ -38,7 +38,7 @@
   require("mathjs");
 
   var feathers, loadCatalog, loadModules, moduleData, workbookData,
-    loadForms, loadRelationWidgets, loadWorkbooks, loadCurrencies,
+    loadForms, loadRelationWidgets, loadWorkbooks,
     buildRelationWidget,
     m = require("mithril"),
     f = require("component-core"),
@@ -81,18 +81,6 @@
     };
     catalog.register("components", name, that);
   };
-
-  // Load currencies
-  /*
-  loadCurrencies = new Promise(function (resolve) {
-    var models = catalog.register("models"),
-      currencies = models.currency.list();
-
-    catalog.register("data", "currencies", currencies);
-
-    resolve();
-  });
-  */
 
   // Load catalog and process models
   loadCatalog = new Promise(function (resolve) {
@@ -220,8 +208,6 @@
       workbookModel = models.workbook,
       keys = Object.keys(feathers);
 
-    catalog.register("data", "currencies", models.currency.list());
-
     // Process modules
     moduleData.forEach(function (module) {
       eval(module.script);
@@ -261,6 +247,9 @@
     workbookData.forEach(function (workbook) {
       workbooks[workbook.name.toSpinalCase().toCamelCase()] = workbookModel(workbook);
     });
+
+    // Load currencies
+    catalog.register("data", "currencies", models.currency.list());
 
     // Build home navigation page
     home = {

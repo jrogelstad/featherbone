@@ -129,7 +129,7 @@
     type: {relation: "WorkbookList"}
   };
 
-  feathers = catalog.data();
+  feathers = catalog.store().feathers();
   feathers.Workbook = workbook;
   feathers.WorkbookDefaultConfig = workbookDefaultConifg;
   feathers.WorkbookLocalConfig = workbookLocalConfig;
@@ -296,7 +296,7 @@
     return that;
   };
 
-  models = catalog.register("models");
+  models = catalog.store().models();
   models.workbook = workbookModel;
   models.workbookLocalConfig = workbookChild;
   module.exports = workbookModel;

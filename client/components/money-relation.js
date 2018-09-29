@@ -28,24 +28,7 @@
   moneyRelation.viewModel = function (options) {
     var vm = {}, prop,
       parent = options.parentViewModel,
-      currency = catalog.register("models").currency,
-      //currencyList = catalog.register("data", "currencies");
-      currencyList = [];
-      currencyList.push(currency({
-        id: "4y9dtthuen7z",
-        code: "USD",
-        description: "U.S. Dollar"
-      }));
-      currencyList.push(currency({
-        id: "twugl4nqeodj",
-        code: "EUR",
-        description: "Euro"
-      }));
-      currencyList.push(currency({
-        id: "qrp406n3hdtu",
-        code: "XBT",
-        description: "Bitcoin"
-      }));
+      currencyList = catalog.store().data().currencies;
 
     prop = parent.model().data[options.parentProperty];
     prop(prop() || f.money(0, currencyList[0]));
@@ -78,7 +61,7 @@
       return prop().currency;
     };
     vm.currencies = function () {
-      return currencyList;
+      return currencyList();
     };
     vm.style = stream({});
     vm.value = stream();
