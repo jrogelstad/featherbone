@@ -25,13 +25,13 @@
     dataSource = require("datasource"),
     statechart = require("statechartjs");
 
-  store.data = stream({});
+  store.feathers = stream({});
 
   settings = function () {
     var state, doFetch,
       that = {};
 
-    that.data = f.prop({});
+    that.feathers = f.prop({});
 
     // Send event to fetch feather data from the server.
     that.fetch = function (merge) {
@@ -47,13 +47,13 @@
             data = result || {};
           data = data.data;
           if (context.merge) {
-            merge = that.data();
+            merge = that.feathers();
             Object.keys(data).forEach(function (key) {
               merge[key] = data[key];
             });
             data = merge;
           }
-          that.data(data);
+          that.feathers(data);
           state.send('fetched');
           context.resolve(data);
         };
@@ -112,7 +112,7 @@
     */
     that.getFeather = function (feather, includeInherited) {
       var resultProps, modelProps, appendParent,
-        catalog = that.data(),
+        catalog = that.feathers(),
         result = {name: feather, inherits: "Object"};
 
       appendParent = function (child, parent) {
@@ -179,7 +179,7 @@
       return store[property]();
     };
 
-    that.data = store.data;
+    that.feathers = store.feathers;
 
     // Expose global store data
     that.store = function () {

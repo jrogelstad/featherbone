@@ -52,7 +52,7 @@
     });
 
     feathers = function () {
-      var tables = catalog.data(),
+      var tables = catalog.store().feathers(),
         keys = Object.keys(tables);
 
       keys = keys.filter(function (key) {
@@ -71,7 +71,7 @@
     });
 
     modules = function () {
-      var tables = catalog.data(),
+      var tables = catalog.store().feathers(),
         keys = Object.keys(tables),
         ary = [];
 

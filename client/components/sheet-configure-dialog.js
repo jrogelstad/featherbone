@@ -161,7 +161,7 @@
       return item.attr === this;
     };
     vm.feathers = function () {
-      var feathers = catalog.data(),
+      var feathers = catalog.store().feathers(),
         result = Object.keys(feathers).filter(function (name) {
           return !feathers[name].isChild && !feathers[name].isSystem;
         }).sort();
