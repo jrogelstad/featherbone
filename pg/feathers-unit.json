@@ -104,6 +104,7 @@
         "module": "Core",
         "description": "Currency",
         "inherits": "Kind",
+        "fetchOnStartup": true,
         "properties": {
             "symbol": {
                 "description": "Symbol",
