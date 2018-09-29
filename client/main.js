@@ -36,7 +36,7 @@
   require("relation-widget");
   require("child-table");
   require("mathjs");
-  require("common-core");
+  require("common-core"); 
 
   var feathers, loadCatalog, loadModules, moduleData, workbookData,
     loadForms, loadRelationWidgets, loadWorkbooks,
@@ -89,13 +89,18 @@
     catalog.fetch(true).then(function (data) {
       var models = catalog.register("models"),
         payload = {method: "GET", path: "/settings-definition"},
-        initSettings = [];
+        initSettings = [],
+        toFetch = [];
 
       feathers = data;
 
       Object.keys(data).forEach(function (name) {
         var feather = catalog.getFeather(name);
         
+        if (feather.fetchOnStartup) {
+          toFetch.push(feather);
+        }
+
         name = name.toCamelCase();
 
         // Implement generic function to object from model
@@ -137,15 +142,21 @@
           }));
         });
 
-        // Load currencies
-        function loadCurrencies () {
-          var currencies = models.currency.list({fetch: false});
+        // Load data as indicated
+        function fetchData () {
+          var requests = [];
 
-          catalog.register("data", "currencies", currencies);
-          currencies().fetch({}).then(resolve); // No limit on fetch
+          toFetch.forEach(function(feather) {
+            var ary = models.currency.list({fetch: false});
+
+            catalog.register("data", feather.plural.toCamelCase(), ary);
+            requests.push(ary().fetch({})); // No limit on fetch
+          });
+
+          Promise.all(requests).then(resolve);
         }
 
-        Promise.all(initSettings).then(loadCurrencies);
+        Promise.all(initSettings).then(fetchData);
       });
     });
   });
