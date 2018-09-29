@@ -137,7 +137,15 @@
           }));
         });
 
-        Promise.all(initSettings).then(resolve);
+        // Load currencies
+        function loadCurrencies () {
+          var currencies = models.currency.list({fetch: false});
+
+          catalog.register("data", "currencies", currencies);
+          currencies().fetch({}).then(resolve); // No limit on fetch
+        }
+
+        Promise.all(initSettings).then(loadCurrencies);
       });
     });
   });
@@ -248,9 +256,6 @@
     workbookData.forEach(function (workbook) {
       workbooks[workbook.name.toSpinalCase().toCamelCase()] = workbookModel(workbook);
     });
-
-    // Load currencies
-    catalog.register("data", "currencies", models.currency.list({filter: {}}));
 
     // Build home navigation page
     home = {

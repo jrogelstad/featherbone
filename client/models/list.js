@@ -75,7 +75,8 @@
   //
 
   createList = function (feather) {
-    var state, doFetch, doSave, onClean, onDirty, onDelete,
+    var state, doFetch, doSave, doSend,
+      onClean, onDirty, onDelete,
       models = catalog.store().models(),
       name = feather.toCamelCase(),
       ary = [],
@@ -117,7 +118,8 @@
 
     ary.fetch = function (filter, merge) {
       ary.filter(filter || {});
-      state.send("fetch", merge);
+ 
+      return doSend("fetch", merge);
     };
 
     ary.filter = stream({});
@@ -155,7 +157,7 @@
     };
 
     ary.save = function () {
-      state.send("save");
+      return doSend("save");
     };
 
     ary.state = function () {
@@ -214,20 +216,39 @@
           ary.add(model);
         });
         state.send("fetched");
+        context.resolve(ary);
       });
     };
 
-    doSave = function () {
+    doSave = function (context) {
+      var requests = [];
+
       dirty.forEach(function (model) {
-        model.save();
+        requests.push(model.save());
+      });
+
+      Promise.all(requests)
+        .then(context.resolve)
+        .catch(context.reject);
+    };
+
+    doSend = function (evt, merge) {
+      return new Promise (function (resolve, reject) {
+        var context = {resolve: resolve, reject: reject};
+
+        if (arguments.length > 1) {
+          context.merge = merge;
+        }
+
+        state.send(evt, context);
       });
     };
 
     // Define statechart
     state = statechart.define(function () {
       this.state("Unitialized", function () {
-        this.event("fetch", function (merge) {
-          this.goto("/Busy", {context: {merge: merge}});
+        this.event("fetch", function (context) {
+          this.goto("/Busy", {context: context});
         });
       });
 
@@ -259,8 +280,8 @@
           }
           return "./Clean";
         });
-        this.event("fetch", function (merge) {
-          this.goto("/Busy", {context: {merge: merge}});
+        this.event("fetch", function (context) {
+          this.goto("/Busy", {context: context});
         });
         this.state("Clean", function () {
           this.enter(function () {
@@ -268,8 +289,8 @@
           });
         });
         this.state("Dirty", function () {
-          this.event("save", function () {
-            this.goto("/Busy/Saving");
+          this.event("save", function (context) {
+            this.goto("/Busy/Saving", {context: context});
           });
         });
       });
