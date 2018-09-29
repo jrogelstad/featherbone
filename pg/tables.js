@@ -21,12 +21,12 @@
 
   exports.execute = function (obj) {
     return new Promise (function (resolve, reject) {
-      var createCamelCase, createObject, createFeather, createAuth,
+      var createCamelCase, createMoney, createObject, createFeather, createAuth,
         createModule, createController, createRoute, createWorkbook,
         createSettings, createUser, sqlCheck, done, sql, params;
 
-      sqlCheck = function (table, callback) {
-        var sqlChk = "SELECT * FROM pg_tables WHERE schemaname = 'public' AND tablename = $1;";
+      sqlCheck = function (table, callback, statement) {
+        var sqlChk = statement || "SELECT * FROM pg_tables WHERE schemaname = 'public' AND tablename = $1;";
 
         obj.client.query(sqlChk, [table], function (err, resp) {
           if (err) {
@@ -43,7 +43,32 @@
         sql = "CREATE OR REPLACE FUNCTION to_camel_case(str text) RETURNS text AS $$" +
           "SELECT replace(initcap($1), '_', '');" +
           "$$ LANGUAGE SQL IMMUTABLE;";
-        obj.client.query(sql, createObject);
+        obj.client.query(sql, createMoney);
+      };
+
+      // Create a mono data type ("money" is already used)
+      createMoney = function () {
+        function callback (err, exists) {
+          if (err) {
+            reject(err);
+            return;
+          }
+
+          if (!exists) {
+            sql = "CREATE TYPE mono AS (" +
+                  "   amount numeric," +
+                  "   currency text," +
+                  "   posted timestamp with time zone," +
+                  "   ratio numeric" +
+                  ");";
+            obj.client.query(sql, createObject);
+            return;
+          }
+          createObject();
+        }
+
+        sql = "SELECT * FROM pg_class WHERE relname = $1";
+        sqlCheck('mono', callback, sql);
       };
 
       // Create the base object table

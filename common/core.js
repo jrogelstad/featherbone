@@ -93,6 +93,9 @@
       },
       tel: {
         default: ""
+      },
+      money: {
+        default: function () { return that.money(); }
       }
     },
 
@@ -101,6 +104,15 @@
     */
     getCurrentUser: function () {
       return "admin";
+    },
+
+    money: function (amount, currency, posted, ratio) {
+      return {
+        amount: amount || 0,
+        currency: currency || "",
+        posted: posted || null,
+        ratio: ratio || null
+      };
     },
 
     /**
