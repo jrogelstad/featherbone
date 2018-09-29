@@ -46,7 +46,8 @@
       boolean: {type: "boolean", default: "false"},
       date: {type: "date", default: "today()"},
       dateTime: {type: "timestamp with time zone", default: "now()"},
-      password: {type: "text", default: ""}
+      password: {type: "text", default: ""},
+      money: {type: "mono", default: "money()"}
     };
 
   // ..........................................................
@@ -1264,6 +1265,25 @@
             }
           }
 
+          /* Handle non-relational composites */
+          if (prop.type === "object" &&
+              prop.format) {
+          
+            if (prop.isRequired && value === null) {
+              throw "\"" + key + "\" is required.\"";
+            }
+            Object.keys(value).forEach(function (attr) {
+              args.push(col);
+              args.push(attr);
+              tokens.push("%I.%I");
+              values.push(value[attr]);
+              params.push("$" + p);
+              p += 1;
+            });
+            buildInsert();
+            return;
+          }
+
           afterHandleRelations();
           return;
         }
@@ -1888,11 +1908,26 @@
                 }
                 return;
               }
+
+            /* Handle non-relational composites */
+            } else if (updRec[key] !== oldRec[key] &&
+                props[key].type === "object" &&
+                props[key].format) {
+
+              Object.keys(updRec[key]).forEach(function (attr) {
+                tokens.push(key.toSnakeCase());
+                tokens.push(attr.toSnakeCase());
+                ary.push("%I.%I = $" + p);
+                params.push(updRec[key][attr]);
+                p += 1;
+              });
+
             /* Handle regular data types */
             } else if (updRec[key] !== oldRec[key] && key !== "objectType") {
 
               // Handle objects whose values are actually strings
-              if (props[key].type === "object" && typeof updRec[key] === "string" &&
+              if (props[key].type === "object" &&
+                  typeof updRec[key] === "string" &&
                   updRec[key].slice(0,1) !== "[") {
                 updRec[key] = '"' + value + '"';
               }

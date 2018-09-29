@@ -20,6 +20,7 @@
   "use strict";
 
   require("workbook");
+  require("money-relation");
 
   var f = require("common-core"),
     catalog = require("catalog"),
@@ -58,11 +59,11 @@
       prop = f.resolveProperty(obj.model, key),
       format = prop.format || prop.type,
       opts = obj.options || {},
-      components = catalog.store().components();
+      components = catalog.store().components(),
+      id = opts.id || key;
 
     // Handle input types
     if (typeof prop.type === "string" || isPath) {
-      opts.id = opts.id || key;
       opts.type = f.inputMap[format];
 
       if (isPath || prop.isReadOnly()) {
@@ -75,23 +76,37 @@
 
       if (prop.type === "boolean") {
         component = m(components.checkbox, {
-          id: opts.id,
+          id: id,
           value: prop(),
           onclick: prop,
           required: opts.required,
           disabled: opts.disabled,
           style: opts.style
         });
+      } else if (prop.type === "object" &&
+          prop.format === "money") {
+        component = m(components.moneyRelation, {
+          parentViewModel: obj.viewModel,
+          parentProperty: key,
+          filter: obj.filter,
+          isCell: opts.isCell,
+          style: opts.style,
+          onCreate: opts.oncreate,
+          id: id,
+          disabled: prop.isReadOnly()
+        });
       } else {
+        opts.id = id;
         opts.onchange = m.withAttr("value", prop);
         opts.value = prop();
 
         // If options were passed in, used a select element
         if (obj.dataList) {
           component = m("select", {
-            id: opts.id, onchange: 
-            opts.onchange, 
-            value: (opts.value === "" ? undefined : opts.value)
+            id: id,
+            onchange: opts.onchange, 
+            value: (opts.value === "" ? undefined : opts.value),
+            disabled: opts.disabled
           }, obj.dataList.map(function (item) {
             return m("option", {value: item.value}, item.label);
           }));
@@ -118,7 +133,7 @@
           isCell: opts.isCell,
           style: opts.style,
           onCreate: opts.oncreate,
-          id: opts.id || key,
+          id: id,
           disabled: prop.isReadOnly()
         }); 
       }

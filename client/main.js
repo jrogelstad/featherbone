@@ -38,7 +38,8 @@
   require("mathjs");
 
   var feathers, loadCatalog, loadModules, moduleData, workbookData,
-    loadForms, loadRelationWidgets, loadWorkbooks, buildRelationWidget,
+    loadForms, loadRelationWidgets, loadWorkbooks, loadCurrencies,
+    buildRelationWidget,
     m = require("mithril"),
     f = require("component-core"),
     model = require("model"),
@@ -81,8 +82,21 @@
     catalog.register("components", name, that);
   };
 
+  // Load currencies
+  /*
+  loadCurrencies = new Promise(function (resolve) {
+    var models = catalog.register("models"),
+      currencies = models.currency.list();
+
+    catalog.register("data", "currencies", currencies);
+
+    resolve();
+  });
+  */
+
   // Load catalog and process models
   loadCatalog = new Promise(function (resolve) {
+
     catalog.fetch(true).then(function (data) {
       var models = catalog.register("models"),
         payload = {method: "GET", path: "/settings-definition"},
@@ -205,6 +219,8 @@
       models = catalog.store().models(),
       workbookModel = models.workbook,
       keys = Object.keys(feathers);
+
+    catalog.register("data", "currencies", models.currency.list());
 
     // Process modules
     moduleData.forEach(function (module) {
