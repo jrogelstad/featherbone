@@ -832,6 +832,7 @@
             case "number":
             case "integer":
               content = value.toLocaleString();
+              tdOpts. style.textAlign = "right";
               break;
             case "boolean":
               if (value) {
@@ -871,6 +872,7 @@
                 minimumFractionDigits: minorUnit,
                 maximumFractionDigits: minorUnit
               });
+              tdOpts.style.textAlign = "right";
               break;
             default:
               if (typeof format === "object" && d[col]()) {
