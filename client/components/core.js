@@ -141,6 +141,8 @@
 
         // Otherwise standard input
         } else {
+          opts.style = opts.style || {};
+          opts.style.width = "215px";
           component = m("input", opts);
         }
       }

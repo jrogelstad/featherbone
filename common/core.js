@@ -93,9 +93,6 @@
       },
       tel: {
         default: ""
-      },
-      money: {
-        default: function () { return that.money(); }
       }
     },
 

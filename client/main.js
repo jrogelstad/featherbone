@@ -36,7 +36,7 @@
   require("relation-widget");
   require("child-table");
   require("mathjs");
-  require("common-core"); 
+  require("common-core");
 
   var feathers, loadCatalog, loadModules, moduleData, workbookData,
     loadForms, loadRelationWidgets, loadWorkbooks,
