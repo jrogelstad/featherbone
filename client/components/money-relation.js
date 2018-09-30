@@ -64,9 +64,9 @@
 
       ret.sort(function (a, b) {
         var attrA = a.data.hasDisplayUnit() ?
-            a.data.displayUnit() : a.data.code(),
+            a.data.displayUnit().data.code() : a.data.code(),
           attrB = b.data.hasDisplayUnit() ?
-            b.data.displayUnit() : b.data.code();
+            b.data.displayUnit().data.code() : b.data.code();
 
         return attrA > attrB ? 1 : -1;
       });
@@ -119,12 +119,7 @@
         };
 
       if (vm.isCell()) {
-        inputStyle = {
-          minWidth: "100px",
-          maxWidth: "100%",
-          border: "none",
-          marginRight: "4px"
-        };
+        inputStyle.border = "none";
         labelStyle.display = "none";
       }
 

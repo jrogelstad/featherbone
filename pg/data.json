@@ -548,7 +548,7 @@
         "minorUnit": 8,
         "hasDisplayUnit": true,
         "displayUnit": {
-            "id": "BTC"
+            "id": "mBTC"
         },
         "conversions": [{
             "id": "nhxj86qlrkta",
