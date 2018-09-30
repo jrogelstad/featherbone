@@ -54,14 +54,6 @@
         "module": "Core",
         "description": "Conversion rates",
         "properties": {
-            "fromUnit": {
-                "description": "From unit of measure",
-                "type": {
-                  "relation": "Unit",
-                  "properties": ["code", "description"]
-                },
-                "isRequired": true
-            },
             "toUnit": {
                 "description": "To unit of measure",
                 "type": {
@@ -75,13 +67,6 @@
                 "type": "number",
                 "default": 1,
                 "isRequired": true
-            },
-            "effective": {
-                "description": "Effective date",
-                "type": "string",
-                "format": "date",
-                "isRequired": true,
-                "default": "startOfTime()"
             }
         }
     },
@@ -125,14 +110,6 @@
                 "description": "System base currency flag",
                 "type": "boolean"
             },
-            "systemUnit": {
-                "description": "Use unit of mesaure",
-                "type": {
-                    "relation": "Unit",
-                    "properties": ["code", "description", "dimension"]
-                },
-                "isRequired": true
-            },
             "hasDisplayUnit": {
                 "description": "Use alternate unit of mesaure in display",
                 "type": "boolean",
@@ -142,7 +119,12 @@
             "displayUnit": {
                 "type": {
                     "relation": "CurrencyUnit",
-                    "properties": ["code", "description", "minorUnit"]
+                    "properties": [
+                        "code", 
+                        "description", 
+                        "minorUnit", 
+                        "symbol"
+                    ]
                 },
                 "description": "Display unit of mesaure"
             }

@@ -151,7 +151,6 @@
       return col ? vm.formatInputId(col) : undefined;
     };
     /*
-
       Set or return the last model that was selected in the list.
 
       @param {Object} Model selected
@@ -802,7 +801,9 @@
           // Build cells
           idx = 0;
           tds = vm.attrs().map(function (col) {
-            var cell, content,
+            var cell, content, curr,
+              symbol = "",
+              minorUnit = 2,
               prop = f.resolveProperty(model, col),
               value = prop(),
               format = prop.format || prop.type,
@@ -853,6 +854,23 @@
               break;
             case "string":
               content = value;
+              break;
+            case "money":
+              curr = f.getCurrency(value.currency);
+              if (curr) {
+                if (curr.data.hasDisplayUnit()) {
+                  symbol = curr.data.displayUnit().data.symbol();
+                  minorUnit = curr.data.displayUnit().data.minorUnit();
+                } else {
+                  symbol = curr.data.symbol();
+                  minorUnit = curr.data.minorUnit();
+                }
+              }
+
+              content = symbol + value.amount.toLocaleString(undefined, {
+                minimumFractionDigits: minorUnit,
+                maximumFractionDigits: minorUnit
+              });
               break;
             default:
               if (typeof format === "object" && d[col]()) {

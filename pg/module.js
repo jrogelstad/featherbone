@@ -103,29 +103,4 @@
   catalog.register("models", "currencyUnit", currencyUnitModel);
   module.exports = currencyUnitModel;
 
-  /*
-    Currency Unit Conversion model
-  */
-  function currencyUnitConversionModel (data) {
-    var that,
-      feather = catalog.getFeather("CurrencyUnitConversion");
-
-    // ..........................................................
-    // PUBLIC
-    //
-
-    that = model(data, feather);
-
-    that.parent.state().substateMap.Changing.exit(function () {
-      that.data.fromUnit = that.parent().data.systemUnit;
-    });
-
-    return that;
-  }
-
-  currencyUnitConversionModel.list = list("CurrencyUnitConversion");
-
-  catalog.register("models", "currencyUnitConversion", currencyUnitConversionModel);
-  module.exports = currencyUnitConversionModel;
-
 }());
