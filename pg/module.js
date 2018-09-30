@@ -21,38 +21,7 @@
 
   var catalog = require("catalog"),
     model = require("model"),
-    list = require("list"),
-    f = require("common-core");
-
-  // Add support for money format
-  f.formats.money = {
-    default: function () { return f.money(); },
-    fromType: function (value) {
-      var curr = catalog.store().data().currencies().find(function (curr) {
-          return curr.data.code() === value.currency;
-        }),
-        minorUnit = curr.data.minorUnit(),
-        style = {
-          minimumFractionDigits: minorUnit,
-          maximumFractionDigits: minorUnit
-        };
-
-      return {
-        amount: value.amount.toLocaleString(undefined, style),
-        currency: value.currency,
-        effective: f.formats.dateTime.fromType(value.effective),
-        ratio: f.types.number.fromType(value.ratio)
-      };
-    },
-    toType: function (value) {
-      return {
-        amount: f.types.number.toType(value.amount),
-        currency: f.formats.string.toType(value.currency),
-        effective: f.formats.dateTime.toType(value.effective),
-        ratio: f.types.number.toType(value.ratio)
-      };
-    }
-  };
+    list = require("list");
 
   /*
     Currency Model

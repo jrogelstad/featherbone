@@ -95,6 +95,12 @@
             "symbol": {
                 "type": "string",
                 "description": "Currency unit symbol"
+            },
+            "minorUnit": {
+                "description": "Precision",
+                "type": "integer",
+                "default": 2,
+                "isRequired": true
             }
         }
     },
@@ -136,7 +142,7 @@
             "displayUnit": {
                 "type": {
                     "relation": "CurrencyUnit",
-                    "properties": ["code", "description", "dimension"]
+                    "properties": ["code", "description", "minorUnit"]
                 },
                 "description": "Display unit of mesaure"
             }

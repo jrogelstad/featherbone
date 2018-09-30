@@ -346,6 +346,8 @@
             "attr": "dimension"
         }, {
             "attr": "symbol"
+        }, {
+            "attr": "minorUnit"
         }]
     }
 }, {
@@ -421,7 +423,8 @@
         "code": "cBTC",
         "description": "Bitcent",
         "dimension": "Quantity",
-        "symbol": "c₿"
+        "symbol": "c₿",
+        "minorUnit": "6"
     }
 }, {
     "name": "CurrencyUnit",
@@ -431,7 +434,8 @@
         "code": "mBTC",
         "description": "Millibit",
         "dimension": "Quantity",
-        "symbol": "m₿"
+        "symbol": "m₿",
+        "minorUnit": "4"
     }
 }, {
     "name": "CurrencyUnit",
@@ -441,7 +445,8 @@
         "code": "μBTC",
         "description": "Bit",
         "dimension": "Quantity",
-        "symbol": "μ₿"
+        "symbol": "μ₿",
+        "minorUnit": "2"
     }
 }, {
     "name": "CurrencyUnit",
@@ -451,7 +456,8 @@
         "code": "sat",
         "description": "Satoshi",
         "dimension": "Quantity",
-        "symbol": "sat"
+        "symbol": "sat",
+        "minorUnit": "0"
     }
 },  {
     "name": "Currency",
