@@ -25,7 +25,16 @@
   var f = require("common-core"),
     catalog = require("catalog"),
     m = require("mithril"),
-    stream = require("stream");
+    stream = require("stream"),
+    mathjs = require("mathjs");
+
+  function getCurrency (currency) {
+    return catalog.store().data().currencies().find(function (curr) {
+      return curr.data.code() === currency ||
+        (curr.data.hasDisplayUnit() &&
+        curr.data.displayUnit().data.code() === currency);
+    });
+  }
 
   /**
     Object to define what input type to use for data
@@ -39,6 +48,66 @@
     boolean: "checkbox",
     password: "text",
     tel: "tel"
+  };
+
+  f.formats.money.fromType = function (value) {
+    var style, expr,
+      amount = value.amount,
+      currency = value.currency,
+      curr = getCurrency(value.currency),
+      hasDisplayUnit = curr.data.hasDisplayUnit(),
+      minorUnit = hasDisplayUnit ?
+        curr.data.displayUnit().data.minorUnit() : curr.data.minorUnit();
+
+    style = {
+      minimumFractionDigits: minorUnit,
+      maximumFractionDigits: minorUnit
+    };
+
+    if (hasDisplayUnit) {
+      curr.data.conversions().some(function (conv) {
+        if (conv.data.toUnit().id() === curr.data.displayUnit().id()) {
+          expr = amount + " / " + conv.data.ratio();
+          amount = mathjs.eval(expr);
+          return true;
+        }
+      });
+
+      currency = curr.data.displayUnit().data.code();
+    }
+
+    return {
+      amount: amount.toLocaleString(undefined, style),
+      currency: currency,
+      effective: f.formats.dateTime.fromType(value.effective),
+      ratio: f.types.number.fromType(value.ratio)
+    };
+  };
+
+  f.formats.money.toType = function (value) {
+    var expr,
+      amount = f.types.number.toType(value.amount),
+      currency = f.formats.string.toType(value.currency),
+      curr = getCurrency(value.currency);
+
+    if (curr.data.hasDisplayUnit() && currency !== curr.data.code()) {
+      curr.data.conversions().some(function (conv) {
+        if (conv.data.toUnit().id() === curr.data.displayUnit().id()) {
+          expr = amount + " * " + conv.data.ratio();
+          amount = mathjs.eval(expr);
+          return true;
+        }
+      });
+
+      currency = curr.data.code();
+    }
+
+    return {
+      amount: amount,
+      currency: currency,
+      effective: f.formats.dateTime.toType(value.effective),
+      ratio: f.types.number.toType(value.ratio)
+    };
   };
 
   f.baseCurrency = function () {
