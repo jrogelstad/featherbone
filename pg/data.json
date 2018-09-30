@@ -301,13 +301,10 @@
             "attr": "code"
         }, {
             "attr": "description"
-        },{
+        }, {
             "attr": "symbol"
         }, {
             "attr": "minorUnit"
-        },{
-            "attr": "systemUnit",
-            "unit": 1
         }, {
             "attr": "hasDisplayUnit",
             "unit": 1
@@ -413,7 +410,8 @@
         "code": "BTC",
         "description": "Bitcoin",
         "dimension": "Quantity",
-        "symbol": "₿"
+        "symbol": "₿",
+        "minorUnit": 8
     }
 }, {
     "name": "CurrencyUnit",
@@ -424,7 +422,7 @@
         "description": "Bitcent",
         "dimension": "Quantity",
         "symbol": "c₿",
-        "minorUnit": "6"
+        "minorUnit": 6
     }
 }, {
     "name": "CurrencyUnit",
@@ -435,7 +433,7 @@
         "description": "Millibit",
         "dimension": "Quantity",
         "symbol": "m₿",
-        "minorUnit": "4"
+        "minorUnit": 4
     }
 }, {
     "name": "CurrencyUnit",
@@ -446,7 +444,7 @@
         "description": "Bit",
         "dimension": "Quantity",
         "symbol": "μ₿",
-        "minorUnit": "2"
+        "minorUnit": 2
     }
 }, {
     "name": "CurrencyUnit",
@@ -456,8 +454,8 @@
         "code": "sat",
         "description": "Satoshi",
         "dimension": "Quantity",
-        "symbol": "sat",
-        "minorUnit": "0"
+        "symbol": "s",
+        "minorUnit": 0
     }
 },  {
     "name": "Currency",
@@ -468,10 +466,7 @@
         "description": "U.S. Dollar",
         "symbol": "$",
         "minorUnit": 2,
-        "isBase": true,
-        "systemUnit": {
-            "id": "each"
-        }
+        "isBase": true
     }
 }, {
     "name": "Currency",
@@ -481,10 +476,7 @@
         "code": "EUR",
         "description": "Euro",
         "symbol": "€",
-        "minorUnit": 2,
-        "systemUnit": {
-            "id": "each"
-        }
+        "minorUnit": 2
     }
 }, {
     "name": "Currency",
@@ -494,10 +486,7 @@
         "code": "MXN",
         "description": "Mexican Peso",
         "symbol": "$",
-        "minorUnit": 2,
-        "systemUnit": {
-            "id": "each"
-        }
+        "minorUnit": 2
     }
 }, {
     "name": "Currency",
@@ -507,10 +496,7 @@
         "code": "CAD",
         "description": "Canadian Dollar",
         "symbol": "$",
-        "minorUnit": 2,
-        "systemUnit": {
-            "id": "each"
-        }
+        "minorUnit": 2
     }
 }, {
     "name": "Currency",
@@ -520,10 +506,7 @@
         "code": "CNY",
         "description": "Yuan Renmimbi",
         "symbol": "¥",
-        "minorUnit": 2,
-        "systemUnit": {
-            "id": "each"
-        }
+        "minorUnit": 2
     }
 }, {
     "name": "Currency",
@@ -533,10 +516,7 @@
         "code": "JPY",
         "description": "Yen",
         "symbol": "¥",
-        "minorUnit": 0,
-        "systemUnit": {
-            "id": "each"
-        }
+        "minorUnit": 0
     }
 }, {
     "name": "Currency",
@@ -546,10 +526,7 @@
         "code": "XAU",
         "description": "Gold",
         "symbol": "Au",
-        "minorUnit": 6,
-        "systemUnit": {
-            "id": "each"
-        }
+        "minorUnit": 6
     }
 }, {
     "name": "Currency",
@@ -558,10 +535,7 @@
     "data": {
         "code": "XAG",
         "description": "Silver",
-        "symbol": "Ag",
-        "systemUnit": {
-            "id": "each"
-        }
+        "symbol": "Ag"
     }
 }, {
     "name": "Currency",
@@ -572,45 +546,36 @@
         "description": "Bitcoin",
         "symbol": "₿",
         "minorUnit": 8,
-        "systemUnit": {
-            "id": "BTC"
-        },
         "hasDisplayUnit": true,
         "displayUnit": {
-            "id": "mBTC"
+            "id": "BTC"
         },
         "conversions": [{
-            "id": "om15klk6xeoa",
-            "fromUnit": {
+            "id": "nhxj86qlrkta",
+            "toUnit": {
                 "id": "BTC"
             },
+            "ratio": 1
+        }, {
+            "id": "om15klk6xeoa",
             "toUnit": {
                 "id": "cBTC"
             },
             "ratio": 0.01
         }, {
             "id": "3thfca9ejk1f",
-            "fromUnit": {
-                "id": "BTC"
-            },
             "toUnit": {
                 "id": "mBTC"
             },
             "ratio": 0.001
         }, {
             "id": "r0c8hrgwllhu",
-            "fromUnit": {
-                "id": "BTC"
-            },
             "toUnit": {
                 "id": "μBTC"
             },
             "ratio": 0.000001
         }, {
             "id": "o81m1d215ro2",
-            "fromUnit": {
-                "id": "BTC"
-            },
             "toUnit": {
                 "id": "sat"
             },
@@ -625,9 +590,6 @@
         "code": "XDR",
         "description": "Special Drawing Right",
         "symbol": "SDR",
-        "minorUnit": 6,
-        "systemUnit": {
-            "id": "each"
-        }
+        "minorUnit": 6
     }
 }]
