@@ -48,6 +48,9 @@
 
       return prop().amount;
     };
+    vm.baseAmount = function () {
+      return "1,000,000.00";
+    };
     vm.currency = function (value) {
       var money;
 
@@ -73,11 +76,17 @@
 
       return ret;
     };
-    vm.style = stream({});
     vm.value = stream();
 
     return vm;
   };
+
+  function selections (item) {
+    var value = item.data.hasDisplayUnit() ? 
+      item.data.displayUnit().data.code() : item.data.code();
+
+    return m("option", value);
+  }
 
   moneyRelation.component = {
     oninit: function (vnode) {
@@ -92,7 +101,6 @@
         isCell: options.isCell,
         disabled: options.disabled
       });
-      this.viewModel.style(options.style || {});
 
       // Make sure data changes made by biz logic in the model are recognized
       /*
@@ -107,11 +115,15 @@
     },
 
     view: function (vnode) {
-      var vm = this.viewModel,
+      var vm = this.viewModel, currencyLabelStyle,
+        baseCurrency = f.baseCurrency(),
+        baseCurrencyCode = baseCurrency.data.hasDisplayUnit() ?
+          baseCurrency.data.displayUnit().data.code() : baseCurrency.data.code(),
         disabled = vnode.attrs.disabled === true,
-        style = vm.style(),
-        labelStyle = {
-          display: "inline"
+        amountLabelStyle = {
+          marginLeft: "12px", 
+          marginTop: vm.label() ? "6px" : "",
+          display: "inline-block"
         },
         inputStyle = {
           marginRight: "4px",
@@ -120,13 +132,19 @@
 
       if (vm.isCell()) {
         inputStyle.border = "none";
-        labelStyle.display = "none";
+        amountLabelStyle.display = "none";
+        currencyLabelStyle.display = "none";
       }
 
-      style.display = style.display || "inline-block";
+      if (baseCurrencyCode === vm.currency()) {
+        amountLabelStyle.display = "none";
+      }
+
+      currencyLabelStyle = f.copy(amountLabelStyle);
+      amountLabelStyle.width = "110px";
 
       // Build the view
-      return m("div", {style: style}, [
+      return m("div", {style: {display: "inline-block"}}, [
         m("input", {
           style: inputStyle,
           id: "A" + vm.id(),
@@ -142,12 +160,15 @@
           style: {
             width: "95px"
           }
-        }, vm.currencies().map(function (item) {
-          var value = item.data.hasDisplayUnit() ? 
-            item.data.displayUnit().data.code() : item.data.code();
-
-          return m("option", value);
-        }))
+        }, vm.currencies().map(selections)),
+        m("div", [
+          m("div", {
+              style: amountLabelStyle
+            }, vm.baseAmount()),
+          m("div", {
+              style: currencyLabelStyle 
+          }, vm.label())
+        ])
       ]);
     }
   };
