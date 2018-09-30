@@ -21,8 +21,42 @@
 
   var catalog = require("catalog"),
     model = require("model"),
-    list = require("list");
+    list = require("list"),
+    f = require("common-core");
 
+  // Add support for money format
+  f.formats.money = {
+    default: function () { return f.money(); },
+    fromType: function (value) {
+      var curr = catalog.store().data().currencies().find(function (curr) {
+          return curr.data.code() === value.currency;
+        }),
+        minorUnit = curr.data.minorUnit(),
+        style = {
+          minimumFractionDigits: minorUnit,
+          maximumFractionDigits: minorUnit
+        };
+
+      return {
+        amount: value.amount.toLocaleString(undefined, style),
+        currency: value.currency,
+        effective: f.formats.dateTime.fromType(value.effective),
+        ratio: f.types.number.fromType(value.ratio)
+      };
+    },
+    toType: function (value) {
+      return {
+        amount: f.types.number.toType(value.amount),
+        currency: f.formats.string.toType(value.currency),
+        effective: f.formats.dateTime.toType(value.effective),
+        ratio: f.types.number.toType(value.ratio)
+      };
+    }
+  };
+
+  /*
+    Currency Model
+  */
   function currencyModel (data) {
     var that,
       feather = catalog.getFeather("Currency");
@@ -32,15 +66,19 @@
     //
 
     that = model(data, feather);
+
     that.data.displayUnit.isReadOnly = function () {
       return !that.data.hasDisplayUnit();
     };
+
     that.data.displayUnit.isRequired = that.data.hasDisplayUnit;
+
     that.onChanged("hasDisplayUnit", function (prop) {
       if (!prop()) {
         that.data.displayUnit(null);
       }
     });
+
     that.onValidate(function () {
       var id,
         displayUnit = that.data.displayUnit(),
@@ -55,6 +93,10 @@
           throw "A conversion must exist for the display unit.";
         }
       }
+
+      if (that.data.code().length > 4) {
+        throw "code may not be more than 4 characters";
+      }
     });
 
     return that;
@@ -65,6 +107,36 @@
   catalog.register("models", "currency", currencyModel);
   module.exports = currencyModel;
 
+  /*
+    Currency Unit model
+  */
+  function currencyUnitModel (data) {
+    var that,
+      feather = catalog.getFeather("CurrencyUnit");
+
+    // ..........................................................
+    // PUBLIC
+    //
+
+    that = model(data, feather);
+
+    that.onValidate(function () {
+      if (that.data.code().length > 4) {
+        throw "code may not be more than 4 characters";
+      }
+    });
+
+    return that;
+  }
+
+  currencyUnitModel.list = list("CurrencyUnit");
+
+  catalog.register("models", "currencyUnit", currencyUnitModel);
+  module.exports = currencyUnitModel;
+
+  /*
+    Currency Unit Conversion model
+  */
   function currencyUnitConversionModel (data) {
     var that,
       feather = catalog.getFeather("CurrencyUnitConversion");
@@ -74,6 +146,7 @@
     //
 
     that = model(data, feather);
+
     that.parent.state().substateMap.Changing.exit(function () {
       that.data.fromUnit = that.parent().data.systemUnit;
     });

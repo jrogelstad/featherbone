@@ -63,8 +63,11 @@
       var ret = currencyList();
 
       ret.sort(function (a, b) {
-        var attrA = a.data.hasDisplayUnit() ? a.data.displayUnit() : a.data.code(),
-          attrB = b.data.hasDisplayUnit() ? b.data.displayUnit() : b.data.code();
+        var attrA = a.data.hasDisplayUnit() ?
+            a.data.displayUnit() : a.data.code(),
+          attrB = b.data.hasDisplayUnit() ?
+            b.data.displayUnit() : b.data.code();
+
         return attrA > attrB ? 1 : -1;
       });
 
@@ -111,7 +114,8 @@
           display: "inline"
         },
         inputStyle = {
-          marginRight: "4px"
+          marginRight: "4px",
+          width: "116px"
         };
 
       if (vm.isCell()) {
@@ -139,7 +143,10 @@
           id: "C" + vm.id(),
           onchange: m.withAttr("value", vm.currency), 
           value: vm.currency(),
-          disabled: disabled
+          disabled: disabled,
+          style: {
+            width: "95px"
+          }
         }, vm.currencies().map(function (item) {
           var value = item.data.hasDisplayUnit() ? 
             item.data.displayUnit().data.code() : item.data.code();
