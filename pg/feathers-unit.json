@@ -49,28 +49,6 @@
         }
     },
     {
-        "name": "UnitConversion",
-        "plural": "UnitConversions",
-        "module": "Core",
-        "description": "Conversion rates",
-        "properties": {
-            "toUnit": {
-                "description": "To unit of measure",
-                "type": {
-                  "relation": "Unit",
-                  "properties": ["code", "description"]
-                },
-                "isRequired": true
-            },
-            "ratio": {
-                "description": "conversion ratio",
-                "type": "number",
-                "default": 1,
-                "isRequired": true
-            }
-        }
-    },
-    {
         "name": "CurrencyUnit",
         "plural": "CurrencyUnits",
         "module": "Core",
@@ -135,7 +113,6 @@
         "plural": "CurrencyUnitConversions",
         "module": "Core",
         "description": "Currency Unit Conversion",
-        "inherits": "UnitConversion",
         "properties": {
             "parent": {
                 "description": "Parent",
@@ -143,14 +120,68 @@
                     "relation": "Currency",
                     "childOf": "conversions"
                 }
-            }
-        },
-        "overloads": {
+            },
             "toUnit": {
+                "description": "To unit of measure",
                 "type": {
-                    "relation": "CurrencyUnit"
+                  "relation": "Unit",
+                  "properties": ["code", "description"]
                 },
-                "alias": "currencyUnit"
+                "isRequired": true
+            },
+            "ratio": {
+                "description": "conversion ratio",
+                "type": "number",
+                "default": 1,
+                "isRequired": true
+            }
+        }
+    },
+    {
+        "name": "CurrencyConversion",
+        "plural": "CurrencyConversions",
+        "module": "Core",
+        "description": "Currency Conversion rates",
+        "properties": {
+            "fromCurrency": {
+                "description": "Currency converting from",
+                "type": {
+                  "relation": "Currency",
+                  "properties": [
+                    "code",
+                    "description",
+                    "symbol",
+                    "minorUnit"
+                  ]
+                },
+                "default": "baseCurrency()",
+                "isRequired": true
+            },
+            "toCurrency": {
+                "description": "Currency converting to",
+                "type": {
+                  "relation": "Currency",
+                  "properties": [
+                    "code",
+                    "description",
+                    "symbol",
+                    "minorUnit"
+                  ]
+                },
+                "isRequired": true
+            },
+            "ratio": {
+                "description": "conversion ratio",
+                "type": "number",
+                "default": 1,
+                "isRequired": true
+            },
+            "effective": {
+                "description": "effective date",
+                "type": "date",
+                "format": "dateTime",
+                "default": "now()",
+                "isRequired": true
             }
         }
     }

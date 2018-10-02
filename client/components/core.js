@@ -25,8 +25,7 @@
   var f = require("common-core"),
     catalog = require("catalog"),
     m = require("mithril"),
-    stream = require("stream"),
-    math = require("mathjs");
+    stream = require("stream");
 
   f.getCurrency = function (currency) {
     return catalog.store().data().currencies().find(function (curr) {
@@ -67,8 +66,7 @@
     if (hasDisplayUnit) {
       curr.data.conversions().some(function (conv) {
         if (conv.data.toUnit().id() === curr.data.displayUnit().id()) {
-          amount = math.divide(amount, conv.data.ratio());
-          amount = math.round(amount, minorUnit);
+          amount = f.round(amount / conv.data.ratio(), minorUnit);
           return true;
         }
       });
@@ -94,8 +92,7 @@
     if (curr.data.hasDisplayUnit() && currency !== curr.data.code()) {
       curr.data.conversions().some(function (conv) {
         if (conv.data.toUnit().id() === curr.data.displayUnit().id()) {
-          amount = math.multiply(amount, conv.data.ratio());
-          amount = math.round(amount, curr.data.minorUnit());
+          amount = f.round(amount * conv.data.ratio(), curr.data.minorUnit());
           return true;
         }
       });

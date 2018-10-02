@@ -348,6 +348,33 @@
         }]
     }
 }, {
+    "name": "Form",
+    "method": "POST",
+    "id": "1qaj5stzkdsy",
+    "data": {
+        "name": "Currency Conversion",
+        "description": "Currency conversion form",
+        "feather": "CurrencyConversion",
+        "module": "Core",
+        "attrs": [{
+            "attr": "fromCurrency"
+        }, {
+            "attr": "toCurrency"
+        }, {
+            "attr": "ratio"
+        }, {
+            "attr": "effective"
+        }, {
+            "attr": "created"
+        }, {
+            "attr": "createdBy"
+        }, {
+            "attr": "updated"
+        }, {
+            "attr": "updatedBy"
+        }]
+    }
+}, {
     "name": "RelationWidget",
     "method": "POST",
     "id": "64p4bwkbr2xq",
@@ -367,6 +394,29 @@
                 "attr": "description"
             }, {
                 "attr": "dimension"
+            }
+        ]
+    }
+}, {
+    "name": "RelationWidget",
+    "method": "POST",
+    "id": "6s2kh7qaixab",
+    "data": {
+        "name": "Currency",
+        "description": "Currency relation wdiget",
+        "isActive": true,
+        "feather": "Currency",
+        "valueProperty": "code",
+        "labelProperty": "description",
+        "form": {
+            "id": "5kn0ocip2zqt"
+        },
+        "searchColumns": [{
+                "attr": "code"
+            }, {
+                "attr": "description"
+            }, {
+                "attr": "note"
             }
         ]
     }
