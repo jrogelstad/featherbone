@@ -176,9 +176,15 @@
         //console.log("ERROR->", obj.name, obj.method);
         // Passed client will handle it's own connection
         console.error(err);
+        if (typeof err === "string") {
+          err = new Error(err);
+        }
+
+        err.statusCode = 500;
+
         if (!isExternalClient) { done(); }
 
-        reject(err);
+        return err;
       }
 
       function commit (resp) {
@@ -208,10 +214,10 @@
         });
       }
 
-      function rollback (err) {
+      function rollback (err, callback) {
         // If external, let caller deal with transaction
         if (isExternalClient) { 
-          reject(err);
+          callback(error(err));
           return;
         }
 
@@ -221,12 +227,15 @@
           client.query("ROLLBACK;", function () {
             //console.log("ROLLED BACK");
             client.wrapped = false;
-            reject(error(err));
+            callback(error(err));
+            return;
           });
           return;
         }
-    
-        reject(error(err));
+
+        callback(err);
+
+        return;
       }
 
       function doExecute () {
@@ -299,7 +308,7 @@
                 .then(clearTriggerStatus)
                 .then(commit)
                 .then(resolve)
-                .catch(rollback);
+                .catch(reject);
               return;
             }
 
@@ -308,7 +317,7 @@
               .then(clearTriggerStatus)
               .then(doTraverseAfter.bind(null, parent))
               .then(resolve)
-              .catch(rollback);
+              .catch(reject);
 
           // If traversal done, finish transaction
           } else if (name === "Object") {
@@ -352,9 +361,13 @@
               obj.response = resp;
               doTraverseAfter(obj.name)
                 .then(resolve)
-                .catch(error);
+                .catch(function (err) {
+                  reject(error(err));
+                });
             })
-            .catch(error);
+            .catch(function (err) {
+              reject(error(err));
+            });
         });
       }
 
@@ -377,12 +390,13 @@
               return;
             }
 
+            
             Promise.resolve()
               .then(doMethod.bind(null, name, TRIGGER_BEFORE))
               .then(clearTriggerStatus)
               .then(doTraverseBefore.bind(null, parent))
               .then(resolve)
-              .catch(rollback);
+              .catch(reject);
 
           // Traversal done
           } else if (name === "Object") {
@@ -443,7 +457,9 @@
               doUpsert()
                 .then(doTraverseBefore.bind(null, obj.name))
                 .then(resolve)
-                .catch(reject);
+                .catch(function (err) {
+                  rollback(err, reject);
+                });
             } else {
               if (!isExternalClient) { 
                 wrap = true;
@@ -451,7 +467,9 @@
 
               doTraverseBefore(obj.name)
                 .then(resolve)
-                .catch(reject);
+                .catch(function (err) {
+                  rollback(err, reject);
+                });
             }
 
           // If function, execute it
@@ -460,7 +478,9 @@
               .then(doMethod.bind(null, obj.name))
               .then(commit)
               .then(resolve)
-              .catch(rollback);
+              .catch(function (err) {
+                rollback(err, reject);
+              });
 
           // Young fool, now you will die.
           } else {

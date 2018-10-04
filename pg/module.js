@@ -77,6 +77,37 @@
   module.exports = currencyModel;
 
   /*
+    Currency Conversion model
+  */
+  function currencyConversionModel (data) {
+    var that,
+      feather = catalog.getFeather("CurrencyConversion");
+
+    // ..........................................................
+    // PUBLIC
+    //
+
+    that = model(data, feather);
+
+    that.onValidate(function () {
+      if (that.data.fromCurrency().id() === that.data.toCurrency().id()) {
+        throw "'From' currency cannot be the same as the 'to' currency.";
+      }
+
+      if (that.data.ratio() < 0) {
+        throw "The conversion ratio nust be a positive number.";
+      }
+    });
+
+    return that;
+  }
+
+  currencyConversionModel.list = list("CurrencyConversion");
+
+  catalog.register("models", "currencyConversion", currencyConversionModel);
+  module.exports = currencyConversionModel;
+
+  /*
     Currency Unit model
   */
   function currencyUnitModel (data) {
