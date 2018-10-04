@@ -30,6 +30,27 @@
     });
   };
 
-  datasource.registerFunction("POST", "TableSpec", doUpsertTableSpec, datasource.TRIGGER_BEFORE);
+  datasource.registerFunction("POST", "TableSpec", doUpsertTableSpec,
+    datasource.TRIGGER_BEFORE);
+
+  var doInsertCurrencyConversion = function (obj) {
+    return new Promise (function (resolve) {
+      var conv = obj.data;
+
+      // Sanity check
+      if (conv.fromCurrency.id === conv.toCurrency.id) {
+        throw "'From' currency cannot be the same as the 'to' currency.";
+      }
+
+      if (conv.ratio <= 0) {
+        throw "The conversion ratio nust be a positive number.";
+      }
+
+      resolve();
+    });
+  };
+
+  datasource.registerFunction("POST", "CurrencyConversion", doInsertCurrencyConversion,
+    datasource.TRIGGER_BEFORE);
 
 }(datasource));
