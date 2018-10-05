@@ -274,6 +274,7 @@
           transaction = trigger ?
             registered[obj.method][name][trigger] : 
             registered[obj.method][name];
+
           Promise.resolve()
             .then(doExecute)
             .then(resolve)

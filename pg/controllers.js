@@ -2,9 +2,10 @@
 (function (datasource) {
   "strict";
 
-  var f = require("./common/core");
+  var f = require("./common/core"),
+    jsonpatch = require("fast-json-patch");
 
-  var doUpsertTableSpec = function (obj) {
+  function doUpsertTableSpec (obj) {
     return new Promise (function (resolve, reject) {
       var table = obj.data,
         feather = f.copy(table);
@@ -28,29 +29,52 @@
       .then(resolve)
       .catch(reject);
     });
-  };
+  }
 
   datasource.registerFunction("POST", "TableSpec", doUpsertTableSpec,
     datasource.TRIGGER_BEFORE);
 
-  var doInsertCurrencyConversion = function (obj) {
+  function checkCurrencyConversion (conv) {
+    // Sanity check
+    if (conv.fromCurrency.id === conv.toCurrency.id) {
+      throw "'From' currency cannot be the same as the 'to' currency.";
+    }
+
+    if (conv.ratio <= 0) {
+      throw "The conversion ratio nust be a positive number.";
+    }
+  }
+
+  function doInsertCurrencyConversion (obj) {
     return new Promise (function (resolve) {
-      var conv = obj.data;
-
-      // Sanity check
-      if (conv.fromCurrency.id === conv.toCurrency.id) {
-        throw "'From' currency cannot be the same as the 'to' currency.";
-      }
-
-      if (conv.ratio <= 0) {
-        throw "The conversion ratio nust be a positive number.";
-      }
-
+      checkCurrencyConversion(obj.data);
       resolve();
-    });
-  };
+    });  
+  }
 
-  datasource.registerFunction("POST", "CurrencyConversion", doInsertCurrencyConversion,
-    datasource.TRIGGER_BEFORE);
+  datasource.registerFunction("POST", "CurrencyConversion",
+    doInsertCurrencyConversion, datasource.TRIGGER_BEFORE);
+
+  function doUpdateCurrencyConversion (obj) {
+    return new Promise (function (resolve, reject) {
+      function callback (result) {
+        jsonpatch.apply(result, obj.data);
+        checkCurrencyConversion(result);
+        resolve();
+      }
+
+      datasource.request({
+        method: "GET",
+        name: "CurrencyConversion",
+        id: obj.id,
+        client: obj.client
+      }, true)
+        .then(callback)
+        .catch(reject);
+    });
+  }
+
+  datasource.registerFunction("PATCH", "CurrencyConversion",
+    doUpdateCurrencyConversion, datasource.TRIGGER_BEFORE);
 
 }(datasource));
