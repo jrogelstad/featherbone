@@ -26,11 +26,44 @@
     catalog = require("catalog");
 
   moneyRelation.viewModel = function (options) {
-    var vm = {}, prop,
+    var vm = {},
       parent = options.parentViewModel,
-      currencyList = catalog.store().data().currencies;
+      store = catalog.store(),
+      currencyList = store.data().currencies,
+      currConvList = store.models().currencyConversion.list({fetch: false}),
+      prop = parent.model().data[options.parentProperty];
 
-    prop = parent.model().data[options.parentProperty];
+    // Bind to property state change to update conversion ratio if applicable
+    parent.model().onChange(options.parentProperty, function (p) {
+      var baseCode = f.baseCurrency().data.code(),
+        newCurr = p.newValue().currency;
+
+      if (newCurr === baseCode) {
+        vm.conversion(null);
+        return;
+      }
+
+      if (p.oldValue().currency !== newCurr &&
+          !p.newValue().ratio) {
+        vm.conversion(null);
+        vm.fetchConversion(baseCode, f.getCurrency(newCurr).data.code());
+      }
+    });
+
+    parent.model().state().resolve("/Ready/Fetched").enter(function() {
+      var baseCode = f.baseCurrency().data.code(),
+        newCurr = prop().currency;
+
+      if (newCurr === baseCode) {
+        vm.conversion(null);
+        return;
+      }
+
+      if (newCurr && !prop().ratio) {
+        vm.conversion(null);
+        vm.fetchConversion(baseCode, f.getCurrency(newCurr).data.code());
+      }
+    });
 
     vm.id = stream(options.id);
     vm.isCell = stream(!!options.isCell);
@@ -49,8 +82,32 @@
       return prop().amount;
     };
     vm.baseAmount = function () {
-      return "1,000,000.00";
+      var ret, money,
+        baseCode = f.baseCurrency().data.code(),
+        conv = vm.conversion(),
+        value = prop.toJSON(); // Raw value
+
+      if (value.effective) {
+        ret = value.amount * value.ratio;
+      } else if (conv &&
+        conv.data.fromCurrency().data.code() === baseCode) {
+        ret = value.amount * conv.data.ratio.toJSON();
+      } else if (conv) {
+        ret = value.amount / conv.data.ratio.toJSON();
+      } else {
+        return;
+      }
+
+      money = {
+        amount: ret,
+        currency: baseCode,
+        effective: null,
+        ratio: null
+      };
+
+      return f.formats.money.fromType(money).amount;
     };
+    vm.conversion = stream();
     vm.currency = function (value) {
       var money;
 
@@ -76,7 +133,52 @@
 
       return ret;
     };
-    vm.value = stream();
+    /**
+      Causes the currency conversion to be updated.
+
+      @param {String} 'From' currency code
+      @param {String} 'To' currency code
+    */
+    vm.fetchConversion = function (fromCurr, toCurr) {
+      return new Promise (function (resolve, reject) {
+        var filter;
+
+        function callback (result) {
+          vm.conversion(result.length ? result[0] : null);
+          resolve();
+        }
+
+        function error (err) {
+          reject();
+        }
+
+        filter = {
+          criteria: [
+            {
+              value: [fromCurr, toCurr],
+              operator: "IN",
+              property: "fromCurrency.code"
+            },
+            {
+              value: [fromCurr, toCurr],
+              operator: "IN",
+              property: "toCurrency.code"
+            }
+          ],
+          sort: [
+            {
+              property: "effective",
+              order: "DESC"
+            }
+          ],
+          limit: 1
+        };
+
+        currConvList().fetch(filter, false)
+          .then(callback)
+          .catch(error);
+      });
+    };
 
     return vm;
   };
@@ -116,9 +218,6 @@
 
     view: function (vnode) {
       var vm = this.viewModel, currencyLabelStyle,
-        baseCurrency = f.baseCurrency(),
-        baseCurrencyCode = baseCurrency.data.hasDisplayUnit() ?
-          baseCurrency.data.displayUnit().data.code() : baseCurrency.data.code(),
         disabled = vnode.attrs.disabled === true,
         amountLabelStyle = {
           marginLeft: "12px", 
@@ -136,7 +235,7 @@
         currencyLabelStyle.display = "none";
       }
 
-      if (baseCurrencyCode === vm.currency()) {
+      if (!vm.baseAmount()) {
         amountLabelStyle.display = "none";
       }
 

@@ -27,11 +27,17 @@
     m = require("mithril"),
     stream = require("stream");
 
-  f.getCurrency = function (currency) {
+  /**
+    Return the matching currency object.
+
+    @param {String} Currency code
+    @return {Object}
+  */
+  f.getCurrency = function (code) {
     return catalog.store().data().currencies().find(function (curr) {
-      return curr.data.code() === currency ||
+      return curr.data.code() === code ||
         (curr.data.hasDisplayUnit() &&
-        curr.data.displayUnit().data.code() === currency);
+        curr.data.displayUnit().data.code() === code);
     });
   };
 
