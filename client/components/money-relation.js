@@ -120,7 +120,18 @@
       return prop().currency;
     };
     vm.currencies = function () {
-      var ret = currencyList();
+      var ret, curr = vm.currency();
+
+      function same (item) { return item; }
+
+      function deleted (item) {
+        return !item.data.isDeleted() ||
+          curr === item.data.code() ||
+          (item.data.hasDisplayUnit() &&
+          curr === item.data.displayUnit().data.code()); 
+      }
+
+      ret = currencyList().map(same).filter(deleted); // Hack
 
       ret.sort(function (a, b) {
         var attrA = a.data.hasDisplayUnit() ?
@@ -149,7 +160,7 @@
         }
 
         function error (err) {
-          reject();
+          reject(err);
         }
 
         filter = {

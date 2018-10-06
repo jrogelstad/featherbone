@@ -163,6 +163,8 @@
       ary.index({});
     };
 
+    ary.showDeleted = stream(false);
+
     ary.save = function () {
       return doSend("save");
     };
@@ -196,35 +198,40 @@
     };
 
     doFetch = function (context) {
-      var url,
+      var url, payload,
         query = {};
 
-      if (ary.properties()) {
-        query.properties = ary.properties();
-      }
-      if (ary.filter()) {
-        query.filter = ary.filter();
-        query.filter.limit = query.filter.limit || LIMIT;
-      }
-      query = qs.stringify(query);
-      url = ary.path() + query;
-
-      return m.request({
-        method: "GET",
-        url: url
-      }).then(function (data) {
+      function callback (data) {
         if (context.merge === false) { 
           ary.reset();
         }
+
         data.forEach(function (item) {
           var model = models[name]();
           model.set(item, true, true);
           model.state().goto("/Ready/Fetched");
           ary.add(model);
         });
+
         state.send("fetched");
         context.resolve(ary);
-      });
+      }
+
+      if (ary.properties()) {
+        query.properties = ary.properties();
+      }
+
+      if (ary.filter()) {
+        query.filter = ary.filter();
+        query.filter.limit = query.filter.limit || LIMIT;
+      }
+
+      query.showDeleted = ary.showDeleted();
+      query = qs.stringify(query);
+      url = ary.path() + query;
+      payload = {method: "GET", url: url};
+
+      return m.request(payload).then(callback);
     };
 
     doSave = function (context) {
