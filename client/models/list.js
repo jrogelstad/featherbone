@@ -116,6 +116,13 @@
 
     ary.canFilter = stream(true);
 
+    /*
+      Fetch data.
+
+      @param {Object} filter,
+      @param {Boolean} merge
+      @return Promise
+    */
     ary.fetch = function (filter, merge) {
       ary.filter(filter || {});
  
