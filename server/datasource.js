@@ -442,7 +442,7 @@
         //console.log("REQUEST->", obj.name, obj.method);
         return new Promise (function (resolve, reject) {
           if (!client.currentUser && !obj.user) {
-            reject("User undefined." + obj.method + obj.name);
+            reject("User undefined. " + obj.method + " " + obj.name);
             return;
           }
 

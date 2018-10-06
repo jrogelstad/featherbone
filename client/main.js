@@ -147,7 +147,8 @@
           var requests = [];
 
           toFetch.forEach(function(feather) {
-            var ary = models.currency.list({fetch: false});
+            var name = feather.name.toCamelCase(),
+              ary = models[name].list({fetch: false});
 
             catalog.register("data", feather.plural.toCamelCase(), ary);
             requests.push(ary().fetch({})); // No limit on fetch

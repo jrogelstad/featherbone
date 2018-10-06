@@ -153,6 +153,8 @@
               "attr": "description"
             }, {
               "attr": "symbol"
+            }, {
+              "attr": "isBase"
           }]
         }
       },

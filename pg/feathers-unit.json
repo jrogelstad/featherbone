@@ -178,9 +178,37 @@
             },
             "effective": {
                 "description": "effective date",
-                "type": "date",
+                "type": "string",
                 "format": "dateTime",
                 "default": "now()",
+                "isRequired": true
+            }
+        }
+    },
+   {
+        "name": "BaseCurrency",
+        "plural": "BaseCurrencies",
+        "module": "Core",
+        "description": "Base currency effectivity",
+        "fetchOnStartup": true,
+        "properties": {
+            "currency": {
+                "description": "Base currency",
+                "type": {
+                  "relation": "Currency",
+                  "properties": [
+                    "code",
+                    "description",
+                    "symbol",
+                    "minorUnit"
+                  ]
+                },
+                "isRequired": true
+            },
+            "effective": {
+                "description": "Precision",
+                "type": "string",
+                "format": "dateTime",
                 "isRequired": true
             }
         }

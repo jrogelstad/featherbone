@@ -306,6 +306,9 @@
         }, {
             "attr": "minorUnit"
         }, {
+            "attr": "isBase",
+            "unit": 1
+        }, {
             "attr": "hasDisplayUnit",
             "unit": 1
         }, {
