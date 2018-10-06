@@ -1076,7 +1076,12 @@
         // Build row
         rowOpts.style = { backgroundColor: color };
         rowOpts.key = model.id();
-        row = m("tr", rowOpts, tds);
+
+        if (d.isDeleted()) {
+          row = m("del", m("tr", rowOpts, tds));
+        } else {
+          row = m("tr", rowOpts, tds);
+        }
 
         idx += 1;
 

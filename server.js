@@ -134,6 +134,9 @@
     } else if (req.method !== "POST") {
       payload.properties = properties;
       payload.filter = filter;
+      if (query.showDeleted) {
+        payload.showDeleted = query.showDeleted === "true";
+      }
       filter.offset = filter.offset || 0;
     }
 

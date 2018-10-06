@@ -150,6 +150,7 @@
             var name = feather.name.toCamelCase(),
               ary = models[name].list({fetch: false});
 
+            ary().showDeleted(true);
             catalog.register("data", feather.plural.toCamelCase(), ary);
             requests.push(ary().fetch({})); // No limit on fetch
           });
