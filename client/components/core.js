@@ -116,12 +116,29 @@
     };
   };
 
-  f.baseCurrency = function () {
-    var ret = catalog.store().data().currencies().find(function (currency) {
-        return currency.data.isBase();
-      });
+  function byEffective (a, b) {
+    var aEffect = a.data.effective(),
+      bEffect = b.data.effective();
 
-    return ret;
+    return aEffect > bEffect ? -1 : 1;
+  }
+
+  f.baseCurrency = function (effective) {
+    effective = effective ? new Date(effective) : new Date();
+
+    var current,
+      currs = catalog.store().data().currencies(),
+      baseCurrs = catalog.store().data().baseCurrencies();
+
+    baseCurrs.sort(byEffective);
+    current = baseCurrs.find(function (item) {
+      return new Date(item.data.effective.toJSON()) <= effective;
+    });
+    current = current.data.currency().data.code();
+
+    return currs.find(function (currency) {
+      return currency.data.code() === current;
+    });
   };
 
   /**
