@@ -39,7 +39,7 @@
   */
   relationWidget.viewModel = function (options) {
     var vm = {}, registerReceiver,
-      init = false,
+      hasFocus = false,
       parent = options.parentViewModel,
       parentProperty = options.parentProperty,
       valueProperty = options.valueProperty,
@@ -58,6 +58,23 @@
       list =  catalog.store().models()[modelName].list,
       modelList = list({filter: filter}),
       configId = f.createId();
+
+    function updateValue (prop) {
+      var value = prop();
+      if (value) {
+        vm.value(value.data[options.valueProperty]());
+      } else {
+        vm.value("");
+      }
+    }
+
+    // Make sure data changes made by biz logic in the model are recognized
+    parent.model().onChanged(parentProperty, updateValue);
+
+    // Because if relation is first focus, no logical way to respond to fetch
+    parent.model().state().resolve("/Ready/Fetched").enter(
+      updateValue.bind(null, parent.model().data[parentProperty])
+    );
 
     vm.listId = stream(f.createId());
     vm.fetch = function () {
@@ -141,9 +158,12 @@
     vm.onfocus = function () {
       var value = modelValue();
       
-      init = true;
+      hasFocus = true;
       value = value ? value.data[options.valueProperty]() : null;
       inputValue(value);
+    };
+    vm.onblur = function () {
+      hasFocus = false;
     };
     vm.oninput = function (value) {
       var fetch = false,
@@ -175,7 +195,7 @@
     vm.style = stream({});
     vm.value = function (value) {
       var result;
-      if (init) {
+      if (hasFocus) {
         if (arguments.length) {
           result = inputValue(value);
         } else {
@@ -206,6 +226,8 @@
       return receiverKey;
     };
 
+    vm.style(options.style || {});
+
     return vm;
   };
 
@@ -222,8 +244,7 @@
     oninit: function (vnode) {
       var options = vnode.attrs,
         parentProperty = options.parentProperty,
-        relations = options.parentViewModel.relations(),
-        that = this;
+        relations = options.parentViewModel.relations();
 
       // Set up viewModel if required
       if (!relations[parentProperty]) {
@@ -237,21 +258,11 @@
           filter: options.filter,
           isCell: options.isCell,
           id: options.id,
-          disabled: options.disabled
+          disabled: options.disabled,
+          style: options.style
         });
       }
       this.viewModel = relations[parentProperty];
-      this.viewModel.style(options.style || {});
-
-      // Make sure data changes made by biz logic in the model are recognized
-      options.parentViewModel.model().onChanged(parentProperty, function (prop) {
-        var value = prop();
-        if (value) {
-          that.viewModel.value(value.data[options.valueProperty]());
-        } else {
-          that.viewModel.value("");
-        }
-      });
     },
 
     view: function (vnode) {
@@ -320,6 +331,7 @@
           id: vm.id(),
           onchange: m.withAttr("value", vm.onchange),
           onfocus: vm.onfocus,
+          onblur: vm.onblur,
           oninput: m.withAttr("value", vm.oninput),
           value: vm.value(),
           oncreate: vnode.attrs.onCreate,
