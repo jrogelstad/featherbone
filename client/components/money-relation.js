@@ -50,6 +50,7 @@
       }
     });
 
+    // Bind to property state change to update conversion ratio if applicable
     parent.model().state().resolve("/Ready/Fetched").enter(function() {
       var baseCode = f.baseCurrency().data.code(),
         newCurr = prop().currency;
@@ -68,7 +69,7 @@
     vm.id = stream(options.id);
     vm.isCell = stream(!!options.isCell);
     vm.label = function () {
-      return f.baseCurrency().data.code();
+      return f.baseCurrency(vm.effective()).data.code();
     };
     vm.amount = function (value) {
       var money;
@@ -83,7 +84,7 @@
     };
     vm.baseAmount = function () {
       var ret, money,
-        baseCode = f.baseCurrency().data.code(),
+        baseCode = f.baseCurrency(vm.effective()).data.code(),
         conv = vm.conversion(),
         value = prop.toJSON(); // Raw value
 
@@ -144,6 +145,9 @@
 
       return ret;
     };
+    vm.effective = function () {
+      return prop().effective;
+    };
     /**
       Causes the currency conversion to be updated.
 
@@ -203,8 +207,7 @@
 
   moneyRelation.component = {
     oninit: function (vnode) {
-      var options = vnode.attrs,
-        that = this;
+      var options = vnode.attrs;
 
       // Set up viewModel if required
       this.viewModel = moneyRelation.viewModel({
@@ -214,22 +217,11 @@
         isCell: options.isCell,
         disabled: options.disabled
       });
-
-      // Make sure data changes made by biz logic in the model are recognized
-      /*
-      options.parentViewModel.model().onChanged(options.amountProperty, function (prop) {
-        that.viewModel.amount(prop());
-      });
-
-      options.parentViewModel.model().onChanged("currency", function (prop) {
-        that.viewModel.currency(prop());
-      });
-      */
     },
 
     view: function (vnode) {
       var vm = this.viewModel, currencyLabelStyle,
-        disabled = vnode.attrs.disabled === true,
+        disabled = vnode.attrs.disabled === true || vm.effective(),
         amountLabelStyle = {
           marginLeft: "12px", 
           marginTop: vm.label() ? "6px" : "",
@@ -243,7 +235,6 @@
       if (vm.isCell()) {
         inputStyle.border = "none";
         amountLabelStyle.display = "none";
-        currencyLabelStyle.display = "none";
       }
 
       if (!vm.baseAmount()) {

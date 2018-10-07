@@ -85,6 +85,10 @@
         fromType: function (value) {
           var dt = new Date(value).toLocalDateTime();
           return dt;
+        },
+        toType: function (value) {
+          var dt = new Date(value).toISOString();
+          return dt;
         }
       },
       password: {
@@ -344,7 +348,7 @@
       d.setMinutes(0);
       d.setMilliseconds(0);
 
-      return d.toISOString().slice(0, 10);
+      return d.toLocalDate();
     },
 
     startOfTime: function () {

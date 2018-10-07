@@ -27,14 +27,8 @@
     Currency Model
   */
   function currencyModel (data) {
-    var that,
-      feather = catalog.getFeather("Currency");
-
-    // ..........................................................
-    // PUBLIC
-    //
-
-    that = model(data, feather);
+    var feather = catalog.getFeather("Currency"),
+      that = model(data, feather);
 
     that.data.displayUnit.isReadOnly = function () {
       return !that.data.hasDisplayUnit();
@@ -80,14 +74,8 @@
     Currency Conversion model
   */
   function currencyConversionModel (data) {
-    var that,
-      feather = catalog.getFeather("CurrencyConversion");
-
-    // ..........................................................
-    // PUBLIC
-    //
-
-    that = model(data, feather);
+    var feather = catalog.getFeather("CurrencyConversion"),
+      that = model(data, feather);
 
     that.onValidate(function () {
       if (that.data.fromCurrency().id() === that.data.toCurrency().id()) {
@@ -111,14 +99,8 @@
     Currency Unit model
   */
   function currencyUnitModel (data) {
-    var that,
-      feather = catalog.getFeather("CurrencyUnit");
-
-    // ..........................................................
-    // PUBLIC
-    //
-
-    that = model(data, feather);
+    var feather = catalog.getFeather("CurrencyUnit"),
+      that = model(data, feather);
 
     that.onValidate(function () {
       if (that.data.code().length > 4) {

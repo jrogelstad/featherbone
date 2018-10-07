@@ -25,8 +25,19 @@
      @returns {String}
   */
   Date.prototype.toLocalDateTime = function () {
-    return this.getFullYear() + '-' + this.getMonth().pad(2) + '-' + this.getDate().pad(2) +
+    var month = this.getMonth() + 1;
+    return this.getFullYear() + '-' + month.pad(2) + '-' + this.getDate().pad(2) +
       "T" + this.getHours().pad(2) + ":" + this.getMinutes().pad(2);
+  };
+
+  /**
+     Change string with underscores '_' or '-' to camel case.
+     @param {Boolean} Convert first character to upper case. Default false.
+     @returns {String}
+  */
+  Date.prototype.toLocalDate = function () {
+    var month = this.getMonth() + 1;
+    return this.getFullYear() + '-' + month.pad(2) + '-' + this.getDate().pad(2);
   };
 
 }());
