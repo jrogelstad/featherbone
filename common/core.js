@@ -83,7 +83,7 @@
           return that.now();
         },
         fromType: function (value) {
-          var dt = new Date(value).toISOString().replace('Z', '');
+          var dt = new Date(value).toLocalDateTime();
           return dt;
         }
       },
@@ -125,12 +125,12 @@
     },
 
     /**
-      Return a time in string format that is the current time.
+      Return a time in string format that is the current UTC time.
 
       @return {String}
     */
     now: function () {
-      return (new Date()).toISOString().replace('Z', '');
+      return (new Date()).toISOString();
     },
 
     /**

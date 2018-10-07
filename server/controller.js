@@ -20,6 +20,8 @@
   "strict";
 
   require("../common/extend-string");
+  require("../common/extend-number");
+  require("../common/extend-date");
 
   var that,
     f = require("../common/core"),
