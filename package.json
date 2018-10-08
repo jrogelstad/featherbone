@@ -25,9 +25,5 @@
     "qs": "^5.2.1",
     "statechartjs": "^0.1.2",
     "systemjs": "^0.20.19"
-  },
-  "devDependencies": {
-    "should": "^5.2.0",
-    "supertest": "^0.15.0"
   }
 }
