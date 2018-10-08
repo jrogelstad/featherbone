@@ -22,9 +22,6 @@
   "strict";
 
   // Load pre-requisites
-  require("extend-string");
-  require("extend-number");
-  require("extend-date");
   require("table");
   require("form");
 

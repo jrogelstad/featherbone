@@ -13,7 +13,6 @@
   },
   "dependencies": {
     "body-parser": "^1.18.2",
-    "browserify": "^16.2.0",
     "dialog-polyfill": "^0.4.9",
     "express": "^4.16.3",
     "fast-json-patch": "^0.5.7",
