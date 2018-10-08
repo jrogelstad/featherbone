@@ -15,9 +15,16 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-
+/*global Promise*/
+/*jslint white, node, es6, this*/
 (function (exports) {
   "strict";
+  
+  require("../common/extend-string");
+  require("../common/extend-number");
+  require("../common/extend-date");
+  require("../common/extend-math");
+  
   var conn,
     pg = require("pg"),
     jsonpatch = require("fast-json-patch"),
