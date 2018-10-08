@@ -5,6 +5,9 @@
 <link rel="stylesheet" href="/node_modules/font-awesome/css/font-awesome.min.css">
 <link rel="stylesheet" type="text/css" href="/node_modules/dialog-polyfill/dialog-polyfill.css" />
 <html><body></body></html>
+<script src="/common/extend-string.js"></script>
+<script src="/common/extend-number.js"></script>
+<script src="/common/extend-date.js"></script>
 <script src="/node_modules/systemjs/dist/system.js"></script>
 <script>
   System.config({
@@ -20,9 +23,6 @@
       Qs: "node_modules/qs/dist/qs.js",
       // Featherbone core
       datasource: "/client/datasource.js",
-      "extend-date": "/common/extend-date.js",
-      "extend-number": "/common/extend-number.js",
-      "extend-string": "/common/extend-string.js",
       "common-core": "/common/core.js",
       // Models
       list: "/client/models/list.js",
