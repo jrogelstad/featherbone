@@ -16,7 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-/*global window*/
+/*jslint white, browser, this*/
+/*global window, require, module*/
 (function () {
   "use strict";
 
@@ -24,7 +25,6 @@
     m = require("mithril"),
     stream = require("stream"),
     f = require("component-core"),
-    math = require("mathjs"),
     catalog = require("catalog"),
     dialog = require("dialog");
 
@@ -236,7 +236,7 @@
 
           eids.forEach(function (id) {
             var h = document.getElementById(id).clientHeight;
-            bodyHeight = math.subtract(bodyHeight, h);
+            bodyHeight = Math.subtract(bodyHeight, h);
           });
 
           e.style.maxHeight = bodyHeight + "px";

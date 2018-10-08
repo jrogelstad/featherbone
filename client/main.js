@@ -16,7 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-/*global window */
+/*global window, require, Promise, featherbone*/
+/*jslint white, this, browser, eval */
+
 (function () {
 
   "strict";
@@ -34,7 +36,6 @@
   require("checkbox");
   require("relation-widget");
   require("child-table");
-  require("mathjs");
   require("common-core");
 
   var feathers, loadCatalog, loadModules, moduleData, workbookData,
