@@ -25,8 +25,9 @@
   require("../common/extend-date");
   require("../common/extend-math");
   
-  var conn,
-    pg = require("pg"),
+  const { Pool } = require('pg');
+  
+  var conn, pool,
     jsonpatch = require("fast-json-patch"),
     controller = require("./controller"),
     readPgConfig = require("./pgconfig"),
@@ -500,7 +501,11 @@
       function connect () {
         // console.log("CONNECT->", obj.name, obj.method);
         return new Promise (function (resolve, reject) {
-          pg.connect(conn, function (err, c, d) {
+          if (!pool) {
+            pool = new Pool({connectionString: conn});
+          }
+  
+          pool.connect(function (err, c, d) {
             client = c;
             done = d;
 
