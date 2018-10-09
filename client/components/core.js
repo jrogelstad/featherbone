@@ -15,7 +15,8 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-
+/*global require, module, console */
+/*jslint white*/
 (function () {
   "use strict";
 
@@ -235,6 +236,9 @@
         } else {
           opts.style = opts.style || {};
           opts.style.width = "215px";
+          if (prop.type === "number" || prop.type === "integer") {
+            opts.style.textAlign = "right";
+          }
           component = m("input", opts);
         }
       }
