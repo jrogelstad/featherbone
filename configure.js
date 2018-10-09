@@ -15,18 +15,19 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-
+/*jslint node, white, es6, eval */
 (function () {
   "strict";
 
   require("./common/extend-string.js");
+  
+  const { Client } = require('pg');
 
   var manifest, file, content, execute, name, defineSettings,
     saveModule, saveController, saveRoute, saveFeathers, saveWorkbooks,
     rollback, connect, commit, begin, processFile, client, user,
     runBatch, configure,
     MANIFEST = "manifest.json",
-    pg = require("pg"),
     fs = require("fs"),
     path = require("path"),
     datasource = require("./server/datasource"),
@@ -39,15 +40,8 @@
 
   connect = function (callback) {
     pgConfig().then(function (config) {
-      var conn = "postgres://" +
-        config.user + ":" +
-        config.password + "@" +
-        config.server + ":" +
-        config.port + "/" +
-        config.database;
-
       user = config.user;
-      client = new pg.Client(conn);
+      client = new Client(config);
 
       client.connect(function (err) {
         if (err) { return console.error(err); }
@@ -398,8 +392,8 @@
         config.server + ":" +
         config.port + "/" + "postgres";
 
-      pgclient = new pg.Client(conn);
-
+      pgclient = new Client ({connectionString: conn});
+  
       pgclient.connect(function (err) {
         if (err) { return console.error(err); }
 
