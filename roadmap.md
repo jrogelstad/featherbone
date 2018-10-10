@@ -3,6 +3,8 @@ Roadmap
 
 Short term
 
+* Push notifications
+* SAML Authentication support
 * Edit feathers (tables) from gui
 * Edit forms from gui
 * Pivot table
@@ -12,7 +14,6 @@ Short term
 * Support for subtotals
 * Import\export data (JSON)
 * Import\export modules (JSON)
-* Authentication support
 * Import\export Excel
 * Generic support for transactions
 * Basic modules (cardinal)
