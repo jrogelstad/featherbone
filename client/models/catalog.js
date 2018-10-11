@@ -15,7 +15,8 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-
+/*global require, module, Promise*/
+/*jslint white, this, es6*/
 (function () {
   "use strict";
 
@@ -169,11 +170,15 @@
       return result;
     };
 
-    that.register = function (property, name, value) {
+    that.register = function (...args) {
+      var property = args[0],
+        name = args[1],
+        value = args [2];
+ 
       if (!store[property]) {
         store[property] = stream({});
       }
-      if (arguments.length > 1) {
+      if (args.length > 1) {
         store[property]()[name] = value;
       }
       return store[property]();

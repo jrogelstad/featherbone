@@ -16,7 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-/*global window*/
+/*global window, require, module*/
+/*jslint white, this*/
 (function () {
   "use strict";
 
@@ -384,7 +385,8 @@
       isEditModeEnabled: vm.sheet().isEditModeEnabled,
       feather: vm.sheet().feather,
       search: vm.searchInput().value,
-      ondblclick: vm.modelOpen
+      ondblclick: vm.modelOpen,
+      subscribe: true
     }));
 
     // Create dialog view models

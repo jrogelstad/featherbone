@@ -15,12 +15,14 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-
+/*global require, Promise, module*/
+/*jslint white, this, es6*/
 (function () {
   "use strict";
 
   var list, createList,
     m = require("mithril"),
+    f = require("common-core"),
     stream = require("stream"),
     qs = require("Qs"),
     catalog = require("catalog"),
@@ -33,7 +35,9 @@
     the following options:
 
       fetch: Boolean flags whether to automatically fetch a list of models.
-      filter: A filter object definition
+      subscribe: Boolean flags whether to subscribe to events.
+      filter: A filter object definition.
+      showDeleted: Boolean whether to include deleted records on fetch.
 
     The model array includes support for the following three functions:
 
@@ -60,6 +64,9 @@
         ary.path("/data/" + plural + "/");
       }
 
+      ary.showDeleted(options.showDeleted === true);
+      ary.subscribe(options.subscribe === true);
+
       if (options.fetch !== false) {
         ary.fetch(options.filter, options.merge);
       } else {
@@ -79,8 +86,10 @@
       onClean, onDirty, onDelete,
       models = catalog.store().models(),
       name = feather.toCamelCase(),
+      isSubscribed = false,
       ary = [],
-      dirty = [];
+      dirty = [],
+      sid = f.createId();
 
     // ..........................................................
     // PUBLIC
@@ -172,6 +181,27 @@
     ary.state = function () {
       return state;
     };
+    
+    /**
+      Subscribe to change events on any records
+      in the array. Returns subscription id when
+      enabled by passing true at least once. Pass
+      false to unsubscribe.
+ 
+      @param {Boolean} Subscribe or unsubscribe.
+      @return {String} Subcription id.
+    */
+    ary.subscribe = function (...args) {
+      if (args.length) {
+        if (args[0] === true) {
+          isSubscribed = true;
+        } else {
+          isSubscribed = false;
+        }
+      }
+
+      return isSubscribed ? sid : false;
+    };
 
     // ..........................................................
     // PRIVATE
@@ -199,7 +229,16 @@
 
     doFetch = function (context) {
       var url, payload,
+        subscription = false,
+        subid = ary.subscribe(),
         query = {};
+
+      if (subid) {
+        subscription = {
+          id: subid,
+          merge: context.merge !== true
+        };
+      }
 
       function callback (data) {
         if (context.merge === false) { 
@@ -227,6 +266,7 @@
       }
 
       query.showDeleted = ary.showDeleted();
+      query.subscription = subscription;
       query = qs.stringify(query);
       url = ary.path() + query;
       payload = {method: "GET", url: url};
@@ -246,11 +286,14 @@
         .catch(context.reject);
     };
 
-    doSend = function (evt, merge) {
+    doSend = function (...args) {
+      var evt = args[0],
+        merge = args[1];
+
       return new Promise (function (resolve, reject) {
         var context = {resolve: resolve, reject: reject};
 
-        if (arguments.length > 1) {
+        if (args.length > 1) {
           context.merge = merge;
         }
 

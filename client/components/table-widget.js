@@ -16,7 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-/*global window*/
+/*global window, require, module*/
+/*jslint white, browser, this, for*/
 (function () {
   "use strict";
 
@@ -410,6 +411,7 @@
     vm.filter().limit = vm.filter().limit || LIMIT;
     if (!options.models) {
       vm.models = catalog.store().models()[modelName].list({
+        subscribe: options.subscribe,
         filter: vm.filter()
       });
     }
