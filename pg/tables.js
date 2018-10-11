@@ -15,14 +15,15 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-
+/*global Promise*/
+/*jslint white, node*/
 (function (exports) {
   "strict";
 
   exports.execute = function (obj) {
     return new Promise (function (resolve, reject) {
       var createCamelCase, createMoney, createObject, createFeather, createAuth,
-        createModule, createController, createRoute, createWorkbook,
+        createModule, createController, createRoute, createWorkbook, createSubscription,
         createSettings, createUser, sqlCheck, done, sql, params;
 
       sqlCheck = function (table, callback, statement) {
@@ -46,7 +47,7 @@
         obj.client.query(sql, createMoney);
       };
 
-      // Create a mono data type ("money" is already used)
+      // Create "mono" data type ("money" is already used)
       createMoney = function () {
         function callback (err, exists) {
           if (err) {
@@ -64,11 +65,38 @@
             obj.client.query(sql, createObject);
             return;
           }
-          createObject();
+          createSubscription();
         }
 
         sql = "SELECT * FROM pg_class WHERE relname = $1";
         sqlCheck('mono', callback, sql);
+      };
+      
+      // Create the subscription table
+      createSubscription = function () {
+        sqlCheck('$subscription', function (err, exists) {
+          if (err) {
+            reject(err);
+            return;
+          }
+
+          if (!exists) {
+            sql = "CREATE TABLE \"$subscription\" (" +
+              "nodeid text," +
+              "sessionid text," +
+              "subscriptionid text," +
+              "objectid text," +
+              "PRIMARY KEY (nodeid, sessionid, subscriptionid, objectid)); " +
+              "COMMENT ON TABLE \"$subscription\" IS 'Track which changes to listen for';" +
+              "COMMENT ON COLUMN \"$subscription\".nodeid IS 'Node server id';" +
+              "COMMENT ON COLUMN \"$subscription\".sessionid IS 'Client session id';" +
+              "COMMENT ON COLUMN \"$subscription\".subscriptionid IS 'Subscription id';" +
+              "COMMENT ON COLUMN \"$subscription\".objectid IS 'Object id';";
+            obj.client.query(sql, createObject);
+            return;
+          }
+          createObject();
+        });
       };
 
       // Create the base object table
