@@ -28,7 +28,7 @@
       "dialog-polyfill": "node_modules/dialog-polyfill/dialog-polyfill.js",
       "fast-json-patch": "node_modules/fast-json-patch/dist/json-patch-duplex.min.js",
       mithril: "node_modules/mithril/mithril.js",
-      stream: "node_modules/mithril/stream/stream.js",
+      stream: "common/stream.js",
       statechartjs: "node_modules/statechartjs/lib/state.js",
       Qs: "node_modules/qs/dist/qs.js",
       // Featherbone core
