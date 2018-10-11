@@ -28,8 +28,8 @@
     @return {String}
   */
   that.baseUrl = function () {
-    //TODO: Make this configurable
-    return "http://localhost:10001";
+    var l = window.location;
+    return "http://" + l.hostname + ":" + l.port;
   };
 
   that.request = function (options) {
