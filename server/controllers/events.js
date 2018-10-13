@@ -62,11 +62,11 @@
                     return;
                 }
 
-                if (!subscription.node) {
+                if (!subscription.nodeId) {
                     throw new Error('Subscription requires a nodeId.');
                 }
 
-                if (!subscription.session) {
+                if (!subscription.sessionId) {
                     throw new Error('Subscription requires a sessionId.');
                 }
 

@@ -28,7 +28,7 @@
   const { Pool } = require('pg');
   const { Config } = require('./config');
   
-  var conn, pool,
+  var conn, pool, nodeId,
     jsonpatch = require("fast-json-patch"),
     controller = require("./controller"),
     config = new Config(),
@@ -462,6 +462,10 @@
           // If alter data, process it
           if (catalog[obj.name]) {
             if (obj.method === "GET") {
+              if (obj.subscription) {
+                obj.subscription.nodeId = nodeId;
+              }        
+
               doQuery().then(resolve).catch(reject);
             } else if (obj.method === "POST" && obj.id) {
               doUpsert()
@@ -547,11 +551,13 @@
       function setCredentials (config) {
         // console.log("SET_CREDS->", obj.name, obj.method);
         return new Promise (function (resolve) {
+          nodeId = config.nodeId;
           conn = "postgres://" +
             config.postgres.user + ":" +
             config.postgres.password + "@" +
             config.postgres.server + "/" +
             config.postgres.database;
+
           resolve();
         });
       }
