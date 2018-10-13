@@ -409,9 +409,9 @@
             datasource.getCatalog().then(exec).catch(exit);
           // Otherwise create database first
           } else {
-            console.log('Creating database "' + config.database + '"');
+            console.log('Creating database "' + config.postgres.database + '"');
             sql = "CREATE DATABASE %I;";
-            sql = format(sql, config.database, config.user);
+            sql = format(sql, config.postgres.database, config.postgres.user);
             pgclient.query(sql, function () {
               if (err) { return console.error(err); }
               exec();        

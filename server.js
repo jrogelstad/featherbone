@@ -32,6 +32,8 @@
     routes = [],
     sessions = {},
     port = process.env.PORT || 10001,
+    unsubscribe = datasource.unsubscribe,
+    listen = datasource.listen,
     dataRouter = express.Router(),
     featherRouter = express.Router(),
     moduleRouter = express.Router(),
@@ -88,7 +90,8 @@
       .then(datasource.getCatalog)
       .then(getControllers)
       .then(getRoutes)
-      .then(datasource.unsubscribe)
+      .then(unsubscribe)
+      .then(listen)
       .then(callback)
       .catch(process.exit);
   }
@@ -303,10 +306,7 @@
 
     // middleware to use for all requests
     dataRouter.use(function (...args) {
-      var next = args[2];
-      // do logging
-      console.log('Something is happening.');
-      next(); // make sure we go to the next routes and don't stop here
+      args[2]() // make sure we go to the 'next' routes and don't stop here
     });
 
     // Create routes for each catalog object
@@ -342,7 +342,7 @@
     app.use('/workbooks', workbookRouter);
 
     // HANDLE PUSH NOTIFICATION -------------------------------
-    app.get('/sse', function (req,res) {
+    app.get('/sse', function (ignore, res) {
         var crier = new SSE(res),
           sessionId = f.createId();
         
@@ -352,6 +352,7 @@
 
         crier.disconnect(function () {
           delete sessions[sessionId];
+          unsubscribe(sessionId, 'session');
           console.log("Session " + sessionId + " disconnected");
         });
     });

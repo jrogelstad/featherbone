@@ -183,6 +183,10 @@
       }
       return store[property]();
     };
+ 
+    that.unregister = function (property, name) {
+      delete store[property]()[name];
+    };
 
     that.feathers = store.feathers;
     

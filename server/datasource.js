@@ -195,6 +195,33 @@
     });
   };
 
+  function doListen(resp) {
+    return new Promise (function (resolve, reject) {
+      resp.client.on('notification', function(msg) {
+        console.log(msg);
+      });
+ 
+      resp.client.query("LISTEN " + nodeId)
+        .then(resolve)
+        .catch(reject);
+    });
+  }
+
+  /**
+    Initialize listener.
+
+    @returns {Object} promise
+  */
+  that.listen = function () {
+    return new Promise (function (resolve, reject) {
+      Promise.resolve()
+        .then(connect)
+        .then(doListen)
+        .then(resolve)
+        .catch(reject)
+    });
+  };
+
   /**
     Unsubcribe.
 
