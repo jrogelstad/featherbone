@@ -195,8 +195,10 @@
       if (args.length) {
         if (args[0] === true) {
           isSubscribed = true;
+          catalog.register("subscriptions", sid, ary);
         } else {
           isSubscribed = false;
+          catalog.unregister("subscriptions", sid);
         }
       }
 

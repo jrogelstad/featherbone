@@ -326,10 +326,11 @@
       "/settings/:settings": components.settingsPage
     });
   }
-
+  
   // Listen for session id
   ev.onmessage = function (event) {
     catalog.sessionId(event.data);
+    catalog.register("subscriptions");
 
     // When all intialization done, construct app.
     Promise.all([

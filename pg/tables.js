@@ -24,7 +24,7 @@
     return new Promise (function (resolve, reject) {
       var createCamelCase, createMoney, createObject, createFeather, createAuth,
         createModule, createController, createRoute, createWorkbook, createSubscription,
-        createSettings, createUser, sqlCheck, done, sql, params;
+        createSettings, createEventTrigger, createUser, sqlCheck, done, sql, params;
 
       sqlCheck = function (table, callback, statement) {
         var sqlChk = statement || "SELECT * FROM pg_tables WHERE schemaname = 'public' AND tablename = $1;";
@@ -62,15 +62,42 @@
                   "   effective timestamp with time zone," +
                   "   ratio numeric" +
                   ");";
-            obj.client.query(sql, createObject);
+            obj.client.query(sql, createEventTrigger);
             return;
           }
-          createSubscription();
+          createEventTrigger();
         }
 
         sql = "SELECT * FROM pg_class WHERE relname = $1";
         sqlCheck('mono', callback, sql);
       };
+      
+      // Create event trigger for notifications
+      createEventTrigger = function () {
+        sql = "CREATE OR REPLACE FUNCTION insert_trigger() RETURNS trigger AS $$" +
+              "DECLARE " +
+              "BEGIN" +
+              "  PERFORM pg_notify('watchers', TG_TABLE_NAME || ',id,' || NEW.id ); " +
+              "RETURN new; " +
+              "END; " +
+              "$$ LANGUAGE plpgsql;" +
+              "CREATE OR REPLACE FUNCTION update_trigger() RETURNS trigger AS $$" +
+              "DECLARE " +
+              "BEGIN" +
+              "  PERFORM pg_notify('watchers', TG_TABLE_NAME || ',id,' || NEW.id ); " +
+              "RETURN new; " +
+              "END; " +
+              "$$ LANGUAGE plpgsql;" +
+              "CREATE OR REPLACE FUNCTION delete_trigger() RETURNS trigger AS $$" +
+              "DECLARE " +
+              "BEGIN" +
+              "  PERFORM pg_notify('watchers', TG_TABLE_NAME || ',id,' || OLD.id ); " +
+              "RETURN old; " +
+              "END; " +
+              "$$ LANGUAGE plpgsql;";
+        obj.client.query(sql, createSubscription);
+        return;
+      };     
       
       // Create the subscription table
       createSubscription = function () {
