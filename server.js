@@ -15,7 +15,8 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-
+/*global Promise*/
+/*jslint white, node, this, eval, es6*/
 (function () {
   "use strict";
   require('./common/extend-string.js');
@@ -24,6 +25,7 @@
     express = require("express"),
     bodyParser = require("body-parser"),
     qs = require("qs"),
+    SSE = require('sse-nodejs'),
     app = express(),
     controllers = [],
     routes = [],
@@ -136,6 +138,10 @@
       payload.filter = filter;
       if (query.showDeleted) {
         payload.showDeleted = query.showDeleted === "true";
+      }
+
+      if (query.subscription !== undefined) {
+        payload.subscription = query.subscription;
       }
       filter.offset = filter.offset || 0;
     }
@@ -293,7 +299,8 @@
     app.use(express.static(__dirname));
 
     // middleware to use for all requests
-    dataRouter.use(function (req, ignore, next) {
+    dataRouter.use(function (...args) {
+      var next = args[2];
       // do logging
       console.log('Something is happening.');
       next(); // make sure we go to the next routes and don't stop here
@@ -336,6 +343,23 @@
     app.use('/settings-definition', settingsDefinitionRouter);
     app.use('/workbook', workbookRouter);
     app.use('/workbooks', workbookRouter);
+
+    // HANDLE PUSH NOTIFICATION -------------------------------
+    app.get('/sse', function (req,res) {
+        var crier = new SSE(res);
+     
+        crier.sendEvent('notify', function () {
+            return new Date();
+        },1000);
+        
+        crier.send("HelloWorld");
+
+        crier.disconnect(function () {
+            console.log("disconnected");
+        });
+
+        crier.removeEvent('time', 3100);
+    });
 
     // REGISTER MODULE CONTROLLERS 
     controllers.forEach(function (controller) {

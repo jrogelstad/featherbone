@@ -229,16 +229,8 @@
 
     doFetch = function (context) {
       var url, payload,
-        subscription = false,
         subid = ary.subscribe(),
         query = {};
-
-      if (subid) {
-        subscription = {
-          id: subid,
-          merge: context.merge !== true
-        };
-      }
 
       function callback (data) {
         if (context.merge === false) { 
@@ -266,7 +258,12 @@
       }
 
       query.showDeleted = ary.showDeleted();
-      query.subscription = subscription;
+      if (subid) {
+        query.subscription = {
+          id: subid,
+          merge: context.merge !== true
+        };
+      }
       query = qs.stringify(query);
       url = ary.path() + query;
       payload = {method: "GET", url: url};
