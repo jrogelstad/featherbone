@@ -26,11 +26,12 @@
   require("../common/extend-math");
   
   const { Pool } = require('pg');
+  const { Config } = require('./config');
   
   var conn, pool,
     jsonpatch = require("fast-json-patch"),
     controller = require("./controller"),
-    readPgConfig = require("./pgconfig"),
+    config = new Config(),
     registered = {
       GET: {},
       POST: {},
@@ -547,16 +548,16 @@
         // console.log("SET_CREDS->", obj.name, obj.method);
         return new Promise (function (resolve) {
           conn = "postgres://" +
-            config.user + ":" +
-            config.password + "@" +
-            config.server + "/" +
-            config.database;
+            config.postgres.user + ":" +
+            config.postgres.password + "@" +
+            config.postgres.server + "/" +
+            config.postgres.database;
           resolve();
         });
       }
 
       Promise.resolve()
-        .then(readPgConfig)
+        .then(config.read)
         .then(setCredentials)
         .then(connect)
         .then(doRequest)

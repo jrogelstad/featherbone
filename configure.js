@@ -22,6 +22,7 @@
   require("./common/extend-string.js");
   
   const { Client } = require('pg');
+  const { Config } = require('./server/config');
 
   var manifest, file, content, execute, name, defineSettings,
     saveModule, saveController, saveRoute, saveFeathers, saveWorkbooks,
@@ -31,7 +32,7 @@
     fs = require("fs"),
     path = require("path"),
     datasource = require("./server/datasource"),
-    pgConfig = require("./server/pgconfig"),
+    config = new Config(),
     format = require("pg-format"),
     dir = path.resolve(__dirname, process.argv[2] || "."),
     filename = path.format({root: "/", dir: dir, base: MANIFEST}),
@@ -39,9 +40,9 @@
     i = 0;
 
   connect = function (callback) {
-    pgConfig().then(function (config) {
-      user = config.user;
-      client = new Client(config);
+    config.read().then(function (config) {
+      user = config.postgres.user;
+      client = new Client(config.postgres);
 
       client.connect(function (err) {
         if (err) { return console.error(err); }
@@ -384,13 +385,13 @@
       connect(begin);
     };
 
-    pgConfig().then(function (config) {
+    config.read().then(function (config) {
       var pgclient,
         conn = "postgres://" +
-        config.user + ":" +
-        config.password + "@" +
-        config.server + ":" +
-        config.port + "/" + "postgres";
+        config.postgres.user + ":" +
+        config.postgres.password + "@" +
+        config.postgres.server + ":" +
+        config.postgres.port + "/" + "postgres";
 
       pgclient = new Client ({connectionString: conn});
   
@@ -400,7 +401,7 @@
         var sql = "SELECT datname FROM pg_database " +
           "WHERE datistemplate = false AND datname = $1";
 
-        pgclient.query(sql, [config.database], function (err, resp) {
+        pgclient.query(sql, [config.postgres.database], function (err, resp) {
           if (err) { return console.error(err); }
 
           // If database exists, get started

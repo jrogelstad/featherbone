@@ -1573,9 +1573,12 @@
               }
   
               // Handle subscription
-              events.subscribe(obj.client, obj.subscription, result.map(ids), obj.merge) 
-                .then(function () {
+              events.subscribe(obj.client, obj.subscription, result.map(ids)) 
+                .then(function () { 
                   obj.callback(null, result);
+                })
+                .catch(function (err) {
+                  obj.callback(err);
                 });
             });
           } else {
