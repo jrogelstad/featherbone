@@ -185,6 +185,14 @@
     };
 
     that.feathers = store.feathers;
+    
+    /**
+      Current sessionid.
+      
+      @param {String} Session Id
+      @return {String}
+    */
+    that.sessionId = stream();
 
     // Expose global store data
     that.store = function () {

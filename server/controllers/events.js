@@ -29,9 +29,9 @@
                 events = {};
 
          // Helper for registerSubscription
-        function buildValues(item) {
+        function buildValues(id) {
             n = n + 1;
-            params.push(item.id);
+            params.push(id);
 
             return "($1, $2, $3, $" + n + ")";
         }
