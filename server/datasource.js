@@ -27,11 +27,13 @@
   
   const { Pool } = require('pg');
   const { Config } = require('./config');
+  const { Events } = require('./controllers/events');
   
   var conn, pool, nodeId,
     jsonpatch = require("fast-json-patch"),
     controller = require("./controller"),
     config = new Config(),
+    events = new Events(),
     registered = {
       GET: {},
       POST: {},
@@ -62,6 +64,69 @@
     }
 
     return false;
+  }
+
+  // Reslove connection string
+  function setNodeId (config) {
+    return new Promise (function (resolve) {
+      nodeId = config.nodeId;
+      resolve(config);
+    });
+  }
+
+  // Reslove connection string
+  function setConnectionString (config) {
+    return new Promise (function (resolve) {
+      nodeId = config.nodeId;
+      conn = "postgres://" +
+        config.postgres.user + ":" +
+        config.postgres.password + "@" +
+        config.postgres.server + "/" +
+        config.postgres.database;
+
+      resolve();
+    });
+  }
+
+  function connect () {
+    return new Promise (function (resolve, reject) {
+      // Do connection
+      function doConnect () {
+        return new Promise (function (resolve, reject) {
+           if (!pool) {
+             pool = new Pool({connectionString: conn});
+           }
+
+          pool.connect(function (err, c, d) {
+            // handle an error from the connection
+            if (err) {
+              controller.setCurrentUser(undefined);
+              console.error("Could not connect to server", err);
+              reject(err);
+              return;
+            }
+
+            resolve({client: c, done: d});
+          });
+        });
+      }
+  
+      if (conn) {
+        doConnect()
+          .then(resolve)
+          .catch(reject);
+        return;
+      }
+
+      // If no connection string, go get it
+      Promise.resolve()
+        .then(config.read)
+        .then(setNodeId)
+        .then(setConnectionString)
+        .then(doConnect)
+        .then(resolve)
+        .catch(reject);
+    });
   }
 
   // ..........................................................
@@ -127,6 +192,35 @@
         };
 
       that.request(payload).then(resolve).catch(reject);
+    });
+  };
+
+  /**
+    Unsubcribe.
+
+    @returns {Object} promise
+  */
+  that.unsubscribe = function (id, type) {
+    return new Promise (function (resolve, reject) {
+      // Do the work
+      function doUnsubscribe(resp) {
+        return new Promise (function (resolve, reject) {
+          function callback() {
+            resp.done();
+            resolve();
+          }
+
+          events.unsubscribe(resp.client, id || nodeId, type || 'node')
+            .then(callback)
+            .catch(reject)
+        });
+      }
+
+      Promise.resolve()
+        .then(connect)
+        .then(doUnsubscribe)
+        .then(resolve)
+        .catch(reject)
     });
   };
 
@@ -447,7 +541,12 @@
         });
       }
 
-      function doRequest () {
+      function doRequest (resp) {
+        if (!isExternalClient) {
+          client = resp.client;
+          done = resp.done;
+        }
+
         //console.log("REQUEST->", obj.name, obj.method);
         return new Promise (function (resolve, reject) {
           if (!client.currentUser && !obj.user) {
@@ -503,30 +602,6 @@
         });
       }
 
-      function connect () {
-        // console.log("CONNECT->", obj.name, obj.method);
-        return new Promise (function (resolve, reject) {
-          if (!pool) {
-            pool = new Pool({connectionString: conn});
-          }
-  
-          pool.connect(function (err, c, d) {
-            client = c;
-            done = d;
-
-            // handle an error from the connection
-            if (err) {
-              controller.setCurrentUser(undefined);
-              console.error("Could not connect to server", err);
-              reject(err);
-              return;
-            }
-
-            resolve();
-          });
-        });
-      }
-
       if (obj.client) {
         isExternalClient = true;
         client = obj.client;
@@ -537,34 +612,7 @@
         return;
       }
 
-      if (conn) {
-        Promise.resolve()
-          .then(connect)
-          .then(doRequest)
-          .then(close)
-          .then(resolve)
-          .catch(reject);
-        return;
-      }
-
-      // Read configuration if necessary
-      function setCredentials (config) {
-        // console.log("SET_CREDS->", obj.name, obj.method);
-        return new Promise (function (resolve) {
-          nodeId = config.nodeId;
-          conn = "postgres://" +
-            config.postgres.user + ":" +
-            config.postgres.password + "@" +
-            config.postgres.server + "/" +
-            config.postgres.database;
-
-          resolve();
-        });
-      }
-
       Promise.resolve()
-        .then(config.read)
-        .then(setCredentials)
         .then(connect)
         .then(doRequest)
         .then(close)
