@@ -15,14 +15,18 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-
+/*global Promise*/
+/*jslint white, node, this, es6, for*/
 (function (exports) {
   "strict";
+
+  const { Events } = require("./controllers/events");
 
   var that,
     f = require("../common/core"),
     jsonpatch = require("fast-json-patch"),
     format = require("pg-format"),
+    events = new Events(),
     ops = Object.keys(f.operators),
     settings = {},
     PKCOL = "_pk",
@@ -52,9 +56,7 @@
   //
 
   function promiseWrapper (name) {
-    return function () {
-      var args = arguments;
-
+    return function (...args) {
       return new Promise (function (resolve, reject) {
         args[0].callback = function (err, resp) {
           if (err) { 
@@ -240,10 +242,13 @@
     });
   }
 
-  function curry (fn, args) {
-    var ary = [];
+  function curry (...args1) {
+    var fn = args1[0],
+      args = args1[1],
+      ary = [];
+
     return function () {
-      return fn.apply(this, args.concat(ary.slice.call(arguments)));
+      return fn.apply(this, args.concat(ary.slice.call(args1)));
     };
   }
 
@@ -549,7 +554,7 @@
     while (i < len) {
       if (typeof ary[i] === "string") {
         i += 1;
-        continue;
+          continue;
       }
 
       /* Copy to convert dates back to string for accurate comparisons */
@@ -1445,7 +1450,8 @@
       @param {Object} [payload.filter] Filter criteria of records to select
       @param {Object} [payload.client] Database client
       @param {Function} [payload.callback] callback
-      @param {Object} [payload.showDeleted] include deleted records
+      @param {Boolean} [payload.showDeleted] include deleted records
+      @param {Object} [payload.subscription] subscribe to events on returned rows
       @param {Boolean} Request as child. Default false.
       @param {Boolean} Request as super user. Default false.
       @return receiver
@@ -1561,8 +1567,16 @@
               }
 
               result = sanitize(resp.rows.map(mapKeys));
-
-              obj.callback(null, result);
+              
+              function ids (item) {
+                return item.id;
+              }
+  
+              // Handle subscription
+              events.subscribe(obj.client, obj.subscription, result.map(ids), obj.merge) 
+                .then(function () {
+                  obj.callback(null, result);
+                });
             });
           } else {
             obj.callback(null, []);
@@ -2128,6 +2142,7 @@
       @param {Object} Request payload
       @param {Object} [payload.name] Feather name
       @param {Object} [payload.filter] Filter
+      @param {Boolean} [payload.showDeleted] Show deleted records
       @param {Object} [payload.client] Database client
       @param {Function} [payload.callback] callback
       @param {Boolean} Request as super user. Default false.

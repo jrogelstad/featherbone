@@ -16,7 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-/*global window, require, Promise, featherbone*/
+/*global window, require, Promise, EventSource, featherbone*/
 /*jslint white, this, browser, eval */
 
 (function () {
@@ -48,7 +48,8 @@
     catalog = require("catalog"),
     dataSource = require("datasource"),
     list = require("list"),
-    workbooks = catalog.register("workbooks");
+    workbooks = catalog.register("workbooks"),
+    ev = new EventSource('/sse');
 
   // Helper function for building relation widgets.
   buildRelationWidget = function (relopts) {
@@ -148,9 +149,12 @@
 
           toFetch.forEach(function(feather) {
             var name = feather.name.toCamelCase(),
-              ary = models[name].list({fetch: false});
+              ary = models[name].list({
+                subscribe: true,
+                fetch: false,
+                showDeleted: true
+              });
 
-            ary().showDeleted(true);
             catalog.register("data", feather.plural.toCamelCase(), ary);
             requests.push(ary().fetch({})); // No limit on fetch
           });
@@ -336,6 +340,14 @@
   window.onresize = function () {
     m.redraw(true);
   };
+  
+  ev.onmessage = function (event) {
+    console.log(event.data);
+  };
+
+  ev.addEventListener('notify', function (result) {
+    console.log(result.data);
+  });
 
   // Expose some stuff globally for debugging purposes
   featherbone = {
