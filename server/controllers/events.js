@@ -43,17 +43,17 @@
         /**
           Subscribe to changes against objects with matching ids. If merge is true
           then previous subscription objects continue to listen, otherwise previous
-          subscription listening will be cleared.
+          subscription unsubscribed to.
 
           @param {Object} Database client connection
           @param {Object} Subscription. If empty promise just resolves without change.
           @param {String} [subscription.nodeId] Node server id. Required.
           @param {String} [subscription.sessionId] Client session id. Required.
           @param {String} [subscription.id] Subscription id. Required.
-          @param {Boolean} Merge with previous subscription. Default false.
+          @param {Boolean} [subscription.merg] Merge previous subscription. Default false.
           @return {Object} Promise
         */
-        events.subscribe = function (client, subscription, ids, merge) {
+        events.subscribe = function (client, subscription, ids) {
             return new Promise(function (resolve, reject) {
                 var sql;
 
@@ -92,7 +92,7 @@
                     });
                 }
 
-                if (merge) {
+                if (subscription.merge) {
                     doSubscribe()
                         .then(resolve)
                         .catch(reject);

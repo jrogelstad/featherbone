@@ -268,7 +268,9 @@
       url = ary.path() + query;
       payload = {method: "GET", url: url};
 
-      return m.request(payload).then(callback);
+      return m.request(payload)
+        .then(callback)
+        .catch(console.error);
     };
 
     doSave = function (context) {

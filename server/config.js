@@ -15,23 +15,34 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
+/*global Promise*/
+/*jslint node*/
+(function (exports) {
+    "strict";
+    var fs = require("fs"),
+        path = require("path");
 
-var fs = require("fs"),
-  path = require("path");
+    exports.Config = function () {
+        var config = {};
 
-module.exports = function () {
-  'strict';
-  return new Promise (function (resolve, reject) {
+        config.read = function () {
+            return new Promise(function (resolve, reject) {
 
-  var filename = path.format({root: "./", base: "config/pg.json"});
+                var filename = path.format({root: "./", base: "/server/config.json"});
 
-    fs.readFile(filename, "utf8", function (err, data) {
-        if (err) {
-          console.error(err);
-          return reject(err);
-        }
+                fs.readFile(filename, "utf8", function (err, data) {
+                    if (err) {
+                        console.error(err);
+                        return reject(err);
+                    }
 
-        resolve(JSON.parse(data));
-    });
-  });
-};
+                    resolve(JSON.parse(data));
+                });
+            });
+        };
+
+        return config;
+    };
+
+}(exports));
+
