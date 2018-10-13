@@ -220,14 +220,7 @@
     });
   });
 
-  // When all intialization done, construct app.
-  Promise.all([
-    loadCatalog,
-    loadForms,
-    loadModules,
-    loadRelationWidgets,
-    loadWorkbooks])
-  .then(function () {
+  function init () {
     var home,
       components = catalog.store().components(),
       models = catalog.store().models(),
@@ -332,7 +325,21 @@
       "/search/:feather": components.searchPage,
       "/settings/:settings": components.settingsPage
     });
-  });
+  }
+
+  // Listen for session id
+  ev.onmessage = function (event) {
+    catalog.sessionId(event.data);
+
+    // When all intialization done, construct app.
+    Promise.all([
+      loadCatalog,
+      loadForms,
+      loadModules,
+      loadRelationWidgets,
+      loadWorkbooks])
+    .then(init);
+  };
 
   // Let displays handle their own overflow locally
   document.documentElement.style.overflow = 'hidden';
@@ -341,14 +348,6 @@
     m.redraw(true);
   };
   
-  ev.onmessage = function (event) {
-    console.log(event.data);
-  };
-
-  ev.addEventListener('notify', function (result) {
-    console.log(result.data);
-  });
-
   // Expose some stuff globally for debugging purposes
   featherbone = {
     global: f,

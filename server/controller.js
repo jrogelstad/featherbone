@@ -1571,7 +1571,7 @@
               function ids (item) {
                 return item.id;
               }
-  
+
               // Handle subscription
               events.subscribe(obj.client, obj.subscription, result.map(ids)) 
                 .then(function () { 

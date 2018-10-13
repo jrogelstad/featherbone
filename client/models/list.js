@@ -261,6 +261,7 @@
       if (subid) {
         query.subscription = {
           id: subid,
+          sessionId: catalog.sessionId(),
           merge: context.merge !== true
         };
       }

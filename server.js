@@ -24,11 +24,13 @@
   var datasource = require("./server/datasource"),
     express = require("express"),
     bodyParser = require("body-parser"),
+    f = require("./common/core"),
     qs = require("qs"),
     SSE = require('sse-nodejs'),
     app = express(),
     controllers = [],
     routes = [],
+    sessions = {},
     port = process.env.PORT || 10001,
     dataRouter = express.Router(),
     featherRouter = express.Router(),
@@ -306,12 +308,6 @@
       next(); // make sure we go to the next routes and don't stop here
     });
 
-    // test route to make sure everything is working 
-    // (accessed at GET http://localhost:{port}/api)
-    dataRouter.get('/', function (ignore, res) {
-      res.json({ message: 'hooray! welcome to our api!' });
-    });
-
     // Create routes for each catalog object
     registerDataRoutes();
 
@@ -346,19 +342,17 @@
 
     // HANDLE PUSH NOTIFICATION -------------------------------
     app.get('/sse', function (req,res) {
-        var crier = new SSE(res);
-     
-        crier.sendEvent('notify', function () {
-            return new Date();
-        },1000);
+        var crier = new SSE(res),
+          sessionId = f.createId();
         
-        crier.send("HelloWorld");
+        sessions[sessionId] = {};
+
+        crier.send(sessionId);
 
         crier.disconnect(function () {
-            console.log("disconnected");
+          delete sessions[sessionId];
+          console.log("Session " + sessionId + " disconnected");
         });
-
-        crier.removeEvent('time', 3100);
     });
 
     // REGISTER MODULE CONTROLLERS 
