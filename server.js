@@ -88,6 +88,7 @@
       .then(datasource.getCatalog)
       .then(getControllers)
       .then(getRoutes)
+      .then(datasource.unsubscribe)
       .then(callback)
       .catch(process.exit);
   }
