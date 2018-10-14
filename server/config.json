@@ -1,5 +1,5 @@
 {
-    "nodeId": "Node1",
+    "nodeId": "node1",
     "defaultLimit": 2000,
     "postgres":{
         "server": "localhost",

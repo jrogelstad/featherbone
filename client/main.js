@@ -85,142 +85,144 @@
   };
 
   // Load catalog and process models
-  loadCatalog = new Promise(function (resolve) {
+  function initPromises() {
+    loadCatalog = new Promise(function (resolve) {
 
-    catalog.fetch(true).then(function (data) {
-      var models = catalog.register("models"),
-        payload = {method: "GET", path: "/settings-definition"},
-        initSettings = [],
-        toFetch = [];
+      catalog.fetch(true).then(function (data) {
+        var models = catalog.register("models"),
+          payload = {method: "GET", path: "/settings-definition"},
+          initSettings = [],
+          toFetch = [];
 
-      feathers = data;
+        feathers = data;
 
-      Object.keys(data).forEach(function (name) {
-        var feather = catalog.getFeather(name);
-        
-        if (feather.fetchOnStartup) {
-          toFetch.push(feather);
-        }
+        Object.keys(data).forEach(function (name) {
+          var feather = catalog.getFeather(name);
+          
+          if (feather.fetchOnStartup) {
+            toFetch.push(feather);
+          }
 
-        name = name.toCamelCase();
+          name = name.toCamelCase();
 
-        // Implement generic function to object from model
-        if (typeof models[name] !== "function") {
-          // Model instance
-          models[name] = function (data, spec) {
-            return model(data, spec || f.copy(feather));
-          };
-        }
-
-        // List instance
-        if (feather.plural && !models[name].list) {
-          models[name].list = list(feather.name);
-        }
-      });
-
-      // Load settings
-      dataSource.request(payload).then(function (definitions) {
-
-        // Loop through each definition and build a settings model function
-        definitions.forEach(function (definition) {
-          var name = definition.name;
           // Implement generic function to object from model
           if (typeof models[name] !== "function") {
             // Model instance
-            models[name] = function () {
-              return settings(definition);
+            models[name] = function (data, spec) {
+              return model(data, spec || f.copy(feather));
             };
-          } 
+          }
 
-          // Allow retrieving of definition directly from object
-          models[name].definition = function () {
-            return definition;
-          };
-
-          // Instantiate settings models
-          initSettings.push(new Promise (function(presolve) {
-            models[name]().fetch().then(presolve);
-          }));
+          // List instance
+          if (feather.plural && !models[name].list) {
+            models[name].list = list(feather.name);
+          }
         });
 
-        // Load data as indicated
-        function fetchData () {
-          var requests = [];
+        // Load settings
+        dataSource.request(payload).then(function (definitions) {
 
-          toFetch.forEach(function(feather) {
-            var name = feather.name.toCamelCase(),
-              ary = models[name].list({
-                subscribe: true,
-                fetch: false,
-                showDeleted: true
-              });
+          // Loop through each definition and build a settings model function
+          definitions.forEach(function (definition) {
+            var name = definition.name;
+            // Implement generic function to object from model
+            if (typeof models[name] !== "function") {
+              // Model instance
+              models[name] = function () {
+                return settings(definition);
+              };
+            } 
 
-            catalog.register("data", feather.plural.toCamelCase(), ary);
-            requests.push(ary().fetch({})); // No limit on fetch
+            // Allow retrieving of definition directly from object
+            models[name].definition = function () {
+              return definition;
+            };
+
+            // Instantiate settings models
+            initSettings.push(new Promise (function(presolve) {
+              models[name]().fetch().then(presolve);
+            }));
           });
 
-          Promise.all(requests).then(resolve);
-        }
+          // Load data as indicated
+          function fetchData () {
+            var requests = [];
 
-        Promise.all(initSettings).then(fetchData);
+            toFetch.forEach(function(feather) {
+              var name = feather.name.toCamelCase(),
+                ary = models[name].list({
+                  subscribe: true,
+                  fetch: false,
+                  showDeleted: true
+                });
+
+              catalog.register("data", feather.plural.toCamelCase(), ary);
+              requests.push(ary().fetch({})); // No limit on fetch
+            });
+
+            Promise.all(requests).then(resolve);
+          }
+
+          Promise.all(initSettings).then(fetchData);
+        });
       });
     });
-  });
 
-  // Load modules
-  loadModules = new Promise (function (resolve) {
-    var payload = {method: "GET", path: "/modules/"};
+    // Load modules
+    loadModules = new Promise (function (resolve) {
+      var payload = {method: "GET", path: "/modules/"};
 
-    dataSource.request(payload).then(function (data) {
-      moduleData = data;
-      resolve();
-    });
-  });
-
-  // Load forms
-  loadForms = new Promise (function (resolve) {
-    var payload = {method: "GET", path: "/data/forms"},
-      forms = catalog.register("forms");
-
-    dataSource.request(payload).then(function (data) {
-      // Loop through each form record and load into catalog
-      data.forEach(function (form) {
-        forms[form.id] = form;
+      dataSource.request(payload).then(function (data) {
+        moduleData = data;
+        resolve();
       });
-
-      resolve();
     });
-  });
 
-  // Load relation widgets
-  loadRelationWidgets = new Promise (function (resolve) {
-    var payload = {method: "GET", path: "/data/relation-widgets"};
+    // Load forms
+    loadForms = new Promise (function (resolve) {
+      var payload = {method: "GET", path: "/data/forms"},
+        forms = catalog.register("forms");
 
-    return dataSource.request(payload).then(function (data) {
-      // Loop through each record and build widget
-      data.forEach(function (item) {
-        // Some transformation
-        item.form = item.form.id;
-        item.list = {columns: item.searchColumns};
-        delete item.searchColumns;
-        buildRelationWidget(item);
+      dataSource.request(payload).then(function (data) {
+        // Loop through each form record and load into catalog
+        data.forEach(function (form) {
+          forms[form.id] = form;
+        });
+
+        resolve();
       });
-
-      resolve();
     });
-  });
 
-  // Load workbooks
-  loadWorkbooks = new Promise(function (resolve) {
-    var payload = {method: "GET", path: "/workbooks/"};
+    // Load relation widgets
+    loadRelationWidgets = new Promise (function (resolve) {
+      var payload = {method: "GET", path: "/data/relation-widgets"};
 
-    dataSource.request(payload).then(function (data) {
-      workbookData = data;
-      resolve();
+      return dataSource.request(payload).then(function (data) {
+        // Loop through each record and build widget
+        data.forEach(function (item) {
+          // Some transformation
+          item.form = item.form.id;
+          item.list = {columns: item.searchColumns};
+          delete item.searchColumns;
+          buildRelationWidget(item);
+        });
+
+        resolve();
+      });
     });
-  });
 
-  function init () {
+    // Load workbooks
+    loadWorkbooks = new Promise(function (resolve) {
+      var payload = {method: "GET", path: "/workbooks/"};
+
+      dataSource.request(payload).then(function (data) {
+        workbookData = data;
+        resolve();
+      });
+    });
+  }
+
+  function initApp () {
     var home,
       components = catalog.store().components(),
       models = catalog.store().models(),
@@ -329,17 +331,25 @@
   
   // Listen for session id
   ev.onmessage = function (event) {
-    catalog.sessionId(event.data);
-    catalog.register("subscriptions");
+    var data = JSON.parse(event.data);
 
-    // When all intialization done, construct app.
-    Promise.all([
-      loadCatalog,
-      loadForms,
-      loadModules,
-      loadRelationWidgets,
-      loadWorkbooks])
-    .then(init);
+    if (data.session) {
+      catalog.sessionId(data.session);
+      catalog.register("subscriptions");
+
+      // When all intialization done, construct app.
+      initPromises();
+      Promise.all([
+        loadCatalog,
+        loadForms,
+        loadModules,
+        loadRelationWidgets,
+        loadWorkbooks])
+      .then(initApp);
+      return;
+    }
+    
+    console.log(data);
   };
 
   // Let displays handle their own overflow locally

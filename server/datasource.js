@@ -69,15 +69,14 @@
   // Reslove connection string
   function setNodeId (config) {
     return new Promise (function (resolve) {
-      nodeId = config.nodeId;
+      nodeId = config.nodeId.toSnakeCase();
       resolve(config);
     });
   }
 
   // Reslove connection string
   function setConnectionString (config) {
-    return new Promise (function (resolve) {
-      nodeId = config.nodeId;
+    return new Promise (function (resolve) {  
       conn = "postgres://" +
         config.postgres.user + ":" +
         config.postgres.password + "@" +
@@ -195,30 +194,30 @@
     });
   };
 
-  function doListen(resp) {
-    return new Promise (function (resolve, reject) {
-      resp.client.on('notification', function(msg) {
-        console.log(msg);
-      });
- 
-      resp.client.query("LISTEN " + nodeId)
-        .then(resolve)
-        .catch(reject);
-    });
-  }
-
   /**
     Initialize listener.
 
     @returns {Object} promise
   */
-  that.listen = function () {
+  that.listen = function (callback) {
+    function doListen(resp) {
+      return new Promise (function (resolve, reject) {
+        resp.client.on('notification', function(msg) {
+          callback(msg);
+        });
+
+        resp.client.query("LISTEN " + nodeId)
+          .then(resolve)
+          .catch(reject);
+      });
+    }
+
     return new Promise (function (resolve, reject) {
       Promise.resolve()
         .then(connect)
         .then(doListen)
         .then(resolve)
-        .catch(reject)
+        .catch(reject);
     });
   };
 
@@ -239,7 +238,7 @@
 
           events.unsubscribe(resp.client, id || nodeId, type || 'node')
             .then(callback)
-            .catch(reject)
+            .catch(reject);
         });
       }
 
@@ -247,7 +246,7 @@
         .then(connect)
         .then(doUnsubscribe)
         .then(resolve)
-        .catch(reject)
+        .catch(reject);
     });
   };
 

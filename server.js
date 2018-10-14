@@ -33,7 +33,6 @@
     sessions = {},
     port = process.env.PORT || 10001,
     unsubscribe = datasource.unsubscribe,
-    listen = datasource.listen,
     dataRouter = express.Router(),
     featherRouter = express.Router(),
     moduleRouter = express.Router(),
@@ -91,7 +90,6 @@
       .then(getControllers)
       .then(getRoutes)
       .then(unsubscribe)
-      .then(listen)
       .then(callback)
       .catch(process.exit);
   }
@@ -306,7 +304,7 @@
 
     // middleware to use for all requests
     dataRouter.use(function (...args) {
-      args[2]() // make sure we go to the 'next' routes and don't stop here
+      args[2](); // make sure we go to the 'next' routes and don't stop here
     });
 
     // Create routes for each catalog object
@@ -343,18 +341,37 @@
 
     // HANDLE PUSH NOTIFICATION -------------------------------
     app.get('/sse', function (ignore, res) {
-        var crier = new SSE(res),
+      var crier = new SSE(res),
           sessionId = f.createId();
-        
-        sessions[sessionId] = {};
 
-        crier.send(sessionId);
+      sessions[sessionId] = {};
 
-        crier.disconnect(function () {
-          delete sessions[sessionId];
-          unsubscribe(sessionId, 'session');
-          console.log("Session " + sessionId + " disconnected");
+      function receiver(message) {
+        crier.send({
+          message: message.payload
         });
+      }
+
+      function callback() {
+        crier.send({
+          session: sessionId
+        });
+      }
+      
+      function err(err) {
+        console.error(err);
+      }
+      
+      datasource.listen(receiver)
+        .then(callback)
+        .catch(err);
+      /*
+      crier.disconnect(function () {
+        delete sessions[sessionId];
+        unsubscribe(sessionId, 'session');
+        console.log("Session " + sessionId + " disconnected");
+      });
+      */
     });
 
     // REGISTER MODULE CONTROLLERS 
