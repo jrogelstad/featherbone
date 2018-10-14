@@ -20,6 +20,9 @@
 (function (exports) {
     "strict";
 
+    const { Tools } = require("./tools");
+    var tools = new Tools();
+
     exports.Events = function () {
         // ..........................................................
         // PRIVATE
@@ -39,6 +42,27 @@
         // ..........................................................
         // PUBLIC
         //
+        /**
+          Initialize listener.
+
+          @param {Object} Database client connection
+          @param {String} Channel (node server id)
+          @param {Function} Callback, responds to events
+          @returns {Object} promise
+        */
+        events.listen = function (client, channel, callback) {
+            return new Promise(function (resolve, reject) {
+                client.on('notification', function (msg) {
+                    msg.payload = JSON.parse(msg.payload);
+                    msg.payload = tools.sanitize(msg.payload);
+                    callback(msg);
+                });
+
+                client.query("LISTEN " + channel)
+                    .then(resolve)
+                    .catch(reject);
+            });
+        };
 
         /**
           Subscribe to changes against objects with matching ids. If merge is true

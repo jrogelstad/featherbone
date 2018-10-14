@@ -21,12 +21,14 @@
   "strict";
 
   const { Events } = require("./controllers/events");
+  const { Tools } = require("./controllers/tools");
 
   var that,
     f = require("../common/core"),
     jsonpatch = require("fast-json-patch"),
     format = require("pg-format"),
     events = new Events(),
+    sanitize = new Tools().sanitize,
     ops = Object.keys(f.operators),
     settings = {},
     PKCOL = "_pk",
@@ -542,53 +544,6 @@
 
   function relationColumn (key, relation) {
     return "_" + key.toSnakeCase() + "_" + relation.toSnakeCase() + "_pk";
-  }
-
-  function sanitize (obj) {
-    var oldObj, newObj, oldKey, newKey, keys, klen, n,
-      isArray = Array.isArray(obj),
-      ary = isArray ? obj : [obj],
-      len = ary.length,
-      i = 0;
-
-    while (i < len) {
-      if (typeof ary[i] === "string") {
-        i += 1;
-          continue;
-      }
-
-      /* Copy to convert dates back to string for accurate comparisons */
-      oldObj = JSON.parse(JSON.stringify(ary[i]));
-      newObj = {};
-
-      keys = Object.keys(oldObj);
-      klen = keys.length;
-      n = 0;
-
-      while (n < klen) {
-        oldKey = keys[n];
-        n += 1;
-
-        /* Remove internal properties */
-        if (oldKey.match("^_")) {
-          delete oldObj[oldKey];
-        } else {
-          /* Make properties camel case */
-          newKey = oldKey.toCamelCase();
-          newObj[newKey] = oldObj[oldKey];
-
-          /* Recursively sanitize objects */
-          if (typeof newObj[newKey] === "object" && newObj[newKey] !== null) {
-            newObj[newKey] = sanitize(newObj[newKey]);
-          }
-        }
-      }
-
-      ary[i] = newObj;
-      i += 1;
-    }
-
-    return isArray ? ary : ary[0];
   }
 
   // ..........................................................
@@ -3947,7 +3902,6 @@
   Object.keys(that).forEach(function (key) {
     exports[key] = promiseWrapper(key);
   });
-  exports.sanitize = sanitize;
 
 }(exports));
 
