@@ -74,11 +74,37 @@
       
       // Create event trigger for notifications
       createEventTrigger = function () {
-        sql = 'CREATE OR REPLACE FUNCTION upsert_trigger() RETURNS trigger AS $$' +
+        sql = 'CREATE OR REPLACE FUNCTION insert_trigger() RETURNS trigger AS $$' +
               'DECLARE ' +
               '  node RECORD;' +
               '  sub RECORD; ' +
               '  rec RECORD; ' +
+              '  payload TEXT; ' +
+              'BEGIN' +
+              '  FOR node IN ' +
+              '    SELECT DISTINCT nodeid FROM "$subscription"' +
+              '    WHERE objectid IS NULL LOOP ' +
+              '' +
+              '    EXECUTE format(\'SELECT * FROM %I' +
+              '    WHERE id IS NULL\', \'_\' || TG_TABLE_NAME) INTO rec;'+
+              ''+
+              '    FOR sub IN' +
+              '      SELECT \'new\' AS change,sessionid, subscriptionid FROM "$subscription"' +
+              '      WHERE nodeid = node.nodeid AND objectid = NEW.id' +
+              '    LOOP' +
+              '        payload := \'{"subscription": \' || row_to_json(sub)::text || \',"data":\' || row_to_json(rec)::text || \'}\';' +
+              '        PERFORM pg_notify(node.nodeid, payload); '+
+              '    END LOOP;' +
+              '  END LOOP; ' +
+              'RETURN NEW; ' +
+              'END; ' +
+              '$$ LANGUAGE plpgsql;' +
+              'CREATE OR REPLACE FUNCTION update_trigger() RETURNS trigger AS $$' +
+              'DECLARE ' +
+              '  node RECORD;' +
+              '  sub RECORD; ' +
+              '  rec RECORD; ' +
+              '  payload TEXT; ' +
               'BEGIN' +
               '  FOR node IN ' +
               '    SELECT DISTINCT nodeid FROM "$subscription"' +
@@ -88,10 +114,11 @@
               '    WHERE id = $1\', \'_\' || TG_TABLE_NAME) INTO rec USING NEW.id;'+
               ''+
               '    FOR sub IN' +
-              '      SELECT * FROM "$subscription"' +
+              '      SELECT \'update\' AS change, sessionid, subscriptionid FROM "$subscription"' +
               '      WHERE nodeid = node.nodeid AND objectid = NEW.id' +
               '    LOOP' +
-              '        PERFORM pg_notify(node.nodeid, row_to_json(rec)::text); '+
+              '        payload := \'{"subscription": \' || row_to_json(sub)::text || \',"data":\' || row_to_json(rec)::text || \'}\';' +
+              '        PERFORM pg_notify(node.nodeid, payload); '+
               '    END LOOP;' +
               '  END LOOP; ' +
               'RETURN NEW; ' +

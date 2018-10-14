@@ -365,13 +365,13 @@
       datasource.listen(receiver)
         .then(callback)
         .catch(err);
-      /*
+      
       crier.disconnect(function () {
         delete sessions[sessionId];
         unsubscribe(sessionId, 'session');
         console.log("Session " + sessionId + " disconnected");
       });
-      */
+
     });
 
     // REGISTER MODULE CONTROLLERS 
