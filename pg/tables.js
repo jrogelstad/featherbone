@@ -74,27 +74,38 @@
       
       // Create event trigger for notifications
       createEventTrigger = function () {
-        sql = "CREATE OR REPLACE FUNCTION insert_trigger() RETURNS trigger AS $$" +
-              "DECLARE " +
-              "BEGIN" +
-              "  PERFORM pg_notify('watchers', TG_TABLE_NAME || ',id,' || NEW.id ); " +
-              "RETURN new; " +
-              "END; " +
-              "$$ LANGUAGE plpgsql;" +
-              "CREATE OR REPLACE FUNCTION update_trigger() RETURNS trigger AS $$" +
-              "DECLARE " +
-              "BEGIN" +
-              "  PERFORM pg_notify('watchers', TG_TABLE_NAME || ',id,' || NEW.id ); " +
-              "RETURN new; " +
-              "END; " +
-              "$$ LANGUAGE plpgsql;" +
-              "CREATE OR REPLACE FUNCTION delete_trigger() RETURNS trigger AS $$" +
-              "DECLARE " +
-              "BEGIN" +
-              "  PERFORM pg_notify('watchers', TG_TABLE_NAME || ',id,' || OLD.id ); " +
-              "RETURN old; " +
-              "END; " +
-              "$$ LANGUAGE plpgsql;";
+        sql = 'CREATE OR REPLACE FUNCTION update_trigger() RETURNS trigger AS $$' +
+              'DECLARE ' +
+              '  node RECORD;' +
+              '  sub RECORD; ' +
+              'BEGIN' +
+              '  FOR node IN ' +
+              '    SELECT DISTINCT nodeid FROM "$subscription"' +
+              '    WHERE objectid = NEW.id LOOP ' +
+              '    FOR sub IN' +
+              '      SELECT * FROM "$subscription"' +
+              '      WHERE nodeid = node.nodeid AND objectid = NEW.id' +
+              '    LOOP' +
+              '        PERFORM pg_notify(node.nodeid, row_to_json(sub)::text); '+
+              '    END LOOP;' +
+              '  END LOOP; ' +
+              'RETURN NEW; ' +
+              'END; ' +
+              '$$ LANGUAGE plpgsql;' +
+              'CREATE OR REPLACE FUNCTION insert_trigger() RETURNS trigger AS $$' +
+              'DECLARE ' +
+              'BEGIN' +
+              '  PERFORM pg_notify(\'node1\', TG_TABLE_NAME || \',id,\' || NEW.id ); ' +
+              'RETURN new; ' +
+              'END; ' +
+              '$$ LANGUAGE plpgsql;' +
+              'CREATE OR REPLACE FUNCTION delete_trigger() RETURNS trigger AS $$' +
+              'DECLARE ' +
+              'BEGIN' +
+              '  PERFORM pg_notify(\'node1\', TG_TABLE_NAME || \',id,\' || OLD.id ); ' +
+              'RETURN old; ' +
+              'END; ' +
+              '$$ LANGUAGE plpgsql;';
         obj.client.query(sql, createSubscription);
         return;
       };     
