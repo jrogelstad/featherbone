@@ -202,15 +202,9 @@
   that.listen = function (callback) {
     function doListen(resp) {
       return new Promise (function (resolve, reject) {
-        resp.client.on('notification', function(msg) {
-          msg.payload = JSON.parse(msg.payload);
-          msg.payload = controller.sanitize(msg.payload);
-          callback(msg);
-        });
-
-        resp.client.query("LISTEN " + nodeId)
+        events.listen(resp.client, nodeId, callback)
           .then(resolve)
-          .catch(reject);
+          .catch(reject)
       });
     }
 
