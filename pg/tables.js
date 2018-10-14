@@ -90,7 +90,7 @@
               ''+
               '    FOR sub IN' +
               '      SELECT \'new\' AS change,sessionid, subscriptionid FROM "$subscription"' +
-              '      WHERE nodeid = node.nodeid AND objectid = NEW.id' +
+              '      WHERE nodeid = node.nodeid AND objectid = TG_TABLE_NAME' +
               '    LOOP' +
               '        payload := \'{"subscription": \' || row_to_json(sub)::text || \',"data":\' || row_to_json(rec)::text || \'}\';' +
               '        PERFORM pg_notify(node.nodeid, payload); '+
