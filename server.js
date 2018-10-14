@@ -146,6 +146,7 @@
 
       if (query.subscription !== undefined) {
         payload.subscription = query.subscription;
+        payload.subscription.merge = query.subscription.merge === "true";
       }
       filter.offset = filter.offset || 0;
     }
