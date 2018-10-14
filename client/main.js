@@ -340,8 +340,27 @@
       // Listen for event changes for this session
       evsubscr = new EventSource('/sse/' + sessionId);
       evsubscr.onmessage = function (event) {
-         var data = JSON.parse(event.data);
-         console.log(data);
+         var instance, ary,
+           payload = JSON.parse(event.data),
+           subscriptionId = payload.message.subscription.subscriptionid,
+           data = payload.message.data;
+
+         console.log(payload);
+         
+         ary = catalog.store().subscriptions()[subscriptionId];
+         if (ary) {
+           instance = ary.find(function (model) {
+             return model.id() === data.id;
+           });
+
+           if (instance) {
+             instance.set(data, true, true);
+           } else {
+             console.error('Target model for ' + data.id + ' not found');
+           }
+         } else {
+           console.error('Target list for ' + subscriptionId + ' not found');
+         }
       };
 
       // Done with startup event
