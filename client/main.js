@@ -355,6 +355,7 @@
 
            if (instance) {
              instance.set(data, true, true);
+             m.redraw();
            } else {
              console.error('Target model for ' + data.id + ' not found');
            }
