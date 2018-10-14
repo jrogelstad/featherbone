@@ -341,39 +341,54 @@
     app.use('/workbooks', workbookRouter);
 
     // HANDLE PUSH NOTIFICATION -------------------------------
-    app.get('/sse', function (ignore, res) {
-      var crier = new SSE(res),
-          sessionId = f.createId();
+    // Receiver callback for all events, but sends only to applicable session.
+    function receiver(message) {
+      var sessionId = message.payload.subscription.sessionid,
+        fn = sessions[sessionId];
+      
+      console.log("Received message for session " + sessionId);
+      if (fn) {
+        console.log("Sending message for " + sessionId, message);
+        fn(message);
+      }
+    }
 
-      sessions[sessionId] = {};
+    function handleEvents() {
+      app.get('/sse', function (ignore, res) {
+        var crier = new SSE(res),
+            sessionId = f.createId();
 
-      function receiver(message) {
-        crier.send({
-          message: message.payload
+        // Instantiate address for session
+        app.get('/sse/' + sessionId, function (ignore, res) {
+          var sessCrier = new SSE(res);
+          
+          sessions[sessionId] = function (message) {
+            sessCrier.send({
+              message: message.payload
+            });
+          };
+  
+          sessCrier.disconnect(function () {
+            delete sessions[sessionId];
+            unsubscribe(sessionId, 'session');
+            console.log("Closed session " + sessionId);
+          });
+          
+          console.log('Listening for session ' + sessionId);
         });
-      }
 
-      function callback() {
-        crier.send({
-          session: sessionId
+        crier.send(sessionId);
+        
+        crier.disconnect(function () {
+          console.log("Client startup done.");
         });
-      }
-      
-      function err(err) {
-        console.error(err);
-      }
-      
-      datasource.listen(receiver)
-        .then(callback)
-        .catch(err);
-      
-      crier.disconnect(function () {
-        delete sessions[sessionId];
-        unsubscribe(sessionId, 'session');
-        console.log("Session " + sessionId + " disconnected");
+
       });
-
-    });
+    }
+        
+    datasource.listen(receiver)
+          .then(handleEvents)
+          .catch(console.error);
 
     // REGISTER MODULE CONTROLLERS 
     controllers.forEach(function (controller) {
