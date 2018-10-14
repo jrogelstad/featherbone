@@ -39,7 +39,7 @@
   require("common-core");
 
   var feathers, loadCatalog, loadModules, moduleData, workbookData,
-    loadForms, loadRelationWidgets, loadWorkbooks,
+    loadForms, loadRelationWidgets, loadWorkbooks, evstart, evsubscr,
     buildRelationWidget,
     m = require("mithril"),
     f = require("component-core"),
@@ -48,8 +48,7 @@
     catalog = require("catalog"),
     dataSource = require("datasource"),
     list = require("list"),
-    workbooks = catalog.register("workbooks"),
-    ev = new EventSource('/sse');
+    workbooks = catalog.register("workbooks");
 
   // Helper function for building relation widgets.
   buildRelationWidget = function (relopts) {
@@ -330,12 +329,23 @@
   }
   
   // Listen for session id
-  ev.onmessage = function (event) {
-    var data = JSON.parse(event.data);
-
-    if (data.session) {
-      catalog.sessionId(data.session);
+  evstart = new EventSource('/sse');
+  evstart.onmessage = function (event) {
+    var sessionId = event.data;
+    
+    if (sessionId) {
+      catalog.sessionId(sessionId);
       catalog.register("subscriptions");
+      
+      // Listen for event changes for this session
+      evsubscr = new EventSource('/sse/' + sessionId);
+      evsubscr.onmessage = function (event) {
+         var data = JSON.parse(event.data);
+         console.log(data);
+      };
+
+      // Done with startup event
+      evstart.close();
 
       // When all intialization done, construct app.
       initPromises();
@@ -345,11 +355,9 @@
         loadModules,
         loadRelationWidgets,
         loadWorkbooks])
-      .then(initApp);
-      return;
+        .then(initApp);
     }
-    
-    console.log(data);
+
   };
 
   // Let displays handle their own overflow locally

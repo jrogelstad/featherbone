@@ -83,8 +83,8 @@
               'BEGIN' +
               '  FOR node IN ' +
               '    SELECT DISTINCT nodeid FROM "$subscription"' +
-              '    WHERE objectid IS NULL LOOP ' +
-              '' +
+              '    WHERE objectid = TG_TABLE_NAME LOOP ' +
+              ''+
               '    EXECUTE format(\'SELECT * FROM %I' +
               '    WHERE id IS NULL\', \'_\' || TG_TABLE_NAME) INTO rec;'+
               ''+
