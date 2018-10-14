@@ -155,6 +155,11 @@
                 var sql,
                     param = [id];
 
+                if (!id) {
+                    resolve();
+                    return;
+                }
+
                 if (type !== 'subscription' && type !== 'session' && type !== 'node') {
                     throw new Error(type + ' is not a valid type for unsubscribe.');
                 }

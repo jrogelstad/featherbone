@@ -28,7 +28,8 @@
     jsonpatch = require("fast-json-patch"),
     format = require("pg-format"),
     events = new Events(),
-    sanitize = new Tools().sanitize,
+    tools = new Tools(),
+    sanitize = tools.sanitize,
     ops = Object.keys(f.operators),
     settings = {},
     PKCOL = "_pk",
@@ -1499,6 +1500,7 @@
 
           var result,
             sort = obj.filter ? obj.filter.sort || [] : [],
+            subscription = obj.subscription || {},
             i = 0;
 
           if (keys.length) {
@@ -1537,7 +1539,14 @@
                 });
             });
           } else {
-            obj.callback(null, []);
+            // Handle subscription
+            events.unsubscribe(obj.client, subscription.id) 
+              .then(function () { 
+                obj.callback(null, []);
+              })
+              .catch(function (err) {
+                obj.callback(err);
+              });            
           }
         } catch (e) {
           obj.callback(e);
