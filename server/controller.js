@@ -3065,8 +3065,10 @@
               "CONSTRAINT %I PRIMARY KEY (_pk), " +
               "CONSTRAINT %I UNIQUE (id)) " +
               "INHERITS (%I);" +
-              "CREATE TRIGGER %I AFTER INSERT OR UPDATE ON %I " +
-              "FOR EACH ROW EXECUTE PROCEDURE upsert_trigger();" +
+              "CREATE TRIGGER %I AFTER INSERT ON %I " +
+              "FOR EACH ROW EXECUTE PROCEDURE insert_trigger();" +
+              "CREATE TRIGGER %I AFTER UPDATE ON %I " +
+              "FOR EACH ROW EXECUTE PROCEDURE update_trigger();" +
               "CREATE TRIGGER %I AFTER DELETE ON %I " +
               "FOR EACH ROW EXECUTE PROCEDURE delete_trigger();";
             tokens = tokens.concat([
@@ -3074,7 +3076,9 @@
               table + "_pkey",
               table + "_id_key",
               inherits,
-              table + "_upsert_trigger",
+              table + "_insert_trigger",
+              table,
+              table + "_update_trigger",
               table,
               table + "_delete_trigger",
               table
