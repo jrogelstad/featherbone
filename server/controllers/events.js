@@ -20,7 +20,7 @@
 (function (exports) {
     "strict";
 
-    const { Tools } = require("./tools");
+    const {Tools} = require("./tools");
     var tools = new Tools();
 
     exports.Events = function () {
@@ -28,16 +28,7 @@
         // PRIVATE
         //
 
-        var n, params,
-                events = {};
-
-         // Helper for registerSubscription
-        function buildValues(id) {
-            n = n + 1;
-            params.push(id);
-
-            return "($1, $2, $3, $" + n + ")";
-        }
+        var events = {};
 
         // ..........................................................
         // PUBLIC
@@ -74,13 +65,13 @@
           @param {String} [subscription.nodeId] Node server id. Required.
           @param {String} [subscription.sessionId] Client session id. Required.
           @param {String} [subscription.id] Subscription id. Required.
-          @param {Boolean} [subscription.merg] Merge previous subscription. Default false.
+          @param {Boolean} [subscription.merge] Merge previous subscription. Default false.
+          @param {Array} Ids to listen to
+          @param {String} Tablename to listen for inserts.
           @return {Object} Promise
         */
-        events.subscribe = function (client, subscription, ids) {
+        events.subscribe = function (client, subscription, ids, tablename) {
             return new Promise(function (resolve, reject) {
-                var sql;
-
                 if (!subscription) {
                     resolve();
                     return;
@@ -100,17 +91,38 @@
 
                 function doSubscribe() {
                     return new Promise(function (resolve, reject) {
-                        params = [
-                            subscription.nodeId,
-                            subscription.sessionId,
-                            subscription.id
-                        ];
+                        var queries = [],
+                            sql = "",
+                            tparams;
 
-                        n = 3;
-                        sql = 'INSERT INTO "$subscription" VALUES ' +
-                                ids.map(buildValues).toString();
+                        ids.forEach(function (id) {
+                            var params = [
+                                subscription.nodeId,
+                                subscription.sessionId,
+                                subscription.id,
+                                id
+                            ];
 
-                        client.query(sql, params)
+                            sql = 'INSERT INTO "$subscription" VALUES ' +
+                                    '($1, $2, $3, $4)' +
+                                    'ON CONFLICT DO NOTHING;';
+                            queries.push(client.query(sql, params));
+                        });
+
+                        if (tablename) {
+                            tparams = [
+                                subscription.nodeId,
+                                subscription.sessionId,
+                                subscription.id,
+                                tablename
+                            ];
+                            sql = 'INSERT INTO "$subscription" VALUES ' +
+                                    '($1, $2, $3, $4);';
+
+                            queries.push(client.query(sql, tparams));
+                        }
+
+                        Promise.all(queries)
                             .then(resolve)
                             .catch(reject);
                     });
