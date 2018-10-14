@@ -232,10 +232,15 @@
     doFetch = function (context) {
       var url, payload,
         subid = ary.subscribe(),
-        query = {};
+        query = {},
+        merge = true;
+
+      if (context.merge === false) {
+        merge = false;
+      }
 
       function callback (data) {
-        if (context.merge === false) { 
+        if (!merge) { 
           ary.reset();
         }
 
@@ -264,7 +269,7 @@
         query.subscription = {
           id: subid,
           sessionId: catalog.sessionId(),
-          merge: context.merge !== true
+          merge: merge
         };
       }
       query = qs.stringify(query);
