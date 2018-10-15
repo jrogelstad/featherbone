@@ -346,9 +346,9 @@
       var sessionId = message.payload.subscription.sessionid,
         fn = sessions[sessionId];
       
-      console.log("Received message for session " + sessionId);
+      //console.log("Received message for session " + sessionId);
       if (fn) {
-        console.log("Sending message for " + sessionId, message);
+        //console.log("Sending message for " + sessionId, message);
         fn(message);
       }
     }
