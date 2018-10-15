@@ -340,13 +340,17 @@
       // Listen for event changes for this session
       evsubscr = new EventSource('/sse/' + sessionId);
       evsubscr.onmessage = function (event) {
-         var instance, ary,
-           payload = JSON.parse(event.data),
-           subscriptionId = payload.message.subscription.subscriptionid,
-           data = payload.message.data;
-
-         console.log(payload);
+         var instance, ary, payload, subscriptionId, data;
          
+         // Ignore heartbeats
+         if (event.data === "") { return; }
+         
+         payload = JSON.parse(event.data),
+         subscriptionId = payload.message.subscription.subscriptionid,
+         data = payload.message.data;
+
+         //console.log(payload);
+         // Apply event to the catalog;
          ary = catalog.store().subscriptions()[subscriptionId];
          if (ary) {
            instance = ary.find(function (model) {

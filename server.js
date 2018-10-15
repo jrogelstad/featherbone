@@ -360,7 +360,7 @@
 
         // Instantiate address for session
         app.get('/sse/' + sessionId, function (ignore, res) {
-          var sessCrier = new SSE(res);
+          var sessCrier = new SSE(res, {heartbeat: 10});
           
           sessions[sessionId] = function (message) {
             sessCrier.send({
