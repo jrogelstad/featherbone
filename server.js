@@ -382,7 +382,6 @@
         crier.disconnect(function () {
           console.log("Client startup done.");
         });
-
       });
     }
         

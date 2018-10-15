@@ -156,6 +156,7 @@
                 });
 
               catalog.register("data", feather.plural.toCamelCase(), ary);
+              ary().defaultLimit(undefined);
               requests.push(ary().fetch({})); // No limit on fetch
             });
 
@@ -340,32 +341,43 @@
       // Listen for event changes for this session
       evsubscr = new EventSource('/sse/' + sessionId);
       evsubscr.onmessage = function (event) {
-         var instance, ary, payload, subscriptionId, data;
-         
-         // Ignore heartbeats
-         if (event.data === "") { return; }
-         
-         payload = JSON.parse(event.data),
-         subscriptionId = payload.message.subscription.subscriptionid,
-         data = payload.message.data;
+        var instance, ary, payload, subscriptionId, change, data;
+ 
+        // Ignore heartbeats
+        if (event.data === "") { return; }
 
-         //console.log(payload);
-         // Apply event to the catalog;
-         ary = catalog.store().subscriptions()[subscriptionId];
-         if (ary) {
-           instance = ary.find(function (model) {
-             return model.id() === data.id;
-           });
+        payload = JSON.parse(event.data),
+        subscriptionId = payload.message.subscription.subscriptionid;
+        change = payload.message.subscription.change;
+        data = payload.message.data;
+        ary = catalog.store().subscriptions()[subscriptionId];
+         
+        if (!ary) {
+          console.error('Target list for ' + subscriptionId + ' not found');
+          return;
+        }
 
-           if (instance) {
-             instance.set(data, true, true);
-             m.redraw();
-           } else {
-             console.error('Target model for ' + data.id + ' not found');
-           }
-         } else {
-           console.error('Target list for ' + subscriptionId + ' not found');
-         }
+        // Apply event to the catalog;
+        switch (change) {
+        case 'update':
+          instance = ary.find(function (model) {
+            return model.id() === data.id;
+          });
+
+          if (instance) {
+            instance.set(data, true, true);
+            m.redraw();
+            return;
+          } else {
+            console.error('Target model for ' + data.id + ' not found');
+          }
+          break;
+        case 'create':
+          ary.add(ary.model(data));
+          break;
+        }
+
+        m.redraw();
       };
 
       // Done with startup event
@@ -381,7 +393,6 @@
         loadWorkbooks])
         .then(initApp);
     }
-
   };
 
   // Let displays handle their own overflow locally

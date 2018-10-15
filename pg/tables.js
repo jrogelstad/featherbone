@@ -86,10 +86,10 @@
               '    WHERE objectid = TG_TABLE_NAME LOOP ' +
               ''+
               '    EXECUTE format(\'SELECT * FROM %I' +
-              '    WHERE id IS NULL\', \'_\' || TG_TABLE_NAME) INTO rec;'+
+              '    WHERE id = $1\', \'_\' || TG_TABLE_NAME) INTO rec USING NEW.id;'+
               ''+
               '    FOR sub IN' +
-              '      SELECT \'new\' AS change,sessionid, subscriptionid FROM "$subscription"' +
+              '      SELECT \'create\' AS change,sessionid, subscriptionid FROM "$subscription"' +
               '      WHERE nodeid = node.nodeid AND objectid = TG_TABLE_NAME' +
               '    LOOP' +
               '        payload := \'{"subscription": \' || row_to_json(sub)::text || \',"data":\' || row_to_json(rec)::text || \'}\';' +

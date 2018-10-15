@@ -67,7 +67,7 @@
           @param {String} [subscription.id] Subscription id. Required.
           @param {Boolean} [subscription.merge] Merge previous subscription. Default false.
           @param {Array} Ids to listen to
-          @param {String} Tablename to listen for inserts.
+          @param {String} Feather or table name to listen for inserts.
           @return {Object} Promise
         */
         events.subscribe = function (client, subscription, ids, tablename) {
@@ -110,6 +110,7 @@
                         });
 
                         if (tablename) {
+                            tablename = tablename.toSnakeCase();
                             tparams = [
                                 subscription.nodeId,
                                 subscription.sessionId,
