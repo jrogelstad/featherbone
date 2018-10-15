@@ -139,8 +139,12 @@
     };
 
     ary.filter = stream({});
+    
+    ary.defaultLimit = stream(LIMIT);
 
     ary.index = stream({});
+    
+    ary.model = models[feather.toCamelCase() || 'Model'];
 
     ary.path = stream();
 
@@ -261,7 +265,7 @@
 
       if (ary.filter()) {
         query.filter = ary.filter();
-        query.filter.limit = query.filter.limit || LIMIT;
+        query.filter.limit = query.filter.limit || ary.defaultLimit();
       }
 
       query.showDeleted = ary.showDeleted();

@@ -1498,7 +1498,7 @@
         try {
           if (err) { throw err; }
 
-          var result,
+          var result, feathername,
             sort = obj.filter ? obj.filter.sort || [] : [],
             subscription = obj.subscription || {},
             i = 0;
@@ -1528,9 +1528,14 @@
               function ids (item) {
                 return item.id;
               }
+              
+              if (!obj.filter.criteria && !obj.filter.limit) {
+                feathername = obj.name;
+              }
 
               // Handle subscription
-              events.subscribe(obj.client, obj.subscription, result.map(ids)) 
+              events.subscribe(obj.client, obj.subscription, result.map(ids),
+                feathername) 
                 .then(function () { 
                   obj.callback(null, result);
                 })
