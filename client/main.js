@@ -375,6 +375,19 @@
         case 'create':
           ary.add(ary.model(data));
           break;
+        case 'delete':
+          instance = ary.find(function (model) {
+            return model.id() === data;
+          });
+
+          if (instance) {
+            if (ary.showDeleted()) {
+              instance.data.isDeleted(true);
+            } else {
+              ary.remove(instance);
+            }
+          }
+          break;
         }
 
         m.redraw();

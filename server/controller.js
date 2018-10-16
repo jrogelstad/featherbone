@@ -3037,9 +3037,7 @@
               "CREATE TRIGGER %I AFTER INSERT ON %I " +
               "FOR EACH ROW EXECUTE PROCEDURE insert_trigger();" +
               "CREATE TRIGGER %I AFTER UPDATE ON %I " +
-              "FOR EACH ROW EXECUTE PROCEDURE update_trigger();" +
-              "CREATE TRIGGER %I AFTER DELETE ON %I " +
-              "FOR EACH ROW EXECUTE PROCEDURE delete_trigger();";
+              "FOR EACH ROW EXECUTE PROCEDURE update_trigger();";
             tokens = tokens.concat([
               table,
               table + "_pkey",
@@ -3048,8 +3046,6 @@
               table + "_insert_trigger",
               table,
               table + "_update_trigger",
-              table,
-              table + "_delete_trigger",
               table
             ]);
 
