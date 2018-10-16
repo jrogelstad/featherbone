@@ -105,30 +105,31 @@
               '  sub RECORD; ' +
               '  rec RECORD; ' +
               '  payload TEXT; ' +
+              '  change TEXT DEFAULT \'update\';' +
+              '  data TEXT; ' +
               'BEGIN' +
               '  FOR node IN ' +
               '    SELECT DISTINCT nodeid FROM "$subscription"' +
               '    WHERE objectid = NEW.id LOOP ' +
-              '' +
-              '    EXECUTE format(\'SELECT * FROM %I' +
-              '    WHERE id = $1\', \'_\' || TG_TABLE_NAME) INTO rec USING NEW.id;'+
+              ''+
+              '    IF NEW.is_deleted THEN ' +
+              '      change := \'delete\'; ' +
+              '      data := \'"\' || OLD.id || \'"\'; ' +
+              '    ELSE' +
+              '      EXECUTE format(\'SELECT * FROM %I' +
+              '      WHERE id = $1\', \'_\' || TG_TABLE_NAME) INTO rec USING NEW.id;' +
+              '      data := row_to_json(rec)::text; ' +
+              '    END IF; ' +
               ''+
               '    FOR sub IN' +
-              '      SELECT \'update\' AS change, sessionid, subscriptionid FROM "$subscription"' +
+              '      SELECT change AS change, sessionid, subscriptionid FROM "$subscription"' +
               '      WHERE nodeid = node.nodeid AND objectid = NEW.id' +
               '    LOOP' +
-              '        payload := \'{"subscription": \' || row_to_json(sub)::text || \',"data":\' || row_to_json(rec)::text || \'}\';' +
+              '        payload := \'{"subscription": \' || row_to_json(sub)::text || \',"data":\' || data || \'}\';' +
               '        PERFORM pg_notify(node.nodeid, payload); '+
               '    END LOOP;' +
               '  END LOOP; ' +
               'RETURN NEW; ' +
-              'END; ' +
-              '$$ LANGUAGE plpgsql;' +
-              'CREATE OR REPLACE FUNCTION delete_trigger() RETURNS trigger AS $$' +
-              'DECLARE ' +
-              'BEGIN' +
-              '  PERFORM pg_notify(\'node1\', TG_TABLE_NAME || \',id,\' || OLD.id ); ' +
-              'RETURN old; ' +
               'END; ' +
               '$$ LANGUAGE plpgsql;';
         obj.client.query(sql, createSubscription);
