@@ -369,7 +369,7 @@
           tableModel.set(model.toJSON());
           tableModel.state().goto("/Ready/Fetched/Clean");
         } else {
-          vm.tableWidget().models().add(model);
+          vm.tableWidget().models().add(model, true);
         }
       }
     });

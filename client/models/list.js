@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*global require, Promise, module*/
+/*global require, Promise, module, console*/
 /*jslint white, this, es6*/
 (function () {
   "use strict";
@@ -97,8 +97,8 @@
 
     // Add a model to the list. Will replace existing
     // if model with same id is already found in array
-    ary.add = function (model) {
-      var  mstate,
+    ary.add = function (model, subscribe) {
+      var  mstate, payload, url, query, subid,
         id = model.id(),
         idx = ary.index(),
         oid = idx[id];
@@ -120,6 +120,28 @@
       if (model.state().current()[0] === "/Ready/New") {
         dirty.push(model);
         state.send("changed");
+      }
+      
+      // Subscribe to events on new model if applicable
+      if (subscribe) {
+        subid = ary.subscribe();
+
+        if (!subid) {
+          return;
+        }
+
+        query = qs.stringify({
+          id: model.id(),
+          subscription: {
+            id: subid,
+            sessionId: catalog.sessionId(),
+            merge: true
+          }
+        });
+        url = "/do/subscribe/" + query;
+        payload = {method: "POST", url: url};
+
+        m.request(payload).catch(console.error);
       }
     };
 

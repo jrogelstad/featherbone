@@ -92,6 +92,8 @@
               '      SELECT \'create\' AS change,sessionid, subscriptionid FROM "$subscription"' +
               '      WHERE nodeid = node.nodeid AND objectid = TG_TABLE_NAME' +
               '    LOOP' +
+              '        INSERT INTO "$subscription" VALUES (node.nodeid, sub.sessionid, sub.subscriptionid, NEW.id);' +
+              ''+
               '        payload := \'{"subscription": \' || row_to_json(sub)::text || \',"data":\' || row_to_json(rec)::text || \'}\';' +
               '        PERFORM pg_notify(node.nodeid, payload); '+
               '    END LOOP;' +
