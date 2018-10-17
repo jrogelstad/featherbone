@@ -579,14 +579,14 @@
           if (!client.currentUser) {
             client.currentUser = obj.user;
           }
+          
+          if (obj.subscription) {
+             obj.subscription.nodeId = nodeId;
+          }
 
           // If alter data, process it
           if (catalog[obj.name]) {
-            if (obj.method === "GET") {
-              if (obj.subscription) {
-                obj.subscription.nodeId = nodeId;
-              }        
-
+            if (obj.method === "GET") {  
               doQuery().then(resolve).catch(reject);
             } else if (obj.method === "POST" && obj.id) {
               doUpsert()
@@ -818,6 +818,7 @@
   that.registerFunction("POST", "doDelete", proxy.bind("doDelete"));
   that.registerFunction("POST", "doInsert", proxy.bind("doInsert"));
   that.registerFunction("POST", "doUpdate", proxy.bind("doUpdate"));
+  that.registerFunction("POST", "subscribe", controller.subscribe);
   that.registerFunction("PUT", "saveAuthorization",
     controller.saveAuthorization);
   that.registerFunction("PUT", "saveFeather", controller.saveFeather);

@@ -33,6 +33,7 @@
     sessions = {},
     port = process.env.PORT || 10001,
     unsubscribe = datasource.unsubscribe,
+    doRouter = express.Router(),
     dataRouter = express.Router(),
     featherRouter = express.Router(),
     moduleRouter = express.Router(),
@@ -289,6 +290,21 @@
   function doDeleteWorkbook (req, res) {
     doDeleteMethod("deleteWorkbook", req, res);
   }
+  
+  function doSubscribe (req, res) {
+    var query = qs.parse(req.params.query),
+      payload = {
+        method: "POST",
+        name: "subscribe",
+        user: datasource.getCurrentUser(),
+        id: query.id,
+        subscription: query.subscription
+      };
+
+    console.log(JSON.stringify(payload, null, 2));
+    datasource.request(payload)
+      .catch(error.bind(res));
+  }
 
   // ..........................................................
   // ROUTES
@@ -311,6 +327,8 @@
     // Create routes for each catalog object
     registerDataRoutes();
 
+    doRouter.route("/subscribe/:query")
+      .post(doSubscribe);
     featherRouter.route("/:name")
       .get(doGetFeather)
       .put(doSaveFeather)
@@ -331,6 +349,7 @@
 
     // REGISTER CORE ROUTES -------------------------------
     console.log("Registering core routes");
+    app.use('/do', doRouter);
     app.use('/data', dataRouter);
     app.use('/feather', featherRouter);
     app.use('/module', moduleRouter);
@@ -339,6 +358,7 @@
     app.use('/settings-definition', settingsDefinitionRouter);
     app.use('/workbook', workbookRouter);
     app.use('/workbooks', workbookRouter);
+    
 
     // HANDLE PUSH NOTIFICATION -------------------------------
     // Receiver callback for all events, but sends only to applicable session.
@@ -384,7 +404,7 @@
         });
       });
     }
-        
+ 
     datasource.listen(receiver)
           .then(handleEvents)
           .catch(console.error);

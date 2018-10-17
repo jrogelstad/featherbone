@@ -1539,9 +1539,7 @@
                 .then(function () { 
                   obj.callback(null, result);
                 })
-                .catch(function (err) {
-                  obj.callback(err);
-                });
+                .catch(obj.callback);
             });
           } else {
             // Handle subscription
@@ -1549,9 +1547,7 @@
               .then(function () { 
                 obj.callback(null, []);
               })
-              .catch(function (err) {
-                obj.callback(err);
-              });            
+              .catch(obj.callback);            
           }
         } catch (e) {
           obj.callback(e);
@@ -3896,6 +3892,14 @@
       });
 
       return this;
+    },
+    
+    subscribe: function (obj) {
+      events.subscribe(obj.client, obj.subscription, [obj.id])
+        .then(function () {
+          obj.callback(null, true);
+        })
+        .catch(obj.callback);
     }
   };
 
