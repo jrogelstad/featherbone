@@ -24,7 +24,8 @@
     return new Promise (function (resolve, reject) {
       var createCamelCase, createMoney, createObject, createFeather, createAuth,
         createModule, createController, createRoute, createWorkbook, createSubscription,
-        createSettings, createEventTrigger, createUser, sqlCheck, done, sql, params;
+        createSettings, createEventTrigger, createUser, createLock,
+        sqlCheck, done, sql, params;
 
       sqlCheck = function (table, callback, statement) {
         var sqlChk = statement || "SELECT * FROM pg_tables WHERE schemaname = 'public' AND tablename = $1;";
@@ -62,6 +63,31 @@
                   "   effective timestamp with time zone," +
                   "   ratio numeric" +
                   ");";
+            obj.client.query(sql, createLock);
+            return;
+          }
+          createLock();
+        }
+
+        sql = "SELECT * FROM pg_class WHERE relname = $1";
+        sqlCheck('mono', callback, sql);
+      };
+
+      // Create "lock" data type
+      createLock = function () {
+        function callback (err, exists) {
+          if (err) {
+            reject(err);
+            return;
+          }
+
+          if (!exists) {
+            sql = "CREATE TYPE lock AS (" +
+                  "   username text," +
+                  "   created timestamp with time zone," +
+                  "   _nodeid text," +
+                  "   _sessionid text" +
+                  ");";
             obj.client.query(sql, createEventTrigger);
             return;
           }
@@ -69,9 +95,9 @@
         }
 
         sql = "SELECT * FROM pg_class WHERE relname = $1";
-        sqlCheck('mono', callback, sql);
+        sqlCheck('lock', callback, sql);
       };
-      
+
       // Create event trigger for notifications
       createEventTrigger = function () {
         sql = 'CREATE OR REPLACE FUNCTION insert_trigger() RETURNS trigger AS $$' +
@@ -181,7 +207,8 @@
               "created_by text," +
               "updated timestamp with time zone," +
               "updated_by text," +
-              "is_deleted boolean); " +
+              "is_deleted boolean, " +
+              "lock boolean); " +
               "COMMENT ON TABLE object IS 'Abstract object class from which all other classes will inherit';" +
               "COMMENT ON COLUMN object._pk IS 'Internal primary key';" +
               "COMMENT ON COLUMN object.id IS 'Surrogate key';" +
@@ -190,6 +217,7 @@
               "COMMENT ON COLUMN object.updated IS 'Last time the record was updated';" +
               "COMMENT ON COLUMN object.updated_by IS 'Last user who created the record';" +
               "COMMENT ON COLUMN object.is_deleted IS 'Indicates the record is no longer active';" +
+              "COMMENT ON COLUMN object.lock IS 'Record lock';" +
               "CREATE OR REPLACE VIEW _object AS SELECT *, to_camel_case(tableoid::regclass::text) AS object_type FROM object;";
             obj.client.query(sql, createAuth);
             return;
@@ -422,7 +450,7 @@
                 return;
               }
 
-              sql = "INSERT INTO \"$settings\" VALUES (nextval('object__pk_seq'), $1, now(), CURRENT_USER, now(), CURRENT_USER, false, $2, NULL, $3);";
+              sql = "INSERT INTO \"$settings\" VALUES (nextval('object__pk_seq'), $1, now(), CURRENT_USER, now(), CURRENT_USER, false, NULL, $2, NULL, $3);";
               params = [
                 "catalog",
                 "catalog",
@@ -469,6 +497,12 @@
                       isDeleted: {
                         description: "Indicates the record is no longer active",
                         type: "boolean",
+                        isReadOnly: true
+                      },
+                      lock: {
+                        description: "Record lock information",
+                        type: "object",
+                        format: "lock",
                         isReadOnly: true
                       },
                       objectType: {
