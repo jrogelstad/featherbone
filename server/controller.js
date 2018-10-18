@@ -51,7 +51,8 @@
       date: {type: "date", default: "today()"},
       dateTime: {type: "timestamp with time zone", default: "now()"},
       password: {type: "text", default: ""},
-      money: {type: "mono", default: "money()"}
+      money: {type: "mono", default: "money()"},
+      lock: {type: "lock", default: null}
     };
 
   // ..........................................................
@@ -1230,7 +1231,7 @@
             if (prop.isRequired && value === null) {
               throw "\"" + key + "\" is required.\"";
             }
-            Object.keys(value).forEach(function (attr) {
+            Object.keys(value || {}).forEach(function (attr) {
               args.push(col);
               args.push(attr);
               tokens.push("%I.%I");
