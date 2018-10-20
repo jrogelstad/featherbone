@@ -28,12 +28,14 @@
   const { Pool } = require('pg');
   const { Config } = require('./config');
   const { Events } = require('./controllers/events');
+  const { CRUD } = require('./controllers/crud');
   
   var conn, pool, nodeId,
     jsonpatch = require("fast-json-patch"),
     controller = require("./controller"),
     config = new Config(),
     events = new Events(),
+    crud = new CRUD(),
     registered = {
       GET: {},
       POST: {},
@@ -241,6 +243,74 @@
       Promise.resolve()
         .then(connect)
         .then(doUnsubscribe)
+        .then(resolve)
+        .catch(reject);
+    });
+  };
+
+  /**
+    Lock.
+
+    @param {String} Object id.
+    @param {String} User name.
+    @param {String} Session id.
+    @returns {Object} Promise
+  */
+  that.lock = function (id, username, sessionid) {
+    return new Promise (function (resolve, reject) {
+      // Do the work
+      function doLock(resp) {
+        return new Promise (function (resolve, reject) {
+          function callback(ok) {
+            resp.done();
+            resolve(ok);
+          }
+
+          crud.lock(resp.client, nodeId, id, username, sessionid)
+            .then(callback)
+            .catch(reject);
+        });
+      }
+
+      Promise.resolve()
+        .then(connect)
+        .then(doLock)
+        .then(resolve)
+        .catch(reject);
+    });
+  };
+
+  /**
+    Unlock.
+
+    @param {Object} Criteria for what to unlock.
+    @param {String} [criteria.id] Object id.
+    @param {String} [criteria.username] User name.
+    @param {String} [criteria.sessionId] Session id.
+    @returns {Object} Promise
+  */
+  that.unlock = function (criteria) {
+    return new Promise (function (resolve, reject) {
+      criteria = criteria || {};
+      criteria.nodeId = nodeId;
+
+      // Do the work
+      function doUnlock(resp) {
+        return new Promise (function (resolve, reject) {
+          function callback(ids) {
+            resp.done();
+            resolve(ids);
+          }
+
+          crud.unlock(resp.client, criteria)
+            .then(callback)
+            .catch(reject);
+        });
+      }
+
+      Promise.resolve()
+        .then(connect)
+        .then(doUnlock)
         .then(resolve)
         .catch(reject);
     });
