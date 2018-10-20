@@ -143,6 +143,12 @@
               '    IF NEW.is_deleted THEN ' +
               '      change := \'delete\'; ' +
               '      data := \'"\' || OLD.id || \'"\'; ' +
+              '    ELSEIF NEW.lock IS NOT NULL AND OLD.lock IS NULL ' +
+              '      change := \'lock\'; ' +
+              '      data := \'"\' || OLD.id || \'"\'; ' +
+              '    ELSEIF OLD.lock IS NOT NULL AND NEW.lock IS NULL ' +
+              '      change := \'unlock\'; ' +
+              '      data := \'"\' || OLD.id || \'"\'; ' +                 
               '    ELSE' +
               '      EXECUTE format(\'SELECT * FROM %I' +
               '      WHERE id = $1\', \'_\' || TG_TABLE_NAME) INTO rec USING NEW.id;' +

@@ -872,6 +872,10 @@
           if (oldRec.isDeleted) {
             throw "Record " + obj.id + " already deleted.";
           }
+          
+          if (oldRec.lock) {
+            throw "Record is locked by " + oldRec.lock.username + " and cannot be updated.";
+          }
 
           // Get keys for properties of child arrays.
           // Count expected callbacks along the way.
@@ -1106,6 +1110,7 @@
           data.createdBy = obj.client.currentUser;
           data.updatedBy = obj.client.currentUser;
           data.isDeleted = false;
+          data.lock = null;
 
           // Get primary key
           sql = "select nextval('object__pk_seq')";
@@ -1409,6 +1414,7 @@
       @param {Function} [payload.callback] callback
       @param {Boolean} [payload.showDeleted] include deleted records
       @param {Object} [payload.subscription] subscribe to events on returned rows
+      @param {Boolean} [payload.sanitize] sanitize result. Default true
       @param {Boolean} Request as child. Default false.
       @param {Boolean} Request as super user. Default false.
       @return receiver
@@ -1486,7 +1492,10 @@
               return;
             }
 
-            result = sanitize(mapKeys(resp.rows[0]));
+            result = mapKeys(resp.rows[0]);
+            if (obj.sanitize !== false) {
+              result = sanitize(result);
+            }
 
             obj.callback(null, result);
           });
@@ -1698,7 +1707,8 @@
             id: obj.id,
             properties: keys.filter(noChildProps),
             client: obj.client,
-            callback: afterDoSelect
+            callback: afterDoSelect,
+            sanitize: false
           }, isChild);
         } catch (e) {
           obj.callback(e);
@@ -1728,9 +1738,16 @@
           };
 
         try {
-          if (err) { throw err; }
+          if (err) {
+            throw err;
+          }
 
-          oldRec = resp;
+          if (oldRec.lock &&
+              oldRec.lock._sessionid !== obj.sessionid) {
+            throw "Record is locked by " + oldRec.lock.username + " and cannot be updated.";
+          }
+
+          oldRec = sanitize(resp);
 
           if (!Object.keys(oldRec).length || oldRec.isDeleted) {
             obj.callback(null, false);

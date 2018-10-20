@@ -32,7 +32,6 @@
     routes = [],
     sessions = {},
     port = process.env.PORT || 10001,
-    unsubscribe = datasource.unsubscribe,
     doRouter = express.Router(),
     dataRouter = express.Router(),
     featherRouter = express.Router(),
@@ -90,7 +89,8 @@
       .then(datasource.getCatalog)
       .then(getControllers)
       .then(getRoutes)
-      .then(unsubscribe)
+      .then(datasource.unsubscribe)
+      .then(datasource.unlock)
       .then(callback)
       .catch(process.exit);
   }
@@ -135,6 +135,7 @@
     payload.name = name;
     payload.method = req.method;
     payload.user = datasource.getCurrentUser();
+    paylead.sessionId = req.sessionId;
 
     if (id) {
       payload.id = id;
@@ -306,6 +307,32 @@
       .catch(error.bind(res));
   }
 
+  function doLock (req, res) {
+    var query = qs.parse(req.params.query),
+      username = datasource.getCurrentUser();
+
+    console.log("Lock", query.id);
+    datasource.unlock(query.id, username, query.sessionid)
+      .then(res.json)
+      .catch(error.bind(res));
+  }
+
+  function doUnlock (req, res) {
+    var criteria,
+      query = qs.parse(req.params.query),
+      username = datasource.getCurrentUser();
+
+    criteria = {
+      id: query.id,
+      username: username
+    };
+
+    console.log("Unlock", query.id);
+    datasource.unlock(criteria)
+      .then(res.json)
+      .catch(error.bind(res));
+  }
+
   // ..........................................................
   // ROUTES
   //
@@ -329,6 +356,10 @@
 
     doRouter.route("/subscribe/:query")
       .post(doSubscribe);
+    doRouter.route("/lock/:query")
+      .post(doLock);
+    doRouter.route("/unlock/:query")
+      .post(doUnlock);
     featherRouter.route("/:name")
       .get(doGetFeather)
       .put(doSaveFeather)
@@ -390,7 +421,8 @@
   
           sessCrier.disconnect(function () {
             delete sessions[sessionId];
-            unsubscribe(sessionId, 'session');
+            datasource.unsubscribe(sessionId, 'session');
+            datasource.unlock({sessionId: sessionId});
             console.log("Closed session " + sessionId);
           });
           
