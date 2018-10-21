@@ -22,6 +22,7 @@
 
   const { Events } = require("./controllers/events");
   const { Tools } = require("./controllers/tools");
+  const { CRUD } = require("./controllers/crud");
 
   var that,
     f = require("../common/core"),
@@ -29,6 +30,7 @@
     format = require("pg-format"),
     events = new Events(),
     tools = new Tools(),
+    crud = new CRUD(),
     sanitize = tools.sanitize,
     ops = Object.keys(f.operators),
     settings = {},
@@ -1611,7 +1613,7 @@
         oldRec, newRec, cpatches, feather, tokens, find, noChildProps,
         afterGetFeather, afterGetKey, afterAuthorization, afterDoSelect,
         afterUpdate, afterSelectUpdated, done, nextProp, afterProperties,
-        afterUniqueCheck, unique,
+        afterUniqueCheck, unique, doUnlock,
         afterGetRelKey,
         patches = obj.data || [],
         id = obj.id,
@@ -1766,11 +1768,15 @@
           }
 
           updRec = JSON.parse(JSON.stringify(newRec));
+
+          // Revert data that may not be updated directly
           updRec.created = oldRec.created;
           updRec.createdBy = oldRec.createdBy;
           updRec.updated = new Date().toJSON();
           updRec.updatedBy = obj.client.currentUser;
           updRec.isDeleted = false;
+          updRec.lock = oldRec.lock;
+
           if (props.etag) {
             updRec.etag = f.createId();
           }
@@ -2037,19 +2043,26 @@
                 change: JSON.stringify(jsonpatch.compare(oldRec, result))
               },
               client: obj.client,
-              callback: done
+              callback: doUnlock
             }, true);
             return;
           }
-          done();
+          doUnlock();
         } catch (e) {
           obj.callback(e);
         }
       };
 
-      done = function (err) {
+      doUnlock = function () {
+        crud.unlock(obj.client, {id:obj.id})
+          .then(done)
+          .catch(obj.callback);
+      };
+
+      done = function () {
         try {
-          if (err) { throw err; }
+          // Remove the lock information
+          result.lock = null;
 
           // Send back the differences between what user asked for and result
           obj.callback(null, jsonpatch.compare(newRec, result));

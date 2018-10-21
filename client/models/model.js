@@ -47,7 +47,7 @@
     feather.inherits = feather.inherits || "Object";
 
     var  doClear, doDelete, doError, doFetch, doInit, doPatch, doPost, doSend,
-      doFreeze, doThaw, doRevert, doLock, lastError, state, parent,
+      doFreeze, doThaw, doRevert, doLock, doUnlock, lastError, state, parent,
       that = {data: {}, name: feather.name || "Object", plural: feather.plural,
         parent: f.prop()},
       d = that.data,
@@ -626,6 +626,31 @@
                 .catch(error);
     };
 
+    doUnlock = function () {
+      var unlock, query, payload;
+
+      function callback () {
+        d.lock(null);
+        state.send('unlocked');
+      }
+      
+      function error (err) {
+        doError(err);
+        state.send('error');
+      }
+
+      unlock = {
+        id: that.id(),
+        username: f.getCurrentUser()
+      };
+      query = qs.stringify(unlock);
+      payload = {method: "POST", path: "/do/unlock/" + query};
+
+      dataSource.request(payload)
+                .then(callback)
+                .catch(error);
+    };
+    
     doPatch = function (context) {
       var patch = jsonpatch.compare(lastFetched, that.toJSON()),
         payload = {method: "PATCH", path: that.path(that.name, that.id()),
@@ -665,7 +690,6 @@
 
     doRevert = function () {
       that.set(lastFetched, true);
-      state.goto("/Ready/Fetched/Clean");
     };
 
     doSend = function (evt) {
@@ -1035,7 +1059,7 @@
               this.goto("../Locking");
             });
             this.event("lock",  function (lock) {
-              this.goto("../../Locked", {
+              this.goto("../../../Locked", {
                 context: lock
               });
             });
@@ -1052,17 +1076,26 @@
               }
               this.goto("../Dirty");
             });
-            this.event("clean",  function () {
-              doRevert();
+            this.canDelete = stream(false);
+            this.canSave = stream(false);
+            this.canUndo = stream(true);
+          });
+
+          this.state("Unlocking", function () {
+            this.enter(doUnlock);
+            this.event("unlocked", function () {
               this.goto("../Clean");
             });
             this.canDelete = stream(false);
             this.canSave = stream(false);
-            this.canUndo = stream(true);
-          });          
+            this.canUndo = stream(false);
+          });               
 
           this.state("Dirty", function () {
-            this.event("undo", doRevert);
+            this.event("undo", function () {
+              doRevert();
+              this.goto("../Unlocking");
+            });
             this.event("save", function (context) {
               this.goto("/Busy/Saving/Patching", {
                 context: context

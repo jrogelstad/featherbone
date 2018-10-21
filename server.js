@@ -317,7 +317,9 @@
 
     console.log("Lock", query.id);
     datasource.lock(query.id, username, query.sessionId)
-      .then(res)
+      .then(function (resp) {
+        res.json();
+      })
       .catch(error.bind(res));
   }
 
