@@ -219,11 +219,21 @@
         model = vm.model(),
         icon = "file-text";
 
-      if (model.state().current()[0] === "/Locked") {
+      switch (model.state().current()[0]) {
+      case "/Locked":
         icon = "lock";
         lock = model.data.lock() || {};
         title = "User: " + lock.username + "\x0ASince: " + 
-              new Date(lock.created).toLocaleTimeString()
+              new Date(lock.created).toLocaleTimeString();
+        break;
+      case "/Ready/Fetched/Dirty":
+        icon = "pencil";
+        title = "Editing record";
+        break;
+      case "/Ready/New":
+        icon = "plus";
+        title = "New record";
+        break;
       }
 
       // Build view
