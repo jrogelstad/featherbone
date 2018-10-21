@@ -782,7 +782,7 @@
       // Build rows
       idx = 0;
       rows = vm.models().map(function (model) {
-        var tds, row, thContent, onclick,
+        var tds, row, thContent, onclick, lock,
           lastFocusId, ontab, onshifttab,
           defaultFocusId = vm.defaultFocus(model),
           currentMode = vm.mode().current()[0],
@@ -1047,8 +1047,11 @@
         // Front cap header navigation
         onclick = vm.toggleSelection.bind(this, model, defaultFocusId);
         if (currentState === "/Locked") {
+          lock = d.lock() || {};
           thContent = m("i", {
             onclick: onclick,
+            title: "User: " + lock.username + "\x0ASince: " + 
+              new Date(lock.created).toLocaleTimeString(),
             class:"fa fa-lock"
           });         
         } else if (currentState === "/Delete") {

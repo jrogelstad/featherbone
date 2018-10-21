@@ -1186,8 +1186,8 @@
 
       this.state("Locked", function () {
         this.enter(function (context) {
-          if (context && context.lock) {
-            d.lock(context.lock);
+          if (context) {
+            d.lock(context);
           }
           doFreeze();
         });
