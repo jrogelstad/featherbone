@@ -365,10 +365,7 @@
       callback: function (model) {
         var tableModel = vm.tableWidget().selection();
 
-        if (tableModel && tableModel.id() === model.id()) {
-          tableModel.set(model.toJSON());
-          tableModel.state().goto("/Ready/Fetched/Clean");
-        } else {
+        if (!(tableModel && tableModel.id() === model.id())) {
           vm.tableWidget().models().add(model, true);
         }
       }
