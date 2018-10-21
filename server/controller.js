@@ -1716,34 +1716,37 @@
       };
 
       afterDoSelect = function (err, resp) {
-        var requiredIsNull = function (fkey) {
-            if (props[fkey].isRequired && updRec[fkey] === null) {
-              key = fkey;
-              return true;
-            }
-          },
-          uniqueChanged = function (fkey) {
-            if (props[fkey].isUnique &&
-                updRec[fkey] !== oldRec[fkey]) {
+        var sessionId = "_sessionid"; // JSLint doesn't like underscore
 
-               unique = {
-                feather: props[fkey].inheritedFrom || feather.name,
-                prop: fkey,
-                value: updRec[fkey],
-                label: props[fkey].alias || fkey
-              };
+        function requiredIsNull(fkey) {
+          if (props[fkey].isRequired && updRec[fkey] === null) {
+            key = fkey;
+            return true;
+          }
+        }
 
-              return true;
-            }
-          };
+        function uniqueChanged (fkey) {
+          if (props[fkey].isUnique &&
+              updRec[fkey] !== oldRec[fkey]) {
+
+             unique = {
+              feather: props[fkey].inheritedFrom || feather.name,
+              prop: fkey,
+              value: updRec[fkey],
+              label: props[fkey].alias || fkey
+            };
+
+            return true;
+          }
+        }
 
         try {
           if (err) {
             throw err;
           }
 
-          if (oldRec.lock &&
-              oldRec.lock._sessionid !== obj.sessionid) {
+          if (oldRec && oldRec.lock &&
+              oldRec.lock[sessionId] !== obj.sessionid) {
             throw "Record is locked by " + oldRec.lock.username + " and cannot be updated.";
           }
 

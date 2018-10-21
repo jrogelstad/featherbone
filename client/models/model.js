@@ -15,7 +15,8 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-
+/*global require, module*/
+/*jslint white, this, es6*/
 (function () {
   "use strict";
 
@@ -26,6 +27,7 @@
     dataSource = require("datasource"),
     jsonpatch = require("fast-json-patch"),
     statechart = require("statechartjs"),
+    qs = require("Qs"),
     store = catalog.store();
 
   /**
@@ -45,7 +47,7 @@
     feather.inherits = feather.inherits || "Object";
 
     var  doClear, doDelete, doError, doFetch, doInit, doPatch, doPost, doSend,
-      doFreeze, doThaw, doRevert, lastError, state, parent,
+      doFreeze, doThaw, doRevert, doLock, lastError, state, parent,
       that = {data: {}, name: feather.name || "Object", plural: feather.plural,
         parent: f.prop()},
       d = that.data,
@@ -145,16 +147,16 @@
     that.fetch = function () {
       return doSend("fetch");
     };
- 
+
     /*
       Return the unique identifier value for the model.
 
       @returns {String}
     */
-    that.id = function (value) {
+    that.id = function (...args) {
       var prop = that.idProperty();
-      if (arguments.length) {
-        return d[prop](value);
+      if (args.length) {
+        return d[prop](args[0]);
       }
       return d[prop]();
     };
@@ -197,6 +199,16 @@
     */
     that.lastError = function () {
       return lastError;
+    };
+
+    /*
+      Lock record. To be applied when notification of locked status.
+
+      @seealso Unlock
+      @return Promise
+    */
+    that.lock = function (lock) {
+      state.send("lock", lock);
     };
 
     /*
@@ -464,9 +476,9 @@
       return this;
     };
 
-    that.state = function (statechart) {
-      if (arguments.length) {
-        state = statechart;
+    that.state = function (...args) {
+      if (args.length) {
+        state = args[0];
       }
 
       return state;
@@ -487,6 +499,16 @@
 
     that.undo = function () {
       state.send("undo");
+    };
+
+    /*
+      Unlock record. To be applied when notification of unlocked status.
+
+      @seealso Lock
+      @return Promise
+    */
+    that.unlock = function () {
+      state.send("unlock");
     };
 
     // ..........................................................
@@ -546,12 +568,16 @@
     };
 
     doFetch = function (context) {
-      var payload = {method: "GET", path: that.path(that.name, that.id())},
-        callback = function (result) {
-          that.set(result, true, true);
-          state.send('fetched');
-          context.resolve(d);
-        };
+      var payload = {method: "GET", path: that.path(that.name, that.id())};
+
+      function callback (result) {
+        that.set(result, true, true);
+        state.send('fetched');
+        if (d.lock()) {
+          state.send("locked");
+        }
+        context.resolve(d);
+      }
 
       dataSource.request(payload)
                 .then(callback)
@@ -572,6 +598,35 @@
           prop.isDisabled = true;
         }
       });
+    };
+
+    doLock = function () {
+      var lock, query, payload;
+
+      function callback () {
+        lock = {
+          username: f.getCurrentUser(),
+          created: f.now()
+        };
+        state.send('locked', {context: lock});
+      }
+      
+      function error (err) {
+        doError(err);
+        state.send('clean');
+      }
+      
+      lock = {
+        id: that.id(),
+        username: f.getCurrentUser(),
+        sessionId: catalog.sessionId()
+      };
+      query = qs.stringify(lock);
+      payload = {method: "POST", path: "/do/lock/" + query};
+
+      dataSource.request(payload)
+                .then(callback)
+                .catch(error);
     };
 
     doPatch = function (context) {
@@ -613,7 +668,7 @@
 
     doRevert = function () {
       that.set(lastFetched, true);
-      this.goto("/Ready/Fetched/Clean");
+      state.goto("/Ready/Fetched/Clean");
     };
 
     doSend = function (evt) {
@@ -693,14 +748,18 @@
           state.resolve("/Busy/Fetching").enter(onFetching.bind(result));
           state.resolve("/Ready/Fetched").enter(onFetched.bind(result));
 
-          // Remove original do fetch event on child
+          // Remove original enter response on child
           result.state().resolve("/Busy/Fetching").enters.shift();
+          result.state().resolve("/Ready/Fetched/Locking").enters.shift();
 
           // Disable save event on child
           result.state().resolve("/Ready/New").event("save");
           result.state().resolve("/Ready/Fetched/Dirty").event("save");
 
           // Notify parent if child becomes dirty
+          result.state().resolve("/Ready/Fetched/Locking").enter(function () {
+            this.goto("../Dirty");
+          });
           result.state().resolve("/Ready/Fetched/Dirty").enter(function () {
             state.send("changed");
           });
@@ -971,12 +1030,36 @@
 
           this.state("Clean", function () {
             this.event("changed", function () {
-              this.goto("../Dirty");
+              this.goto("../Locking");
+            });
+            this.event("lock",  function (lock) {
+              this.goto("../../Locked", {
+                context: lock
+              });
             });
             this.canDelete = stream(true);
             this.canSave = stream(false);
             this.canUndo = stream(false);
           });
+
+          this.state("Locking", function () {
+            this.enter(doLock);
+            this.event("locked", function (context) {
+              d.lock(context.lock);
+              this.goto("../Dirty");
+            });
+            this.event("clean",  function () {
+              doRevert();
+              this.goto("../Clean");
+            });
+            this.event("lock",  function () {
+              doRevert();
+              this.goto("../../Locked");
+            });
+            this.canDelete = stream(false);
+            this.canSave = stream(false);
+            this.canUndo = stream(true);
+          });          
 
           this.state("Dirty", function () {
             this.event("undo", doRevert);
@@ -1035,6 +1118,22 @@
             context: {clear: false}
           });
         });
+      });
+
+      this.state("Locked", function () {
+        this.enter(function (context) {
+          d.lock(context.lock);
+          doFreeze();
+        });
+
+        this.event("unlock",  function () {
+          doThaw();
+          this.goto("/Ready");
+        });
+
+        this.canDelete = stream(false);
+        this.canSave = stream(false);
+        this.canUndo = stream(false);
       });
 
       this.state("Delete", function () {

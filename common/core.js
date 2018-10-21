@@ -15,8 +15,8 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-
-/*global window*/
+/*jslint white, this, es6, devel, bitwise*/
+/*global window, require, module*/
 (function () {
   "use strict";
 
@@ -215,10 +215,11 @@
       });
 
       // Private function that will be returned
-      p = function (value) {
-        var proposed;
+      p = function (...args) {
+        var proposed,
+          value = args[0];
 
-        if (arguments.length) {
+        if (args.length) {
           proposed = formatter.toType(value);
 
           if (proposed === store) { return; }
@@ -236,9 +237,9 @@
         return formatter.fromType(store);
       };
 
-      p.alias = function (value) {
-        if (arguments.length) {
-          alias = value;
+      p.alias = function (...args) {
+        if (args.length) {
+          alias = args[0];
         }
         return alias;
       };
@@ -248,9 +249,9 @@
         @param {Any} New value
         @return {Any}
       */
-      p.newValue = function (value) {
-        if (arguments.length && p.state().current() === "/Changing") {
-          newValue = value;
+      p.newValue = function (...args) {
+        if (args.length && p.state().current() === "/Changing") {
+          newValue = args[0];
         }
 
         return newValue;

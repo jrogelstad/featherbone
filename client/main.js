@@ -16,7 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-/*global window, require, Promise, EventSource, featherbone*/
+/*global window, require, Promise, EventSource, console*/
 /*jslint white, this, browser, eval */
 
 (function () {
@@ -346,7 +346,7 @@
         // Ignore heartbeats
         if (event.data === "") { return; }
 
-        payload = JSON.parse(event.data),
+        payload = JSON.parse(event.data);
         subscriptionId = payload.message.subscription.subscriptionid;
         change = payload.message.subscription.change;
         data = payload.message.data;
@@ -367,9 +367,6 @@
           if (instance) {
             instance.set(data, true, true);
             m.redraw();
-            return;
-          } else {
-            console.error('Target model for ' + data.id + ' not found');
           }
           break;
         case 'create':
@@ -386,6 +383,26 @@
             } else {
               ary.remove(instance);
             }
+          }
+          break;
+        case 'lock':
+          instance = ary.find(function (model) {
+            return model.id() === data.id;
+          });
+
+          if (instance) {
+            instance.lock(data.lock);
+            m.redraw();
+          }
+          break;
+        case 'unlock':
+          instance = ary.find(function (model) {
+            return model.id() === data;
+          });
+
+          if (instance) {
+            instance.unlock();
+            m.redraw();
           }
           break;
         }
@@ -416,7 +433,7 @@
   };
   
   // Expose some stuff globally for debugging purposes
-  featherbone = {
+  window.featherbone = {
     global: f,
     catalog: catalog,
     workbooks: workbooks
