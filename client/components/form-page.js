@@ -15,8 +15,8 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-
-/*global window*/
+/*jslint white, this*/
+/*global window, require, module*/
 (function () {
   "use strict";
 
@@ -59,11 +59,11 @@
       });
     };
     vm.doBack = function () {
-      var model = vm.model();
+      var instance = vm.model();
       
-      if (model.state().current()[0] === "/Ready/Fetched/Dirty") {
-        model.state().send("undo");
-      };
+      if (instance.state().current()[0] === "/Ready/Fetched/Dirty") {
+        instance.state().send("undo");
+      }
 
       // Once we consciously leave, purge memoize
       delete instances[vm.model().id()];
@@ -214,7 +214,17 @@
     },
 
     view: function () {
-      var vm = this.viewModel;
+      var lock, title,
+        vm = this.viewModel,
+        model = vm.model(),
+        icon = "file-text";
+
+      if (model.state().current()[0] === "/Locked") {
+        icon = "lock";
+        lock = model.data.lock() || {};
+        title = "User: " + lock.username + "\x0ASince: " + 
+              new Date(lock.created).toLocaleTimeString()
+      }
 
       // Build view
       return m("div", [
@@ -231,7 +241,8 @@
           class: "suite-title"
         }, [
         m("i", {
-          class:"fa fa-file-text suite-title-icon"
+          class:"fa fa-" + icon + " suite-title-icon",
+          title: title
         }),
         m("label", vm.title())
         ]),
