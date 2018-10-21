@@ -3930,9 +3930,17 @@
 
       return this;
     },
-    
+ 
     subscribe: function (obj) {
       events.subscribe(obj.client, obj.subscription, [obj.id])
+        .then(function () {
+          obj.callback(null, true);
+        })
+        .catch(obj.callback);
+    },
+ 
+    unsubscribe: function (obj) {
+      events.unsubscribe(obj.client, obj.subscription.id)
         .then(function () {
           obj.callback(null, true);
         })

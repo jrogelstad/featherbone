@@ -218,13 +218,30 @@
       @return {String} Subcription id.
     */
     ary.subscribe = function (...args) {
+      var query, url, payload;
+
       if (args.length) {
         if (args[0] === true) {
           isSubscribed = true;
           catalog.register("subscriptions", sid, ary);
         } else {
+          if (isSubscribed) {
+            catalog.unregister("subscriptions", sid);
+
+            // Let the server know we're unsubscribing
+            query ={subscription: {
+              id: sid
+            }};
+
+            query = qs.stringify(query);
+            url = "/do/unsubscribe/" + query;
+            payload = {method: "POST", url: url};
+
+            return m.request(payload)
+              .catch(console.error);
+          }
+          
           isSubscribed = false;
-          catalog.unregister("subscriptions", sid);
         }
       }
 

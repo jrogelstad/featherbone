@@ -115,7 +115,7 @@
       });
     };
 
-    /*
+    /**
       Send event to clear properties on the object and set it to
       "/Ready/New" state.
     */
@@ -123,7 +123,7 @@
       state.send("clear");
     };
 
-    /*
+    /**
       Send event to delete the current object from the server.
       Returns a promise with a boolean passed back as the value.
 
@@ -149,7 +149,7 @@
       return doSend("fetch");
     };
 
-    /*
+    /**
       Return the unique identifier value for the model.
 
       @returns {String}
@@ -162,7 +162,7 @@
       return d[prop]();
     };
 
-    /*
+    /**
       The data property that is the unique identifier for the model.
       Default is "id".
 
@@ -171,7 +171,7 @@
     */
     that.idProperty = stream("id");
  
-    /*
+    /**
       Indicates if model is in  a frozen state.
 
       @returns {Boolen}
@@ -180,12 +180,12 @@
       return isFrozen;
     };
 
-    /*
+    /**
       Property that indicates object is a model (i.e. class).
     */
     that.isModel = true;
 
-    /*
+    /**
       Returns whether the object is in a valid state to save.
       @return {Boolean}
     */
@@ -203,7 +203,7 @@
       return true;
     };
 
-    /*
+    /**
       Return the last error raised.
       @return {String}
     */
@@ -211,7 +211,7 @@
       return lastError;
     };
 
-    /*
+    /**
       Lock record. To be applied when notification of locked status.
 
       @seealso Unlock
@@ -221,7 +221,7 @@
       state.send("lock", lock);
     };
 
-    /*
+    /**
       Add a function that returns a boolean to execute when the
       `canDelete` function is called. The function should validate
       whether a record will be allowed to be deleted.
@@ -249,7 +249,7 @@
       return this;
     };
 
-    /*
+    /**
       Add an event binding to a property that will be triggered before a
       property change. Pass a callback in and the property will be passed
       to the callback. The property will be passed to the callback as the
@@ -280,7 +280,7 @@
       return this;
     };
 
-    /*
+    /**
       Add an event binding to a property that will be triggered after a property
       change. Pass a callback in and the property will be passed to the
       callback. The property will be passed to the callback as the first
@@ -309,7 +309,7 @@
       return this;
     };
 
-    /*
+    /**
       Add an error handler binding to the object. Pass a callback
       in and the error will be passed as an argument.
         var contact,
@@ -333,7 +333,7 @@
       return this;
     };
 
-    /*
+    /**
       Add a validator to execute when the `isValid` function is
       called, which is also called after saving events. Errors thrown
       by the validator will be caught and passed through `onError`
@@ -413,7 +413,7 @@
       return that;
     };
 
-    /*
+    /**
       Returns a path to execute server requests.
 
       @param {String} Name
@@ -426,7 +426,7 @@
       return ret;
     };
 
-    /*
+    /**
       Send the save event to persist current data to the server.
       Only results in action in the "/Ready/Fetched/Dirty" and
       "/Ready/New" states.
@@ -437,7 +437,7 @@
       return doSend("save");
     };
 
-    /*
+    /**
       Send an event to all properties.
       @param {String} event name.
       @returns receiver
@@ -454,7 +454,7 @@
       return this;
     };
 
-    /*
+    /**
       Set properties to the values of a passed object
       @param {Object} Data to set
       @param {Boolean} Silence change events
@@ -520,7 +520,7 @@
       state.send("undo");
     };
 
-    /*
+    /**
       Unlock record. To be applied when notification of unlocked status.
 
       @seealso Lock

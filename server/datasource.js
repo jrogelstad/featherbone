@@ -889,6 +889,7 @@
   that.registerFunction("POST", "doInsert", proxy.bind("doInsert"));
   that.registerFunction("POST", "doUpdate", proxy.bind("doUpdate"));
   that.registerFunction("POST", "subscribe", controller.subscribe);
+  that.registerFunction("POST", "unsubscribe", controller.unsubscribe);
   that.registerFunction("PUT", "saveAuthorization",
     controller.saveAuthorization);
   that.registerFunction("PUT", "saveFeather", controller.saveFeather);

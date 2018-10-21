@@ -311,13 +311,27 @@
       .catch(error.bind(res));
   }
 
+  function doUnsubscribe (req, res) {
+    var query = qs.parse(req.params.query),
+      payload = {
+        method: "POST",
+        name: "unsubscribe",
+        user: datasource.getCurrentUser(),
+        subscription: query.subscription
+      };
+
+    console.log(JSON.stringify(payload, null, 2));
+    datasource.request(payload)
+      .catch(error.bind(res));
+  }
+
   function doLock (req, res) {
     var query = qs.parse(req.params.query),
       username = datasource.getCurrentUser();
 
     console.log("Lock", query.id);
     datasource.lock(query.id, username, query.sessionId)
-      .then(function (resp) {
+      .then(function () {
         res.json();
       })
       .catch(error.bind(res));
@@ -364,6 +378,8 @@
 
     doRouter.route("/subscribe/:query")
       .post(doSubscribe);
+    doRouter.route("/unsubscribe/:query")
+      .post(doUnsubscribe);
     doRouter.route("/lock/:query")
       .post(doLock);
     doRouter.route("/unlock/:query")
