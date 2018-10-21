@@ -335,7 +335,9 @@
 
     console.log("Unlock", query.id);
     datasource.unlock(criteria)
-      .then(res.json)
+      .then(function (resp) {
+        res.json(resp);
+      })
       .catch(error.bind(res));
   }
 
