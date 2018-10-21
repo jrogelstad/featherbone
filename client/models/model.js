@@ -56,7 +56,8 @@
       deleteChecks = [],
       stateMap = {},
       lastFetched = {},
-      freezeCache = {};
+      freezeCache = {},
+      isFrozen = false;
 
       // Inherit parent logic via traversal
       if (feather.inherits && feather.inherits !== "Object") {
@@ -169,6 +170,15 @@
       @returns {String}
     */
     that.idProperty = stream("id");
+ 
+    /*
+      Indicates if model is in  a frozen state.
+
+      @returns {Boolen}
+    */ 
+    that.isFrozen = function () {
+      return isFrozen;
+    };
 
     /*
       Property that indicates object is a model (i.e. class).
@@ -451,13 +461,18 @@
       @returns reciever
     */
     that.set = function (data, silent, islastFetched) {
-      var keys;
+      var keys,
+        climateChange = islastFetched && that.isFrozen();
 
       if (islastFetched) {
         lastFetched = data;
       }
 
       if (typeof data === "object") {
+        if (climateChange) {
+          doThaw();
+        }
+
         keys = Object.keys(data);
 
         // Silence events if applicable
@@ -471,6 +486,10 @@
         });
 
         that.sendToProperties("report");
+
+        if (climateChange) {
+          doFreeze();
+        }
       }
 
       return this;
@@ -595,6 +614,8 @@
           prop.isDisabled = true;
         }
       });
+
+      isFrozen = true;
     };
 
     doLock = function () {
@@ -712,6 +733,7 @@
       });
 
       freezeCache = {};
+      isFrozen = false;
     };
 
     doInit = function () {
@@ -1163,6 +1185,7 @@
 
         this.event("unlock",  function () {
           doThaw();
+          d.lock(null);
           this.goto("/Ready");
         });
 
