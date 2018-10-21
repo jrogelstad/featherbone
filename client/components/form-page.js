@@ -59,6 +59,12 @@
       });
     };
     vm.doBack = function () {
+      var model = vm.model();
+      
+      if (model.state().current()[0] === "/Ready/Fetched/Dirty") {
+        model.state().send("undo");
+      };
+
       // Once we consciously leave, purge memoize
       delete instances[vm.model().id()];
       window.history.go(pageIdx * -1);
