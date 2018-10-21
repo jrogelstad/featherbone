@@ -573,9 +573,6 @@
       function callback (result) {
         that.set(result, true, true);
         state.send('fetched');
-        if (d.lock()) {
-          state.send("locked");
-        }
         context.resolve(d);
       }
 
@@ -1021,6 +1018,11 @@
         });
 
         this.state("Fetched", function () {
+          this.enter(function () {
+            if (d.lock && d.lock()) {
+              this.goto("../../Locked");
+            }
+          });
           this.event("clear",  function () {
             this.goto("/Ready/New");
           });
@@ -1045,16 +1047,14 @@
           this.state("Locking", function () {
             this.enter(doLock);
             this.event("locked", function (context) {
-              d.lock(context.lock);
+              if (context && context.lock) {
+                d.lock(context.lock);
+              }
               this.goto("../Dirty");
             });
             this.event("clean",  function () {
               doRevert();
               this.goto("../Clean");
-            });
-            this.event("lock",  function () {
-              doRevert();
-              this.goto("../../Locked");
             });
             this.canDelete = stream(false);
             this.canSave = stream(false);
@@ -1122,7 +1122,9 @@
 
       this.state("Locked", function () {
         this.enter(function (context) {
-          d.lock(context.lock);
+          if (context && context.lock) {
+            d.lock(context.lock);
+          }
           doFreeze();
         });
 

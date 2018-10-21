@@ -145,7 +145,7 @@
               '      data := \'"\' || OLD.id || \'"\'; ' +
               '    ELSEIF NEW.lock IS NOT NULL AND OLD.lock IS NULL THEN ' +
               '      change := \'lock\'; ' +
-              '      data := \'{"id":\' || NEW.id || \',"lock": \' || row_to_json(NEW.lock)::text || \'}\'; ' +
+              '      data := \'{"id":"\' || NEW.id || \'","lock": \' || row_to_json(NEW.lock)::text || \'}\'; ' +
               '    ELSEIF OLD.lock IS NOT NULL AND NEW.lock IS NULL THEN ' +
               '      change := \'unlock\'; ' +
               '      data := \'"\' || OLD.id || \'"\'; ' +
