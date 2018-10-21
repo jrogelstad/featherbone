@@ -859,6 +859,8 @@
       };
 
       afterDoSelect = function (err, resp) {
+        var sessionId = "_sessionid"; // JSLint doesn't like underscore
+
         try {
           if (err) {
             obj.callback(err);
@@ -875,7 +877,8 @@
             throw "Record " + obj.id + " already deleted.";
           }
           
-          if (oldRec.lock) {
+          if (oldRec && oldRec.lock &&
+              oldRec.lock[sessionId] !== obj.sessionid) {
             throw "Record is locked by " + oldRec.lock.username + " and cannot be updated.";
           }
 

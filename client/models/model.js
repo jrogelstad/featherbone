@@ -558,12 +558,21 @@
     };
 
     doDelete = function (context) {
-      var payload = {method: "DELETE", path: that.path(that.name, that.id())},
-        callback = function (result) {
-          that.set(result, true, true);
-          state.send('deleted');
-          context.resolve(true);
-        };
+      var payload;
+
+      function callback (result) {
+        that.set(result, true, true);
+        state.send('deleted');
+        context.resolve(true);
+      }
+
+      payload = {
+        method: "DELETE", 
+        path: that.path(that.name, that.id()),
+        data: {
+          sessionId: catalog.sessionId()
+        }
+      };
 
       dataSource.request(payload)
                 .then(callback)
@@ -1195,7 +1204,10 @@
       });
 
       this.state("Delete", function () {
-        this.enter(doFreeze);
+        this.enter(function () {
+          doFreeze();
+          doLock();
+        });
 
         this.event("save",  function (context) {
           this.goto("/Busy/Deleting", {
@@ -1204,6 +1216,9 @@
         });
 
         this.event("undo",  function () {
+          doUnlock();
+        });
+        this.event("unlocked", function () {
           doThaw();
           this.goto("/Ready");
         });
