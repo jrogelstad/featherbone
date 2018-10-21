@@ -92,8 +92,8 @@
 
                         params = [
                             username,
-                            sessionid,
                             nodeid,
+                            sessionid,
                             id
                         ];
 
@@ -142,12 +142,12 @@
 
                 if (criteria.username) {
                     params.push(criteria.username);
-                    sql += ' AND object.lock.username = $' + params.length;
+                    sql += ' AND username(lock) = $' + params.length;
                 }
 
                 if (criteria.sessionId) {
                     params.push(criteria.sessionId);
-                    sql += ' AND object.lock._sessionid = $' + params.length;
+                    sql += ' AND _sessionid(lock) = $' + params.length;
                 }
 
                 if (criteria.nodeId) {
