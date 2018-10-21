@@ -16,7 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*global Promise*/
-/*jslint white, node, es6, this*/
+/*jslint white, node, es6, this, devel*/
 (function (exports) {
   "strict";
   
@@ -206,7 +206,7 @@
       return new Promise (function (resolve, reject) {
         events.listen(resp.client, nodeId, callback)
           .then(resolve)
-          .catch(reject)
+          .catch(reject);
       });
     }
 

@@ -58,6 +58,10 @@
 
   // Handle datasource error
   function error (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    console.error(err.message);
     this.status(err.statusCode).json(err.message);
   }
 
@@ -135,7 +139,7 @@
     payload.name = name;
     payload.method = req.method;
     payload.user = datasource.getCurrentUser();
-    paylead.sessionId = req.sessionId;
+    payload.sessionId = req.sessionId;
 
     if (id) {
       payload.id = id;
@@ -312,7 +316,7 @@
       username = datasource.getCurrentUser();
 
     console.log("Lock", query.id);
-    datasource.unlock(query.id, username, query.sessionid)
+    datasource.lock(query.id, username, query.sessionId)
       .then(res.json)
       .catch(error.bind(res));
   }

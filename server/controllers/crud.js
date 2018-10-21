@@ -20,8 +20,6 @@
 (function (exports) {
     "strict";
 
-    var f = require("../../common/core");
-
     exports.CRUD = function () {
         // ..........................................................
         // PRIVATE
@@ -66,11 +64,11 @@
                         var sql = "SELECT lock FROM object WHERE id = $1";
 
                         function callback(resp) {
-                            if (!resp.length) {
+                            if (!resp.rows.length) {
                                 throw new Error("Record " + id + " not found.");
                             }
 
-                            if (resp.length[0].lock) {
+                            if (resp.rows[0].lock) {
                                 throw new Error("Record " + id + " is already locked.");
                             }
 
@@ -85,19 +83,19 @@
 
                 function doLock() {
                     return new Promise(function (resolve, reject) {
-                        var params = [id],
-                            sql = "UPDATE object SET lock = $1 WHERE id = $2";
+                        var params,
+                            sql = "UPDATE object SET lock = ROW($1, now(), $2, $3) WHERE id = $4";
 
                         function callback() {
                             resolve(true);
                         }
 
-                        params.push({
-                            username: username,
-                            created: f.now(),
-                            "_sessionid": sessionid,
-                            "_nodeid": nodeid
-                        });
+                        params = [
+                            username,
+                            sessionid,
+                            nodeid,
+                            id
+                        ];
 
                         client.query(sql, params)
                             .then(callback)
@@ -129,6 +127,10 @@
             return new Promise(function (resolve, reject) {
                 var sql,
                     params = [];
+                
+                function callback(resp) {
+                  resolve(resp.rows);
+                }
 
                 sql = 'UPDATE object SET lock = NULL ' +
                         'WHERE true ';
@@ -150,17 +152,17 @@
 
                 if (criteria.nodeId) {
                     params.push(criteria.nodeId);
-                    sql += ' AND object.lock._nodeid = $' + params.length;
+                    sql += ' AND _nodeid(lock) = $' + params.length;
                 }
 
                 if (!params.length) {
                     throw new Error("No lock criteria defined.");
                 }
 
-                sql += " RETURNING id; "
+                sql += " RETURNING id; ";
 
                 client.query(sql, params)
-                    .then(resolve)
+                    .then(callback)
                     .catch(reject);
             });
         };

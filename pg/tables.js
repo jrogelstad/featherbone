@@ -143,12 +143,12 @@
               '    IF NEW.is_deleted THEN ' +
               '      change := \'delete\'; ' +
               '      data := \'"\' || OLD.id || \'"\'; ' +
-              '    ELSEIF NEW.lock IS NOT NULL AND OLD.lock IS NULL ' +
+              '    ELSEIF NEW.lock IS NOT NULL AND OLD.lock IS NULL THEN ' +
               '      change := \'lock\'; ' +
-              '      data := \'"\' || OLD.id || \'"\'; ' +
-              '    ELSEIF OLD.lock IS NOT NULL AND NEW.lock IS NULL ' +
+              '      data := \'{"id":\' || NEW.id || \',"lock": \' || row_to_json(NEW.lock)::text || \'}\'; ' +
+              '    ELSEIF OLD.lock IS NOT NULL AND NEW.lock IS NULL THEN ' +
               '      change := \'unlock\'; ' +
-              '      data := \'"\' || OLD.id || \'"\'; ' +                 
+              '      data := \'"\' || OLD.id || \'"\'; ' +
               '    ELSE' +
               '      EXECUTE format(\'SELECT * FROM %I' +
               '      WHERE id = $1\', \'_\' || TG_TABLE_NAME) INTO rec USING NEW.id;' +
@@ -214,7 +214,7 @@
               "updated timestamp with time zone," +
               "updated_by text," +
               "is_deleted boolean, " +
-              "lock boolean); " +
+              "lock lock); " +
               "COMMENT ON TABLE object IS 'Abstract object class from which all other classes will inherit';" +
               "COMMENT ON COLUMN object._pk IS 'Internal primary key';" +
               "COMMENT ON COLUMN object.id IS 'Surrogate key';" +

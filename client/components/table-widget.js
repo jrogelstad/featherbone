@@ -1046,7 +1046,12 @@
 
         // Front cap header navigation
         onclick = vm.toggleSelection.bind(this, model, defaultFocusId);
-        if (currentState === "/Delete") {
+        if (currentState === "/Locked") {
+          thContent = m("i", {
+            onclick: onclick,
+            class:"fa fa-lock"
+          });         
+        } else if (currentState === "/Delete") {
           thContent = m("i", {
             onclick: onclick,
             class:"fa fa-remove"
@@ -1059,7 +1064,7 @@
         } else if (model.canUndo()) {
           thContent = m("i", {
             onclick: onclick,
-            class:"fa fa-check"
+            class:"fa fa-pencil"
           });
         } else {
           cellOpts = {
