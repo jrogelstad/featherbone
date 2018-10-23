@@ -287,7 +287,7 @@
         };
 
         doFetch = function (context) {
-            var url, payload, edited,
+            var url, payload,
                     subid = ary.subscribe(),
                     query = {},
                     merge = true;
@@ -296,7 +296,7 @@
             ary.forEach(function (model) {
                 model.undo();
             });
-                    
+
             if (context.merge === false) {
                 merge = false;
             }
