@@ -287,11 +287,16 @@
         };
 
         doFetch = function (context) {
-            var url, payload,
+            var url, payload, edited,
                     subid = ary.subscribe(),
                     query = {},
                     merge = true;
 
+            // Undo any edited rows
+            ary.forEach(function (model) {
+                model.undo();
+            });
+                    
             if (context.merge === false) {
                 merge = false;
             }
