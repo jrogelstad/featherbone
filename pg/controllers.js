@@ -1,4 +1,5 @@
-/*global datasource*/
+/*global datasource, Promise*/
+/*jslint white, node*/
 (function (datasource) {
   "strict";
 
@@ -42,7 +43,6 @@
   */
   function handleCurrency (obj) {
     return new Promise (function (resolve, reject) {
-      debugger;
       var payload,
         curr = obj.data;
 
@@ -132,7 +132,35 @@
   datasource.registerFunction("POST", "Currency",
     handleCurrency, datasource.TRIGGER_AFTER);
 
-  function doUpdateCurrency (obj) {
+  function doUpdateCurrencyBefore (obj) {
+    return new Promise (function (resolve, reject) {
+      function callback (result) {
+        var oldCode = result.code;
+
+        jsonpatch.apply(result, obj.data);
+
+        if (oldCode !== result.code) {
+            throw new Error("Currency code '" + oldCode + "' may not be changed");
+        }
+        
+        resolve();
+      }
+
+      datasource.request({
+        method: "GET",
+        name: "Currency",
+        id: obj.id,
+        client: obj.client
+      }, true)
+        .then(callback)
+        .catch(reject);
+    });
+  }
+
+  datasource.registerFunction("PATCH", "Currency",
+    doUpdateCurrencyBefore, datasource.TRIGGER_BEFORE);    
+
+  function doUpdateCurrencyAfter (obj) {
     return new Promise (function (resolve, reject) {
       function callback (result) {
         var arg;
@@ -154,7 +182,7 @@
   }
 
   datasource.registerFunction("PATCH", "Currency",
-    doUpdateCurrency, datasource.TRIGGER_AFTER);
+    doUpdateCurrencyAfter, datasource.TRIGGER_AFTER);
 
   function doDeleteCurrency (obj) {
     return new Promise (function (resolve, reject) {
