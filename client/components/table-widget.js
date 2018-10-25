@@ -903,12 +903,20 @@
                                     minorUnit = curr.data.minorUnit();
                                 }
                             }
-
-                            content = symbol + value.amount.toLocaleString(undefined, {
+                            
+                            content = value.amount.toLocaleString(undefined, {
                                 minimumFractionDigits: minorUnit,
                                 maximumFractionDigits: minorUnit
                             });
+
+                            if (value.amount < 0) {
+                                content = "(" + Math.abs(content) + ")";
+                            }
+
+                            content = symbol + content;
+                            
                             tdOpts.style.textAlign = "right";
+
                             break;
                         default:
                             if (typeof format === "object" && d[col]()) {
