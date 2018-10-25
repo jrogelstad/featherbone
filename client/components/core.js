@@ -92,6 +92,7 @@
   };
 
   f.formats.money.toType = function (value) {
+    value = value || f.money();
     var amount = f.types.number.toType(value.amount),
       currency = f.formats.string.toType(value.currency),
       curr = f.getCurrency(value.currency);
