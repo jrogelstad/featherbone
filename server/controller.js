@@ -44,7 +44,7 @@
         types = {
             object: {
                 type: "json",
-                default: {}
+                default: null
             },
             array: {
                 type: "json",
@@ -106,7 +106,7 @@
             },
             money: {
                 type: "mono",
-                default: "money()"
+                default: null
             },
             lock: {
                 type: "lock",
