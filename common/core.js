@@ -220,6 +220,10 @@
           value = args[0];
 
         if (args.length) {
+          if (p.state().current()[0] === "/Changing") {
+              return p.newValue(value);
+          }
+
           proposed = formatter.toType(value);
 
           if (proposed === store) { return; }
@@ -250,7 +254,7 @@
         @return {Any}
       */
       p.newValue = function (...args) {
-        if (args.length && p.state().current() === "/Changing") {
+        if (args.length && p.state().current()[0] === "/Changing") {
           newValue = args[0];
         }
 

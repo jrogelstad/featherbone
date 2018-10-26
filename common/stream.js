@@ -38,9 +38,7 @@
     @param {Any} Value to persist locally
     @return {Function}
   */
-  function stream (value) {
-    var store = value;
-
+  function stream (store) {
     return function (...args) {
       if (args.length &&
           args[0] !== store) {
