@@ -47,12 +47,11 @@
         feather.inherits = feather.inherits || "Object";
 
         var doClear, doDelete, doError, doFetch, doInit, doPatch, doPost, doSend,
-                doFreeze, doThaw, doRevert, doLock, doUnlock, lastError, state, parent,
+                doFreeze, doThaw, doRevert, doLock, doUnlock, lastError, state, superclass,
                 that = {
             data: {},
             name: feather.name || "Object",
-            plural: feather.plural,
-            parent: f.prop()
+            plural: feather.plural
         },
                 d = that.data,
                 errHandlers = [],
@@ -65,9 +64,9 @@
 
         // Inherit parent logic via traversal
         if (feather.inherits && feather.inherits !== "Object") {
-            parent = catalog.getFeather(feather.inherits);
-            feather.inherits = parent.inherits || "Object";
-            return store.models()[parent.name.toCamelCase()](data, feather);
+            superclass = catalog.getFeather(feather.inherits);
+            feather.inherits = superclass.inherits || "Object";
+            return store.models()[superclass.name.toCamelCase()](data, feather);
         }
 
         // ..........................................................
@@ -422,6 +421,11 @@
 
             return that;
         };
+        
+        /**
+          Returns parent object if applicable.
+        */
+        that.parent = f.prop();
 
         /**
           Returns a path to execute server requests.

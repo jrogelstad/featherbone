@@ -279,6 +279,16 @@
 
         return store;
       };
+
+      p.newValue.toJSON = function () {
+        if (typeof newValue === "object" && newValue !== null &&
+            typeof newValue.toJSON === "function") {
+          return newValue.toJSON();
+        }
+
+        return formatter.toType(newValue);
+      };
+
       /**
         @param {Boolean} Is read only
         @returns {Boolean}
