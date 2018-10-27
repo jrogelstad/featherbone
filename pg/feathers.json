@@ -352,6 +352,11 @@
             "filter": {
                 "description": "Filter for relation search criteria",
                 "type": "object"
+            },
+            "showCurrency": {
+                "description": "Show currency selector if money",
+                "type": "boolean",
+                "default": true
             }
         }
     },

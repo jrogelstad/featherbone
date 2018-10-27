@@ -990,7 +990,8 @@
                                 backgroundColor: color,
                                 fontSize: zoom
                             },
-                            isCell: true
+                            isCell: true,
+                            showCurrency: item.showCurrency
                         };
 
                         // Set up self focus

@@ -15,7 +15,8 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-
+/*global require, module*/
+/*jslint white, es6, this*/
 (function () {
   "use strict";
 
@@ -71,12 +72,12 @@
     vm.label = function () {
       return f.baseCurrency(vm.effective()).data.code();
     };
-    vm.amount = function (value) {
+    vm.amount = function (...args) {
       var money;
 
-      if (arguments.length) {
+      if (args.length) {
         money = f.copy(prop());
-        money.amount = value;
+        money.amount = args[0];
         prop(money);
       }
 
@@ -109,12 +110,12 @@
       return f.formats.money.fromType(money).amount;
     };
     vm.conversion = stream();
-    vm.currency = function (value) {
+    vm.currency = function (...args) {
       var money;
 
-      if (arguments.length) {
+      if (args.length) {
         money = f.copy(prop());
-        money.currency = value;
+        money.currency = args[0];
         prop(money);
       }
 
@@ -194,6 +195,7 @@
           .catch(error);
       });
     };
+    vm.showCurrency = stream(options.showCurrency !== false);
 
     return vm;
   };
@@ -215,22 +217,35 @@
         parentProperty: options.parentProperty,
         id: options.id,
         isCell: options.isCell,
-        disabled: options.disabled
+        disabled: options.disabled,
+        showCurrency: options.showCurrency
       });
     },
 
     view: function (vnode) {
-      var vm = this.viewModel, currencyLabelStyle,
-        disabled = vnode.attrs.disabled === true || vm.effective(),
-        amountLabelStyle = {
-          marginLeft: "12px", 
-          marginTop: vm.label() ? "6px" : "",
-          display: "inline-block"
-        },
-        inputStyle = {
-          marginRight: "4px",
-          width: "116px"
-        };
+      var currencyLabelStyle, selectorStyle, inputStyle, amountLabelStyle,
+        vm = this.viewModel, 
+        disabled = vnode.attrs.disabled === true || vm.effective();
+
+      amountLabelStyle = {
+        marginLeft: "12px", 
+        marginTop: vm.label() ? "6px" : "",
+        display: "inline-block"
+      };
+
+      inputStyle = {
+        marginRight: "4px",
+        width: "116px",
+        textAlign: "right"
+      };
+        
+      selectorStyle = {
+        width: "95px"
+      };
+      
+      if (!vm.showCurrency()) {
+        selectorStyle.display = "none";
+      }
 
       if (vm.isCell()) {
         inputStyle.border = "none";
@@ -258,9 +273,7 @@
           onchange: m.withAttr("value", vm.currency), 
           value: vm.currency(),
           disabled: disabled,
-          style: {
-            width: "95px"
-          }
+          style: selectorStyle
         }, vm.currencies().map(selections)),
         m("div", [
           m("div", {
