@@ -222,6 +222,7 @@
                     isCell: opts.isCell,
                     style: opts.style,
                     onCreate: opts.oncreate,
+                    showCurrency: opts.showCurrency,
                     id: id,
                     disabled: prop.isReadOnly()
                 });
