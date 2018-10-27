@@ -91,7 +91,7 @@
             conn = "postgres://" +
                     config.postgres.user + ":" +
                     config.postgres.password + "@" +
-                    config.postgres.server + "/" +
+                    config.postgres.host + "/" +
                     config.postgres.database;
 
             resolve();
