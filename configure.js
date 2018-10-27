@@ -411,7 +411,7 @@
                 conn = "postgres://" +
                         config.postgres.user + ":" +
                         config.postgres.password + "@" +
-                        config.postgres.server + ":" +
+                        config.postgres.host + ":" +
                         config.postgres.port + "/" + "postgres";
 
             pgclient = new Client({
