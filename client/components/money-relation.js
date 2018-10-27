@@ -25,9 +25,17 @@
     f = require("common-core"),
     stream = require("stream"),
     catalog = require("catalog");
+    
+  function selections (item) {
+    var value = item.data.hasDisplayUnit() ? 
+      item.data.displayUnit().data.code() : item.data.code();
+
+    return m("option", value);
+  }
 
   moneyRelation.viewModel = function (options) {
-    var vm = {},
+    var selector, wasDisabled,
+      vm = {},
       parent = options.parentViewModel,
       store = catalog.store(),
       currencyList = store.data().currencies,
@@ -195,17 +203,39 @@
           .catch(error);
       });
     };
+    // Selector is memoized to prevent constant rerendering
+    // that otherwise interferes with the relation widget autocompleter
+    vm.selector = function (vnode) {
+        var selectorStyle,
+          disabled = vnode.attrs.disabled === true || vm.effective();
+
+        if (selector && disabled === wasDisabled) {
+          return selector;
+        }
+
+        selectorStyle = {
+          width: "95px"
+        };
+          
+        if (!vm.showCurrency()) {
+          selectorStyle.display = "none";
+        }
+
+        wasDisabled = disabled;
+        selector = m("select", {
+          id: "C" + vm.id(),
+          onchange: m.withAttr("value", vm.currency), 
+          value: vm.currency(),
+          disabled: disabled,
+          style: selectorStyle
+        }, vm.currencies().map(selections));
+        
+        return selector;
+    };
     vm.showCurrency = stream(options.showCurrency !== false);
 
     return vm;
   };
-
-  function selections (item) {
-    var value = item.data.hasDisplayUnit() ? 
-      item.data.displayUnit().data.code() : item.data.code();
-
-    return m("option", value);
-  }
 
   moneyRelation.component = {
     oninit: function (vnode) {
@@ -223,7 +253,7 @@
     },
 
     view: function (vnode) {
-      var currencyLabelStyle, selectorStyle, inputStyle, amountLabelStyle,
+      var currencyLabelStyle, inputStyle, amountLabelStyle,
         displayStyle,
         vm = this.viewModel, 
         disabled = vnode.attrs.disabled === true || vm.effective();
@@ -243,14 +273,6 @@
         width: "116px",
         textAlign: "right"
       };
-        
-      selectorStyle = {
-        width: "95px"
-      };
-      
-      if (!vm.showCurrency()) {
-        selectorStyle.display = "none";
-      }
 
       if (vm.isCell()) {
         inputStyle.border = "none";
@@ -274,13 +296,7 @@
           value: vm.amount(),
           disabled: disabled
         }),
-        m("select", {
-          id: "C" + vm.id(),
-          onchange: m.withAttr("value", vm.currency), 
-          value: vm.currency(),
-          disabled: disabled,
-          style: selectorStyle
-        }, vm.currencies().map(selections)),
+        vm.selector(vnode),
         m("div", [
           m("div", {
               style: amountLabelStyle
