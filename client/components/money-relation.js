@@ -224,9 +224,14 @@
 
     view: function (vnode) {
       var currencyLabelStyle, selectorStyle, inputStyle, amountLabelStyle,
+        displayStyle,
         vm = this.viewModel, 
         disabled = vnode.attrs.disabled === true || vm.effective();
 
+      displayStyle = {
+          display: "inline-block"
+      };
+        
       amountLabelStyle = {
         marginLeft: "12px", 
         marginTop: vm.label() ? "6px" : "",
@@ -249,6 +254,7 @@
 
       if (vm.isCell()) {
         inputStyle.border = "none";
+        displayStyle.float = "right";
         amountLabelStyle.display = "none";
       }
 
@@ -260,7 +266,7 @@
       amountLabelStyle.width = "110px";
 
       // Build the view
-      return m("div", {style: {display: "inline-block"}}, [
+      return m("div", {style: displayStyle}, [
         m("input", {
           style: inputStyle,
           id: "A" + vm.id(),
