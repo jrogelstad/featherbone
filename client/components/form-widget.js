@@ -69,6 +69,8 @@
         vm.errorDialog().show();
       }
     });
+    vm.subscriber = catalog.store().models()[vm.model().name.toCamelCase()].list(options);
+    vm.subscriber().add(vm.model(), true);
 
     return vm;
   };
@@ -76,20 +78,14 @@
   formWidget.component = {
     oninit: function (vnode) {
       this.viewModel = vnode.attrs.viewModel;
-      var options = {fetch: false, subscribe: true};
-      var name = this.viewModel.model().name.toCamelCase();
-      
-      // Instantiate a list that subscribes to changes on the form's model
-      this.subscriber = catalog.store().models()[name].list(options);
-      this.subscriber().add(this.viewModel.model(), true);
     },
 
     onremove: function () {    
       // Take down subscriber
-      this.subscriber().subscribe(false);
-      this.subscriber().remove(this.viewModel.model());
+      this.viewModel.subscriber().subscribe(false);
+      this.viewModel.subscriber().remove(this.viewModel.model());
     },
-    
+
     view: function (vnode) {
       var midTabClass = ["pure-button", "suite-sheet-group-tab", "suite-sheet-group-tab-form"],
         leftTabClass = f.copy(midTabClass),
