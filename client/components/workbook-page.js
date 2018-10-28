@@ -442,6 +442,12 @@
     }));
     vm.buttonDelete().disable();
 
+    if (feather.isReadOnly) {
+      vm.buttonNew().disable();
+      vm.buttonNew().title("Table is read only");
+      vm.buttonDelete().title("Table is read only");
+    }
+    
     vm.buttonUndo(button.viewModel({
       onclick: vm.tableWidget().undo,
       label: "&Undo",

@@ -52,6 +52,18 @@
             "overloads": {
                 "description": "Property overloads",
                 "type": "object"
+            },
+            "isFetchOnStartup": {
+                "description": "Load all records of this type into the catalog",
+                "type": "boolean",
+                "default": false,
+                "isRequired": true
+            },
+            "isReadOnly": {
+                "description": "Record can not be edited by the client ",
+                "type": "boolean",
+                "default": false,
+                "isRequired": true
             }
         }
     },

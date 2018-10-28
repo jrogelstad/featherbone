@@ -101,7 +101,7 @@
                 Object.keys(data).forEach(function (name) {
                     var feather = catalog.getFeather(name);
 
-                    if (feather.fetchOnStartup) {
+                    if (feather.isFetchOnStartup) {
                         toFetch.push(feather);
                     }
 

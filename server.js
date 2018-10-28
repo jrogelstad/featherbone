@@ -217,17 +217,28 @@
         keys = Object.keys(catalog);
         keys.forEach(function (key) {
             name = key.toSpinalCase();
-            dataRouter.route("/" + name + "/:id")
-                .post(doRequest)
-                .get(doRequest)
-                .patch(doRequest)
-                .delete(doRequest);
+
+            if (catalog[key].isReadOnly) {
+                dataRouter.route("/" + name + "/:id")
+                    .get(doRequest);
+            } else {
+                dataRouter.route("/" + name + "/:id")
+                    .post(doRequest)
+                    .get(doRequest)
+                    .patch(doRequest)
+                    .delete(doRequest);
+            }
 
             if (catalog[key].plural) {
                 name = catalog[key].plural.toSpinalCase();
-                dataRouter.route("/" + name)
-                    .get(doRequest)
-                    .post(doRequest);
+                if (catalog[key].isReadOnly) {
+                    dataRouter.route("/" + name)
+                        .get(doRequest);
+                } else {
+                    dataRouter.route("/" + name)
+                        .get(doRequest)
+                        .post(doRequest);
+                }
                 dataRouter.route("/" + name + "/:query")
                     .get(doRequest);
             }
