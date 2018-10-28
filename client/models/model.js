@@ -46,14 +46,8 @@
         feather.overloads = feather.overloads || {};
         feather.inherits = feather.inherits || "Object";
 
-        var doClear, doDelete, doError, doFetch, doInit, doPatch, doPost, doSend,
-                doFreeze, doThaw, doRevert, doLock, doUnlock, lastError, state, superclass,
-                that = {
-            data: {},
-            name: feather.name || "Object",
-            plural: feather.plural
-        },
-                d = that.data,
+        var that, subcriptionId, d, doClear, doDelete, doError, doFetch, doInit, doPatch, doPost,
+                doSend, doFreeze, doThaw, doRevert, doLock, doUnlock, lastError, state, superclass,
                 errHandlers = [],
                 validators = [],
                 deleteChecks = [],
@@ -61,6 +55,12 @@
                 lastFetched = {},
                 freezeCache = {},
                 isFrozen = false;
+
+        that = {
+            data: {}
+        };
+
+        d = that.data;
 
         // Inherit parent logic via traversal
         if (feather.inherits && feather.inherits !== "Object") {
@@ -230,6 +230,11 @@
         that.lock = function (lock) {
             state.send("lock", lock);
         };
+
+        /**
+          Feather name of model.
+        */
+        that.name = feather.name || "Object";
 
         /**
           Add a function that returns a boolean to execute when the
@@ -450,6 +455,11 @@
         };
 
         /**
+            Plural name of feather.
+        */
+        that.plural = feather.plural;
+
+        /**
           Send the save event to persist current data to the server.
           Only results in action in the "/Ready/Fetched/Dirty" and
           "/Ready/New" states.
@@ -526,6 +536,70 @@
             }
 
             return state;
+        };
+
+        /**
+          Subscribe or unsubscribe model to external events. If no flag
+          passed and already subscribed, subscription id returned.
+
+          @param {Boolean} Flag whether or not to subscribe to events.
+          @returns {Boolean | String} False or subscription id.
+        */
+        that.subscribe = function (...args) {
+            var query, url, payload,
+                    flag = args[0];
+
+            if (!args.length) {
+                if (subcriptionId) {
+                    return subcriptionId;
+                }
+                return false;
+            }
+
+            if (flag) {
+                subcriptionId = f.createId();
+
+                query = qs.stringify({
+                    id: that.id(),
+                    subscription: {
+                        id: subcriptionId,
+                        sessionId: catalog.sessionId()
+                    }
+                });
+
+                catalog.register("subscriptions", subcriptionId, [that]);
+
+                url = "/do/subscribe/" + query;
+                payload = {
+                    method: "POST",
+                    path: url
+                };
+
+                dataSource.request(payload)
+                    .catch(doError);
+            } else if (flag === false && subcriptionId) {
+                catalog.unregister("subscriptions", subcriptionId);
+
+                // Let the server know we're unsubscribing
+                query = {
+                    subscription: {
+                        id: subcriptionId
+                    }
+                };
+
+                query = qs.stringify(query);
+                url = "/do/unsubscribe/" + query;
+                payload = {
+                    method: "POST",
+                    path: url
+                };
+
+                dataSource.request(payload)
+                    .catch(doError);
+
+                subcriptionId = undefined;
+                return false;
+            }
         };
 
         that.toJSON = function () {

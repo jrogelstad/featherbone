@@ -214,14 +214,14 @@
         };
 
         /**
-      Subscribe to change events on any records
-      in the array. Returns subscription id when
-      enabled by passing true at least once. Pass
-      false to unsubscribe.
+          Subscribe to change events on any records
+          in the array. Returns subscription id when
+          enabled by passing true at least once. Pass
+          false to unsubscribe.
 
-      @param {Boolean} Subscribe or unsubscribe.
-      @return {String} Subcription id.
-    */
+          @param {Boolean} Subscribe or unsubscribe.
+          @return {String} Subcription id.
+        */
         ary.subscribe = function (...args) {
             var query, url, payload;
 

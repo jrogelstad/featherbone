@@ -69,8 +69,9 @@
         vm.errorDialog().show();
       }
     });
-    vm.subscriber = catalog.store().models()[vm.model().name.toCamelCase()].list(options);
-    vm.subscriber().add(vm.model(), true);
+    
+    // Subscribe to external events
+    vm.model().subscribe(true);
 
     return vm;
   };
@@ -81,9 +82,8 @@
     },
 
     onremove: function () {    
-      // Take down subscriber
-      this.viewModel.subscriber().subscribe(false);
-      this.viewModel.subscriber().remove(this.viewModel.model());
+      // Unsubscribe model when we're done here
+      this.viewModel.model().subscribe(false);
     },
 
     view: function (vnode) {
