@@ -189,8 +189,15 @@
         that.isModel = true;
 
         /**
+          Indicates whether the model is read only.
+
+          @returns {Boolean}
+        */
+        that.isReadOnly = stream(feather.isReadOnly === true);
+
+        /**
           Returns whether the object is in a valid state to save.
-          @return {Boolean}
+          @returns {Boolean}
         */
         that.isValid = function () {
             try {
@@ -421,7 +428,7 @@
 
             return that;
         };
-        
+
         /**
           Returns parent object if applicable.
         */
@@ -1141,6 +1148,13 @@
                 });
 
                 this.state("Fetched", function () {
+                    this.C(function () {
+                        if (that.isReadOnly()) {
+                            return "./ReadOnly";
+                        }
+
+                        return "./Clean";
+                    });
                     this.enter(function () {
                         if (d.lock && d.lock()) {
                             this.goto("../../Locked");
@@ -1163,6 +1177,12 @@
                             });
                         });
                         this.canDelete = stream(true);
+                        this.canSave = stream(false);
+                        this.canUndo = stream(false);
+                    });
+                    this.state("ReadOnly", function () {
+                        this.enter(doFreeze);
+                        this.canDelete = stream(false);
                         this.canSave = stream(false);
                         this.canUndo = stream(false);
                     });
@@ -1243,7 +1263,7 @@
                 });
 
                 this.event("fetched", function () {
-                    this.goto("/Ready/Fetched/Clean");
+                    this.goto("/Ready/Fetched");
                 });
                 this.event("error", function () {
                     this.goto("/Ready", {

@@ -73,7 +73,7 @@
         "module": "Core",
         "description": "Currency",
         "inherits": "Kind",
-        "fetchOnStartup": true,
+        "isFetchOnStartup": true,
         "properties": {
             "symbol": {
                 "description": "Symbol",
@@ -190,7 +190,7 @@
         "plural": "BaseCurrencies",
         "module": "Core",
         "description": "Base currency effectivity",
-        "fetchOnStartup": true,
+        "isFetchOnStartup": true,
         "properties": {
             "currency": {
                 "description": "Base currency",

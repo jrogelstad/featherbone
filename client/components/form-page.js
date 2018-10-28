@@ -185,6 +185,11 @@
       label: "Save and &New",
       icon: "plus-circle"
     }));
+    if (catalog.getFeather(feather).isReadOnly) {
+      vm.buttonSaveAndNew().label("&New");
+      vm.buttonSaveAndNew().title("Table is read only");
+      vm.buttonSaveAndNew().disable();
+    }
 
     // Bind model state to display state
     isDisabled = function () { return !vm.model().canSave(); };
