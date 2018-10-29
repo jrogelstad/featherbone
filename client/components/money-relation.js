@@ -34,7 +34,7 @@
   }
 
   moneyRelation.viewModel = function (options) {
-    var selector, wasDisabled,
+    var selector, wasDisabled, wasCurrency,
       vm = {},
       parent = options.parentViewModel,
       store = catalog.store(),
@@ -207,9 +207,11 @@
     // that otherwise interferes with the relation widget autocompleter
     vm.selector = function (vnode) {
         var selectorStyle,
-          disabled = vnode.attrs.disabled === true || vm.effective();
+          disabled = vnode.attrs.disabled === true || vm.effective(),
+          currency = vm.currency();
 
-        if (selector && disabled === wasDisabled) {
+        if (selector && disabled === wasDisabled
+            && currency === wasCurrency) {
           return selector;
         }
 
@@ -222,10 +224,11 @@
         }
 
         wasDisabled = disabled;
+        wasCurrency = currency;
         selector = m("select", {
           id: "C" + vm.id(),
           onchange: m.withAttr("value", vm.currency), 
-          value: vm.currency(),
+          value: currency,
           disabled: disabled,
           style: selectorStyle
         }, vm.currencies().map(selections));
@@ -263,8 +266,9 @@
       };
         
       amountLabelStyle = {
-        marginLeft: "12px", 
+        textAlign: "right", 
         marginTop: vm.label() ? "6px" : "",
+        marginRight: "30px",
         display: "inline-block"
       };
 
@@ -285,7 +289,7 @@
       }
 
       currencyLabelStyle = f.copy(amountLabelStyle);
-      amountLabelStyle.width = "110px";
+      amountLabelStyle.width = "105px";
 
       // Build the view
       return m("div", {style: displayStyle}, [
