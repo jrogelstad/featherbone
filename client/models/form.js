@@ -39,7 +39,7 @@
         result = [];
       if (!formFeather) { return result; }
       formFeather = catalog.getFeather(formFeather);
-      keys = Object.keys(formFeather.properties);
+      keys = Object.keys(formFeather.properties || []);
       return keys.map(function (key) {
         return {value: key, label: key};
       });

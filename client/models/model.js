@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2018  John Rogelstad
+    Copyright (C) 2018  John Rogelstaddo
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -723,19 +723,21 @@
                 var prop = d[key],
                     value = prop();
 
-                if (Array.isArray(value)) {
+                if (Array.isArray(value) && value.model) {
                     value.forEach(function (item) {
                         item.state().goto("/Ready/Fetched/ReadOnly");
                     });
                     return;
                 }
 
-                freezeCache[key] = {};
-                freezeCache[key].isReadOnly = prop.isReadOnly();
-                prop.isReadOnly(true);
-                if (prop.state().current()[0] !== "/Disabled") {
-                    prop.state().send("disable");
-                    prop.isDisabled = true;
+                if (prop.state) {
+                    freezeCache[key] = {};
+                    freezeCache[key].isReadOnly = prop.isReadOnly();
+                    prop.isReadOnly(true);
+                    if (prop.state().current()[0] !== "/Disabled") {
+                        prop.state().send("disable");
+                        prop.isDisabled = true;
+                    }
                 }
             });
 
@@ -872,17 +874,19 @@
                 var prop = d[key],
                     value = prop();
 
-                if (Array.isArray(value)) {
+                if (Array.isArray(value) && value.model) {
                     value.forEach(function (item) {
                         item.state().goto("/Ready/Fetched/Clean");
                     });
                     return;
                 }
 
-                prop.state().send("enable");
-                prop.isReadOnly(freezeCache[key].isReadOnly);
-                if (freezeCache[key].isDisabled) {
+                if (prop.state) {
                     prop.state().send("enable");
+                    prop.isReadOnly(freezeCache[key].isReadOnly);
+                    if (freezeCache[key].isDisabled) {
+                        prop.state().send("enable");
+                    }
                 }
             });
 
