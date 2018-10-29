@@ -5,6 +5,7 @@
         "module": "Core",
         "description": "Table definitions",
         "authorization": false,
+        "isReadOnly": true,
         "properties": {
             "name": {
                 "description": "Name",
@@ -245,6 +246,7 @@
         "module": "Core",
         "description": "Form definitions",
         "authorization": false,
+        "isReadOnly": true,
         "properties": {
             "name": {
                 "description": "Name",
@@ -378,6 +380,7 @@
         "module": "Core",
         "description": "Relation widget definitions",
         "authorization": false,
+        "isReadOnly": true,
         "properties": {
             "name": {
                 "description": "Name",

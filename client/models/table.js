@@ -40,7 +40,7 @@
     that = model(data, feather);
 
     feathers = function () {
-      var tables = catalog.store.feathers(),
+      var tables = catalog.store().feathers(),
         keys = Object.keys(tables);
       keys = keys.filter(function (key) {
         return !tables[key].isSystem;
@@ -57,7 +57,7 @@
     });
 
     modules = function () {
-      var tables = catalog.store.feathers(),
+      var tables = catalog.store().feathers(),
         keys = Object.keys(tables),
         ary = [];
       keys.forEach(function (key) {

@@ -1,6 +1,6 @@
 [
   {
-    "name": "Setup",
+    "name": "Model",
     "module": "Core",
     "description": "Setup definitions",
     "launchConfig": {
