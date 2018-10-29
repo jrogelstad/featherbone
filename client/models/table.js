@@ -15,72 +15,78 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-
+/*global require, module*/
 (function () {
-  "use strict";
+    "use strict";
 
-  var tableSpecModel,
-    catalog = require("catalog"),
-    model = require("model");
+    var tableSpecModel,
+        catalog = require("catalog"),
+        model = require("model");
 
-  /**
-    A factory that returns a persisting object based on a definition called a
-    `feather`. Can be extended by modifying the return object directly.
-    @param {Object} Default data
-    return {Object}
-  */
-  tableSpecModel = function (data) {
-    var that, feathers, modules,
-      feather = catalog.getFeather("TableSpec");
+    /**
+      A factory that returns a persisting object based on a definition called a
+      `feather`. Can be extended by modifying the return object directly.
+      @param {Object} Default data
+      return {Object}
+    */
+    tableSpecModel = function (data) {
+        var that, feathers, modules,
+                feather = catalog.getFeather("TableSpec");
 
-    // ..........................................................
-    // PUBLIC
-    //
+        // ..........................................................
+        // PUBLIC
+        //
 
-    that = model(data, feather);
+        that = model(data, feather);
 
-    feathers = function () {
-      var tables = catalog.store().feathers(),
-        keys = Object.keys(tables);
-      keys = keys.filter(function (key) {
-        return !tables[key].isSystem;
-      }).sort();
+        feathers = function () {
+            var tables = catalog.store().feathers(),
+                keys = Object.keys(tables);
+            keys = keys.filter(function (key) {
+                return !tables[key].isSystem;
+            }).sort();
 
-      return keys.map(function (key) {
-        return {value: key, label: key};
-      });
+            return keys.map(function (key) {
+                return {
+                    value: key,
+                    label: key
+                };
+            });
+        };
+        that.addCalculated({
+            name: "feathers",
+            type: "array",
+            function: feathers
+        });
+
+        modules = function () {
+            var tables = catalog.store().feathers(),
+                keys = Object.keys(tables),
+                ary = [];
+            keys.forEach(function (key) {
+                var mod = tables[key].module;
+                if (mod && ary.indexOf(mod) === -1) {
+                    ary.push(mod);
+                }
+            });
+
+            return ary.map(function (item) {
+                return {
+                    value: item,
+                    label: item
+                };
+            });
+        };
+        that.addCalculated({
+            name: "modules",
+            type: "array",
+            function: modules
+        });
+
+        return that;
     };
-    that.addCalculated({
-      name: "feathers",
-      type: "array",
-      function: feathers
-    });
 
-    modules = function () {
-      var tables = catalog.store().feathers(),
-        keys = Object.keys(tables),
-        ary = [];
-      keys.forEach(function (key) {
-        var mod = tables[key].module;
-        if (mod && ary.indexOf(mod) === -1) {
-          ary.push(mod);
-        }
-      });
-
-      return ary.map(function (item) {
-        return {value: item, label: item};
-      });
-    };
-    that.addCalculated({
-      name: "modules",
-      type: "array",
-      function: modules
-    });
-
-    return that;
-  };
-
-  catalog.register("models", "tableSpec", tableSpecModel);
-  module.exports = tableSpecModel;
+    catalog.register("models", "tableSpec", tableSpecModel);
+    module.exports = tableSpecModel;
 
 }());
