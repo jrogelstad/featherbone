@@ -720,7 +720,16 @@
 
             // Make all props read only, but remember previous state
             keys.forEach(function (key) {
-                var prop = d[key];
+                var prop = d[key],
+                    value = prop();
+
+                if (Array.isArray(value)) {
+                    value.forEach(function (item) {
+                        item.state().goto("/Ready/Fetched/ReadOnly");
+                    });
+                    return;
+                }
+
                 freezeCache[key] = {};
                 freezeCache[key].isReadOnly = prop.isReadOnly();
                 prop.isReadOnly(true);
@@ -860,7 +869,16 @@
 
             // Return read only props to previous state
             keys.forEach(function (key) {
-                var prop = d[key];
+                var prop = d[key],
+                    value = prop();
+
+                if (Array.isArray(value)) {
+                    value.forEach(function (item) {
+                        item.state().goto("/Ready/Fetched/Clean");
+                    });
+                    return;
+                }
+
                 prop.state().send("enable");
                 prop.isReadOnly(freezeCache[key].isReadOnly);
                 if (freezeCache[key].isDisabled) {
@@ -1256,6 +1274,7 @@
                     });
                     this.state("ReadOnly", function () {
                         this.enter(doFreeze);
+                        this.exit(doThaw);
                         this.canDelete = stream(false);
                         this.canSave = stream(false);
                         this.canUndo = stream(false);
