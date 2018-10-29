@@ -136,8 +136,11 @@
       vm.buttonUndo().hide();
     });
     tableState.resolve("/Selection/On").enter(function () {
-      vm.buttonOpen().enable();
-      vm.buttonRemove().enable();
+        var current = root.state().current()[0];
+        if (current !== "/Ready/Fetched/ReadOnly" && current !== "/Locked") {
+            //vm.buttonOpen().enable();
+            vm.buttonRemove().enable();
+        }
     });
     tableState.resolve("/Selection/On/Clean").enter(function () {
       vm.buttonRemove().show();
@@ -157,6 +160,10 @@
         vm.tableWidget().select(undefined);
       }
     });
+    root.state().resolve("/Ready/Fetched/ReadOnly").enter(vm.buttonAdd().disable)
+    root.state().resolve("/Ready/Fetched/ReadOnly").exit(vm.buttonAdd().enable);
+    root.state().resolve("/Locked").enter(vm.buttonAdd().disable);
+    root.state().resolve("/Locked").exit(vm.buttonAdd().enable);
 
     return vm;
   };
@@ -168,7 +175,7 @@
   */
   childTable.component = {
     oninit: function (vnode) {
-      var config, overload, keys,
+      var config, overload, keys, parentState,
         parentProperty = vnode.attrs.parentProperty,
         parentViewModel = vnode.attrs.parentViewModel,
         prop = parentViewModel.model().data[parentProperty],
