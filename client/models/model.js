@@ -494,6 +494,7 @@
           @returns reciever
         */
         that.set = function (data, silent, islastFetched) {
+            data = data || {};
             var keys,
                 climateChange = islastFetched && that.isFrozen();
 
