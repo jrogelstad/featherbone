@@ -54,6 +54,8 @@
                 stateMap = {},
                 lastFetched = {},
                 freezeCache = {},
+                onChange = {},
+                onChanged = {},
                 isFrozen = false;
 
         that = {
@@ -288,9 +290,24 @@
           @return Reciever
         */
         that.onChange = function (name, callback) {
-            var func = function () {
+            var attr,
+                idx = name.indexOf(".");
+
+            function func() {
                 callback(this);
-            };
+            }
+
+            if (idx > -1) {
+                attr = name.slice(0, idx);
+                if (!onChange[attr]) {
+                    onChange[attr] = [];
+                }
+                onChange[attr].push({
+                    name: name.slice(idx + 1),
+                    callback: callback
+                });
+                return this;
+            }
 
             stateMap[name].substateMap.Changing.enter(func.bind(d[name]));
 
@@ -319,9 +336,24 @@
           @return Reciever
         */
         that.onChanged = function (name, callback) {
-            var func = function () {
+            var attr,
+                idx = name.indexOf(".");
+
+            function func() {
                 callback(this);
-            };
+            }
+
+            if (idx > -1) {
+                attr = name.slice(0, idx);
+                if (!onChanged[attr]) {
+                    onChanged[attr] = [];
+                }
+                onChanged[attr].push({
+                    name: name.slice(idx + 1),
+                    callback: callback
+                });
+                return this;
+            }
 
             stateMap[name].substateMap.Changing.exit(func.bind(d[name]));
 
@@ -944,6 +976,19 @@
                     }
 
                     result.parent(that);
+
+                    // Add bindings to change events
+                    if (onChange[prop.key]) {
+                        onChange[prop.key].forEach(function (item) {
+                            result.onChange(item.name, item.callback);
+                        });
+                    }
+
+                    if (onChanged[prop.key]) {
+                        onChanged[prop.key].forEach(function (item) {
+                            result.onChanged(item.name, item.callback);
+                        });
+                    }
 
                     // Carry overloads set at parent on down
                     result.overload(overloads);
