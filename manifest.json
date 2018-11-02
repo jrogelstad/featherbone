@@ -4,38 +4,38 @@
     "files": [
         {
             "type": "execute",
-            "path": "pg/tables.js"
+            "path": "scripts/tables.js"
         },
         {
             "type": "module",
-            "path": "pg/module.js"
+            "path": "scripts/module.js"
         },
         {
             "type": "controller",
             "name": "Table",
-            "path": "pg/controllers.js"
+            "path": "scripts/controllers.js"
         },
         {
             "type": "feather",
-            "path": "pg/feathers.json",
+            "path": "scripts/feathers.json",
             "isSystem": true
         },
         {
             "type": "execute",
-            "path": "pg/populate.js"
+            "path": "scripts/populate.js"
         },
         {
             "type": "feather",
-            "path": "pg/feathers-unit.json",
+            "path": "scripts/feathers-unit.json",
             "isSystem": true
         },
         {
             "type": "workbook",
-            "path": "pg/workbooks.json"
+            "path": "scripts/workbooks.json"
         },
         {
             "type": "batch",
-            "path": "pg/data.json"
+            "path": "scripts/data.json"
         }
     ]
 }
