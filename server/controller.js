@@ -1073,7 +1073,7 @@
                 },
                 client: obj.client
             },
-                    data = JSON.parse(JSON.stringify(obj.data)),
+                    data = f.copy(obj.data),
                     name = obj.name || "",
                     args = [name.toSnakeCase()],
                     tokens = [],
@@ -1505,7 +1505,7 @@
                             createdBy: data.createdBy,
                             updated: data.updated,
                             updatedBy: data.updatedBy,
-                            change: JSON.parse(JSON.stringify(result))
+                            change: f.copy(result)
                         },
                         client: obj.client,
                         callback: afterLog
@@ -1522,7 +1522,7 @@
                     }
 
                     // We're going to return the changes
-                    result = jsonpatch.compare(obj.data, result);
+                    result = jsonpatch.compare(obj.cache, result);
 
                     // Report back result
                     obj.callback(null, result);
@@ -1756,7 +1756,7 @@
                     afterGetFeather, afterGetKey, afterAuthorization, afterDoSelect,
                     afterUpdate, afterSelectUpdated, done, nextProp, afterProperties,
                     afterUniqueCheck, unique, doUnlock,
-                    afterGetRelKey,
+                    afterGetRelKey, cacheRec,
                     patches = obj.data || [],
                     id = obj.id,
                     doList = [],
@@ -1907,15 +1907,21 @@
                         return;
                     }
 
-                    newRec = JSON.parse(JSON.stringify(oldRec));
+                    newRec = f.copy(oldRec);
                     jsonpatch.apply(newRec, patches);
+
+                    // Capture changes from original request
+                    if (obj.cache) {
+                        cacheRec = f.copy(oldRec);
+                        jsonpatch.apply(cacheRec, obj.cache);
+                    }
 
                     if (!patches.length) {
                         afterUpdate();
                         return;
                     }
 
-                    updRec = JSON.parse(JSON.stringify(newRec));
+                    updRec = f.copy(newRec);
 
                     // Revert data that may not be updated directly
                     updRec.created = oldRec.created;
@@ -2229,7 +2235,7 @@
                     result.lock = null;
 
                     // Send back the differences between what user asked for and result
-                    obj.callback(null, jsonpatch.compare(newRec, result));
+                    obj.callback(null, jsonpatch.compare(cacheRec, result));
                 } catch (e) {
                     obj.callback(e);
                 }
