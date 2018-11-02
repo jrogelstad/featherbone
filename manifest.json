@@ -26,7 +26,7 @@
         },
         {
             "type": "feather",
-            "path": "scripts/feathers-unit.json",
+            "path": "scripts/feathers-common.json",
             "isSystem": true
         },
         {
