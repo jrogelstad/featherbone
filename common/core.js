@@ -98,9 +98,24 @@
       tel: {
         default: ""
       },
+      email: {
+        default: ""
+      },
+      url: {
+        default: ""
+      },
+      color: {
+        default: "#000000"
+      },
+      textArea: {
+        default: ""
+      },
       money: {
         default: function () { return that.money(); }
-      }
+      },
+      enum: {
+        default: ""
+      },
     },
 
     /*

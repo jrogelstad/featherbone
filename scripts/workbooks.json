@@ -114,6 +114,60 @@
     ]
   },
   {
+    "name": "Setup",
+    "module": "Core",
+    "description": "Setup data",
+    "launchConfig": {
+      "icon": "table",
+      "color": "white",
+      "backgroundColor": "blue"
+    },
+    "defaultConfig": [
+      {
+        "name": "Countries",
+        "feather": "Country",
+        "list": {
+          "columns": [{
+              "attr": "name"
+            }
+          ]
+        }
+      },
+      {
+        "name": "States",
+        "feather": "State",
+        "list": {
+          "columns": [{
+              "attr": "abbreviation",
+              "label": "Abbr."
+            }, {
+              "attr": "name"
+            }]
+        }
+      },
+      {
+        "name": "Honorifics",
+        "feather": "Honorific",
+        "list": {
+          "columns": [{
+              "attr": "title"
+            }]
+        }
+      },
+      {
+        "name": "Social",
+        "feather": "SocialNetwork",
+        "list": {
+          "columns": [{
+              "attr": "name"
+            }, {
+              "attr": "url"
+            }]
+        }
+      }
+    ]
+  },
+  {
     "name": "Currency",
     "module": "Core",
     "description": "Currency definitions",

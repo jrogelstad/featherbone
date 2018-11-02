@@ -1,217 +1,529 @@
-[
-    {
-        "name": "Kind",
-        "plural": "Kinds",
-        "module": "Core",
-        "description": "Base class for physical types",
-        "properties": {
-            "code": {
-                "description": "Natural key",
-                "type": "string",
-                "isUnique": true,
-                "isRequired": true
-            },
-            "description": {
-                "description": "Description",
-                "type": "string"
-            },
-            "note": {
-                "description": "Note",
-                "type": "string"
-            },
-            "type": {
-                "description": "Kind type",
-                "type": "string",
-                "default": "Asset"
-            }
-        }
-    },
-    {
-        "name": "Unit",
-        "plural": "Units",
-        "module": "Core",
-        "description": "Unit of measure",
-        "properties": {
-            "code": {
-                "description": "Natural key",
-                "type": "string",
-                "isUnique": true,
-                "isRequired": true
-            },
-            "description": {
-                "description": "Description",
-                "type": "string"
-            },
-            "dimension": {
-                "description": "Dimension",
-                "type": "string"
-            }
-        }
-    },
-    {
-        "name": "CurrencyUnit",
-        "plural": "CurrencyUnits",
-        "module": "Core",
-        "description": "Currency Unit of measure",
-        "inherits": "Unit",
-        "properties": {
-            "symbol": {
-                "type": "string",
-                "description": "Currency unit symbol"
-            },
-            "minorUnit": {
-                "description": "Precision",
-                "type": "integer",
-                "default": 2,
-                "isRequired": true
-            }
-        }
-    },
-    {
-        "name": "Currency",
-        "plural": "Currencies",
-        "module": "Core",
-        "description": "Currency",
-        "inherits": "Kind",
-        "isFetchOnStartup": true,
-        "properties": {
-            "symbol": {
-                "description": "Symbol",
-                "type": "string"
-            },
-            "minorUnit": {
-                "description": "Precision",
-                "type": "integer",
-                "default": 2
-            },
-            "isBase": {
-                "description": "System base currency flag",
-                "type": "boolean"
-            },
-            "hasDisplayUnit": {
-                "description": "Use alternate unit of mesaure in display",
-                "type": "boolean",
-                "isRequired": true,
-                "default": false
-            },
-            "displayUnit": {
-                "type": {
-                    "relation": "CurrencyUnit",
-                    "properties": [
-                        "code", 
-                        "description", 
-                        "minorUnit", 
-                        "symbol"
-                    ]
-                },
-                "description": "Display unit of mesaure"
-            }
-        }
-    },
-    {
-        "name": "CurrencyUnitConversion",
-        "plural": "CurrencyUnitConversions",
-        "module": "Core",
-        "description": "Currency Unit Conversion",
-        "properties": {
-            "parent": {
-                "description": "Parent",
-                "type": {
-                    "relation": "Currency",
-                    "childOf": "conversions"
-                }
-            },
-            "toUnit": {
-                "description": "To unit of measure",
-                "type": {
-                  "relation": "Unit",
-                  "properties": ["code", "description"]
-                },
-                "isRequired": true
-            },
-            "ratio": {
-                "description": "conversion ratio",
-                "type": "number",
-                "default": 1,
-                "isRequired": true
-            }
-        }
-    },
-    {
-        "name": "CurrencyConversion",
-        "plural": "CurrencyConversions",
-        "module": "Core",
-        "description": "Currency Conversion rates",
-        "properties": {
-            "fromCurrency": {
-                "description": "Currency converting from",
-                "type": {
-                  "relation": "Currency",
-                  "properties": [
-                    "code",
-                    "description",
-                    "symbol",
-                    "minorUnit"
-                  ]
-                },
-                "default": "baseCurrency()",
-                "isRequired": true
-            },
-            "toCurrency": {
-                "description": "Currency converting to",
-                "type": {
-                  "relation": "Currency",
-                  "properties": [
-                    "code",
-                    "description",
-                    "symbol",
-                    "minorUnit"
-                  ]
-                },
-                "isRequired": true
-            },
-            "ratio": {
-                "description": "conversion ratio",
-                "type": "number",
-                "default": 1,
-                "isRequired": true
-            },
-            "effective": {
-                "description": "effective date",
-                "type": "string",
-                "format": "dateTime",
-                "default": "now()",
-                "isRequired": true
-            }
-        }
-    },
-   {
-        "name": "BaseCurrency",
-        "plural": "BaseCurrencies",
-        "module": "Core",
-        "description": "Base currency effectivity",
-        "isFetchOnStartup": true,
-        "properties": {
-            "currency": {
-                "description": "Base currency",
-                "type": {
-                  "relation": "Currency",
-                  "properties": [
-                    "code",
-                    "description",
-                    "symbol",
-                    "minorUnit"
-                  ]
-                },
-                "isRequired": true
-            },
-            "effective": {
-                "description": "Precision",
-                "type": "string",
-                "format": "dateTime",
-                "isRequired": true
-            }
-        }
-    }
+[{
+		"name": "Kind",
+		"plural": "Kinds",
+		"module": "Core",
+		"description": "Base class for physical types",
+		"properties": {
+			"code": {
+				"description": "Natural key",
+				"type": "string",
+				"isUnique": true,
+				"isRequired": true
+			},
+			"description": {
+				"description": "Description",
+				"type": "string"
+			},
+			"note": {
+				"description": "Note",
+				"type": "string"
+			},
+			"type": {
+				"description": "Kind type",
+				"type": "string",
+				"default": "Asset"
+			}
+		}
+	},
+	{
+		"name": "Unit",
+		"plural": "Units",
+		"module": "Core",
+		"description": "Unit of measure",
+		"properties": {
+			"code": {
+				"description": "Natural key",
+				"type": "string",
+				"isUnique": true,
+				"isRequired": true
+			},
+			"description": {
+				"description": "Description",
+				"type": "string"
+			},
+			"dimension": {
+				"description": "Dimension",
+				"type": "string"
+			}
+		}
+	},
+	{
+		"name": "CurrencyUnit",
+		"plural": "CurrencyUnits",
+		"module": "Core",
+		"description": "Currency Unit of measure",
+		"inherits": "Unit",
+		"properties": {
+			"symbol": {
+				"type": "string",
+				"description": "Currency unit symbol"
+			},
+			"minorUnit": {
+				"description": "Precision",
+				"type": "integer",
+				"default": 2,
+				"isRequired": true
+			}
+		}
+	},
+	{
+		"name": "Currency",
+		"plural": "Currencies",
+		"module": "Core",
+		"description": "Currency",
+		"inherits": "Kind",
+		"isFetchOnStartup": true,
+		"properties": {
+			"symbol": {
+				"description": "Symbol",
+				"type": "string"
+			},
+			"minorUnit": {
+				"description": "Precision",
+				"type": "integer",
+				"default": 2
+			},
+			"isBase": {
+				"description": "System base currency flag",
+				"type": "boolean"
+			},
+			"hasDisplayUnit": {
+				"description": "Use alternate unit of mesaure in display",
+				"type": "boolean",
+				"isRequired": true,
+				"default": false
+			},
+			"displayUnit": {
+				"type": {
+					"relation": "CurrencyUnit",
+					"properties": [
+						"code",
+						"description",
+						"minorUnit",
+						"symbol"
+					]
+				},
+				"description": "Display unit of mesaure"
+			}
+		}
+	},
+	{
+		"name": "CurrencyUnitConversion",
+		"plural": "CurrencyUnitConversions",
+		"module": "Core",
+		"description": "Currency Unit Conversion",
+		"properties": {
+			"parent": {
+				"description": "Parent",
+				"type": {
+					"relation": "Currency",
+					"childOf": "conversions"
+				}
+			},
+			"toUnit": {
+				"description": "To unit of measure",
+				"type": {
+					"relation": "Unit",
+					"properties": ["code", "description"]
+				},
+				"isRequired": true
+			},
+			"ratio": {
+				"description": "conversion ratio",
+				"type": "number",
+				"default": 1,
+				"isRequired": true
+			}
+		}
+	},
+	{
+		"name": "CurrencyConversion",
+		"plural": "CurrencyConversions",
+		"module": "Core",
+		"description": "Currency Conversion rates",
+		"properties": {
+			"fromCurrency": {
+				"description": "Currency converting from",
+				"type": {
+					"relation": "Currency",
+					"properties": [
+						"code",
+						"description",
+						"symbol",
+						"minorUnit"
+					]
+				},
+				"default": "baseCurrency()",
+				"isRequired": true
+			},
+			"toCurrency": {
+				"description": "Currency converting to",
+				"type": {
+					"relation": "Currency",
+					"properties": [
+						"code",
+						"description",
+						"symbol",
+						"minorUnit"
+					]
+				},
+				"isRequired": true
+			},
+			"ratio": {
+				"description": "conversion ratio",
+				"type": "number",
+				"default": 1,
+				"isRequired": true
+			},
+			"effective": {
+				"description": "effective date",
+				"type": "string",
+				"format": "dateTime",
+				"default": "now()",
+				"isRequired": true
+			}
+		}
+	},
+	{
+		"name": "BaseCurrency",
+		"plural": "BaseCurrencies",
+		"module": "Core",
+		"description": "Base currency effectivity",
+		"isFetchOnStartup": true,
+		"properties": {
+			"currency": {
+				"description": "Base currency",
+				"type": {
+					"relation": "Currency",
+					"properties": [
+						"code",
+						"description",
+						"symbol",
+						"minorUnit"
+					]
+				},
+				"isRequired": true
+			},
+			"effective": {
+				"description": "Precision",
+				"type": "string",
+				"format": "dateTime",
+				"isRequired": true
+			}
+		}
+	},
+	{
+		"name": "Note",
+		"module": "Core",
+		"description": "Note",
+		"properties": {
+			"text": {
+				"description": "Note text",
+				"type": "string"
+			}
+		}
+	},
+	{
+		"name": "DocumentNote",
+		"module": "Core",
+		"description": "Note on document",
+		"inherits": "Note",
+		"properties": {
+			"parent": {
+				"description": "Parent document",
+				"type": {
+					"relation": "Document",
+					"childOf": "notes"
+				}
+			}
+		}
+	},
+	{
+		"name": "Country",
+		"plural": "Countries",
+		"module": "Core",
+		"description": "Country",
+		"properties": {
+			"name": {
+				"description": "Country name",
+				"type": "string"
+			}
+		}
+	},
+	{
+		"name": "State",
+		"plural": "States",
+		"module": "Core",
+		"description": "State",
+		"properties": {
+			"abbreviation": {
+				"description": "Abbreviated name",
+				"type": "string"
+			},
+			"name": {
+				"description": "description",
+				"type": "string"
+			}
+		}
+	},
+	{
+		"name": "Address",
+		"plural": "Addresses",
+		"module": "Core",
+		"description": "Physical location",
+		"properties": {
+			"type": {
+				"description": "Home, work, other",
+				"type": "string",
+				"format": "enum",
+				"dataList": ["Home", "Work", "Other"]
+			},
+			"line1": {
+				"description": "Street3",
+				"type": "string"
+			},
+			"line2": {
+				"description": "Street2",
+				"type": "string"
+			},
+			"city": {
+				"description": "City",
+				"type": "string"
+			},
+			"state": {
+				"description": "State",
+				"type": {
+					"relation": "State",
+					"properties": [
+						"abbreviation",
+						"name"
+					]
+				}
+			},
+			"postalCode": {
+				"description": "Postal code",
+				"type": "string"
+			},
+			"country": {
+				"description": "Country",
+				"type": {
+					"relation": "Country",
+					"properties": [
+						"name"
+					]
+				}
+			}
+		}
+	},
+	{
+		"name": "SocialNetwork",
+		"plural": "SocialNetworks",
+		"module": "Core",
+		"description": "Social media networks",
+		"properties": {
+			"name": {
+				"description": "Network name",
+				"type": "string"
+			},
+			"description": {
+				"description": "description",
+				"type": "string"
+			},
+			"url": {
+				"description": "Url",
+				"type": "string",
+				"format": "url"
+			}
+		}
+	},
+	{
+		"name": "Honorific",
+        "plural": "Honorifics",
+		"module": "Core",
+		"description": "Honorific",
+		"properties": {
+			"title": {
+				"description": "Title",
+				"type": "string"
+			}
+		}
+	},
+	{
+		"name": "Contact",
+		"plural": "Contacts",
+		"module": "Core",
+		"description": "Information about a person",
+		"inherits": "Document",
+		"properties": {
+			"honorific": {
+				"description": "Honorific",
+				"type": {
+					"relation": "Honorific",
+					"properties": [
+						"title"
+					]
+				}
+			},
+			"firstName": {
+				"description": "First name",
+				"type": "string"
+			},
+			"lastName": {
+				"description": "Last name",
+				"type": "string"
+			},
+			"fullName": {
+				"description": "Name",
+				"type": "string"
+			},
+			"primaryPhone": {
+				"description": "Primary phone number",
+				"type": "string",
+				"format": "tel"
+			},
+			"primaryPhoneType": {
+				"description": "Home, work, other",
+				"type": "string",
+				"default": "Mobile",
+				"format": "enum",
+				"dataList": ["Mobile", "Home", "Work", "Other"]
+			},
+			"primaryEmail": {
+				"description": "Primary phone number",
+				"type": "string",
+				"format": "email"
+			},
+			"primaryEmailType": {
+				"description": "Personal, work, other",
+				"type": "string",
+				"default": "Personal",
+				"format": "enum",
+				"dataList": ["Personal", "Work", "Other"]
+			},
+			"primaryAddress": {
+				"description": "Primary Address",
+				"type": {
+					"relation": "Address",
+					"properties": ["line1", "line2", "city", "state", "postalCode", "country"]
+				}
+			}
+		}
+	},
+	{
+		"name": "ContactPhone",
+		"plural": "ContactPhones",
+		"module": "Core",
+		"description": "Contact phone numbers",
+		"properties": {
+			"parent": {
+				"description": "Parent",
+				"type": {
+					"relation": "Contact",
+					"childOf": "phones"
+				}
+			},
+			"type": {
+				"description": "Home, work, other",
+				"type": "string",
+				"default": "Mobile",
+				"format": "enum",
+				"dataList": ["Mobile", "Home", "Work", "Other"]
+			},
+			"phone": {
+				"description": "Phone number",
+				"type": "string",
+				"format": "tel"
+			},
+			"isPrimary": {
+				"description": "Primary phone flag",
+				"type": "boolean"
+			}
+		}
+	},
+	{
+		"name": "ContactEmail",
+		"plural": "ContactEmailAddresses",
+		"module": "Core",
+		"description": "Contact email addresses",
+		"properties": {
+			"parent": {
+				"description": "Parent",
+				"type": {
+					"relation": "Contact",
+					"childOf": "emails"
+				}
+			},
+			"type": {
+				"description": "Personal, work, other",
+				"type": "string",
+				"default": "Mobile",
+				"format": "enum",
+				"dataList": ["Personal", "Work", "Other"]
+			},
+			"email": {
+				"description": "Email address",
+				"type": "string",
+				"format": "email"
+			},
+			"isPrimary": {
+				"description": "Primary email flag",
+				"type": "boolean"
+			}
+		}
+	},
+	{
+		"name": "ContactAddress",
+		"module": "Core",
+		"description": "Contact address",
+		"properties": {
+			"parent": {
+				"description": "Parent",
+				"type": {
+					"relation": "Contact",
+					"childOf": "addresses"
+				}
+			},
+			"address": {
+				"description": "Address",
+				"type": {
+					"relation": "Address",
+					"properties": ["line1", "line2", "city", "state", "postalCode", "country"]
+				}
+			},
+			"isPrimary": {
+				"description": "Primary address flag",
+				"type": "boolean"
+			}
+		}
+	},
+	{
+		"name": "ContactSocialAccount",
+		"plural": "ContactSocialAccounts",
+		"module": "Core",
+		"description": "Contact social media accounts",
+		"properties": {
+			"parent": {
+				"description": "Parent",
+				"type": {
+					"relation": "Contact",
+					"childOf": "social"
+				}
+			},
+			"network": {
+				"description": "Social network",
+				"type": {
+					"relation": "SocialNetwork",
+					"properties": [
+						"name",
+						"description",
+						"url"
+					]
+				}
+			},
+			"userName": {
+				"description": "User name",
+				"type": "string"
+			}
+		}
+	}
 ]
-
