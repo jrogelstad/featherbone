@@ -39,6 +39,7 @@
     } = require('./controllers/crud');
 
     var conn, pool, nodeId, registered,
+            f = require("../common/core"),
             jsonpatch = require("fast-json-patch"),
             controller = require("./controller"),
             config = new Config(),
@@ -378,6 +379,11 @@
                     isTriggering = obj.client
                 ? obj.client.isTriggering
                 : false;
+
+            // Cache original request that may get changed by triggers
+            if (obj.data) {
+                obj.cache = f.copy(obj.data);
+            }
 
             function close(resp) {
                 return new Promise(function (resolve) {
