@@ -103,9 +103,29 @@
                 type: "timestamp with time zone",
                 default: "now()"
             },
-            password: {
+            tel: {
                 type: "text",
                 default: ""
+            },
+            email: {
+                type: "text",
+                default: ""
+            },
+            url: {
+                type: "text",
+                default: ""
+            },
+            enum: {
+                type: "text",
+                default: ""
+            },
+            textArea: {
+                type: "text",
+                default: ""
+            },
+            color: {
+                type: "text",
+                default: "#000000"
             },
             money: {
                 type: "mono",

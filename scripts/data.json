@@ -1,648 +1,999 @@
 [{
-    "name": "Form",
-    "method": "POST",
-    "id": "dbflv6oz3d10",
-    "data": {
-        "name": "Role",
-        "description": "Role form",
-        "feather": "Role",
-        "module": "Core",
-        "attrs": [{
-            "attr": "name"
-        }, {
-            "attr": "description"
-        }, {
-            "attr": "createdBy"
-        }, {
-            "attr": "updated"
-        }, {
-            "attr": "updatedBy"
-        }]
-    }
+	"name": "Form",
+	"method": "POST",
+	"id": "id0iz1n3q8hn",
+	"data": {
+		"name": "Honorific",
+		"description": "Honorific form",
+		"feather": "Honorific",
+		"module": "Core",
+		"attrs": [{
+			"attr": "title"
+		}, {
+			"attr": "createdBy"
+		}, {
+			"attr": "updated"
+		}, {
+			"attr": "updatedBy"
+		}]
+	}
 }, {
-    "name": "Form",
-    "method": "POST",
-    "id": "em4go8hrytdm",
-    "data": {
-        "name": "Table",
-        "description": "Table form",
-        "feather": "TableSpec",
-        "module": "Core",
-        "tabs": [{
-            "name": "Properties"
-        }, {
-            "name": "Other"
-        }],
-        "attrs": [{
-            "attr": "name",
-            "grid": 0,
-            "unit": 0
-        }, {
-            "attr": "plural",
-            "grid": 0,
-            "unit": 0
-        }, {
-            "attr": "description",
-            "grid": 0,
-            "unit": 0
-        }, {
-            "attr": "module",
-            "dataList": "modules",
-            "grid": 0,
-            "unit": 1
-        }, {
-            "attr": "inherits",
-            "dataList": "feathers",
-            "grid": 0,
-            "unit": 1
-        }, {
-            "attr": "isSystem",
-            "grid": 2,
-            "unit": 0
-        }, {
-            "attr": "isChild",
-            "grid": 2,
-            "unit": 0
-        }, {
-            "attr": "properties",
-            "grid": 1,
-            "unit": 0,
-            "showLabel": false,
-            "columns": [{
-                "attr": "name"
-            }, {
-                "attr": "description"
-            }, {
-                "attr": "default"
-            }, {
-                "attr": "isRequired"
-            }, {
-                "attr": "isReadOnly"
-            }, {
-                "attr": "inheritedFrom"
-            }]
-        }]
-    }
+	"name": "Form",
+	"method": "POST",
+	"id": "dbflv6oz3d10",
+	"data": {
+		"name": "Role",
+		"description": "Role form",
+		"feather": "Role",
+		"module": "Core",
+		"attrs": [{
+			"attr": "name"
+		}, {
+			"attr": "description"
+		}, {
+			"attr": "createdBy"
+		}, {
+			"attr": "updated"
+		}, {
+			"attr": "updatedBy"
+		}]
+	}
 }, {
-    "name": "Form",
-    "method": "POST",
-    "id": "b7198t6p0a3h",
-    "data": {
-        "name": "Form",
-        "description": "Form form",
-        "feather": "Form",
-        "module": "Core",
-        "tabs": [{
-            "name": "Attributes"
-        }, {
-            "name": "Tabs"
-        }, {
-            "name": "Audit"
-        }],
-        "attrs": [{
-            "attr": "name",
-            "grid": 0,
-            "unit": 0
-        }, {
-            "attr": "description",
-            "grid": 0,
-            "unit": 0
-        }, {
-            "attr": "module",
-            "dataList": "modules",
-            "grid": 0,
-            "unit": 1
-        }, {
-            "attr": "feather",
-            "dataList": "feathers",
-            "label": "Table",
-            "grid": 0,
-            "unit": 1
-        }, {
-            "attr": "attrs",
-            "grid": 1,
-            "unit": 0,
-            "showLabel": false,
-            "columns": [{
-                "attr": "attr",
-                "label": "Attribute"
-            }, {
-                "attr": "grid"
-            }, {
-                "attr": "unit"
-            }]
-        }, {
-            "attr": "tabs",
-            "grid": 2,
-            "unit": 0,
-            "showLabel": false,
-            "columns": [{
-                "attr": "name"
-            }]
-        }, {
-            "attr": "created",
-            "grid": 3,
-            "unit": 0
-        }, {
-            "attr": "createdBy",
-            "grid": 3,
-            "unit": 0
-        }, {
-            "attr": "updated",
-            "grid": 3,
-            "unit": 0
-        }, {
-            "attr": "updatedBy",
-            "grid": 3,
-            "unit": 0
-        }]
-    }
+	"name": "Form",
+	"method": "POST",
+	"id": "em4go8hrytdm",
+	"data": {
+		"name": "Table",
+		"description": "Table form",
+		"feather": "TableSpec",
+		"module": "Core",
+		"tabs": [{
+			"name": "Properties"
+		}, {
+			"name": "Other"
+		}],
+		"attrs": [{
+			"attr": "name",
+			"grid": 0,
+			"unit": 0
+		}, {
+			"attr": "plural",
+			"grid": 0,
+			"unit": 0
+		}, {
+			"attr": "description",
+			"grid": 0,
+			"unit": 0
+		}, {
+			"attr": "module",
+			"dataList": "modules",
+			"grid": 0,
+			"unit": 1
+		}, {
+			"attr": "inherits",
+			"dataList": "feathers",
+			"grid": 0,
+			"unit": 1
+		}, {
+			"attr": "isSystem",
+			"grid": 2,
+			"unit": 0
+		}, {
+			"attr": "isChild",
+			"grid": 2,
+			"unit": 0
+		}, {
+			"attr": "properties",
+			"grid": 1,
+			"unit": 0,
+			"showLabel": false,
+			"columns": [{
+				"attr": "name"
+			}, {
+				"attr": "description"
+			}, {
+				"attr": "default"
+			}, {
+				"attr": "isRequired"
+			}, {
+				"attr": "isReadOnly"
+			}, {
+				"attr": "inheritedFrom"
+			}]
+		}]
+	}
 }, {
-    "name": "Form",
-    "method": "POST",
-    "id": "qrupon4yc3t8",
-    "data": {
-        "name": "Relation Widget",
-        "description": "Relation widget form",
-        "feather": "RelationWidget",
-        "module": "Core",
-        "tabs": [{
-            "name": "Search Columns"
-        }],
-        "attrs": [{
-            "attr": "name",
-            "grid": 0,
-            "unit": 0
-        }, {
-            "attr": "description",
-            "grid": 0,
-            "unit": 0
-        }, {
-            "attr": "module",
-            "grid": 0,
-            "unit": 0
-        }, {
-            "attr": "feather",
-            "grid": 0,
-            "unit": 0
-        }, {
-            "attr": "isActive",
-            "grid": 0,
-            "unit": 1
-        }, {
-            "attr": "form",
-            "grid": 0,
-            "unit": 1
-        }, {
-            "attr": "valueProperty",
-            "grid": 0,
-            "unit": 1
-        }, {
-            "attr": "labelProperty",
-            "grid": 0,
-            "unit": 1
-        }, {
-            "attr": "searchColumns",
-            "grid": 1,
-            "unit": 0,
-            "showLabel": false,
-            "columns": [{
-                "attr": "attr",
-                "label": "Attribute"
-            }, {
-                "attr": "label"
-            }]
-        }]
-    }
+	"name": "Form",
+	"method": "POST",
+	"id": "b7198t6p0a3h",
+	"data": {
+		"name": "Form",
+		"description": "Form form",
+		"feather": "Form",
+		"module": "Core",
+		"tabs": [{
+			"name": "Attributes"
+		}, {
+			"name": "Tabs"
+		}, {
+			"name": "Audit"
+		}],
+		"attrs": [{
+			"attr": "name",
+			"grid": 0,
+			"unit": 0
+		}, {
+			"attr": "description",
+			"grid": 0,
+			"unit": 0
+		}, {
+			"attr": "module",
+			"dataList": "modules",
+			"grid": 0,
+			"unit": 1
+		}, {
+			"attr": "feather",
+			"dataList": "feathers",
+			"label": "Table",
+			"grid": 0,
+			"unit": 1
+		}, {
+			"attr": "attrs",
+			"grid": 1,
+			"unit": 0,
+			"showLabel": false,
+			"columns": [{
+				"attr": "attr",
+				"label": "Attribute"
+			}, {
+				"attr": "grid"
+			}, {
+				"attr": "unit"
+			}]
+		}, {
+			"attr": "tabs",
+			"grid": 2,
+			"unit": 0,
+			"showLabel": false,
+			"columns": [{
+				"attr": "name"
+			}]
+		}, {
+			"attr": "created",
+			"grid": 3,
+			"unit": 0
+		}, {
+			"attr": "createdBy",
+			"grid": 3,
+			"unit": 0
+		}, {
+			"attr": "updated",
+			"grid": 3,
+			"unit": 0
+		}, {
+			"attr": "updatedBy",
+			"grid": 3,
+			"unit": 0
+		}]
+	}
 }, {
-    "name": "RelationWidget",
-    "method": "POST",
-    "id": "hrygmf964r7",
-    "data": {
-        "name": "Role",
-        "description": "Role relation wdiget",
-        "isActive": true,
-        "feather": "Role",
-        "valueProperty": "name",
-        "labelProperty": "description",
-        "form": {
-            "id": "dbflv6oz3d10"
-        },
-        "searchColumns": [{
-                "attr": "name"
-            }, {
-                "attr": "description"
-            }, {
-                "attr": "createdBy"
-            }, {
-                "attr": "updated"
-            }, {
-                "attr": "updatedBy"
-            }
-        ]
-    }
+	"name": "Form",
+	"method": "POST",
+	"id": "qrupon4yc3t8",
+	"data": {
+		"name": "Relation Widget",
+		"description": "Relation widget form",
+		"feather": "RelationWidget",
+		"module": "Core",
+		"tabs": [{
+			"name": "Search Columns"
+		}],
+		"attrs": [{
+			"attr": "name",
+			"grid": 0,
+			"unit": 0
+		}, {
+			"attr": "description",
+			"grid": 0,
+			"unit": 0
+		}, {
+			"attr": "module",
+			"grid": 0,
+			"unit": 0
+		}, {
+			"attr": "feather",
+			"grid": 0,
+			"unit": 0
+		}, {
+			"attr": "isActive",
+			"grid": 0,
+			"unit": 1
+		}, {
+			"attr": "form",
+			"grid": 0,
+			"unit": 1
+		}, {
+			"attr": "valueProperty",
+			"grid": 0,
+			"unit": 1
+		}, {
+			"attr": "labelProperty",
+			"grid": 0,
+			"unit": 1
+		}, {
+			"attr": "searchColumns",
+			"grid": 1,
+			"unit": 0,
+			"showLabel": false,
+			"columns": [{
+				"attr": "attr",
+				"label": "Attribute"
+			}, {
+				"attr": "label"
+			}]
+		}]
+	}
 }, {
-    "name": "RelationWidget",
-    "method": "POST",
-    "id": "6brj6sodh8f",
-    "data": {
-        "name": "Form",
-        "description": "Form relation wdiget",
-        "isActive": true,
-        "feather": "Form",
-        "valueProperty": "name",
-        "labelProperty": "description",
-        "form": {
-            "id": "qrupon4yc3t8"
-        },
-        "searchColumns": [{
-                "attr": "name"
-            }, {
-                "attr": "description"
-            }, {
-                "attr": "createdBy"
-            }, {
-                "attr": "updated"
-            }, {
-                "attr": "updatedBy"
-            }
-        ]
-    }
+	"name": "RelationWidget",
+	"method": "POST",
+	"id": "hrygmf964r7",
+	"data": {
+		"name": "Role",
+		"description": "Role relation wdiget",
+		"isActive": true,
+		"feather": "Role",
+		"valueProperty": "name",
+		"labelProperty": "description",
+		"form": {
+			"id": "dbflv6oz3d10"
+		},
+		"searchColumns": [{
+			"attr": "name"
+		}, {
+			"attr": "description"
+		}, {
+			"attr": "createdBy"
+		}, {
+			"attr": "updated"
+		}, {
+			"attr": "updatedBy"
+		}]
+	}
 }, {
-    "name": "Form",
-    "method": "POST",
-    "id": "2natrk2ze6ts",
-    "data": {
-        "name": "Unit",
-        "description": "Unit form",
-        "feather": "Unit",
-        "module": "Core",
-        "attrs": [{
-            "attr": "code"
-        }, {
-            "attr": "description"
-        }, {
-            "attr": "dimension"
-        }]
-    }
+	"name": "RelationWidget",
+	"method": "POST",
+	"id": "6brj6sodh8f",
+	"data": {
+		"name": "Form",
+		"description": "Form relation wdiget",
+		"isActive": true,
+		"feather": "Form",
+		"valueProperty": "name",
+		"labelProperty": "description",
+		"form": {
+			"id": "qrupon4yc3t8"
+		},
+		"searchColumns": [{
+			"attr": "name"
+		}, {
+			"attr": "description"
+		}, {
+			"attr": "createdBy"
+		}, {
+			"attr": "updated"
+		}, {
+			"attr": "updatedBy"
+		}]
+	}
 }, {
-    "name": "Form",
-    "method": "POST",
-    "id": "5kn0ocip2zqt",
-    "data": {
-        "name": "Currency",
-        "description": "Currency form",
-        "feather": "Currency",
-        "module": "Core",
-        "tabs": [{
-            "name": "Conversions"
-        }],
-        "attrs": [{
-            "attr": "code"
-        }, {
-            "attr": "description"
-        }, {
-            "attr": "symbol"
-        }, {
-            "attr": "minorUnit"
-        }, {
-            "attr": "isBase",
-            "unit": 1
-        }, {
-            "attr": "hasDisplayUnit",
-            "unit": 1
-        }, {
-            "attr": "displayUnit",
-            "unit": 1
-        }, {
-            "attr": "conversions",
-            "showLabel": false,
-            "grid": 1,
-            "unit": 0,
-            "columns": [{
-                "attr": "toUnit"
-            }, {
-                "attr": "toUnit.description",
-                "label": "Description"
-            }, {
-                "attr": "ratio"
-            }]
-        }]
-    }
+	"name": "Form",
+	"method": "POST",
+	"id": "2natrk2ze6ts",
+	"data": {
+		"name": "Unit",
+		"description": "Unit form",
+		"feather": "Unit",
+		"module": "Core",
+		"attrs": [{
+			"attr": "code"
+		}, {
+			"attr": "description"
+		}, {
+			"attr": "dimension"
+		}]
+	}
 }, {
-    "name": "Form",
-    "method": "POST",
-    "id": "h4agfqxokkoj",
-    "data": {
-        "name": "Currency Unit",
-        "description": "Currency Unit form",
-        "feather": "CurrencyUnit",
-        "module": "Core",
-        "attrs": [{
-            "attr": "code"
-        }, {
-            "attr": "description"
-        }, {
-            "attr": "dimension"
-        }, {
-            "attr": "symbol"
-        }, {
-            "attr": "minorUnit"
-        }]
-    }
+	"name": "Form",
+	"method": "POST",
+	"id": "5kn0ocip2zqt",
+	"data": {
+		"name": "Currency",
+		"description": "Currency form",
+		"feather": "Currency",
+		"module": "Core",
+		"tabs": [{
+			"name": "Conversions"
+		}],
+		"attrs": [{
+			"attr": "code"
+		}, {
+			"attr": "description"
+		}, {
+			"attr": "symbol"
+		}, {
+			"attr": "minorUnit"
+		}, {
+			"attr": "isBase",
+			"unit": 1
+		}, {
+			"attr": "hasDisplayUnit",
+			"unit": 1
+		}, {
+			"attr": "displayUnit",
+			"unit": 1
+		}, {
+			"attr": "conversions",
+			"showLabel": false,
+			"grid": 1,
+			"unit": 0,
+			"columns": [{
+				"attr": "toUnit"
+			}, {
+				"attr": "toUnit.description",
+				"label": "Description"
+			}, {
+				"attr": "ratio"
+			}]
+		}]
+	}
 }, {
-    "name": "Form",
-    "method": "POST",
-    "id": "1qaj5stzkdsy",
-    "data": {
-        "name": "Currency Conversion",
-        "description": "Currency conversion form",
-        "feather": "CurrencyConversion",
-        "module": "Core",
-        "attrs": [{
-            "attr": "fromCurrency"
-        }, {
-            "attr": "toCurrency"
-        }, {
-            "attr": "ratio"
-        }, {
-            "attr": "effective"
-        }, {
-            "attr": "created"
-        }, {
-            "attr": "createdBy"
-        }, {
-            "attr": "updated"
-        }, {
-            "attr": "updatedBy"
-        }]
-    }
+	"name": "Form",
+	"method": "POST",
+	"id": "h4agfqxokkoj",
+	"data": {
+		"name": "Currency Unit",
+		"description": "Currency Unit form",
+		"feather": "CurrencyUnit",
+		"module": "Core",
+		"attrs": [{
+			"attr": "code"
+		}, {
+			"attr": "description"
+		}, {
+			"attr": "dimension"
+		}, {
+			"attr": "symbol"
+		}, {
+			"attr": "minorUnit"
+		}]
+	}
 }, {
-    "name": "RelationWidget",
-    "method": "POST",
-    "id": "64p4bwkbr2xq",
-    "data": {
-        "name": "Unit",
-        "description": "Unit relation wdiget",
-        "isActive": true,
-        "feather": "Unit",
-        "valueProperty": "code",
-        "labelProperty": "description",
-        "form": {
-            "id": "2natrk2ze6ts"
-        },
-        "searchColumns": [{
-                "attr": "code"
-            }, {
-                "attr": "description"
-            }, {
-                "attr": "dimension"
-            }
-        ]
-    }
+	"name": "Form",
+	"method": "POST",
+	"id": "1qaj5stzkdsy",
+	"data": {
+		"name": "Currency Conversion",
+		"description": "Currency conversion form",
+		"feather": "CurrencyConversion",
+		"module": "Core",
+		"attrs": [{
+			"attr": "fromCurrency"
+		}, {
+			"attr": "toCurrency"
+		}, {
+			"attr": "ratio"
+		}, {
+			"attr": "effective"
+		}, {
+			"attr": "created"
+		}, {
+			"attr": "createdBy"
+		}, {
+			"attr": "updated"
+		}, {
+			"attr": "updatedBy"
+		}]
+	}
 }, {
-    "name": "RelationWidget",
-    "method": "POST",
-    "id": "6s2kh7qaixab",
-    "data": {
-        "name": "Currency",
-        "description": "Currency relation wdiget",
-        "isActive": true,
-        "feather": "Currency",
-        "valueProperty": "code",
-        "labelProperty": "description",
-        "form": {
-            "id": "5kn0ocip2zqt"
-        },
-        "searchColumns": [{
-                "attr": "code"
-            }, {
-                "attr": "description"
-            }, {
-                "attr": "note"
-            }
-        ]
-    }
+	"name": "Form",
+	"method": "POST",
+	"id": "qbdniipw9yxx",
+	"data": {
+		"name": "Country",
+		"description": "Country form",
+		"feather": "Country",
+		"module": "Core",
+		"attrs": [{
+			"attr": "name"
+		}]
+	}
 }, {
-    "name": "RelationWidget",
-    "method": "POST",
-    "id": "rr0kdvlblfgp",
-    "data": {
-        "name": "Currency Unit",
-        "description": "Currency Unit relation wdiget",
-        "isActive": true,
-        "feather": "CurrencyUnit",
-        "valueProperty": "code",
-        "labelProperty": "description",
-        "form": {
-            "id": "2natrk2ze6ts"
-        },
-        "searchColumns": [{
-                "attr": "code"
-            }, {
-                "attr": "description"
-            }, {
-                "attr": "symbol"
-            }
-        ]
-    }
-},  {
-    "name": "Unit",
-    "method": "POST",
-    "id": "each",
-    "data": {
-        "code": "EA",
-        "description": "Each",
-        "dimension": "Quantity"
-    }
-},  {
-    "name": "CurrencyUnit",
-    "method": "POST",
-    "id": "BTC",
-    "data": {
-        "code": "BTC",
-        "description": "Bitcoin",
-        "dimension": "Quantity",
-        "symbol": "₿",
-        "minorUnit": 8
-    }
+	"name": "Form",
+	"method": "POST",
+	"id": "7mfuzz4ntbf4",
+	"data": {
+		"name": "State",
+		"description": "State form",
+		"feather": "State",
+		"module": "Core",
+		"attrs": [{
+			"attr": "abbreviation"
+		}, {
+			"attr": "name"
+		}]
+	}
 }, {
-    "name": "CurrencyUnit",
-    "method": "POST",
-    "id": "cBTC",
-    "data": {
-        "code": "cBTC",
-        "description": "Bitcent",
-        "dimension": "Quantity",
-        "symbol": "c₿",
-        "minorUnit": 6
-    }
+	"name": "Form",
+	"method": "POST",
+	"id": "5nleohibp1av",
+	"data": {
+		"name": "Social Network",
+		"description": "Social network form",
+		"feather": "SocialNetwork",
+		"module": "Core",
+		"attrs": [{
+			"attr": "name"
+		}, {
+			"attr": "description"
+		}, {
+			"attr": "url"
+		}]
+	}
 }, {
-    "name": "CurrencyUnit",
-    "method": "POST",
-    "id": "mBTC",
-    "data": {
-        "code": "mBTC",
-        "description": "Millibit",
-        "dimension": "Quantity",
-        "symbol": "m₿",
-        "minorUnit": 4
-    }
+	"name": "RelationWidget",
+	"method": "POST",
+	"id": "64p4bwkbr2xq",
+	"data": {
+		"name": "Unit",
+		"description": "Unit relation wdiget",
+		"isActive": true,
+		"feather": "Unit",
+		"valueProperty": "code",
+		"labelProperty": "description",
+		"form": {
+			"id": "2natrk2ze6ts"
+		},
+		"searchColumns": [{
+			"attr": "code"
+		}, {
+			"attr": "description"
+		}, {
+			"attr": "dimension"
+		}]
+	}
 }, {
-    "name": "CurrencyUnit",
-    "method": "POST",
-    "id": "μBTC",
-    "data": {
-        "code": "μBTC",
-        "description": "Bit",
-        "dimension": "Quantity",
-        "symbol": "μ₿",
-        "minorUnit": 2
-    }
+	"name": "RelationWidget",
+	"method": "POST",
+	"id": "6s2kh7qaixab",
+	"data": {
+		"name": "Currency",
+		"description": "Currency relation wdiget",
+		"isActive": true,
+		"feather": "Currency",
+		"valueProperty": "code",
+		"labelProperty": "description",
+		"form": {
+			"id": "5kn0ocip2zqt"
+		},
+		"searchColumns": [{
+			"attr": "code"
+		}, {
+			"attr": "description"
+		}, {
+			"attr": "note"
+		}]
+	}
 }, {
-    "name": "CurrencyUnit",
-    "method": "POST",
-    "id": "sat",
-    "data": {
-        "code": "sat",
-        "description": "Satoshi",
-        "dimension": "Quantity",
-        "symbol": "s",
-        "minorUnit": 0
-    }
-},  {
-    "name": "Currency",
-    "method": "POST",
-    "id": "4y9dtthuen7z",
-    "data": {
-        "code": "USD",
-        "description": "U.S. Dollar",
-        "symbol": "$",
-        "minorUnit": 2,
-        "isBase": true
-    }
+	"name": "RelationWidget",
+	"method": "POST",
+	"id": "79bqu06a5e12",
+	"data": {
+		"name": "Country",
+		"description": "Country relation wdiget",
+		"isActive": true,
+		"feather": "Country",
+		"valueProperty": "name",
+		"form": {
+			"id": "qbdniipw9yxx"
+		},
+		"searchColumns": [{
+			"attr": "name"
+		}]
+	}
 }, {
-    "name": "Currency",
-    "method": "POST",
-    "id": "twugl4nqeodj",
-    "data": {
-        "code": "EUR",
-        "description": "Euro",
-        "symbol": "€",
-        "minorUnit": 2
-    }
+	"name": "RelationWidget",
+	"method": "POST",
+	"id": "k5x69k8v44lp",
+	"data": {
+		"name": "State",
+		"description": "State relation wdiget",
+		"isActive": true,
+		"feather": "State",
+		"valueProperty": "abbreviation",
+		"form": {
+			"id": "7mfuzz4ntbf4"
+		},
+		"searchColumns": [{
+			"attr": "abbreviation"
+		}, {
+			"attr": "name"
+		}]
+	}
 }, {
-    "name": "Currency",
-    "method": "POST",
-    "id": "x8357g1lp7u7",
-    "data": {
-        "code": "MXN",
-        "description": "Mexican Peso",
-        "symbol": "$",
-        "minorUnit": 2
-    }
+	"name": "RelationWidget",
+	"method": "POST",
+	"id": "fvsuyjrwatb",
+	"data": {
+		"name": "Social Network",
+		"description": "Social network relation wdiget",
+		"isActive": true,
+		"feather": "SocialNetwork",
+		"valueProperty": "name",
+		"labelProperty": "url",
+		"form": {
+			"id": "5nleohibp1av"
+		},
+		"searchColumns": [{
+			"attr": "name"
+		}, {
+			"attr": "description"
+		}, {
+			"attr": "url"
+		}]
+	}
 }, {
-    "name": "Currency",
-    "method": "POST",
-    "id": "io3n6r3qd7gt",
-    "data": {
-        "code": "CAD",
-        "description": "Canadian Dollar",
-        "symbol": "$",
-        "minorUnit": 2
-    }
+	"name": "RelationWidget",
+	"method": "POST",
+	"id": "aiiz9boxv60x",
+	"data": {
+		"name": "Honorific",
+		"description": "Honorific relation wdiget",
+		"isActive": true,
+		"feather": "Honorific",
+		"valueProperty": "title",
+		"form": {
+			"id": "id0iz1n3q8hn"
+		},
+		"searchColumns": [{
+			"attr": "title"
+		}]
+	}
 }, {
-    "name": "Currency",
-    "method": "POST",
-    "id": "ylmnhsiupyat",
-    "data": {
-        "code": "CNY",
-        "description": "Yuan Renmimbi",
-        "symbol": "¥",
-        "minorUnit": 2
-    }
+	"name": "RelationWidget",
+	"method": "POST",
+	"id": "rr0kdvlblfgp",
+	"data": {
+		"name": "Currency Unit",
+		"description": "Currency Unit relation wdiget",
+		"isActive": true,
+		"feather": "CurrencyUnit",
+		"valueProperty": "code",
+		"labelProperty": "description",
+		"form": {
+			"id": "2natrk2ze6ts"
+		},
+		"searchColumns": [{
+			"attr": "code"
+		}, {
+			"attr": "description"
+		}, {
+			"attr": "symbol"
+		}]
+	}
 }, {
-    "name": "Currency",
-    "method": "POST",
-    "id": "e856d0hhlyd6",
-    "data": {
-        "code": "JPY",
-        "description": "Yen",
-        "symbol": "¥",
-        "minorUnit": 0
-    }
+	"name": "Unit",
+	"method": "POST",
+	"id": "each",
+	"data": {
+		"code": "EA",
+		"description": "Each",
+		"dimension": "Quantity"
+	}
 }, {
-    "name": "Currency",
-    "method": "POST",
-    "id": "df1pppb1325i",
-    "data": {
-        "code": "XAU",
-        "description": "Gold",
-        "symbol": "Au",
-        "minorUnit": 6
-    }
+	"name": "CurrencyUnit",
+	"method": "POST",
+	"id": "BTC",
+	"data": {
+		"code": "BTC",
+		"description": "Bitcoin",
+		"dimension": "Quantity",
+		"symbol": "₿",
+		"minorUnit": 8
+	}
 }, {
-    "name": "Currency",
-    "method": "POST",
-    "id": "rqnd0vik6uj1",
-    "data": {
-        "code": "XAG",
-        "description": "Silver",
-        "symbol": "Ag"
-    }
+	"name": "CurrencyUnit",
+	"method": "POST",
+	"id": "cBTC",
+	"data": {
+		"code": "cBTC",
+		"description": "Bitcent",
+		"dimension": "Quantity",
+		"symbol": "c₿",
+		"minorUnit": 6
+	}
 }, {
-    "name": "Currency",
-    "method": "POST",
-    "id": "qrp406n3hdtu",
-    "data": {
-        "code": "XBT",
-        "description": "Bitcoin",
-        "symbol": "₿",
-        "minorUnit": 8,
-        "hasDisplayUnit": true,
-        "displayUnit": {
-            "id": "mBTC"
-        },
-        "conversions": [{
-            "id": "nhxj86qlrkta",
-            "toUnit": {
-                "id": "BTC"
-            },
-            "ratio": 1
-        }, {
-            "id": "om15klk6xeoa",
-            "toUnit": {
-                "id": "cBTC"
-            },
-            "ratio": 0.01
-        }, {
-            "id": "3thfca9ejk1f",
-            "toUnit": {
-                "id": "mBTC"
-            },
-            "ratio": 0.001
-        }, {
-            "id": "r0c8hrgwllhu",
-            "toUnit": {
-                "id": "μBTC"
-            },
-            "ratio": 0.000001
-        }, {
-            "id": "o81m1d215ro2",
-            "toUnit": {
-                "id": "sat"
-            },
-            "ratio": 0.00000001
-        }]
-    }
+	"name": "CurrencyUnit",
+	"method": "POST",
+	"id": "mBTC",
+	"data": {
+		"code": "mBTC",
+		"description": "Millibit",
+		"dimension": "Quantity",
+		"symbol": "m₿",
+		"minorUnit": 4
+	}
 }, {
-    "name": "Currency",
-    "method": "POST",
-    "id": "5x0opi3mxd1q",
-    "data": {
-        "code": "XDR",
-        "description": "Special Drawing Right",
-        "symbol": "SDR",
-        "minorUnit": 6
-    }
+	"name": "CurrencyUnit",
+	"method": "POST",
+	"id": "μBTC",
+	"data": {
+		"code": "μBTC",
+		"description": "Bit",
+		"dimension": "Quantity",
+		"symbol": "μ₿",
+		"minorUnit": 2
+	}
+}, {
+	"name": "CurrencyUnit",
+	"method": "POST",
+	"id": "sat",
+	"data": {
+		"code": "sat",
+		"description": "Satoshi",
+		"dimension": "Quantity",
+		"symbol": "s",
+		"minorUnit": 0
+	}
+}, {
+	"name": "Currency",
+	"method": "POST",
+	"id": "4y9dtthuen7z",
+	"data": {
+		"code": "USD",
+		"description": "U.S. Dollar",
+		"symbol": "$",
+		"minorUnit": 2,
+		"isBase": true
+	}
+}, {
+	"name": "Currency",
+	"method": "POST",
+	"id": "twugl4nqeodj",
+	"data": {
+		"code": "EUR",
+		"description": "Euro",
+		"symbol": "€",
+		"minorUnit": 2
+	}
+}, {
+	"name": "Currency",
+	"method": "POST",
+	"id": "x8357g1lp7u7",
+	"data": {
+		"code": "MXN",
+		"description": "Mexican Peso",
+		"symbol": "$",
+		"minorUnit": 2
+	}
+}, {
+	"name": "Currency",
+	"method": "POST",
+	"id": "io3n6r3qd7gt",
+	"data": {
+		"code": "CAD",
+		"description": "Canadian Dollar",
+		"symbol": "$",
+		"minorUnit": 2
+	}
+}, {
+	"name": "Currency",
+	"method": "POST",
+	"id": "ylmnhsiupyat",
+	"data": {
+		"code": "CNY",
+		"description": "Yuan Renmimbi",
+		"symbol": "¥",
+		"minorUnit": 2
+	}
+}, {
+	"name": "Currency",
+	"method": "POST",
+	"id": "e856d0hhlyd6",
+	"data": {
+		"code": "JPY",
+		"description": "Yen",
+		"symbol": "¥",
+		"minorUnit": 0
+	}
+}, {
+	"name": "Currency",
+	"method": "POST",
+	"id": "df1pppb1325i",
+	"data": {
+		"code": "XAU",
+		"description": "Gold",
+		"symbol": "Au",
+		"minorUnit": 6
+	}
+}, {
+	"name": "Currency",
+	"method": "POST",
+	"id": "rqnd0vik6uj1",
+	"data": {
+		"code": "XAG",
+		"description": "Silver",
+		"symbol": "Ag"
+	}
+}, {
+	"name": "Currency",
+	"method": "POST",
+	"id": "qrp406n3hdtu",
+	"data": {
+		"code": "XBT",
+		"description": "Bitcoin",
+		"symbol": "₿",
+		"minorUnit": 8,
+		"hasDisplayUnit": true,
+		"displayUnit": {
+			"id": "mBTC"
+		},
+		"conversions": [{
+			"id": "nhxj86qlrkta",
+			"toUnit": {
+				"id": "BTC"
+			},
+			"ratio": 1
+		}, {
+			"id": "om15klk6xeoa",
+			"toUnit": {
+				"id": "cBTC"
+			},
+			"ratio": 0.01
+		}, {
+			"id": "3thfca9ejk1f",
+			"toUnit": {
+				"id": "mBTC"
+			},
+			"ratio": 0.001
+		}, {
+			"id": "r0c8hrgwllhu",
+			"toUnit": {
+				"id": "μBTC"
+			},
+			"ratio": 0.000001
+		}, {
+			"id": "o81m1d215ro2",
+			"toUnit": {
+				"id": "sat"
+			},
+			"ratio": 0.00000001
+		}]
+	}
+}, {
+	"name": "Currency",
+	"method": "POST",
+	"id": "5x0opi3mxd1q",
+	"data": {
+		"code": "XDR",
+		"description": "Special Drawing Right",
+		"symbol": "SDR",
+		"minorUnit": 6
+	}
+}, {
+	"name": "Honorific",
+	"method": "POST",
+	"id": "Mr.",
+	"data": {
+		"title": "Mr."
+	}
+}, {
+	"name": "Honorific",
+	"method": "POST",
+	"id": "Mrs.",
+	"data": {
+		"title": "Mrs."
+	}
+}, {
+	"name": "Honorific",
+	"method": "POST",
+	"id": "Ms.",
+	"data": {
+		"title": "Ms."
+	}
+}, {
+	"name": "Honorific",
+	"method": "POST",
+	"id": "Miss",
+	"data": {
+		"title": "Miss"
+	}
+}, {
+	"name": "SocialNetwork",
+	"method": "POST",
+	"id": "Facebook",
+	"data": {
+		"name": "Facebook",
+		"url": "www.facebook.com"
+	}
+}, {
+	"name": "SocialNetwork",
+	"method": "POST",
+	"id": "LinkedIn",
+	"data": {
+		"name": "LinkedIn",
+		"url": "www.linkedin.com"
+	}
+}, {
+	"name": "SocialNetwork",
+	"method": "POST",
+	"id": "Instagram",
+	"data": {
+		"name": "Instagram",
+		"url": "www.instagram.com"
+	}
+}, {
+	"name": "SocialNetwork",
+	"method": "POST",
+	"id": "Twitter",
+	"data": {
+		"name": "Twitter",
+		"url": "www.twitter.com"
+	}
+}, {
+	"name": "SocialNetwork",
+	"method": "POST",
+	"id": "YouTube",
+	"data": {
+		"name": "YouTube",
+		"url": "www.youtube.com"
+	}
+}, {
+	"name": "SocialNetwork",
+	"method": "POST",
+	"id": "Reddit",
+	"data": {
+		"name": "Reddit",
+		"url": "www.reddit.com"
+	}
+}, {
+	"name": "SocialNetwork",
+	"method": "POST",
+	"id": "Pintrest",
+	"data": {
+		"name": "Pintrest",
+		"url": "www.pintrest.com"
+	}
+}, {
+	"name": "SocialNetwork",
+	"method": "POST",
+	"id": "Skype",
+	"data": {
+		"name": "Skype",
+		"url": "www.skype.com"
+	}
+}, {
+	"name": "Country",
+	"method": "POST",
+	"id": "USA",
+	"data": {
+		"name": "United States"
+	}
+}, {
+	"name": "Country",
+	"method": "POST",
+	"id": "Canada",
+	"data": {
+		"name": "Canada"
+	}
+}, {
+	"name": "Country",
+	"method": "POST",
+	"id": "Mexico",
+	"data": {
+		"name": "Mexico"
+	}
+}, {
+	"name": "State",
+	"method": "POST",
+	"id": "PA",
+	"data": {
+		"abbreviation": "PA",
+		"name": "Pennsylvania"
+	}
+}, {
+	"name": "State",
+	"method": "POST",
+	"id": "NY",
+	"data": {
+		"abbreviation": "NY",
+		"name": "New York"
+	}
+}, {
+	"name": "State",
+	"method": "POST",
+	"id": "NJ",
+	"data": {
+		"abbreviation": "NJ",
+		"name": "New Jersey"
+	}
+}, {
+	"name": "State",
+	"method": "POST",
+	"id": "DL",
+	"data": {
+		"abbreviation": "DL",
+		"name": "Delaware"
+	}
+}, {
+	"name": "State",
+	"method": "POST",
+	"id": "MD",
+	"data": {
+		"abbreviation": "MD",
+		"name": "Maryland"
+	}
+}, {
+	"name": "State",
+	"method": "POST",
+	"id": "NC",
+	"data": {
+		"abbreviation": "NC",
+		"name": "North Carolina"
+	}
+}, {
+	"name": "State",
+	"method": "POST",
+	"id": "SC",
+	"data": {
+		"abbreviation": "SC",
+		"name": "South Carolina"
+	}
+}, {
+	"name": "State",
+	"method": "POST",
+	"id": "GA",
+	"data": {
+		"abbreviation": "GA",
+		"name": "Georgia"
+	}
+}, {
+	"name": "State",
+	"method": "POST",
+	"id": "MA",
+	"data": {
+		"abbreviation": "MA",
+		"name": "Massachusetts"
+	}
+}, {
+	"name": "State",
+	"method": "POST",
+	"id": "NH",
+	"data": {
+		"abbreviation": "NH",
+		"name": "New Hampshire"
+	}
+}, {
+	"name": "State",
+	"method": "POST",
+	"id": "CT",
+	"data": {
+		"abbreviation": "CT",
+		"name": "Conneticut"
+	}
+}, {
+	"name": "State",
+	"method": "POST",
+	"id": "VA",
+	"data": {
+		"abbreviation": "VA",
+		"name": "Virginia"
+	}
+}, {
+	"name": "State",
+	"method": "POST",
+	"id": "RI",
+	"data": {
+		"abbreviation": "RI",
+		"name": "Rhode Island"
+	}
 }]
