@@ -37,10 +37,13 @@
         events = new Events(),
         tools = new Tools(),
         crud = new CRUD(),
+        buildAuthSql = tools.buildAuthSql,
+        processSort = tools.processSort,
+        resolvePath = tools.resolvePath,
         sanitize = tools.sanitize,
         ops = Object.keys(f.operators),
         settings = {},
-        PKCOL = "_pk",
+        PKCOL = tools.PKCOL,
         types = {
             object: {
                 type: "json",
@@ -142,61 +145,6 @@
                 that[name].apply(null, args);
             });
         };
-    }
-
-    function buildAuthSql(action, table, tokens) {
-        var actions = [
-                "canRead",
-                "canUpdate",
-                "canDelete"
-            ],
-            i = 6;
-
-        if (actions.indexOf(action) === -1) {
-            throw "Invalid authorization action for object \"" + action + "\"";
-        }
-
-        while (i) {
-            i -= 1;
-            tokens.push(table);
-        }
-
-        action = action.toSnakeCase();
-
-        return " AND _pk IN (" +
-                "SELECT %I._pk " +
-                "FROM %I " +
-                "  JOIN \"$feather\" ON \"$feather\".id::regclass::oid=%I.tableoid " +
-                "WHERE EXISTS (" +
-                "  SELECT " + action + " FROM ( " +
-                "    SELECT " + action +
-                "    FROM \"$auth\"" +
-                "      JOIN \"role\" on \"$auth\".\"role_pk\"=\"role\".\"_pk\"" +
-                "      JOIN \"role_member\"" +
-                "        ON \"role\".\"_pk\"=\"role_member\".\"_parent_role_pk\"" +
-                "    WHERE member=$1" +
-                "      AND object_pk=\"$feather\".parent_pk" +
-                "    ORDER BY " + action + " DESC" +
-                "    LIMIT 1" +
-                "  ) AS data" +
-                "  WHERE " + action +
-                ") " +
-                "EXCEPT " +
-                "SELECT %I._pk " +
-                "FROM %I " +
-                "WHERE EXISTS ( " +
-                "  SELECT " + action + " FROM (" +
-                "    SELECT " + action +
-                "    FROM \"$auth\"" +
-                "    JOIN \"role\" on \"$auth\".\"role_pk\"=\"role\".\"_pk\"" +
-                "    JOIN \"role_member\" " +
-                "      ON \"role\".\"_pk\"=\"role_member\".\"_parent_role_pk\"" +
-                "    WHERE member=$1" +
-                "      AND object_pk=%I._pk" +
-                "    ORDER BY " + action + " DESC" +
-                "    LIMIT 1 " +
-                "  ) AS data " +
-                "WHERE NOT " + action + "))";
     }
 
     function createView(obj) {
@@ -367,11 +315,10 @@
                 return;
             }
 
-            that.getKey({
+            tools.getKey({
                 name: cParent.toSnakeCase(),
-                client: obj.client,
-                callback: done
-            });
+                client: obj.client
+            }).then(done).catch(obj.callback);
         };
 
         done = function (err, resp) {
@@ -398,50 +345,6 @@
         return Object.keys(props).some(function (key) {
             return !!props[key].type.childOf;
         });
-    }
-
-    function resolvePath(col, tokens) {
-        var prefix, suffix, ret,
-                idx = col.lastIndexOf(".");
-
-        if (idx > -1) {
-            prefix = col.slice(0, idx);
-            suffix = col.slice(idx + 1, col.length).toSnakeCase();
-            ret = "(" + resolvePath(prefix, tokens) + ").%I";
-            tokens.push(suffix);
-            return ret;
-        }
-
-        tokens.push(col.toSnakeCase());
-        return "%I";
-    }
-
-    function processSort(sort, tokens) {
-        var order, part, clause = "",
-                i = 0,
-                parts = [];
-
-        // Always sort on primary key as final tie breaker
-        sort.push({
-            property: PKCOL
-        });
-
-        while (sort[i]) {
-            order = (sort[i].order || "ASC");
-            order = order.toUpperCase();
-            if (order !== "ASC" && order !== "DESC") {
-                throw 'Unknown operator "' + order + '"';
-            }
-            part = resolvePath(sort[i].property, tokens);
-            parts.push(part + " " + order);
-            i += 1;
-        }
-
-        if (parts.length) {
-            clause = " ORDER BY " + parts.join(",");
-        }
-
-        return clause;
     }
 
     function propagateViews(obj) {
@@ -1114,22 +1017,17 @@
                         return;
                     }
 
-                    that.getKey({
+                    tools.getKey({
                         id: data.id,
-                        client: obj.client,
-                        callback: afterIdCheck
-                    }, true);
+                        client: obj.client
+                    }, true).then(afterIdCheck).catch(obj.callback);
                 } catch (e) {
                     obj.callback(e);
                 }
             };
 
-            afterIdCheck = function (err, id) {
+            afterIdCheck = function (id) {
                 try {
-                    if (err) {
-                        throw err;
-                    }
-
                     if (id !== undefined) {
                         data.id = f.createId();
                     }
@@ -1150,9 +1048,8 @@
                     });
 
                     if (unique) {
-                        that.getKeys({
+                        tools.getKeys({
                             client: obj.client,
-                            callback: afterUniqueCheck,
                             name: unique.feather,
                             filter: {
                                 criteria: [{
@@ -1160,7 +1057,7 @@
                                     value: unique.value
                                 }]
                             }
-                        });
+                        }).then(afterUniqueCheck).catch(obj.callback);
                         return;
                     }
 
@@ -1170,12 +1067,8 @@
                 }
             };
 
-            afterUniqueCheck = function (err, resp) {
+            afterUniqueCheck = function (resp) {
                 try {
-                    if (err) {
-                        throw err;
-                    }
-
                     if (resp && resp.length) {
                         throw "Value '" + unique.value + "' assigned to " +
                                 unique.label.toName() + " on " +
@@ -1277,11 +1170,10 @@
                                 }
                             }
                             if (value !== -1) {
-                                that.getKey({
+                                tools.getKey({
                                     id: data[key].id,
-                                    client: obj.client,
-                                    callback: afterGetPk
-                                });
+                                    client: obj.client
+                                }).then(afterGetPk).catch(obj.callback);
                                 return;
                             }
                         }
@@ -1377,23 +1269,15 @@
                 obj.client.query(sql, values, insertChildren);
             };
 
-            afterGetPk = function (err, id) {
+            afterGetPk = function (id) {
                 try {
-                    if (err) {
-                        throw err;
-                    }
-
                     value = id;
 
                     if (value === undefined) {
-                        err = 'Relation not found in "' + prop.type.relation +
+                        throw 'Relation not found in "' + prop.type.relation +
                                 '" for "' + key + '" with id "' + data[key].id + '"';
                     } else if (!isChild && prop.type.childOf) {
-                        err = "Child records may only be created from the parent.";
-                    }
-
-                    if (err) {
-                        throw err;
+                        throw "Child records may only be created from the parent.";
                     }
 
                     afterHandleRelations();
@@ -1595,26 +1479,22 @@
                     /* Get one result by key */
                     if (obj.id) {
                         payload.id = obj.id;
-                        payload.callback = afterGetKey;
-                        that.getKey(payload, isSuperUser);
+                        tools.getKey(payload, isSuperUser)
+                            .then(afterGetKey).catch(obj.callback);
 
                         /* Get a filtered result */
                     } else {
                         payload.filter = obj.filter;
-                        payload.callback = afterGetKeys;
-                        that.getKeys(payload, isSuperUser);
+                        tools.getKeys(payload, isSuperUser)
+                            .then(afterGetKeys).catch(obj.callback);
                     }
                 } catch (e) {
                     obj.callback(e);
                 }
             };
 
-            afterGetKey = function (err, key) {
+            afterGetKey = function (key) {
                 try {
-                    if (err) {
-                        throw err;
-                    }
-
                     if (key === undefined) {
                         obj.callback(null, undefined);
                         return;
@@ -1642,12 +1522,8 @@
                 }
             };
 
-            afterGetKeys = function (err, keys) {
+            afterGetKeys = function (keys) {
                 try {
-                    if (err) {
-                        throw err;
-                    }
-
                     var result, feathername,
                             sort = obj.filter
                         ? obj.filter.sort || []
@@ -1832,22 +1708,17 @@
                         throw "Not authorized to update \"" + id + "\"";
                     }
 
-                    that.getKey({
+                    tools.getKey({
                         id: id,
-                        client: obj.client,
-                        callback: afterGetKey
-                    });
+                        client: obj.client
+                    }).then(afterGetKey).catch(obj.callback);
                 } catch (e) {
                     obj.callback(e);
                 }
             };
 
-            afterGetKey = function (err, resp) {
+            afterGetKey = function (resp) {
                 try {
-                    if (err) {
-                        throw err;
-                    }
-
                     pk = resp;
                     keys = Object.keys(props);
 
@@ -1942,9 +1813,8 @@
 
                     // Check unique properties
                     if (keys.some(uniqueChanged)) {
-                        that.getKeys({
+                        tools.getKeys({
                             client: obj.client,
-                            callback: afterUniqueCheck,
                             name: unique.feather,
                             filter: {
                                 criteria: [{
@@ -1952,7 +1822,7 @@
                                     value: unique.value
                                 }]
                             }
-                        });
+                        }).then(afterUniqueCheck).catch(obj.callback);
                         return;
                     }
 
@@ -1963,12 +1833,8 @@
                 }
             };
 
-            afterUniqueCheck = function (err, resp) {
+            afterUniqueCheck = function (resp) {
                 try {
-                    if (err) {
-                        throw err;
-                    }
-
                     if (resp && resp.length) {
                         throw "Value '" + unique.value + "' assigned to " +
                                 unique.label.toName() + " on " +
@@ -2064,11 +1930,10 @@
                                     updProp.id !== oldProp.id) {
 
                                 if (updProp.id) {
-                                    that.getKey({
+                                    tools.getKey({
                                         id: updRec[key].id,
-                                        client: obj.client,
-                                        callback: afterGetRelKey
-                                    });
+                                        client: obj.client
+                                    }).then(afterGetRelKey).catch(obj.callback);
                                 } else {
                                     afterGetRelKey(null, -1);
                                 }
@@ -2115,12 +1980,8 @@
                 }
             };
 
-            afterGetRelKey = function (err, resp) {
+            afterGetRelKey = function (resp) {
                 try {
-                    if (err) {
-                        throw err;
-                    }
-
                     value = resp;
                     relation = props[key].type.relation;
 
@@ -2274,182 +2135,6 @@
                 // Send back result
                 obj.callback(null, resp.rows);
             });
-        },
-
-        /**
-          Get the primary key for a given id.
-
-          @param {Object} Request payload
-          @param {Object} [payload.id] Id to resolve
-          @param {Object} [payload.client] Database client
-          @param {Function} [payload.callback] callback
-          @param {Boolean} Request as super user. Default false.
-          @return receiver
-        */
-        getKey: function (obj, isSuperUser) {
-            var payload = {
-                name: obj.name || "Object",
-                filter: {
-                    criteria: [{
-                        property: "id",
-                        value: obj.id
-                    }]
-                },
-                client: obj.client,
-                showDeleted: obj.showDeleted
-            };
-
-            payload.callback = function (err, keys) {
-                if (err) {
-                    obj.callback(err);
-                    return;
-                }
-
-                obj.callback(null, keys.length
-                    ? keys[0]
-                    : undefined);
-                return;
-            };
-
-            that.getKeys(payload, isSuperUser);
-
-            return this;
-        },
-
-
-        /**
-          Get an array of primary keys for a given feather and filter criteria.
-
-          @param {Object} Request payload
-          @param {Object} [payload.name] Feather name
-          @param {Object} [payload.filter] Filter
-          @param {Boolean} [payload.showDeleted] Show deleted records
-          @param {Object} [payload.client] Database client
-          @param {Function} [payload.callback] callback
-          @param {Boolean} Request as super user. Default false.
-          @return receiver
-        */
-        getKeys: function (obj, isSuperUser) {
-            try {
-                var part, op, err, or,
-                        name = obj.name,
-                        filter = obj.filter,
-                        table = name.toSnakeCase(),
-                        clause = obj.showDeleted
-                    ? "true"
-                    : "NOT is_deleted",
-                        sql = "SELECT _pk FROM %I WHERE " + clause,
-                        tokens = ["_" + table],
-                        criteria = filter
-                    ? filter.criteria || []
-                    : false,
-                        sort = filter
-                    ? filter.sort || []
-                    : [],
-                        params = [],
-                        parts = [],
-                        p = 1;
-
-                // Add authorization criteria
-                if (isSuperUser === false) {
-                    sql += buildAuthSql("canRead", table, tokens);
-
-                    params.push(obj.client.currentUser);
-                    p += 1;
-                }
-
-                // Process filter
-                if (filter) {
-                    // Process criteria
-                    criteria.forEach(function (where) {
-                        op = where.operator || "=";
-
-                        if (ops.indexOf(op) === -1) {
-                            err = 'Unknown operator "' + op + '"';
-                            throw err;
-                        }
-
-                        // Value "IN" array ("Andy" IN ["Ann","Andy"])
-                        // Whether "Andy"="Ann" OR "Andy"="Andy"
-                        if (op === "IN") {
-                            part = [];
-                            where.value.forEach(function (val) {
-                                params.push(val);
-                                part.push("$" + p);
-                                p += 1;
-                            });
-                            part = resolvePath(where.property, tokens) + " IN (" + part.join(",") + ")";
-
-                            // Property "OR" array compared to value (["name","email"]="Andy")
-                            // Whether "name"="Andy" OR "email"="Andy"
-                        } else if (Array.isArray(where.property)) {
-                            or = [];
-                            where.property.forEach(function (prop) {
-                                params.push(where.value);
-                                or.push(resolvePath(prop, tokens) + " " + op + " $" + p);
-                                p += 1;
-                            });
-                            part = "(" + or.join(" OR ") + ")";
-
-                            // Regular comparison ("name"="Andy")
-                        } else if (typeof where.value === "object" && !where.value.id) {
-                            part = resolvePath(where.property, tokens) + " IS NULL";
-                        } else {
-                            if (typeof where.value === "object") {
-                                where.property = where.property + ".id";
-                                where.value = where.value.id;
-                            }
-                            params.push(where.value);
-                            part = resolvePath(where.property, tokens) + " " + op + " $" + p;
-                            p += 1;
-                        }
-                        parts.push(part);
-                    });
-
-                    if (parts.length) {
-                        sql += " AND " + parts.join(" AND ");
-                    }
-                }
-
-
-                // Process sort
-                sql += processSort(sort, tokens);
-
-                if (filter) {
-                    // Process offset and limit
-                    if (filter.offset) {
-                        sql += " OFFSET $" + p;
-                        p += 1;
-                        params.push(filter.offset);
-                    }
-
-                    if (filter.limit) {
-                        sql += " LIMIT $" + p;
-                        params.push(filter.limit);
-                    }
-                }
-
-                sql = sql.format(tokens);
-
-                obj.client.query(sql, params, function (err, resp) {
-                    var keys;
-
-                    if (err) {
-                        obj.callback(err);
-                        return;
-                    }
-
-                    keys = resp.rows.map(function (rec) {
-                        return rec[PKCOL];
-                    });
-
-                    obj.callback(null, keys);
-                });
-
-            } catch (e) {
-                obj.callback(e);
-                return;
-            }
         },
 
         /**
@@ -2925,12 +2610,7 @@
                     isMember = false,
                     hasAuth = false;
 
-            afterGetObjKey = function (err, resp) {
-                if (err) {
-                    obj.callback(err);
-                    return;
-                }
-
+            afterGetObjKey = function (resp) {
                 objPk = resp;
 
                 // Validation
@@ -2939,19 +2619,13 @@
                     return;
                 }
 
-                that.getKey({
+                tools.getKey({
                     id: obj.data.role,
-                    client: obj.client,
-                    callback: afterGetRoleKey
-                });
+                    client: obj.client
+                }).then(afterGetRoleKey).catch(obj.callback);
             };
 
-            afterGetRoleKey = function (err, resp) {
-                if (err) {
-                    obj.callback(err);
-                    return;
-                }
-
+            afterGetRoleKey = function (resp) {
                 rolePk = resp;
 
                 // Validation
@@ -3137,11 +2811,10 @@
             };
 
             // Kick off query by getting object key, the rest falls through callbacks
-            that.getKey({
+            tools.getKey({
                 id: id,
-                client: obj.client,
-                callback: afterGetObjKey
-            });
+                client: obj.client
+            }).then(afterGetObjKey).catch(obj.callback);
         },
 
         /**
