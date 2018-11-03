@@ -114,60 +114,6 @@
     ]
   },
   {
-    "name": "Setup",
-    "module": "Core",
-    "description": "Setup data",
-    "launchConfig": {
-      "icon": "table",
-      "color": "white",
-      "backgroundColor": "blue"
-    },
-    "defaultConfig": [
-      {
-        "name": "Countries",
-        "feather": "Country",
-        "list": {
-          "columns": [{
-              "attr": "name"
-            }
-          ]
-        }
-      },
-      {
-        "name": "States",
-        "feather": "State",
-        "list": {
-          "columns": [{
-              "attr": "abbreviation",
-              "label": "Abbr."
-            }, {
-              "attr": "name"
-            }]
-        }
-      },
-      {
-        "name": "Honorifics",
-        "feather": "Honorific",
-        "list": {
-          "columns": [{
-              "attr": "title"
-            }]
-        }
-      },
-      {
-        "name": "Social",
-        "feather": "SocialNetwork",
-        "list": {
-          "columns": [{
-              "attr": "name"
-            }, {
-              "attr": "url"
-            }]
-        }
-      }
-    ]
-  },
-  {
     "name": "Currency",
     "module": "Core",
     "description": "Currency definitions",
@@ -222,6 +168,90 @@
               "attr": "description"
             }, {
               "attr": "symbol"
+            }]
+        }
+      }
+    ]
+  },
+  {
+    "name": "Contacts",
+    "module": "Core",
+    "description": "Contacts",
+    "launchConfig": {
+      "icon": "group",
+      "color": "white",
+      "backgroundColor": "blue"
+    },
+    "defaultConfig": [
+      {
+        "name": "Contacts",
+        "feather": "Contact",
+        "list": {
+          "columns": [{
+              "attr": "firstName",
+              "label": "First"
+            }, {
+              "attr": "lastName",
+              "label": "Last"
+            }, {
+              "attr": "primaryPhone",
+              "label": "Phone"
+            }, {
+              "attr": "primaryEmail",
+              "label": "email"
+            }, {
+              "attr": "primaryAddress.city",
+              "label": "City"
+            }, {
+              "attr": "primaryAddress.state.code",
+              "label": "State"
+            }, {
+              "attr": "primaryAddress.country.name",
+              "label": "Country"
+            }]
+        }
+      },
+      {
+        "name": "Countries",
+        "feather": "Country",
+        "list": {
+          "columns": [{
+              "attr": "code"
+            },
+            {
+              "attr": "name"
+            }
+          ]
+        }
+      },
+      {
+        "name": "States",
+        "feather": "State",
+        "list": {
+          "columns": [{
+              "attr": "code"
+            }, {
+              "attr": "name"
+            }]
+        }
+      },
+      {
+        "name": "Honorifics",
+        "feather": "Honorific",
+        "list": {
+          "columns": [{
+              "attr": "title"
+            }]
+        }
+      },
+      {
+        "name": "Social",
+        "feather": "SocialNetwork",
+        "list": {
+          "columns": [{
+              "attr": "name"
+            }, {
+              "attr": "url"
             }]
         }
       }

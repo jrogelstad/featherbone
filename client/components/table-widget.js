@@ -813,7 +813,7 @@
             idx = 0;
             rows = vm.models().map(function (model) {
                 var tds, row, thContent, onclick, lock,
-                        lastFocusId, ontab, onshifttab,
+                        lastFocusId, ontab, onshifttab, url,
                         defaultFocusId = vm.defaultFocus(model),
                         currentMode = vm.mode().current()[0],
                         color = "White",
@@ -889,6 +889,12 @@
                                 ? value.toLocaleString()
                                 : "";
                             break;
+                        case "url":
+                            url = value.slice(0, 4) === "http"
+                                ? value
+                                : "http://" + value;
+                            content = m("a", {href: url}, value);
+                            break;
                         case "string":
                             content = value;
                             break;
@@ -903,7 +909,7 @@
                                     minorUnit = curr.data.minorUnit();
                                 }
                             }
-                            
+
                             content = value.amount.toLocaleString(undefined, {
                                 minimumFractionDigits: minorUnit,
                                 maximumFractionDigits: minorUnit
@@ -914,7 +920,7 @@
                             }
 
                             content = symbol + content;
-                            
+
                             tdOpts.style.textAlign = "right";
 
                             break;
