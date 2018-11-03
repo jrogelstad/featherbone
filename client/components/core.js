@@ -193,6 +193,36 @@
                 components = catalog.store().components(),
                 id = opts.id || key;
 
+        function buildSelector() {
+            var vm = obj.viewModel,
+                selectComponents = vm.selectComponents(),
+                value = opts.value === ""
+                    ? undefined
+                    : opts.value;
+
+            if (selectComponents[id]) {
+                if (selectComponents[id].value === value) {
+                    return selectComponents[id].content;
+                }
+            } else {
+                selectComponents[id] = {};
+            }
+
+            selectComponents[id].value = value;
+            selectComponents[id].content = m("select", {
+                id: id,
+                onchange: opts.onchange,
+                value: value,
+                disabled: opts.disabled
+            }, obj.dataList.map(function (item) {
+                return m("option", {
+                    value: item.value
+                }, item.label);
+            }));
+
+            return selectComponents[id].content;
+        }
+
         // Handle input types
         if (typeof prop.type === "string" || isPath) {
             opts.type = f.inputMap[format];
@@ -234,18 +264,7 @@
 
                 // If options were passed in, used a select element
                 if (obj.dataList) {
-                    component = m("select", {
-                        id: id,
-                        onchange: opts.onchange,
-                        value: (opts.value === ""
-                            ? undefined
-                            : opts.value),
-                        disabled: opts.disabled
-                    }, obj.dataList.map(function (item) {
-                        return m("option", {
-                            value: item.value
-                        }, item.label);
-                    }));
+                    component = buildSelector();
 
                 // Otherwise standard input
                 } else {
