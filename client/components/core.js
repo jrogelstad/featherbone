@@ -181,6 +181,7 @@
       @param {Object} [options.model] Model
       @param {String} [options.key] Property key
       @param {Object} [options.viewModel] View Model
+      @param {Array} [options.dataList] Array for input lists
     */
     f.buildInputComponent = function (obj) {
         var rel, w, component,
@@ -246,7 +247,7 @@
                         }, item.label);
                     }));
 
-                    // Otherwise standard input
+                // Otherwise standard input
                 } else {
                     opts.style = opts.style || {};
                     opts.style.width = "215px";

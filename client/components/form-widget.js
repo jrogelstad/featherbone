@@ -139,11 +139,21 @@
                             key = item.attr,
                             cfilter = item.filter,
                             prop = d[key],
+                            dataList = item.dataList || prop.dataList,
                             value = prop(),
                             options = {};
 
-                    if (item.dataList) {
-                        dataList = f.resolveProperty(model, item.dataList)();
+                    if (dataList) {
+                        // If reference a property, get the property
+                        if (typeof dataList === "string") {
+                            dataList = f.resolveProperty(model, dataList)();
+
+                        // Must referencoe a simple array, transform
+                        } else {
+                            dataList = dataList.map(function (item) {
+                                return {value: item, label: item};
+                            });
+                        }
                     }
 
                     labelOpts = {
