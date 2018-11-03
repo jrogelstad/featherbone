@@ -404,6 +404,8 @@
 		"feather": "Country",
 		"module": "Core",
 		"attrs": [{
+			"attr": "code"
+		},{
 			"attr": "name"
 		}]
 	}
@@ -417,9 +419,38 @@
 		"feather": "State",
 		"module": "Core",
 		"attrs": [{
-			"attr": "abbreviation"
+			"attr": "code"
 		}, {
 			"attr": "name"
+		}]
+	}
+}, {
+	"name": "Form",
+	"method": "POST",
+	"id": "6kir5kogekam",
+	"data": {
+		"name": "Contact",
+		"description": "Contact form",
+		"feather": "Contact",
+		"module": "Core",
+		"attrs": [{
+			"attr": "firstName"
+		}, {
+			"attr": "lastName"
+		}, {
+			"attr": "primaryPhoneType",
+            "label": "Phone Type"
+		}, {
+			"attr": "primaryPhone",
+            "label": "Phone"
+		}, {
+			"attr": "primaryEmailType",
+            "label": "Email Type"
+		}, {
+			"attr": "primaryEmail",
+            "label": "Email"
+		}, {
+			"attr": "webSite"
 		}]
 	}
 }, {
@@ -497,6 +528,8 @@
 			"id": "qbdniipw9yxx"
 		},
 		"searchColumns": [{
+			"attr": "code"
+		}, {
 			"attr": "name"
 		}]
 	}
@@ -509,12 +542,12 @@
 		"description": "State relation wdiget",
 		"isActive": true,
 		"feather": "State",
-		"valueProperty": "abbreviation",
+		"valueProperty": "code",
 		"form": {
 			"id": "7mfuzz4ntbf4"
 		},
 		"searchColumns": [{
-			"attr": "abbreviation"
+			"attr": "code"
 		}, {
 			"attr": "name"
 		}]
@@ -876,6 +909,7 @@
 	"method": "POST",
 	"id": "USA",
 	"data": {
+		"code": "USA",
 		"name": "United States"
 	}
 }, {
@@ -883,6 +917,7 @@
 	"method": "POST",
 	"id": "Canada",
 	"data": {
+		"code": "CAN",
 		"name": "Canada"
 	}
 }, {
@@ -890,6 +925,7 @@
 	"method": "POST",
 	"id": "Mexico",
 	"data": {
+		"code": "MEX",
 		"name": "Mexico"
 	}
 }, {
@@ -897,7 +933,7 @@
 	"method": "POST",
 	"id": "PA",
 	"data": {
-		"abbreviation": "PA",
+		"code": "PA",
 		"name": "Pennsylvania"
 	}
 }, {
@@ -905,7 +941,7 @@
 	"method": "POST",
 	"id": "NY",
 	"data": {
-		"abbreviation": "NY",
+		"code": "NY",
 		"name": "New York"
 	}
 }, {
@@ -913,7 +949,7 @@
 	"method": "POST",
 	"id": "NJ",
 	"data": {
-		"abbreviation": "NJ",
+		"code": "NJ",
 		"name": "New Jersey"
 	}
 }, {
@@ -921,7 +957,7 @@
 	"method": "POST",
 	"id": "DL",
 	"data": {
-		"abbreviation": "DL",
+		"code": "DL",
 		"name": "Delaware"
 	}
 }, {
@@ -929,7 +965,7 @@
 	"method": "POST",
 	"id": "MD",
 	"data": {
-		"abbreviation": "MD",
+		"code": "MD",
 		"name": "Maryland"
 	}
 }, {
@@ -937,7 +973,7 @@
 	"method": "POST",
 	"id": "NC",
 	"data": {
-		"abbreviation": "NC",
+		"code": "NC",
 		"name": "North Carolina"
 	}
 }, {
@@ -945,7 +981,7 @@
 	"method": "POST",
 	"id": "SC",
 	"data": {
-		"abbreviation": "SC",
+		"code": "SC",
 		"name": "South Carolina"
 	}
 }, {
@@ -953,7 +989,7 @@
 	"method": "POST",
 	"id": "GA",
 	"data": {
-		"abbreviation": "GA",
+		"code": "GA",
 		"name": "Georgia"
 	}
 }, {
@@ -961,7 +997,7 @@
 	"method": "POST",
 	"id": "MA",
 	"data": {
-		"abbreviation": "MA",
+		"code": "MA",
 		"name": "Massachusetts"
 	}
 }, {
@@ -969,7 +1005,7 @@
 	"method": "POST",
 	"id": "NH",
 	"data": {
-		"abbreviation": "NH",
+		"code": "NH",
 		"name": "New Hampshire"
 	}
 }, {
@@ -977,7 +1013,7 @@
 	"method": "POST",
 	"id": "CT",
 	"data": {
-		"abbreviation": "CT",
+		"code": "CT",
 		"name": "Conneticut"
 	}
 }, {
@@ -985,7 +1021,7 @@
 	"method": "POST",
 	"id": "VA",
 	"data": {
-		"abbreviation": "VA",
+		"code": "VA",
 		"name": "Virginia"
 	}
 }, {
@@ -993,7 +1029,7 @@
 	"method": "POST",
 	"id": "RI",
 	"data": {
-		"abbreviation": "RI",
+		"code": "RI",
 		"name": "Rhode Island"
 	}
 }]
