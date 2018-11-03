@@ -174,7 +174,7 @@
     ]
   },
   {
-    "name": "Contacts",
+    "name": "Contact",
     "module": "Core",
     "description": "Contacts",
     "launchConfig": {
