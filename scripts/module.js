@@ -16,132 +16,132 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*global require, module*/
-/*jslint white*/
+/*jslint*/
 (function () {
-  "strict";
+    "strict";
 
-  var catalog = require("catalog"),
-    model = require("model"),
-    list = require("list");
+    var catalog = require("catalog"),
+        model = require("model"),
+        list = require("list");
 
-  /*
-    Contact Model
-  */
-  function contactModel (data, feather) {
-    feather = feather || catalog.getFeather("Contact");
-    var that = model(data, feather),
-      d = that.data;
+    /*
+      Contact Model
+    */
+    function contactModel(data, feather) {
+        feather = feather || catalog.getFeather("Contact");
+        var that = model(data, feather),
+            d = that.data;
 
-    function handleName () {
-        if (d.firstName()) {
-            d.fullName(d.firstName() + " " + d.lastName());
-        } else {
-            d.fullName(d.lastName());
+        function handleName() {
+            if (d.firstName()) {
+                d.fullName(d.firstName() + " " + d.lastName());
+            } else {
+                d.fullName(d.lastName());
+            }
         }
+
+        that.onChanged("firstName", handleName);
+        that.onChanged("lastName", handleName);
+
+        return that;
     }
 
-    that.onChanged("firstName", handleName);
-    that.onChanged("lastName", handleName);
+    contactModel.list = list("Contact");
 
-    return that;
-  }
+    catalog.register("models", "contact", contactModel);
+    module.exports = contactModel;
 
-  contactModel.list = list("Contact");
+    /*
+      Currency Model
+    */
+    function currencyModel(data, feather) {
+        feather = feather || catalog.getFeather("Currency");
+        var that = model(data, feather);
 
-  catalog.register("models", "contact", contactModel);
-  module.exports = contactModel;
-
-  /*
-    Currency Model
-  */
-  function currencyModel (data, feather) {
-    feather = feather || catalog.getFeather("Currency");
-    var that = model(data, feather);
-
-    that.data.displayUnit.isReadOnly = function () {
-      return !that.data.hasDisplayUnit();
-    };
-
-    that.data.displayUnit.isRequired = that.data.hasDisplayUnit;
-
-    that.onChanged("hasDisplayUnit", function (prop) {
-      if (!prop()) {
-        that.data.displayUnit(null);
-      }
-    });
-
-    that.onValidate(function () {
-      var id,
-        displayUnit = that.data.displayUnit(),
-        conversions = that.data.conversions(),
-        containsDisplayUnit = function (model) {
-          return model.data.toUnit().id() === id;
+        that.data.displayUnit.isReadOnly = function () {
+            return !that.data.hasDisplayUnit();
         };
 
-      if (displayUnit) {
-        id = displayUnit.id();
-        if (!conversions.some(containsDisplayUnit)) {
-          throw "A conversion must exist for the display unit.";
-        }
-      }
+        that.data.displayUnit.isRequired = that.data.hasDisplayUnit;
 
-      if (that.data.code().length > 4) {
-        throw "code may not be more than 4 characters";
-      }
-    });
+        that.onChanged("hasDisplayUnit", function (prop) {
+            if (!prop()) {
+                that.data.displayUnit(null);
+            }
+        });
 
-    return that;
-  }
+        that.onValidate(function () {
+            var id,
+                displayUnit = that.data.displayUnit(),
+                conversions = that.data.conversions(),
+                containsDisplayUnit = function (model) {
+                    return model.data.toUnit().id() === id;
+                };
 
-  currencyModel.list = list("Currency");
+            if (displayUnit) {
+                id = displayUnit.id();
+                if (!conversions.some(containsDisplayUnit)) {
+                    throw "A conversion must exist for the display unit.";
+                }
+            }
 
-  catalog.register("models", "currency", currencyModel);
-  module.exports = currencyModel;
+            if (that.data.code().length > 4) {
+                throw "code may not be more than 4 characters";
+            }
+        });
 
-  /*
-    Currency Conversion model
-  */
-  function currencyConversionModel (data, feather) {
-    feather = feather || catalog.getFeather("CurrencyConversion");
-    var that = model(data, feather);
+        return that;
+    }
 
-    that.onValidate(function () {
-      if (that.data.fromCurrency().id() === that.data.toCurrency().id()) {
-        throw "'From' currency cannot be the same as the 'to' currency.";
-      }
+    currencyModel.list = list("Currency");
 
-      if (that.data.ratio() < 0) {
-        throw "The conversion ratio nust be a positive number.";
-      }
-    });
+    catalog.register("models", "currency", currencyModel);
+    module.exports = currencyModel;
 
-    return that;
-  }
+    /*
+      Currency Conversion model
+    */
+    function currencyConversionModel(data, feather) {
+        feather = feather || catalog.getFeather("CurrencyConversion");
+        var that = model(data, feather);
 
-  currencyConversionModel.list = list("CurrencyConversion");
+        that.onValidate(function () {
+            if (that.data.fromCurrency().id() === that.data.toCurrency().id()) {
+                throw "'From' currency cannot be the same as the 'to' currency.";
+            }
 
-  catalog.register("models", "currencyConversion", currencyConversionModel);
-  module.exports = currencyConversionModel;
+            if (that.data.ratio() < 0) {
+                throw "The conversion ratio nust be a positive number.";
+            }
+        });
 
-  /*
-    Currency Unit model
-  */
-  function currencyUnitModel (data, feather) {
-    feather = feather || catalog.getFeather("CurrencyUnit");
-    var that = model(data, feather);
+        return that;
+    }
 
-    that.onValidate(function () {
-      if (that.data.code().length > 4) {
-        throw "code may not be more than 4 characters";
-      }
-    });
+    currencyConversionModel.list = list("CurrencyConversion");
 
-    return that;
-  }
+    catalog.register("models", "currencyConversion", currencyConversionModel);
+    module.exports = currencyConversionModel;
 
-  currencyUnitModel.list = list("CurrencyUnit");
+    /*
+      Currency Unit model
+    */
+    function currencyUnitModel(data, feather) {
+        feather = feather || catalog.getFeather("CurrencyUnit");
+        var that = model(data, feather);
 
-  catalog.register("models", "currencyUnit", currencyUnitModel);
-  module.exports = currencyUnitModel;
+        that.onValidate(function () {
+            if (that.data.code().length > 4) {
+                throw "code may not be more than 4 characters";
+            }
+        });
+
+        return that;
+    }
+
+    currencyUnitModel.list = list("CurrencyUnit");
+
+    catalog.register("models", "currencyUnit", currencyUnitModel);
+    module.exports = currencyUnitModel;
 
 }());
