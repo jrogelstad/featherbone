@@ -247,11 +247,14 @@
         "properties": {
 			"code": {
 				"description": "Country code",
-				"type": "string"
+				"type": "string",
+                "isRequired": true,
+                "isUnique": true
 			},
 			"name": {
 				"description": "Name",
-				"type": "string"
+				"type": "string",
+                "isRequired": true
 			}
 		}
 	},
@@ -263,11 +266,14 @@
         "properties": {
 			"code": {
 				"description": "State code",
-				"type": "string"
+				"type": "string",
+                "isRequired": true,
+                "isUnique": true
 			},
 			"name": {
 				"description": "Name",
-				"type": "string"
+				"type": "string",
+                "isRequired": true
 			}
 		}
 	},
@@ -284,11 +290,12 @@
 				"dataList": ["Home", "Work", "Other"]
 			},
 			"line1": {
-				"description": "Street3",
-				"type": "string"
+				"description": "Street 1",
+				"type": "string",
+                "isRequired": true
 			},
 			"line2": {
-				"description": "Street2",
+				"description": "Street 2",
 				"type": "string"
 			},
 			"city": {
@@ -376,11 +383,13 @@
 			},
 			"lastName": {
 				"description": "Last name",
-				"type": "string"
+				"type": "string",
+                "isRequired": true
 			},
 			"fullName": {
 				"description": "Name",
-				"type": "string"
+				"type": "string",
+                "isReadOnly": true
 			},
 			"primaryPhone": {
 				"description": "Primary phone number",

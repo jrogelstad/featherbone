@@ -15,7 +15,8 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-
+/*global require, module*/
+/*jslint white*/
 (function () {
   "strict";
 
@@ -24,11 +25,38 @@
     list = require("list");
 
   /*
+    Contact Model
+  */
+  function contactModel (data, feather) {
+    feather = feather || catalog.getFeather("Contact");
+    var that = model(data, feather),
+      d = that.data;
+
+    function handleName () {
+        if (d.firstName()) {
+            d.fullName(d.firstName() + " " + d.lastName());
+        } else {
+            d.fullName(d.lastName());
+        }
+    }
+
+    that.onChanged("firstName", handleName);
+    that.onChanged("lastName", handleName);
+
+    return that;
+  }
+
+  contactModel.list = list("Contact");
+
+  catalog.register("models", "contact", contactModel);
+  module.exports = contactModel;
+
+  /*
     Currency Model
   */
-  function currencyModel (data) {
-    var feather = catalog.getFeather("Currency"),
-      that = model(data, feather);
+  function currencyModel (data, feather) {
+    feather = feather || catalog.getFeather("Currency");
+    var that = model(data, feather);
 
     that.data.displayUnit.isReadOnly = function () {
       return !that.data.hasDisplayUnit();
@@ -73,9 +101,9 @@
   /*
     Currency Conversion model
   */
-  function currencyConversionModel (data) {
-    var feather = catalog.getFeather("CurrencyConversion"),
-      that = model(data, feather);
+  function currencyConversionModel (data, feather) {
+    feather = feather || catalog.getFeather("CurrencyConversion");
+    var that = model(data, feather);
 
     that.onValidate(function () {
       if (that.data.fromCurrency().id() === that.data.toCurrency().id()) {
@@ -98,9 +126,9 @@
   /*
     Currency Unit model
   */
-  function currencyUnitModel (data) {
-    var feather = catalog.getFeather("CurrencyUnit"),
-      that = model(data, feather);
+  function currencyUnitModel (data, feather) {
+    feather = feather || catalog.getFeather("CurrencyUnit");
+    var that = model(data, feather);
 
     that.onValidate(function () {
       if (that.data.code().length > 4) {
