@@ -278,6 +278,7 @@
             fetch(true);
         };
         vm.relations = stream({});
+        vm.selectComponents = stream({});
         vm.save = function () {
             vm.models().save();
         };

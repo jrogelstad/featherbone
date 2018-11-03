@@ -41,7 +41,10 @@
         vm.selectedTab = stream(1);
         vm.model = stream();
         vm.outsideElementIds = stream(options.outsideElementIds || []);
+
+        // Places to hang selector content between redraws
         vm.relations = stream({});
+        vm.selectComponents = stream({});
 
         // ..........................................................
         // PRIVATE
@@ -135,7 +138,7 @@
             // Build elements
             buildFieldset = function (attrs) {
                 return attrs.map(function (item) {
-                    var result, labelOpts, dataList,
+                    var result, labelOpts,
                             key = item.attr,
                             cfilter = item.filter,
                             prop = d[key],
