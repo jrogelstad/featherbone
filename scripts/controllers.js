@@ -42,6 +42,60 @@
             datasource.TRIGGER_BEFORE);
 
     /**
+      Contact
+    */
+    function handleContact(obj) {
+        return new Promise(function (resolve) {
+            if (obj.data.firstName) {
+                obj.data.fullName = obj.data.firstName + " " + obj.data.lastName;
+            } else {
+                obj.data.fullName = obj.data.lastName;
+            }
+
+            resolve();
+        });
+    }
+
+    datasource.registerFunction("POST", "Contact",
+            handleContact, datasource.TRIGGER_BEFORE);
+
+    function doUpdateContact(obj) {
+        return new Promise(function (resolve, reject) {
+            function callback(result) {
+                var newRec;
+
+                // Apply changes submitted to copy of current
+                newRec = f.copy(result);
+                jsonpatch.apply(newRec, obj.data);
+
+                function done() {
+                    // Update patch
+                    obj.data = jsonpatch.compare(result, newRec);
+
+                    resolve();
+                }
+
+                // Add subtotal
+                handleContact({data: newRec})
+                    .then(done)
+                    .catch(reject);
+            }
+
+            datasource.request({
+                method: "GET",
+                name: "Contact",
+                id: obj.id,
+                client: obj.client
+            }, true)
+                .then(callback)
+                .catch(reject);
+        });
+    }
+
+    datasource.registerFunction("PATCH", "Contact", doUpdateContact,
+            datasource.TRIGGER_BEFORE);
+
+    /**
       Currency
     */
     function handleCurrency(obj) {
