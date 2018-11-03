@@ -1243,6 +1243,7 @@
                 prop.isReadOnly(props[key].isReadOnly);
                 prop.isCalculated = false;
                 prop.alias(alias);
+                prop.dataList = props[key].dataList;
 
                 // Add state to map for event helper functions
                 stateMap[key] = prop.state();

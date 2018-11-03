@@ -198,7 +198,7 @@
               "label": "Phone"
             }, {
               "attr": "primaryEmail",
-              "label": "email"
+              "label": "Email"
             }, {
               "attr": "primaryAddress.city",
               "label": "City"

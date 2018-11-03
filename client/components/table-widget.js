@@ -980,7 +980,7 @@
                                 id = vm.formatInputId(col),
                                 item = config.columns[idx],
                                 columnWidth = item.width || COL_WIDTH_DEFAULT,
-                                dataList = item.dataList,
+                                dataList = item.dataList || prop.dataList,
                                 cfilter = item.filter;
 
                         inputOpts = {
@@ -1075,7 +1075,16 @@
                         tdOpts.style.fontSize = zoom;
 
                         if (dataList) {
-                            dataList = f.resolveProperty(model, dataList)();
+                            // If reference a property, get the property
+                            if (typeof dataList === "string") {
+                                dataList = f.resolveProperty(model, dataList)();
+
+                            // Must referencoe a simple array, transform
+                            } else {
+                                dataList = dataList.map(function (item) {
+                                    return {value: item, label: item};
+                                });
+                            }
                         }
 
                         cell = m("td", tdOpts, [
