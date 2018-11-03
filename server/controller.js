@@ -111,6 +111,10 @@
                 type: "text",
                 default: ""
             },
+            password: {
+                type: "text",
+                default: ""
+            },
             url: {
                 type: "text",
                 default: ""

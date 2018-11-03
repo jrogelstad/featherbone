@@ -194,11 +194,9 @@
               "attr": "lastName",
               "label": "Last"
             }, {
-              "attr": "primaryPhone",
-              "label": "Phone"
+              "attr": "primaryPhone"
             }, {
-              "attr": "primaryEmail",
-              "label": "Email"
+              "attr": "primaryEmail"
             }, {
               "attr": "primaryAddress.city",
               "label": "City"

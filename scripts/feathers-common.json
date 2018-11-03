@@ -394,33 +394,39 @@
 			"primaryPhone": {
 				"description": "Primary phone number",
 				"type": "string",
-				"format": "tel"
+				"format": "tel",
+                "alias": "Phone"
 			},
 			"primaryPhoneType": {
 				"description": "Home, work, other",
 				"type": "string",
 				"default": "Mobile",
 				"format": "enum",
-				"dataList": ["Mobile", "Home", "Work", "Other"]
+				"dataList": ["Mobile", "Home", "Work", "Other"],
+                "alias": "phoneType"
+
 			},
 			"primaryEmail": {
 				"description": "Primary phone number",
 				"type": "string",
-				"format": "email"
+				"format": "email",
+                "alias": "email"
 			},
 			"primaryEmailType": {
 				"description": "Personal, work, other",
 				"type": "string",
 				"default": "Personal",
 				"format": "enum",
-				"dataList": ["Personal", "Work", "Other"]
+				"dataList": ["Personal", "Work", "Other"],
+                "aliase": "emailType"
 			},
 			"primaryAddress": {
 				"description": "Primary Address",
 				"type": {
 					"relation": "Address",
 					"properties": ["line1", "line2", "city", "state", "postalCode", "country"]
-				}
+				},
+                "alias": "address"
 			},
             "webSite": {
 				"description": "Personal web page",

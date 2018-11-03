@@ -440,17 +440,13 @@
 		}, {
 			"attr": "lastName"
 		}, {
-			"attr": "primaryPhoneType",
-            "label": "Phone Type"
+			"attr": "primaryPhoneType"
 		}, {
-			"attr": "primaryPhone",
-            "label": "Phone"
+			"attr": "primaryPhone"
 		}, {
-			"attr": "primaryEmailType",
-            "label": "Email Type"
+			"attr": "primaryEmailType"
 		}, {
-			"attr": "primaryEmail",
-            "label": "Email"
+			"attr": "primaryEmail"
 		}, {
 			"attr": "webSite"
 		}]
@@ -1033,5 +1029,30 @@
 	"data": {
 		"code": "RI",
 		"name": "Rhode Island"
+	}
+}, {
+	"name": "Address",
+	"method": "POST",
+	"id": "A1",
+	"data": {
+		"line1": "123 York Street",
+		"city": "Downingtown",
+        "state": {
+            "id": "PA"
+         },
+         "country": {
+            "id": "USA"
+         }
+	}
+}, {
+	"name": "Contact",
+	"method": "POST",
+	"id": "BTB",
+	"data": {
+		"firstName": "Bob",
+		"lastName": "Builder",
+        "primaryAddress": {
+            "id": "A1"
+        }
 	}
 }]
