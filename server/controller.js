@@ -39,9 +39,7 @@
         crud = new CRUD(),
         buildAuthSql = tools.buildAuthSql,
         processSort = tools.processSort,
-        resolvePath = tools.resolvePath,
         sanitize = tools.sanitize,
-        ops = Object.keys(f.operators),
         settings = {},
         PKCOL = tools.PKCOL,
         types = {
@@ -993,13 +991,7 @@
                     value, result, afterGetFeather, afterIdCheck, afterNextVal,
                     afterAuthorized, buildInsert, afterGetPk, afterHandleRelations,
                     insertChildren, afterInsert, afterDoSelect, afterLog,
-                    afterUniqueCheck, feather,
-                    payload = {
-                data: {
-                    name: obj.name
-                },
-                client: obj.client
-            },
+                    afterUniqueCheck, feather, payload,
                     data = f.copy(obj.data),
                     name = obj.name || "",
                     args = [name.toSnakeCase()],
@@ -1010,6 +1002,13 @@
                     clen = 1,
                     c = 0,
                     p = 2;
+
+            payload = {
+                data: {
+                    name: obj.name
+                },
+                client: obj.client
+            };
 
             afterGetFeather = function (err, resp) {
                 try {
@@ -1300,7 +1299,9 @@
                     if (value === undefined) {
                         throw 'Relation not found in "' + prop.type.relation +
                                 '" for "' + key + '" with id "' + data[key].id + '"';
-                    } else if (!isChild && prop.type.childOf) {
+                    }
+
+                    if (!isChild && prop.type.childOf) {
                         throw "Child records may only be created from the parent.";
                     }
 
