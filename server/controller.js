@@ -1193,6 +1193,23 @@
                                 }
                             }
                             if (value !== -1) {
+                                if (prop.type.isChild) {
+                                    /* Insert child relation on the fly */
+                                    that.doInsert({
+                                        name: prop.type.relation,
+                                        data: data[key],
+                                        client: obj.client,
+                                        callback: function () {
+                                            tools.getKey({
+                                                id: data[key].id,
+                                                client: obj.client
+                                            }).then(afterGetPk).catch(obj.callback);          
+                                        }
+                                    }, true, true);
+                                    return;
+                                }
+
+                                /* Relation must already exist */
                                 tools.getKey({
                                     id: data[key].id,
                                     client: obj.client
