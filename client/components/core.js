@@ -52,7 +52,11 @@
         dateTime: "datetime-local",
         boolean: "checkbox",
         password: "text",
-        tel: "tel"
+        tel: "tel",
+        email: "email",
+        url: "url",
+        color: "color",
+        textArea: "textArea"
     };
 
     f.formats.money.fromType = function (value) {
