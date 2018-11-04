@@ -794,6 +794,7 @@
         @param {Object} [payload.id] Id of record to delete
         @param {Object} [payload.client] Database client
         @param {Function} [payload.callback] callback
+        @param {Function} [payload.isHard] Hard delete flag. Default false.
         @param {Boolean} Request as child. Default false.
         @param {Boolean} Request as super user. Default false.
         @return receiver
@@ -804,6 +805,10 @@
                     sql = "UPDATE object SET is_deleted = true WHERE id=$1;",
                     clen = 1,
                     c = 0;
+
+            if (obj.isHard === true) {
+                sql = "DELETE FROM object WHERE id=$1;";
+            }
 
             noChildProps = function (key) {
                 if (typeof props[key].type !== "object" ||
@@ -909,7 +914,8 @@
                                 name: rel,
                                 id: row.id,
                                 client: obj.client,
-                                callback: afterDelete
+                                callback: afterDelete,
+                                isHard: obj.isHard
                             }, true);
                         });
                     });
@@ -936,7 +942,7 @@
                         return;
                     }
 
-                    if (isChild) {
+                    if (isChild || obj.isHard) {
                         afterLog();
                         return;
                     }
@@ -1199,11 +1205,16 @@
                                         name: prop.type.relation,
                                         data: data[key],
                                         client: obj.client,
-                                        callback: function () {
+                                        callback: function (err) {
+                                            if (err) {
+                                                obj.callback(err);
+                                                return;
+                                            }
+
                                             tools.getKey({
                                                 id: data[key].id,
                                                 client: obj.client
-                                            }).then(afterGetPk).catch(obj.callback);          
+                                            }).then(afterGetPk).catch(obj.callback);
                                         }
                                     }, true, true);
                                     return;
@@ -1967,8 +1978,80 @@
                                     }
                                 });
 
-                                /* Handle to one relations */
-                            } else if (!props[key].type.childOf &&
+                            /* Handle child relation updates */
+                            } else if (props[key].type.isChild) {
+                                /* Do delete */
+                                if (oldRec[key] && !updRec[key]) {
+                                    that.doDelete({
+                                        name: props[key].type.relation,
+                                        id: oldRec[key].id,
+                                        client: obj.client,
+                                        isHard: true,
+                                        callback: function (err) {
+                                            if (err) {
+                                                obj.callback(err);
+                                                return;
+                                            }
+
+                                            afterGetRelKey(null, -1);
+                                        }
+                                    }, true, true);
+
+                                    return;
+                                }
+
+                                /* Do insert */
+                                if (updRec[key] && !oldRec[key]) {
+                                    that.doInsert({
+                                        name: props[key].type.relation,
+                                        id: updRec[key].id,
+                                        data: updRec[key],
+                                        client: obj.client,
+                                        callback: function (err) {
+                                            if (err) {
+                                                obj.callback(err);
+                                                return;
+                                            }
+
+                                            tools.getKey({
+                                                id: updRec[key].id,
+                                                client: obj.client
+                                            }).then(afterGetRelKey).catch(obj.callback);
+                                        }
+                                    }, true, true);
+
+                                    return;
+                                }
+
+                                if (updRec[key].id !== oldRec[key].id) {
+                                    throw "Id cannot be changed on child relation '" + key + "'";
+                                }
+
+                                /* Do update */
+                                cpatches = jsonpatch.compare(oldRec[key], updRec[key]);
+
+                                that.doUpdate({
+                                    name: props[key].type.relation,
+                                    id: updRec[key].id,
+                                    data: cpatches,
+                                    client: obj.client,
+                                    callback: function (err) {
+                                        if (err) {
+                                            obj.callback(err);
+                                            return;
+                                        }
+
+                                        tools.getKey({
+                                            id: updRec[key].id,
+                                            client: obj.client
+                                        }).then(afterGetRelKey).catch(obj.callback);
+                                    }
+                                }, true, true);
+                                return;
+                            }
+
+                            /* Handle regular to one relations */
+                            if (!props[key].type.childOf &&
                                     updProp.id !== oldProp.id) {
 
                                 if (updProp.id) {
