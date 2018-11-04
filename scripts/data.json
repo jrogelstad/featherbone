@@ -448,6 +448,8 @@
 		}, {
 			"attr": "primaryEmail"
 		}, {
+			"attr": "primaryAddress"
+		}, {
 			"attr": "webSite"
 		}]
 	}
@@ -1031,20 +1033,6 @@
 		"name": "Rhode Island"
 	}
 }, {
-	"name": "Address",
-	"method": "POST",
-	"id": "A1",
-	"data": {
-		"line1": "123 York Street",
-		"city": "Downingtown",
-        "state": {
-            "id": "PA"
-         },
-         "country": {
-            "id": "USA"
-         }
-	}
-}, {
 	"name": "Contact",
 	"method": "POST",
 	"id": "BTB",
@@ -1052,7 +1040,16 @@
 		"firstName": "Bob",
 		"lastName": "Builder",
         "primaryAddress": {
-            "id": "A1"
+            "id": "A1",
+            "street": "123 York Street",
+            "city": "Downingtown",
+            "state": {
+                "id": "PA"
+            },
+            "country": {
+                "id": "USA"
+            }
         }
+        
 	}
 }]

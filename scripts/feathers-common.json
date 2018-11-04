@@ -289,18 +289,19 @@
 				"format": "enum",
 				"dataList": ["Home", "Work", "Other"]
 			},
-			"line1": {
-				"description": "Street 1",
+			"street": {
+				"description": "Street",
 				"type": "string",
                 "isRequired": true
 			},
-			"line2": {
-				"description": "Street 2",
+			"unit": {
+				"description": "Unit",
 				"type": "string"
 			},
 			"city": {
 				"description": "City",
-				"type": "string"
+				"type": "string",
+                "isRequired": true
 			},
 			"state": {
 				"description": "State",
@@ -310,11 +311,13 @@
 						"code",
 						"name"
 					]
-				}
+				},
+                "isRequired": true
 			},
 			"postalCode": {
 				"description": "Postal code",
-				"type": "string"
+				"type": "string",
+                "isRequired": true
 			},
 			"country": {
 				"description": "Country",
@@ -324,7 +327,8 @@
 						"code",
                         "name"
 					]
-				}
+				},
+                "isRequired": true
 			}
 		}
 	},
@@ -424,7 +428,8 @@
 				"description": "Primary Address",
 				"type": {
 					"relation": "Address",
-					"properties": ["line1", "line2", "city", "state", "postalCode", "country"],
+					"properties": ["type", "street", "unit",
+                        "city", "state", "postalCode", "country"],
                     "isChild": true
 				},
                 "alias": "address"
@@ -514,7 +519,8 @@
 				"description": "Address",
 				"type": {
 					"relation": "Address",
-					"properties": ["line1", "line2", "city", "state", "postalCode", "country"],
+					"properties": ["type", "street", "unit", "city",
+                        "state", "postalCode", "country"],
                     "isChild": true
 				}
 			},

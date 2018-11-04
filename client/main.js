@@ -34,6 +34,7 @@
     require("checkbox");
     require("relation-widget");
     require("child-table");
+    require("address-relation");
     require("common-core");
 
     var feathers, loadCatalog, loadModules, moduleData, workbookData,

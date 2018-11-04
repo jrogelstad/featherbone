@@ -280,15 +280,16 @@
         },
 
         view: function (vnode) {
-            var listOptions, inputStyle, menuStyle, maxWidth,
+            var listOptions, inputStyle, menuStyle, buttonStyle, labelStyle, maxWidth,
                     vm = this.viewModel,
                     disabled = vnode.attrs.disabled === true,
                     style = vm.style(),
-                    openMenuClass = "pure-menu-link",
-                    buttonStyle = {
+                    openMenuClass = "pure-menu-link";
+            
+            buttonStyle = {
                 margin: "2px"
-            },
-                    labelStyle = {
+            };
+            labelStyle = {
                 display: "inline"
             };
 
