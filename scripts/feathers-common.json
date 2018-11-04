@@ -424,7 +424,8 @@
 				"description": "Primary Address",
 				"type": {
 					"relation": "Address",
-					"properties": ["line1", "line2", "city", "state", "postalCode", "country"]
+					"properties": ["line1", "line2", "city", "state", "postalCode", "country"],
+                    "isChild": true
 				},
                 "alias": "address"
 			},
@@ -513,7 +514,8 @@
 				"description": "Address",
 				"type": {
 					"relation": "Address",
-					"properties": ["line1", "line2", "city", "state", "postalCode", "country"]
+					"properties": ["line1", "line2", "city", "state", "postalCode", "country"],
+                    "isChild": true
 				}
 			},
 			"isPrimary": {
