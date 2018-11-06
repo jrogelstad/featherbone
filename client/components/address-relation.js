@@ -85,6 +85,15 @@
         vm.id = stream(options.id || f.createId());
         vm.isCell = stream(options.isCell);
         vm.model = parent.model().data[options.parentProperty];
+        vm.onkeydown = function (e) {
+            var id;
+
+            if (e.key === "Enter") { // Enter key
+                vm.addressEdit();
+            } else if (e.key !== "Tab") {
+                e.preventDefault();
+            }
+        };
         vm.states = function () {
             return catalog.store().data().states().map(function (model) {
                 return model.data.code();
@@ -153,10 +162,12 @@
                 }),
                 m("textarea", {
                     id: vm.id(),
+                    title: "Click or Enter key to edit",
                     style: {
                         width: "215px"
                     },
-                    onfocus: vm.addressEdit,
+                    onkeydown: vm.onkeydown,
+                    onclick: vm.addressEdit,
                     value: vm.content(vm.isCell()),
                     disabled: disabled,
                     rows: 4
