@@ -272,10 +272,10 @@
 
                 // Otherwise standard input
                 } else {
+                    opts.class = "suite-input";
                     opts.style = opts.style || {};
-                    opts.style.width = "215px";
                     if (prop.type === "number" || prop.type === "integer") {
-                        opts.style.textAlign = "right";
+                        opts.class = "suite-input-number";
                     }
                     component = m("input", opts);
                 }
