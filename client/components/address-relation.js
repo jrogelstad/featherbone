@@ -71,14 +71,25 @@
                 content += "\x0A" + d.line();
             }
 
-            content += "\x0A" + d.city() + ", " + d.state().data.code() + " " + d.postalCode();
-            content += "\x0A" + d.country().data.name();
+            content += "\x0A" + d.city() + ", " +
+                    d.state() + " " + d.postalCode() +
+                    "\x0A" + d.country();
 
             return content;
+        };
+        vm.countries = function () {
+            return catalog.store().data().countries().map(function (model) {
+                return model.data.name();
+            }).sort();
         };
         vm.id = stream(options.id || f.createId());
         vm.isCell = stream(options.isCell);
         vm.model = parent.model().data[options.parentProperty];
+        vm.states = function () {
+            return catalog.store().data().states().map(function (model) {
+                return model.data.code();
+            }).sort();
+        };
         vm.style = stream(options.style || {});
 
         // ..........................................................
@@ -96,11 +107,13 @@
                 }, {
                     attr: "city"
                 }, {
-                    attr: "state"
+                    attr: "state",
+                    dataList: vm.states()
                 }, {
                     attr: "postalCode"
                 }, {
-                    attr: "country"
+                    attr: "country",
+                    dataList: vm.countries()
                 }]
             }
         }));

@@ -244,6 +244,7 @@
 		"plural": "Countries",
 		"module": "Core",
 		"description": "Country",
+		"isFetchOnStartup": true,
         "properties": {
 			"code": {
 				"description": "Country code",
@@ -263,6 +264,7 @@
 		"plural": "States",
 		"module": "Core",
 		"description": "State",
+		"isFetchOnStartup": true,
         "properties": {
 			"code": {
 				"description": "State code",
@@ -305,13 +307,7 @@
 			},
 			"state": {
 				"description": "State",
-				"type": {
-					"relation": "State",
-					"properties": [
-						"code",
-						"name"
-					]
-				},
+				"type": "string",
                 "isRequired": true
 			},
 			"postalCode": {
@@ -321,13 +317,7 @@
 			},
 			"country": {
 				"description": "Country",
-				"type": {
-					"relation": "Country",
-					"properties": [
-						"code",
-                        "name"
-					]
-				},
+				"type": "string",
                 "isRequired": true
 			}
 		}

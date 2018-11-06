@@ -201,10 +201,10 @@
               "attr": "primaryAddress.city",
               "label": "City"
             }, {
-              "attr": "primaryAddress.state.code",
+              "attr": "primaryAddress.state",
               "label": "State"
             }, {
-              "attr": "primaryAddress.country.name",
+              "attr": "primaryAddress.country",
               "label": "Country"
             }]
         }

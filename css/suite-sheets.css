@@ -1,4 +1,4 @@
-/**
+﻿/**
     Framework for building object relational database apps
     Copyright (C) 2018  John Rogelstad
 
@@ -15,6 +15,14 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
+.suite-input {
+  width: 215px;
+}
+.suite-input-number {
+  width: 215px;
+  text-align: right;
+}
+
 .suite-button {
   background-color: Snow;
 }

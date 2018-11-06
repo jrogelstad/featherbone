@@ -164,9 +164,8 @@
           onclick: vm.selection.bind(this, item.index, true),
           style: {backgroundColor: vm.rowColor(item.index)}
         },[
-          m("td", {
-           style: {minWidth: "175px", maxWidth: "175px"}
-          }, m("select", {
+          m("td", m("select", {
+              style: {width: "175px"},
               value: item.property,
               onchange: m.withAttr(
                 "value",
