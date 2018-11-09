@@ -385,44 +385,40 @@
 				"type": "string",
                 "isReadOnly": true
 			},
-			"primaryPhone": {
+			"phone": {
 				"description": "Primary phone number",
 				"type": "string",
 				"format": "tel",
                 "alias": "Phone"
 			},
-			"primaryPhoneType": {
+			"phoneType": {
 				"description": "Home, work, other",
 				"type": "string",
 				"default": "Mobile",
 				"format": "enum",
-				"dataList": ["Mobile", "Home", "Work", "Other"],
-                "alias": "phoneType"
+				"dataList": ["Mobile", "Home", "Work", "Other"]
 
 			},
-			"primaryEmail": {
+			"email": {
 				"description": "Primary phone number",
 				"type": "string",
-				"format": "email",
-                "alias": "email"
+				"format": "email"
 			},
-			"primaryEmailType": {
+			"emailType": {
 				"description": "Personal, work, other",
 				"type": "string",
 				"default": "Personal",
 				"format": "enum",
-				"dataList": ["Personal", "Work", "Other"],
-                "aliase": "emailType"
+				"dataList": ["Personal", "Work", "Other"]
 			},
-			"primaryAddress": {
+			"address": {
 				"description": "Primary Address",
 				"type": {
 					"relation": "Address",
 					"properties": ["type", "street", "unit",
                         "city", "state", "postalCode", "country"],
                     "isChild": true
-				},
-                "alias": "address"
+				}
 			},
             "webSite": {
 				"description": "Personal web page",
