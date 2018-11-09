@@ -25,29 +25,15 @@
         f = require("common-core"),
         formDialog = require("form-dialog"),
         stream = require("stream"),
-        catalog = require("catalog");
+        catalog = require("catalog"),
+        button = require("button");
 
     addressRelation.viewModel = function (options) {
         var vm = {},
             parent = options.parentViewModel;
 
         vm.addressDialog = stream();
-        vm.addressEdit = function () {
-            var value, dmodel,
-                    addressDialog = vm.addressDialog();
-
-            function applyEdit() {
-                vm.model(dmodel.toJSON());
-            }
-
-            addressDialog.onOk(applyEdit);
-            addressDialog.show();
-            dmodel = vm.addressDialog().formWidget().model();
-            if (vm.model()) {
-                value = vm.model().toJSON();
-                dmodel.set(value);
-            }
-        };
+        vm.buttonClear = stream();
         vm.content = function (isCell) {
             var d,
                 content = "";
@@ -68,7 +54,7 @@
             }
 
             if (d.unit()) {
-                content += "\x0A" + d.line();
+                content += "\x0A" + d.unit();
             }
 
             content += "\x0A" + d.city() + ", " +
@@ -82,14 +68,32 @@
                 return model.data.name();
             }).sort();
         };
+        vm.doClear = function () {
+            vm.addressDialog().cancel();
+            vm.model(null);
+        };
+        vm.doEdit = function () {
+            var value, dmodel,
+                    addressDialog = vm.addressDialog();
+
+            function applyEdit() {
+                vm.model(dmodel.toJSON());
+            }
+
+            addressDialog.onOk(applyEdit);
+            addressDialog.show();
+            dmodel = vm.addressDialog().formWidget().model();
+            if (vm.model()) {
+                value = vm.model().toJSON();
+                dmodel.set(value);
+            }
+        };
         vm.id = stream(options.id || f.createId());
         vm.isCell = stream(options.isCell);
         vm.model = parent.model().data[options.parentProperty];
         vm.onkeydown = function (e) {
-            var id;
-
             if (e.key === "Enter") { // Enter key
-                vm.addressEdit();
+                vm.doEdit();
             } else if (e.key !== "Tab") {
                 e.preventDefault();
             }
@@ -126,6 +130,13 @@
                 }]
             }
         }));
+
+        vm.buttonClear(button.viewModel({
+            onclick: vm.doClear,
+            label: "C&lear"
+        }));
+
+        vm.addressDialog().buttons().push(vm.buttonClear);
 
         return vm;
     };
@@ -167,7 +178,7 @@
                         width: "215px"
                     },
                     onkeydown: vm.onkeydown,
-                    onclick: vm.addressEdit,
+                    onclick: vm.doEdit,
                     value: vm.content(vm.isCell()),
                     disabled: disabled,
                     rows: 4

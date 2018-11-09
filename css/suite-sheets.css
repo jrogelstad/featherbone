@@ -23,7 +23,11 @@
   text-align: right;
 }
 
-.suite-button {
+.suite-dialog-button {
+  margin-right: 10px;
+}
+
+.suite-toolbar-button {
   background-color: Snow;
 }
 
