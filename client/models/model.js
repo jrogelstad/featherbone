@@ -1299,7 +1299,7 @@
                         return "./Clean";
                     });
                     this.enter(function () {
-                        if (d.lock && d.lock()) {
+                        if (d.lock && d.lock() && d.lock().username) {
                             this.goto("../../Locked");
                         }
                     });
