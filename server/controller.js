@@ -2023,30 +2023,35 @@
                                     return;
                                 }
 
-                                if (updRec[key].id !== oldRec[key].id) {
+                                if (updRec[key] && oldRec[key] && updRec[key].id !== oldRec[key].id) {
                                     throw "Id cannot be changed on child relation '" + key + "'";
                                 }
 
                                 /* Do update */
-                                cpatches = jsonpatch.compare(oldRec[key], updRec[key]);
+                                cpatches = jsonpatch.compare(oldRec[key] || {}, updRec[key] || {});
 
-                                that.doUpdate({
-                                    name: props[key].type.relation,
-                                    id: updRec[key].id,
-                                    data: cpatches,
-                                    client: obj.client,
-                                    callback: function (err) {
-                                        if (err) {
-                                            obj.callback(err);
-                                            return;
+                                if (cpatches.length) {
+                                    that.doUpdate({
+                                        name: props[key].type.relation,
+                                        id: updRec[key].id,
+                                        data: cpatches,
+                                        client: obj.client,
+                                        callback: function (err) {
+                                            if (err) {
+                                                obj.callback(err);
+                                                return;
+                                            }
+
+                                            tools.getKey({
+                                                id: updRec[key].id,
+                                                client: obj.client
+                                            }).then(afterGetRelKey).catch(obj.callback);
                                         }
-
-                                        tools.getKey({
-                                            id: updRec[key].id,
-                                            client: obj.client
-                                        }).then(afterGetRelKey).catch(obj.callback);
-                                    }
-                                }, true, true);
+                                    }, true, true);
+                                    return;
+                                }
+                                
+                                nextProp();
                                 return;
                             }
 
