@@ -86,6 +86,7 @@
             if (vm.model()) {
                 value = vm.model().toJSON();
                 dmodel.set(value);
+                dmodel.state().goto("/Ready/Fetched/Clean");
             }
         };
         vm.id = stream(options.id || f.createId());
