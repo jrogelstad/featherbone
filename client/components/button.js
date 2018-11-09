@@ -16,253 +16,285 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*global require, module*/
-/*jslint white, es6, this, browser*/
+/*jslint es6, this, browser*/
 (function () {
-  "use strict";
+    "use strict";
 
-  var button = {},
-    f = require("common-core"),
-    m = require("mithril"),
-    stream = require("stream"),
-    statechart = require("statechartjs");
+    var button = {},
+        f = require("common-core"),
+        m = require("mithril"),
+        stream = require("stream"),
+        statechart = require("statechartjs");
 
-  /**
-    @param {Object} Options
-    @param {String} [options.label] Label
-    @param {String} [options.icon] Icon name
-    @param {Function} [options.onclick] On click function
-    @param {String} [options.class] Class
-    @param {Object} [options.style] Style
-    @return {Object}
-  */
-  button.viewModel = function (options) {
-    options = options || {};
-    var vm, state, display, primary, mode, label, hotkey;
+    /**
+      @param {Object} Options
+      @param {String} [options.label] Label
+      @param {String} [options.icon] Icon name
+      @param {Function} [options.onclick] On click function
+      @param {String} [options.class] Class
+      @param {Object} [options.style] Style
+      @return {Object}
+    */
+    button.viewModel = function (options) {
+        options = options || {};
+        var vm, state, display, primary, mode, label, hotkey;
 
-    // ..........................................................
-    // PUBLIC
-    //
+        // ..........................................................
+        // PUBLIC
+        //
 
-    vm = {};
-    vm.activate = function () { state.send("activate"); };
-    vm.isDisabled = function () { return mode().isDisabled(); };
-    vm.deactivate = function () { state.send("deactivate"); };
-    vm.disable = function () { state.send("disable"); };
-    vm.enable = function () { state.send("enable"); };
-    vm.class = function () { return options.class + " " + mode().class(); };
-    vm.hidden = function () { return display().hidden(); };
-    vm.hide = function () { state.send("hide"); };
-    vm.hotKey = function (...args) {
-      var title, len,
-        value = args[0];
-
-      if (args.length) {
-        hotkey = value;
-        title = vm.title();
-        len = title.length;
-        if (len) {
-          title += " (";
-        }
-        title += "Alt + " + String.fromCharCode(hotkey);
-        if (len) {
-          title += ")";
-        }
-        vm.title(title);
-      }
-      return hotkey;
-    };
-    vm.icon = stream(options.icon || "");
-    vm.id = stream(f.createId());
-    vm.label = function (...args) {
-      var idx, ary,
-        value = args[0];
-
-      if (args.length) {
-        label = value;
-        idx = value.indexOf("&");
-        if (idx > -1) {
-          label = value.replace("&", "");
-          vm.hotKey(label.slice(idx, idx + 1).toUpperCase().charCodeAt(0));
-          ary = [];
-          if (idx > 0) {
-            ary.push(m("span", label.slice(0, idx)));
-          }
-          ary.push(m("span", {style: {
-            textDecoration: "underline"
-          }}, label.slice(idx, idx + 1)));
-          ary.push(m("span", label.slice(idx + 1, label.length)));  
-          label = ary;
-        }
-      }
-      return label;
-    };
-    vm.onclick = stream(options.onclick);
-    vm.onkeydown = function (e) {
-      var id;
-      if (e.altKey && e.which === vm.hotKey()) {
-        id = vm.id();
-        e.preventDefault();
-        document.getElementById(id).click();
-      }
-    };
-    vm.primary = function () { return primary().class(); };
-    vm.show = function () { state.send("show"); };
-    vm.state = function () { return state; };
-    vm.style = function () { return options.style || {}; };
-    vm.title = stream(options.title || "");
-
-    // ..........................................................
-    // PRIVATE
-    //
-
-    vm.label(options.label || "");
-    if (options.hotkey) {
-      vm.hotKey(options.hotkey.toUpperCase().charCodeAt(0));
-    }
-
-    // Define statechart
-    state = statechart.define({concurrent: true}, function () {
-      this.state("Mode", function () {
-        this.state("Normal", function () {
-          this.event("activate", function () {
-            this.goto("../Active");
-          });
-          this.event("disable", function () {
-            this.goto("../Disabled");
-          });
-          this.class = stream("");
-          this.isDisabled = stream(false);
-        });
-        this.state("Active", function () {
-          this.event("deactivate", function () {
-            this.goto("../Normal");
-          });
-          this.event("disable", function () {
-            this.goto("../Disabled");
-          });
-          this.class = function () {
-            return "pure-button-active";
-          };
-          this.isDisabled = stream(false);
-        });
-        this.state("Disabled", function () {
-          this.event("enable", function () {
-            this.goto("../Normal");
-          });
-          this.event("activate", function () {
-            this.goto("../Active");
-          });
-          this.class = stream("");
-          this.isDisabled = stream(true);
-        });
-      });
-      this.state("Primary", function () {
-        this.state("Off", function () {
-          this.event("primaryOn", function () {
-            this.goto("../On");
-          });
-          this.class = stream("");
-        });
-        this.state("On", function () {
-          this.event("primaryOff", function () {
-            this.goto("../Off");
-          });
-          this.class = stream("pure-button-primary");
-        });
-      });
-      this.state("Display", function () {
-        this.state("On", function () {
-          this.event("hide", function () {
-            this.goto("../Off");
-          });
-          this.hidden = stream("");
-        });
-        this.state("Off", function () {
-          this.event("show", function () {
-            this.goto("../On");
-          });
-          this.hidden = stream("pure-button-hidden");
-        });
-      });
-    });
-    state.goto();
-
-    display = function () {
-      return state.resolve(state.resolve("/Display").current()[0]);
-    };
-
-    mode = function () {
-      return state.resolve(state.resolve("/Mode").current()[0]);
-    };
-
-    primary = function () {
-      return state.resolve(state.resolve("/Primary").current()[0]);
-    };
-
-    return vm;
-  };
-
-  // Define button component
-  button.component =  {
-    oninit: function (vnode) {
-      var vm =  vnode.attrs.viewModel || button.viewModel(vnode.attrs);
-      this.viewModel = vm;
-    },
-
-    view: function () {
-      var opts, view, iconView,
-        vm = this.viewModel,
-        classes = ["pure-button"],
-        style = vm.style(),
-        title = vm.title(),
-        icon = vm.icon(),
-        label = vm.label();
-
-      opts = {
-        id: vm.id(),
-        type: "button",
-        style: style,
-        disabled: vm.isDisabled(),
-        onclick: vm.onclick()
-      };
-
-      if (vm.isDisabled()) {
-        classes.push("suite-button-disabled");
-      }
-
-      if (vm.class()) { classes.push(vm.class()); }
-      if (vm.primary()) { classes.push(vm.primary()); }
-      classes.push(vm.hidden());
-      opts.class = classes.join(" ");
-
-      if (vm.hotKey()) {
-        opts.oncreate = function () {
-          document.addEventListener("keydown", vm.onkeydown);
+        vm = {};
+        vm.activate = function () {
+            state.send("activate");
         };
-        opts.onremove = function () {
-          document.removeEventListener("keydown", vm.onkeydown);
+        vm.isDisabled = function () {
+            return mode().isDisabled();
         };
-      }
+        vm.deactivate = function () {
+            state.send("deactivate");
+        };
+        vm.disable = function () {
+            state.send("disable");
+        };
+        vm.enable = function () {
+            state.send("enable");
+        };
+        vm.class = function () {
+            return options.class + " " + mode().class();
+        };
+        vm.hidden = function () {
+            return display().hidden();
+        };
+        vm.hide = function () {
+            state.send("hide");
+        };
+        vm.hotKey = function (...args) {
+            var title, len,
+                    value = args[0];
 
-      if (icon) {
-        iconView = [m("i", {
-          class: "fa fa-" + icon,
-          style: {marginRight: "4px"}
-        })];
-      }
+            if (args.length) {
+                hotkey = value;
+                title = vm.title();
+                len = title.length;
+                if (len) {
+                    title += " (";
+                }
+                title += "Alt + " + String.fromCharCode(hotkey);
+                if (len) {
+                    title += ")";
+                }
+                vm.title(title);
+            }
+            return hotkey;
+        };
+        vm.icon = stream(options.icon || "");
+        vm.id = stream(f.createId());
+        vm.label = function (...args) {
+            var idx, ary,
+                    value = args[0];
 
-      if (title) {
-        opts.title = title;
-      }
+            if (args.length) {
+                label = value;
+                idx = value.indexOf("&");
+                if (idx > -1) {
+                    label = value.replace("&", "");
+                    vm.hotKey(label.slice(idx, idx + 1).toUpperCase().charCodeAt(0));
+                    ary = [];
+                    if (idx > 0) {
+                        ary.push(m("span", label.slice(0, idx)));
+                    }
+                    ary.push(m("span", {
+                        style: {
+                            textDecoration: "underline"
+                        }
+                    }, label.slice(idx, idx + 1)));
+                    ary.push(m("span", label.slice(idx + 1, label.length)));
+                    label = ary;
+                }
+            }
+            return label;
+        };
+        vm.onclick = stream(options.onclick);
+        vm.onkeydown = function (e) {
+            var id;
+            if (e.altKey && e.which === vm.hotKey()) {
+                id = vm.id();
+                e.preventDefault();
+                document.getElementById(id).click();
+            }
+        };
+        vm.primary = function () {
+            return primary().class();
+        };
+        vm.show = function () {
+            state.send("show");
+        };
+        vm.state = function () {
+            return state;
+        };
+        vm.style = function () {
+            return options.style || {};
+        };
+        vm.title = stream(options.title || "");
 
-      view = m("button", opts, iconView, label);
+        // ..........................................................
+        // PRIVATE
+        //
 
-      return view;
-    }
-  };
+        vm.label(options.label || "");
+        if (options.hotkey) {
+            vm.hotKey(options.hotkey.toUpperCase().charCodeAt(0));
+        }
 
-  module.exports = button;
+        // Define statechart
+        state = statechart.define({
+            concurrent: true
+        }, function () {
+            this.state("Mode", function () {
+                this.state("Normal", function () {
+                    this.event("activate", function () {
+                        this.goto("../Active");
+                    });
+                    this.event("disable", function () {
+                        this.goto("../Disabled");
+                    });
+                    this.class = stream("");
+                    this.isDisabled = stream(false);
+                });
+                this.state("Active", function () {
+                    this.event("deactivate", function () {
+                        this.goto("../Normal");
+                    });
+                    this.event("disable", function () {
+                        this.goto("../Disabled");
+                    });
+                    this.class = function () {
+                        return "pure-button-active";
+                    };
+                    this.isDisabled = stream(false);
+                });
+                this.state("Disabled", function () {
+                    this.event("enable", function () {
+                        this.goto("../Normal");
+                    });
+                    this.event("activate", function () {
+                        this.goto("../Active");
+                    });
+                    this.class = stream("");
+                    this.isDisabled = stream(true);
+                });
+            });
+            this.state("Primary", function () {
+                this.state("Off", function () {
+                    this.event("primaryOn", function () {
+                        this.goto("../On");
+                    });
+                    this.class = stream("");
+                });
+                this.state("On", function () {
+                    this.event("primaryOff", function () {
+                        this.goto("../Off");
+                    });
+                    this.class = stream("pure-button-primary");
+                });
+            });
+            this.state("Display", function () {
+                this.state("On", function () {
+                    this.event("hide", function () {
+                        this.goto("../Off");
+                    });
+                    this.hidden = stream("");
+                });
+                this.state("Off", function () {
+                    this.event("show", function () {
+                        this.goto("../On");
+                    });
+                    this.hidden = stream("pure-button-hidden");
+                });
+            });
+        });
+        state.goto();
+
+        display = function () {
+            return state.resolve(state.resolve("/Display").current()[0]);
+        };
+
+        mode = function () {
+            return state.resolve(state.resolve("/Mode").current()[0]);
+        };
+
+        primary = function () {
+            return state.resolve(state.resolve("/Primary").current()[0]);
+        };
+
+        return vm;
+    };
+
+    // Define button component
+    button.component = {
+        oninit: function (vnode) {
+            var vm = vnode.attrs.viewModel || button.viewModel(vnode.attrs);
+            this.viewModel = vm;
+        },
+
+        view: function () {
+            var opts, view, iconView,
+                    vm = this.viewModel,
+                    classes = ["pure-button"],
+                    style = vm.style(),
+                    title = vm.title(),
+                    icon = vm.icon(),
+                    label = vm.label();
+
+            opts = {
+                id: vm.id(),
+                type: "button",
+                style: style,
+                disabled: vm.isDisabled(),
+                onclick: vm.onclick()
+            };
+
+            if (vm.isDisabled()) {
+                classes.push("suite-button-disabled");
+            }
+
+            if (vm.class()) {
+                classes.push(vm.class());
+            }
+            if (vm.primary()) {
+                classes.push(vm.primary());
+            }
+            classes.push(vm.hidden());
+            opts.class = classes.join(" ");
+
+            if (vm.hotKey()) {
+                opts.oncreate = function () {
+                    document.addEventListener("keydown", vm.onkeydown);
+                };
+                opts.onremove = function () {
+                    document.removeEventListener("keydown", vm.onkeydown);
+                };
+            }
+
+            if (icon) {
+                iconView = [m("i", {
+                    class: "fa fa-" + icon,
+                    style: {
+                        marginRight: "4px"
+                    }
+                })];
+            }
+
+            if (title) {
+                opts.title = title;
+            }
+
+            view = m("button", opts, iconView, label);
+
+            return view;
+        }
+    };
+
+    module.exports = button;
 
 }());
-
-
