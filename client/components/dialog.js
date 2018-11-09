@@ -15,8 +15,8 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-
-/*global dialogPolyfill*/
+/*jslint white, this*/
+/*global dialogPolyfill, require, module, document*/
 (function () {
   "use strict";
 
@@ -25,7 +25,8 @@
     stream = require("stream"),
     f = require("common-core"),
     statechart = require("statechartjs"),
-    dialogPolyfill = require("dialog-polyfill");
+    dialogPolyfill = require("dialog-polyfill"),
+    button = require("button");
 
   /**
     View model for sort dialog.
@@ -45,6 +46,12 @@
     //
 
     vm = {};
+    vm.buttonOk = stream();
+    vm.buttonCancel = stream();
+    vm.buttons = stream([
+      vm.buttonOk,
+      vm.buttonCancel
+    ]);
     vm.icon = stream(options.icon);
     vm.ids = stream({
       dialog: options.id || f.createId(),
@@ -91,6 +98,22 @@
     // PRIVATE
     //
 
+    vm.buttonOk(button.viewModel({
+      onclick: vm.ok,
+      label: "&Ok",
+      class: "suite-dialog-button"
+    }));
+    vm.buttonOk().id(vm.ids().buttonOk);
+    vm.buttonOk().state().send("primaryOn");
+
+    vm.buttonCancel(button.viewModel({
+      onclick: vm.cancel,
+      label: "&Cancel",
+      class: "suite-dialog-button"
+    }));
+    vm.buttonCancel().id(vm.ids().buttonCancel);
+    vm.buttonCancel().style = vm.displayCancel;
+
     // Statechart
     state = statechart.define(function () {
       this.state("Display", function () {
@@ -122,7 +145,7 @@
   };
 
   /**
-    Filter dialog component
+    Dialog component
 
     @params {Object} View model
   */
@@ -132,8 +155,22 @@
     },
 
     view: function () {
-      var vm = this.viewModel,
-        ids = vm.ids();
+        var content,
+                vm = this.viewModel,
+                ids = vm.ids();
+        
+        if (vm.okDisabled()) {
+            vm.buttonOk().disable();
+        } else {
+            vm.buttonOk().enable();
+        }
+        vm.buttonOk().title(vm.okTitle());
+
+        content = vm.buttons().map(function (buttonItem) {
+            return m(button.component, {viewModel: buttonItem()});
+        });
+        content.unshift(m("br"));
+        content.unshift(vm.content());
 
       return m("dialog", {
           id: ids.dialog,
@@ -151,24 +188,7 @@
         }, [m("i", {
           class:"fa fa-" + vm.icon() + " suite-dialog-icon"
         })], vm.title().toName()),
-        m("div", {class: "suite-dialog-content-frame"}, [
-          vm.content(),
-          m("br"),
-          m("button", {
-            id: ids.buttonOk,
-            class: "pure-button  pure-button-primary suite-dialog-button-ok",
-            onclick: vm.ok,
-            disabled: vm.okDisabled(),
-            title: vm.okTitle()
-          }, "Ok"),
-          m("button", {
-            id: ids.buttonCancel,
-            class: "pure-button",
-            style: { display: vm.displayCancel() },
-            onclick: vm.cancel,
-            autofocus: true
-          }, "Cancel")
-        ])
+        m("div", {class: "suite-dialog-content-frame"}, content)
       ]);
     }
   };

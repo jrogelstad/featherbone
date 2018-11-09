@@ -422,7 +422,8 @@
             onclick: vm.tableWidget().toggleMode,
             title: "Edit mode",
             hotkey: "E",
-            icon: "pencil"
+            icon: "pencil",
+            class: "suite-toolbar-button"
         }));
         if (!vm.tableWidget().isEditModeEnabled()) {
             vm.buttonEdit().disable();
@@ -432,26 +433,30 @@
             onclick: vm.goHome,
             title: "Home",
             hotkey: "H",
-            icon: "home"
+            icon: "home",
+            class: "suite-toolbar-button"
         }));
 
         vm.buttonSave(button.viewModel({
             onclick: vm.tableWidget().save,
             label: "&Save",
-            icon: "cloud-upload"
+            icon: "cloud-upload",
+            class: "suite-toolbar-button"
         }));
         vm.buttonSave().hide();
 
         vm.buttonNew(button.viewModel({
             onclick: vm.modelNew,
             label: "&New",
-            icon: "plus-circle"
+            icon: "plus-circle",
+            class: "suite-toolbar-button"
         }));
 
         vm.buttonDelete(button.viewModel({
             onclick: vm.tableWidget().modelDelete,
             label: "&Delete",
-            icon: "remove"
+            icon: "remove",
+            class: "suite-toolbar-button"
         }));
         vm.buttonDelete().disable();
 
@@ -464,21 +469,24 @@
         vm.buttonUndo(button.viewModel({
             onclick: vm.tableWidget().undo,
             label: "&Undo",
-            icon: "undo"
+            icon: "undo",
+            class: "suite-toolbar-button"
         }));
 
         vm.buttonRefresh(button.viewModel({
             onclick: vm.refresh,
             title: "Refresh",
             hotkey: "R",
-            icon: "refresh"
+            icon: "refresh",
+            class: "suite-toolbar-button"
         }));
 
         vm.buttonClear(button.viewModel({
             onclick: vm.searchInput().clear,
             title: "Clear search",
             hotkey: "C",
-            icon: "eraser"
+            icon: "eraser",
+            class: "suite-toolbar-button"
         }));
 
         // Bind button states to list statechart events

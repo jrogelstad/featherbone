@@ -15,7 +15,8 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-
+/*global require, module*/
+/*jslint white, es6, this, browser*/
 (function () {
   "use strict";
 
@@ -27,9 +28,12 @@
 
   /**
     @param {Object} Options
-    @param {Object} [options.style] Style
+    @param {String} [options.label] Label
     @param {String} [options.icon] Icon name
     @param {Function} [options.onclick] On click function
+    @param {String} [options.class] Class
+    @param {Object} [options.style] Style
+    @return {Object}
   */
   button.viewModel = function (options) {
     options = options || {};
@@ -45,13 +49,14 @@
     vm.deactivate = function () { state.send("deactivate"); };
     vm.disable = function () { state.send("disable"); };
     vm.enable = function () { state.send("enable"); };
-    vm.class = function () { return mode().class(); };
+    vm.class = function () { return options.class + " " + mode().class(); };
     vm.hidden = function () { return display().hidden(); };
     vm.hide = function () { state.send("hide"); };
-    vm.hotKey = function (value) {
-      var title, len;
+    vm.hotKey = function (...args) {
+      var title, len,
+        value = args[0];
 
-      if (arguments.length) {
+      if (args.length) {
         hotkey = value;
         title = vm.title();
         len = title.length;
@@ -68,10 +73,12 @@
     };
     vm.icon = stream(options.icon || "");
     vm.id = stream(f.createId());
-    vm.label = function (value) {
-      var idx, ary;
+    vm.label = function (...args) {
+      var idx, ary,
+        value = args[0];
 
-      if (arguments.length) {
+      if (args.length) {
+        label = value;
         idx = value.indexOf("&");
         if (idx > -1) {
           label = value.replace("&", "");
@@ -223,7 +230,6 @@
         classes.push("suite-button-disabled");
       }
 
-      classes.push("suite-button");
       if (vm.class()) { classes.push(vm.class()); }
       if (vm.primary()) { classes.push(vm.primary()); }
       classes.push(vm.hidden());

@@ -166,24 +166,28 @@
     vm.buttonBack(button.viewModel({
       onclick: vm.doBack,
       label: "&Back",
-      icon: "arrow-left"
+      icon: "arrow-left",
+      class: "suite-toolbar-button"
     }));
 
     vm.buttonApply(button.viewModel({
       onclick: vm.doApply,
-      label: "&Apply"
+      label: "&Apply",
+      class: "suite-toolbar-button"
     }));
 
     vm.buttonSave(button.viewModel({
       onclick: vm.doSave,
       label: "&Save",
-      icon: "cloud-upload"
+      icon: "cloud-upload",
+      class: "suite-toolbar-button"
     }));
 
     vm.buttonSaveAndNew(button.viewModel({
       onclick: vm.doSaveAndNew,
       label: "Save and &New",
-      icon: "plus-circle"
+      icon: "plus-circle",
+      class: "suite-toolbar-button"
     }));
     if (catalog.getFeather(feather).isReadOnly) {
       vm.buttonSaveAndNew().label("&New");
