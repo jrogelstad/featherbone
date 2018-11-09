@@ -194,17 +194,17 @@
               "attr": "lastName",
               "label": "Last"
             }, {
-              "attr": "primaryPhone"
+              "attr": "phone"
             }, {
-              "attr": "primaryEmail"
+              "attr": "email"
             }, {
-              "attr": "primaryAddress.city",
+              "attr": "address.city",
               "label": "City"
             }, {
-              "attr": "primaryAddress.state",
+              "attr": "address.state",
               "label": "State"
             }, {
-              "attr": "primaryAddress.country",
+              "attr": "address.country",
               "label": "Country"
             }]
         }

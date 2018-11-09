@@ -440,15 +440,15 @@
 		}, {
 			"attr": "lastName"
 		}, {
-			"attr": "primaryPhoneType"
+			"attr": "phoneType"
 		}, {
-			"attr": "primaryPhone"
+			"attr": "phone"
 		}, {
-			"attr": "primaryEmailType"
+			"attr": "emailType"
 		}, {
-			"attr": "primaryEmail"
+			"attr": "email"
 		}, {
-			"attr": "primaryAddress"
+			"attr": "address"
 		}, {
 			"attr": "webSite"
 		}]
@@ -1039,7 +1039,7 @@
 	"data": {
 		"firstName": "Bob",
 		"lastName": "Builder",
-        "primaryAddress": {
+        "address": {
             "id": "A1",
             "street": "123 York Street",
             "city": "Downingtown",
