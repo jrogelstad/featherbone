@@ -64,9 +64,13 @@
             return content;
         };
         vm.countries = function () {
-            return catalog.store().data().countries().map(function (model) {
+            var countries = catalog.store().data().countries().map(function (model) {
                 return model.data.name();
             }).sort();
+            
+            countries.unshift("");
+            
+            return countries;
         };
         vm.doClear = function () {
             vm.addressDialog().cancel();
@@ -100,9 +104,12 @@
             }
         };
         vm.states = function () {
-            return catalog.store().data().states().map(function (model) {
+            var states = catalog.store().data().states().map(function (model) {
                 return model.data.code();
             }).sort();
+            
+            states.unshift("");
+            return states;
         };
         vm.style = stream(options.style || {});
 
