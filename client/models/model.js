@@ -309,6 +309,10 @@
                 return this;
             }
 
+            if (!d[name]) {
+                return this;
+            }
+
             stateMap[name].substateMap.Changing.enter(func.bind(d[name]));
 
             return this;
@@ -352,6 +356,10 @@
                     name: name.slice(idx + 1),
                     callback: callback
                 });
+                return this;
+            }
+
+            if (!d[name]) {
                 return this;
             }
 
