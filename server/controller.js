@@ -2050,7 +2050,7 @@
                                     }, true, true);
                                     return;
                                 }
-                                
+
                                 nextProp();
                                 return;
                             }
@@ -3011,7 +3011,7 @@
                 var sqlUpd, token, values, defaultValue, props, keys, recs, type,
                         name, isChild, pk, precision, scale, feather, catalog, autonumber,
                         afterGetFeather, afterGetCatalog, afterUpdateSchema, updateCatalog,
-                        afterUpdateCatalog, afterPropagateViews, afterNextVal, createUnique,
+                        afterUpdateCatalog, afterPropagateViews, afterNextVal, createIndex,
                         afterInsertFeather, afterSaveAuthorization, createSequence,
                         table, inherits, authorization, dropSql, createDropSql,
                         changed = false,
@@ -3022,6 +3022,7 @@
                         fns = [],
                         cols = [],
                         unique = [],
+                        indices = [],
                         i = 0,
                         n = 0,
                         p = 1;
@@ -3271,6 +3272,10 @@
                                     unique.push(key);
                                 }
 
+                                if (prop.isIndexed) {
+                                    indices.push(key);
+                                }
+
                                 if (prop.description) {
                                     sql += "COMMENT ON COLUMN %I.%I IS %L;";
 
@@ -3381,7 +3386,7 @@
                             return;
                         }
 
-                        createUnique();
+                        createIndex();
                     };
 
                     iterateDefaults = function (err, resp) {
@@ -3414,7 +3419,7 @@
                             return;
                         }
 
-                        createUnique();
+                        createIndex();
                     };
 
                     // Populate defaults
@@ -3464,24 +3469,33 @@
                         return;
                     }
 
-                    createUnique();
+                    createIndex();
                 };
 
-                createUnique = function (err) {
+                createIndex = function (err) {
                     if (err) {
                         obj.callback(err);
                         return;
                     }
 
-                    if (unique.length) {
+                    if (unique.length || indices.length) {
                         sql = "";
                         tokens = [];
 
                         unique.forEach(function (key) {
-                            sql += "ALTER TABLE %I ADD CONSTRAINT %I UNIQUE (%I);";
+                            sql += "CREATE INDEX %I ON %I (%I);";
                             tokens = tokens.concat([
+                                table + "_index_" + key.toSnakeCase(),
                                 table,
-                                table + "_unique_" + key.toSnakeCase(),
+                                key.toSnakeCase()
+                            ]);
+                        });
+
+                        indices.forEach(function (key) {
+                            sql += "CREATE INDEX %I ON %I (%I);";
+                            tokens = tokens.concat([
+                                table + "_index_" + key.toSnakeCase(),
+                                table,
                                 key.toSnakeCase()
                             ]);
                         });

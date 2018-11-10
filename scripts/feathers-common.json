@@ -383,7 +383,8 @@
 			"fullName": {
 				"description": "Name",
 				"type": "string",
-                "isReadOnly": true
+                "isReadOnly": true,
+                "isIndexed": true
 			},
 			"phone": {
 				"description": "Primary phone number",
