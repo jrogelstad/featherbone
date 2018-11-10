@@ -158,7 +158,17 @@
                 "description": "Inherited source table",
                 "type": "string",
                 "isRequired": false
-            }      
+            },
+            "dataList": {
+                "description": "Array of input values",
+                "type": "string",
+                "isRequired": false
+            },
+            "isIndexed": {
+                "description": "Flag whether to index property",
+                "type": "boolean",
+                "default": false
+            }             
         }
     },
     {

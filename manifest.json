@@ -26,8 +26,7 @@
         },
         {
             "type": "feather",
-            "path": "scripts/feathers-common.json",
-            "isSystem": true
+            "path": "scripts/feathers-common.json"
         },
         {
             "type": "workbook",
