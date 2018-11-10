@@ -231,20 +231,17 @@
 
                     sql = sql.format(tokens);
 
-                    obj.client.query(sql, params, function (err, resp) {
-                        var keys;
-
-                        if (err) {
-                            obj.callback(err);
-                            return;
-                        }
-
-                        keys = resp.rows.map(function (rec) {
+                    function callback (resp) {
+                        var keys = resp.rows.map(function (rec) {
                             return rec[tools.PKCOL];
                         });
 
                         resolve(keys);
-                    });
+                    }
+
+                    obj.client.query(sql, params)
+                      .then(callback)
+                      .catch(reject);
                 } catch (e) {
                     reject(e);
                 }
