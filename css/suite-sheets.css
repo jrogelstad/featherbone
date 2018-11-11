@@ -114,7 +114,33 @@
 .suite-main-button {
   border-radius: 4px;
   margin: 3px;
-  min-width: 100px;
+  min-width: 110px;
+}
+
+.suite-navigator-menu {
+  font-family: Raleway;
+  background-color: #191818;
+  color: white;
+  min-width: 110px;
+  font-size: 16px;
+  padding: 8px; 
+}
+
+.suite-navigator-menu-hidden {
+  display: none;
+}
+
+
+.suite-navigator-item {
+  color: #999;
+  font-size: 14.4px;
+  font-family:sans-serif;
+  font-weight:normal;
+  cursor:default;
+}
+
+.suite-navigator-item-mouseover {
+  color: white;
 }
 
 .suite-title-icon {
@@ -217,6 +243,8 @@
   border-bottom-width: thin;
   margin: 2px;
   padding: 6px;
+  position: fixed;
+  width: 100%
 }
 
 .suite-title {

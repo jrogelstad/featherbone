@@ -37,7 +37,7 @@
     require("address-relation");
     require("contact-relation");
     require("common-core");
-    
+
     // Core models
     require("contact");
     require("currency");
@@ -46,7 +46,7 @@
 
     var feathers, loadCatalog, loadModules, moduleData, workbookData,
             loadForms, loadRelationWidgets, loadWorkbooks, evstart, evsubscr,
-            buildRelationWidget,
+            buildRelationWidget, menu,
             m = require("mithril"),
             f = require("component-core"),
             model = require("model"),
@@ -54,6 +54,7 @@
             catalog = require("catalog"),
             dataSource = require("datasource"),
             list = require("list"),
+            navigator = require("navigator-menu"),
             workbooks = catalog.register("workbooks");
 
     // Helper function for building relation widgets.
@@ -291,8 +292,14 @@
 
         // Process workbooks
         workbookData.forEach(function (workbook) {
-            workbooks[workbook.name.toSpinalCase().toCamelCase()] = workbookModel(workbook);
+            var name = workbook.name.toSpinalCase().toCamelCase(),
+                wmodel = workbookModel(workbook);
+            workbooks[name] = wmodel;
+            catalog.register("workbooks", name, wmodel);
         });
+
+        // Menu
+        menu = navigator.viewModel();
 
         // Build home navigation page
         home = {
@@ -309,33 +316,30 @@
                     };
                 });
             },
-            view: function (vnode) {
-                var buttons = Object.keys(workbooks).map(function (key) {
-                    var workbook = workbooks[key],
-                        launchConfig = workbook.data.launchConfig(),
-                        className = "fa fa-" + launchConfig.icon || "gear";
-                    return m("button[type=button]", {
-                        class: "pure-button suite-main-button",
-                        onclick: vnode["go" + workbook.data.name()]
-                    }, [m("i", {
-                        class: className,
-                        style: {
-                            display: "block",
-                            fontSize: "xx-large",
-                            margin: "8px"
-                        }
-                    })], workbook.data.name().toName());
-                });
-                return m("div", [
-                    m("h2", {
-                        class: "suite-header"
-                    }, "Suite Sheets"),
+            view: function () {
+                return m("div", {
+                    style: {
+                        position: "absolute",
+                        height: "100%"
+                    }
+                }, [
                     m("div", {
                         style: {
-                            margin: "2px",
-                            padding: "4px"
+                            display: "inline-flex",
+                            position: "absolute",
+                            height: "100%"
                         }
-                    }, buttons)
+                    }, [
+                        m(navigator.component, {
+                            viewModel: menu
+                        }), [
+                            m("div", [
+                                m("h2", {
+                                    class: "suite-header"
+                                }, "Home")
+                            ])
+                        ]
+                    ])
                 ]);
             }
         };
