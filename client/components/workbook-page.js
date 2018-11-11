@@ -31,7 +31,8 @@
         searchInput = require("search-input"),
         sortDialog = require("sort-dialog"),
         sheetConfigureDialog = require("sheet-configure-dialog"),
-        tableWidget = require("table-widget");
+        tableWidget = require("table-widget"),
+        navigator = require("navigator-menu");
 
     // Define workbook view model
     workbookPage.viewModel = function (options) {
@@ -90,7 +91,7 @@
         vm.buttonClear = stream();
         vm.buttonDelete = stream();
         vm.buttonEdit = stream();
-        vm.buttonHome = stream();
+        vm.buttonMenu = stream();
         vm.buttonNew = stream();
         vm.buttonRefresh = stream();
         vm.buttonSave = stream();
@@ -128,11 +129,9 @@
             confirmDialog.onOk(doDelete);
             confirmDialog.show();
         };
-        vm.didLeave = stream(false);
         vm.filter = f.prop();
         vm.filterDialog = stream();
         vm.goHome = function () {
-            vm.didLeave(true);
             m.route.set("/home");
         };
         vm.goSettings = function () {
@@ -175,6 +174,7 @@
                 });
             }
         };
+        vm.menu = stream(navigator.viewModel());
         vm.newSheet = function () {
             var undo, newSheet, sheetName, next,
                     dialogSheetConfigure = vm.sheetConfigureDialog(),
@@ -429,11 +429,11 @@
             vm.buttonEdit().disable();
         }
 
-        vm.buttonHome(button.viewModel({
-            onclick: vm.goHome,
-            title: "Home",
-            hotkey: "H",
-            icon: "home",
+        vm.buttonMenu(button.viewModel({
+            onclick: vm.menu().toggle,
+            title: "Menu",
+            hotkey: "M",
+            icon: "navicon",
             class: "suite-toolbar-button"
         }));
 
@@ -580,14 +580,6 @@
             viewModels[workbook][sheet] = this.viewModel;
         },
 
-        onupdate: function () {
-            var viewModel = this.viewModel;
-            if (viewModel.didLeave()) {
-                viewModel.didLeave(false);
-                viewModel.refresh();
-            }
-        },
-
         view: function () {
             var filterMenuClass, tabs,
                     vm = this.viewModel,
@@ -677,197 +669,204 @@
                 m(dialog.component, {
                     viewModel: vm.confirmDialog()
                 }),
-                m("div", {
-                    id: "toolbar",
-                    class: "suite-toolbar",
-                    onkeydown: vm.onkeydown
-                }, [
-                    m(button.component, {
-                        viewModel: vm.buttonHome()
+                m("div", {style: {display: "inline-flex"}}, [
+                    m(navigator.component, {
+                        viewModel: vm.menu()
                     }),
-                    m(button.component, {
-                        viewModel: vm.buttonEdit()
-                    }),
-                    m("div", {
-                        id: "nav-div",
-                        class: "pure-menu custom-restricted-width suite-menu",
-                        onmouseover: vm.onmouseoveractions,
-                        onmouseout: vm.onmouseoutactions
-                    }, [
-                        m("span", {
-                            id: "nav-button",
-                            class: "pure-button fa fa-bolt suite-menu-button",
-                            disabled: actionsDisabled
-                        }),
-                        m("ul", {
-                            id: "nav-menu-list",
-                            class: "pure-menu-list suite-menu-list",
-                            style: {
-                                display: vm.showActions()
-                                    ? "block"
-                                    : "none"
-                            }
-                        }, vm.actions())
-                    ]),
-                    m(button.component, {
-                        viewModel: vm.buttonSave()
-                    }),
-                    m(button.component, {
-                        viewModel: vm.buttonNew()
-                    }),
-                    m(button.component, {
-                        viewModel: vm.buttonDelete()
-                    }),
-                    m(button.component, {
-                        viewModel: vm.buttonUndo()
-                    }),
-                    m(searchInput.component, {
-                        viewModel: vm.searchInput()
-                    }),
-                    m(button.component, {
-                        viewModel: vm.buttonRefresh()
-                    }),
-                    m(button.component, {
-                        viewModel: vm.buttonClear()
-                    }),
-                    m("div", {
-                        id: "nav-div",
-                        class: "pure-menu custom-restricted-width suite-menu",
-                        onmouseover: vm.onmouseovermenu,
-                        onmouseout: vm.onmouseoutmenu
-                    }, [
-                        m("span", {
-                            id: "nav-button",
-                            class: "pure-button fa fa-bars suite-menu-button"
-                        }),
-                        m("ul", {
-                            id: "nav-menu-list",
-                            class: "pure-menu-list suite-menu-list",
-                            style: {
-                                display: vm.showMenu()
-                                    ? "block"
-                                    : "none"
-                            }
+                    m("div", [
+                        m("div", {
+                            id: "toolbar",
+                            class: "suite-toolbar",
+                            onkeydown: vm.onkeydown
                         }, [
-                            m("li", {
-                                id: "nav-sort",
-                                class: filterMenuClass,
-                                title: "Change sheet sort",
-                                onclick: vm.showSortDialog
-                            }, [m("i", {
-                                class: "fa fa-sort",
-                                style: {
-                                    marginRight: "4px"
-                                }
-                            })], "Sort"),
-                            m("li", {
-                                id: "nav-filter",
-                                class: filterMenuClass,
-                                title: "Change sheet filter",
-                                onclick: vm.showFilterDialog
-                            }, [m("i", {
-                                class: "fa fa-filter",
-                                style: {
-                                    marginRight: "4px"
-                                }
-                            })], "Filter"),
-                            /*
-                            m("li", {
-                              id: "nav-format",
-                              class: "pure-menu-link pure-menu-disabled",
-                              title: "Format sheet"
-                              //onclick: vm.showFormatDialog
-                            }, [m("i", {class:"fa fa-paint-brush", style: {
-                              marginRight: "4px"
-                            }})], "Format"),
-                            m("li", {
-                              id: "nav-subtotal",
-                              class: "pure-menu-link pure-menu-disabled",
-                              title: "Edit subtotals"
-                            }, [m("div", {style: {
-                              display: "inline",
-                              fontWeight: "bold",
-                              fontStyle: "Italic"
-                            }}, "∑")], " Totals"),
-                            */
-                            m("li", {
-                                id: "nav-configure",
-                                class: "pure-menu-link",
-                                style: {
-                                    borderTop: "solid thin lightgrey"
-                                },
-                                title: "Configure current worksheet",
-                                onclick: vm.configureSheet
-                            }, [m("i", {
-                                class: "fa fa-gear",
-                                style: {
-                                    marginRight: "4px"
-                                }
-                            })], "Configure"),
-                            m("li", {
-                                id: "nav-share",
-                                class: "pure-menu-link",
-                                title: "Share workbook configuration",
-                                onclick: vm.share
-                            }, [m("i", {
-                                class: "fa fa-share-alt",
-                                style: {
-                                    marginRight: "4px"
-                                }
-                            })], "Share"),
-                            m("li", {
-                                id: "nav-revert",
-                                class: "pure-menu-link",
-                                title: "Revert workbook configuration to original state",
-                                onclick: vm.revert
-                            }, [m("i", {
-                                class: "fa fa-reply",
-                                style: {
-                                    marginRight: "4px"
-                                }
-                            })], "Revert"),
-                            m("li", {
-                                id: "nav-settings",
-                                class: vm.hasSettings()
-                                    ? "pure-menu-link"
-                                    : "pure-menu-link pure-menu-disabled",
-                                style: {
-                                    borderTop: "solid thin lightgrey"
-                                },
-                                title: "Change module settings",
-                                onclick: vm.goSettings
-                            }, [m("i", {
-                                class: "fa fa-wrench",
-                                style: {
-                                    marginRight: "4px"
-                                }
-                            })], "Settings")
+                            m(button.component, {
+                                viewModel: vm.buttonMenu()
+                            }),
+                            m(button.component, {
+                                viewModel: vm.buttonEdit()
+                            }),
+                            m("div", {
+                                id: "nav-div",
+                                class: "pure-menu custom-restricted-width suite-menu",
+                                onmouseover: vm.onmouseoveractions,
+                                onmouseout: vm.onmouseoutactions
+                            }, [
+                                m("span", {
+                                    id: "nav-button",
+                                    class: "pure-button fa fa-bolt suite-menu-button",
+                                    disabled: actionsDisabled
+                                }),
+                                m("ul", {
+                                    id: "nav-menu-list",
+                                    class: "pure-menu-list suite-menu-list",
+                                    style: {
+                                        display: vm.showActions()
+                                            ? "block"
+                                            : "none"
+                                    }
+                                }, vm.actions())
+                            ]),
+                            m(button.component, {
+                                viewModel: vm.buttonSave()
+                            }),
+                            m(button.component, {
+                                viewModel: vm.buttonNew()
+                            }),
+                            m(button.component, {
+                                viewModel: vm.buttonDelete()
+                            }),
+                            m(button.component, {
+                                viewModel: vm.buttonUndo()
+                            }),
+                            m(searchInput.component, {
+                                viewModel: vm.searchInput()
+                            }),
+                            m(button.component, {
+                                viewModel: vm.buttonRefresh()
+                            }),
+                            m(button.component, {
+                                viewModel: vm.buttonClear()
+                            }),
+                            m("div", {
+                                id: "nav-div",
+                                class: "pure-menu custom-restricted-width suite-menu",
+                                onmouseover: vm.onmouseovermenu,
+                                onmouseout: vm.onmouseoutmenu
+                            }, [
+                                m("span", {
+                                    id: "nav-button",
+                                    class: "pure-button fa fa-gear suite-menu-button"
+                                }),
+                                m("ul", {
+                                    id: "nav-menu-list",
+                                    class: "pure-menu-list suite-menu-list",
+                                    style: {
+                                        display: vm.showMenu()
+                                            ? "block"
+                                            : "none"
+                                    }
+                                }, [
+                                    m("li", {
+                                        id: "nav-sort",
+                                        class: filterMenuClass,
+                                        title: "Change sheet sort",
+                                        onclick: vm.showSortDialog
+                                    }, [m("i", {
+                                        class: "fa fa-sort",
+                                        style: {
+                                            marginRight: "4px"
+                                        }
+                                    })], "Sort"),
+                                    m("li", {
+                                        id: "nav-filter",
+                                        class: filterMenuClass,
+                                        title: "Change sheet filter",
+                                        onclick: vm.showFilterDialog
+                                    }, [m("i", {
+                                        class: "fa fa-filter",
+                                        style: {
+                                            marginRight: "4px"
+                                        }
+                                    })], "Filter"),
+                                    /*
+                                    m("li", {
+                                      id: "nav-format",
+                                      class: "pure-menu-link pure-menu-disabled",
+                                      title: "Format sheet"
+                                      //onclick: vm.showFormatDialog
+                                    }, [m("i", {class:"fa fa-paint-brush", style: {
+                                      marginRight: "4px"
+                                    }})], "Format"),
+                                    m("li", {
+                                      id: "nav-subtotal",
+                                      class: "pure-menu-link pure-menu-disabled",
+                                      title: "Edit subtotals"
+                                    }, [m("div", {style: {
+                                      display: "inline",
+                                      fontWeight: "bold",
+                                      fontStyle: "Italic"
+                                    }}, "∑")], " Totals"),
+                                    */
+                                    m("li", {
+                                        id: "nav-configure",
+                                        class: "pure-menu-link",
+                                        style: {
+                                            borderTop: "solid thin lightgrey"
+                                        },
+                                        title: "Configure current worksheet",
+                                        onclick: vm.configureSheet
+                                    }, [m("i", {
+                                        class: "fa fa-gear",
+                                        style: {
+                                            marginRight: "4px"
+                                        }
+                                    })], "Configure"),
+                                    m("li", {
+                                        id: "nav-share",
+                                        class: "pure-menu-link",
+                                        title: "Share workbook configuration",
+                                        onclick: vm.share
+                                    }, [m("i", {
+                                        class: "fa fa-share-alt",
+                                        style: {
+                                            marginRight: "4px"
+                                        }
+                                    })], "Share"),
+                                    m("li", {
+                                        id: "nav-revert",
+                                        class: "pure-menu-link",
+                                        title: "Revert workbook configuration to original state",
+                                        onclick: vm.revert
+                                    }, [m("i", {
+                                        class: "fa fa-reply",
+                                        style: {
+                                            marginRight: "4px"
+                                        }
+                                    })], "Revert"),
+                                    m("li", {
+                                        id: "nav-settings",
+                                        class: vm.hasSettings()
+                                            ? "pure-menu-link"
+                                            : "pure-menu-link pure-menu-disabled",
+                                        style: {
+                                            borderTop: "solid thin lightgrey"
+                                        },
+                                        title: "Change module settings",
+                                        onclick: vm.goSettings
+                                    }, [m("i", {
+                                        class: "fa fa-wrench",
+                                        style: {
+                                            marginRight: "4px"
+                                        }
+                                    })], "Settings")
+                                ])
+                            ])
+                        ]),
+                        m(tableWidget.component, {
+                            viewModel: vm.tableWidget()
+                        }),
+                        m("div", {
+                            id: "tabs"
+                        }, [
+                            tabs,
+                            m("i", {
+                                class: "fa fa-search-plus suite-zoom-icon suite-zoom-right-icon"
+                            }),
+                            m("input", {
+                                class: "suite-zoom-control",
+                                title: "Zoom " + vm.zoom() + "%",
+                                type: "range",
+                                step: "5",
+                                min: "50",
+                                max: "150",
+                                value: vm.zoom(),
+                                oninput: m.withAttr("value", vm.zoom)
+                            }),
+                            m("i", {
+                                class: "fa fa-search-minus suite-zoom-icon suite-zoom-left-icon"
+                            })
                         ])
                     ])
-                ]),
-                m(tableWidget.component, {
-                    viewModel: vm.tableWidget()
-                }),
-                m("div", {
-                    id: "tabs"
-                }, [
-                    tabs,
-                    m("i", {
-                        class: "fa fa-search-plus suite-zoom-icon suite-zoom-right-icon"
-                    }),
-                    m("input", {
-                        class: "suite-zoom-control",
-                        title: "Zoom " + vm.zoom() + "%",
-                        type: "range",
-                        step: "5",
-                        min: "50",
-                        max: "150",
-                        value: vm.zoom(),
-                        oninput: m.withAttr("value", vm.zoom)
-                    }),
-                    m("i", {
-                        class: "fa fa-search-minus suite-zoom-icon suite-zoom-left-icon"
-                    })
                 ])
             ]);
         }

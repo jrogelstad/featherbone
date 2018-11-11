@@ -59,6 +59,7 @@
       "form-page": "/client/components/form-page.js",
       "form-widget": "/client/components/form-widget.js",
       "money-relation": "/client/components/money-relation.js",
+      "navigator-menu": "/client/components/navigator-menu.js",
       "relation-widget": "/client/components/relation-widget.js",
       "search-input": "/client/components/search-input.js",
       "settings-page": "/client/components/settings-page.js",
