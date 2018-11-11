@@ -309,10 +309,6 @@
                 return this;
             }
 
-            if (!d[name]) {
-                return this;
-            }
-
             stateMap[name].substateMap.Changing.enter(func.bind(d[name]));
 
             return this;
@@ -356,10 +352,6 @@
                     name: name.slice(idx + 1),
                     callback: callback
                 });
-                return this;
-            }
-
-            if (!d[name]) {
                 return this;
             }
 
@@ -1154,7 +1146,14 @@
                             if (value && value.isModel) {
                                 value = value.toJSON();
                             }
-                            result = catalog.store().models()[name]({}, cFeather);
+
+                            // Special instantiation
+                            if (cFeather) {
+                                result = model(undefined, cFeather);
+                            // Get regular model
+                            } else {
+                                result = catalog.store().models()[name]();
+                            }
                             result.set(value, true, true);
 
                             // Synchronize statechart
