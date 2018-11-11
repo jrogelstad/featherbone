@@ -35,7 +35,13 @@
     require("relation-widget");
     require("child-table");
     require("address-relation");
+    require("contact-relation");
     require("common-core");
+    
+    require("contact");
+    require("currency");
+    require("currency-conversion");
+    require("currency-unit");
 
     var feathers, loadCatalog, loadModules, moduleData, workbookData,
             loadForms, loadRelationWidgets, loadWorkbooks, evstart, evsubscr,
