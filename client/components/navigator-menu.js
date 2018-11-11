@@ -20,15 +20,33 @@
 (function () {
     "use strict";
 
-    var navigator = {},
+    var state,
+        navigator = {},
         m = require("mithril"),
         catalog = require("catalog"),
         stream = require("stream"),
         statechart = require("statechartjs");
+        
+    // Define state (global)
+    state = statechart.define(function () {
+        this.state("Shown", function () {
+            this.event("toggle", function () {
+                this.goto("../Hidden");
+            });
+            this.class = "pure-menu suite-navigator-menu";
+        });
+        this.state("Hidden", function () {
+            this.event("toggle", function () {
+                this.goto("../Shown");
+            });
+            this.class = "pure-menu suite-navigator-menu suite-navigator-menu-hidden";
+        });
+    });
+    state.goto();
 
     navigator.viewModel = function (options) {
         options = options || {};
-        var vm, state;
+        var vm;
 
         // ..........................................................
         // PUBLIC
@@ -61,29 +79,11 @@
         vm.class = function () {
             return state.resolve(state.current()[0]).class;
         };
-        vm.state = stream();
+        vm.state = stream(state);
 
         // ..........................................................
         // PRIVATE
         //
-
-        // Define state
-        state = statechart.define(function () {
-            this.state("Shown", function () {
-                this.event("toggle", function () {
-                    this.goto("../Hidden");
-                });
-                this.class = "pure-menu suite-navigator-menu";
-            });
-            this.state("Hidden", function () {
-                this.event("toggle", function () {
-                    this.goto("../Shown");
-                });
-                this.class = "pure-menu suite-navigator-menu suite-navigator-menu-hidden";
-            });
-        });
-        vm.state(state);
-        state.goto();
 
         return vm;
     };
