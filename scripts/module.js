@@ -58,20 +58,17 @@
         feather = feather || catalog.getFeather("Currency");
         var that = model(data, feather);
 
-        // To-one relations don't have or need all the attributes
-        if (that.data.displayUnit) {
-            that.data.displayUnit.isReadOnly = function () {
-                return !that.data.hasDisplayUnit();
-            };
+        that.data.displayUnit.isReadOnly = function () {
+            return !that.data.hasDisplayUnit();
+        };
 
-            that.data.displayUnit.isRequired = that.data.hasDisplayUnit;
+        that.data.displayUnit.isRequired = that.data.hasDisplayUnit;
 
-            that.onChanged("hasDisplayUnit", function (prop) {
-                if (!prop()) {
-                    that.data.displayUnit(null);
-                }
-            });
-        }
+        that.onChanged("hasDisplayUnit", function (prop) {
+            if (!prop()) {
+                that.data.displayUnit(null);
+            }
+        });
 
         that.onValidate(function () {
             var id,
