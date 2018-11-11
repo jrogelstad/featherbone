@@ -111,6 +111,12 @@
   margin-right: 5px;
 }
 
+.suite-main-button {
+  border-radius: 4px;
+  margin: 3px;
+  min-width: 100px;
+}
+
 .suite-title-icon {
   margin-right: 5px;
 }

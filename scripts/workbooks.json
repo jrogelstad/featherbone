@@ -4,9 +4,7 @@
     "module": "Core",
     "description": "Setup definitions",
     "launchConfig": {
-      "icon": "gear",
-      "color": "white",
-      "backgroundColor": "orange"
+      "icon": "gear"
     },
     "defaultConfig": [
       {
@@ -118,9 +116,7 @@
     "module": "Core",
     "description": "Currency definitions",
     "launchConfig": {
-      "icon": "money",
-      "color": "white",
-      "backgroundColor": "green"
+      "icon": "money"
     },
     "defaultConfig": [
       {
@@ -178,9 +174,7 @@
     "module": "Core",
     "description": "Contacts",
     "launchConfig": {
-      "icon": "group",
-      "color": "white",
-      "backgroundColor": "blue"
+      "icon": "group"
     },
     "defaultConfig": [
       {
