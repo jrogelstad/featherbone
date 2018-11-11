@@ -38,6 +38,7 @@
     require("contact-relation");
     require("common-core");
     
+    // Core models
     require("contact");
     require("currency");
     require("currency-conversion");
@@ -314,12 +315,7 @@
                         launchConfig = workbook.data.launchConfig(),
                         className = "fa fa-" + launchConfig.icon || "gear";
                     return m("button[type=button]", {
-                        class: "pure-button",
-                        style: {
-                            backgroundColor: launchConfig.backgroundColor,
-                            color: launchConfig.color,
-                            margin: "3px"
-                        },
+                        class: "pure-button suite-main-button",
                         onclick: vnode["go" + workbook.data.name()]
                     }, [m("i", {
                         class: className,
