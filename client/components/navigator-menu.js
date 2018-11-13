@@ -25,7 +25,8 @@
         m = require("mithril"),
         catalog = require("catalog"),
         stream = require("stream"),
-        statechart = require("statechartjs");
+        statechart = require("statechartjs"),
+        selected = stream();
         
     // Define state (global)
     state = statechart.define(function () {
@@ -79,6 +80,7 @@
         vm.class = function () {
             return state.resolve(state.current()[0]).class;
         };
+        vm.selected = selected;
         vm.state = stream(state);
 
         // ..........................................................
@@ -98,12 +100,15 @@
         view: function () {
             var menuItems, itemStyle, itemClass,
                     vm = this.viewModel,
-                    workbooks = vm.workbooks();
+                    workbooks = vm.workbooks(),
+                    selected = vm.selected();
 
             function items(key) {
                 itemClass = "pure-menu-item suite-navigator-item";
 
-                if (vm.mouseoverKey() === key) {
+                if (selected && selected === key) {
+                    itemClass += " suite-navigator-item-selected";
+                } else if (vm.mouseoverKey() === key) {
                     itemClass += " suite-navigator-item-mouseover";
                 }
 
@@ -128,7 +133,9 @@
             menuItems = Object.keys(workbooks).map(items);
 
             itemClass = "pure-menu-item suite-navigator-item";
-            if (vm.mouseoverKey() === "home") {
+            if (selected === "home") {
+                itemClass += " suite-navigator-item-selected";
+            } else if (vm.mouseoverKey() === "home") {
                 itemClass += " suite-navigator-item-mouseover";
             }
 

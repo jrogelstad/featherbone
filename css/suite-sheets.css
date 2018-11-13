@@ -117,6 +117,12 @@
   min-width: 110px;
 }
 
+.suite-navigator-menu-container {
+  display: inline-flex;
+  position: absolute;
+  height: 100%;
+}
+
 .suite-navigator-menu {
   font-family: Raleway;
   background-color: #191818;
@@ -137,6 +143,10 @@
   font-family:sans-serif;
   font-weight:normal;
   cursor:default;
+}
+
+.suite-navigator-item-selected {
+  color: cornsilk;
 }
 
 .suite-navigator-item-mouseover {
@@ -305,6 +315,11 @@
 
 .suite-toolbar {
   background-color: Snow;
+}
+
+.suite-workbook-page-tabs {
+	position:absolute;
+	bottom: 0px;
 }
 
 .suite-zoom-control {
