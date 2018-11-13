@@ -27,20 +27,34 @@
         stream = require("stream"),
         statechart = require("statechartjs"),
         selected = stream();
-        
+
     // Define state (global)
     state = statechart.define(function () {
-        this.state("Shown", function () {
+        this.state("Expanded", function () {
             this.event("toggle", function () {
-                this.goto("../Hidden");
+                this.goto("../Collapsed");
             });
-            this.class = "pure-menu suite-navigator-menu";
+            this.classMenu = "pure-menu suite-navigator-menu suite-navigator-menu-expanded";
+            this.classHeader = "";
+            this.content = function (value) {
+                return value;
+            };
+            this.title = function () {
+                return undefined;
+            };
         });
-        this.state("Hidden", function () {
+        this.state("Collapsed", function () {
             this.event("toggle", function () {
-                this.goto("../Shown");
+                this.goto("../Expanded");
             });
-            this.class = "pure-menu suite-navigator-menu suite-navigator-menu-hidden";
+            this.classMenu = "pure-menu suite-navigator-menu suite-navigator-menu-collapsed";
+            this.classHeader = "suite-navigator-menu-header-collapsed";
+            this.content = function () {
+                return undefined;
+            };
+            this.title = function (value) {
+                return value;
+            };
         });
     });
     state.goto();
@@ -67,6 +81,12 @@
                 key: config[0].name.toSpinalCase()
             });
         };
+        vm.itemContent = function (value) {
+            return state.resolve(state.current()[0]).content(value);
+        };
+        vm.itemTitle = function (value) {
+            return state.resolve(state.current()[0]).title(value);
+        };
         vm.mouseoverKey = stream();
         vm.mouseout = function () {
             vm.mouseoverKey(undefined);
@@ -77,8 +97,11 @@
         vm.toggle = function () {
             state.send("toggle");
         };
-        vm.class = function () {
-            return state.resolve(state.current()[0]).class;
+        vm.classHeader = function () {
+            return state.resolve(state.current()[0]).classHeader;
+        };
+        vm.classMenu = function () {
+            return state.resolve(state.current()[0]).classMenu;
         };
         vm.selected = selected;
         vm.state = stream(state);
@@ -98,15 +121,16 @@
         },
 
         view: function () {
-            var menuItems, itemStyle, itemClass,
+            var menuItems, itemClass,
                     vm = this.viewModel,
-                    workbooks = vm.workbooks(),
-                    selected = vm.selected();
+                    workbooks = vm.workbooks();
 
             function items(key) {
+                var name = workbooks[key].data.name();
+
                 itemClass = "pure-menu-item suite-navigator-item";
 
-                if (selected && selected === key) {
+                if (vm.selected() && vm.selected() === key) {
                     itemClass += " suite-navigator-item-selected";
                 } else if (vm.mouseoverKey() === key) {
                     itemClass += " suite-navigator-item-mouseover";
@@ -116,24 +140,20 @@
                     class: itemClass,
                     onclick: vm.goto.bind(workbooks[key]),
                     onmouseover: vm.mouseover.bind(key),
-                    onmouseout: vm.mouseout
+                    onmouseout: vm.mouseout,
+                    title: vm.itemTitle(name)
                 }, [
                     m("i", {
-                        class: "fa fa-" + workbooks[key].data.launchConfig().icon,
-                        style: itemStyle
+                        class: "fa fa-" + workbooks[key].data.launchConfig().icon +
+                                " suite-navigator-item-icon"
                     })
-                ], workbooks[key].data.name());
+                ], vm.itemContent(name));
             }
-
-            itemStyle = {
-                margin: "8px",
-                minWidth: "18px"
-            };
 
             menuItems = Object.keys(workbooks).map(items);
 
             itemClass = "pure-menu-item suite-navigator-item";
-            if (selected === "home") {
+            if (vm.selected() === "home") {
                 itemClass += " suite-navigator-item-selected";
             } else if (vm.mouseoverKey() === "home") {
                 itemClass += " suite-navigator-item-mouseover";
@@ -144,18 +164,21 @@
                     class: itemClass,
                     onclick: vm.goHome,
                     onmouseover: vm.mouseover.bind("home"),
-                    onmouseout: vm.mouseout
+                    onmouseout: vm.mouseout,
+                    title: vm.itemTitle("Home")
                 }, [
                     m("i", {
-                        class: "fa fa-home",
-                        style: itemStyle
+                        class: "fa fa-home suite-navigator-item-icon"
                     })
-                ], "Home")
+                ], vm.itemContent("Home"))
             );
 
             return m("div", {
-                class: vm.class()
-            }, "Suite Sheets", [
+                class: vm.classMenu()
+            }, [
+                m("div", {
+                    class: vm.classHeader()
+                }, "Suite Sheets"),
                 m("ul", {
                     class: "pure-menu-list"
                 }, menuItems)
