@@ -843,7 +843,6 @@
                             viewModel: vm.tableWidget()
                         }),
                         m("div", {
-                            class: "suite-workbook-page-tabs",
                             id: vm.footerId()
                         }, [
                             tabs,
