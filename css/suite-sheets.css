@@ -127,15 +127,31 @@
   font-family: Raleway;
   background-color: #191818;
   color: white;
-  min-width: 110px;
   font-size: 16px;
   padding: 8px; 
 }
 
-.suite-navigator-menu-hidden {
-  display: none;
+.suite-navigator-menu-expanded {
+  min-width: 125px;
 }
 
+.suite-navigator-menu-collapsed {
+  max-width: 42px;
+}
+
+.suite-navigator-menu-header-collapsed {
+  transform: rotate(180deg);
+  writing-mode: vertical-lr;
+  font-size: small;
+  margin-left: 8px;
+}
+
+.suite-navigator-item-icon {
+	margin-right: 8px;
+	margin-top: 8px;
+	margin-left: 8px;
+	min-width: 18px;
+}
 
 .suite-navigator-item {
   color: #999;
