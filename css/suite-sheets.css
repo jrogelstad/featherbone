@@ -333,11 +333,6 @@
   background-color: Snow;
 }
 
-.suite-workbook-page-tabs {
-	position:absolute;
-	bottom: 0px;
-}
-
 .suite-zoom-control {
   float: right;
   margin-top: 6px;
