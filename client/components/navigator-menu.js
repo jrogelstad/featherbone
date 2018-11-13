@@ -178,7 +178,17 @@
             }, [
                 m("div", {
                     class: vm.classHeader()
-                }, "Suite Sheets"),
+                }, "Suite Sheets", [
+                    m("i", {
+                        style: {
+                            fontSize: "x-small",
+                            marginLeft: "8px",
+                            marginTop: "4px"
+                        },
+                        class: "fa fa-chevron-left",
+                        onclick: vm.toggle
+                    })
+                ]),
                 m("ul", {
                     class: "pure-menu-list"
                 }, menuItems)

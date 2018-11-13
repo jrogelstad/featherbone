@@ -91,7 +91,6 @@
         vm.buttonClear = stream();
         vm.buttonDelete = stream();
         vm.buttonEdit = stream();
-        vm.buttonMenu = stream();
         vm.buttonNew = stream();
         vm.buttonRefresh = stream();
         vm.buttonSave = stream();
@@ -431,14 +430,6 @@
             vm.buttonEdit().disable();
         }
 
-        vm.buttonMenu(button.viewModel({
-            onclick: vm.menu().toggle,
-            title: "Menu",
-            hotkey: "M",
-            icon: "navicon",
-            class: "suite-toolbar-button"
-        }));
-
         vm.buttonSave(button.viewModel({
             onclick: vm.tableWidget().save,
             label: "&Save",
@@ -688,9 +679,6 @@
                             class: "suite-toolbar",
                             onkeydown: vm.onkeydown
                         }, [
-                            m(button.component, {
-                                viewModel: vm.buttonMenu()
-                            }),
                             m(button.component, {
                                 viewModel: vm.buttonEdit()
                             }),
