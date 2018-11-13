@@ -315,6 +315,11 @@
                         });
                     };
                 });
+
+                menu.selected("home");
+            },
+            onupdate: function () {
+                menu.selected("home");
             },
             view: function () {
                 return m("div", {
@@ -324,11 +329,7 @@
                     }
                 }, [
                     m("div", {
-                        style: {
-                            display: "inline-flex",
-                            position: "absolute",
-                            height: "100%"
-                        }
+                        class: "suite-navigator-menu-container"
                     }, [
                         m(navigator.component, {
                             viewModel: menu

@@ -87,7 +87,7 @@
         vm.isEditModeEnabled = stream(options.isEditModeEnabled !== false);
         vm.isQuery = stream(true);
         vm.config = stream(options.config);
-        vm.containerId = stream(options.containerId);
+        vm.footerId = stream(options.footerId);
         vm.confirmDialog = stream(dialog.viewModel({
             icon: "question-circle",
             title: "Confirmation"
@@ -682,17 +682,20 @@
 
             // Resize according to surroundings
             resize = function (vnode) {
-                var e = document.getElementById(vnode.dom.id),
-                    yPosition = f.getElementPosition(e).y,
-                    winHeight = window.innerHeight,
-                    id = vm.containerId(),
-                    container = id
-                        ? document.getElementById(id)
-                        : document.body,
-                    containerHeight = container.offsetHeight + f.getElementPosition(container).y,
-                    bottomHeight = containerHeight - yPosition - e.offsetHeight;
+                var footer, containerHeight, bottomHeight, yPosition,
+                        e = document.getElementById(vnode.dom.id),
+                        id = vm.footerId();
 
-                e.style.height = winHeight - yPosition - bottomHeight + "px";
+                if (id) {
+                    footer = document.getElementById(id);
+                    e.style.height = window.innerHeight - f.getElementPosition(e.parentElement).y -
+                            e.offsetTop - footer.offsetHeight - 1 + "px";
+                } else {
+                    yPosition = f.getElementPosition(e).y;
+                    containerHeight = document.body.offsetHeight + f.getElementPosition(document.body).y;
+                    bottomHeight = containerHeight - yPosition - e.offsetHeight;
+                    e.style.height = window.innerHeight - yPosition - bottomHeight + "px";
+                }
             };
 
             findFilterIndex = function (col, name) {

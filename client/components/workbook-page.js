@@ -107,6 +107,7 @@
             dlg.sheetId(sheetId);
             dlg.show();
         };
+        vm.footerId = stream(f.createId());
         vm.deleteSheet = function (ev) {
             var doDelete,
                 idx = ev.dataTransfer.getData("text") - 0,
@@ -396,7 +397,8 @@
             feather: vm.sheet().feather,
             search: vm.searchInput().value,
             ondblclick: vm.modelOpen,
-            subscribe: true
+            subscribe: true,
+            footerId: vm.footerId()
         }));
 
         // Create dialog view models
@@ -571,6 +573,7 @@
             }
 
             this.viewModel = workbookPage.viewModel(vnode.attrs);
+            this.viewModel.menu().selected(workbook);
 
             // Memoize the model for total state persistence
             if (!viewModels[workbook]) {
@@ -578,6 +581,10 @@
             }
 
             viewModels[workbook][sheet] = this.viewModel;
+        },
+
+        onupdate: function (vnode) {
+            this.viewModel.menu().selected(vnode.attrs.workbook);
         },
 
         view: function () {
@@ -669,7 +676,9 @@
                 m(dialog.component, {
                     viewModel: vm.confirmDialog()
                 }),
-                m("div", {style: {display: "inline-flex"}}, [
+                m("div", {
+                    class: "suite-navigator-menu-container"
+                }, [
                     m(navigator.component, {
                         viewModel: vm.menu()
                     }),
@@ -846,7 +855,8 @@
                             viewModel: vm.tableWidget()
                         }),
                         m("div", {
-                            id: "tabs"
+                            class: "suite-workbook-page-tabs",
+                            id: vm.footerId()
                         }, [
                             tabs,
                             m("i", {
