@@ -279,6 +279,9 @@
   border-bottom-width: thin;
   margin: 2px;
   padding: 6px;
+}
+
+.suite-header-home {
   position: fixed;
   width: 100%
 }

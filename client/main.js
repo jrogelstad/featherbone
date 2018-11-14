@@ -336,7 +336,7 @@
                         }), [
                             m("div", [
                                 m("h2", {
-                                    class: "suite-header"
+                                    class: "suite-header suite-header-home"
                                 }, "Home")
                             ])
                         ]
