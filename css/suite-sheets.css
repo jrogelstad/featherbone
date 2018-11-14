@@ -314,6 +314,30 @@
   border: 1px solid LightGrey;
 }
 
+.suite-relation-button {
+  margin: 3px;
+}
+
+.suite-relation-button-cell {
+  position: absolute;
+}
+
+.suite-relation-label {
+  display: inline;
+}
+
+.suite-relation-label-cell {
+  display: none;
+}
+
+.suite-relation-menu {
+  //margin-left: -300px;
+  background-color: White;
+  position: absolute;
+  z-index: 9999;
+  border: 1px solid lightgrey;
+}
+
 .suite-sheet-tab {
   border-top-left-radius: 0px;
   border-top-right-radius: 0px;
