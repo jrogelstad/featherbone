@@ -102,14 +102,16 @@
     vm.buttonBack(button.viewModel({
       onclick: vm.doBack,
       label: "&Back",
-      icon: "arrow-left"
+      icon: "arrow-left",
+      class: "suite-toolbar-button"
     }));
 
     vm.buttonSelect(button.viewModel({
       onclick: vm.doSelect,
       label: "&Select",
       title: vm.selectTitle,
-      disabled: vm.selectDisabled
+      disabled: vm.selectDisabled,
+      class: "suite-toolbar-button"
     }));
     vm.buttonSelect().isDisabled = function () {
       return !vm.tableWidget().selection();
