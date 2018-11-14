@@ -104,6 +104,18 @@
                 : "";
         };
         vm.labelProperty = stream(options.labelProperty);
+        vm.labels = function () {
+            return [
+                m("div", {
+                    style: {
+                        marginLeft: "12px",
+                        marginTop: vm.label()
+                            ? "6px"
+                            : ""
+                    } // Hack
+                }, vm.label())
+            ];
+        };
         vm.model = function () {
             return modelValue();
         };
@@ -285,7 +297,7 @@
                     disabled = vnode.attrs.disabled === true,
                     style = vm.style(),
                     openMenuClass = "pure-menu-link";
-            
+
             buttonStyle = {
                 margin: "2px"
             };
@@ -410,16 +422,7 @@
                 ]),
                 m("div", {
                     style: labelStyle
-                }, [
-                    m("div", {
-                        style: {
-                            marginLeft: "12px",
-                            marginTop: vm.label()
-                                ? "6px"
-                                : ""
-                        } // Hack
-                    }, vm.label())
-                ]),
+                }, vm.labels()),
                 m("datalist", {
                     id: vm.listId()
                 }, listOptions)

@@ -22,8 +22,9 @@
 
     var contactRelation = {},
         catalog = require("catalog"),
-        relationWidget = require("relation-widget").component,
-        stream = require("stream");
+        relationWidget = require("relation-widget"),
+        stream = require("stream"),
+        m = require("mithril");
 
     /**
       @param {Object} Options
@@ -38,7 +39,83 @@
       @param {Object} [options.filter] Filter object used for search
     */
     contactRelation.viewModel = function (options) {
-        var vm = relationWidget(options);
+        var vm = relationWidget.viewModel(options);
+
+        vm.labels = function () {
+            var phone, email, address, phoneUrl, emailUrl, addressUrl,
+                    elements = [],
+                    model = options.parentViewModel.model().data[options.parentProperty]();
+
+            if (model) {
+                phone = model.data.phone();
+                email = model.data.email();
+                address = model.data.address();
+
+                if (phone) {
+                    phoneUrl = "tel:" + phone;
+                    elements.push(
+                        m("li", {
+                            class: "pure-menu-item"
+                        }, [
+                            m("a", {
+                                href: phoneUrl,
+                                target: "_blank"
+                            }, [
+                                m("i", {
+                                    class: "fa fa-phone suite-contact-relation-icon"
+                                })
+                            ])
+                        ], phone)
+                    );
+                }
+
+                if (email) {
+                    emailUrl = "mailto:" + email;
+
+                    elements.push(
+                        m("li", {
+                            class: "pure-menu-item"
+                        }, [
+                            m("a", {
+                                href: emailUrl,
+                                target: "_blank"
+                            }, [
+                                m("i", {
+                                    class: "fa fa-envelope-o suite-contact-relation-icon"
+                                })
+                            ])
+                        ], email)
+                    );
+                }
+
+                if (address) {
+                    addressUrl = "https://maps.google.com/?q=" +
+                            address.data.street() + ", " +
+                            address.data.city() + ", " +
+                            address.data.state() + ", " +
+                            address.data.postalCode() + "/";
+
+                    elements.push(
+                        m("li", {
+                            class: "pure-menu-item"
+                        }, [
+                            m("a", {
+                                href: addressUrl,
+                                target: "_blank"
+                            }, [
+                                m("i", {
+                                    class: "fa fa-map-marker suite-contact-relation-icon"
+                                })
+                            ])
+                        ], address.data.city() + ", " + address.data.state())
+                    );
+                }
+            }
+
+            return m("ul", {
+                class: "pure-menu-list"
+            }, elements);
+        };
 
         return vm;
     };
@@ -48,7 +125,7 @@
             var list,
                 options = vnode.attrs,
                 id = vnode.attrs.form || "6kir5kogekam",
-                oninit = relationWidget.oninit.bind(this);
+                relations = options.parentViewModel.relations();
 
             list = {
                 columns: [{
@@ -66,18 +143,28 @@
                 }]
             };
 
-            options.parentProperty = options.parentProperty;
-            options.valueProperty = options.valueProperty || "fullName";
-            options.labelProperty = options.labelProperty || "phone";
-            options.form = catalog.store().forms()[id];
-            options.list = options.list || list;
-            options.style = options.style || {};
             options.isCell = options.isCell === undefined
                 ? false
                 : options.isCell;
-            oninit(vnode);
+
+            // Set up viewModel if required
+            if (!relations[options.parentProperty]) {
+                relations[options.parentProperty] = contactRelation.viewModel({
+                    parentViewModel: options.parentViewModel,
+                    parentProperty: options.parentProperty,
+                    valueProperty: options.valueProperty || "fullName",
+                    form: catalog.store().forms()[id],
+                    list: options.list || list,
+                    filter: options.filter,
+                    isCell: options.isCell,
+                    id: options.id,
+                    disabled: options.disabled,
+                    style: options.style || {}
+                });
+            }
+            this.viewModel = relations[options.parentProperty];
         },
-        view: relationWidget.view,
+        view: relationWidget.component.view,
         labelProperty: stream("phone"),
         valueProperty: stream("fullName")
     };
