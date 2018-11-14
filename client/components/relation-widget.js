@@ -292,27 +292,18 @@
         },
 
         view: function (vnode) {
-            var listOptions, inputStyle, menuStyle, buttonStyle, labelStyle, maxWidth,
+            var listOptions, inputStyle, menuStyle, maxWidth,
                     vm = this.viewModel,
                     disabled = vnode.attrs.disabled === true,
                     style = vm.style(),
-                    openMenuClass = "pure-menu-link";
-
-            buttonStyle = {
-                margin: "2px"
-            };
-            labelStyle = {
-                display: "inline"
-            };
+                    openMenuClass = "pure-menu-link",
+                    buttonClass = "pure-button fa fa-bars suite-relation-button",
+                    labelClass = "suite-relation-label";
 
             menuStyle = {
                 display: vm.showMenu()
                     ? "block"
-                    : "none",
-                backgroundColor: "White",
-                position: "absolute",
-                zIndex: 9999,
-                border: "1px solid lightgrey"
+                    : "none"
             };
 
             if (vm.isCell()) {
@@ -321,13 +312,10 @@
                     maxWidth: "100%",
                     border: "none"
                 };
-                buttonStyle = {
-                    position: "absolute",
-                    margin: "2px"
-                };
+                buttonClass += " suite-relation-button-cell";
                 menuStyle.top = "35px";
                 menuStyle.right = "-100px";
-                labelStyle.display = "none";
+                labelClass = "suite-relation-label-cell";
             }
 
             // Generate picker list
@@ -391,12 +379,11 @@
                         }
                     }, [
                         m("span", {
-                            class: "pure-button fa fa-bars",
-                            style: buttonStyle,
+                            class: buttonClass,
                             disabled: disabled
                         }),
                         m("ul", {
-                            class: "pure-menu-list",
+                            class: "pure-menu-list suite-relation-menu",
                             style: menuStyle
                         }, [
                             m("li", {
@@ -421,7 +408,7 @@
                     ])
                 ]),
                 m("div", {
-                    style: labelStyle
+                    class: labelClass
                 }, vm.labels()),
                 m("datalist", {
                     id: vm.listId()
