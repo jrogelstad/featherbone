@@ -229,7 +229,7 @@
                     .delete(doRequest);
             }
 
-            if (catalog[key].plural) {
+            if (catalog[key].plural && !catalog[key].isChild) {
                 name = catalog[key].plural.toSpinalCase();
                 if (catalog[key].isReadOnly) {
                     dataRouter.route("/" + name)
