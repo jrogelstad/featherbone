@@ -331,6 +331,59 @@
         });
     };
 
+    function getOld(client, obj) {
+        return new Promise(function (resolve, reject) {
+            that.request({
+                method: "GET",
+                name: obj.name,
+                id: obj.id,
+                client: client
+            }, true)
+                .then(resolve)
+                .catch(reject);
+        });
+    }
+
+
+    // Add old/new record objects for convenience
+    function doPrepareTrigger(client, obj) {
+        return new Promise(function (resolve, reject) {
+            function setRec(result) {
+                obj.oldRec = result;
+                resolve();
+            }
+
+            function setRecs(result) {
+                obj.oldRec = result;
+                obj.newRec = f.copy(result);
+                jsonpatch.apply(obj.newRec, obj.data);
+                resolve();
+            }
+
+            if (!obj.newRec && !obj.oldRec) {
+                switch (obj.method) {
+                case "POST":
+                    obj.newRec = f.copy(obj.data);
+                    resolve();
+                    break;
+                case "PATCH":
+                    obj.newRec = f.copy(obj.data);
+                    getOld(client, obj).then(setRecs).catch(reject);
+                    break;
+                case "DELETE":
+                    getOld(client, obj).then(setRec).catch(reject);
+                    break;
+                default:
+                    throw "Unknown trigger method " + obj.method;
+                }
+
+                return;
+            }
+
+            resolve();
+        });
+    }
+
     /**
       Request.
 
@@ -522,8 +575,7 @@
                     var feather = settings.catalog.data[name],
                         parent = feather.inherits || "Object";
 
-                    // If business logic defined, do it
-                    if (isRegistered(obj.method, name, TRIGGER_AFTER)) {
+                    function doTrigger() {
                         client.isTriggering = true;
 
                         if (name === "Object") {
@@ -542,8 +594,13 @@
                             .then(doTraverseAfter.bind(null, parent))
                             .then(resolve)
                             .catch(reject);
+                    }
 
-                        // If traversal done, finish transaction
+                    // If business logic defined, do it
+                    if (isRegistered(obj.method, name, TRIGGER_AFTER)) {
+                        doPrepareTrigger(client, obj).then(doTrigger).catch(reject);
+
+                    // If traversal done, finish transaction
                     } else if (name === "Object") {
                         commit(obj.response).then(resolve).catch(reject);
 
@@ -601,9 +658,9 @@
                     var feather = settings.catalog.data[name],
                         parent = feather.inherits || "Object";
 
-                    // If business logic defined, do it
-                    if (isRegistered(obj.method, name, TRIGGER_BEFORE)) {
+                    function doTrigger() {
                         client.isTriggering = true;
+
                         if (name === "Object") {
                             Promise.resolve()
                                 .then(doMethod.bind(null, name, TRIGGER_BEFORE))
@@ -614,16 +671,33 @@
                             return;
                         }
 
-
                         Promise.resolve()
                             .then(doMethod.bind(null, name, TRIGGER_BEFORE))
                             .then(clearTriggerStatus)
                             .then(doTraverseBefore.bind(null, parent))
                             .then(resolve)
                             .catch(reject);
+                    }
 
-                        // Traversal done
+                    // If business logic defined, do it
+                    if (isRegistered(obj.method, name, TRIGGER_BEFORE)) {
+                        doPrepareTrigger(client, obj).then(doTrigger).catch(reject);
+
+                    // Traversal done
                     } else if (name === "Object") {
+                        // Accept any changes made by triggers
+                        if (obj.newRec) {
+                            switch (obj.method) {
+                            case "POST":
+                                obj.data = obj.newRec;
+                                break;
+                            case "PATCH":
+                                debugger;
+                                obj.data = jsonpatch.compare(obj.oldRec, obj.newRec);
+                                break;
+                            }
+                        }
+
                         doQuery().then(resolve).catch(reject);
 
                         // If no logic, but parent, traverse up the tree
