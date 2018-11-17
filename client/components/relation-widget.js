@@ -16,7 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*global require, module*/
-/*jslint this, es6*/
+/*jslint this, es6, browser*/
 (function () {
     "use strict";
 
@@ -39,7 +39,8 @@
       @param {Object} [options.filter] Filter object used for search
     */
     relationWidget.viewModel = function (options) {
-        var vm = {},
+        var duplicate,
+            vm = {},
             registerReceiver,
             hasFocus = false,
             parent = options.parentViewModel,
@@ -122,7 +123,7 @@
         vm.models = function () {
             return modelList();
         };
-        vm.onclicknew = function () {
+        vm.new = function () {
             m.route.set("/edit/:feather/:key", {
                 feather: type.relation.toSpinalCase(),
                 key: f.createId()
@@ -133,7 +134,7 @@
                 }
             });
         };
-        vm.onclickopen = function () {
+        vm.open = function () {
             m.route.set("/edit/:feather/:key", {
                 feather: type.relation.toSpinalCase(),
                 key: modelValue().id()
@@ -143,9 +144,9 @@
                 }
             });
         };
-        vm.onclicksearch = function () {
+        vm.search = function (filter) {
             var searchList = f.copy(options.list);
-            searchList.filter = options.filter || searchList.filter;
+            searchList.filter = filter || options.filter || searchList.filter;
 
             catalog.register("config", configId, searchList);
 
@@ -159,23 +160,55 @@
             });
         };
         vm.onchange = function (value) {
-            var models = vm.models(),
-                regexp = new RegExp("^" + value, "i"),
-                match = function (model) {
-                    var currentValue = model.data[valueProperty]();
-                    if (Array.isArray(currentValue.match(regexp))) {
-                        modelValue(model);
-                        inputValue(currentValue);
-                        return true;
-                    }
-                    return false;
+            var currentValue, currentModel,
+                    models = vm.models(),
+                    regexp = new RegExp("^" + value, "i");
+
+            function count(counter, model) {
+                currentValue = model.data[valueProperty]();
+
+                if (Array.isArray(currentValue.match(regexp))) {
+                    return counter + 1;
+                }
+
+                return counter;
+            }
+
+            function match(model) {
+                currentValue = model.data[valueProperty]();
+
+                if (Array.isArray(currentValue.match(regexp))) {
+                    currentModel = model;
+                    return true;
+                }
+
+                return false;
+            }
+
+            // If multiple matches, launch search to get one exactly
+            if (models.reduce(count, 0) > 1) {
+                duplicate = {
+                    criteria: [{
+                        property: valueProperty,
+                        value: currentValue
+                    }]
                 };
+
+                // Avoid mithril error when selecting from data list by
+                // letting finish here, then handle search on blur event
+                document.getElementById(vm.id()).blur();
+
+                return;
+            }
 
             if (!value.length || !models.some(match)) {
                 modelValue(null);
                 inputValue(null);
                 delete filter.criteria;
                 vm.fetch();
+            } else {
+                modelValue(currentModel);
+                inputValue(currentValue);
             }
         };
         vm.onfocus = function () {
@@ -189,6 +222,11 @@
         };
         vm.onblur = function () {
             hasFocus = false;
+
+            if (duplicate) {
+                vm.search(duplicate);
+            }
+            duplicate = undefined;
         };
         vm.oninput = function (value) {
             var fetch = false,
@@ -388,19 +426,19 @@
                         }, [
                             m("li", {
                                 class: "pure-menu-link",
-                                onclick: vm.onclicksearch
+                                onclick: vm.search
                             }, [m("i", {
                                 class: "fa fa-search"
                             })], " Search"),
                             m("li", {
                                 class: openMenuClass,
-                                onclick: vm.onclickopen
+                                onclick: vm.open
                             }, [m("i", {
                                 class: "fa fa-folder-open"
                             })], " Open"),
                             m("li", {
                                 class: "pure-menu-link",
-                                onclick: vm.onclicknew
+                                onclick: vm.new
                             }, [m("i", {
                                 class: "fa fa-plus-circle"
                             })], " New")
