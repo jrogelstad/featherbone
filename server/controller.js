@@ -3186,7 +3186,7 @@
                                         sql += "integer;";
                                         token = relationColumn(key, type.relation);
 
-                                        /* Update parent class for children */
+                                        /* Update parent class for to-many children */
                                         if (type.childOf) {
                                             parent = catalog[type.relation];
                                             if (!parent.properties[type.childOf]) {
@@ -3207,6 +3207,13 @@
                                             err = 'Can not set parent directly for "' + key + '"';
                                         } else if (!type.properties || !type.properties.length) {
                                             err = 'Properties must be defined for relation "' + key + '"';
+                                        /* Must be to-one relation.
+                                           If relation feather is flagged as child, flag property as child on this feather. */
+                                        } else {
+                                            parent = catalog[type.relation];
+                                            if (parent.isChild) {
+                                                prop.type.isChild = true;
+                                            }
                                         }
                                     } else {
                                         err = 'Relation not defined for composite type "' + key + '"';
@@ -3517,7 +3524,7 @@
                     catalog[name] = spec;
                     delete spec.name;
                     delete spec.authorization;
-                    spec.isChild = isChildFeather(spec);
+                    spec.isChild = spec.isChild || isChildFeather(spec);
 
                     that.saveSettings({
                         client: obj.client,
