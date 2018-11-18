@@ -968,13 +968,6 @@
         exports[key] = that[key];
     });
 
-    // Transformation helper for crud functions
-    var proxy = function (obj) {
-        obj.data.client = obj.client;
-        obj.data.callback = obj.callback;
-        controller[this](obj.data);
-    };
-
     // Register certain functions
     that.registerFunction("GET", "getControllers", controller.getControllers);
     that.registerFunction("GET", "getFeather", controller.getFeather);
@@ -987,9 +980,6 @@
     that.registerFunction("GET", "getWorkbook", controller.getWorkbook);
     that.registerFunction("GET", "getWorkbooks", controller.getWorkbooks);
     that.registerFunction("GET", "isAuthorized", controller.isAuthorized);
-    that.registerFunction("POST", "doDelete", proxy.bind("doDelete"));
-    that.registerFunction("POST", "doInsert", proxy.bind("doInsert"));
-    that.registerFunction("POST", "doUpdate", proxy.bind("doUpdate"));
     that.registerFunction("POST", "subscribe", controller.subscribe);
     that.registerFunction("POST", "unsubscribe", controller.unsubscribe);
     that.registerFunction("PUT", "saveAuthorization",
