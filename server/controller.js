@@ -1610,7 +1610,7 @@
                                 return item.id;
                             }
 
-                            if (!obj.filter.criteria && !obj.filter.limit) {
+                            if (!obj.filter || (!obj.filter.criteria && !obj.filter.limit)) {
                                 feathername = obj.name;
                             }
 
@@ -3354,17 +3354,42 @@
                 afterUpdateSchema = function (err) {
                     var afterPopulateDefaults, iterateDefaults;
 
+                    function disableTriggers() {
+                        return new Promise(function (resolve, reject) {
+                            sql = "ALTER TABLE %I DISABLE TRIGGER ALL;";
+                            sql = sql.format([table]);
+                            obj.client.query(sql)
+                                .then(resolve)
+                                .catch(reject);
+                        });
+                    }
+
+                    function updateTable() {
+                        return new Promise(function (resolve, reject) {
+                            sql = "UPDATE %I SET " + tokens.join(",") + ";";
+                            sql = sql.format(args);
+                            obj.client.query(sql, values)
+                                .then(resolve)
+                                .catch(reject);
+                        });
+                    }
+
+                    function enableTriggers() {
+                        return new Promise(function (resolve, reject) {
+                            sql = "ALTER TABLE %I ENABLE TRIGGER ALL;";
+                            sql = sql.format([table]);
+                            obj.client.query(sql)
+                                .then(resolve)
+                                .catch(reject);
+                        });
+                    }
+
                     if (err) {
                         obj.callback(err);
                         return;
                     }
 
-                    afterPopulateDefaults = function (err) {
-                        if (err) {
-                            obj.callback(err);
-                            return;
-                        }
-
+                    afterPopulateDefaults = function () {
                         // Update function based defaults (one by one)
                         if (fns.length || autonumber) {
                             tokens = [];
@@ -3466,9 +3491,13 @@
                         });
 
                         if (values.length) {
-                            sql = ("UPDATE %I SET " + tokens.join(",") + ";");
-                            sql = sql.format(args);
-                            obj.client.query(sql, values, afterPopulateDefaults);
+                            Promise.resolve()
+                                .then(disableTriggers)
+                                .then(updateTable)
+                                .then(enableTriggers)
+                                .then(afterPopulateDefaults)
+                                .catch(obj.callback);
+
                             return;
                         }
 
