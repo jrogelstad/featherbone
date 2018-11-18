@@ -38,6 +38,7 @@
             icon: "exclamation-circle",
             title: "Error"
         }));
+        vm.errorDialog().buttonCancel().hide();
         vm.selectedTab = stream(1);
         vm.model = stream();
         vm.outsideElementIds = stream(options.outsideElementIds || []);
