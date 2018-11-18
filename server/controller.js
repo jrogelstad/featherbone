@@ -1062,7 +1062,7 @@
                     }
 
                     Object.keys(feather.properties).some(function (key) {
-                        if (feather.properties[key].isUnique) {
+                        if (feather.properties[key].isUnique && !feather.properties[key].autonumber) {
                             unique = {
                                 feather: feather.properties[key].inheritedFrom || feather.name,
                                 prop: key,
