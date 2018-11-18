@@ -205,7 +205,7 @@
 				"isRequired": true
 			},
 			"effective": {
-				"description": "Precision",
+				"description": "Effective time",
 				"type": "string",
 				"format": "dateTime",
 				"isRequired": true

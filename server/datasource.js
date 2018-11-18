@@ -692,7 +692,6 @@
                                 obj.data = obj.newRec;
                                 break;
                             case "PATCH":
-                                debugger;
                                 obj.data = jsonpatch.compare(obj.oldRec, obj.newRec);
                                 break;
                             }

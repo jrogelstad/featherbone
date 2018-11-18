@@ -1190,12 +1190,12 @@
                         } else {
                             col = relationColumn(key, prop.type.relation);
                             if (data[key] === null || data[key] === undefined) {
-                                if (prop.default !== undefined) {
+                                if (prop.default !== undefined && prop.default !== null) {
                                     data[key] = prop.default;
                                 } else if (prop.isRequired !== true) {
                                     value = -1;
                                 } else {
-                                    throw "Property " + key + " is required.";
+                                    throw "Property " + key + " is required on " + feather.name + ".";
                                 }
                             }
                             if (value !== -1) {
@@ -1272,7 +1272,7 @@
 
                         // Handle other types of defaults
                         if (value === undefined) {
-                            if (prop.default !== undefined) {
+                            if (prop.default !== undefined && prop.default !== null) {
                                 value = prop.default;
                             } else if (prop.format &&
                                     formats[prop.format] &&
@@ -1294,7 +1294,7 @@
                             prop.format) {
 
                         if (prop.isRequired && value === null) {
-                            throw "\"" + key + "\" is required.\"";
+                            throw "\"" + key + "\" is required on " + feather.name + ".";
                         }
                         Object.keys(value || {}).forEach(function (attr) {
                             args.push(col);
@@ -1342,7 +1342,7 @@
             afterHandleRelations = function () {
                 if (!child) {
                     if (prop.isRequired && value === null) {
-                        throw "\"" + key + "\" is required.\"";
+                        throw "\"" + key + "\" is required on " + feather.name + ".";
                     }
                     args.push(col);
                     tokens.push("%I");
