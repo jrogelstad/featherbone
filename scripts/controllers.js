@@ -11,7 +11,7 @@
     function doUpsertTableSpec(obj) {
         return new Promise(function (resolve, reject) {
             var payload,
-                table = obj.data,
+                table = obj.newRec,
                 feather = f.copy(table);
 
             // Save the table as a feather in the catalog
@@ -38,6 +38,9 @@
     }
 
     datasource.registerFunction("POST", "TableSpec", doUpsertTableSpec,
+            datasource.TRIGGER_BEFORE);
+
+    datasource.registerFunction("PATCH", "TableSpec", doUpsertTableSpec,
             datasource.TRIGGER_BEFORE);
 
     /**
@@ -153,7 +156,7 @@
                 });
             }
 
-            if (curr.isBase) {
+            if (curr.isBase && (!obj.oldRec || !obj.oldRec.isBase)) {
                 Promise.resolve()
                     .then(insertBaseEffective)
                     .then(updatePrevBase)
