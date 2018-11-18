@@ -113,7 +113,7 @@
                         marginTop: vm.label()
                             ? "6px"
                             : ""
-                    } // Hack
+                    }
                 }, vm.label())
             ];
         };
@@ -160,14 +160,15 @@
             });
         };
         vm.onchange = function (value) {
-            var currentValue, currentModel,
-                    models = vm.models(),
-                    regexp = new RegExp("^" + value, "i");
+            var currentModel,
+                currentValue = false,
+                models = vm.models(),
+                regexp = new RegExp("^" + value, "i");
 
             function count(counter, model) {
-                currentValue = model.data[valueProperty]();
+                var mValue = model.data[valueProperty]();
 
-                if (Array.isArray(currentValue.match(regexp))) {
+                if (mValue === currentValue) {
                     return counter + 1;
                 }
 
@@ -182,11 +183,13 @@
                     return true;
                 }
 
+                currentValue = false;
                 return false;
             }
 
             // If multiple matches, launch search to get one exactly
-            if (models.reduce(count, 0) > 1) {
+            if (value.length && models.some(match) &&
+                    models.reduce(count, 0) > 1) {
                 duplicate = {
                     criteria: [{
                         property: valueProperty,
@@ -201,14 +204,14 @@
                 return;
             }
 
-            if (!value.length || !models.some(match)) {
+            if (currentValue) {
+                modelValue(currentModel);
+                inputValue(currentValue);
+            } else {
                 modelValue(null);
                 inputValue(null);
                 delete filter.criteria;
                 vm.fetch();
-            } else {
-                modelValue(currentModel);
-                inputValue(currentValue);
             }
         };
         vm.onfocus = function () {
