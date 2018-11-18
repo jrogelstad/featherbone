@@ -56,7 +56,7 @@
         email: "email",
         url: "url",
         color: "color",
-        textArea: "textArea"
+        textArea: undefined
     };
 
     f.formats.money.fromType = function (value) {
@@ -276,8 +276,12 @@
                     opts.style = opts.style || {};
                     if (prop.type === "number" || prop.type === "integer") {
                         opts.class = "suite-input-number";
+                    } else if (prop.format === "textArea") {
+                        opts.rows = opts.rows || 4;
+                        component = m("textarea", opts);
+                    } else {
+                        component = m("input", opts);
                     }
-                    component = m("input", opts);
                 }
             }
 
