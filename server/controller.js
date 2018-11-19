@@ -3548,6 +3548,24 @@
                         return;
                     }
 
+                    /* Make sure certain values added automatically persist */
+                    if (feather) {
+                        Object.keys(spec.properties).forEach(function (p) {
+                            var fprops = feather.properties;
+                            if (fprops[p]) {
+                                Object.keys(fprops[p]).forEach(function (attr) {
+                                    if (attr === "type") {
+                                        if (typeof spec.properties[p].type === "object" &&
+                                                spec.properties[p].type.relation === feather.properties[p].type.relation &&
+                                                feather.properties[p].type.isChild) {
+                                            spec.properties[p].type.isChild = true;
+                                        }
+                                    }
+                                });
+                            }
+                        });
+                    }
+
                     /* Update catalog settings */
                     name = spec.name;
                     catalog[name] = spec;
