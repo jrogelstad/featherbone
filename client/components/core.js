@@ -277,7 +277,9 @@
                     opts.style = opts.style || {};
                     if (prop.type === "number" || prop.type === "integer") {
                         opts.class = "suite-input-number";
-                    } else if (prop.format === "textArea") {
+                    }
+
+                    if (prop.format === "textArea") {
                         opts.rows = opts.rows || 4;
                         component = m("textarea", opts);
                     } else {
