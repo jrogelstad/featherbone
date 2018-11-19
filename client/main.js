@@ -289,6 +289,33 @@
         }
 
         subclass("Object", models.object);
+        
+        // Set up money as special feather,
+        // but there will be no corresponding model.
+        // Only to help build filters, displays etc.
+        catalog.register("feathers", "Money", {
+            name: "Money",
+            description: "Money definition",
+            properties: {
+                amount: {
+                    description: "Natural key",
+                    type: "number"
+                },
+                currency: {
+                    description: "Natural key",
+                    type: "string"
+                },
+                effective: {
+                    description: "Effective time",
+                    type: "date",
+                    format: "dateTime"
+                },
+                ratio: {
+                    description: "Conversion ration",
+                    type: "number"
+                }
+            }
+        });
 
         // Process workbooks
         workbookData.forEach(function (workbook) {

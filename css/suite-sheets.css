@@ -120,6 +120,35 @@
   margin-right: 5px;
 }
 
+.suite-filter-dialog-input {
+  max-width: 200px;
+}
+
+.suite-filter-dialog-input-cell {
+  min-width: 225px;
+  max-width: 225px;
+}
+
+.suite-filter-dialog-operator {
+  width: 200px;
+}
+
+.suite-filter-dialog-property {
+  max-width: 175px;
+}
+
+.suite-filter-dialog-table-header-column {
+  min-width: 175px;
+}
+
+.suite-filter-dialog-table-header-operator {
+  min-width: 200px;
+}
+
+.suite-filter-dialog-table-header-value {
+  min-width: 225px;
+}
+
 .suite-main-button {
   border-radius: 4px;
   margin: 3px;
@@ -179,6 +208,18 @@
   color: white;
 }
 
+.suite-table-dialog-table-body {
+  max-height: 175px;
+  min-height: 175px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  display: inline-block;
+}
+
+.suite-table-dialog-table-header {
+  min-width: inherit;
+  display: inherit;
+}
 .suite-title-icon {
   margin-right: 5px;
 }
