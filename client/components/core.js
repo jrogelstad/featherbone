@@ -56,7 +56,8 @@
         email: "email",
         url: "url",
         color: "color",
-        textArea: undefined
+        textArea: undefined,
+        money: "number"
     };
 
     f.formats.money.fromType = function (value) {
@@ -359,26 +360,6 @@
 
         ret = overload.alias || feather.properties[attr].alias || attr;
         return ret.toName();
-    };
-
-    /** @private  Helper function recursive list of feather properties */
-    f.resolveProperties = function (feather, properties, ary, prefix) {
-        prefix = prefix || "";
-        var result = ary || [];
-        properties.forEach(function (key) {
-            var rfeather,
-                prop = feather.properties[key],
-                isObject = typeof prop.type === "object",
-                path = prefix + key;
-            if (isObject && prop.type.properties) {
-                rfeather = catalog.getFeather(prop.type.relation);
-                f.resolveProperties(rfeather, prop.type.properties, result, path + ".");
-            }
-            if (!isObject || (!prop.type.childOf && !prop.type.parentOf)) {
-                result.push(path);
-            }
-        });
-        return result;
     };
 
     /** @private  Helper function to resolve property dot notation */

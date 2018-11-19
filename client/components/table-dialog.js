@@ -15,7 +15,8 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-
+/*global require, module*/
+/*jslint white, this, browser, es6*/
 (function () {
   "use strict";
 
@@ -25,7 +26,8 @@
     f = require("common-core"),
     dialog = require("dialog"),
     button = require("button"),
-    statechart = require("statechartjs");
+    statechart = require("statechartjs"),
+    catalog = require("catalog");
 
   /**
     View model for sort dialog.
@@ -98,20 +100,11 @@
           class: "pure-table"
         }, [
           m("thead", {
-            style: {
-              minWidth: "inherit",
-              display: "inherit"
-            }
+            class: "suite-table-dialog-table-header"
           }, vm.viewHeaders()),
           m("tbody", {
             id: "sortTbody",
-            style: {
-              maxHeight: "175px",
-              minHeight: "175px",
-              overflowX: "hidden",
-              overflowY: "auto",
-              display: "inline-block"
-            },
+            class: "suite-table-dialog-table-body",
             oncreate: function (vnode) {
               var e = document.getElementById(vnode.dom.id);
               if (vm.scrollBottom()) {
@@ -126,6 +119,7 @@
     };
     vm.data = function () {
       // Implement list here
+      return;
     };
     vm.isSelected = function () {
       return state.resolve(state.resolve("/Selection").current()[0]).isSelected();
@@ -180,6 +174,34 @@
     };
     vm.reset = function () {
       // Reset code here
+      return;
+    };
+    vm.resolveProperties = function (feather, properties, ary, prefix) {
+        prefix = prefix || "";
+        var result = ary || [];
+
+        properties.forEach(function (key) {
+            var rfeather,
+                prop = feather.properties[key],
+                isObject = typeof prop.type === "object",
+                path = prefix + key;
+
+            if (isObject && prop.type.properties) {
+                rfeather = catalog.getFeather(prop.type.relation);
+                vm.resolveProperties(rfeather, prop.type.properties, result, path + ".");
+            }
+
+            if (prop.format === "money") {
+                path += ".amount";
+            } else if (prop.type === "object" || (isObject &&
+                    (prop.type.childOf || prop.type.parentOf || prop.type.isChild))) {
+                return;
+            }
+
+            result.push(path);
+        });
+
+        return result;
     };
     vm.rowColor = function (index) {
       if (vm.selection() === index) {
@@ -192,15 +214,21 @@
     };
     vm.title = stream(options.title);
     vm.viewHeaderIds = stream();
-    vm.viewHeaders = function () {};
-    vm.viewRows = function () {};
+    vm.viewHeaders = function () {
+        return;
+    };
+    vm.viewRows = function () {
+        return;
+    };
     vm.scrollBottom = stream(false);
-    vm.selection = function (index, select) {
-      var ary = vm.data();
+    vm.selection = function (...args) {
+      var ary = vm.data(),
+        index = args[0],
+        select = args[1];
 
       if (select) { state.send("selected"); }
 
-      if (arguments.length) {
+      if (args.length) {
         buttonUp.disable();
         buttonDown.disable();
 
@@ -292,7 +320,7 @@
   };
 
   /**
-    Filter dialog component
+    Table dialog component
 
     @params {Object} View model
   */

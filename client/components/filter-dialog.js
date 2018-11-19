@@ -15,7 +15,8 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-
+/*global require, module*/
+/*jslint white, this*/
 (function () {
   "use strict";
 
@@ -39,8 +40,102 @@
   */
   filterDialog.viewModel = function (options) {
     options = options || {};
-    var vm, store, buildInputComponent,
-      resolveProperty, getDefault;
+    var vm, store;
+
+    function resolveProperty (feather, property) {
+      var prefix, suffix, rel,
+        idx = property.indexOf(".");
+
+      if (idx > -1) {
+        prefix = property.slice(0, idx);
+        suffix = property.slice(idx + 1, property.length);
+        rel = feather.properties[prefix].type.relation || feather.properties[prefix].format.toProperCase();
+        feather = catalog.getFeather(rel);
+        return resolveProperty(feather, suffix);
+      }
+
+      return feather.properties[property];
+    }
+    
+    /** @private
+      Helper function for building input elements
+
+      @param {Object} Arguments object
+      @param {Number} [obj.index] Index
+      @param {String} [obj.attr] Property
+      @param {Object} [obj.value] Value
+    */
+    function buildInputComponent (obj) {
+      var rel, w, component, prop, type, format,
+        feather = vm.feather(),
+        attr = obj.key,
+        value = obj.value,
+        index = obj.index,
+        opts = {};
+
+      prop = resolveProperty(feather, attr);
+      type = prop.type;
+      format = prop.format || prop.type;
+
+      // Handle input types
+      if (typeof type === "string") {
+        if (type === "boolean") {
+          component = m(checkbox.component, {
+            value: value,
+            onclick: vm.itemChanged.bind(this, index, "value")
+          });
+        } else {
+          opts.type = f.inputMap[format];
+          opts.onchange = m.withAttr(
+            "value",
+            vm.itemChanged.bind(this, index, "value")
+          );
+          opts.value = value;
+          component = m("input", opts);
+        }
+
+        return component;
+      }
+
+      // Handle relations
+      if (!type.childOf && !type.parentOf) {
+        rel = type.relation.toCamelCase();
+        w = catalog.store().components()[rel + "Relation"];
+
+        if (w) {
+          return m(w, {
+            parentProperty: attr,
+            parentViewModel: vm,
+            isCell: true
+          });
+        }
+      }
+
+      //console.log("Widget for property '" + attr + "' is unknown");
+    }
+
+    function getDefault (attr) {
+      var value,
+        feather = vm.feather(),
+        prop = resolveProperty(feather, attr),
+        type = prop.type,
+        format = prop.format;
+
+      if (typeof type === "object") { return {id: ""}; }
+
+      if (format && f.formats[format] &&
+          f.formats[format].default) {
+        value = f.formats[format].default;
+      } else {
+        value = f.types[type].default;
+      }
+
+      if (typeof value === "function") {
+        value = value();
+      }
+
+      return value;
+    }
 
     options.onOk = function () {
       options.filter(vm.filter());
@@ -66,7 +161,7 @@
     vm.attrs = function () {
       var feather = vm.feather(),
         keys = Object.keys(feather.properties);
-      return  f.resolveProperties(feather, keys).sort();
+      return  vm.resolveProperties(feather, keys).sort();
     };
     vm.data = function () {
       return vm.filter()[vm.propertyName()];
@@ -94,6 +189,7 @@
         case "number":
         case "date":
         case "dateTime":
+        case "money":
           delete ops["~*"];
           delete ops["!~*"];
           break;
@@ -148,9 +244,9 @@
     vm.viewHeaders = function () {
       var ids = vm.viewHeaderIds();
       return [
-        m("th", {style: {minWidth: "175px"}, id: ids.column }, "Column"),
-        m("th", {style: {minWidth: "200px"}, id: ids.operator}, "Operator"),
-        m("th", {style: {minWidth: "225px"}, id: ids.value}, "Value")
+        m("th", {class: "suite-filter-dialog-table-header-column", id: ids.column }, "Column"),
+        m("th", {class: "suite-filter-dialog-table-header-operator", id: ids.operator}, "Operator"),
+        m("th", {class: "suite-filter-dialog-table-header-value", id: ids.value}, "Value")
       ];
     };
     vm.viewRows = function () {
@@ -165,7 +261,7 @@
           style: {backgroundColor: vm.rowColor(item.index)}
         },[
           m("td", m("select", {
-              style: {width: "175px"},
+              class: "suite-filter-dialog-property",
               value: item.property,
               onchange: m.withAttr(
                 "value",
@@ -176,7 +272,7 @@
             )
           ),
           m("td", {
-           style: {minWidth: "200px", maxWidth: "200px"}
+           class: "suite-filter-dialog-operator"
           }, [
             m("select", {
               onchange: m.withAttr(
@@ -187,12 +283,12 @@
             }), item.operator || "=")
           ]),
           m("td", {
-           style: {minWidth: "225px", maxWidth: "225px"}
+           class: "suite-filter-dialog-input-cell"
           }, [buildInputComponent({
             index: item.index,
             key: item.property,
             value: item.value,
-            style: {maxWidth: "200px"}
+            class: "suite-filter-dialog-input"
           })])
         ]);
 
@@ -207,101 +303,6 @@
     //
 
     vm.style().width = "750px";
-
-    /** @private
-      Helper function for building input elements
-
-      @param {Object} Arguments object
-      @param {Number} [obj.index] Index
-      @param {String} [obj.attr] Property
-      @param {Object} [obj.value] Value
-    */
-    buildInputComponent = function (obj) {
-      var rel, w, component, prop, type, format,
-        feather = vm.feather(),
-        attr = obj.key,
-        value = obj.value,
-        index = obj.index,
-        opts = {};
-
-      prop = resolveProperty(feather, attr);
-      type = prop.type;
-      format = prop.format || prop.type;
-
-      // Handle input types
-      if (typeof type === "string") {
-        if (type === "boolean") {
-          component = m(checkbox.component, {
-            value: value,
-            onclick: vm.itemChanged.bind(this, index, "value")
-          });
-        } else {
-          opts.type = f.inputMap[format];
-          opts.onchange = m.withAttr(
-            "value",
-            vm.itemChanged.bind(this, index, "value")
-          );
-          opts.value = value;
-          component = m("input", opts);
-        }
-
-        return component;
-      }
-
-      // Handle relations
-      if (!type.childOf && !type.parentOf) {
-        rel = type.relation.toCamelCase();
-        w = catalog.store().components()[rel + "Relation"];
-
-        if (w) {
-          return m(w, {
-            parentProperty: attr,
-            parentViewModel: vm,
-            isCell: true
-          });
-        }
-      }
-
-      console.log("Widget for property '" + attr + "' is unknown");
-    };
-
-    getDefault = function (attr) {
-      var value,
-        feather = vm.feather(),
-        prop = resolveProperty(feather, attr),
-        type = prop.type,
-        format = prop.format;
-
-      if (typeof type === "object") { return {id: ""}; }
-
-      if (format && f.formats[format] &&
-          f.formats[format].default) {
-        value = f.formats[format].default;
-      } else {
-        value = f.types[type].default;
-      }
-
-      if (typeof value === "function") {
-        value = value();
-      }
-
-      return value;
-    };
-
-    resolveProperty = function (feather, property) {
-      var prefix, suffix, rel,
-        idx = property.indexOf(".");
-
-      if (idx > -1) {
-        prefix = property.slice(0, idx);
-        suffix = property.slice(idx + 1, property.length);
-        rel = feather.properties[prefix].type.relation;
-        feather = catalog.getFeather(rel);
-        return resolveProperty(feather, suffix);
-      }
-
-      return feather.properties[property];
-    };
 
     // Build internal model for processing relations where applicable 
     store = model({}, vm.feather());

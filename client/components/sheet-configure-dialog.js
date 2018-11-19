@@ -82,7 +82,7 @@
                     ? Object.keys(feather.properties)
                     : false;
             return keys
-                ? f.resolveProperties(feather, keys).sort()
+                ? vm.resolveProperties(feather, keys).sort()
                 : [];
         };
         vm.config = options.parentViewModel.config;
@@ -246,6 +246,31 @@
             listButtonClass = "pure-button";
             sheetTabClass = "";
             listTabClass = "suite-tabbed-panes-hidden";
+        };
+        vm.resolveProperties = function (feather, properties, ary, prefix) {
+            prefix = prefix || "";
+            var result = ary || [];
+
+            properties.forEach(function (key) {
+                var rfeather,
+                    prop = feather.properties[key],
+                    isObject = typeof prop.type === "object",
+                    path = prefix + key;
+
+                if (isObject && prop.type.properties) {
+                    rfeather = catalog.getFeather(prop.type.relation);
+                    vm.resolveProperties(rfeather, prop.type.properties, result, path + ".");
+                }
+
+                if (isObject &&
+                        (prop.type.childOf || prop.type.parentOf || prop.type.isChild)) {
+                    return;
+                }
+
+                result.push(path);
+            });
+
+            return result;
         };
         vm.sheet = options.parentViewModel.sheet;
         vm.toggleTab = function () {
