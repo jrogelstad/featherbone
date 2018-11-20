@@ -206,7 +206,8 @@
                     : opts.value;
 
             if (selectComponents[id]) {
-                if (selectComponents[id].value === value) {
+                if (selectComponents[id].value === value &&
+                        selectComponents[id].disabled === opts.disabled) {
                     return selectComponents[id].content;
                 }
             } else {
@@ -214,6 +215,7 @@
             }
 
             selectComponents[id].value = value;
+            selectComponents[id].disabled = opts.disabled;
             selectComponents[id].content = m("select", {
                 id: id,
                 onchange: opts.onchange,
@@ -234,6 +236,8 @@
 
             if (isPath || prop.isReadOnly()) {
                 opts.disabled = true;
+            } else {
+                opts.disabled = false;
             }
 
             if (isPath || prop.isRequired()) {
