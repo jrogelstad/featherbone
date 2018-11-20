@@ -1,8 +1,55 @@
-[{
+[	
+	{
+		"name": "Comment",
+		"module": "Core",
+		"description": "Note",
+		"properties": {
+			"text": {
+				"description": "Note text",
+				"type": "string",
+                "format": "textArea"
+			}
+		}
+	},
+    {
+        "name": "Document",
+        "module": "Core",
+        "plural": "Documents",
+        "description": "Base document class",
+        "authorization": false,
+        "properties": {
+            "owner": {
+                "description": "Owner of the document",
+                "type": "string",
+                "default": "getCurrentUser()"
+            },
+            "etag": {
+                "description": "Optimistic locking key",
+                "type": "string",
+                "default": "createId()"
+            }
+        }
+    },
+    {
+		"name": "DocumentComment",
+		"module": "Core",
+		"description": "Comment on document",
+		"inherits": "Comment",
+		"properties": {
+			"parent": {
+				"description": "Parent document",
+				"type": {
+					"relation": "Document",
+					"childOf": "comments"
+				}
+			}
+		}
+	}, {
 		"name": "Kind",
 		"plural": "Kinds",
 		"module": "Core",
 		"description": "Base class for physical types",
+        "inherits": "Document",
 		"properties": {
 			"code": {
 				"description": "Natural key",
@@ -43,7 +90,29 @@
 			},
 			"dimension": {
 				"description": "Dimension",
-				"type": "string"
+				"type": "string",
+                "default": "Q",
+                "format": "enum",
+                "dataList": [{
+                        "value": "Q",
+                        "label": "Quantity"
+                    }, {
+                        "value": "W",
+                        "label": "Weight"
+                    }, {
+                        "value": "L",
+                        "label": "Length"
+                    }, {
+                        "value": "A",
+                        "label": "Area"
+                    }, {
+                        "value": "V",
+                        "label": "Volume"
+                    }, {
+                        "value": "T",
+                        "label": "Time"
+                    }
+                ]
 			}
 		}
 	},
@@ -209,33 +278,6 @@
 				"type": "string",
 				"format": "dateTime",
 				"isRequired": true
-			}
-		}
-	},
-	{
-		"name": "Comment",
-		"module": "Core",
-		"description": "Note",
-		"properties": {
-			"text": {
-				"description": "Note text",
-				"type": "string",
-                "format": "textArea"
-			}
-		}
-	},
-	{
-		"name": "DocumentComment",
-		"module": "Core",
-		"description": "Comment on document",
-		"inherits": "Comment",
-		"properties": {
-			"parent": {
-				"description": "Parent document",
-				"type": {
-					"relation": "Document",
-					"childOf": "comments"
-				}
 			}
 		}
 	},
