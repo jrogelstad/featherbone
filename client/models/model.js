@@ -1302,8 +1302,6 @@
                         if (that.isReadOnly()) {
                             return "./ReadOnly";
                         }
-
-                        return "./Clean";
                     });
                     this.enter(function () {
                         if (d.lock && d.lock() && d.lock().username) {
@@ -1384,8 +1382,14 @@
                     this.canDelete = stream(false);
                     this.canSave = stream(false);
                     this.canUndo = stream(false);
+                    this.event("fetched", function () {
+                        this.goto("/Ready/Fetched");
+                    });
                 });
                 this.state("Saving", function () {
+                    this.event("fetched", function () {
+                        this.goto("/Ready/Fetched/Clean");
+                    });
                     this.state("Posting", function () {
                         this.enter(doPost);
                         this.canDelete = stream(false);
@@ -1411,10 +1415,6 @@
                     this.canDelete = stream(false);
                     this.canSave = stream(false);
                     this.canUndo = stream(false);
-                });
-
-                this.event("fetched", function () {
-                    this.goto("/Ready/Fetched");
                 });
                 this.event("error", function () {
                     this.goto("/Ready", {
