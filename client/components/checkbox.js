@@ -15,51 +15,52 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-
+/*global require, module*/
+/*jslint this*/
 (function () {
-  "use strict";
+    "use strict";
 
-  var checkbox = {},
-    m = require("mithril"),
-    f = require("common-core"),
-    catalog = require("catalog");
+    var checkbox = {},
+        m = require("mithril"),
+        f = require("common-core"),
+        catalog = require("catalog");
 
-  // Define checkbox component
-  checkbox.component = {
-    oninit: function (vnode) {
-      this.id = vnode.attrs.id || f.createId();
-    },
+    // Define checkbox component
+    checkbox.component = {
+        oninit: function (vnode) {
+            this.id = vnode.attrs.id || f.createId();
+        },
 
-    view: function (vnode) {
-      return m("div", {
-          class: "suite-checkbox"
-        }, [
-          m("input", {
-            id: this.id,
-            class: "suite-checkbox-input",
-            type: "checkbox",
-            onclick: m.withAttr("checked", vnode.attrs.onclick),
-            checked: vnode.attrs.value,
-            style: vnode.attrs.style || {},
-            required: !!vnode.attrs.required,
-            disabled: !!vnode.attrs.disabled
-          }),
-          m("label", {
-            for: this.id,
-            class: "suite-checkbox-label"
-          }, m("i", {
-            class:"fa fa-check",
-            style: {
-              visibility: vnode.attrs.value ? "visible" : "hidden"
-            }
-          }))
-        ]);
-    }
-  };
+        view: function (vnode) {
+            return m("div", {
+                class: "suite-checkbox"
+            }, [
+                m("input", {
+                    id: this.id,
+                    class: "suite-checkbox-input",
+                    type: "checkbox",
+                    onclick: m.withAttr("checked", vnode.attrs.onclick),
+                    checked: vnode.attrs.value,
+                    style: vnode.attrs.style || {},
+                    required: !!vnode.attrs.required,
+                    disabled: !!vnode.attrs.disabled
+                }),
+                m("label", {
+                    for: this.id,
+                    class: "suite-checkbox-label"
+                }, m("i", {
+                    class: "fa fa-check",
+                    style: {
+                        visibility: vnode.attrs.value
+                            ? "visible"
+                            : "hidden"
+                    }
+                }))
+            ]);
+        }
+    };
 
-  catalog.register("components", "checkbox", checkbox.component);
-  module.exports = checkbox;
+    catalog.register("components", "checkbox", checkbox.component);
+    module.exports = checkbox;
 
 }());
-
-
