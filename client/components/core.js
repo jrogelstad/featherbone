@@ -281,6 +281,8 @@
                     opts.style = opts.style || {};
                     if (prop.type === "number" || prop.type === "integer") {
                         opts.class = "suite-input-number";
+                        opts.min = prop.min;
+                        opts.max = prop.max;
                     }
 
                     if (prop.format === "textArea") {

@@ -1251,6 +1251,12 @@
                 prop.isCalculated = false;
                 prop.alias(alias);
                 prop.dataList = props[key].dataList;
+                if (props[key].min) {
+                    prop.min = props[key].min;
+                }
+                if (props[key].max) {
+                    prop.max = props[key].max;
+                }
 
                 // Add state to map for event helper functions
                 stateMap[key] = prop.state();
