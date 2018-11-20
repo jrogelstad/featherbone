@@ -15,30 +15,29 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-
+/*jslint this*/
 (function () {
-  'strict';
+    'strict';
 
-  /**
-     Change string with underscores '_' or '-' to camel case.
-     @param {Boolean} Convert first character to upper case. Default false.
-     @returns {String}
-  */
-  Date.prototype.toLocalDateTime = function () {
-    var month = this.getMonth() + 1;
-    return this.getFullYear() + '-' + month.pad(2) + '-' + this.getDate().pad(2) +
-      "T" + this.getHours().pad(2) + ":" + this.getMinutes().pad(2);
-  };
+    /**
+       Change string with underscores '_' or '-' to camel case.
+       @param {Boolean} Convert first character to upper case. Default false.
+       @returns {String}
+    */
+    Date.prototype.toLocalDateTime = function () {
+        var month = this.getMonth() + 1;
+        return this.getFullYear() + '-' + month.pad(2) + '-' + this.getDate().pad(2) +
+                "T" + this.getHours().pad(2) + ":" + this.getMinutes().pad(2);
+    };
 
-  /**
-     Change string with underscores '_' or '-' to camel case.
-     @param {Boolean} Convert first character to upper case. Default false.
-     @returns {String}
-  */
-  Date.prototype.toLocalDate = function () {
-    var month = this.getMonth() + 1;
-    return this.getFullYear() + '-' + month.pad(2) + '-' + this.getDate().pad(2);
-  };
+    /**
+       Change string with underscores '_' or '-' to camel case.
+       @param {Boolean} Convert first character to upper case. Default false.
+       @returns {String}
+    */
+    Date.prototype.toLocalDate = function () {
+        var month = this.getMonth() + 1;
+        return this.getFullYear() + '-' + month.pad(2) + '-' + this.getDate().pad(2);
+    };
 
 }());
-

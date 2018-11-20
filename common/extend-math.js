@@ -15,42 +15,45 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*jslint white */
+/*jslint*/
 (function () {
-  'strict';
+    'strict';
 
-  /**
-    Add two numbers to a give scale, or an array of numbers to a given scale.
-    If no scale is provided, scale will default to zero.
+    /**
+      Add two numbers to a give scale, or an array of numbers to a given scale.
+      If no scale is provided, scale will default to zero.
 
-    @param {Number} Value 1
-    @param {Number} Value 2 or Scale if first parameter is array
-    @param {Number} Scale, default 8
-  */
-  Math.add = function (value1, value2, scale) {
-    var x = 0.0,
-      power;
+      @param {Number} Value 1
+      @param {Number} Value 2 or Scale if first parameter is array
+      @param {Number} Scale, default 8
+    */
+    Math.add = function (value1, value2, scale) {
+        var x = 0.0,
+            power;
 
-    scale =  scale || 8;
-    power = Math.pow(10, scale);
-    x = value1 * power + value2 * power;
+        scale = scale || 8;
+        power = Math.pow(10, scale);
+        x = value1 * power + value2 * power;
 
-    return x !== 0 ? Math.round(x) / power : x;
-  };
+        return x !== 0
+            ? Math.round(x) / power
+            : x;
+    };
 
-  /**
-    @param {Number} Value 1
-    @param {Number} Value 2
-    @param {Number} Scale, default 8
-  */
-  Math.subtract = function (value1, value2, scale) {
-    scale =  scale || 8;
-  
-    var power = Math.pow(10, scale),
-      res = Math.round(value1 * power - value2 * power);
+    /**
+      @param {Number} Value 1
+      @param {Number} Value 2
+      @param {Number} Scale, default 8
+    */
+    Math.subtract = function (value1, value2, scale) {
+        scale = scale || 8;
 
-    return res !== 0 ? res / power : 0;
-  };
+        var power = Math.pow(10, scale),
+            res = Math.round(value1 * power - value2 * power);
+
+        return res !== 0
+            ? res / power
+            : 0;
+    };
 
 }());
-
