@@ -1044,6 +1044,7 @@
             "street": "123 York Street",
             "city": "Downingtown",
             "state": "PA",
+            "postalCode": "19335",
             "country": "United States"
         }
         

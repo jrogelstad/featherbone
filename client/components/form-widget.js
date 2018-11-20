@@ -153,7 +153,7 @@
                             dataList = f.resolveProperty(model, dataList)();
 
                         // Must referencoe a simple array, transform
-                        } else {
+                        } else if (typeof dataList[0] !== "object") {
                             dataList = dataList.map(function (item) {
                                 return {value: item, label: item};
                             });

@@ -35,19 +35,14 @@
         vm.addressDialog = stream();
         vm.buttonClear = stream();
         vm.content = function (isCell) {
-            var d,
-                content = "";
+            var d, content;
 
             if (!vm.model()) {
                 return content;
             }
             d = vm.model().data;
 
-            if (d.type()) {
-                content += "(" + d.type() + ")";
-            }
-
-            content += d.street();
+            content = d.street();
 
             if (isCell) {
                 return content;
@@ -67,9 +62,9 @@
             var countries = catalog.store().data().countries().map(function (model) {
                 return model.data.name();
             }).sort();
-            
+
             countries.unshift("");
-            
+
             return countries;
         };
         vm.doClear = function () {
@@ -107,7 +102,7 @@
             var states = catalog.store().data().states().map(function (model) {
                 return model.data.code();
             }).sort();
-            
+
             states.unshift("");
             return states;
         };
@@ -122,6 +117,8 @@
             model: "address",
             config: {
                 attrs: [{
+                    attr: "type"
+                }, {
                     attr: "street"
                 }, {
                     attr: "unit"
