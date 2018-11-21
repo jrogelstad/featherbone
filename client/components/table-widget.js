@@ -1120,7 +1120,13 @@
 
                 // Front cap header navigation
                 onclick = vm.toggleSelection.bind(this, model, defaultFocusId);
-                if (currentState === "/Locked") {
+                if (!model.isValid()) {
+                    thContent = m("i", {
+                        onclick: onclick,
+                        title: model.lastError(),
+                        class: "fa fa-warning"
+                    });
+                } else if (currentState === "/Locked") {
                     lock = d.lock() || {};
                     thContent = m("i", {
                         onclick: onclick,
