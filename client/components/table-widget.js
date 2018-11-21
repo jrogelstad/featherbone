@@ -267,10 +267,13 @@
                 rows = document.getElementById(ids.rows);
 
             // Lazy load: fetch more rows if near bottom and more possible
-            if (remainScroll < childHeight * ROW_COUNT && vm.models().length >= offset) {
-                offset = offset + LIMIT;
-                fetch();
+            if (vm.isQuery()) {
+                if (remainScroll < childHeight * ROW_COUNT && vm.models().length >= offset) {
+                    offset = offset + LIMIT;
+                    fetch();
+                }
             }
+
             // Sync header position with table body position
             header.scrollLeft = rows.scrollLeft;
         };
@@ -1201,9 +1204,7 @@
                     m("tbody", {
                         id: ids.rows,
                         class: "suite-table-body",
-                        onscroll: vm.isQuery()
-                            ? vm.onscroll
-                            : undefined,
+                        onscroll: vm.onscroll,
                         oncreate: function (vnode) {
                             // Key down handler for up down movement
                             var e = document.getElementById(vnode.dom.id);
