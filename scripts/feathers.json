@@ -362,6 +362,10 @@
                 "description": "Show currency selector if money",
                 "type": "boolean",
                 "default": true
+            },
+            "width": {
+                "description": "Default column width",
+                "type": "string"
             }
         }
     },
