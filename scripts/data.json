@@ -620,7 +620,7 @@
 	"data": {
 		"code": "EA",
 		"description": "Each",
-		"dimension": "Quantity"
+		"dimension": "Q"
 	}
 }, {
 	"name": "CurrencyUnit",
@@ -629,7 +629,7 @@
 	"data": {
 		"code": "BTC",
 		"description": "Bitcoin",
-		"dimension": "Quantity",
+		"dimension": "Q",
 		"symbol": "₿",
 		"minorUnit": 8
 	}
@@ -640,7 +640,7 @@
 	"data": {
 		"code": "cBTC",
 		"description": "Bitcent",
-		"dimension": "Quantity",
+		"dimension": "Q",
 		"symbol": "c₿",
 		"minorUnit": 6
 	}
@@ -651,7 +651,7 @@
 	"data": {
 		"code": "mBTC",
 		"description": "Millibit",
-		"dimension": "Quantity",
+		"dimension": "Q",
 		"symbol": "m₿",
 		"minorUnit": 4
 	}
@@ -662,7 +662,7 @@
 	"data": {
 		"code": "μBTC",
 		"description": "Bit",
-		"dimension": "Quantity",
+		"dimension": "Q",
 		"symbol": "μ₿",
 		"minorUnit": 2
 	}
@@ -673,7 +673,7 @@
 	"data": {
 		"code": "sat",
 		"description": "Satoshi",
-		"dimension": "Quantity",
+		"dimension": "Q",
 		"symbol": "s",
 		"minorUnit": 0
 	}
