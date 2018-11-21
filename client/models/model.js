@@ -20,15 +20,61 @@
 (function () {
     "use strict";
 
-    var model, isChild, isToOne, isToMany,
-            f = require("common-core"),
-            stream = require("stream"),
-            catalog = require("catalog"),
-            dataSource = require("datasource"),
-            jsonpatch = require("fast-json-patch"),
-            statechart = require("statechartjs"),
-            qs = require("Qs"),
-            store = catalog.store();
+    var model,
+        f = require("common-core"),
+        stream = require("stream"),
+        catalog = require("catalog"),
+        dataSource = require("datasource"),
+        jsonpatch = require("fast-json-patch"),
+        statechart = require("statechartjs"),
+        qs = require("Qs"),
+        store = catalog.store();
+
+    // ..........................................................
+    // PRIVATE
+    //
+
+    /** private */
+    function handleDefault(prop, frmt) {
+        if (!prop.default && !frmt) {
+            return;
+        }
+        frmt = frmt || {};
+        var def;
+
+        // Handle default
+        if (prop.default !== undefined) {
+            def = prop.default;
+        } else if (typeof frmt.default === "function") {
+            def = frmt.default();
+        } else {
+            def = frmt.default;
+        }
+
+        // Handle default that is a function
+        if (typeof def === "string" &&
+                def.match(/\(\)$/)) {
+            def = f[def.replace(/\(\)$/, "")];
+        }
+
+        return def;
+    }
+
+    /** private */
+    function isChild(p) {
+        return p.type && typeof p.type === "object" && p.type.childOf;
+    }
+
+    /** private */
+    function isToOne(p) {
+        return p.type && typeof p.type === "object" &&
+                !p.type.childOf && !p.type.parentOf;
+    }
+
+    /** private */
+    function isToMany(p) {
+        return p.type && typeof p.type === "object" && p.type.parentOf;
+    }
 
     /**
       A factory that returns a persisting object based on a definition called a
@@ -415,55 +461,6 @@
             validators.push(callback);
 
             return this;
-        };
-
-        /**
-          Overload properties. Supported overloads are alias and type.
-          Can be used by the user interface to apply a more specific name or
-          type mask.
-
-            model.overload({
-              name: {
-                alias: "job"
-              },
-              kind: {
-                alias: "product",
-                type: {
-                  relation: "Product",
-                  "properties": ["code", "description", "kind"]
-                }
-              }
-            });
-
-          @param {Object} Overload definition
-          @returns Receiver
-        */
-        that.overload = function (overloads) {
-            if (!overloads) {
-                return that;
-            }
-
-            var keys = Object.keys(overloads);
-
-            keys.forEach(function (key) {
-                var overload = overloads[key],
-                    prop = d[key];
-
-                // Update the feather
-                feather.overloads[key] = overload;
-
-                // Update alias property
-                if (overload.alias) {
-                    prop.alias(overload.alias.toName());
-                }
-
-                // Update alias type
-                if (overload.type) {
-                    prop.type = overload.type;
-                }
-            });
-
-            return that;
         };
 
         /**
@@ -990,9 +987,6 @@
                         });
                     }
 
-                    // Carry overloads set at parent on down
-                    result.overload(overloads);
-
                     // Synchronize statechart
                     state.resolve("/Busy/Fetching").enter(onFetching.bind(result));
                     state.resolve("/Ready/Fetched").enter(onFetched.bind(result));
@@ -1079,40 +1073,18 @@
             // Loop through each model property and instantiate a data property
             keys.forEach(function (key) {
                 var prop, defaultValue, name, cFeather, cKeys, cArray, relation,
-                        toType, scale, handleDefault,
+                        toType, scale,
                         overload = overloads[key] || {},
                         alias = overload.alias || props[key].alias || key,
                         p = props[key],
+                        min = overload.min || p.min,
+                        max = overload.max || p.max,
                         type = p.type,
                         value = initData[key],
                         formatter = {};
 
+                p.default = overload.default || p.default;
                 alias = alias.toName();
-
-                handleDefault = function (prop, frmt) {
-                    if (!prop.default && !frmt) {
-                        return;
-                    }
-                    frmt = frmt || {};
-                    var def;
-
-                    // Handle default
-                    if (prop.default !== undefined) {
-                        def = prop.default;
-                    } else if (typeof frmt.default === "function") {
-                        def = frmt.default();
-                    } else {
-                        def = frmt.default;
-                    }
-
-                    // Handle default that is a function
-                    if (typeof def === "string" &&
-                            def.match(/\(\)$/)) {
-                        def = f[def.replace(/\(\)$/, "")];
-                    }
-
-                    return def;
-                };
 
                 // Create properties for relations
                 if (typeof p.type === "object") {
@@ -1242,21 +1214,21 @@
 
                 // Carry other property definitions forward
                 prop.key = key; // Use of 'name' property is not allowed here
-                prop.description = props[key].description;
-                prop.type = overload.type || props[key].type;
-                prop.format = props[key].format;
+                prop.description = overload.description || p.description;
+                prop.type = overload.type || p.type;
+                prop.format = overload.format || p.format;
                 prop.default = defaultValue;
-                prop.isRequired(props[key].isRequired);
-                prop.isReadOnly(props[key].isReadOnly);
+                prop.isRequired(overload.isRequired !== undefined
+                    ? overload.isRequired
+                    : p.isRequired);
+                prop.isReadOnly(overload.isReadOnly !== undefined
+                    ? overload.isReadOnly
+                    : p.isReadOnly);
                 prop.isCalculated = false;
                 prop.alias(alias);
-                prop.dataList = props[key].dataList;
-                if (props[key].min) {
-                    prop.min = props[key].min;
-                }
-                if (props[key].max) {
-                    prop.max = props[key].max;
-                }
+                prop.dataList = overload.dataList || p.dataList;
+                prop.min = min;
+                prop.max = max;
 
                 // Add state to map for event helper functions
                 stateMap[key] = prop.state();
@@ -1536,26 +1508,6 @@
         });
 
         return that;
-    };
-
-    // ..........................................................
-    // PRIVATE
-    //
-
-    /** private */
-    isChild = function (p) {
-        return p.type && typeof p.type === "object" && p.type.childOf;
-    };
-
-    /** private */
-    isToOne = function (p) {
-        return p.type && typeof p.type === "object" &&
-                !p.type.childOf && !p.type.parentOf;
-    };
-
-    /** private */
-    isToMany = function (p) {
-        return p.type && typeof p.type === "object" && p.type.parentOf;
     };
 
     module.exports = model;
