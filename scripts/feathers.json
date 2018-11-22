@@ -415,8 +415,7 @@
             },
             "labelProperty": {
                 "description": "Description property",
-                "type": "string",
-                "isRequired": true
+                "type": "string"
             },
             "isActive": {
                 "description": "Active status",
