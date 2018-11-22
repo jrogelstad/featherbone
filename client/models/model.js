@@ -101,6 +101,7 @@
             // Remove original enter response on child
             result.state().resolve("/Busy/Fetching").enters.shift();
             result.state().resolve("/Ready/Fetched/Locking").enters.shift();
+            result.state().resolve("/Delete").enters.shift();
 
             // Disable save event on child
             result.state().resolve("/Ready/New").event("save");
@@ -114,7 +115,12 @@
                 state.send("changed");
             });
             result.state().resolve("/Delete").enter(function () {
-                state.send("changed");
+                prop.state().send("change");
+                prop.state().send("changed");
+            });
+            result.state().resolve("/Ready").enter(function () {
+                prop.state().send("change");
+                prop.state().send("changed");
             });
 
             // Notify parent properties changed
@@ -124,6 +130,8 @@
 
             return result;
         };
+
+        ary.canAdd = f.prop(true);
 
         ary.clear = function () {
             prop.state().send("change");
@@ -1426,10 +1434,8 @@
             });
 
             this.state("Delete", function () {
-                this.enter(function () {
-                    doFreeze();
-                    doLock();
-                });
+                this.enter(doLock);
+                this.enter(doFreeze);
 
                 this.event("save", function (context) {
                     this.goto("/Busy/Deleting", {

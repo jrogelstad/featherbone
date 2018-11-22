@@ -53,9 +53,21 @@
       @param {Array} [options.config] Column configuration
     */
     childTable.viewModel = function (options) {
-        var tableState,
-            root = findRoot(options.parentViewModel.model()),
-            vm = {};
+        var tableState, canAdd,
+                root = findRoot(options.parentViewModel.model()),
+                vm = {};
+
+        function toggleCanAdd() {
+            var currentState = root.state().current();
+
+            if (canAdd() &&
+                    currentState !== "/Ready/Fetched/ReadOnly" &&
+                    currentState !== "/Locked") {
+                vm.buttonAdd().enable();
+            } else {
+                vm.buttonAdd().disable();
+            }
+        }
 
         // ..........................................................
         // PUBLIC
@@ -173,10 +185,13 @@
                 vm.tableWidget().select(undefined);
             }
         });
+        canAdd = vm.tableWidget().models().canAdd;
+
         root.state().resolve("/Ready/Fetched/ReadOnly").enter(vm.buttonAdd().disable);
         root.state().resolve("/Ready/Fetched/ReadOnly").exit(vm.buttonAdd().enable);
         root.state().resolve("/Locked").enter(vm.buttonAdd().disable);
-        root.state().resolve("/Locked").exit(vm.buttonAdd().enable);
+        root.state().resolve("/Locked").exit(toggleCanAdd);
+        canAdd.state().resolve("/Changing").exit(toggleCanAdd);
 
         return vm;
     };
