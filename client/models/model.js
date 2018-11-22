@@ -34,7 +34,150 @@
     // PRIVATE
     //
 
-    /** private */
+    /** @private */
+    function onFetching() {
+        this.state().goto("/Busy/Fetching");
+    }
+
+    /** @private */
+    function onFetched() {
+        this.state().goto("/Ready/Fetched");
+    }
+
+    /** @private
+        Function to extend child array
+    */
+    function extendArray(model, prop, name, onChange, onChanged) {
+        var state = model.state(),
+            isNew = true,
+            cache = [],
+            ary = prop();
+
+        // Bind parent events to array
+        state.resolve("/Ready/New").enter(function (context) {
+            if (context && context.clear === false) {
+                return;
+            }
+            isNew = true;
+            ary.clear();
+        });
+
+        state.resolve("/Ready/Fetched").enter(function () {
+            isNew = false;
+        });
+
+        // Extend array
+        ary.add = function (value) {
+            var result;
+
+            prop.state().send("change");
+            if (value && value.isModel) {
+                result = value;
+            } else {
+                // Create an instance
+                result = catalog.store().models()[name]();
+                result.set(value, true, true);
+            }
+
+            result.parent(model);
+
+            // Add bindings to change events
+            if (onChange[prop.key]) {
+                onChange[prop.key].forEach(function (item) {
+                    result.onChange(item.name, item.callback);
+                });
+            }
+
+            if (onChanged[prop.key]) {
+                onChanged[prop.key].forEach(function (item) {
+                    result.onChanged(item.name, item.callback);
+                });
+            }
+
+            // Synchronize statechart
+            state.resolve("/Busy/Fetching").enter(onFetching.bind(result));
+            state.resolve("/Ready/Fetched").enter(onFetched.bind(result));
+
+            // Remove original enter response on child
+            result.state().resolve("/Busy/Fetching").enters.shift();
+            result.state().resolve("/Ready/Fetched/Locking").enters.shift();
+
+            // Disable save event on child
+            result.state().resolve("/Ready/New").event("save");
+            result.state().resolve("/Ready/Fetched/Dirty").event("save");
+
+            // Notify parent if child becomes dirty
+            result.state().resolve("/Ready/Fetched/Locking").enter(function () {
+                this.goto("../Dirty");
+            });
+            result.state().resolve("/Ready/Fetched/Dirty").enter(function () {
+                state.send("changed");
+            });
+            result.state().resolve("/Delete").enter(function () {
+                state.send("changed");
+            });
+
+            // Notify parent properties changed
+            ary.push(result);
+            cache.push(result);
+            prop.state().send("changed");
+
+            return result;
+        };
+
+        ary.clear = function () {
+            prop.state().send("change");
+            ary.length = 0;
+            cache.length = 0;
+            prop.state().send("changed");
+        };
+
+        ary.remove = function (value) {
+            var result, idx, find;
+
+            find = function (item, i) {
+                if (value.id() === item.id()) {
+                    idx = i;
+                    return true;
+                }
+            };
+
+            if (ary.some(find)) {
+                prop.state().send("change");
+                result = ary.splice(idx, 1)[0];
+                cache.some(find); // Find index on cache
+                if (isNew) {
+                    cache.splice(idx, 1);
+                } else {
+                    delete cache[idx];
+                }
+                state.send("changed");
+            }
+
+            return result;
+        };
+
+        ary.toJSON = function () {
+            var item, value, isNotDeleting,
+                    result = [],
+                    len = cache.length,
+                    i = 0;
+
+            while (i < len) {
+                item = cache[i];
+                isNotDeleting = item.state().current()[0] !== "/Delete";
+                value = isNotDeleting
+                    ? item.toJSON()
+                    : undefined;
+                result.push(value);
+                i += 1;
+            }
+
+            return result;
+        };
+    }
+
+    /** @private */
     function handleDefault(prop, frmt) {
         if (!prop.default && !frmt) {
             return;
@@ -925,150 +1068,10 @@
         };
 
         doInit = function () {
-            var onFetching, onFetched, extendArray,
-                    props = feather.properties,
-                    overloads = feather.overloads,
-                    keys = Object.keys(props || {}),
-                    initData = this;
-
-            onFetching = function () {
-                this.state().goto("/Busy/Fetching");
-            };
-            onFetched = function () {
-                this.state().goto("/Ready/Fetched");
-            };
-
-            // Function to extend child array if applicable
-            extendArray = function (prop, name, overloads) {
-                overloads = overloads || {};
-
-                var isNew = true,
-                    cache = [],
-                    ary = prop();
-
-                // Bind parent events to array
-                state.resolve("/Ready/New").enter(function (context) {
-                    if (context && context.clear === false) {
-                        return;
-                    }
-                    isNew = true;
-                    ary.clear();
-                });
-
-                state.resolve("/Ready/Fetched").enter(function () {
-                    isNew = false;
-                });
-
-                // Extend array
-                ary.add = function (value) {
-                    var result;
-
-                    prop.state().send("change");
-                    if (value && value.isModel) {
-                        result = value;
-                    } else {
-                        // Create an instance
-                        result = catalog.store().models()[name]();
-                        result.set(value, true, true);
-                    }
-
-                    result.parent(that);
-
-                    // Add bindings to change events
-                    if (onChange[prop.key]) {
-                        onChange[prop.key].forEach(function (item) {
-                            result.onChange(item.name, item.callback);
-                        });
-                    }
-
-                    if (onChanged[prop.key]) {
-                        onChanged[prop.key].forEach(function (item) {
-                            result.onChanged(item.name, item.callback);
-                        });
-                    }
-
-                    // Synchronize statechart
-                    state.resolve("/Busy/Fetching").enter(onFetching.bind(result));
-                    state.resolve("/Ready/Fetched").enter(onFetched.bind(result));
-
-                    // Remove original enter response on child
-                    result.state().resolve("/Busy/Fetching").enters.shift();
-                    result.state().resolve("/Ready/Fetched/Locking").enters.shift();
-
-                    // Disable save event on child
-                    result.state().resolve("/Ready/New").event("save");
-                    result.state().resolve("/Ready/Fetched/Dirty").event("save");
-
-                    // Notify parent if child becomes dirty
-                    result.state().resolve("/Ready/Fetched/Locking").enter(function () {
-                        this.goto("../Dirty");
-                    });
-                    result.state().resolve("/Ready/Fetched/Dirty").enter(function () {
-                        state.send("changed");
-                    });
-                    result.state().resolve("/Delete").enter(function () {
-                        state.send("changed");
-                    });
-
-                    // Notify parent properties changed
-                    ary.push(result);
-                    cache.push(result);
-                    prop.state().send("changed");
-
-                    return result;
-                };
-
-                ary.clear = function () {
-                    prop.state().send("change");
-                    ary.length = 0;
-                    cache.length = 0;
-                    prop.state().send("changed");
-                };
-
-                ary.remove = function (value) {
-                    var result, idx, find;
-
-                    find = function (item, i) {
-                        if (value.id() === item.id()) {
-                            idx = i;
-                            return true;
-                        }
-                    };
-
-                    if (ary.some(find)) {
-                        prop.state().send("change");
-                        result = ary.splice(idx, 1)[0];
-                        cache.some(find); // Find index on cache
-                        if (isNew) {
-                            cache.splice(idx, 1);
-                        } else {
-                            delete cache[idx];
-                        }
-                        state.send("changed");
-                    }
-
-                    return result;
-                };
-
-                ary.toJSON = function () {
-                    var item, value, isNotDeleting,
-                            result = [],
-                            len = cache.length,
-                            i = 0;
-
-                    while (i < len) {
-                        item = cache[i];
-                        isNotDeleting = item.state().current()[0] !== "/Delete";
-                        value = isNotDeleting
-                            ? item.toJSON()
-                            : undefined;
-                        result.push(value);
-                        i += 1;
-                    }
-
-                    return result;
-                };
-            };
+            var props = feather.properties,
+                overloads = feather.overloads,
+                keys = Object.keys(props || {}),
+                initData = this;
 
             // Loop through each model property and instantiate a data property
             keys.forEach(function (key) {
@@ -1176,7 +1179,7 @@
 
                         // Create property
                         prop = f.prop(cArray, formatter);
-                        extendArray(prop, name, overload);
+                        extendArray(that, prop, name, onChange, onChanged);
                         prop(value);
                     }
 
