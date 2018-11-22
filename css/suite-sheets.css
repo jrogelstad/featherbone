@@ -87,11 +87,14 @@
 }
 
 .suite-column-header-grabber {
+  cursor: w-resize;
+}
+
+.suite-column-spacer {
   padding: 0px !important;
   min-width: 6px !important;
   max-width: 6px !important;
   border-left: none !important;
-  cursor: w-resize;
 }
 
 .suite-contact-relation-icon {
