@@ -789,7 +789,7 @@
                             ondragover: vm.ondragover.bind(this, idx),
                             draggable: true,
                             ondragstart: vm.ondragstart.bind(this, idx, "width"),
-                            class: "suite-column-header-grabber"
+                            class: "suite-column-spacer suite-column-header-grabber"
                         })
                     ];
 
@@ -862,7 +862,8 @@
                             style: {
                                 minWidth: columnWidth,
                                 maxWidth: columnWidth,
-                                fontSize: zoom
+                                fontSize: zoom,
+                                paddingRight: "10px"
                             }
                         };
 
@@ -949,7 +950,14 @@
                             content = value;
                         }
 
-                        cell = m("td", tdOpts, content);
+                        cell = [
+                            m("td", tdOpts, content),
+                            // This exists to force exact alignment with header on all browsers
+                            m("td", {
+                                class: "suite-column-spacer"
+                            })
+                        ];
+
                         idx += 1;
 
                         return cell;
@@ -961,6 +969,7 @@
 
                     // Build editable row
                 } else {
+
                     cellOpts = {
                         style: {
                             borderColor: "blue",
@@ -995,7 +1004,8 @@
                                 item = config.columns[idx],
                                 columnWidth = item.width || COL_WIDTH_DEFAULT,
                                 dataList = item.dataList || prop.dataList,
-                                cfilter = item.filter;
+                                cfilter = item.filter,
+                                borderColor = "blue";
 
                         inputOpts = {
                             id: id,
@@ -1050,7 +1060,6 @@
 
                         // We want tab out of last cell to loop back to the first
                         if (lastFocusId === id) {
-
                             inputOpts.oncreate = function (vnode) {
                                 // Key down handler for up down movement
                                 document.getElementById(vnode.dom.id)
@@ -1062,24 +1071,28 @@
                                 document.getElementById(vnode.dom.id)
                                     .removeEventListener("keydown", ontab);
                             };
-
                         }
 
                         if (prop.isRequired && prop.isRequired() &&
                                 (prop() === null || prop() === undefined)) {
+                            borderColor = "red";
                             tdOpts = {
                                 style: {
-                                    borderColor: "red",
+                                    borderColor: borderColor,
                                     borderWidth: "thin",
-                                    borderStyle: "ridge"
+                                    borderStyle: "ridge",
+                                    paddingRight: "10px",
+                                    borderRight: "none"
                                 }
                             };
                         } else {
                             tdOpts = {
                                 style: {
-                                    borderColor: "blue",
+                                    borderColor: borderColor,
                                     borderWidth: "thin",
-                                    borderStyle: "solid"
+                                    borderStyle: "solid",
+                                    paddingRight: "10px",
+                                    borderRight: "none"
                                 }
                             };
                         }
@@ -1101,16 +1114,26 @@
                             }
                         }
 
-                        cell = m("td", tdOpts, [
-                            f.buildInputComponent({
-                                model: model,
-                                key: col,
-                                dataList: dataList,
-                                filter: cfilter,
-                                viewModel: vm,
-                                options: inputOpts
+                        cell = [
+                            m("td", tdOpts, [
+                                f.buildInputComponent({
+                                    model: model,
+                                    key: col,
+                                    dataList: dataList,
+                                    filter: cfilter,
+                                    viewModel: vm,
+                                    options: inputOpts
+                                })
+                            ]),
+                            m("td", {
+                                style: {
+                                    borderStyle: "solid",
+                                    borderColor: borderColor,
+                                    borderWidth: "thin"
+                                },
+                                class: "suite-column-spacer"
                             })
-                        ]);
+                        ];
 
                         idx += 1;
 
