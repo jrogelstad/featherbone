@@ -279,10 +279,15 @@
                 } else {
                     opts.class = "suite-input";
                     opts.style = opts.style || {};
+
                     if (prop.type === "number" || prop.type === "integer") {
+                        if (prop.min !== undefined) {
+                            opts.min = prop.min;
+                        }
+                        if (prop.max !== undefined) {
+                            opts.max = prop.max;
+                        }
                         opts.class = "suite-input-number";
-                        opts.min = prop.min;
-                        opts.max = prop.max;
                     }
 
                     if (prop.format === "textArea") {
