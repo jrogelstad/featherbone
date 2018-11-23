@@ -30,7 +30,7 @@
 
     formPage.viewModel = function (options) {
         var toggleNew, isDisabled, applyTitle, saveTitle,
-                callReceiver, model, createForm,
+                saveAndNewTitle, callReceiver, model, createForm,
                 instances = catalog.register("instances"),
                 feather = options.feather.toCamelCase(true),
                 forms = catalog.store().forms(),
@@ -204,6 +204,7 @@
         };
         applyTitle = vm.buttonApply().title;
         saveTitle = vm.buttonSave().title;
+        saveAndNewTitle = vm.buttonSaveAndNew().title;
         vm.buttonApply().isDisabled = isDisabled;
         vm.buttonApply().title = function () {
             if (isDisabled()) {
@@ -217,6 +218,13 @@
                 return vm.model().lastError() || "No changes to save";
             }
             return saveTitle();
+        };
+        vm.buttonSaveAndNew().isDisabled = isDisabled;
+        vm.buttonSaveAndNew().title = function () {
+            if (isDisabled()) {
+                return vm.model().lastError() || "No changes to save";
+            }
+            return saveAndNewTitle();
         };
 
         return vm;
