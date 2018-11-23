@@ -12,6 +12,7 @@
     "url": "http://github.com/jrogelstad/featherbone.git"
   },
   "dependencies": {
+    "big.js": "^5.2.2",
     "body-parser": "^1.18.2",
     "dialog-polyfill": "^0.4.9",
     "event-source-polyfill": "0.0.16",

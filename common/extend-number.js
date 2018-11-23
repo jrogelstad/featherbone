@@ -18,6 +18,9 @@
 /*jslint this */
 (function () {
     'strict';
+    
+    const Big = require("big.js");
+
     /**
         Add padding to a number.
 
@@ -43,5 +46,45 @@
             : n;
     };
 
+    /**
+        Add padding to a number.
+
+          pad(9, 3);      // "009";
+          pad(12, 3);     // "012"
+          pad(9, 3, '-')  // "--9"
+
+        @param {Number} Number
+        @param {Number} Width
+        @param {String} Pad character, default 0
+        @return {String}
+    */
+    Number.prototype.pad = function (width, str) {
+        var n = this + '',
+            a = [];
+        str = str || '0';
+        if (n.length < width) {
+            a.length = width - n.length + 1;
+        }
+
+        return a.length
+            ? a.join(str) + n
+            : n;
+    };
+
+    Number.prototype.div = function (n) {
+        return new Big(this).div(n).valueOf() - 0;
+    };
+
+    Number.prototype.minus = function (n) {
+        return new Big(this).minus(n).valueOf() - 0;
+    };
+
+    Number.prototype.plus = function (n) {
+        return new Big(this).plus(n).valueOf() - 0;
+    };
+    
+    Number.prototype.times = function (n) {
+        return new Big(this).times(n).valueOf() - 0;
+    };
 
 }());

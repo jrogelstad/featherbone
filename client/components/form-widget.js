@@ -16,7 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint this, browser*/
-/*global window, require, module*/
+/*global window, require, module, Big*/
 (function () {
     "use strict";
 
@@ -267,7 +267,7 @@
 
                     eids.forEach(function (id) {
                         var h = document.getElementById(id).clientHeight;
-                        bodyHeight = Math.subtract(bodyHeight, h);
+                        bodyHeight = bodyHeight.minus(h);
                     });
 
                     e.style.maxHeight = bodyHeight + "px";

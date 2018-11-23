@@ -22,6 +22,7 @@
     "strict";
 
     // Load pre-requisites
+    require("extend-number");
     require("table");
     require("form");
 
