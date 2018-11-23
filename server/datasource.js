@@ -23,7 +23,6 @@
     require("../common/extend-string");
     require("../common/extend-number");
     require("../common/extend-date");
-    require("../common/extend-math");
 
     const {
         Pool

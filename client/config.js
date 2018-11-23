@@ -25,6 +25,7 @@
     baseURL: '/',
     map: {
       // Node modules
+      "big.js": "/node_modules/big.js/big.min.js",
       "dialog-polyfill": "node_modules/dialog-polyfill/dialog-polyfill.js",
       "fast-json-patch": "node_modules/fast-json-patch/dist/json-patch-duplex.min.js",
       "mithril": "node_modules/mithril/mithril.js",
@@ -33,6 +34,7 @@
       "Qs": "node_modules/qs/dist/qs.js",
       // Featherbone core
       "datasource": "/client/datasource.js",
+      "extend-number": "/common/extend-number.js",
       "common-core": "/common/core.js",
       // Models
       "contact": "/client/models/contact.js",
