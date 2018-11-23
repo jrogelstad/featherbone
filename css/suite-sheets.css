@@ -235,6 +235,7 @@
 .suite-form-label {
   vertical-align: top !important;
   margin-top: 9px !important;
+  width: 6em !important;
 }
 
 .suite-sheet-configure-content {
