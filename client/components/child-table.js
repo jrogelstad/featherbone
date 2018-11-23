@@ -188,10 +188,11 @@
         canAdd = vm.tableWidget().models().canAdd;
 
         root.state().resolve("/Ready/Fetched/ReadOnly").enter(vm.buttonAdd().disable);
-        root.state().resolve("/Ready/Fetched/ReadOnly").exit(vm.buttonAdd().enable);
+        root.state().resolve("/Ready/Fetched/ReadOnly").exit(toggleCanAdd);
         root.state().resolve("/Locked").enter(vm.buttonAdd().disable);
         root.state().resolve("/Locked").exit(toggleCanAdd);
         canAdd.state().resolve("/Changing").exit(toggleCanAdd);
+        toggleCanAdd();
 
         return vm;
     };
