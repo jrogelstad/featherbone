@@ -182,11 +182,11 @@
         "feather": "Contact",
         "list": {
           "columns": [{
-              "attr": "firstName",
-              "label": "First"
-            }, {
               "attr": "lastName",
               "label": "Last"
+            }, {
+              "attr": "firstName",
+              "label": "First"
             }, {
               "attr": "phone"
             }, {
@@ -200,7 +200,19 @@
             }, {
               "attr": "address.country",
               "label": "Country"
-            }]
+            }],
+            "filter": {
+                "sort": [
+                    {
+                        "property": "lastName",
+                        "order": "ASC"
+                    },
+                    {
+                        "property": "firstName",
+                        "order": "ASC"
+                    }
+                ]
+            }
         }
       },
       {
