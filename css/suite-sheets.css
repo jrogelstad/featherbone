@@ -243,6 +243,11 @@
   background-color: white;
   border: thin lightgrey solid;
   border-radius: 4px;
+  text-align: right;
+  display: inline-block;
+  width: 10em;
+  margin-right: 1em;
+  margin-left: 0px;
 }
 
 .suite-form-label-menu-item {
