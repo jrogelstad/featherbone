@@ -96,6 +96,8 @@
 
                 return ret;
             }
+            
+            options.showCurrency = item.showCurrency;
 
             if (dataList) {
                 // If reference a property, get the property

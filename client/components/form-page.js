@@ -29,8 +29,7 @@
     const formWidget = require("form-widget");
 
     formPage.viewModel = function (options) {
-        var toggleNew, isDisabled, applyTitle, saveTitle,
-                saveAndNewTitle, callReceiver, model, createForm,
+        var isDisabled, applyTitle, saveTitle, model,
                 instances = catalog.register("instances"),
                 feather = options.feather.toCamelCase(true),
                 forms = catalog.store().forms(),
@@ -42,12 +41,27 @@
                 pageIdx = options.index || 1,
                 isNew = options.create && options.isNew !== false;
 
+        // Helper function to pass back data to sending model
+        function callReceiver() {
+            var receivers;
+            if (options.receiver) {
+                receivers = catalog.register("receivers");
+                if (receivers[options.receiver]) {
+                    receivers[options.receiver].callback(vm.model());
+                }
+            }
+        }
+
         // Check if we've already got a model instantiated
         if (options.key && instances[options.key]) {
             model = instances[options.key];
         } else {
             model = options.feather.toCamelCase();
         }
+
+        // ..........................................................
+        // PUBLIC
+        //
 
         vm.buttonApply = stream();
         vm.buttonBack = stream();
@@ -104,14 +118,9 @@
         vm.title = function () {
             return options.feather.toName();
         };
-
-        // ..........................................................
-        // PRIVATE
-        //
-
-        toggleNew = function (isNew) {
+        vm.toggleNew = function () {
             vm.buttonSaveAndNew().title("");
-            if (isNew || !vm.model().canSave()) {
+            if (!vm.model().canSave()) {
                 vm.buttonSaveAndNew().label("&New");
                 vm.buttonSaveAndNew().onclick(vm.doNew);
             } else {
@@ -120,36 +129,14 @@
             }
         };
 
-        createForm = function (opts) {
-            var state,
-                w = formWidget.viewModel(opts);
-
-            vm.formWidget(w);
-            state = w.model().state();
-            state.resolve("/Ready/New").enter(toggleNew.bind(this, false));
-            state.resolve("/Ready/Fetched/Clean").enter(toggleNew.bind(this, true));
-            state.resolve("/Ready/Fetched/Dirty").enter(toggleNew.bind(this, false));
-        };
-
-        // Helper function to pass back data to sending model
-        callReceiver = function () {
-            var receivers;
-            if (options.receiver) {
-                receivers = catalog.register("receivers");
-                if (receivers[options.receiver]) {
-                    receivers[options.receiver].callback(vm.model());
-                }
-            }
-        };
-
         // Create form widget
-        createForm({
+        vm.formWidget(formWidget.viewModel({
             isNew: isNew,
             model: model,
             id: options.key,
             config: form,
             outsideElementIds: ["toolbar"]
-        });
+        }));
 
         // Once model instantiated let history know already created so we know
         // to fetch if navigating back here through history
@@ -204,7 +191,6 @@
         };
         applyTitle = vm.buttonApply().title;
         saveTitle = vm.buttonSave().title;
-        saveAndNewTitle = vm.buttonSaveAndNew().title;
         vm.buttonApply().isDisabled = isDisabled;
         vm.buttonApply().title = function () {
             if (isDisabled()) {
@@ -218,13 +204,6 @@
                 return vm.model().lastError() || "No changes to save";
             }
             return saveTitle();
-        };
-        vm.buttonSaveAndNew().isDisabled = isDisabled;
-        vm.buttonSaveAndNew().title = function () {
-            if (isDisabled()) {
-                return vm.model().lastError() || "No changes to save";
-            }
-            return saveAndNewTitle();
         };
 
         return vm;
@@ -240,6 +219,8 @@
                     vm = this.viewModel,
                     model = vm.model(),
                     icon = "file-text";
+
+            vm.toggleNew();
 
             switch (model.state().current()[0]) {
             case "/Locked":
