@@ -75,8 +75,7 @@
                     value = prop(),
                     options = {},
                     menuButtons = vm.menuButtons(),
-                    relation = vm.relations()[key] ||
-                    {search: stream, open: stream, new: stream}; // Default until relation generated
+                    relation = vm.relations()[key];
 
             function openMenuClass() {
                 var ret = "pure-menu-link suite-form-label-menu-item";
@@ -118,7 +117,7 @@
             };
 
             // For relations we get buttons for label
-            if (typeof prop.type === "object") {
+            if (relation) {
                 if (!menuButtons[key]) {
                     menuButtons[key] = {
                         display: "none"
