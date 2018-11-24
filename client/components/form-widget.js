@@ -75,7 +75,8 @@
                     value = prop(),
                     options = {},
                     menuButtons = vm.menuButtons(),
-                    relation = vm.relations()[key];
+                    relation = vm.relations()[key] ||
+                    {search: stream, open: stream, new: stream}; // Default until relation generated
 
             function openMenuClass() {
                 var ret = "pure-menu-link suite-form-label-menu-item";
@@ -86,7 +87,7 @@
 
                 return ret;
             }
-            
+
             function editMenuClass() {
                 var ret = "pure-menu-link suite-form-label-menu-item";
 
@@ -95,12 +96,6 @@
                 }
 
                 return ret;
-            }
-
-            if (!menuButtons[key]) {
-                menuButtons[key] = {
-                    display: "none"
-                };
             }
 
             if (dataList) {
@@ -124,6 +119,12 @@
 
             // For relations we get buttons for label
             if (typeof prop.type === "object") {
+                if (!menuButtons[key]) {
+                    menuButtons[key] = {
+                        display: "none"
+                    };
+                }
+
                 labelOpts.class = "pure-button suite-form-label-button";
                 labelOpts.onclick = function () {
                     menuButtons[key].display = "block";
@@ -131,7 +132,7 @@
                 labelOpts.onmouseout = function () {
                     menuButtons[key].display = "none";
                 };
-                label = m("label", labelOpts, [
+                label = m("div", labelOpts, [
                     m("div", {
                         class: "pure-menu suite-relation-menu",
                         onmouseover: function () {
@@ -147,25 +148,19 @@
                         }, [
                             m("li", {
                                 class: editMenuClass(),
-                                onclick: function () {
-                                    relation.search();
-                                }
+                                onclick: relation.search
                             }, [m("i", {
                                 class: "fa fa-search"
                             })], " Search"),
                             m("li", {
                                 class: openMenuClass(),
-                                onclick: function () {
-                                    relation.open();
-                                }
+                                onclick: relation.open
                             }, [m("i", {
                                 class: "fa fa-folder-open"
                             })], " Open"),
                             m("li", {
                                 class: editMenuClass(),
-                                onclick: function () {
-                                    relation.new();
-                                }
+                                onclick: relation.new
                             }, [m("i", {
                                 class: "fa fa-plus-circle"
                             })], " New")
