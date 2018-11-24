@@ -67,7 +67,7 @@
 
     function buildFieldset(vm, attrs) {
         return attrs.map(function (item) {
-            var result, labelOpts, focusAttr, label,
+            var result, labelOpts, label,
                     key = item.attr,
                     model = vm.model(),
                     prop = model.data[key],
@@ -96,7 +96,7 @@
 
                 return ret;
             }
-            
+
             options.showCurrency = item.showCurrency;
 
             if (dataList) {
@@ -182,8 +182,8 @@
                 labelOpts.style.display = "none";
             }
 
-            if (!prop.isReadOnly() && !focusAttr) {
-                focusAttr = key;
+            if (!prop.isReadOnly() && !vm.focusAttr()) {
+                vm.focusAttr(key);
                 options.oncreate = function (vnode) {
                     document.getElementById(vnode.dom.id).focus();
                 };
@@ -263,6 +263,7 @@
             title: "Error"
         }));
         vm.errorDialog().buttonCancel().hide();
+        vm.focusAttr = stream(),
         vm.menuButtons = stream({});
         vm.selectedTab = stream(1);
         vm.model = stream();
