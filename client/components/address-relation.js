@@ -179,9 +179,7 @@
                 m("textarea", {
                     id: vm.id(),
                     title: "Click or Enter key to edit",
-                    style: {
-                        width: "215px"
-                    },
+                    class: "suite-input",
                     onkeydown: vm.onkeydown,
                     onclick: vm.doEdit,
                     value: vm.content(vm.isCell()),

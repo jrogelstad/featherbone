@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2018  John Rogelstaddo
+    Copyright (C) 2018  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -904,7 +904,7 @@
                 var prop = d[key],
                     value = prop();
 
-                if (Array.isArray(value) && value.model) {
+                if (Array.isArray(value)) {
                     value.forEach(function (item) {
                         item.state().goto("/Ready/Fetched/ReadOnly");
                     });
@@ -1055,7 +1055,7 @@
                 var prop = d[key],
                     value = prop();
 
-                if (Array.isArray(value) && value.model) {
+                if (Array.isArray(value)) {
                     value.forEach(function (item) {
                         item.state().goto("/Ready/Fetched/Clean");
                     });

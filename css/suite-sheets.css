@@ -231,11 +231,22 @@
   overflow: auto;
 }
 
-/* Hack (relation widget) */
 .suite-form-label {
   vertical-align: top !important;
   margin-top: 9px !important;
-  width: 6em !important;
+  margin-bottom: 3px !important;
+}
+
+.suite-form-label-button {
+  margin-bottom: 9px !important;
+  vertical-align: top !important;
+  background-color: white;
+  border: thin lightgrey solid;
+  border-radius: 4px;
+}
+
+.suite-form-label-menu-item {
+  text-align: left;
 }
 
 .suite-sheet-configure-content {
@@ -360,7 +371,9 @@
 }
 
 .suite-relation-button {
-  margin: 3px;
+  margin-left: 3px;
+  margin-top: 1px;
+  margin-right: 3px;
 }
 
 .suite-relation-button-cell {
@@ -376,6 +389,11 @@
 }
 
 .suite-relation-menu {
+  position: absolute;
+  display: inline;
+}
+
+.suite-relation-menu-list {
   background-color: White;
   position: absolute;
   z-index: 9999;
