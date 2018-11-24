@@ -98,6 +98,7 @@
         vm.formConfig = stream(options.form);
         vm.id = stream(options.id);
         vm.isCell = stream(!!options.isCell);
+        vm.isDisabled = options.disabled || stream(false);
         vm.label = function () {
             var model = modelValue();
             return (labelProperty && model)
@@ -108,6 +109,7 @@
         vm.labels = function () {
             return [
                 m("div", {
+                    class: "suite-input",
                     style: {
                         marginLeft: "12px",
                         marginTop: vm.label()
@@ -329,15 +331,17 @@
                     style: options.style
                 });
             }
+
             this.viewModel = relations[parentProperty];
         },
 
         view: function (vnode) {
-            var listOptions, inputStyle, menuStyle, maxWidth,
+            var listOptions, inputStyle, menuStyle, maxWidth, menu,
                     vm = this.viewModel,
-                    disabled = vnode.attrs.disabled === true,
+                    disabled = vm.isDisabled(),
                     style = vm.style(),
                     openMenuClass = "pure-menu-link",
+                    editMenuClass = "pure-menu-link",
                     buttonClass = "pure-button fa fa-bars suite-relation-button",
                     labelClass = "suite-relation-label";
 
@@ -346,18 +350,6 @@
                     ? "block"
                     : "none"
             };
-
-            if (vm.isCell()) {
-                inputStyle = {
-                    minWidth: "100px",
-                    maxWidth: "100%",
-                    border: "none"
-                };
-                buttonClass += " suite-relation-button-cell";
-                menuStyle.top = "35px";
-                menuStyle.right = "-100px";
-                labelClass = "suite-relation-label-cell";
-            }
 
             // Generate picker list
             listOptions = vm.models().map(function (model) {
@@ -372,6 +364,66 @@
 
             style.display = style.display || "inline-block";
 
+            if (!vm.model()) {
+                openMenuClass += " pure-menu-disabled";
+            }
+
+            if (vm.isDisabled()) {
+                editMenuClass += " pure-menu-disabled";
+            }
+
+            if (vm.isCell()) {
+                inputStyle = {
+                    minWidth: "100px",
+                    maxWidth: "100%",
+                    border: "none"
+                };
+                buttonClass += " suite-relation-button-cell";
+                menuStyle.top = "35px";
+                menuStyle.right = "-100px";
+                labelClass = "suite-relation-label-cell";
+
+                menu = m("div", {
+                    style: {
+                        position: "relative",
+                        display: "inline"
+                    }
+                }, [
+                    m("div", {
+                        class: "pure-menu custom-restricted-width suite-relation-menu",
+                        onmouseover: vm.onmouseovermenu,
+                        onmouseout: vm.onmouseoutmenu
+                    }, [
+                        m("span", {
+                            class: buttonClass
+                        }),
+                        m("ul", {
+                            class: "pure-menu-list suite-relation-menu-list",
+                            style: menuStyle
+                        }, [
+                            m("li", {
+                                class: editMenuClass,
+                                onclick: vm.search
+                            }, [m("i", {
+                                class: "fa fa-search"
+                            })], " Search"),
+                            m("li", {
+                                class: openMenuClass,
+                                onclick: vm.open
+                            }, [m("i", {
+                                class: "fa fa-folder-open"
+                            })], " Open"),
+                            m("li", {
+                                class: editMenuClass,
+                                onclick: vm.new
+                            }, [m("i", {
+                                class: "fa fa-plus-circle"
+                            })], " New")
+                        ])
+                    ])
+                ]);
+            }
+
             // Hack size to fit button.
             if (style.maxWidth) {
                 maxWidth = style.maxWidth.replace("px", "");
@@ -380,10 +432,6 @@
                     ? 100
                     : maxWidth;
                 inputStyle.maxWidth = maxWidth + "px";
-            }
-
-            if (!vm.model()) {
-                openMenuClass += " pure-menu-disabled";
             }
 
             // Build the view
@@ -402,52 +450,7 @@
                     oncreate: vnode.attrs.onCreate,
                     disabled: disabled
                 }),
-                m("div", {
-                    style: {
-                        position: "relative",
-                        display: "inline"
-                    }
-                }, [
-                    m("div", {
-                        class: "pure-menu custom-restricted-width",
-                        onmouseover: disabled
-                            ? undefined
-                            : vm.onmouseovermenu,
-                        onmouseout: vm.onmouseoutmenu,
-                        style: {
-                            position: "absolute",
-                            display: "inline"
-                        }
-                    }, [
-                        m("span", {
-                            class: buttonClass,
-                            disabled: disabled
-                        }),
-                        m("ul", {
-                            class: "pure-menu-list suite-relation-menu",
-                            style: menuStyle
-                        }, [
-                            m("li", {
-                                class: "pure-menu-link",
-                                onclick: vm.search
-                            }, [m("i", {
-                                class: "fa fa-search"
-                            })], " Search"),
-                            m("li", {
-                                class: openMenuClass,
-                                onclick: vm.open
-                            }, [m("i", {
-                                class: "fa fa-folder-open"
-                            })], " Open"),
-                            m("li", {
-                                class: "pure-menu-link",
-                                onclick: vm.new
-                            }, [m("i", {
-                                class: "fa fa-plus-circle"
-                            })], " New")
-                        ])
-                    ])
-                ]),
+                menu,
                 m("div", {
                     class: labelClass
                 }, vm.labels()),

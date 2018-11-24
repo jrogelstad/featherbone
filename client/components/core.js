@@ -220,7 +220,8 @@
                 id: id,
                 onchange: opts.onchange,
                 value: value,
-                disabled: opts.disabled
+                disabled: opts.disabled,
+                class: opts.class
             }, obj.dataList.map(function (item) {
                 return m("option", {
                     value: item.value
@@ -270,6 +271,7 @@
                 opts.id = id;
                 opts.onchange = m.withAttr("value", prop);
                 opts.value = prop();
+                opts.class = "suite-input";
 
                 // If options were passed in, used a select element
                 if (obj.dataList) {
@@ -277,7 +279,6 @@
 
                 // Otherwise standard input
                 } else {
-                    opts.class = "suite-input";
                     opts.style = opts.style || {};
 
                     if (prop.type === "number" || prop.type === "integer") {
@@ -316,7 +317,7 @@
                     style: opts.style,
                     onCreate: opts.oncreate,
                     id: id,
-                    disabled: prop.isReadOnly()
+                    disabled: prop.isReadOnly
                 });
             }
         }
