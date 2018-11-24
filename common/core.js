@@ -192,7 +192,7 @@
         prop: function (store, formatter) {
             formatter = formatter || {};
 
-            var newValue, oldValue, p, state, revert, alias,
+            var newValue, oldValue, proposed, p, state, revert, alias,
                     isReadOnly = false,
                     isRequired = false,
                     defaultTransform = function (value) {
@@ -243,8 +243,7 @@
 
             // Private function that will be returned
             p = function (...args) {
-                var proposed,
-                    value = args[0];
+                var value = args[0];
 
                 if (args.length) {
                     if (p.state().current()[0] === "/Changing") {
@@ -267,6 +266,7 @@
                     p.state().send("changed");
                     newValue = undefined;
                     oldValue = undefined;
+                    proposed = undefined;
                 }
 
                 return formatter.fromType(store);
@@ -292,8 +292,16 @@
                 return newValue;
             };
 
+            p.newValue.toJSON = function () {
+                return proposed;
+            };
+
             p.oldValue = function () {
                 return formatter.fromType(oldValue);
+            };
+
+            p.oldValue.toJSON = function () {
+                return oldValue;
             };
 
             p.state = function () {
