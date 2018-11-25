@@ -1193,22 +1193,27 @@
 
                     // Resolve formatter to standard type
                 } else {
-                    formatter = f.formats[p.format] || f.types[p.type] || {};
-
                     if (p.type === "number") {
                         scale = p.scale === undefined
                             ? f.SCALE_DEFAULT
                             : p.scale;
-                        toType = formatter.toType;
+                        formatter = {};
                         formatter.fromType = function (value) {
                             return value.toLocaleString(undefined, {
                                 maximumFractionDigits: scale
                             });
                         };
+                        toType = f.formats[p.format]
+                            ? f.formats[p.format].toType
+                            : f.types[p.type].toType;
+
                         formatter.toType = function (value) {
                             var result = toType(value);
+
                             return f.round(result, scale);
                         };
+                    } else {
+                        formatter = f.formats[p.format] || f.types[p.type] || {};
                     }
 
                     defaultValue = handleDefault(p, formatter);
