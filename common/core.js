@@ -81,10 +81,15 @@
             },
             date: {
                 toType: function (value) {
-                    return new Date(value).toISOString();
-                },
-                fromType: function (value) {
-                    return new Date(value).toLocalDate();
+                    var ret = "";
+                    if (value instanceof Date) {
+                        ret += value.getUTCFullYear() + "-";
+                        ret += (value.getUTCMonth() + 1).pad(2, "0") + "-";
+                        ret += value.getUTCDate().pad(2, "0");
+                    } else {
+                        ret = value;
+                    }
+                    return ret;
                 },
                 default: function () {
                     return that.today();
@@ -98,7 +103,10 @@
                     return new Date(value).toLocalDateTime();
                 },
                 toType: function (value) {
-                    return new Date(value).toISOString();
+                    if (value instanceof Date) {
+                        return new Date(value).toISOString();
+                    }
+                    return value;
                 }
             },
             password: {
