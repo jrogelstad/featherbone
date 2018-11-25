@@ -129,6 +129,7 @@
 
       return prop().currency;
     };
+    vm.disableCurrency = stream(!!options.disableCurrency);
     vm.currencies = function () {
       var ret, curr = vm.currency();
 
@@ -207,7 +208,8 @@
     // that otherwise interferes with the relation widget autocompleter
     vm.selector = function (vnode) {
         var selectorStyle,
-          disabled = vnode.attrs.disabled === true || vm.effective(),
+          disabled = vnode.attrs.disabled === true ||
+            vm.disableCurrency() || vm.effective(),
           currency = vm.currency();
 
         if (selector && disabled === wasDisabled
@@ -251,7 +253,8 @@
         id: options.id,
         isCell: options.isCell,
         disabled: options.disabled,
-        showCurrency: options.showCurrency
+        showCurrency: options.showCurrency,
+        disableCurrency: options.disableCurrency
       });
     },
 

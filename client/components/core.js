@@ -264,6 +264,7 @@
                     style: opts.style,
                     onCreate: opts.oncreate,
                     showCurrency: opts.showCurrency,
+                    disableCurrency: opts.disableCurrency,
                     id: id,
                     disabled: prop.isReadOnly()
                 });
