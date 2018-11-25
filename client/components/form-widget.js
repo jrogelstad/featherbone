@@ -97,7 +97,7 @@
                 return ret;
             }
 
-            options.showCurrency = item.showCurrency;
+            options.disableCurrency = item.disableCurrency;
 
             if (dataList) {
                 // If reference a property, get the property

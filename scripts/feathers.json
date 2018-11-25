@@ -326,10 +326,10 @@
                 "description": "Filter definition for relation widget",
                 "type": "object"
             },
-            "showCurrency": {
-                "description": "Flag to show or hide currency on currency widget",
+            "disableCurrency": {
+                "description": "Flag to disable currency selector on currency widget",
                 "type": "boolean",
-                "default": true
+                "default": false
             }
         }
     },
