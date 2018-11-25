@@ -20,15 +20,16 @@
 (function () {
     "use strict";
 
-    var model,
-        f = require("common-core"),
-        stream = require("stream"),
-        catalog = require("catalog"),
-        dataSource = require("datasource"),
-        jsonpatch = require("fast-json-patch"),
-        statechart = require("statechartjs"),
-        qs = require("Qs"),
-        store = catalog.store();
+    const f = require("common-core");
+    const stream = require("stream");
+    const catalog = require("catalog");
+    const dataSource = require("datasource");
+    const jsonpatch = require("fast-json-patch");
+    const statechart = require("statechartjs");
+    const qs = require("Qs");
+    const store = catalog.store();
+
+    var model;
 
     // ..........................................................
     // PRIVATE
@@ -159,7 +160,7 @@
                 } else {
                     delete cache[idx];
                 }
-                state.send("changed");
+                prop.state().send("changed");
             }
 
             return result;
