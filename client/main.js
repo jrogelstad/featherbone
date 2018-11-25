@@ -408,7 +408,7 @@
                 ary = catalog.store().subscriptions()[subscriptionId];
 
                 if (!ary) {
-                    console.error('Target list for ' + subscriptionId + ' not found');
+                    //console.error('Target list for ' + subscriptionId + ' not found');
                     return;
                 }
 
