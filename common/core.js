@@ -81,10 +81,12 @@
             },
             date: {
                 toType: function (value) {
-                    var ret = "";
+                    var month,
+                        ret = "";
                     if (value instanceof Date) {
+                        month = value.getUTCMonth() + 1;
                         ret += value.getUTCFullYear() + "-";
-                        ret += (value.getUTCMonth() + 1).pad(2, "0") + "-";
+                        ret += month.pad(2, "0") + "-";
                         ret += value.getUTCDate().pad(2, "0");
                     } else {
                         ret = value;
