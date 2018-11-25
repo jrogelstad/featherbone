@@ -80,6 +80,12 @@
                 }
             },
             date: {
+                toType: function (value) {
+                    return new Date(value).toISOString();
+                },
+                fromType: function (value) {
+                    return new Date(value).toLocalDate();
+                },
                 default: function () {
                     return that.today();
                 }
@@ -89,12 +95,10 @@
                     return that.now();
                 },
                 fromType: function (value) {
-                    var dt = new Date(value).toLocalDateTime();
-                    return dt;
+                    return new Date(value).toLocalDateTime();
                 },
                 toType: function (value) {
-                    var dt = new Date(value).toISOString();
-                    return dt;
+                    return new Date(value).toISOString();
                 }
             },
             password: {
