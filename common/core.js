@@ -413,12 +413,7 @@
           @return {String}
         */
         today: function () {
-            var d = new Date();
-            d.setHours(0);
-            d.setMinutes(0);
-            d.setMilliseconds(0);
-
-            return d.toLocalDate();
+             return new Date().toDate().toLocalDate();
         },
 
         startOfTime: function () {

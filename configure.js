@@ -29,7 +29,7 @@
     } = require('./server/config');
 
     var manifest, file, content, execute, name, defineSettings,
-            saveModule, saveController, saveRoute, saveFeathers, saveWorkbooks,
+            saveModule, saveService, saveRoute, saveFeathers, saveWorkbooks,
             rollback, connect, commit, begin, processFile, client, user,
             runBatch, configure,
             MANIFEST = "manifest.json",
@@ -143,8 +143,8 @@
             case "module":
                 saveModule(module, content, version);
                 break;
-            case "controller":
-                saveController(file.name || name, module, content, version);
+            case "service":
+                saveService(file.name || name, module, content, version);
                 break;
             case "route":
                 saveRoute(file.name || name, module, content, version);
@@ -241,8 +241,8 @@
         });
     };
 
-    saveController = function (name, module, script, version) {
-        var sql = "SELECT * FROM \"$controller\" WHERE name='" + name + "';";
+    saveService = function (name, module, script, version) {
+        var sql = "SELECT * FROM \"$service\" WHERE name='" + name + "';";
 
         client.query(sql, function (err, result) {
             if (err) {
@@ -250,12 +250,12 @@
                 return;
             }
             if (result.rows.length) {
-                sql = "UPDATE \"$controller\" SET " +
+                sql = "UPDATE \"$service\" SET " +
                         "script=$$" + script + "$$," +
                         "version='" + version + "' " +
                         "WHERE name='" + name + "';";
             } else {
-                sql = "INSERT INTO \"$controller\" VALUES ('" + name +
+                sql = "INSERT INTO \"$service\" VALUES ('" + name +
                         "','" + module + "',$$" + script + "$$, '" + version + "');";
             }
 
@@ -347,23 +347,23 @@
     };
 
     runBatch = function (data) {
-        var getControllers, nextItem,
+        var getServices, nextItem,
                 len = data.length,
                 b = 0;
 
-        getControllers = function () {
+        getServices = function () {
             var payload, after;
 
             after = function (resp) {
-                resp.forEach(function (controller) {
-                    eval(controller.script);
+                resp.forEach(function (service) {
+                    eval(service.script);
                 });
                 nextItem();
             };
 
             payload = {
                 method: "GET",
-                name: "getControllers",
+                name: "getServices",
                 user: "postgres",
                 client: client
             };
@@ -391,7 +391,7 @@
         };
 
         // Start processing
-        getControllers();
+        getServices();
     };
 
     /* Real work starts here */

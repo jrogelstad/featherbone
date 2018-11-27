@@ -23,7 +23,7 @@
     exports.execute = function (obj) {
         return new Promise(function (resolve, reject) {
             var createCamelCase, createMoney, createObject, createFeather, createAuth,
-                    createModule, createController, createRoute, createWorkbook, createSubscription,
+                    createModule, createService, createRoute, createWorkbook, createSubscription,
                     createSettings, createEventTrigger, createUser, createLock,
                     sqlCheck, done, sql, params;
 
@@ -310,32 +310,32 @@
                                 "COMMENT ON COLUMN \"$module\".version IS 'Version number';" +
                                 "COMMENT ON COLUMN \"$module\".dependencies IS 'Module dependencies';" +
                                 "COMMENT ON COLUMN \"$module\".dependencies IS 'Active state';";
-                        obj.client.query(sql, createController());
+                        obj.client.query(sql, createService());
                         return;
                     }
-                    createController();
+                    createService();
                 });
             };
 
-            // Create the controller table
-            createController = function () {
-                sqlCheck('$controller', function (err, exists) {
+            // Create the service table
+            createService = function () {
+                sqlCheck('$service', function (err, exists) {
                     if (err) {
                         reject(err);
                         return;
                     }
 
                     if (!exists) {
-                        sql = "CREATE TABLE \"$controller\" (" +
+                        sql = "CREATE TABLE \"$service\" (" +
                                 "name text PRIMARY KEY," +
                                 "module text REFERENCES \"$module\" (name)," +
                                 "script text," +
                                 "version text);" +
-                                "COMMENT ON TABLE \"$controller\" IS 'Internal table for storing JavaScript controllers';" +
-                                "COMMENT ON COLUMN \"$controller\".name IS 'Primary key';" +
-                                "COMMENT ON COLUMN \"$controller\".module IS 'Module reference';" +
-                                "COMMENT ON COLUMN \"$controller\".script IS 'JavaScript';" +
-                                "COMMENT ON COLUMN \"$controller\".version IS 'Version number';";
+                                "COMMENT ON TABLE \"$service\" IS 'Internal table for storing JavaScript services';" +
+                                "COMMENT ON COLUMN \"$service\".name IS 'Primary key';" +
+                                "COMMENT ON COLUMN \"$service\".module IS 'Module reference';" +
+                                "COMMENT ON COLUMN \"$service\".script IS 'JavaScript';" +
+                                "COMMENT ON COLUMN \"$service\".version IS 'Version number';";
                         obj.client.query(sql, createRoute());
                         return;
                     }

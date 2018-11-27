@@ -11,9 +11,9 @@
             "path": "scripts/module.js"
         },
         {
-            "type": "controller",
+            "type": "service",
             "name": "Table",
-            "path": "scripts/controllers.js"
+            "path": "scripts/services.js"
         },
         {
             "type": "feather",

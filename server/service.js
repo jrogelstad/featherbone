@@ -22,13 +22,13 @@
 
     const {
         Events
-    } = require("./controllers/events");
+    } = require("./services/events");
     const {
         Tools
-    } = require("./controllers/tools");
+    } = require("./services/tools");
     const {
         CRUD
-    } = require("./controllers/crud");
+    } = require("./services/crud");
 
     var that,
         f = require("../common/core"),
@@ -2245,15 +2245,15 @@
         },
 
         /**
-          Return controllers.
+          Return services.
 
           @param {Object} Request payload
           @param {Object} [payload.client] Database client
           @param {Function} [payload.callback] callback
           @return {Object}
         */
-        getControllers: function (obj) {
-            var sql = "SELECT * FROM \"$controller\" ";
+        getServices: function (obj) {
+            var sql = "SELECT * FROM \"$service\" ";
 
             // Query modules
             obj.client.query(sql, function (err, resp) {
@@ -4047,7 +4047,7 @@
     };
 
     /**
-      Returns settings object used internally by controller.
+      Returns settings object used internally by service.
 
       @returns {Object} Settings
     */
