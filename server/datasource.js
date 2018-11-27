@@ -32,20 +32,20 @@
     } = require('./config');
     const {
         Events
-    } = require('./controllers/events');
+    } = require('./services/events');
     const {
         CRUD
-    } = require('./controllers/crud');
+    } = require('./services/crud');
 
     var conn, pool, nodeId, registered,
             f = require("../common/core"),
             jsonpatch = require("fast-json-patch"),
-            controller = require("./controller"),
+            service = require("./service"),
             config = new Config(),
             events = new Events(),
             crud = new CRUD(),
             that = {},
-            settings = controller.settings();
+            settings = service.settings();
 
     registered = {
         GET: {},
@@ -112,7 +112,7 @@
                     pool.connect(function (err, c, d) {
                         // handle an error from the connection
                         if (err) {
-                            controller.setCurrentUser(undefined);
+                            service.setCurrentUser(undefined);
                             console.error("Could not connect to server", err);
                             reject(err);
                             return;
@@ -172,15 +172,15 @@
     };
 
     /**
-      Fetch controllers.
+      Fetch Services.
 
       @returns {Object} promise
     */
-    that.getControllers = function () {
+    that.getServices = function () {
         return new Promise(function (resolve, reject) {
             var payload = {
                 method: "GET",
-                name: "getControllers",
+                name: "getServices",
                 user: that.getCurrentUser()
             };
 
@@ -618,18 +618,18 @@
 
                     switch (obj.method) {
                     case "GET":
-                        controller.doSelect(obj, false, isSuperUser)
+                        service.doSelect(obj, false, isSuperUser)
                             .then(resolve)
                             .catch(reject);
                         return;
                     case "POST":
-                        transaction = controller.doInsert;
+                        transaction = service.doInsert;
                         break;
                     case "PATCH":
-                        transaction = controller.doUpdate;
+                        transaction = service.doUpdate;
                         break;
                     case "DELETE":
-                        transaction = controller.doDelete;
+                        transaction = service.doDelete;
                         break;
                     default:
                         reject(error("method \"" + obj.method + "\" unknown"));
@@ -727,7 +727,7 @@
                         resolve();
                     }
 
-                    controller.doSelect(payload, false, isSuperUser)
+                    service.doSelect(payload, false, isSuperUser)
                         .then(callback)
                         .catch(reject);
                 });
@@ -897,7 +897,7 @@
     };
 
     /**
-      @return {Object} Internal settings object maintained by controller
+      @return {Object} Internal settings object maintained by service
     */
     that.settings = function () {
         return settings;
@@ -967,25 +967,25 @@
     });
 
     // Register certain functions
-    that.registerFunction("GET", "getControllers", controller.getControllers);
-    that.registerFunction("GET", "getFeather", controller.getFeather);
-    that.registerFunction("GET", "getModules", controller.getModules);
-    that.registerFunction("GET", "getRoutes", controller.getRoutes);
-    that.registerFunction("GET", "getSettings", controller.getSettings);
-    that.registerFunction("GET", "getSettingsRow", controller.getSettingsRow);
+    that.registerFunction("GET", "getServices", service.getServices);
+    that.registerFunction("GET", "getFeather", service.getFeather);
+    that.registerFunction("GET", "getModules", service.getModules);
+    that.registerFunction("GET", "getRoutes", service.getRoutes);
+    that.registerFunction("GET", "getSettings", service.getSettings);
+    that.registerFunction("GET", "getSettingsRow", service.getSettingsRow);
     that.registerFunction("GET", "getSettingsDefinition",
-            controller.getSettingsDefinition);
-    that.registerFunction("GET", "getWorkbook", controller.getWorkbook);
-    that.registerFunction("GET", "getWorkbooks", controller.getWorkbooks);
-    that.registerFunction("GET", "isAuthorized", controller.isAuthorized);
-    that.registerFunction("POST", "subscribe", controller.subscribe);
-    that.registerFunction("POST", "unsubscribe", controller.unsubscribe);
+            service.getSettingsDefinition);
+    that.registerFunction("GET", "getWorkbook", service.getWorkbook);
+    that.registerFunction("GET", "getWorkbooks", service.getWorkbooks);
+    that.registerFunction("GET", "isAuthorized", service.isAuthorized);
+    that.registerFunction("POST", "subscribe", service.subscribe);
+    that.registerFunction("POST", "unsubscribe", service.unsubscribe);
     that.registerFunction("PUT", "saveAuthorization",
-            controller.saveAuthorization);
-    that.registerFunction("PUT", "saveFeather", controller.saveFeather);
-    that.registerFunction("PUT", "saveSettings", controller.saveSettings);
-    that.registerFunction("PUT", "saveWorkbook", controller.saveWorkbook);
-    that.registerFunction("DELETE", "deleteFeather", controller.deleteFeather);
-    that.registerFunction("DELETE", "deleteWorkbook", controller.deleteWorkbook);
+            service.saveAuthorization);
+    that.registerFunction("PUT", "saveFeather", service.saveFeather);
+    that.registerFunction("PUT", "saveSettings", service.saveSettings);
+    that.registerFunction("PUT", "saveWorkbook", service.saveWorkbook);
+    that.registerFunction("DELETE", "deleteFeather", service.deleteFeather);
+    that.registerFunction("DELETE", "deleteWorkbook", service.deleteWorkbook);
 
 }(exports));

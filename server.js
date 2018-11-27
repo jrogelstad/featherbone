@@ -28,7 +28,7 @@
         qs = require("qs"),
         SSE = require('sse-nodejs'),
         app = express(),
-        controllers = [],
+        services = [],
         routes = [],
         sessions = {},
         port = process.env.PORT || 10001,
@@ -66,11 +66,11 @@
     }
 
     function init(callback) {
-        function getControllers() {
+        function getServices() {
             return new Promise(function (resolve, reject) {
-                datasource.getControllers()
+                datasource.getServices()
                     .then(function (data) {
-                        controllers = data;
+                        services = data;
                         resolve();
                     })
                     .catch(reject);
@@ -91,7 +91,7 @@
         // Execute
         Promise.resolve()
             .then(datasource.getCatalog)
-            .then(getControllers)
+            .then(getServices)
             .then(getRoutes)
             .then(datasource.unsubscribe)
             .then(datasource.unlock)
@@ -492,10 +492,10 @@
             .then(handleEvents)
             .catch(console.error);
 
-        // REGISTER MODULE CONTROLLERS
-        controllers.forEach(function (controller) {
-            console.log("Registering module controller:", controller.name);
-            eval(controller.script);
+        // REGISTER MODULE SERVICES
+        services.forEach(function (service) {
+            console.log("Registering module service:", service.name);
+            eval(service.script);
         });
 
         // REGISTER MODULE ROUTES

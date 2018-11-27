@@ -40,4 +40,16 @@
         return this.getFullYear() + '-' + month.pad(2) + '-' + this.getDate().pad(2);
     };
 
+    /**
+       Change string with underscores '_' or '-' to camel case.
+       @param {Boolean} Convert first character to upper case. Default false.
+       @returns {String}
+    */
+    Date.prototype.toDate = function () {
+        this.setHours(0);
+        this.setMinutes(0);
+        this.setMilliseconds(0);
+        return this;
+    };
+
 }());
