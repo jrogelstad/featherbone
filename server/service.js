@@ -27,6 +27,9 @@
         Tools
     } = require("./services/tools");
     const {
+        Settings
+    } = require("./services/settings");
+    const {
         CRUD
     } = require("./services/crud");
 
@@ -36,11 +39,11 @@
         format = require("pg-format"),
         events = new Events(),
         tools = new Tools(),
+        settings = new Settings(),
         crud = new CRUD(),
         buildAuthSql = tools.buildAuthSql,
         processSort = tools.processSort,
         sanitize = tools.sanitize,
-        settings = {},
         PKCOL = tools.PKCOL,
         types = {
             object: {
@@ -377,12 +380,7 @@
                 level = obj.level || 0,
                 sql = "";
 
-        afterGetCatalog = function (err, resp) {
-            if (err) {
-                obj.callback(err);
-                return;
-            }
-
+        afterGetCatalog = function (resp) {
             catalog = resp;
             createView({
                 name: name,
@@ -536,13 +534,12 @@
             next();
         };
 
-        that.getSettings({
+        settings.getSettings({
             client: obj.client,
-            callback: afterGetCatalog,
             data: {
                 name: "catalog"
             }
-        });
+        }).then(afterGetCatalog).catch(obj.callback);
     }
 
     function relationColumn(key, relation) {
@@ -577,39 +574,6 @@
     };
 
     that = {
-
-        /**
-          Check to see if an etag is current.
-
-          * @param {Object} Payload
-          * @param {String} [payload.id] Object id
-          * @param {String} [payload.etag] Object etag
-          * @param {Object} [payload.client] Database client
-          * @param {String} [payload.callback] Callback
-          * @return receiver
-        */
-
-        checkEtag: function (obj) {
-            var sql = "SELECT etag FROM %I WHERE id = $1";
-            sql = sql.format([obj.name.toSnakeCase()]);
-
-            obj.client.query(sql, [obj.id], function (err, resp) {
-                var result;
-
-                if (err) {
-                    obj.callback(err);
-                    return;
-                }
-
-                result = resp.rows.length
-                    ? resp.rows[0].etag === obj.etag
-                    : false;
-                obj.callback(null, result);
-            });
-
-            return this;
-        },
-
         /**
           Remove a class from the database.
 
@@ -629,12 +593,7 @@
                     o = 0,
                     c = 0;
 
-            afterGetCatalog = function (err, resp) {
-                if (err) {
-                    obj.callback(err);
-                    return;
-                }
-
+            afterGetCatalog = function (resp) {
                 catalog = resp;
                 next();
             };
@@ -675,12 +634,7 @@
                 });
             };
 
-            createViews = function (err) {
-                if (err) {
-                    obj.callback(err);
-                    return;
-                }
-
+            createViews = function () {
                 var rel;
 
                 if (c < rels.length) {
@@ -735,14 +689,13 @@
 
                     /* Update catalog settings */
                     delete catalog[name];
-                    that.saveSettings({
+                    settings.saveSettings({
                         client: obj.client,
-                        callback: createViews,
                         data: {
                             name: "catalog",
                             data: catalog
                         }
-                    });
+                    }).then(createViews).catch(obj.callback);
                     return;
                 }
 
@@ -750,13 +703,12 @@
                 obj.callback(null, true);
             };
 
-            that.getSettings({
+            settings.getSettings({
                 client: obj.client,
-                callback: afterGetCatalog,
                 data: {
                     name: "catalog"
                 }
-            });
+            }).then(afterGetCatalog).catch(obj.callback);
 
             return this;
         },
@@ -2280,17 +2232,12 @@
         getFeather: function (obj) {
             var callback, name = obj.data.name;
 
-            callback = function (err, catalog) {
+            callback = function (catalog) {
                 var resultProps, featherProps, keys, appendParent,
                         result = {
                     name: name,
                     inherits: "Object"
                 };
-
-                if (err) {
-                    obj.callback(err);
-                    return;
-                }
 
                 appendParent = function (child, parent) {
                     var feather = catalog[parent],
@@ -2344,13 +2291,12 @@
             };
 
             /* First, get catalog */
-            that.getSettings({
+            settings.getSettings({
                 client: obj.client,
-                callback: callback,
                 data: {
                     name: "catalog"
                 }
-            });
+            }).then(callback).catch(obj.callback);
         },
 
         /**
@@ -2397,130 +2343,6 @@
                 // Send back result
                 obj.callback(null, resp.rows);
             });
-        },
-
-        /**
-          Return settings data.
-
-          @param {Object} Request payload
-          @param {Object} [payload.data] Data
-          @param {String} [payload.data.name] Settings name
-          @param {Object} [payload.client] Database client
-          @param {Function} [payload.callback] callback
-          @return {Object}
-        */
-        getSettings: function (obj) {
-            var callback,
-                name = obj.data.name;
-
-            callback = function (err, ok) {
-                var sql = "SELECT id, etag, data FROM \"$settings\" WHERE name = $1";
-
-                if (err) {
-                    obj.callback(err);
-                    return;
-                }
-
-                // If etag checks out, pass back cached
-                if (ok) {
-                    obj.callback(null, settings[name].data);
-                    return;
-                }
-
-                // If here, need to query for the current settings
-                obj.client.query(sql, [name], function (err, resp) {
-                    var rec;
-
-                    if (err) {
-                        obj.callback(err);
-                        return;
-                    }
-
-                    // If we found something, cache it
-                    if (resp.rows.length) {
-                        rec = resp.rows[0];
-                        settings[name] = {
-                            id: rec.id,
-                            etag: rec.etag,
-                            data: rec.data
-                        };
-                    }
-
-                    // Send back the settings if any were found, otherwise "false"
-                    obj.callback(null, settings[name]
-                        ? settings[name].data
-                        : false);
-                });
-            };
-
-            // Check if settings have been changed if we already have them
-            if (settings[name]) {
-                that.checkEtag({
-                    name: "$settings",
-                    id: settings[name].id,
-                    etag: settings[name].etag,
-                    client: obj.client,
-                    callback: callback
-                });
-                return;
-            }
-
-            // Request the settings from the database
-            callback(null, false);
-        },
-
-        /**
-          Return settings definition.
-
-          @param {Object} Request payload
-          @param {Object} [payload.client] Database client
-          @param {Function} [payload.callback] callback
-          @return {Object}
-        */
-        getSettingsDefinition: function (obj) {
-            var sql = "SELECT definition FROM \"$settings\" WHERE definition is NOT NULL",
-                result;
-
-            obj.client.query(sql, function (err, resp) {
-                if (err) {
-                    obj.callback(err);
-                    return;
-                }
-
-                result = resp.rows.map(function (row) {
-                    return row.definition;
-                });
-
-                obj.callback(null, result);
-            });
-        },
-
-        /**
-          Return settings definition, including etag.
-
-          @param {Object} Request payload
-          @param {Object} [payload.client] Database client
-          @param {Function} [payload.callback] callback
-          @return {Object}
-        */
-        getSettingsRow: function (obj) {
-            var ret = {},
-                callback = obj.callback;
-            obj.callback = function (err, resp) {
-                if (err) {
-                    callback(err);
-                    return;
-                }
-
-                if (resp !== false) {
-                    ret.etag = settings[obj.data.name].etag;
-                    ret.data = settings[obj.data.name].data;
-                    callback(null, ret);
-                    return;
-                }
-                callback(null, false);
-            };
-            that.getSettings(obj);
         },
 
         getWorkbook: function (obj) {
@@ -3059,21 +2881,16 @@
 
                     feather = resp;
 
-                    that.getSettings({
+                    settings.getSettings({
                         client: obj.client,
-                        callback: afterGetCatalog,
                         data: {
                             name: "catalog"
                         }
-                    });
+                    }).then(afterGetCatalog).catch(obj.callback);
                 };
 
-                afterGetCatalog = function (err, resp) {
-                    if (err) {
-                        obj.callback(err);
-                        return;
-                    }
-
+                afterGetCatalog = function (resp) {
+                    var err;
                     catalog = resp;
 
                     dropSql = createDropSql(spec.name);
@@ -3164,7 +2981,9 @@
                         return !prop.inheritedFrom;
                     });
                     keys.every(function (key) {
-                        var vSql, prop = props[key];
+                        var vSql,
+                            prop = props[key];
+
                         type = typeof prop.type === "string"
                             ? types[prop.type]
                             : prop.type;
@@ -3573,23 +3392,17 @@
                     delete spec.authorization;
                     spec.isChild = spec.isChild || isChildFeather(spec);
 
-                    that.saveSettings({
+                    settings.saveSettings({
                         client: obj.client,
-                        callback: afterUpdateCatalog,
                         data: {
                             name: "catalog",
                             data: catalog
                         }
-                    });
+                    }).then(afterUpdateCatalog).catch(obj.callback);
                 };
 
-                afterUpdateCatalog = function (err) {
+                afterUpdateCatalog = function () {
                     var callback;
-
-                    if (err) {
-                        obj.callback(err);
-                        return;
-                    }
 
                     callback = function (err, resp) {
                         if (err) {
@@ -3753,75 +3566,6 @@
 
             // Real work starts here
             nextSpec();
-
-            return this;
-        },
-
-        /**
-          Create or upate settings.
-
-          @param {Object} Payload
-          @param {String} [payload.data] Payload data
-          @param {String} [payload.data.name] Name of settings
-          @param {String} [payload.data.etag] Etag
-          @param {Object} [payload.data.data] Settings data
-          @param {Object} [payload.client] Database client
-          @param {Function} [payload.callback] Callback
-          @return {String}
-        */
-        saveSettings: function (obj) {
-            var row, done,
-                    sql = "SELECT * FROM \"$settings\" WHERE name = $1;",
-                    name = obj.data.name,
-                    data = obj.data.data,
-                    etag = obj.etag || f.createId(),
-                    params = [name, data, etag, obj.client.currentUser];
-
-            done = function (err) {
-                if (err) {
-                    obj.callback(err);
-                    return;
-                }
-
-                settings[name] = {
-                    id: name,
-                    data: data,
-                    etag: etag
-                };
-                obj.callback(null, true);
-            };
-
-            obj.client.query(sql, [name], function (err, resp) {
-                if (err) {
-                    obj.callback(err);
-                    return;
-                }
-
-                // If found existing, update
-                if (resp.rows.length) {
-                    row = resp.rows[0];
-
-                    if (settings[name] && settings[name].etag !== row.etag) {
-                        obj.callback('Settings for "' + name +
-                                '" changed by another user. Save failed.');
-                        return;
-                    }
-
-                    sql = "UPDATE \"$settings\" SET " +
-                            " data = $2, etag = $3, " +
-                            " updated = now(), updated_by = $4 " +
-                            "WHERE name = $1;";
-                    obj.client.query(sql, params, done);
-                    return;
-                }
-
-                // otherwise create new
-                sql = "INSERT INTO \"$settings\" (name, data, etag, id, " +
-                        " created, created_by, updated, updated_by, is_deleted) " +
-                        "VALUES ($1, $2, $3, $1, now(), $4, now(), $4, false);";
-
-                obj.client.query(sql, params, done);
-            });
 
             return this;
         },

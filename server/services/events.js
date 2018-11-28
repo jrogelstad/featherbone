@@ -21,7 +21,7 @@
     "strict";
 
     const {Tools} = require("./tools");
-    var tools = new Tools();
+    const tools = new Tools();
 
     exports.Events = function () {
         // ..........................................................
