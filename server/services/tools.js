@@ -21,9 +21,9 @@
     "strict";
 
     exports.Tools = function () {
-        var tools = {},
-            f = require("../../common/core"),
-            ops = Object.keys(f.operators);
+    const tools = {};
+    const f = require("../../common/core");
+    const ops = Object.keys(f.operators);
 
         // ..........................................................
         // PUBLIC

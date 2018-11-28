@@ -423,8 +423,8 @@
                 : isSuperUser;
 
             var client, done, transaction, isChild,
-                    catalog = settings.catalog
-                ? settings.catalog.data
+                    catalog = settings.data.catalog
+                ? settings.data.catalog.data
                 : {},
                     isExternalClient = false,
                     wrap = false,
@@ -571,7 +571,7 @@
             function doTraverseAfter(name) {
                 // console.log("TRAVERSE_AFTER->", obj.name, obj.method, name);
                 return new Promise(function (resolve, reject) {
-                    var feather = settings.catalog.data[name],
+                    var feather = settings.data.catalog.data[name],
                         parent = feather.inherits || "Object";
 
                     function doTrigger() {
@@ -654,7 +654,7 @@
             function doTraverseBefore(name) {
                 // console.log("TRAVERSE_BEFORE->", obj.name, obj.method, name);
                 return new Promise(function (resolve, reject) {
-                    var feather = settings.catalog.data[name],
+                    var feather = settings.data.catalog.data[name],
                         parent = feather.inherits || "Object";
 
                     function doTrigger() {
@@ -971,10 +971,10 @@
     that.registerFunction("GET", "getFeather", service.getFeather);
     that.registerFunction("GET", "getModules", service.getModules);
     that.registerFunction("GET", "getRoutes", service.getRoutes);
-    that.registerFunction("GET", "getSettings", service.getSettings);
-    that.registerFunction("GET", "getSettingsRow", service.getSettingsRow);
+    that.registerFunction("GET", "getSettings", settings.getSettings);
+    that.registerFunction("GET", "getSettingsRow", settings.getSettingsRow);
     that.registerFunction("GET", "getSettingsDefinition",
-            service.getSettingsDefinition);
+            settings.getSettingsDefinition);
     that.registerFunction("GET", "getWorkbook", service.getWorkbook);
     that.registerFunction("GET", "getWorkbooks", service.getWorkbooks);
     that.registerFunction("GET", "isAuthorized", service.isAuthorized);
@@ -983,7 +983,7 @@
     that.registerFunction("PUT", "saveAuthorization",
             service.saveAuthorization);
     that.registerFunction("PUT", "saveFeather", service.saveFeather);
-    that.registerFunction("PUT", "saveSettings", service.saveSettings);
+    that.registerFunction("PUT", "saveSettings", settings.saveSettings);
     that.registerFunction("PUT", "saveWorkbook", service.saveWorkbook);
     that.registerFunction("DELETE", "deleteFeather", service.deleteFeather);
     that.registerFunction("DELETE", "deleteWorkbook", service.deleteWorkbook);

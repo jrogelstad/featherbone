@@ -101,7 +101,7 @@
 
     function resolveName(apiPath) {
         var name, keys, found,
-                catalog = settings.catalog.data;
+                catalog = settings.data.catalog.data;
 
         if (apiPath.lastIndexOf("/") > 0) {
             name = apiPath.match("[/](.*)[/]")[1].toCamelCase(true);
@@ -212,7 +212,7 @@
 
     function registerDataRoutes() {
         var keys, name,
-                catalog = settings.catalog.data;
+                catalog = settings.data.catalog.data;
 
         keys = Object.keys(catalog);
         keys.forEach(function (key) {
