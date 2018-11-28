@@ -30,17 +30,22 @@
         Settings
     } = require("./services/settings");
     const {
+        Feather
+    } = require("./services/feather");
+    const {
         CRUD
     } = require("./services/crud");
 
+    const events = new Events();
+    const tools = new Tools();
+    const settings = new Settings();
+    const crud = new CRUD();
+    const plumo = new Feather();
+    
     var that,
         f = require("../common/core"),
         jsonpatch = require("fast-json-patch"),
         format = require("pg-format"),
-        events = new Events(),
-        tools = new Tools(),
-        settings = new Settings(),
-        crud = new CRUD(),
         buildAuthSql = tools.buildAuthSql,
         processSort = tools.processSort,
         sanitize = tools.sanitize,
@@ -183,12 +188,7 @@
                 cols = ["%I"],
                 sql = "";
 
-        afterGetFeather = function (err, resp) {
-            if (err) {
-                obj.callback(err);
-                return;
-            }
-
+        afterGetFeather = function (resp) {
             feather = resp;
             props = feather.properties;
             keys = Object.keys(props);
@@ -272,13 +272,12 @@
             obj.callback(null, sql);
         };
 
-        that.getFeather({
+        plumo.getFeather({
             client: obj.client,
-            callback: afterGetFeather,
             data: {
                 name: obj.name
             }
-        });
+        }).then(afterGetFeather).catch(obj.callback);
     }
 
     function curry(...args1) {
@@ -294,13 +293,8 @@
     function getParentKey(obj) {
         var cParent, afterGetChildFeather, afterGetParentFeather, done;
 
-        afterGetChildFeather = function (err, resp) {
+        afterGetChildFeather = function (resp) {
             var cKeys, cProps;
-
-            if (err) {
-                obj.callback(err);
-                return;
-            }
 
             cProps = resp.properties;
             cKeys = Object.keys(cProps);
@@ -309,13 +303,12 @@
                         cProps[cKey].type.childOf) {
                     cParent = cProps[cKey].type.relation;
 
-                    that.getFeather({
+                    plumo.getFeather({
                         client: obj.client,
-                        callback: afterGetParentFeather,
                         data: {
                             name: obj.parent
                         }
-                    });
+                    }).then(afterGetParentFeather).catch(obj.callback);
 
                     return false;
                 }
@@ -324,12 +317,7 @@
             });
         };
 
-        afterGetParentFeather = function (err, resp) {
-            if (err) {
-                obj.callback(err);
-                return;
-            }
-
+        afterGetParentFeather = function (resp) {
             if (resp.isChildFeather) {
                 getParentKey({
                     child: cParent,
@@ -355,13 +343,12 @@
             obj.callback(null, resp);
         };
 
-        that.getFeather({
+        plumo.getFeather({
             client: obj.client,
-            callback: afterGetChildFeather,
             data: {
                 name: obj.child
             }
-        });
+        }).then(afterGetChildFeather).catch(obj.callback);
     }
 
     function isChildFeather(feather) {
@@ -769,12 +756,8 @@
                 }
             };
 
-            afterGetFeather = function (err, feather) {
+            afterGetFeather = function (feather) {
                 try {
-                    if (err) {
-                        throw err;
-                    }
-
                     props = feather.properties;
 
                     if (!isChild && feather.isChild) {
@@ -923,13 +906,12 @@
             };
 
             // Kick off query by getting feather, the rest falls through callbacks
-            that.getFeather({
+            plumo.getFeather({
                 client: obj.client,
-                callback: afterGetFeather,
                 data: {
                     name: obj.name
                 }
-            });
+            }).then(afterGetFeather).catch(obj.callback);
         },
 
         /**
@@ -968,12 +950,8 @@
                 client: obj.client
             };
 
-            afterGetFeather = function (err, resp) {
+            afterGetFeather = function (resp) {
                 try {
-                    if (err) {
-                        throw err;
-                    }
-
                     if (!resp) {
                         throw "Class \"" + name + "\" not found";
                     }
@@ -1421,8 +1399,7 @@
             };
 
             // Kick off query by getting feather, the rest falls through callbacks
-            payload.callback = afterGetFeather;
-            that.getFeather(payload);
+            plumo.getFeather(payload).then(afterGetFeather).catch(obj.callback);
         },
 
         /**
@@ -1453,12 +1430,8 @@
                 showDeleted: obj.showDeleted
             };
 
-            afterGetFeather = function (err, feather) {
+            afterGetFeather = function (feather) {
                 try {
-                    if (err) {
-                        throw err;
-                    }
-
                     if (!feather.name) {
                         throw "Feather \"" + obj.name + "\" not found.";
                     }
@@ -1609,13 +1582,12 @@
             };
 
             // Kick off query by getting feather, the rest falls through callbacks
-            that.getFeather({
+            plumo.getFeather({
                 client: obj.client,
-                callback: afterGetFeather,
                 data: {
                     name: obj.name
                 }
-            });
+            }).then(afterGetFeather).catch(obj.callback);
 
             return this;
         },
@@ -1666,12 +1638,8 @@
                 }
             };
 
-            afterGetFeather = function (err, resp) {
+            afterGetFeather = function (resp) {
                 try {
-                    if (err) {
-                        throw err;
-                    }
-
                     if (!resp) {
                         throw "Feather \"" + obj.name + "\" not found.";
                     }
@@ -2185,13 +2153,12 @@
             };
 
             // Kick off query by getting feather, the rest falls through callbacks
-            that.getFeather({
+            plumo.getFeather({
                 client: obj.client,
-                callback: afterGetFeather,
                 data: {
                     name: obj.name
                 }
-            });
+            }).then(afterGetFeather).catch(obj.callback);
 
             return this;
         },
@@ -2217,86 +2184,6 @@
                 // Send back result
                 obj.callback(null, resp.rows);
             });
-        },
-
-        /**
-          Return a class definition, including inherited properties.
-
-          @param {Object} Request payload
-          @param {Object} [payload.name] Feather name
-          @param {Object} [payload.client] Database client
-          @param {Function} [payload.callback] callback
-          @param {Boolean} [payload.includeInherited] Include inherited or not. Default = true.
-          @return receiver
-        */
-        getFeather: function (obj) {
-            var callback, name = obj.data.name;
-
-            callback = function (catalog) {
-                var resultProps, featherProps, keys, appendParent,
-                        result = {
-                    name: name,
-                    inherits: "Object"
-                };
-
-                appendParent = function (child, parent) {
-                    var feather = catalog[parent],
-                        parentProps = feather.properties,
-                        childProps = child.properties,
-                        ckeys = Object.keys(parentProps);
-
-                    if (parent !== "Object") {
-                        appendParent(child, feather.inherits || "Object");
-                    }
-
-                    ckeys.forEach(function (key) {
-                        if (childProps[key] === undefined) {
-                            childProps[key] = parentProps[key];
-                            childProps[key].inheritedFrom = parent;
-                        }
-                    });
-
-                    return child;
-                };
-
-                /* Validation */
-                if (!catalog[name]) {
-                    obj.callback(null, false);
-                    return;
-                }
-
-                /* Add other attributes after name */
-                keys = Object.keys(catalog[name]);
-                keys.forEach(function (key) {
-                    result[key] = catalog[name][key];
-                });
-
-                /* Want inherited properites before class properties */
-                if (obj.data.includeInherited !== false && name !== "Object") {
-                    result.properties = {};
-                    result = appendParent(result, result.inherits);
-                } else {
-                    delete result.inherits;
-                }
-
-                /* Now add local properties back in */
-                featherProps = catalog[name].properties;
-                resultProps = result.properties;
-                keys = Object.keys(featherProps);
-                keys.forEach(function (key) {
-                    resultProps[key] = featherProps[key];
-                });
-
-                obj.callback(null, result);
-            };
-
-            /* First, get catalog */
-            settings.getSettings({
-                client: obj.client,
-                data: {
-                    name: "catalog"
-                }
-            }).then(callback).catch(obj.callback);
         },
 
         /**
@@ -2604,21 +2491,15 @@
 
                 feather = resp.rows[0].feather.toCamelCase(true);
 
-                that.getFeather({
+                plumo.getFeather({
                     client: obj.client,
-                    callback: afterGetFeather,
                     data: {
                         name: feather
                     }
-                });
+                }).then(afterGetFeather).catch(obj.callback);
             };
 
-            afterGetFeather = function (err, resp) {
-                if (err) {
-                    obj.callback(err);
-                    return;
-                }
-
+            afterGetFeather = function (resp) {
                 feather = resp;
 
                 if (isChildFeather(feather)) {
@@ -2873,12 +2754,7 @@
                     return statements.join(";") + ";";
                 };
 
-                afterGetFeather = function (err, resp) {
-                    if (err) {
-                        obj.callback(err);
-                        return;
-                    }
-
+                afterGetFeather = function (resp) {
                     feather = resp;
 
                     settings.getSettings({
@@ -3404,25 +3280,20 @@
                 afterUpdateCatalog = function () {
                     var callback;
 
-                    callback = function (err, resp) {
-                        if (err) {
-                            obj.callback(err);
-                            return;
-                        }
-
+                    callback = function (resp) {
                         isChild = isChildFeather(resp);
                         sql = "SELECT nextval('object__pk_seq') AS pk;";
                         obj.client.query(sql, afterNextVal);
                     };
 
                     if (!feather) {
-                        that.getFeather({
+                        plumo.getFeather({
                             client: obj.client,
                             callback: callback,
                             data: {
                                 name: name
                             }
-                        });
+                        }).then(callback).catch(obj.callback);
                         return;
                     }
 
@@ -3554,14 +3425,13 @@
                     return;
                 }
 
-                that.getFeather({
+                plumo.getFeather({
                     client: obj.client,
-                    callback: afterGetFeather,
                     data: {
                         name: spec.name,
                         includeInherited: false
                     }
-                });
+                }).then(afterGetFeather).catch(obj.callback);
             };
 
             // Real work starts here
