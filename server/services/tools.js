@@ -21,9 +21,9 @@
     "strict";
 
     exports.Tools = function () {
-    const tools = {};
-    const f = require("../../common/core");
-    const ops = Object.keys(f.operators);
+        const tools = {};
+        const f = require("../../common/core");
+        const ops = Object.keys(f.operators);
 
         // ..........................................................
         // PUBLIC
@@ -87,6 +87,77 @@
                     "WHERE NOT " + action + "))";
         };
 
+        tools.formats = {
+            integer: {
+                type: "integer",
+                default: 0
+            },
+            long: {
+                type: "bigint",
+                default: 0
+            },
+            float: {
+                type: "real",
+                default: 0
+            },
+            double: {
+                type: "double precision",
+                default: 0
+            },
+            string: {
+                type: "text",
+                default: "''"
+            },
+            boolean: {
+                type: "boolean",
+                default: "false"
+            },
+            date: {
+                type: "date",
+                default: "today()"
+            },
+            dateTime: {
+                type: "timestamp with time zone",
+                default: "now()"
+            },
+            tel: {
+                type: "text",
+                default: ""
+            },
+            email: {
+                type: "text",
+                default: ""
+            },
+            password: {
+                type: "text",
+                default: ""
+            },
+            url: {
+                type: "text",
+                default: ""
+            },
+            enum: {
+                type: "text",
+                default: ""
+            },
+            textArea: {
+                type: "text",
+                default: ""
+            },
+            color: {
+                type: "text",
+                default: "#000000"
+            },
+            money: {
+                type: "mono",
+                default: null
+            },
+            lock: {
+                type: "lock",
+                default: null
+            }
+        };
+
         /**
           Get the primary key for a given id.
           @param {Object} Request payload
@@ -127,6 +198,14 @@
         */
         tools.getKeys = function (obj, isSuperUser) {
             return new Promise(function (resolve, reject) {
+                function callback(resp) {
+                    var keys = resp.rows.map(function (rec) {
+                        return rec[tools.PKCOL];
+                    });
+
+                    resolve(keys);
+                }
+
                 try {
                     var part, op, err, or,
                             name = obj.name,
@@ -231,20 +310,48 @@
 
                     sql = sql.format(tokens);
 
-                    function callback (resp) {
-                        var keys = resp.rows.map(function (rec) {
-                            return rec[tools.PKCOL];
-                        });
-
-                        resolve(keys);
-                    }
-
                     obj.client.query(sql, params)
-                      .then(callback)
-                      .catch(reject);
+                        .then(callback)
+                        .catch(reject);
                 } catch (e) {
                     reject(e);
                 }
+            });
+        };
+
+        tools.isChildFeather = function (feather) {
+            var props = feather.properties;
+
+            return Object.keys(props).some(function (key) {
+                return !!props[key].type.childOf;
+            });
+        };
+
+        /**
+          Returns whether user is super user.
+
+          @param {Object} Payload
+          @param {String} [payload.user] User. Defaults to current user
+          @param {String} [payload.client] Datobase client
+          @return Promise
+        */
+        tools.isSuperUser = function (obj) {
+            return new Promise(function (resolve, reject) {
+                var sql = "SELECT is_super FROM \"$user\" WHERE username=$1;",
+                    user = obj.user === undefined
+                        ? obj.client.currentUser
+                        : obj.user;
+
+                obj.client.query(sql, [user], function (err, resp) {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+
+                    resolve(resp.rows.length
+                        ? resp.rows[0].is_super
+                        : false);
+                });
             });
         };
 
@@ -307,6 +414,83 @@
                 : ary[0];
         };
 
+        /**
+          Sets a user as super user or not.
+
+          @param {Object} Payload
+          @param {String} [payload.user] User
+          @param {Object} [payload.client] Database client
+          @returns {Object} Promise
+        */
+        tools.setSuperUser = function (obj, isSuper) {
+            return new Promise(function (resolve, reject) {
+                isSuper = obj.isSuper === undefined
+                    ? true
+                    : obj.isSuper;
+
+                var sql, afterCheckSuperUser, afterGetPgUser, afterGetUser, afterUpsert,
+                        user = obj.user;
+
+                afterCheckSuperUser = function (err, ok) {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+
+                    if (!ok) {
+                        reject("Only a super user can set another super user");
+                    }
+
+                    sql = "SELECT * FROM pg_user WHERE usename=$1;";
+                    obj.client.query(sql, [user], afterGetUser);
+                };
+
+                afterGetPgUser = function (err, resp) {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+
+                    if (!resp.rows.length) {
+                        obj.callback("User does not exist");
+                    }
+
+                    sql = "SELECT * FROM \"$user\" WHERE username=$1;";
+                    obj.client.query(sql, [user], afterGetPgUser);
+                };
+
+                afterGetUser = function (err, resp) {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+
+                    if (resp.rows.length) {
+                        sql = "UPDATE \"$user\" SET is_super=$2 WHERE username=$1";
+                    } else {
+                        sql = "INSERT INTO \"$user\" VALUES ($1, $2)";
+                    }
+
+                    obj.client.query(sql, [user, isSuper], afterUpsert);
+                };
+
+                afterUpsert = function (err) {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+
+                    // Success. Return to callback.
+                    resolve(true);
+                };
+
+                tools.isSuperUser({
+                    name: obj.client.currentUser,
+                    client: obj.client
+                }).then(afterCheckSuperUser).catch(reject);
+            });
+        };
+
         tools.processSort = function (sort, tokens) {
             var order, part, clause = "",
                     i = 0,
@@ -333,6 +517,10 @@
             return clause;
         };
 
+        tools.relationColumn = function (key, relation) {
+            return "_" + key.toSnakeCase() + "_" + relation.toSnakeCase() + "_pk";
+        };
+
         tools.resolvePath = function (col, tokens) {
             var prefix, suffix, ret,
                     idx = col.lastIndexOf(".");
@@ -347,6 +535,33 @@
 
             tokens.push(col.toSnakeCase());
             return "%I";
+        };
+
+        tools.types = {
+            object: {
+                type: "json",
+                default: null
+            },
+            array: {
+                type: "json",
+                default: []
+            },
+            string: {
+                type: "text",
+                default: ""
+            },
+            integer: {
+                type: "integer",
+                default: 0
+            },
+            number: {
+                type: "numeric",
+                default: 0
+            },
+            boolean: {
+                type: "boolean",
+                default: "false"
+            }
         };
 
         return tools;
