@@ -623,18 +623,18 @@
 
                     switch (obj.method) {
                     case "GET":
-                        service.doSelect(obj, false, isSuperUser)
+                        crud.doSelect(obj, false, isSuperUser)
                             .then(resolve)
                             .catch(reject);
                         return;
                     case "POST":
-                        transaction = service.doInsert;
+                        transaction = crud.doInsert;
                         break;
                     case "PATCH":
-                        transaction = service.doUpdate;
+                        transaction = crud.doUpdate;
                         break;
                     case "DELETE":
-                        transaction = service.doDelete;
+                        transaction = crud.doDelete;
                         break;
                     default:
                         reject(error("method \"" + obj.method + "\" unknown"));
@@ -732,7 +732,7 @@
                         resolve();
                     }
 
-                    service.doSelect(payload, false, isSuperUser)
+                    crud.doSelect(payload, false, isSuperUser)
                         .then(callback)
                         .catch(reject);
                 });
