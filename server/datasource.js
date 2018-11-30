@@ -57,7 +57,6 @@
 
     const f = require("../common/core");
     const jsonpatch = require("fast-json-patch");
-    const service = require("./service");
     const config = new Config();
     const events = new Events();
     const crud = new CRUD();
@@ -136,7 +135,6 @@
                     pool.connect(function (err, c, d) {
                         // handle an error from the connection
                         if (err) {
-                            service.setCurrentUser(undefined);
                             console.error("Could not connect to server", err);
                             reject(err);
                             return;
@@ -164,6 +162,22 @@
                 .then(setConnectionString)
                 .then(doConnect)
                 .then(resolve)
+                .catch(reject);
+        });
+    }
+
+    function subscribe(obj) {
+        return new Promise(function (resolve, reject) {
+            events.subscribe(obj.client, obj.subscription, [obj.id])
+                .then(resolve.bind(null, true))
+                .catch(reject);
+        });
+    }
+
+    function unsubscribe(obj) {
+        return new Promise(function (resolve, reject) {
+            events.unsubscribe(obj.client, obj.subscription.id)
+                .then(resolve.bind(null, true))
                 .catch(reject);
         });
     }
@@ -1002,8 +1016,8 @@
     that.registerFunction("GET", "getWorkbook", workbooks.getWorkbook);
     that.registerFunction("GET", "getWorkbooks", workbooks.getWorkbooks);
     that.registerFunction("GET", "isAuthorized", feathers.isAuthorized);
-    that.registerFunction("POST", "subscribe", service.subscribe);
-    that.registerFunction("POST", "unsubscribe", service.unsubscribe);
+    that.registerFunction("POST", "subscribe", subscribe);
+    that.registerFunction("POST", "unsubscribe", unsubscribe);
     that.registerFunction("PUT", "saveAuthorization",
             feathers.saveAuthorization);
     that.registerFunction("PUT", "saveFeather", feathers.saveFeather);
