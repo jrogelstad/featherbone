@@ -941,13 +941,21 @@
                             break;
                         default:
                             if (typeof format === "object" && d[col]()) {
-                                // If relation, use relation widget to find display property
+                                // If relation, use relation widget to find display 
                                 rel = catalog.store().components()[format.relation.toCamelCase() + "Relation"];
                                 if (rel) {
                                     value = d[col]().data[rel.valueProperty()]();
+
+                                    url = "http://" + window.location.hostname + ":" +
+                                        window.location.port + "#!/edit/" +
+                                        prop.type.relation.toSnakeCase() +
+                                        "/" + d[col]().id();
+                                    console.log(url);
+                                    content = m("a", {href: url}, value);
                                 }
+                            } else {
+                                content = value;
                             }
-                            content = value;
                         }
 
                         cell = [
