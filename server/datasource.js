@@ -40,6 +40,15 @@
         Feathers
     } = require('./services/feathers');
     const {
+        Modules
+    } = require('./services/modules');
+    const {
+        Routes
+    } = require('./services/routes');
+    const {
+        Services
+    } = require('./services/services');
+    const {
         Settings
     } = require('./services/settings');
     const {
@@ -53,6 +62,9 @@
     const events = new Events();
     const crud = new CRUD();
     const feathers = new Feathers();
+    const modules = new Modules();
+    const routes = new Routes();
+    const services = new Services();
     const settings = new Settings();
     const workbooks = new Workbooks();
     const that = {};
@@ -979,10 +991,10 @@
     });
 
     // Register certain functions
-    that.registerFunction("GET", "getServices", service.getServices);
+    that.registerFunction("GET", "getServices", services.getServices);
     that.registerFunction("GET", "getFeather", feathers.getFeather);
-    that.registerFunction("GET", "getModules", service.getModules);
-    that.registerFunction("GET", "getRoutes", service.getRoutes);
+    that.registerFunction("GET", "getModules", modules.getModules);
+    that.registerFunction("GET", "getRoutes", routes.getRoutes);
     that.registerFunction("GET", "getSettings", settings.getSettings);
     that.registerFunction("GET", "getSettingsRow", settings.getSettingsRow);
     that.registerFunction("GET", "getSettingsDefinition",

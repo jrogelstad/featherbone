@@ -67,75 +67,6 @@
 
     that = {
 
-        /**
-          Return services.
-
-          @param {Object} Request payload
-          @param {Object} [payload.client] Database client
-          @param {Function} [payload.callback] callback
-          @return {Object}
-        */
-        getServices: function (obj) {
-            var sql = "SELECT * FROM \"$service\" ";
-
-            // Query modules
-            obj.client.query(sql, function (err, resp) {
-                if (err) {
-                    obj.callback(err);
-                    return;
-                }
-
-                // Send back result
-                obj.callback(null, resp.rows);
-            });
-        },
-
-        /**
-          Return modules.
-
-          @param {Object} Request payload
-          @param {Object} [payload.client] Database client
-          @param {Function} [payload.callback] callback
-          @return {Object}
-        */
-        getModules: function (obj) {
-            var sql = "SELECT * FROM \"$module\" ";
-
-            // Query modules
-            obj.client.query(sql, function (err, resp) {
-                if (err) {
-                    obj.callback(err);
-                    return;
-                }
-
-                // Send back result
-                obj.callback(null, resp.rows);
-            });
-        },
-
-        /**
-          Return routes.
-
-          @param {Object} Request payload
-          @param {Object} [payload.client] Database client
-          @param {Function} [payload.callback] callback
-          @return {Object}
-        */
-        getRoutes: function (obj) {
-            var sql = "SELECT * FROM \"$route\";";
-
-            // Query routes
-            obj.client.query(sql, function (err, resp) {
-                if (err) {
-                    obj.callback(err);
-                    return;
-                }
-
-                // Send back result
-                obj.callback(null, resp.rows);
-            });
-        },
-
         subscribe: function (obj) {
             events.subscribe(obj.client, obj.subscription, [obj.id])
                 .then(function () {
@@ -151,15 +82,6 @@
                 })
                 .catch(obj.callback);
         }
-    };
-
-    /**
-      Returns settings object used internally by service.
-
-      @returns {Object} Settings
-    */
-    exports.settings = function () {
-        return settings;
     };
 
     // Set properties on exports
