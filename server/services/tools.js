@@ -16,14 +16,50 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*global Promise*/
-/*jslint node, es6*/
+/*jslint node, es6, this*/
 (function (exports) {
     "strict";
 
+    const f = require("../../common/core");
+    const ops = Object.keys(f.operators);
+    const format = require("pg-format");
+
+    const tools = {};
+
+    function curry(...args1) {
+        var fn = args1[0],
+            args = args1[1],
+            ary = [];
+
+        return function () {
+            return fn.apply(this, args.concat(ary.slice.call(args1)));
+        };
+    }
+
+    /**
+      * Escape strings to prevent sql injection
+        http://www.postgresql.org/docs/9.1/interactive/functions-string.html
+      *
+      * @param {String} A string with tokens to replace.
+      * @param {Array} Array of replacement strings.
+      * @return {String} Escaped string.
+    */
+    String.prototype.format = function (ary) {
+        var params = [],
+            i = 0;
+
+        ary = ary || [];
+        ary.unshift(this);
+
+        while (ary[i]) {
+            i += 1;
+            params.push("$" + i);
+        }
+
+        return curry(format, ary)();
+    };
+
     exports.Tools = function () {
-        const tools = {};
-        const f = require("../../common/core");
-        const ops = Object.keys(f.operators);
 
         // ..........................................................
         // PUBLIC

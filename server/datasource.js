@@ -37,8 +37,14 @@
         CRUD
     } = require('./services/crud');
     const {
-        Feather
-    } = require('./services/feather');
+        Feathers
+    } = require('./services/feathers');
+    const {
+        Settings
+    } = require('./services/settings');
+    const {
+        Workbooks
+    } = require('./services/workbooks');
 
     const f = require("../common/core");
     const jsonpatch = require("fast-json-patch");
@@ -46,9 +52,10 @@
     const config = new Config();
     const events = new Events();
     const crud = new CRUD();
-    const plumo = new Feather();
+    const feathers = new Feathers();
+    const settings = new Settings();
+    const workbooks = new Workbooks();
     const that = {};
-    const settings = service.settings();
 
     var conn, pool, nodeId, registered;
 
@@ -973,24 +980,24 @@
 
     // Register certain functions
     that.registerFunction("GET", "getServices", service.getServices);
-    that.registerFunction("GET", "getFeather", plumo.getFeather);
+    that.registerFunction("GET", "getFeather", feathers.getFeather);
     that.registerFunction("GET", "getModules", service.getModules);
     that.registerFunction("GET", "getRoutes", service.getRoutes);
     that.registerFunction("GET", "getSettings", settings.getSettings);
     that.registerFunction("GET", "getSettingsRow", settings.getSettingsRow);
     that.registerFunction("GET", "getSettingsDefinition",
             settings.getSettingsDefinition);
-    that.registerFunction("GET", "getWorkbook", service.getWorkbook);
-    that.registerFunction("GET", "getWorkbooks", service.getWorkbooks);
-    that.registerFunction("GET", "isAuthorized", plumo.isAuthorized);
+    that.registerFunction("GET", "getWorkbook", workbooks.getWorkbook);
+    that.registerFunction("GET", "getWorkbooks", workbooks.getWorkbooks);
+    that.registerFunction("GET", "isAuthorized", feathers.isAuthorized);
     that.registerFunction("POST", "subscribe", service.subscribe);
     that.registerFunction("POST", "unsubscribe", service.unsubscribe);
     that.registerFunction("PUT", "saveAuthorization",
-            plumo.saveAuthorization);
-    that.registerFunction("PUT", "saveFeather", plumo.saveFeather);
+            feathers.saveAuthorization);
+    that.registerFunction("PUT", "saveFeather", feathers.saveFeather);
     that.registerFunction("PUT", "saveSettings", settings.saveSettings);
-    that.registerFunction("PUT", "saveWorkbook", service.saveWorkbook);
-    that.registerFunction("DELETE", "deleteFeather", plumo.deleteFeather);
-    that.registerFunction("DELETE", "deleteWorkbook", service.deleteWorkbook);
+    that.registerFunction("PUT", "saveWorkbook", workbooks.saveWorkbook);
+    that.registerFunction("DELETE", "deleteFeather", feathers.deleteFeather);
+    that.registerFunction("DELETE", "deleteWorkbook", workbooks.deleteWorkbook);
 
 }(exports));
