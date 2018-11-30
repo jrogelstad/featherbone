@@ -28,7 +28,7 @@
     const settings = new Settings();
     const tools = new Tools();
 
-    exports.Feather = function () {
+    exports.Feathers = function () {
         // ..........................................................
         // PRIVATE
         //
@@ -659,7 +659,7 @@
 
                             obj.client.query(sql, [user, pk], function (err, resp) {
                                 if (err) {
-                                    obj.callback(err);
+                                    reject(err);
                                     return;
                                 }
 
@@ -719,14 +719,14 @@
 
                     // Validation
                     if (!objPk) {
-                        obj.callback("Object \"" + id + "\" not found");
+                        reject("Object \"" + id + "\" not found");
                         return;
                     }
 
                     tools.getKey({
                         id: obj.data.role,
                         client: obj.client
-                    }).then(afterGetRoleKey).catch(obj.callback);
+                    }).then(afterGetRoleKey).catch(reject);
                 };
 
                 afterGetRoleKey = function (resp) {
@@ -761,7 +761,7 @@
                         data: {
                             name: feather
                         }
-                    }).then(afterGetFeather).catch(obj.callback);
+                    }).then(afterGetFeather).catch(reject);
                 };
 
                 afterGetFeather = function (resp) {
@@ -1629,7 +1629,7 @@
 
                     afterPropagateViews = function (err) {
                         if (err) {
-                            obj.callback(err);
+                            reject(err);
                             return;
                         }
 
@@ -1654,7 +1654,7 @@
                         if (authorization) {
                             that.saveAuthorization(authorization)
                                 .then(afterSaveAuthorization)
-                                .catch(obj.callback);
+                                .catch(reject);
                             return;
                         }
 

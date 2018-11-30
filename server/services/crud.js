@@ -24,14 +24,14 @@
         Events
     } = require('./events');
     const {
-        Feather
-    } = require('./feather');
+        Feathers
+    } = require('./feathers');
     const {
         Tools
     } = require('./tools');
 
     const events = new Events();
-    const plumo = new Feather();
+    const feathers = new Feathers();
     const tools = new Tools();
     const f = require("../../common/core");
     const jsonpatch = require("fast-json-patch");
@@ -86,7 +86,7 @@
                         }
 
                         if (isSuperUser === false) {
-                            plumo.isAuthorized({
+                            feathers.isAuthorized({
                                 client: obj.client,
                                 data: {
                                     id: obj.id,
@@ -211,7 +211,7 @@
                 };
 
                 // Kick off query by getting feather, the rest falls through callbacks
-                plumo.getFeather({
+                feathers.getFeather({
                     client: obj.client,
                     data: {
                         name: obj.name
@@ -342,7 +342,7 @@
                         }
 
                         if (!isChild && isSuperUser === false) {
-                            plumo.isAuthorized({
+                            feathers.isAuthorized({
                                 client: obj.client,
                                 data: {
                                     feather: name,
@@ -680,7 +680,7 @@
                 };
 
                 // Kick off query by getting feather, the rest falls through callbacks
-                plumo.getFeather(payload).then(afterGetFeather).catch(reject);
+                feathers.getFeather(payload).then(afterGetFeather).catch(reject);
             });
         };
 
@@ -865,7 +865,7 @@
                 };
 
                 // Kick off query by getting feather, the rest falls through callbacks
-                plumo.getFeather({
+                feathers.getFeather({
                     client: obj.client,
                     data: {
                         name: obj.name
@@ -936,7 +936,7 @@
                         }
 
                         if (isSuperUser === false) {
-                            plumo.isAuthorized({
+                            feathers.isAuthorized({
                                 client: obj.client,
                                 data: {
                                     id: id,
@@ -1396,7 +1396,7 @@
                 };
 
                 // Kick off query by getting feather, the rest falls through callbacks
-                plumo.getFeather({
+                feathers.getFeather({
                     client: obj.client,
                     data: {
                         name: obj.name
