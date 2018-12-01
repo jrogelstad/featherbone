@@ -941,16 +941,16 @@
                             break;
                         default:
                             if (typeof format === "object" && d[col]()) {
-                                // If relation, use relation widget to find display 
+                                // If relation, use relation widget to find display
                                 rel = catalog.store().components()[format.relation.toCamelCase() + "Relation"];
                                 if (rel) {
                                     value = d[col]().data[rel.valueProperty()]();
 
                                     url = "http://" + window.location.hostname + ":" +
-                                        window.location.port + "#!/edit/" +
-                                        prop.type.relation.toSnakeCase() +
-                                        "/" + d[col]().id();
-                                    console.log(url);
+                                            window.location.port + "#!/edit/" +
+                                            prop.type.relation.toSnakeCase() +
+                                            "/" + d[col]().id();
+
                                     content = m("a", {href: url}, value);
                                 }
                             } else {
@@ -972,7 +972,7 @@
                     });
 
                     rowOpts = {
-                        ondblclick: vm.ondblclick.bind(this, model)
+                        ondblclick: vm.ondblclick.bind(null, model)
                     };
 
                     // Build editable row
@@ -1151,7 +1151,12 @@
 
                 // Front cap header navigation
                 onclick = vm.toggleSelection.bind(this, model, defaultFocusId);
-                if (!model.isValid()) {
+                if (currentMode !== "/Mode/Edit" && isSelected) {
+                    thContent = m("i", {
+                        onclick: vm.ondblclick.bind(null, model),
+                        class: "fa fa-folder-open"
+                    });
+                } else if (!model.isValid()) {
                     thContent = m("i", {
                         onclick: onclick,
                         title: model.lastError(),
