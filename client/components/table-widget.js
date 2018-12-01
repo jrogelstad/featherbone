@@ -241,6 +241,8 @@
                 key = e.key || e.keyIdentifier,
                 nav = function (name) {
                     id = e.target.id;
+                    document.getElementById(id).blur();
+
                     // Navigate in desired direction
                     vm[name]();
                     m.redraw();
