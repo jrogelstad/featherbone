@@ -448,6 +448,7 @@
                     oninput: m.withAttr("value", vm.oninput),
                     value: vm.value(),
                     oncreate: vnode.attrs.onCreate,
+                    onremove: vnode.attrs.onRemove,
                     disabled: disabled
                 }),
                 menu,
