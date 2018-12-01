@@ -677,6 +677,10 @@
     // Define table widget component
     tableWidget.component = {
 
+        oninit: function (vnode) {
+            vnode.attrs.viewModel.canToggle(true);
+        },
+
         view: function (vnode) {
             var findFilterIndex, header, rows, rel, resize,
                     vm = vnode.attrs.viewModel,
