@@ -84,6 +84,7 @@
                 attr: "id"
             }];
         };
+        vm.canToggle = stream(true);
         vm.isEditModeEnabled = stream(options.isEditModeEnabled !== false);
         vm.isQuery = stream(true);
         vm.config = stream(options.config);
@@ -344,6 +345,9 @@
             vm.state().send("toggle");
         };
         vm.toggleSelection = function (model, id, optKey) {
+            if (!vm.canToggle()) {
+                return;
+            }
             return vm.mode().toggleSelection(model, id, optKey);
         };
         vm.undo = function () {
@@ -901,7 +905,13 @@
                             url = value.slice(0, 4) === "http"
                                 ? value
                                 : "http://" + value;
-                            content = m("a", {href: url}, value);
+                            content = m("a", {
+                                href: url,
+                                target: "_blank",
+                                onclick: function () {
+                                    vm.canToggle(false);
+                                }
+                            }, value);
                             break;
                         case "string":
                             content = value;
@@ -951,7 +961,12 @@
                                             prop.type.relation.toSnakeCase() +
                                             "/" + d[col]().id();
 
-                                    content = m("a", {href: url}, value);
+                                    content = m("a", {
+                                        href: url,
+                                        onclick: function () {
+                                            vm.canToggle(false);
+                                        }
+                                    }, value);
                                 }
                             } else {
                                 content = value;
