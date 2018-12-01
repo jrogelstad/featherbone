@@ -154,7 +154,7 @@
             var col, attrs = vm.attrs().slice().reverse();
 
             col = attrs.find(function (attr) {
-                return !model.data[attr] || !model.data[attr].isReadOnly();
+                return attr in model.data && !model.data[attr].isReadOnly();
             });
             return col
                 ? vm.formatInputId(col)

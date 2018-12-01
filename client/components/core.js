@@ -263,6 +263,7 @@
                     isCell: opts.isCell,
                     style: opts.style,
                     onCreate: opts.oncreate,
+                    onRemove: opts.onremove,
                     showCurrency: opts.showCurrency,
                     disableCurrency: opts.disableCurrency,
                     id: id,
@@ -317,6 +318,7 @@
                     isCell: opts.isCell,
                     style: opts.style,
                     onCreate: opts.oncreate,
+                    onRemove: opts.onremove,
                     id: id,
                     disabled: prop.isReadOnly
                 });

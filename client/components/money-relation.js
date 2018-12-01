@@ -301,7 +301,9 @@
           id: "A" + vm.id(),
           onchange: m.withAttr("value", vm.amount),
           value: vm.amount(),
-          disabled: disabled
+          disabled: disabled,
+          oncreate: vnode.attrs.onCreate,
+          onremove: vnode.attrs.onRemove
         }),
         vm.selector(vnode),
         m("div", [
