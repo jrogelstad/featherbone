@@ -109,12 +109,14 @@
             "scale": {
                 "description": "Numeric scale",
                 "type": "number",
-                "isRequired": false
+                "isRequired": false,
+                "default": -1
             },
             "precision": {
                 "description": "Numeric precision",
                 "type": "number",
-                "isRequired": false
+                "isRequired": false,
+                "default": -1
             },
             "min": {
                 "description": "Numeric minimum",

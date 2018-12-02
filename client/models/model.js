@@ -1195,7 +1195,7 @@
                     // Resolve formatter to standard type
                 } else {
                     if (p.type === "number") {
-                        scale = p.scale === undefined
+                        scale = p.scale === undefined || p.scale === -1
                             ? f.SCALE_DEFAULT
                             : p.scale;
                         formatter = {};
