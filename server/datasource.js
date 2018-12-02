@@ -25,11 +25,8 @@
     require("../common/extend-date");
 
     const {
-        Pool
-    } = require('pg');
-    const {
-        Config
-    } = require('./config');
+        Database
+    } = require('./database');
     const {
         Events
     } = require('./services/events');
@@ -57,7 +54,7 @@
 
     const f = require("../common/core");
     const jsonpatch = require("fast-json-patch");
-    const config = new Config();
+    const db = new Database();
     const events = new Events();
     const crud = new CRUD();
     const feathers = new Feathers();
@@ -68,7 +65,7 @@
     const workbooks = new Workbooks();
     const that = {};
 
-    var conn, pool, nodeId, registered;
+    var registered;
 
     registered = {
         GET: {},
@@ -80,7 +77,6 @@
 
     const TRIGGER_BEFORE = 1;
     const TRIGGER_AFTER = 2;
-
 
     // ..........................................................
     // PRIVATE
@@ -98,72 +94,6 @@
         }
 
         return false;
-    }
-
-    // Reslove connection string
-    function setNodeId(config) {
-        return new Promise(function (resolve) {
-            nodeId = config.nodeId.toSnakeCase();
-            resolve(config);
-        });
-    }
-
-    // Reslove connection string
-    function setConnectionString(config) {
-        return new Promise(function (resolve) {
-            conn = "postgres://" +
-                    config.postgres.user + ":" +
-                    config.postgres.password + "@" +
-                    config.postgres.host + "/" +
-                    config.postgres.database;
-
-            resolve();
-        });
-    }
-
-    function connect() {
-        return new Promise(function (resolve, reject) {
-            // Do connection
-            function doConnect() {
-                return new Promise(function (resolve, reject) {
-                    if (!pool) {
-                        pool = new Pool({
-                            connectionString: conn
-                        });
-                    }
-
-                    pool.connect(function (err, c, d) {
-                        // handle an error from the connection
-                        if (err) {
-                            console.error("Could not connect to server", err);
-                            reject(err);
-                            return;
-                        }
-
-                        resolve({
-                            client: c,
-                            done: d
-                        });
-                    });
-                });
-            }
-
-            if (conn) {
-                doConnect()
-                    .then(resolve)
-                    .catch(reject);
-                return;
-            }
-
-            // If no connection string, go get it
-            Promise.resolve()
-                .then(config.read)
-                .then(setNodeId)
-                .then(setConnectionString)
-                .then(doConnect)
-                .then(resolve)
-                .catch(reject);
-        });
     }
 
     function subscribe(obj) {
@@ -256,7 +186,7 @@
     that.listen = function (callback) {
         function doListen(resp) {
             return new Promise(function (resolve, reject) {
-                events.listen(resp.client, nodeId, callback)
+                events.listen(resp.client, db.nodeId(), callback)
                     .then(resolve)
                     .catch(reject);
             });
@@ -264,7 +194,7 @@
 
         return new Promise(function (resolve, reject) {
             Promise.resolve()
-                .then(connect)
+                .then(db.connect)
                 .then(doListen)
                 .then(resolve)
                 .catch(reject);
@@ -286,14 +216,14 @@
                         resolve();
                     }
 
-                    events.unsubscribe(resp.client, id || nodeId, type || 'node')
+                    events.unsubscribe(resp.client, id || db.nodeId(), type || 'node')
                         .then(callback)
                         .catch(reject);
                 });
             }
 
             Promise.resolve()
-                .then(connect)
+                .then(db.connect)
                 .then(doUnsubscribe)
                 .then(resolve)
                 .catch(reject);
@@ -318,14 +248,14 @@
                         resolve(ok);
                     }
 
-                    crud.lock(resp.client, nodeId, id, username, sessionid)
+                    crud.lock(resp.client, db.nodeId(), id, username, sessionid)
                         .then(callback)
                         .catch(reject);
                 });
             }
 
             Promise.resolve()
-                .then(connect)
+                .then(db.connect)
                 .then(doLock)
                 .then(resolve)
                 .catch(reject);
@@ -344,7 +274,7 @@
     that.unlock = function (criteria) {
         return new Promise(function (resolve, reject) {
             criteria = criteria || {};
-            criteria.nodeId = nodeId;
+            criteria.nodeId = db.nodeId();
 
             // Do the work
             function doUnlock(resp) {
@@ -361,7 +291,7 @@
             }
 
             Promise.resolve()
-                .then(connect)
+                .then(db.connect)
                 .then(doUnlock)
                 .then(resolve)
                 .catch(reject);
@@ -789,7 +719,7 @@
                     }
 
                     if (obj.subscription) {
-                        obj.subscription.nodeId = nodeId;
+                        obj.subscription.nodeId = db.nodeId();
                     }
 
                     // If alter data, process it
@@ -843,7 +773,7 @@
             }
 
             Promise.resolve()
-                .then(connect)
+                .then(db.connect)
                 .then(doRequest)
                 .then(close)
                 .then(resolve)
