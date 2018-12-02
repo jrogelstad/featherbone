@@ -28,7 +28,7 @@
         var that = {};
 
         /**
-          Return modules.
+          Return routes.
 
           @param {Object} Request payload
           @param {Object} [payload.client] Database client
