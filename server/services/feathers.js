@@ -1219,10 +1219,12 @@
                                         } else {
                                             sql += type.type;
                                             if (type.type === "numeric") {
-                                                precision = typeof prop.precision === "number"
+                                                precision = (typeof prop.precision === "number" &&
+                                                        prop.precision !== -1)
                                                     ? prop.precision
                                                     : f.PRECISION_DEFAULT;
-                                                scale = typeof prop.scale === "number"
+                                                scale = (typeof prop.scale === "number" &&
+                                                        prop.precision !== -1)
                                                     ? prop.scale
                                                     : f.SCALE_DEFAULT;
                                                 sql += "(" + precision + "," + scale + ")";
