@@ -98,12 +98,12 @@
         value = prop.toJSON(); // Raw value
 
       if (value.effective) {
-        ret = value.amount * value.ratio;
+        ret = value.amount.times(value.ratio);
       } else if (conv &&
         conv.data.fromCurrency().data.code() === baseCode) {
-        ret = value.amount * conv.data.ratio.toJSON();
+        ret = value.amount.times(conv.data.ratio.toJSON());
       } else if (conv) {
-        ret = value.amount / conv.data.ratio.toJSON();
+        ret = value.amount.div(conv.data.ratio.toJSON());
       } else {
         return;
       }
