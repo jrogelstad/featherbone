@@ -39,6 +39,7 @@
         settingsRouter = express.Router(),
         settingsDefinitionRouter = express.Router(),
         workbookRouter = express.Router(),
+        currencyRouter = express.Router(),
         settings = datasource.settings();
 
     // Handle response
@@ -58,6 +59,9 @@
 
     // Handle datasource error
     function error(err) {
+        if (typeof err === "string") {
+            err = new Error(err);
+        }
         if (!err.statusCode) {
             err.statusCode = 500;
         }
@@ -176,6 +180,43 @@
             user: datasource.getCurrentUser(),
             data: {
                 name: req.params.name
+            }
+        };
+
+        console.log(JSON.stringify(payload, null, 2));
+        datasource.request(payload)
+            .then(respond.bind(res))
+            .catch(error.bind(res));
+    }
+
+    function doGetBaseCurrency(req, res) {
+        var query = qs.parse(req.query),
+        payload = {
+            method: "GET",
+            name: "getBaseCurrency",
+            user: datasource.getCurrentUser(),
+            data: {
+                effective: query.effective
+            }
+        };
+
+        console.log(JSON.stringify(payload, null, 2));
+        datasource.request(payload)
+            .then(respond.bind(res))
+            .catch(error.bind(res));
+    }
+
+    function doConvertCurrency(req, res) {
+        var query = qs.parse(req.query),
+        payload = {
+            method: "POST",
+            name: "convertCurrency",
+            user: datasource.getCurrentUser(),
+            data: {
+                fromCurrency: query.fromCurrency,
+                amount: query.amount,
+                toCurrency: query.toCurrency,
+                effective: query.effective
             }
         };
 
@@ -399,6 +440,10 @@
         // Create routes for each catalog object
         registerDataRoutes();
 
+        currencyRouter.route("/base")
+            .get(doGetBaseCurrency);
+        currencyRouter.route("/convert")
+            .post(doConvertCurrency);
         doRouter.route("/subscribe/:query")
             .post(doSubscribe);
         doRouter.route("/unsubscribe/:query")
@@ -427,6 +472,7 @@
 
         // REGISTER CORE ROUTES -------------------------------
         console.log("Registering core routes");
+        app.use('/currency', currencyRouter);
         app.use('/do', doRouter);
         app.use('/data', dataRouter);
         app.use('/feather', featherRouter);
