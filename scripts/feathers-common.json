@@ -64,11 +64,6 @@
 			"note": {
 				"description": "Note",
 				"type": "string"
-			},
-			"type": {
-				"description": "Kind type",
-				"type": "string",
-				"default": "Asset"
 			}
 		}
 	},
