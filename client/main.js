@@ -290,7 +290,7 @@
         }
 
         subclass("Object", models.object);
-        
+
         // Set up money as special feather,
         // but there will be no corresponding model.
         // Only to help build filters, displays etc.
@@ -419,7 +419,10 @@
                         return model.id() === data.id;
                     });
 
-                    if (instance) {
+                    // Only update if version is different
+                    // (i.e. update not caused by this instance)
+                    if (instance && instance.data.etag &&
+                            instance.data.etag() !== data.etag) {
                         instance.set(data, true, true);
                         m.redraw();
                     }

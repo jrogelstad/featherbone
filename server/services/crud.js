@@ -898,7 +898,7 @@
                         params = [],
                         ary = [],
                         clen = 0,
-                        c = 0,
+                        children = [],
                         p = 1,
                         n = 0;
 
@@ -1304,20 +1304,19 @@
 
                 afterProperties = function () {
                     try {
+                        // Execute child changes first so all captured in any notification
+                        children = doList.map((item) => item.func(item.payload, true));
+
                         // Execute top level object change
                         sql = ("UPDATE %I SET " + ary.join(",") + " WHERE _pk = $" + p);
                         sql = sql.format(tokens);
                         params.push(pk);
                         clen += 1;
 
-                        obj.client.query(sql, params, afterUpdate);
-
-                        // Execute child changes
-                        doList.forEach(function (item) {
-                            item.func(item.payload, true)
-                                .then(afterUpdate)
-                                .catch(reject);
-                        });
+                        Promise.all(children)
+                            .then(() => obj.client.query(sql, params))
+                            .then(afterUpdate)
+                            .catch(reject);
                     } catch (e) {
                         reject(e);
                     }
@@ -1325,12 +1324,6 @@
 
                 afterUpdate = function () {
                     try {
-                        // Don't proceed until all callbacks report back
-                        c += 1;
-                        if (c < clen) {
-                            return;
-                        }
-
                         // If child, we're done here
                         if (isChild) {
                             resolve();
