@@ -394,7 +394,7 @@
             // Listen for event changes for this session
             evsubscr = new EventSource('/sse/' + sessionId);
             evsubscr.onmessage = function (event) {
-                var instance, ary, payload, subscriptionId, change, data;
+                var instance, ary, payload, subscriptionId, change, data, state;
 
                 // Ignore heartbeats
                 if (event.data === "") {
@@ -421,10 +421,12 @@
 
                     // Only update if version is different
                     // (i.e. update not caused by this instance)
-                    if (instance && instance.data.etag &&
-                            instance.data.etag() !== data.etag) {
-                        instance.set(data, true, true);
-                        m.redraw();
+                    if (instance) {
+                        state = instance.state().current()[0];
+                        if (state !== "/Locked" && state !== "/Busy/Saving/Patching") {
+                            instance.set(data, true, true);
+                            m.redraw();
+                        }
                     }
                     break;
                 case 'create':
