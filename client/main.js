@@ -419,9 +419,8 @@
                         return model.id() === data.id;
                     });
 
-                    // Only update if version is different
-                    // (i.e. update not caused by this instance)
                     if (instance) {
+                        // Only update not if not caused by this instance
                         state = instance.state().current()[0];
                         if (state !== "/Locked" && state !== "/Busy/Saving/Patching") {
                             instance.set(data, true, true);
