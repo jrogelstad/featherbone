@@ -446,10 +446,14 @@
                                     }
 
                                     /* Relation must already exist */
-                                    tools.getKey({
-                                        id: data[key].id,
-                                        client: obj.client
-                                    }).then(afterGetPk).catch(reject);
+                                    if (prop.type.childOf && obj.pk) {
+                                        afterGetPk(obj.pk);
+                                    } else {
+                                        tools.getKey({
+                                            id: data[key].id,
+                                            client: obj.client
+                                        }).then(afterGetPk).catch(reject);
+                                    }
                                     return;
                                 }
                             }
@@ -541,8 +545,8 @@
                             ") VALUES ($1," + params.toString(",") + ");");
                     sql = sql.format(args);
 
-                    // Perform the insert
-                    obj.client.query(sql, values, insertChildren);
+                    // Insert children first, parent last so notification gets full object
+                    insertChildren();
                 };
 
                 afterGetPk = function (id) {
@@ -605,6 +609,7 @@
                                     id: data.id
                                 };
                                 crud.doInsert({
+                                    pk: pk,
                                     name: rel,
                                     data: row,
                                     client: obj.client
@@ -619,6 +624,21 @@
                 };
 
                 afterInsert = function () {
+                    function afterParentInsert() {
+                        // We're done here if child
+                        if (isChild) {
+                            resolve(result);
+                            return;
+                        }
+
+                        // Otherwise move on to log the change
+                        crud.doSelect({
+                            name: obj.name,
+                            id: data.id,
+                            client: obj.client
+                        }).then(afterDoSelect).catch(reject);
+                    }
+
                     try {
                         // Done only when all callbacks report back
                         c += 1;
@@ -626,19 +646,10 @@
                             return;
                         }
 
-                        // We're done here if child
-                        if (isChild) {
-                            resolve(result);
-                            return;
-                        }
-
-                        // Otherwise we'll move on to log the change
-                        crud.doSelect({
-                            name: obj.name,
-                            id: data.id,
-                            client: obj.client,
-                            callback: afterDoSelect
-                        }).then(afterDoSelect).catch(reject);
+                        // Perform the parent insert
+                        obj.client.query(sql, values)
+                            .then(afterParentInsert)
+                            .catch(reject);
                     } catch (e) {
                         reject(e);
                     }
