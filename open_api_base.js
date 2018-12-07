@@ -10,7 +10,7 @@
 		}
 	},
 	"servers": [{
-		"url": "localhost:10001"
+		"url": "http://localhost:10001"
 	}],
 	"tags": [{
 			"name": "feather",
@@ -232,6 +232,40 @@
 				}
 			}
 		},
+		"/module/": {
+			"get": {
+				"summary": "Get javascript modules",
+				"operationId": "getModules",
+				"tags": [
+					"module"
+				],
+				"responses": {
+					"200": {
+						"description": "Expected response to a valid request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"$ref": "#/components/schemas/Module"
+									}
+								}
+							}
+						}
+                    },
+                    "default": {
+                        "description": "unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+				}
+			}
+		},
 		"/workbook/{name}": {
 			"get": {
 				"summary": "Get workbook by name",
@@ -409,6 +443,31 @@
                     "value": {
                         "description": "Surrogate key",
                         "type": "object"
+                    }
+                }
+            },
+            "Module": {
+                "description": "Generic definition for module",
+                "properties": {
+                    "name": {
+                        "description": "Module name",
+                        "type": "string"
+                    },
+                    "script": {
+                        "description": "Client side javascript",
+                        "type": "string"
+                    },
+                    "version": {
+                        "description": "Module version",
+                        "type": "string"
+                    },
+                    "dependencies": {
+                        "description": "Module dependencies",
+                        "type": "object"
+                    },
+                    "isActive": {
+                        "description": "Active flag",
+                        "type": "boolean"
                     }
                 }
             },

@@ -51,7 +51,9 @@
         // No caching... ever
         this.setHeader("Cache-Control", "no-cache, no-store, must-revalidate"); // HTTP 1.1.
         this.setHeader("Pragma", "no-cache"); // HTTP 1.0.
-        this.setHeader("Expires", "0"); //
+        this.setHeader("Expires", "0");
+        // Uncomment to allow swagger or other locahost testing
+        //this.setHeader("Access-Control-Allow-Origin", "http://localhost");
 
         // Send back a JSON response
         this.json(resp);

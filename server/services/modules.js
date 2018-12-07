@@ -20,6 +20,12 @@
 (function (exports) {
     "strict";
 
+    const {
+        Tools
+    } = require('./tools');
+
+    const tools = new Tools();
+
     exports.Modules = function () {
         // ..........................................................
         // PUBLIC
@@ -46,7 +52,7 @@
                     }
 
                     // Send back result
-                    resolve(resp.rows);
+                    resolve(tools.sanitize(resp.rows));
                 });
             });
         };
