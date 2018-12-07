@@ -214,50 +214,6 @@
                 ]
             }
         }
-      },
-      {
-        "name": "Countries",
-        "feather": "Country",
-        "list": {
-          "columns": [{
-              "attr": "code"
-            },
-            {
-              "attr": "name"
-            }
-          ]
-        }
-      },
-      {
-        "name": "States",
-        "feather": "State",
-        "list": {
-          "columns": [{
-              "attr": "code"
-            }, {
-              "attr": "name"
-            }]
-        }
-      },
-      {
-        "name": "Honorifics",
-        "feather": "Honorific",
-        "list": {
-          "columns": [{
-              "attr": "title"
-            }]
-        }
-      },
-      {
-        "name": "Social",
-        "feather": "SocialNetwork",
-        "list": {
-          "columns": [{
-              "attr": "name"
-            }, {
-              "attr": "url"
-            }]
-        }
       }
     ]
   }
