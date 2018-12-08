@@ -300,7 +300,10 @@
 
         console.log(JSON.stringify(payload, null, 2));
         datasource.request(payload)
-            .then(registerDataRoutes)
+            .then(function () {
+                registerDataRoutes();
+                res.json();
+            })
             .catch(error.bind(res));
     }
 
@@ -326,7 +329,10 @@
 
         console.log(JSON.stringify(payload, null, 2));
         datasource.request(payload)
-            .then(registerDataRoutes)
+            .then(function () {
+                registerDataRoutes();
+                res.json();
+            })
             .catch(error.bind(res));
     }
 
