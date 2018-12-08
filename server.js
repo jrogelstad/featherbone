@@ -52,8 +52,8 @@
         this.setHeader("Cache-Control", "no-cache, no-store, must-revalidate"); // HTTP 1.1.
         this.setHeader("Pragma", "no-cache"); // HTTP 1.0.
         this.setHeader("Expires", "0");
-        // Uncomment to allow swagger or other localhost testing
-        //this.setHeader("Access-Control-Allow-Origin", "http://localhost");
+        // TODO: Make config option to turn this off for production
+        this.setHeader("Access-Control-Allow-Origin", "http://localhost");
 
         // Send back a JSON response
         this.json(resp);
@@ -193,14 +193,14 @@
 
     function doGetBaseCurrency(req, res) {
         var query = qs.parse(req.query),
-        payload = {
-            method: "GET",
-            name: "getBaseCurrency",
-            user: datasource.getCurrentUser(),
-            data: {
-                effective: query.effective
-            }
-        };
+            payload = {
+                method: "GET",
+                name: "getBaseCurrency",
+                user: datasource.getCurrentUser(),
+                data: {
+                    effective: query.effective
+                }
+            };
 
         console.log(JSON.stringify(payload, null, 2));
         datasource.request(payload)
@@ -210,17 +210,17 @@
 
     function doConvertCurrency(req, res) {
         var query = qs.parse(req.query),
-        payload = {
-            method: "POST",
-            name: "convertCurrency",
-            user: datasource.getCurrentUser(),
-            data: {
-                fromCurrency: query.fromCurrency,
-                amount: query.amount,
-                toCurrency: query.toCurrency,
-                effective: query.effective
-            }
-        };
+            payload = {
+                method: "POST",
+                name: "convertCurrency",
+                user: datasource.getCurrentUser(),
+                data: {
+                    fromCurrency: query.fromCurrency,
+                    amount: query.amount,
+                    toCurrency: query.toCurrency,
+                    effective: query.effective
+                }
+            };
 
         console.log(JSON.stringify(payload, null, 2));
         datasource.request(payload)
@@ -302,7 +302,7 @@
         datasource.request(payload)
             .then(function () {
                 registerDataRoutes();
-                res.json();
+                respond.bind(res)();
             })
             .catch(error.bind(res));
     }
@@ -331,7 +331,7 @@
         datasource.request(payload)
             .then(function () {
                 registerDataRoutes();
-                res.json();
+                respond.bind(res)();
             })
             .catch(error.bind(res));
     }
@@ -348,7 +348,7 @@
             };
 
         datasource.request(payload)
-            .then(res.json)
+            .then(respond.bind(res))
             .catch(error);
     }
 
@@ -372,9 +372,7 @@
 
         console.log(JSON.stringify(payload, null, 2));
         datasource.request(payload)
-            .then(function () {
-                res.json();
-            })
+            .then(respond.bind(res))
             .catch(error.bind(res));
     }
 
@@ -389,9 +387,7 @@
 
         console.log(JSON.stringify(payload, null, 2));
         datasource.request(payload)
-            .then(function () {
-                res.json();
-            })
+            .then(respond.bind(res))
             .catch(error.bind(res));
     }
 
@@ -401,9 +397,7 @@
 
         console.log("Lock", query.id);
         datasource.lock(query.id, username, query.sessionId)
-            .then(function () {
-                res.json();
-            })
+            .then(respond.bind(res))
             .catch(error.bind(res));
     }
 
@@ -419,9 +413,7 @@
 
         console.log("Unlock", query.id);
         datasource.unlock(criteria)
-            .then(function (resp) {
-                res.json(resp);
-            })
+            .then(respond.bind(res))
             .catch(error.bind(res));
     }
 
@@ -439,10 +431,17 @@
 
         // static pages
         app.use(express.static(__dirname));
-
+ 
         // middleware to use for all requests
-        dataRouter.use(function (...args) {
-            args[2](); // make sure we go to the 'next' routes and don't stop here
+        app.use(function (...args) {
+            var res = args[1],
+                next = args[2];
+
+            // TODO: Make config option to turn these off for production
+            res.header('Access-Control-Allow-Origin', '*');
+            res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
+            res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+            next(); // make sure we go to the 'next' routes and don't stop here
         });
 
         // Create routes for each catalog object
