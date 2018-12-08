@@ -17,8 +17,16 @@
 			"description": "Data class specifications"
 		},
 		{
+			"name": "module",
+			"description": "Javascript client code module"
+		},
+		{
 			"name": "settings",
-			"description": "Application settings url"
+			"description": "Application settings"
+		},
+		{
+			"name": "workbook",
+			"description": "Workbook UI layout configuration"
 		}
 	],
 	"paths": {
@@ -75,28 +83,16 @@
 					"schema": {
 						"type": "string"
 					}
-				}, {
-					"name": "data",
-					"in": "query",
-					"description": "The name of the settings",
-					"required": true,
-					"schema": {
-						"type": "object"
-					}
 				}],
+                "requestBody": {
+                  "$ref": "#/components/requestBodies/Settings"
+                },
 				"responses": {
-					"200": {
-						"description": "Expected response to a valid request",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/Settings"
-								}
-							}
-						}
+					"204": {
+						"description": "Expected response to a valid request"
 					},
 					"default": {
-						"description": "unexpected error",
+						"description": "Unexpected error",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -136,7 +132,7 @@
 						}
 					},
 					"default": {
-						"description": "unexpected error",
+						"description": "Unexpected error",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -161,28 +157,16 @@
 					"schema": {
 						"type": "string"
 					}
-				}, {
-					"name": "data",
-					"in": "query",
-					"description": "The feather definition",
-					"required": true,
-					"schema": {
-						"type": "object"
-					}
 				}],
+                "requestBody": {
+                  "$ref": "#/components/requestBodies/Feather"
+                },
 				"responses": {
-					"200": {
-						"description": "Expected response to a valid request",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/Feather"
-								}
-							}
-						}
+					"204": {
+						"description": "Expected response to a valid request"
 					},
 					"default": {
-						"description": "unexpected error",
+						"description": "Unexpected error",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -254,7 +238,7 @@
 						}
                     },
                     "default": {
-                        "description": "unexpected error",
+                        "description": "Unexpected error",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -293,8 +277,18 @@
 							}
 						}
 					},
+					"404": {
+						"description": "Workbook not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "string"
+								}
+							}
+						}
+					},
 					"default": {
-						"description": "unexpected error",
+						"description": "Unexpected error",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -319,28 +313,16 @@
 					"schema": {
 						"type": "string"
 					}
-				}, {
-					"name": "data",
-					"in": "query",
-					"description": "The workbook definition",
-					"required": true,
-					"schema": {
-						"type": "object"
-					}
 				}],
+                "requestBody": {
+                  "$ref": "#/components/requestBodies/Workbook"
+                },
 				"responses": {
-					"200": {
-						"description": "Expected response to a valid request",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/Workbook"
-								}
-							}
-						}
+					"204": {
+						"description": "Expected response to a valid request"
 					},
 					"default": {
-						"description": "unexpected error",
+						"description": "Unexpected error",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -611,10 +593,6 @@
             "Settings": {
                 "description": "Generic definition for settings",
                 "properties": {
-                    "id": {
-                        "description": "Unique identifier",
-                        "type": "string"
-                    },
                     "etag": {
                         "description": "Version for pessemistic locking",
                         "type": "string"
@@ -653,6 +631,41 @@
                         "type": "object"
                     }
                 }
+            }
+        },
+        "requestBodies": {
+            "Feather": {
+                "content": {
+                  "application/json": {
+                    "schema": {
+                        "$ref": "#/components/schemas/Feather"
+                    }
+                  }
+                },
+                "description": "Feather to be saved",
+                "required": true
+            },
+            "Settings": {
+                "content": {
+                  "application/json": {
+                    "schema": {
+                        "$ref": "#/components/schemas/Settings"
+                    }
+                  }
+                },
+                "description": "Settings to be saved",
+                "required": true
+            },
+            "Workbook": {
+                "content": {
+                  "application/json": {
+                    "schema": {
+                        "$ref": "#/components/schemas/Workbook"
+                    }
+                  }
+                },
+                "description": "Workbook to be saved",
+                "required": true
             }
         }
     }

@@ -64,7 +64,15 @@
 
         that.getWorkbook = function (obj) {
             return new Promise(function (resolve, reject) {
+                var err;
+
                 function callback(resp) {
+                    if (!resp.length) {
+                        err = new Error("Workbook not found");
+                        err.statusCode = 404;
+                        throw err;
+                    }
+
                     resolve(resp[0]);
                 }
 

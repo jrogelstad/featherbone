@@ -349,7 +349,7 @@
 
         datasource.request(payload)
             .then(respond.bind(res))
-            .catch(error);
+            .catch(error.bind(res));
     }
 
     function doDeleteFeather(req, res) {
