@@ -35,6 +35,20 @@
                 primitives = Object.keys(f.types),
                 formats = Object.keys(f.formats);
 
+            function props() {
+                var obj = {};
+
+                obj.id = {};
+                obj.id.type = "string";
+
+                property.type.properties.forEach(function (key) {
+                    obj[key] = {};
+                    obj[key].type = "string"; // TODO: Figure out what type really is based on feather
+                });
+
+                return obj;
+            }
+
             // Bail if child property. Not necessary for api definition
             if (typeof property.type === "object" && property.type.childOf) {
                 return;
@@ -54,9 +68,14 @@
                     ? "array"
                     : "object";
 
-                newProperty.items = {
-                    "$ref": "#/components/schemas/" + property.type.relation
-                };
+                if (newProperty.type === "object") {
+                    newProperty.required = ["id"];
+                    newProperty.properties = props();
+                } else {
+                    newProperty.items = {
+                        "$ref": "#/components/schemas/" + property.type.relation
+                    };
+                }
             } else {
                 if (primitives.indexOf(property.type) !== -1) {
                     newProperty.type = property.type;
@@ -94,7 +113,8 @@
         */
         that.build = function () {
             return new Promise(function (resolve, reject) {
-                var api, catalog, payload, keys, name, path;
+                var api, catalog, payload, keys, name, path,
+                        tags = [];
 
                 function callback(resp) {
                     var schemas = api.components.schemas;
@@ -103,25 +123,33 @@
 
                     // Loop through each feather and append to api api
                     keys = Object.keys(catalog);
+                    keys.sort(function (a, b) {
+                        return a < b
+                            ? -1
+                            : 1;
+                    });
+
                     keys.forEach(function (key) {
-                        var schema, tag,
-                                feather = catalog[key],
-                                properties = {},
-                                inherits = feather.inherits || "Object",
-                                pathName = "/data/" + key.toSpinalCase() + "/{id}";
+                        var schema, //tag,
+                            feather = catalog[key],
+                            properties = {},
+                            inherits = feather.inherits || "Object",
+                            pathName = "/data/" + key.toSpinalCase() + "/{id}";
 
                         name = key.toProperCase();
 
+                        if (!tags.some((item) => item.name === feather.module)) {
+                            tags.push({
+                                name: feather.module,
+                                description: feather.module + " module"
+                            });
+                        }
+
                         // Append singluar path
                         if (!feather.isChild) {
-                            tag = {
-                                name: key.toSpinalCase(),
-                                description: feather.description
-                            };
-                            api.tags.push(tag);
                             path = {
                                 get: {
-                                    tags: [key.toSpinalCase()],
+                                    tags: [feather.module],
                                     summary: "Info for a specific " + name,
                                     parameters: [
                                         {
@@ -161,7 +189,7 @@
 
                             if (feather.readOnly !== true) {
                                 path.patch = {
-                                    tags: [key.toSpinalCase()],
+                                    tags: [feather.module],
                                     summary: "Update an existing " + name,
                                     operationId: "doPatch",
                                     parameters: [
@@ -202,7 +230,7 @@
                                     }
                                 };
                                 path.delete = {
-                                    tags: [key.toSpinalCase()],
+                                    tags: [feather.module],
                                     summary: "Delete a " + name,
                                     operationId: "doDelete",
                                     parameters: [
@@ -247,26 +275,131 @@
                             if (feather.plural) {
                                 path = {
                                     get: {
-                                        tags: [key.toSpinalCase()],
+                                        tags: [feather.module],
                                         description: key + " data",
                                         operationId: "doSelect",
-                                        "parameters": [{
-                                            "name": "offset",
+                                        parameters: [{
+                                            "name": "subscription",
                                             "in": "query",
-                                            "description": "Offset from first item",
+                                            "description": "Subscription to auto subscribe to results",
                                             "required": false,
                                             "schema": {
-                                                "type": "integer",
-                                                "format": "int32"
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "description": "Subscription id",
+                                                        "type": "string"
+                                                    },
+                                                    "sessionId": {
+                                                        "description": "Client session id",
+                                                        "type": "string"
+                                                    },
+                                                    "merge": {
+                                                        "description": "Add results to prexisting subscription with matching id",
+                                                        "type": "boolean"
+                                                    }
+                                                }
                                             }
                                         }, {
-                                            "name": "limit",
+                                            "name": "showDeleted",
                                             "in": "query",
-                                            "description": "How many items to return",
+                                            "description": "Flag whether to show deleted records",
                                             "required": false,
                                             "schema": {
-                                                "type": "integer",
-                                                "format": "int32"
+                                                "type": "boolean"
+                                            }
+                                        }, {
+                                            "name": "filter",
+                                            "in": "query",
+                                            "description": "Indicate which objects retrieve and how to present",
+                                            "required": false,
+                                            "schema": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "criteria": {
+                                                        "description": "filter criteria",
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "object",
+                                                            "required": [
+                                                                "property",
+                                                                "value"
+                                                            ],
+                                                            "properties": {
+                                                                "property": {
+                                                                    "description": "Property to filter on. Dot notation for relations supported",
+                                                                    "type": "string"
+                                                                },
+                                                                "operator": {
+                                                                    "description": "Operator",
+                                                                    "type": "string",
+                                                                    "enum": [
+                                                                        "=",
+                                                                        "!=",
+                                                                        "~",
+                                                                        "!~",
+                                                                        "<",
+                                                                        ">",
+                                                                        "<=",
+                                                                        ">=",
+                                                                        "IN"
+                                                                    ],
+                                                                    "default": "="
+                                                                },
+                                                                "value": {
+                                                                    "description": "Value to filter for",
+                                                                    "type": "object",
+                                                                    "oneOf": [{
+                                                                        "type": "string"
+                                                                    }, {
+                                                                        "type": "integer"
+                                                                    }, {
+                                                                        "type": "number"
+                                                                    }, {
+                                                                        "type": "object"
+                                                                    }, {
+                                                                        "type": "boolean"
+                                                                    }]
+                                                                }
+                                                            }
+                                                        }
+                                                    },
+                                                    "sort": {
+                                                        "description": "Sort order",
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "object",
+                                                            "required": [
+                                                                "property"
+                                                            ],
+                                                            "properties": {
+                                                                "property": {
+                                                                    "description": "Property to sort on",
+                                                                    "type": "string"
+                                                                },
+                                                                "order": {
+                                                                    "description": "Direction to sort on",
+                                                                    "type": "string",
+                                                                    "enum": [
+                                                                        "ASC",
+                                                                        "DESC"
+                                                                    ],
+                                                                    "default": "ASC"
+                                                                }
+                                                            }
+                                                        }
+                                                    },
+                                                    "offset": {
+                                                        "description": "Offset from first item",
+                                                        "type": "integer",
+                                                        "format": "int32"
+                                                    },
+                                                    "limit": {
+                                                        "description": "How many objects to return",
+                                                        "type": "integer",
+                                                        "format": "int32"
+                                                    }
+                                                }
                                             }
                                         }],
                                         responses: {
@@ -296,7 +429,7 @@
 
                                 if (feather.readOnly !== true) {
                                     path.post = {
-                                        tags: [key.toSpinalCase()],
+                                        tags: [feather.module],
                                         summary: "Add a new " + name + " to the database",
                                         operationId: "doInsert",
                                         requestBody: {
@@ -377,6 +510,14 @@
 
                         schemas[key] = schema;
                     });
+
+                    tags.sort(function (a, b) {
+                        return a.name < b.name
+                            ? -1
+                            : 1;
+                    });
+
+                    api.tags = api.tags.concat(tags);
 
                     api = JSON.stringify(api, null, 4);
 

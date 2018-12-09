@@ -3,6 +3,7 @@
 		"name": "Comment",
 		"module": "Core",
 		"description": "Note",
+        "isChild": true,
 		"properties": {
 			"text": {
 				"description": "Note text",

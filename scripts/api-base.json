@@ -17,6 +17,10 @@
 			"description": "Data class specifications"
 		},
 		{
+			"name": "lock",
+			"description": "Lock and unlock methods"
+		},
+		{
 			"name": "module",
 			"description": "Javascript client code module"
 		},
@@ -25,85 +29,15 @@
 			"description": "Application settings"
 		},
 		{
+			"name": "subscribe",
+			"description": "Subscribe to change events"
+		},
+		{
 			"name": "workbook",
 			"description": "Workbook UI layout configuration"
 		}
 	],
 	"paths": {
-		"/settings/{name}": {
-			"get": {
-				"summary": "Get settings by name",
-				"operationId": "getSettings",
-				"tags": [
-					"settings"
-				],
-				"parameters": [{
-					"name": "name",
-					"in": "path",
-					"description": "The name of the settings to retrieve",
-					"required": true,
-					"schema": {
-						"type": "string"
-					}
-				}],
-				"responses": {
-					"200": {
-						"description": "Expected response to a valid request",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/Settings"
-								}
-							}
-						}
-					},
-					"default": {
-						"description": "Unexpected error",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					}
-				}
-			},
-			"put": {
-				"tags": [
-					"settings"
-				],
-				"summary": "Save new settings",
-				"operationId": "saveSettings",
-				"parameters": [{
-					"name": "name",
-					"in": "path",
-					"description": "The name of the settings",
-					"required": true,
-					"schema": {
-						"type": "string"
-					}
-				}],
-                "requestBody": {
-                  "$ref": "#/components/requestBodies/Settings"
-                },
-				"responses": {
-					"204": {
-						"description": "Expected response to a valid request"
-					},
-					"default": {
-						"description": "Unexpected error",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
 		"/feather/{name}": {
 			"get": {
 				"summary": "Get feather by name",
@@ -216,6 +150,103 @@
 				}
 			}
 		},
+		"/do/lock": {
+			"post": {
+				"summary": "Obtain a lock on an object for a session",
+				"operationId": "doLock",
+				"tags": [
+					"lock"
+				],
+				"parameters": [{
+					"name": "id",
+					"in": "query",
+					"description": "Object id to lock",
+					"required": true,
+					"schema": {
+						"type": "string"
+					}
+				}, {
+					"name": "sessionId",
+					"in": "query",
+					"description": "Session id",
+					"required": true,
+					"schema": {
+						"type": "string"
+					}
+				}],
+				"responses": {
+					"200": {
+						"description": "Response of 'true' indicates successful lock",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "boolean"
+								}
+							}
+						}
+                    },
+                    "default": {
+                        "description": "Unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+				}
+			}
+		},
+		"/do/unlock": {
+			"post": {
+				"summary": "Unlock an object",
+				"operationId": "doUnlock",
+				"tags": [
+					"lock"
+				],
+				"parameters": [{
+					"name": "id",
+					"in": "query",
+					"description": "Object id to unlock",
+					"required": true,
+					"schema": {
+						"type": "string"
+					}
+				}],
+				"responses": {
+					"200": {
+						"description": "Record id(s) successfully unlocked",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+                                    "items": {
+										"type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "description": "Object id",
+                                                "type": "string"
+                                            }
+                                        }
+									}
+								}
+							}
+						}
+                    },
+                    "default": {
+                        "description": "Unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+				}
+			}
+		},
 		"/module/": {
 			"get": {
 				"summary": "Get javascript modules",
@@ -233,6 +264,184 @@
 									"items": {
 										"$ref": "#/components/schemas/Module"
 									}
+								}
+							}
+						}
+                    },
+                    "default": {
+                        "description": "Unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+				}
+			}
+		},
+		"/settings/{name}": {
+			"get": {
+				"summary": "Get settings by name",
+				"operationId": "getSettings",
+				"tags": [
+					"settings"
+				],
+				"parameters": [{
+					"name": "name",
+					"in": "path",
+					"description": "The name of the settings to retrieve",
+					"required": true,
+					"schema": {
+						"type": "string"
+					}
+				}],
+				"responses": {
+					"200": {
+						"description": "Expected response to a valid request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Settings"
+								}
+							}
+						}
+					},
+					"default": {
+						"description": "Unexpected error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			},
+			"put": {
+				"tags": [
+					"settings"
+				],
+				"summary": "Save new settings",
+				"operationId": "saveSettings",
+				"parameters": [{
+					"name": "name",
+					"in": "path",
+					"description": "The name of the settings",
+					"required": true,
+					"schema": {
+						"type": "string"
+					}
+				}],
+                "requestBody": {
+                  "$ref": "#/components/requestBodies/Settings"
+                },
+				"responses": {
+					"204": {
+						"description": "Expected response to a valid request"
+					},
+					"default": {
+						"description": "Unexpected error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/do/subscribe": {
+			"post": {
+				"summary": "Subscribe to change events on an object",
+				"operationId": "doSubscribe",
+				"tags": [
+					"subscribe"
+				],
+				"parameters": [{
+					"name": "id",
+					"in": "query",
+					"description": "Object id to subscribe to",
+					"required": true,
+					"schema": {
+						"type": "string"
+					}
+				}, {
+					"name": "subscription",
+					"in": "query",
+					"description": "Subscription information",
+					"required": true,
+					"schema": {
+						"type": "object",
+                        "properties": {
+                            "id": {
+                                "description": "Subscription id",
+                                "type": "string"
+                            },
+                            "sessionId": {
+                                "description": "Client session id",
+                                "type": "string"
+                            }
+                        }
+					}
+				}],
+				"responses": {
+					"200": {
+						"description": "Response of 'true' indicates successful request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "boolean"
+								}
+							}
+						}
+                    },
+                    "default": {
+                        "description": "Unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+				}
+			}
+		},
+		"/do/unsubscribe": {
+			"post": {
+				"summary": "Unsubscribe to change events for a subscription",
+				"operationId": "doUnsubscribe",
+				"tags": [
+					"subscribe"
+				],
+				"parameters": [{
+					"name": "subscription",
+					"in": "query",
+					"description": "Subscription information",
+					"required": true,
+					"schema": {
+						"type": "object",
+                        "properties": {
+                            "id": {
+                                "description": "Subscription id",
+                                "type": "string"
+                            }
+                        }
+					}
+				}],
+				"responses": {
+					"200": {
+						"description": "Response of 'true' indicates successful request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "boolean"
 								}
 							}
 						}
@@ -377,7 +586,7 @@
 				"summary": "Get all workbooks",
 				"operationId": "getWorkbooks",
 				"tags": [
-					"workbooks"
+					"workbook"
 				],
 				"responses": {
 					"200": {
@@ -416,34 +625,6 @@
                 "properties": {
                     "message": {
                         "type": "string"
-                    }
-                }
-            },
-            "JSONPatch": {
-                "required": [
-                    "op",
-                    "path",
-                    "value"
-                ],
-                "properties": {
-                    "op": {
-                        "description": "Operation",
-                        "type": "string",
-                        "enum": [
-                            "add",
-                            "replace",
-                            "remove",
-                            "move",
-                            "copy",
-                            "test"
-                        ]
-                    },
-                    "path": {
-                        "description": "Object path i.e. /cost/amount",
-                        "type": "string"
-                    },
-                    "value": {
-                        "description": "Value of any type"
                     }
                 }
             },
@@ -593,6 +774,34 @@
                     }
                 }
             },
+            "JSONPatch": {
+                "required": [
+                    "op",
+                    "path",
+                    "value"
+                ],
+                "properties": {
+                    "op": {
+                        "description": "Operation",
+                        "type": "string",
+                        "enum": [
+                            "add",
+                            "replace",
+                            "remove",
+                            "move",
+                            "copy",
+                            "test"
+                        ]
+                    },
+                    "path": {
+                        "description": "Object path i.e. /cost/amount",
+                        "type": "string"
+                    },
+                    "value": {
+                        "description": "Value of any type"
+                    }
+                }
+            },
             "Module": {
                 "description": "Generic definition for module",
                 "properties": {
@@ -662,17 +871,6 @@
             }
         },
         "requestBodies": {
-            "JSONPatch": {
-                "content": {
-                  "application/json": {
-                    "schema": {
-                        "$ref": "#/components/schemas/JSONPatch"
-                    }
-                  }
-                },
-                "description": "JSON Patch (RFC 6902)",
-                "required": true
-            },
             "Feather": {
                 "content": {
                   "application/json": {
@@ -682,6 +880,17 @@
                   }
                 },
                 "description": "Feather to be saved",
+                "required": true
+            },
+            "JSONPatch": {
+                "content": {
+                  "application/json": {
+                    "schema": {
+                        "$ref": "#/components/schemas/JSONPatch"
+                    }
+                  }
+                },
+                "description": "JSON Patch (RFC 6902)",
                 "required": true
             },
             "Settings": {
