@@ -23,21 +23,25 @@
 
     const {
         Client
-    } = require('pg');
+    } = require("pg");
     const {
         Config
-    } = require('./server/config');
+    } = require("./server/config");
+    const {
+        API
+    } = require("./scripts/api");
+    const fs = require("fs");
+    const path = require("path");
+    const datasource = require("./server/datasource");
+    const format = require("pg-format");
+    const MANIFEST = "manifest.json";
+    const api = new API();
 
     var manifest, file, content, execute, name, defineSettings,
             saveModule, saveService, saveRoute, saveFeathers, saveWorkbooks,
             rollback, connect, commit, begin, processFile, client, user,
             runBatch, configure,
-            MANIFEST = "manifest.json",
-            fs = require("fs"),
-            path = require("path"),
-            datasource = require("./server/datasource"),
             config = new Config(),
-            format = require("pg-format"),
             dir = path.resolve(__dirname, process.argv[2] || "."),
             filename = path.format({
         root: "/",
@@ -67,11 +71,13 @@
         client.query("BEGIN;", processFile);
     };
 
-    commit = function (callback) {
-        client.query("COMMIT;", function () {
-            //console.log("COMMIT");
-            client.end();
-            callback();
+    commit = function () {
+        return new Promise(function (resolve) {
+            client.query("COMMIT;", function () {
+                //console.log("COMMIT");
+                client.end();
+                resolve();
+            });
         });
     };
 
@@ -100,16 +106,24 @@
     processFile = function () {
         var filepath, module, version;
 
+        function done() {
+            console.log("Configuration completed!");
+            process.exit();
+        }
+
         file = manifest.files[i];
         i += 1;
 
         // If we've processed all the files, wrap this up
         if (!file) {
-            commit(function () {
-                console.log("Configuration completed!");
-                client.end();
-                process.exit();
-            });
+            Promise.resolve()
+                .then(commit)
+                .then(api.build)
+                .then(done)
+                .catch(function (err) {
+                    console.error(err);
+                    process.exit();
+                });
             return;
         }
 
