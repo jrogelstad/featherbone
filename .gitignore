@@ -45,4 +45,4 @@ Temporary Items
 node/node_modules
 node/npm-debug.log
 node_modules
-swagger.json
+api.json
