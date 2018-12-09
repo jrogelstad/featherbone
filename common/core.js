@@ -139,7 +139,8 @@
             },
             enum: {
                 default: ""
-            }
+            },
+            lock: {}
         },
 
         /*
@@ -413,7 +414,7 @@
           @return {String}
         */
         today: function () {
-             return new Date().toDate().toLocalDate();
+            return new Date().toDate().toLocalDate();
         },
 
         startOfTime: function () {

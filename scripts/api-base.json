@@ -58,7 +58,7 @@
 						}
 					},
 					"default": {
-						"description": "unexpected error",
+						"description": "Unexpected error",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -204,7 +204,7 @@
 						}
 					},
 					"default": {
-						"description": "unexpected error",
+						"description": "Unexpected error",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -360,7 +360,7 @@
 						}
 					},
 					"default": {
-						"description": "unexpected error",
+						"description": "Unexpected error",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -394,7 +394,7 @@
 						}
                     },
                     "default": {
-                        "description": "unexpected error",
+                        "description": "Unexpected error",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -416,6 +416,34 @@
                 "properties": {
                     "message": {
                         "type": "string"
+                    }
+                }
+            },
+            "JSONPatch": {
+                "required": [
+                    "op",
+                    "path",
+                    "value"
+                ],
+                "properties": {
+                    "op": {
+                        "description": "Operation",
+                        "type": "string",
+                        "enum": [
+                            "add",
+                            "replace",
+                            "remove",
+                            "move",
+                            "copy",
+                            "test"
+                        ]
+                    },
+                    "path": {
+                        "description": "Object path i.e. /cost/amount",
+                        "type": "string"
+                    },
+                    "value": {
+                        "description": "Value of any type"
                     }
                 }
             },
@@ -634,6 +662,17 @@
             }
         },
         "requestBodies": {
+            "JSONPatch": {
+                "content": {
+                  "application/json": {
+                    "schema": {
+                        "$ref": "#/components/schemas/JSONPatch"
+                    }
+                  }
+                },
+                "description": "JSON Patch (RFC 6902)",
+                "required": true
+            },
             "Feather": {
                 "content": {
                   "application/json": {
