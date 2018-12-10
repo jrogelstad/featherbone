@@ -61,7 +61,7 @@
                 ary.path(options.path);
             } else {
                 plural = catalog.getFeather(feather).plural.toSpinalCase();
-                ary.path("/data/" + plural + "/");
+                ary.path("/data/" + plural);
             }
 
             ary.showDeleted(options.showDeleted === true);
@@ -289,7 +289,7 @@
         doFetch = function (context) {
             var url, payload,
                     subid = ary.subscribe(),
-                    query = {},
+                    body = {},
                     merge = true;
 
             // Undo any edited rows
@@ -318,29 +318,30 @@
             }
 
             if (ary.properties()) {
-                query.properties = ary.properties();
+                body.properties = ary.properties();
             }
 
             if (ary.filter()) {
-                query.filter = ary.filter();
-                query.filter.limit = query.filter.limit || ary.defaultLimit();
+                body.filter = ary.filter();
+                body.filter.limit = body.filter.limit || ary.defaultLimit();
             }
 
-            query.showDeleted = ary.showDeleted();
+            body.showDeleted = ary.showDeleted();
             if (subid) {
-                query.subscription = {
+                body.subscription = {
                     id: subid,
                     sessionId: catalog.sessionId(),
                     merge: merge
                 };
             }
-            query = qs.stringify(query);
-            url = ary.path() + query;
-            payload = {
-                method: "GET",
-                url: url
-            };
 
+            url = ary.path();
+            payload = {
+                method: "POST",
+                url: url,
+                data: body
+            };
+console.log(payload.url);
             return m.request(payload)
                 .then(callback)
                 .catch(console.error);
