@@ -188,49 +188,6 @@
                             };
 
                             if (feather.readOnly !== true) {
-                                path.post = {
-                                    tags: [feather.module],
-                                    summary: "Add a new " + name + " to the database",
-                                    operationId: "doInsert",
-                                    requestBody: {
-                                        "$ref": "#/components/requestBodies/" + key
-                                    },
-                                    responses: {
-                                        "200": {
-                                            "description": "Patch list of differences applied by the server to the request",
-                                            "content": {
-                                                "application/json": {
-                                                    "schema": {
-                                                        "$ref": "#/components/schemas/JSONPatch"
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        "default": {
-                                            "description": "Unexpected error",
-                                            "content": {
-                                                "application/json": {
-                                                    "schema": {
-                                                        "$ref": "#/components/schemas/ErrorResponse"
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                };
-
-                                api.components.requestBodies[key] = {
-                                    "content": {
-                                        "application/json": {
-                                            "schema": {
-                                                "$ref": "#/components/schemas/" + key
-                                            }
-                                        }
-                                    },
-                                    "description": name + " to be added",
-                                    "required": true
-                                };
-
                                 path.patch = {
                                     tags: [feather.module],
                                     summary: "Update an existing " + name,
@@ -314,6 +271,55 @@
 
                             api.paths[pathName] = path;
 
+                            if (feather.readOnly !== true) {
+                                path = {};
+                                path.post = {
+                                    tags: [feather.module],
+                                    summary: "Add a new " + name + " to the database",
+                                    operationId: "doInsert",
+                                    requestBody: {
+                                        "$ref": "#/components/requestBodies/" + key
+                                    },
+                                    responses: {
+                                        "200": {
+                                            "description": "Patch list of differences applied by the server to the request",
+                                            "content": {
+                                                "application/json": {
+                                                    "schema": {
+                                                        "$ref": "#/components/schemas/JSONPatch"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "default": {
+                                            "description": "Unexpected error",
+                                            "content": {
+                                                "application/json": {
+                                                    "schema": {
+                                                        "$ref": "#/components/schemas/ErrorResponse"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                };
+
+                                api.components.requestBodies[key] = {
+                                    "content": {
+                                        "application/json": {
+                                            "schema": {
+                                                "$ref": "#/components/schemas/" + key
+                                            }
+                                        }
+                                    },
+                                    "description": name + " to be added",
+                                    "required": true
+                                };
+
+                                pathName = "/data/" + key.toSpinalCase();
+                                api.paths[pathName] = path;
+                            }
+
                             // Append list path
                             if (feather.plural) {
                                 path = {
@@ -321,37 +327,6 @@
                                         tags: [feather.module],
                                         description: key + " data",
                                         operationId: "doSelect",
-                                        parameters: [{
-                                            "name": "subscription",
-                                            "in": "query",
-                                            "description": "Subscription to auto subscribe to results",
-                                            "required": false,
-                                            "schema": {
-                                                "type": "object",
-                                                "properties": {
-                                                    "id": {
-                                                        "description": "Subscription id",
-                                                        "type": "string"
-                                                    },
-                                                    "sessionId": {
-                                                        "description": "Client session id",
-                                                        "type": "string"
-                                                    },
-                                                    "merge": {
-                                                        "description": "Add results to prexisting subscription with matching id",
-                                                        "type": "boolean"
-                                                    }
-                                                }
-                                            }
-                                        }, {
-                                            "name": "showDeleted",
-                                            "in": "query",
-                                            "description": "Flag whether to show deleted records",
-                                            "required": false,
-                                            "schema": {
-                                                "type": "boolean"
-                                            }
-                                        }],
                                         requestBody: {
                                             "description": "Complex parameters",
                                             "required": false,
@@ -360,8 +335,41 @@
                                                     "schema": {
                                                         "type": "object",
                                                         "properties": {
-                                                            "description": "Filter parameters",
+                                                            "showDeleted": {
+                                                                "description": "Flag whether to show deleted records",
+                                                                "required": false,
+                                                                "schema": {
+                                                                    "type": "boolean"
+                                                                }
+                                                            },
+                                                            "subscription": {
+                                                                "type": "object",
+                                                                "description": "Subscription to auto subscribe to results",
+                                                                "required": false,
+                                                                "schema": {
+                                                                    "type": "object",
+                                                                    "required": [
+                                                                        "id",
+                                                                        "sessionId"
+                                                                    ],
+                                                                    "properties": {
+                                                                        "id": {
+                                                                            "description": "Subscription id",
+                                                                            "type": "string"
+                                                                        },
+                                                                        "sessionId": {
+                                                                            "description": "Client session id",
+                                                                            "type": "string"
+                                                                        },
+                                                                        "merge": {
+                                                                            "description": "Add results to prexisting subscription with matching id",
+                                                                            "type": "boolean"
+                                                                        }
+                                                                    }
+                                                                }
+                                                            },
                                                             "filter": {
+                                                                "description": "Define which objects and how to present",
                                                                 "type": "object",
                                                                 "properties": {
                                                                     "criteria": {
