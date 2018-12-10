@@ -197,7 +197,7 @@
         // Load forms
         loadForms = new Promise(function (resolve) {
             var payload = {
-                    method: "GET",
+                    method: "POST",
                     path: "/data/forms"
                 },
                 forms = catalog.register("forms");
@@ -215,7 +215,7 @@
         // Load relation widgets
         loadRelationWidgets = new Promise(function (resolve) {
             var payload = {
-                method: "GET",
+                method: "POST",
                 path: "/data/relation-widgets"
             };
 

@@ -1016,7 +1016,7 @@
             var cache = that.toJSON(),
                 payload = {
                     method: "POST",
-                    path: that.path(that.plural),
+                    path: that.path(that.name),
                     data: {
                         data: cache
                     }

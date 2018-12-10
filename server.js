@@ -136,36 +136,40 @@
     }
 
     function doRequest(req, res) {
-        var params = req.params,
-            name = resolveName(req.url),
-            payload = req.body || {},
-            id = params.id,
-            query = params.query
-                ? qs.parse(params.query)
-                : {},
-            properties = query.properties,
-            filter = query.filter || {};
+        var payload = req.body || {};
 
-        payload.name = name;
+        payload.name = resolveName(req.url);
         payload.method = req.method;
         payload.user = datasource.getCurrentUser();
         payload.sessionId = req.sessionId;
+        payload.id = req.params.id;
 
-        if (id) {
-            payload.id = id;
-        } else if (req.method !== "POST") {
-            payload.properties = properties;
-            payload.filter = filter;
-            if (query.showDeleted) {
-                payload.showDeleted = query.showDeleted === "true";
-            }
+        console.log(JSON.stringify(payload, null, 2));
+        datasource.request(payload, false, true)
+            .then(function (data) {
+                respond.bind(res, data)();
+            })
+            .catch(error.bind(res));
+    }
 
-            if (query.subscription !== undefined) {
-                payload.subscription = query.subscription;
-                payload.subscription.merge = query.subscription.merge === "true";
-            }
-            filter.offset = filter.offset || 0;
+    function doQueryRequest(req, res) {
+        var payload = req.body || {};
+
+        payload.name = resolveName(req.url);
+        payload.method = "GET"; // Internally this is a select statement
+        payload.user = datasource.getCurrentUser();
+        payload.sessionId = req.sessionId;
+        payload.filter = payload.filter || {};
+
+        if (payload.showDeleted) {
+            payload.showDeleted = payload.showDeleted === "true";
         }
+
+        if (payload.subscription !== undefined) {
+            payload.subscription.merge = payload.subscription.merge === "true";
+        }
+
+        payload.filter.offset = payload.filter.offset || 0;
 
         console.log(JSON.stringify(payload, null, 2));
         datasource.request(payload, false, true)
@@ -274,16 +278,8 @@
 
             if (catalog[key].plural && !catalog[key].isChild) {
                 name = catalog[key].plural.toSpinalCase();
-                if (catalog[key].isReadOnly) {
-                    dataRouter.route("/" + name)
-                        .get(doRequest);
-                } else {
-                    dataRouter.route("/" + name)
-                        .get(doRequest)
-                        .post(doRequest);
-                }
-                dataRouter.route("/" + name + "/:query")
-                    .get(doRequest);
+                dataRouter.route("/" + name)
+                    .post(doQueryRequest);
             }
         });
     }
@@ -431,7 +427,7 @@
 
         // static pages
         app.use(express.static(__dirname));
- 
+
         // middleware to use for all requests
         app.use(function (...args) {
             var res = args[1],

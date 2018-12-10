@@ -188,6 +188,49 @@
                             };
 
                             if (feather.readOnly !== true) {
+                                path.post = {
+                                    tags: [feather.module],
+                                    summary: "Add a new " + name + " to the database",
+                                    operationId: "doInsert",
+                                    requestBody: {
+                                        "$ref": "#/components/requestBodies/" + key
+                                    },
+                                    responses: {
+                                        "200": {
+                                            "description": "Patch list of differences applied by the server to the request",
+                                            "content": {
+                                                "application/json": {
+                                                    "schema": {
+                                                        "$ref": "#/components/schemas/JSONPatch"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "default": {
+                                            "description": "Unexpected error",
+                                            "content": {
+                                                "application/json": {
+                                                    "schema": {
+                                                        "$ref": "#/components/schemas/ErrorResponse"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                };
+
+                                api.components.requestBodies[key] = {
+                                    "content": {
+                                        "application/json": {
+                                            "schema": {
+                                                "$ref": "#/components/schemas/" + key
+                                            }
+                                        }
+                                    },
+                                    "description": name + " to be added",
+                                    "required": true
+                                };
+
                                 path.patch = {
                                     tags: [feather.module],
                                     summary: "Update an existing " + name,
@@ -274,7 +317,7 @@
                             // Append list path
                             if (feather.plural) {
                                 path = {
-                                    get: {
+                                    post: {
                                         tags: [feather.module],
                                         description: key + " data",
                                         operationId: "doSelect",
@@ -308,100 +351,109 @@
                                             "schema": {
                                                 "type": "boolean"
                                             }
-                                        }, {
-                                            "name": "filter",
-                                            "in": "query",
-                                            "description": "Indicate which objects retrieve and how to present",
+                                        }],
+                                        requestBody: {
+                                            "description": "Complex parameters",
                                             "required": false,
-                                            "schema": {
-                                                "type": "object",
-                                                "properties": {
-                                                    "criteria": {
-                                                        "description": "filter criteria",
-                                                        "type": "array",
-                                                        "items": {
-                                                            "type": "object",
-                                                            "required": [
-                                                                "property",
-                                                                "value"
-                                                            ],
-                                                            "properties": {
-                                                                "property": {
-                                                                    "description": "Property to filter on. Dot notation for relations supported",
-                                                                    "type": "string"
-                                                                },
-                                                                "operator": {
-                                                                    "description": "Operator",
-                                                                    "type": "string",
-                                                                    "enum": [
-                                                                        "=",
-                                                                        "!=",
-                                                                        "~",
-                                                                        "!~",
-                                                                        "<",
-                                                                        ">",
-                                                                        "<=",
-                                                                        ">=",
-                                                                        "IN"
-                                                                    ],
-                                                                    "default": "="
-                                                                },
-                                                                "value": {
-                                                                    "description": "Value to filter for",
-                                                                    "type": "object",
-                                                                    "oneOf": [{
-                                                                        "type": "string"
-                                                                    }, {
-                                                                        "type": "integer"
-                                                                    }, {
-                                                                        "type": "number"
-                                                                    }, {
-                                                                        "type": "object"
-                                                                    }, {
-                                                                        "type": "boolean"
-                                                                    }]
+                                            "content": {
+                                                "application/json": {
+                                                    "schema": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "description": "Filter parameters",
+                                                            "filter": {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "criteria": {
+                                                                        "description": "filter criteria",
+                                                                        "type": "array",
+                                                                        "items": {
+                                                                            "type": "object",
+                                                                            "required": [
+                                                                                "property",
+                                                                                "value"
+                                                                            ],
+                                                                            "properties": {
+                                                                                "property": {
+                                                                                    "description": "Property to filter on. Dot notation for relations supported",
+                                                                                    "type": "string"
+                                                                                },
+                                                                                "operator": {
+                                                                                    "description": "Operator",
+                                                                                    "type": "string",
+                                                                                    "enum": [
+                                                                                        "=",
+                                                                                        "!=",
+                                                                                        "~",
+                                                                                        "!~",
+                                                                                        "<",
+                                                                                        ">",
+                                                                                        "<=",
+                                                                                        ">=",
+                                                                                        "IN"
+                                                                                    ],
+                                                                                    "default": "="
+                                                                                },
+                                                                                "value": {
+                                                                                    "description": "Value to filter for",
+                                                                                    "type": "object",
+                                                                                    "oneOf": [{
+                                                                                        "type": "string"
+                                                                                    }, {
+                                                                                        "type": "integer"
+                                                                                    }, {
+                                                                                        "type": "number"
+                                                                                    }, {
+                                                                                        "type": "object"
+                                                                                    }, {
+                                                                                        "type": "boolean"
+                                                                                    }]
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    },
+                                                                    "sort": {
+                                                                        "description": "Sort order",
+                                                                        "type": "array",
+                                                                        "items": {
+                                                                            "type": "object",
+                                                                            "required": [
+                                                                                "property"
+                                                                            ],
+                                                                            "properties": {
+                                                                                "property": {
+                                                                                    "description": "Property to sort on",
+                                                                                    "type": "string"
+                                                                                },
+                                                                                "order": {
+                                                                                    "description": "Direction to sort on",
+                                                                                    "type": "string",
+                                                                                    "enum": [
+                                                                                        "ASC",
+                                                                                        "DESC"
+                                                                                    ],
+                                                                                    "default": "ASC"
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    },
+                                                                    "offset": {
+                                                                        "description": "Offset from first item",
+                                                                        "type": "integer",
+                                                                        "format": "int32"
+                                                                    },
+                                                                    "limit": {
+                                                                        "description": "How many objects to return",
+                                                                        "type": "integer",
+                                                                        "format": "int32"
+                                                                    }
                                                                 }
                                                             }
                                                         }
-                                                    },
-                                                    "sort": {
-                                                        "description": "Sort order",
-                                                        "type": "array",
-                                                        "items": {
-                                                            "type": "object",
-                                                            "required": [
-                                                                "property"
-                                                            ],
-                                                            "properties": {
-                                                                "property": {
-                                                                    "description": "Property to sort on",
-                                                                    "type": "string"
-                                                                },
-                                                                "order": {
-                                                                    "description": "Direction to sort on",
-                                                                    "type": "string",
-                                                                    "enum": [
-                                                                        "ASC",
-                                                                        "DESC"
-                                                                    ],
-                                                                    "default": "ASC"
-                                                                }
-                                                            }
-                                                        }
-                                                    },
-                                                    "offset": {
-                                                        "description": "Offset from first item",
-                                                        "type": "integer",
-                                                        "format": "int32"
-                                                    },
-                                                    "limit": {
-                                                        "description": "How many objects to return",
-                                                        "type": "integer",
-                                                        "format": "int32"
                                                     }
                                                 }
                                             }
-                                        }],
+                                        },
                                         responses: {
                                             "200": {
                                                 "description": "Array of " + feather.plural.toProperCase(),
@@ -427,50 +479,6 @@
                                     }
                                 };
 
-                                if (feather.readOnly !== true) {
-                                    path.post = {
-                                        tags: [feather.module],
-                                        summary: "Add a new " + name + " to the database",
-                                        operationId: "doInsert",
-                                        requestBody: {
-                                            "$ref": "#/components/requestBodies/" + key
-                                        },
-                                        responses: {
-                                            "200": {
-                                                "description": "Patch list of differences applied by the server to the request",
-                                                "content": {
-                                                    "application/json": {
-                                                        "schema": {
-                                                            "$ref": "#/components/schemas/JSONPatch"
-                                                        }
-                                                    }
-                                                }
-                                            },
-                                            "default": {
-                                                "description": "Unexpected error",
-                                                "content": {
-                                                    "application/json": {
-                                                        "schema": {
-                                                            "$ref": "#/components/schemas/ErrorResponse"
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    };
-
-                                    api.components.requestBodies[key] = {
-                                        "content": {
-                                            "application/json": {
-                                                "schema": {
-                                                    "$ref": "#/components/schemas/" + key
-                                                }
-                                            }
-                                        },
-                                        "description": name + " to be added",
-                                        "required": true
-                                    };
-                                }
                                 pathName = "/data/" + feather.plural.toSpinalCase();
                                 api.paths[pathName] = path;
                             }
