@@ -905,7 +905,9 @@
                 var prop = d[key],
                     value = prop();
 
-                if (Array.isArray(value)) {
+                if (Array.isArray(value) &&
+                        value.length &&
+                        value[0].isModel) {
                     value.forEach(function (item) {
                         item.state().goto("/Ready/Fetched/ReadOnly");
                     });
@@ -1195,7 +1197,7 @@
                     // Resolve formatter to standard type
                 } else {
                     if (p.type === "number") {
-                        scale = p.scale === undefined || p.scale === -1
+                        scale = (p.scale === undefined || p.scale === -1)
                             ? f.SCALE_DEFAULT
                             : p.scale;
                         formatter = {};
