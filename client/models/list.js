@@ -341,7 +341,7 @@
                 url: url,
                 data: body
             };
-console.log(payload.url);
+
             return m.request(payload)
                 .then(callback)
                 .catch(console.error);

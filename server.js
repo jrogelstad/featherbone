@@ -269,8 +269,10 @@
                 dataRouter.route("/" + name + "/:id")
                     .get(doRequest);
             } else {
+                dataRouter.route("/" + name)
+                    .post(doRequest);
+
                 dataRouter.route("/" + name + "/:id")
-                    .post(doRequest)
                     .get(doRequest)
                     .patch(doRequest)
                     .delete(doRequest);
