@@ -278,7 +278,25 @@
                                     summary: "Add a new " + name + " to the database",
                                     operationId: "doInsert",
                                     requestBody: {
-                                        "$ref": "#/components/requestBodies/" + key
+                                        "content": {
+                                            "application/json": {
+                                                "schema": {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "data"
+                                                    ],
+                                                    "properties": {
+                                                        "id": {
+                                                            "description": "Unique identifier",
+                                                            "type": "string"
+                                                        },
+                                                        "data": {
+                                                            "$ref": "#/components/schemas/" + key
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
                                     },
                                     responses: {
                                         "200": {
@@ -337,34 +355,28 @@
                                                         "properties": {
                                                             "showDeleted": {
                                                                 "description": "Flag whether to show deleted records",
-                                                                "required": false,
-                                                                "schema": {
-                                                                    "type": "boolean"
-                                                                }
+                                                                "type": "boolean",
+                                                                "default": false
                                                             },
                                                             "subscription": {
                                                                 "type": "object",
                                                                 "description": "Subscription to auto subscribe to results",
-                                                                "required": false,
-                                                                "schema": {
-                                                                    "type": "object",
-                                                                    "required": [
-                                                                        "id",
-                                                                        "sessionId"
-                                                                    ],
-                                                                    "properties": {
-                                                                        "id": {
-                                                                            "description": "Subscription id",
-                                                                            "type": "string"
-                                                                        },
-                                                                        "sessionId": {
-                                                                            "description": "Client session id",
-                                                                            "type": "string"
-                                                                        },
-                                                                        "merge": {
-                                                                            "description": "Add results to prexisting subscription with matching id",
-                                                                            "type": "boolean"
-                                                                        }
+                                                                "required": [
+                                                                    "id",
+                                                                    "sessionId"
+                                                                ],
+                                                                "properties": {
+                                                                    "id": {
+                                                                        "description": "Subscription id",
+                                                                        "type": "string"
+                                                                    },
+                                                                    "sessionId": {
+                                                                        "description": "Client session id",
+                                                                        "type": "string"
+                                                                    },
+                                                                    "merge": {
+                                                                        "description": "Add results to prexisting subscription with matching id",
+                                                                        "type": "boolean"
                                                                     }
                                                                 }
                                                             },
