@@ -136,13 +136,14 @@
     }
 
     function doRequest(req, res) {
-        var payload = req.body || {};
-
-        payload.name = resolveName(req.url);
-        payload.method = req.method;
-        payload.user = datasource.getCurrentUser();
-        payload.sessionId = req.sessionId;
-        payload.id = req.params.id;
+        var payload = {
+            name: resolveName(req.url),
+            method: req.method,
+            user: datasource.getCurrentUser(),
+            sessionId: req.sessionId,
+            id: req.params.id,
+            data: req.body || {}
+        };
 
         console.log(JSON.stringify(payload, null, 2));
         datasource.request(payload, false, true)
