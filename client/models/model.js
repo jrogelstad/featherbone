@@ -1058,7 +1058,6 @@
                     value.forEach(function (item) {
                         item.state().goto("/Ready/Fetched/Clean");
                     });
-                    return;
                 }
 
                 if (prop.state) {
