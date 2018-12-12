@@ -3,7 +3,6 @@ Roadmap
 
 Short term
 
-* Push notifications
 * SAML Authentication support
 * Edit feathers (tables) from gui
 * Edit forms from gui
@@ -15,13 +14,11 @@ Short term
 * Import\export data (JSON)
 * Import\export modules (JSON)
 * Import\export Excel
-* Generic support for transactions
 * Basic modules (cardinal)
   - Ledger
 
 Long term
 
-* Push notifications of updates
 * Report writer
 * Drag 'n Drop form editor
 * Basic modules (cardinal)
