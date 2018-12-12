@@ -281,19 +281,7 @@
                                         "content": {
                                             "application/json": {
                                                 "schema": {
-                                                    "type": "object",
-                                                    "required": [
-                                                        "data"
-                                                    ],
-                                                    "properties": {
-                                                        "id": {
-                                                            "description": "Unique identifier",
-                                                            "type": "string"
-                                                        },
-                                                        "data": {
-                                                            "$ref": "#/components/schemas/" + key
-                                                        }
-                                                    }
+                                                    "$ref": "#/components/schemas/" + key
                                                 }
                                             }
                                         }

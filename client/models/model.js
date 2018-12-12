@@ -995,9 +995,7 @@
                 payload = {
                     method: "PATCH",
                     path: that.path(that.name, that.id()),
-                    data: {
-                        data: patch
-                    }
+                    data: patch
                 },
                 callback = function (result) {
                     jsonpatch.apply(lastFetched, patch); // Update to sent changes
@@ -1019,9 +1017,7 @@
                 payload = {
                     method: "POST",
                     path: that.path(that.name),
-                    data: {
-                        data: cache
-                    }
+                    data: cache
                 },
                 callback = function (result) {
                     jsonpatch.apply(cache, result);
