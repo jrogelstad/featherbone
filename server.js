@@ -437,7 +437,7 @@
 
             // TODO: Make config option to turn these off for production
             res.header('Access-Control-Allow-Origin', '*');
-            res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
+            res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,PATCH, DELETE');
             res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
             next(); // make sure we go to the 'next' routes and don't stop here
         });
