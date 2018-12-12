@@ -422,7 +422,7 @@
                     if (instance) {
                         // Only update if not caused by this instance
                         state = instance.state().current()[0];
-                        if (state !== "/Locked" && state !== "/Busy/Saving/Patching") {
+                        if (state !== "/Busy/Saving/Patching") {
                             instance.set(data, true, true);
                             m.redraw();
                         }
