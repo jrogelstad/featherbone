@@ -775,40 +775,44 @@
                 }
             },
             "JSONPatch": {
-                "required": [
-                    "op",
-                    "path",
-                    "value"
-                ],
-                "properties": {
-                    "op": {
-                        "description": "Operation",
-                        "type": "string",
-                        "enum": [
-                            "add",
-                            "replace",
-                            "remove",
-                            "move",
-                            "copy",
-                            "test"
-                        ]
-                    },
-                    "path": {
-                        "description": "Object path i.e. /cost/amount",
-                        "type": "string"
-                    },
-                    "value": {
-                        "description": "Value",
-                        "type": "object",
-                        "oneOf": [{
-                                "type": "string"
-                            }, {
-                                "type": "integer"
-                            }, {
-                                "type": "number"
-                            }, {
-                                "type": "boolean"
-                        }]
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "required": [
+                        "op",
+                        "path",
+                        "value"
+                    ],
+                    "properties": {
+                        "op": {
+                            "description": "Operation",
+                            "type": "string",
+                            "enum": [
+                                "add",
+                                "replace",
+                                "remove",
+                                "move",
+                                "copy",
+                                "test"
+                            ]
+                        },
+                        "path": {
+                            "description": "Object path i.e. /cost/amount",
+                            "type": "string"
+                        },
+                        "value": {
+                            "description": "Value",
+                            "type": "object",
+                            "oneOf": [{
+                                    "type": "string"
+                                }, {
+                                    "type": "integer"
+                                }, {
+                                    "type": "number"
+                                }, {
+                                    "type": "boolean"
+                            }]
+                        }
                     }
                 }
             },

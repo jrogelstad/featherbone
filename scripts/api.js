@@ -196,7 +196,7 @@
                                         {
                                             "name": "id",
                                             "in": "path",
-                                            "description": "The id of the " + name + " to retrieve",
+                                            "description": "The id of the " + name + " to update",
                                             "required": true,
                                             "schema": {
                                                 "type": "string"
@@ -237,7 +237,7 @@
                                         {
                                             "name": "id",
                                             "in": "path",
-                                            "description": "The id of the " + name + " to retrieve",
+                                            "description": "The id of the " + name + " to delete",
                                             "required": true,
                                             "schema": {
                                                 "type": "string"
