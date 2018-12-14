@@ -909,16 +909,7 @@
                         },
                         "value": {
                             "description": "Value",
-                            "type": "object",
-                            "oneOf": [{
-                                    "type": "string"
-                                }, {
-                                    "type": "integer"
-                                }, {
-                                    "type": "number"
-                                }, {
-                                    "type": "boolean"
-                            }]
+                            "type": "object"
                         }
                     }
                 }
@@ -1107,24 +1098,7 @@
                                                     },
                                                     "value": {
                                                         "description": "Value to filter for",
-                                                        "type": "object",
-                                                        "oneOf": [
-                                                            {
-                                                                "type": "string"
-                                                            },
-                                                            {
-                                                                "type": "integer"
-                                                            },
-                                                            {
-                                                                "type": "number"
-                                                            },
-                                                            {
-                                                                "type": "object"
-                                                            },
-                                                            {
-                                                                "type": "boolean"
-                                                            }
-                                                        ]
+                                                        "type": "object"
                                                     }
                                                 }
                                             }

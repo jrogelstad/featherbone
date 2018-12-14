@@ -366,7 +366,17 @@
                                 m("h2", {
                                     class: "suite-header suite-header-home"
                                 }, "Home")
-                            ])
+                            ]),
+                            m("a", {
+                                href: "http://" + window.location.hostname + ":" +
+                                        window.location.port + "/api.html",
+                                style: {
+                                    position: "relative",
+                                    width: "150px",
+                                    top: "50px",
+                                    padding: "10px"
+                                }
+                            }, "REST API")
                         ]
                     ])
                 ]);

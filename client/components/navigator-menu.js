@@ -178,7 +178,7 @@
             }, [
                 m("div", {
                     class: vm.classHeader()
-                }, "Suite Sheets", [
+                }, "Featherbone", [
                     m("i", {
                         style: {
                             fontSize: "x-small",

@@ -27,5 +27,8 @@
     "sse-nodejs": "^0.1.0",
     "statechartjs": "^0.1.2",
     "systemjs": "^0.20.19"
+  },
+  "devDependencies": {
+    "redoc": "^2.0.0-alpha.41"
   }
 }
