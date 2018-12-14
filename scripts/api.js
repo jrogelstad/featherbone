@@ -130,26 +130,25 @@
                     });
 
                     keys.forEach(function (key) {
-                        var schema, //tag,
+                        var schema, tag,
                             feather = catalog[key],
                             properties = {},
                             inherits = feather.inherits || "Object",
-                            pathName = "/data/" + key.toSpinalCase() + "/{id}";
+                            tag = key.toSpinalCase(),
+                            pathName = "/data/" + tag + "/{id}";
 
                         name = key.toProperCase();
 
-                        if (!tags.some((item) => item.name === feather.module)) {
-                            tags.push({
-                                name: feather.module,
-                                description: feather.module + " module"
-                            });
-                        }
-
                         // Append singluar path
                         if (!feather.isChild) {
+                            tags.push({
+                                name: tag,
+                                description: key + " data"
+                            });
+                            
                             path = {
                                 get: {
-                                    tags: [feather.module],
+                                    tags: [tag],
                                     summary: "Info for a specific " + name,
                                     parameters: [
                                         {
@@ -189,7 +188,7 @@
 
                             if (feather.readOnly !== true) {
                                 path.patch = {
-                                    tags: [feather.module],
+                                    tags: [tag],
                                     summary: "Update an existing " + name,
                                     operationId: "doPatch",
                                     parameters: [
@@ -274,7 +273,7 @@
                             if (feather.readOnly !== true) {
                                 path = {};
                                 path.post = {
-                                    tags: [feather.module],
+                                    tags: [tag],
                                     summary: "Add a new " + name + " to the database",
                                     operationId: "doInsert",
                                     requestBody: {
@@ -330,8 +329,8 @@
                             if (feather.plural) {
                                 path = {
                                     post: {
-                                        tags: [feather.module],
-                                        description: key + " data",
+                                        tags: [tag],
+                                        summary: "Query " + key + " data",
                                         operationId: "doSelect",
                                         requestBody: {
                                             $ref: "#/components/requestBodies/Query"
