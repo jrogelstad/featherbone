@@ -449,7 +449,7 @@
         currencyRouter.route("/base")
             .get(doGetBaseCurrency);
         currencyRouter.route("/convert")
-            .post(doConvertCurrency);
+            .get(doConvertCurrency);
         doRouter.route("/subscribe/:query")
             .post(doSubscribe);
         doRouter.route("/unsubscribe/:query")
