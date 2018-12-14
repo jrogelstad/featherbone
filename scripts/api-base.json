@@ -1,7 +1,7 @@
 {
 	"openapi": "3.0.0",
 	"info": {
-		"version": "1.0.2",
+		"version": "1.0.0",
 		"title": "Featherbone data service",
 		"description": "REST data service for featherbone based applications.",
 		"license": {
@@ -13,6 +13,9 @@
 		"url": "http://localhost:10001"
 	}],
 	"tags": [{
+			"name": "currency",
+			"description": "Currency functions"
+		},{
 			"name": "feather",
 			"description": "Data class specifications"
 		},
@@ -38,6 +41,110 @@
 		}
 	],
 	"paths": {
+        "/currency/base": {
+			"get": {
+				"summary": "Return the base currency",
+				"operationId": "doGetBaseCurrency",
+				"tags": [
+					"currency"
+				],
+				"parameters": [{
+					"name": "effective",
+					"in": "query",
+					"description": "Effective date time. Default now.",
+					"schema": {
+						"type": "string"
+					}
+				}],
+				"responses": {
+					"200": {
+						"description": "Currency object",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Currency"
+								}
+							}
+						}
+                    },
+                    "default": {
+                        "description": "Unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+				}
+			}
+		},
+        "/currency/convert": {
+			"get": {
+				"summary": "Return a converted value in base currency",
+				"operationId": "doConvertCurrency",
+				"tags": [
+					"currency"
+				],
+				"parameters": [{
+					"name": "fromCurrency",
+					"in": "query",
+					"description": "From currency code",
+                    "required": true,
+					"schema": {
+						"type": "string"
+					}
+				}, {
+					"name": "amount",
+					"in": "query",
+					"description": "Amount",
+                    "required": true,
+					"schema": {
+						"type": "number"
+					}
+				}, {
+					"name": "effective",
+					"in": "query",
+					"description": "Effective date time. Default now.",
+					"schema": {
+						"type": "string"
+					}
+				}],
+				"responses": {
+					"200": {
+						"description": "Money in base currency",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+                                    "properties": {
+                                        "currency": {
+                                            "description": "Currency code",
+                                            "type": "string"
+                                        },
+                                        "amount": {
+                                            "description": "Amount",
+                                            "type": "string"
+                                        }
+                                    }
+								}
+							}
+						}
+                    },
+                    "default": {
+                        "description": "Unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+				}
+			}
+		},
 		"/feather/{name}": {
 			"get": {
 				"summary": "Get feather by name",
