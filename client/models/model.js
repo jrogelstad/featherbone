@@ -1062,9 +1062,11 @@
 
                 if (prop.state) {
                     prop.state().send("enable");
-                    prop.isReadOnly(freezeCache[key].isReadOnly);
-                    if (freezeCache[key].isDisabled) {
-                        prop.state().send("enable");
+                    if (freezeCache[key] !== undefined) {
+                        prop.isReadOnly(freezeCache[key].isReadOnly);
+                        if (freezeCache[key].isDisabled) {
+                            prop.state().send("enable");
+                        }
                     }
                 }
             });
