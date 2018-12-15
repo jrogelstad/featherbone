@@ -130,7 +130,7 @@
                     });
 
                     keys.forEach(function (key) {
-                        var schema, tag,
+                        var schema,
                             feather = catalog[key],
                             properties = {},
                             inherits = feather.inherits || "Object",
@@ -145,7 +145,7 @@
                                 name: tag,
                                 description: key + " data"
                             });
-                            
+
                             path = {
                                 get: {
                                     tags: [tag],
@@ -436,6 +436,7 @@
                     payload = {
                         method: "GET",
                         name: "getSettings",
+                        user: datasource.getCurrentUser(),
                         data: {
                             name: "catalog"
                         }
