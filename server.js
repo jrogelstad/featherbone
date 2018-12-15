@@ -216,7 +216,7 @@
     function doConvertCurrency(req, res) {
         var query = qs.parse(req.query),
             payload = {
-                method: "POST",
+                method: "GET",
                 name: "convertCurrency",
                 user: datasource.getCurrentUser(),
                 data: {

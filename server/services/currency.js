@@ -213,7 +213,7 @@
         */
         that.convertCurrency = function (obj) {
             return new Promise(function (resolve, reject) {
-                var baseCurr,
+                var baseCurr, err,
                     effective = obj.data.effective
                         ? new Date(obj.data.effective).toDate()
                         : new Date(),
@@ -221,15 +221,17 @@
                     fromAmount = obj.data.amount;
 
                 if (obj.data.toCurrency) {
-                    throw "Conversion to a specific currency is not implemented yet.";
+                    err = new Error("Conversion to a specific currency is not implemented yet.");
+                    err.statusCode = "501";
                 }
 
                 function calculate(resp) {
                     var conv, amount;
 
                     if (!resp.rows.length) {
-                        throw "Conversion not found for " +
-                                fromCurr + " to " + baseCurr.code + " on " + effective.toLocaleString();
+                        err = new Error("Conversion not found for " +
+                                fromCurr + " to " + baseCurr.code + " on " + effective.toLocaleString());
+                        err.statusCode = "404";
                     }
 
                     conv = tools.sanitize(resp.rows[0]);
