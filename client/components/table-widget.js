@@ -154,7 +154,7 @@
             var col, attrs = vm.attrs().slice().reverse();
 
             col = attrs.find(function (attr) {
-                return attr in model.data && !model.data[attr].isReadOnly();
+                return model.data[attr] && !model.data[attr].isReadOnly();
             });
             return col
                 ? vm.formatInputId(col)
@@ -799,7 +799,10 @@
                             ondragover: vm.ondragover.bind(this, idx),
                             draggable: true,
                             ondragstart: vm.ondragstart.bind(this, idx, "width"),
-                            class: "suite-column-spacer suite-column-header-grabber"
+                            class: "suite-column-spacer suite-column-header-grabber",
+                            style: {
+                                fontSize: zoom
+                            }
                         })
                     ];
 
@@ -811,7 +814,8 @@
                 // Front cap header navigation
                 ths.unshift(m("th", {
                     style: {
-                        minWidth: "16px"
+                        minWidth: "25px",
+                        fontSize: zoom
                     }
                 }));
 
@@ -858,6 +862,8 @@
                                 format = prop.format || prop.type,
                                 columnWidth = config.columns[idx].width || COL_WIDTH_DEFAULT;
 
+                        columnWidth = (columnWidth.replace("px", "") - 6) + "px";
+
                         tdOpts = {
                             onclick: function (ev) {
                                 var optKey;
@@ -872,8 +878,7 @@
                             style: {
                                 minWidth: columnWidth,
                                 maxWidth: columnWidth,
-                                fontSize: zoom,
-                                paddingRight: "10px"
+                                fontSize: zoom
                             }
                         };
 
@@ -983,7 +988,10 @@
                             m("td", tdOpts, content),
                             // This exists to force exact alignment with header on all browsers
                             m("td", {
-                                class: "suite-column-spacer"
+                                class: "suite-column-spacer",
+                                style: {
+                                    fontSize: zoom
+                                }
                             })
                         ];
 
@@ -1035,6 +1043,8 @@
                                 dataList = item.dataList || prop.dataList,
                                 cfilter = item.filter,
                                 borderColor = "blue";
+
+                        columnWidth = (columnWidth.replace("px", "") - 6) + "px";
 
                         inputOpts = {
                             id: id,
@@ -1110,7 +1120,6 @@
                                     borderColor: borderColor,
                                     borderWidth: "thin",
                                     borderStyle: "ridge",
-                                    paddingRight: "10px",
                                     borderRight: "none"
                                 }
                             };
@@ -1120,7 +1129,6 @@
                                     borderColor: borderColor,
                                     borderWidth: "thin",
                                     borderStyle: "solid",
-                                    paddingRight: "10px",
                                     borderRight: "none"
                                 }
                             };
@@ -1158,7 +1166,8 @@
                                 style: {
                                     borderStyle: "solid",
                                     borderColor: borderColor,
-                                    borderWidth: "thin"
+                                    borderWidth: "thin",
+                                    fontSize: zoom
                                 },
                                 class: "suite-column-spacer"
                             })
@@ -1175,13 +1184,19 @@
                 if (currentMode !== "/Mode/Edit" && isSelected) {
                     thContent = m("i", {
                         onclick: vm.ondblclick.bind(null, model),
-                        class: "fa fa-folder-open"
+                        class: "fa fa-folder-open",
+                        style: {
+                            fontSize: zoom
+                        }
                     });
                 } else if (!model.isValid()) {
                     thContent = m("i", {
                         onclick: onclick,
                         title: model.lastError(),
-                        class: "fa fa-warning"
+                        class: "fa fa-warning",
+                        style: {
+                            fontSize: zoom
+                        }
                     });
                 } else if (currentState === "/Locked") {
                     lock = d.lock() || {};
@@ -1189,28 +1204,41 @@
                         onclick: onclick,
                         title: "User: " + lock.username + "\x0ASince: " +
                                 new Date(lock.created).toLocaleTimeString(),
-                        class: "fa fa-lock"
+                        class: "fa fa-lock",
+                        style: {
+                            fontSize: zoom
+                        }
                     });
                 } else if (currentState === "/Delete") {
                     thContent = m("i", {
                         onclick: onclick,
-                        class: "fa fa-remove"
+                        class: "fa fa-remove",
+                        style: {
+                            fontSize: zoom
+                        }
                     });
                 } else if (currentState === "/Ready/New") {
                     thContent = m("i", {
                         onclick: onclick,
-                        class: "fa fa-plus"
+                        class: "fa fa-plus",
+                        style: {
+                            fontSize: zoom
+                        }
                     });
                 } else if (model.canUndo()) {
                     thContent = m("i", {
                         onclick: onclick,
-                        class: "fa fa-pencil"
+                        class: "fa fa-pencil",
+                        style: {
+                            fontSize: zoom
+                        }
                     });
                 } else {
                     cellOpts = {
                         onclick: onclick,
                         style: {
-                            minWidth: "16px"
+                            minWidth: "25px",
+                            fontSize: zoom
                         }
                     };
                     if (currentMode === "/Mode/Edit" && isSelected) {
