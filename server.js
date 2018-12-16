@@ -200,7 +200,7 @@
         var query = qs.parse(req.query),
             payload = {
                 method: "GET",
-                name: "getBaseCurrency",
+                name: "baseCurrency",
                 user: datasource.getCurrentUser(),
                 data: {
                     effective: query.effective

@@ -947,7 +947,7 @@
     });
 
     // Register certain functions
-    that.registerFunction("GET", "getBaseCurrency", currency.baseCurrency);
+    that.registerFunction("GET", "baseCurrency", currency.baseCurrency);
     that.registerFunction("GET", "convertCurrency", currency.convertCurrency);
     that.registerFunction("GET", "getServices", services.getServices);
     that.registerFunction("GET", "getFeather", feathers.getFeather);
