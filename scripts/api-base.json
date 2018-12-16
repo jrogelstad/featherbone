@@ -44,7 +44,7 @@
         "/currency/base": {
 			"get": {
 				"summary": "Return the base currency",
-				"operationId": "doGetBaseCurrency",
+				"operationId": "baseCurrency",
 				"tags": [
 					"currency"
 				],
@@ -83,7 +83,7 @@
         "/currency/convert": {
 			"get": {
 				"summary": "Return a converted value in base currency",
-				"operationId": "doConvertCurrency",
+				"operationId": "convertCurrency",
 				"tags": [
 					"currency"
 				],
