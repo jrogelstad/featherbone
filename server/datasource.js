@@ -761,7 +761,7 @@
 
                     // Young fool, now you will die.
                     } else {
-                        reject("Function " + obj.method + " " + obj.name + " is not registered.");
+                        throw new Error("Function " + obj.method + " " + obj.name + " is not registered.");
                     }
                 });
             }
@@ -905,6 +905,14 @@
             args = req.body;
 
         function error(err) {
+            if (typeof err === "string") {
+                err = new Error(err);
+            }
+
+            if (!err.statusCode) {
+                err.statusCode = 500;
+            }
+
             this.status(err.statusCode).json(err.message);
         }
 
