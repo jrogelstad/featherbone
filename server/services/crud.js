@@ -410,6 +410,7 @@
                         child = false;
                         prop = props[key];
                         n += 1;
+                        value = undefined;
 
                         /* Handle relations */
                         if (typeof prop.type === "object") {
