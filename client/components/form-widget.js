@@ -28,41 +28,54 @@
     const dialog = require("dialog");
 
     function buildButtons(vm) {
-        var className,
-            midTabClass = ["pure-button", "suite-sheet-group-tab", "suite-sheet-group-tab-form"],
-            leftTabClass = f.copy(midTabClass),
-            rightTabClass = f.copy(midTabClass),
-            tabs = vm.config().tabs || [],
-            last = tabs.length - 1;
+        var ret, className,
+                lonelyTabClass = ["pure-button", "suite-sheet-group-tab", "suite-sheet-group-tab-form"],
+                midTabClass = f.copy(lonelyTabClass),
+                leftTabClass = f.copy(lonelyTabClass),
+                rightTabClass = f.copy(lonelyTabClass),
+                tabs = vm.config().tabs || [],
+                last = tabs.length - 1;
 
-        midTabClass.push("suite-sheet-group-tab-middle");
-        leftTabClass.push("suite-sheet-group-tab-left");
-        rightTabClass.push("suite-sheet-group-tab-right");
+        tabs = tabs.map((tab) => tab.name);
 
-        tabs = tabs.map(function (tab) {
-            return tab.name;
-        });
+        if (tabs.length > 1) {
+            midTabClass.push("suite-sheet-group-tab-middle");
+            leftTabClass.push("suite-sheet-group-tab-left");
+            rightTabClass.push("suite-sheet-group-tab-right");
 
-        return tabs.map(function (name, idx) {
-            switch (idx) {
-            case 0:
-                className = leftTabClass;
-                break;
-            case last:
-                className = rightTabClass;
-                break;
-            default:
-                className = midTabClass;
-            }
+            ret = tabs.map(function (name, idx) {
+                switch (idx) {
+                case 0:
+                    className = leftTabClass;
+                    break;
+                case last:
+                    className = rightTabClass;
+                    break;
+                default:
+                    className = f.copy(midTabClass);
+                }
 
-            if (idx + 1 === vm.selectedTab()) {
-                className.push("suite-sheet-group-tab-active");
-            }
+                if (idx + 1 === vm.selectedTab()) {
+                    className.push("suite-sheet-group-tab-active");
+                }
+
+                return m("button", {
+                    class: className.join(" "),
+                    onclick: vm.selectedTab.bind(null, idx + 1)
+                }, name);
+            });
+            // One button only gets all four corners rounded
+        } else {
+            lonelyTabClass.push("suite-sheet-group-tab-lonely");
+            lonelyTabClass.push("suite-sheet-group-tab-active");
+
             return m("button", {
-                class: className.join(" "),
-                onclick: vm.selectedTab.bind(this, idx + 1)
-            }, name);
-        });
+                class: lonelyTabClass.join(" "),
+                onclick: vm.selectedTab.bind(null, 1)
+            }, tabs[0]);
+        }
+
+        return ret;
     }
 
     function buildFieldset(vm, attrs) {
@@ -263,7 +276,7 @@
             title: "Error"
         }));
         vm.errorDialog().buttonCancel().hide();
-        vm.focusAttr = stream(),
+        vm.focusAttr = stream();
         vm.menuButtons = stream({});
         vm.selectedTab = stream(1);
         vm.model = stream();
