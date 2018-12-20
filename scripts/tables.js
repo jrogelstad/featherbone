@@ -61,7 +61,7 @@
                                 "   amount numeric," +
                                 "   currency text," +
                                 "   effective timestamp with time zone," +
-                                "   ratio numeric" +
+                                "   base_amount numeric" +
                                 ");";
                         obj.client.query(sql, createLock);
                         return;

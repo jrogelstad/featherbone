@@ -251,7 +251,7 @@
                         currency: baseCurr.code,
                         amount: amount,
                         effective: undefined,
-                        ratio: undefined
+                        baseAmount: undefined
                     });
                 }
 
@@ -266,7 +266,7 @@
                             currency: fromCurr,
                             amount: fromAmount,
                             effective: undefined,
-                            ratio: undefined
+                            baseAmount: undefined
                         });
                         return;
                     }

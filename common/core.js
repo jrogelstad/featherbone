@@ -159,12 +159,12 @@
           @param {Number} Ratio.
           @return {Object}
         */
-        money: function (amount, currency, effective, ratio) {
+        money: function (amount, currency, effective, baseAmount) {
             return {
                 amount: amount || 0,
                 currency: currency || "",
                 effective: effective || null,
-                ratio: ratio || null
+                baseAmount: baseAmount || null
             };
         },
 

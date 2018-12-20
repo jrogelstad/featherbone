@@ -311,8 +311,8 @@
                     type: "date",
                     format: "dateTime"
                 },
-                ratio: {
-                    description: "Conversion ration",
+                baseAmount: {
+                    description: "Amount in base currency",
                     type: "number"
                 }
             }

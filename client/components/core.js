@@ -92,9 +92,9 @@
             effective: value.effective === null
                 ? null
                 : f.formats.dateTime.fromType(value.effective),
-            ratio: value.ratio === null
+            baseAmount: value.baseAmount === null
                 ? null
-                : f.types.number.fromType(value.ratio)
+                : f.types.number.fromType(value.baseAmount)
         };
     };
 
@@ -121,9 +121,9 @@
             effective: value.effective === null
                 ? null
                 : f.formats.dateTime.toType(value.effective),
-            ratio: value.ratio === null
+            baseAmount: value.baseAmount === null
                 ? null
-                : f.types.number.toType(value.ratio)
+                : f.types.number.toType(value.baseAmount)
         };
     };
 
@@ -149,6 +149,12 @@
         current = baseCurrs.find(function (item) {
             return new Date(item.data.effective.toJSON()) <= effective;
         });
+
+        // If effective date older than earliest base currency, take oldest
+        if (!current) {
+            current = baseCurrs[0];
+        }
+        
         current = current.data.currency().data.code();
 
         return currs.find(function (currency) {
@@ -162,15 +168,15 @@
       @param {Number} Amount.
       @param {String} Currency code.
       @param {Date} Effective date.
-      @param {Number} Ratio.
+      @param {Number} Base amount.
       @return {Object}
     */
-    f.money = function (amount, currency, effective, ratio) {
+    f.money = function (amount, currency, effective, baseAmount) {
         var ret = {
             amount: amount || 0,
             currency: currency || f.baseCurrency().data.code(),
             effective: effective || null,
-            ratio: ratio || null
+            baseAmount: baseAmount || null
         };
 
         return ret;

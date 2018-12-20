@@ -98,7 +98,7 @@
         value = prop.toJSON(); // Raw value
 
       if (value.effective) {
-        ret = value.amount.times(value.ratio);
+        ret = value.baseAmount;
       } else if (conv &&
         conv.data.fromCurrency().data.code() === baseCode) {
         ret = value.amount.times(conv.data.ratio.toJSON());
@@ -112,7 +112,7 @@
         amount: ret,
         currency: baseCode,
         effective: null,
-        ratio: null
+        baseAmount: null
       };
 
       return f.formats.money.fromType(money).amount;
