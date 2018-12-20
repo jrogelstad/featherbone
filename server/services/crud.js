@@ -528,9 +528,9 @@
                             }
                             Object.keys(value || {}).forEach(function (attr) {
                                 args.push(col);
-                                args.push(attr);
+                                args.push(attr.toSnakeCase());
                                 tokens.push("%I.%I");
-                                values.push(value[attr]);
+                                values.push(value[attr.toSnakeCase()]);
                                 params.push("$" + p);
                                 p += 1;
                             });
