@@ -613,13 +613,9 @@
                             obj.response = resp;
                             doTraverseAfter(obj.name)
                                 .then(resolve)
-                                .catch(function (err) {
-                                    reject(error(err));
-                                });
+                                .catch(reject);
                         })
-                        .catch(function (err) {
-                            reject(error(err));
-                        });
+                        .catch(reject);
                 });
             }
 
