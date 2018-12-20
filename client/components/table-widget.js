@@ -833,7 +833,7 @@
             // Build rows
             idx = 0;
             rows = vm.models().map(function (model) {
-                var tds, row, thContent, onclick, lock,
+                var tds, row, thContent, onclick, lock, iconStyle,
                         lastFocusId, ontab, onshifttab, url,
                         defaultFocusId = vm.defaultFocus(model),
                         currentMode = vm.mode().current()[0],
@@ -1181,22 +1181,23 @@
 
                 // Front cap header navigation
                 onclick = vm.toggleSelection.bind(this, model, defaultFocusId);
+                iconStyle =  {
+                    fontSize: zoom,
+                    minWidth: "25px"
+                };
+
                 if (currentMode !== "/Mode/Edit" && isSelected) {
                     thContent = m("i", {
                         onclick: vm.ondblclick.bind(null, model),
                         class: "fa fa-folder-open",
-                        style: {
-                            fontSize: zoom
-                        }
+                        style: iconStyle
                     });
                 } else if (!model.isValid()) {
                     thContent = m("i", {
                         onclick: onclick,
                         title: model.lastError(),
                         class: "fa fa-warning",
-                        style: {
-                            fontSize: zoom
-                        }
+                        style: iconStyle
                     });
                 } else if (currentState === "/Locked") {
                     lock = d.lock() || {};
@@ -1205,41 +1206,30 @@
                         title: "User: " + lock.username + "\x0ASince: " +
                                 new Date(lock.created).toLocaleTimeString(),
                         class: "fa fa-lock",
-                        style: {
-                            fontSize: zoom
-                        }
+                        style: iconStyle
                     });
                 } else if (currentState === "/Delete") {
                     thContent = m("i", {
                         onclick: onclick,
                         class: "fa fa-remove",
-                        style: {
-                            fontSize: zoom
-                        }
+                        style: iconStyle
                     });
                 } else if (currentState === "/Ready/New") {
                     thContent = m("i", {
                         onclick: onclick,
                         class: "fa fa-plus",
-                        style: {
-                            fontSize: zoom
-                        }
+                        style: iconStyle
                     });
                 } else if (model.canUndo()) {
                     thContent = m("i", {
                         onclick: onclick,
                         class: "fa fa-pencil",
-                        style: {
-                            fontSize: zoom
-                        }
+                        style: iconStyle
                     });
                 } else {
                     cellOpts = {
                         onclick: onclick,
-                        style: {
-                            minWidth: "25px",
-                            fontSize: zoom
-                        }
+                        style: iconStyle
                     };
                     if (currentMode === "/Mode/Edit" && isSelected) {
                         cellOpts.style.borderColor = "blue";
