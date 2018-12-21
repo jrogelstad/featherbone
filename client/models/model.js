@@ -1117,6 +1117,7 @@
                                     delete cFeather.properties[key];
                                 }
                             });
+                            delete cFeather.inherits;
                         }
 
                         // Create a model instance if not already
