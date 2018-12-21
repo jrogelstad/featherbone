@@ -62,7 +62,7 @@
 
     f.formats.money.fromType = function (value) {
         var style,
-            amount = value.amount,
+            amount = value.amount || 0,
             currency = value.currency,
             curr = f.getCurrency(value.currency),
             hasDisplayUnit = curr.data.hasDisplayUnit(),
