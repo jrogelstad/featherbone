@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-
+/*jslint*/
 (function () {
   "use strict";
 
@@ -101,6 +101,15 @@
         description: "Zoom level",
         type: "string",
         default: "100"
+      },
+      isEditModeEnabled: {
+        description: "Flags whether inline editing is allowed",
+        type: "boolean",
+        default: true
+      },
+      actions: {
+        description: "Menu actions that can be performed on rows",
+        type: "object"
       }
     }
   };
