@@ -34,6 +34,7 @@
     const db = new Database();
     const events = new Events();
     const tools = new Tools();
+    const f = require("../../common/core");
 
     var baseCurrs, currencies;
 
@@ -218,9 +219,7 @@
                         fromAmount = obj.data.amount;
 
                 // Advance date to next day so we get latest conversion for that day
-                effective = obj.data.effective
-                    ? new Date(obj.data.effective).toDate()
-                    : new Date();
+                effective = f.parseDate(obj.data.effective || f.today()).toDate();
                 effective.setDate(effective.getDate() + 1);
 
                 if (obj.data.toCurrency) {
