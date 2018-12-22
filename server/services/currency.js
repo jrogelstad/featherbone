@@ -213,12 +213,15 @@
         */
         that.convertCurrency = function (obj) {
             return new Promise(function (resolve, reject) {
-                var baseCurr, err,
-                    effective = obj.data.effective
-                        ? new Date(obj.data.effective).toDate()
-                        : new Date(),
-                    fromCurr = obj.data.fromCurrency,
-                    fromAmount = obj.data.amount;
+                var baseCurr, err, effective,
+                        fromCurr = obj.data.fromCurrency,
+                        fromAmount = obj.data.amount;
+
+                // Advance date to next day so we get latest conversion for that day
+                effective = obj.data.effective
+                    ? new Date(obj.data.effective).toDate()
+                    : new Date();
+                effective.setDate(effective.getDate() + 1);
 
                 if (obj.data.toCurrency) {
                     err = new Error("Conversion to a specific currency is not implemented yet.");
@@ -237,12 +240,12 @@
                     conv = tools.sanitize(resp.rows[0]);
                     if (conv.fromCurrency.code === baseCurr.code) {
                         amount = new Big(fromAmount)
-                            .times(conv.ratio)
+                            .div(conv.ratio)
                             .round(baseCurr.minorUnit)
                             .valueOf() - 0;
                     } else {
                         amount = new Big(fromAmount)
-                            .div(conv.ratio)
+                            .times(conv.ratio)
                             .round(baseCurr.minorUnit)
                             .valueOf() - 0;
                     }
@@ -274,7 +277,7 @@
                     sql = "SELECT * FROM _currency_conversion " +
                             "WHERE (from_currency).code IN ($1, $2) " +
                             "AND (to_currency).code IN ($1,$2) " +
-                            "AND effective <= $3 " +
+                            "AND effective < $3 " +
                             "ORDER BY effective DESC " +
                             "LIMIT 1;";
 
