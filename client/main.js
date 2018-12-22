@@ -16,7 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*global window, require, Promise, EventSource, console*/
-/*jslint this, browser, eval */
+/*jslint this, browser, eval, es6 */
 (function () {
 
     "strict";
@@ -45,21 +45,23 @@
     require("currency-conversion");
     require("currency-unit");
 
-    var feathers, loadCatalog, loadModules, moduleData, workbookData,
-            loadForms, loadRelationWidgets, loadWorkbooks, evstart, evsubscr,
-            buildRelationWidget, menu,
-            m = require("mithril"),
-            f = require("component-core"),
-            model = require("model"),
-            settings = require("settings"),
-            catalog = require("catalog"),
-            dataSource = require("datasource"),
-            list = require("list"),
-            navigator = require("navigator-menu"),
+    const m = require("mithril");
+    const f = require("component-core");
+    const model = require("model");
+    const settings = require("settings");
+    const catalog = require("catalog");
+    const dataSource = require("datasource");
+    const list = require("list");
+    const navigator = require("navigator-menu");
+    const statechart = require("statechartjs");
+    const dialog = require("dialog");
+
+    var feathers, loadCatalog, loadModules, moduleData, workbookData, sseState,
+            loadForms, loadRelationWidgets, loadWorkbooks, evstart, evsubscr, menu,
             workbooks = catalog.register("workbooks");
 
     // Helper function for building relation widgets.
-    buildRelationWidget = function (relopts) {
+    function buildRelationWidget(relopts) {
         var that,
             relationWidget = catalog.store().components().relationWidget,
             name = relopts.feather.toCamelCase() + "Relation";
@@ -91,7 +93,7 @@
             return relopts.valueProperty;
         };
         catalog.register("components", name, that);
-    };
+    }
 
     // Load catalog and process models
     function initPromises() {
@@ -181,6 +183,22 @@
             });
         });
 
+        // Global sse state handler, allows any page
+        // to observe when we've got a sse connection problem,
+        // presumably a disconnect
+        sseState = statechart.define(function () {
+            this.state("Ok", function () {
+                this.event("error", function (error) {
+                    this.goto("/Error", {
+                        context: error
+                    });
+                });
+            });
+            this.state("Error");
+        });
+        sseState.goto(); // Initialze
+        catalog.register("global", "sseState", sseState);
+
         // Load modules
         loadModules = new Promise(function (resolve) {
             var payload = {
@@ -250,11 +268,11 @@
     }
 
     function initApp() {
-        var home,
-            components = catalog.store().components(),
-            models = catalog.store().models(),
-            workbookModel = models.workbook,
-            keys = Object.keys(feathers);
+        var home, sseErrorDialog,
+                components = catalog.store().components(),
+                models = catalog.store().models(),
+                workbookModel = models.workbook,
+                keys = Object.keys(feathers);
 
         // Process modules
         moduleData.forEach(function (module) {
@@ -329,6 +347,20 @@
         // Menu
         menu = navigator.viewModel();
 
+        // Handle connection errors
+        sseErrorDialog = dialog.viewModel({
+            icon: "close",
+            title: "Connection Error",
+            message: "You have lost connection to the server. Click \"Ok\" to attempt to reconnect.",
+            onOk: function () {
+                document.location.reload();
+            }
+        });
+        sseErrorDialog.buttonCancel().hide();
+        sseState.resolve("Error").enter(function () {
+            sseErrorDialog.show();
+        });
+
         // Build home navigation page
         home = {
             oninit: function (vnode) {
@@ -362,6 +394,9 @@
                         m(navigator.component, {
                             viewModel: menu
                         }), [
+                            m(dialog.component, {
+                                viewModel: sseErrorDialog
+                            }),
                             m("div", [
                                 m("h2", {
                                     class: "suite-header suite-header-home"
@@ -477,6 +512,12 @@
                 }
 
                 m.redraw();
+            };
+
+            // Houston, we've got a problem.
+            // Report it to state handler.
+            evsubscr.onerror = function (e) {
+                sseState.send("error", e);
             };
 
             // Done with startup event
