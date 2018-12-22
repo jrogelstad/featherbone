@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*jslint this, es6*/
+/*jslint this, es6, browser*/
 /*global window, require, module*/
 (function () {
     "use strict";
@@ -27,10 +27,12 @@
     const button = require("button");
     const catalog = require("catalog");
     const formWidget = require("form-widget");
+    const dialog = require("dialog");
 
     formPage.viewModel = function (options) {
         var isDisabled, applyTitle, saveTitle, model,
                 instances = catalog.register("instances"),
+                sseState = catalog.store().global().sseState,
                 feather = options.feather.toCamelCase(true),
                 forms = catalog.store().forms(),
                 formId = options.form || Object.keys(forms).find(function (id) {
@@ -115,6 +117,15 @@
         vm.model = function () {
             return vm.formWidget().model();
         };
+        vm.sseErrorDialog = stream(dialog.viewModel({
+            icon: "close",
+            title: "Connection Error",
+            message: "You have lost connection to the server. Click \"Ok\" to attempt to reconnect.",
+            onOk: function () {
+                document.location.reload();
+            }
+        }));
+        vm.sseErrorDialog().buttonCancel().hide();
         vm.title = function () {
             return options.feather.toName();
         };
@@ -206,6 +217,10 @@
             return saveTitle();
         };
 
+        sseState.resolve("Error").enter(function () {
+            vm.sseErrorDialog().show();
+        });
+
         return vm;
     };
 
@@ -267,6 +282,9 @@
                     }),
                     m("label", vm.title())
                 ]),
+                m(dialog.component, {
+                    viewModel: vm.sseErrorDialog()
+                }),
                 m(formWidget.component, {
                     viewModel: vm.formWidget()
                 })

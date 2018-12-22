@@ -16,27 +16,29 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*global window, require, module*/
-/*jslint this*/
+/*jslint this, es6, browser*/
 (function () {
     "use strict";
 
-    var workbookPage = {},
-        m = require("mithril"),
-        stream = require("stream"),
-        f = require("component-core"),
-        button = require("button"),
-        catalog = require("catalog"),
-        dialog = require("dialog"),
-        filterDialog = require("filter-dialog"),
-        searchInput = require("search-input"),
-        sortDialog = require("sort-dialog"),
-        sheetConfigureDialog = require("sheet-configure-dialog"),
-        tableWidget = require("table-widget"),
-        navigator = require("navigator-menu");
+    const m = require("mithril");
+    const stream = require("stream");
+    const f = require("component-core");
+    const button = require("button");
+    const catalog = require("catalog");
+    const dialog = require("dialog");
+    const filterDialog = require("filter-dialog");
+    const searchInput = require("search-input");
+    const sortDialog = require("sort-dialog");
+    const sheetConfigureDialog = require("sheet-configure-dialog");
+    const tableWidget = require("table-widget");
+    const navigator = require("navigator-menu");
+
+    var workbookPage = {};
 
     // Define workbook view model
     workbookPage.viewModel = function (options) {
         var listState, tableState, searchState, currentSheet, feather, staticModel, sheetId,
+                sseState = catalog.store().global().sseState,
                 workbook = catalog.store().workbooks()[options.workbook.toCamelCase()],
                 config = workbook.getConfig(),
                 receiverKey = f.createId(),
@@ -349,6 +351,15 @@
             }
         };
         vm.sortDialog = stream();
+        vm.sseErrorDialog = stream(dialog.viewModel({
+            icon: "close",
+            title: "Connection Error",
+            message: "You have lost connection to the server. Click \"Ok\" to attempt to reconnect.",
+            onOk: function () {
+                document.location.reload();
+            }
+        }));
+        vm.sseErrorDialog().buttonCancel().hide();
         vm.tabClicked = function (sheet) {
             m.route.set("/workbook/:workbook/:sheet", {
                 workbook: workbook.data.name().toSpinalCase(),
@@ -547,6 +558,10 @@
             vm.buttonUndo().show();
         });
 
+        sseState.resolve("Error").enter(function () {
+            vm.sseErrorDialog().show();
+        });
+
         return vm;
     };
 
@@ -666,6 +681,9 @@
                 }),
                 m(dialog.component, {
                     viewModel: vm.confirmDialog()
+                }),
+                m(dialog.component, {
+                    viewModel: vm.sseErrorDialog()
                 }),
                 m("div", {
                     class: "suite-navigator-menu-container"
