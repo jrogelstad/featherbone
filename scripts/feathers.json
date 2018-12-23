@@ -260,6 +260,10 @@
                 "description": "Feather",
                 "type": "string",
                 "isRequired": true
+            },
+            "focus": {
+                "description": "Attribute that receives first focus",
+                "type": "string"
             }
         }
     },
