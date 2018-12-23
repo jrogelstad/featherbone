@@ -197,6 +197,9 @@
 
             if (!prop.isReadOnly() && !vm.focusAttr()) {
                 vm.focusAttr(key);
+            }
+            
+            if (vm.focusAttr() === key) {
                 options.oncreate = function (vnode) {
                     document.getElementById(vnode.dom.id).focus();
                 };
@@ -276,7 +279,7 @@
             title: "Error"
         }));
         vm.errorDialog().buttonCancel().hide();
-        vm.focusAttr = stream();
+        vm.focusAttr = stream(options.config.focus);
         vm.menuButtons = stream({});
         vm.selectedTab = stream(1);
         vm.model = stream();
