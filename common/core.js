@@ -362,19 +362,6 @@
         },
 
         /**
-          Round
-
-          @param {Number} Number
-          @param {Number} Scale
-          @returns {Number}
-        */
-        round: function (value, scale) {
-            scale = scale || 0;
-            var power = Math.pow(10, scale);
-            return Math.round(value * power) / power;
-        },
-
-        /**
           Return milliseconds since last tick. Useful for basic
           debugging for length of time to process a routine.
 

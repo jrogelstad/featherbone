@@ -1211,7 +1211,7 @@
                         formatter.toType = function (value) {
                             var result = toType(value);
 
-                            return f.round(result, scale);
+                            return result.round(scale);
                         };
                     } else {
                         formatter = f.formats[p.format] || f.types[p.type] || {};

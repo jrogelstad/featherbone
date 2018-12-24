@@ -87,4 +87,8 @@
         return new Big(this).times(n).valueOf() - 0;
     };
 
+    Number.prototype.round = function (dp) {
+        return new Big(this).round(dp).valueOf() - 0;
+    };
+
 }());

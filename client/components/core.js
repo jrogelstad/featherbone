@@ -78,7 +78,7 @@
         if (hasDisplayUnit) {
             curr.data.conversions().some(function (conv) {
                 if (conv.data.toUnit().id() === curr.data.displayUnit().id()) {
-                    amount = f.round(amount / conv.data.ratio(), minorUnit);
+                    amount = amount.div(conv.data.ratio()).round(minorUnit);
                     return true;
                 }
             });
@@ -107,7 +107,7 @@
         if (curr.data.hasDisplayUnit() && currency !== curr.data.code()) {
             curr.data.conversions().some(function (conv) {
                 if (conv.data.toUnit().id() === curr.data.displayUnit().id()) {
-                    amount = f.round(amount * conv.data.ratio(), curr.data.minorUnit());
+                    amount = amount.times(conv.data.ratio().round(curr.data.minorUnit()));
                     return true;
                 }
             });
@@ -154,7 +154,7 @@
         if (!current) {
             current = baseCurrs[0];
         }
-        
+
         current = current.data.currency().data.code();
 
         return currs.find(function (currency) {
