@@ -186,7 +186,7 @@
             },
             money: {
                 type: "mono",
-                default: null
+                default: "money()"
             },
             lock: {
                 type: "lock",

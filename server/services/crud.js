@@ -21,6 +21,9 @@
     "strict";
 
     const {
+        Currency
+    } = require('./currency');
+    const {
         Events
     } = require('./events');
     const {
@@ -30,11 +33,36 @@
         Tools
     } = require('./tools');
 
+    const currency = new Currency();
     const events = new Events();
     const feathers = new Feathers();
     const tools = new Tools();
     const f = require("../../common/core");
     const jsonpatch = require("fast-json-patch");
+
+    /**
+      Return a promise that resolves money object with
+      zero amount and base currency. Used as currency
+      default.
+
+      @return {Object} Promise
+    */
+    f.money = function () {
+        return new Promise(function (resolve, reject) {
+            function callback(baseCurr) {
+                resolve({
+                    amount: 0,
+                    currency: baseCurr.code,
+                    effective: null,
+                    baseAmount: null
+                });
+            }
+
+            currency.baseCurrency({data: {}})
+                .then(callback)
+                .catch(reject);
+        });
+    };
 
     exports.CRUD = function () {
         // ..........................................................
@@ -513,29 +541,20 @@
                                 }
 
                                 // If we have a class specific default that calls a function
-                                if (value && typeof value === "string" && value.match(/\(\)$/)) {
+                                if (typeof value === "string" && value.match(/\(\)$/)) {
                                     value = f[value.replace(/\(\)$/, "")]();
+
+                                    if (value instanceof Promise) {
+                                        Promise.all([value])
+                                            .then(function (resp) {
+                                                value = resp[0];
+                                                afterHandleRelations();
+                                            })
+                                            .catch(reject);
+                                        return;
+                                    }
                                 }
                             }
-                        }
-
-                        /* Handle non-relational composites */
-                        if (prop.type === "object" &&
-                                prop.format) {
-
-                            if (prop.isRequired && value === null) {
-                                throw "\"" + key + "\" is required on " + feather.name + ".";
-                            }
-                            Object.keys(value || {}).forEach(function (attr) {
-                                args.push(col);
-                                args.push(attr.toSnakeCase());
-                                tokens.push("%I.%I");
-                                values.push(value[attr.toSnakeCase()]);
-                                params.push("$" + p);
-                                p += 1;
-                            });
-                            buildInsert();
-                            return;
                         }
 
                         afterHandleRelations();
@@ -574,6 +593,23 @@
                         if (prop.isRequired && value === null) {
                             throw "\"" + key + "\" is required on " + feather.name + ".";
                         }
+
+                        /* Handle non-relational composites */
+                        if (prop.type === "object" &&
+                                prop.format) {
+                            Object.keys(value || {}).forEach(function (attr) {
+                                args.push(col);
+                                args.push(attr.toSnakeCase());
+                                tokens.push("%I.%I");
+                                values.push(value[attr.toSnakeCase()]);
+                                params.push("$" + p);
+                                p += 1;
+                            });
+                            buildInsert();
+                            return;
+                        }
+
+                        /* Handle everything else */
                         args.push(col);
                         tokens.push("%I");
                         values.push(value);

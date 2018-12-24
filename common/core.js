@@ -151,24 +151,6 @@
         },
 
         /**
-          Return a money object.
-
-          @param {Number} Amount.
-          @param {String} Currency code.
-          @param {Date} Effective date.
-          @param {Number} Ratio.
-          @return {Object}
-        */
-        money: function (amount, currency, effective, baseAmount) {
-            return {
-                amount: amount || 0,
-                currency: currency || "",
-                effective: effective || null,
-                baseAmount: baseAmount || null
-            };
-        },
-
-        /**
           Return a time in string format that is the current UTC time.
 
           @return {String}
