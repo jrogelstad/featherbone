@@ -16,7 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*global require, module*/
-/*jslint white, this*/
+/*jslint white, this, es6*/
 (function () {
   "use strict";
 
@@ -79,7 +79,8 @@
           }, m("select", {
               style: {minWidth: "175px", maxWidth: "175px"},
               value: item.property,
-              onchange: m.withAttr("value", vm.itemChanged.bind(this, item.index, "property"))
+              onchange: (e) =>
+                    vm.itemChanged.bind(this, item.index, "property")(e.target.value)
             }, vm.attrs().map(function (attr) {
                 return m("option", {value: attr}, attr.toName());
               })
@@ -91,7 +92,8 @@
             m("select", {
               style: {minWidth: "175px", maxWidth: "175px"},
               value: item.order || "ASC",
-              onchange: m.withAttr("value", vm.itemChanged.bind(this, item.index, "order"))
+              onchange: (e) =>
+                    vm.itemChanged.bind(this, item.index, "order")(e.target.value)
             },[
               m("option", {value: "ASC"}, "Ascending"),
               m("option", {value: "DESC"}, "Descending")

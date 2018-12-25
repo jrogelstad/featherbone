@@ -15,7 +15,8 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-
+/*global require, module*/
+/*jslint white, this, es6*/
 (function () {
   "use strict";
 
@@ -134,7 +135,7 @@
         style: vm.style(),
         onfocus: vm.start,
         onblur: vm.end,
-        oninput:  m.withAttr("value", vm.text),
+        oninput:  (e) => vm.text(e.target.value),
         onkeydown: vm.onkeydown
       });
     }

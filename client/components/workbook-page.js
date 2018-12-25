@@ -875,7 +875,7 @@
                                 min: "50",
                                 max: "150",
                                 value: vm.zoom(),
-                                oninput: m.withAttr("value", vm.zoom)
+                                oninput: (e) => vm.zoom(e.target.value)
                             }),
                             m("i", {
                                 class: "fa fa-search-minus suite-zoom-icon suite-zoom-left-icon"
