@@ -16,133 +16,139 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*global require, module*/
-/*jslint white, this, es6*/
+/*jslint this, es6*/
 (function () {
-  "use strict";
+    "use strict";
 
-  var searchInput = {},
-    m = require("mithril"),
-    stream = require("stream"),
-    f = require("component-core"),
-    statechart = require("statechartjs");
+    var searchInput = {},
+        m = require("mithril"),
+        stream = require("stream"),
+        f = require("component-core"),
+        statechart = require("statechartjs");
 
-  /**
-    @param {Object} Options
-    @param {Object} [options.style] Style
-    @param {String} [options.icon] Icon name
-    @param {Function} [options.onclick] On click function
-  */
-  searchInput.viewModel = function (options) {
-    options = options || {};
-    var vm, state;
+    /**
+      @param {Object} Options
+      @param {Object} [options.style] Style
+      @param {String} [options.icon] Icon name
+      @param {Function} [options.onclick] On click function
+    */
+    searchInput.viewModel = function (options) {
+        options = options || {};
+        var vm, state;
 
-    // ..........................................................
-    // PUBLIC
-    //
+        // ..........................................................
+        // PUBLIC
+        //
 
-    vm = {};
-    vm.clear = function () {
-      vm.text("");
-      vm.end();
-    };
-    vm.end = function () { state.send("end"); };
-    vm.id = stream(f.createId());
-    vm.onkeydown = function (e) {
-      var key = e.key || e.keyIdentifier;
-      if (key === "Enter") { vm.refresh(); }
-    };
-    vm.refresh = function () {
-      if (options.refresh) {
-        options.refresh();
-      }
-    };
-    vm.start = function () { state.send("start"); };
-    vm.state = function () { return state; };
-    vm.style = function () { 
-      return state.resolve(state.current()[0]).style();
-    };
-    vm.text = stream();
-    vm.value = function () {
-      return state.resolve(state.current()[0]).value();
-    };
-
-    // ..........................................................
-    // PRIVATE
-    //
-
-    // Define statechart
-    state = statechart.define(function () {
-      this.state("Search", function () {
-        this.state("Off", function () {
-          this.enter(function () {
-            vm.text("Search");
-          });
-          this.event("start", function () {
-            this.goto("../On");
-          });
-          this.style = function () {
-            return {
-              color: "LightGrey",
-              margin: "2px"
-            };
-          };
-          this.value = function () {
-            return "";
-          };
-        });
-        this.state("On", function () {
-          this.enter(function () {
+        vm = {};
+        vm.clear = function () {
             vm.text("");
-          });
-          this.exit(function () {
-            vm.refresh();
-          });
-          this.canExit = function () {
-            return !vm.text();
-          };
-          this.event("end", function () {
-            this.goto("../Off");
-          });
-          this.style = function () {
-            return {
-              color: "Black",
-              margin: "2px"
-            };
-          };
-          this.value = function () {
-            return vm.text();
-          };
+            vm.end();
+        };
+        vm.end = function () {
+            state.send("end");
+        };
+        vm.id = stream(f.createId());
+        vm.onkeydown = function (e) {
+            var key = e.key || e.keyIdentifier;
+            if (key === "Enter") {
+                vm.refresh();
+            }
+        };
+        vm.refresh = function () {
+            if (options.refresh) {
+                options.refresh();
+            }
+        };
+        vm.start = function () {
+            state.send("start");
+        };
+        vm.state = function () {
+            return state;
+        };
+        vm.style = function () {
+            return state.resolve(state.current()[0]).style();
+        };
+        vm.text = stream();
+        vm.value = function () {
+            return state.resolve(state.current()[0]).value();
+        };
+
+        // ..........................................................
+        // PRIVATE
+        //
+
+        // Define statechart
+        state = statechart.define(function () {
+            this.state("Search", function () {
+                this.state("Off", function () {
+                    this.enter(function () {
+                        vm.text("Search");
+                    });
+                    this.event("start", function () {
+                        this.goto("../On");
+                    });
+                    this.style = function () {
+                        return {
+                            color: "LightGrey",
+                            margin: "2px"
+                        };
+                    };
+                    this.value = function () {
+                        return "";
+                    };
+                });
+                this.state("On", function () {
+                    this.enter(function () {
+                        vm.text("");
+                    });
+                    this.exit(function () {
+                        vm.refresh();
+                    });
+                    this.canExit = function () {
+                        return !vm.text();
+                    };
+                    this.event("end", function () {
+                        this.goto("../Off");
+                    });
+                    this.style = function () {
+                        return {
+                            color: "Black",
+                            margin: "2px"
+                        };
+                    };
+                    this.value = function () {
+                        return vm.text();
+                    };
+                });
+            });
         });
-      });
-    });
-    state.goto();
+        state.goto();
 
-    return vm;
-  };
+        return vm;
+    };
 
-  // Define dialog component
-  searchInput.component = {
-    oninit: function (vnode) {
-      this.viewModel =  vnode.attrs.viewModel || searchInput.viewModel(vnode.attrs);
-    },
+    // Define dialog component
+    searchInput.component = {
+        oninit: function (vnode) {
+            this.viewModel = vnode.attrs.viewModel || searchInput.viewModel(vnode.attrs);
+        },
 
-    view: function () {
-      var vm = this.viewModel;
+        view: function () {
+            var vm = this.viewModel;
 
-      return m("input", {
-        id: vm.id(),
-        value: vm.text(),
-        style: vm.style(),
-        onfocus: vm.start,
-        onblur: vm.end,
-        oninput:  (e) => vm.text(e.target.value),
-        onkeydown: vm.onkeydown
-      });
-    }
-  };
+            return m("input", {
+                id: vm.id(),
+                value: vm.text(),
+                style: vm.style(),
+                onfocus: vm.start,
+                onblur: vm.end,
+                oninput: (e) => vm.text(e.target.value),
+                onkeydown: vm.onkeydown
+            });
+        }
+    };
 
-  module.exports = searchInput;
+    module.exports = searchInput;
 
 }());
-
-
