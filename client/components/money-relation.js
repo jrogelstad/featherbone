@@ -229,7 +229,7 @@
         wasCurrency = currency;
         selector = m("select", {
           id: "C" + vm.id(),
-          onchange: m.withAttr("value", vm.currency), 
+          onchange: (e) => vm.currency(e.target.value), 
           value: currency,
           disabled: disabled,
           style: selectorStyle
@@ -299,7 +299,7 @@
         m("input", {
           style: inputStyle,
           id: "A" + vm.id(),
-          onchange: m.withAttr("value", vm.amount),
+          onchange: (e) => vm.amount(e.target.value),
           value: vm.amount(),
           disabled: disabled,
           oncreate: vnode.attrs.onCreate,

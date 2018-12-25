@@ -16,6 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*global require, module, console */
+/*jslint es6*/
 (function () {
     "use strict";
 
@@ -277,7 +278,7 @@
                 });
             } else {
                 opts.id = id;
-                opts.onchange = m.withAttr("value", prop);
+                opts.onchange = (e) => prop(e.target.value);
                 opts.value = prop();
                 opts.class = "suite-input";
 

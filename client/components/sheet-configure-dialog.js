@@ -138,7 +138,7 @@
                             m("input", {
                                 value: d.name(),
                                 required: true,
-                                oninput: m.withAttr("value", d.name)
+                                oninput: (e) => d.name(e.target.value)
                             })
                         ]),
                         m("div", {
@@ -150,7 +150,7 @@
                             m("select", {
                                 value: d.feather(),
                                 required: true,
-                                oninput: m.withAttr("value", d.feather)
+                                oninput: (e) => d.feather(e.target.value)
                             }, feathers)
                         ]),
                         m("div", {
@@ -162,7 +162,7 @@
                             m("select", {
                                 value: vm.form(),
                                 required: true,
-                                oninput: m.withAttr("value", vm.form)
+                                oninput: (e) => vm.form(e.target.value)
                             }, forms)
                         ])
                     ]),
@@ -331,10 +331,8 @@
                         style: {
                             maxWidth: "165px"
                         },
-                        onchange: m.withAttr(
-                            "value",
-                            vm.itemChanged.bind(this, item.index, "attr")
-                        )
+                        onchange: (e) =>
+                                vm.itemChanged.bind(this, item.index, "attr")(e.target.value)
                     }, vm.attrs().map(function (attr) {
                         return m("option", {
                             value: attr
@@ -347,10 +345,8 @@
                         }
                     }, m("input", {
                         value: item.label || vm.alias(item.attr),
-                        onchange: m.withAttr(
-                            "value",
-                            vm.itemChanged.bind(this, item.index, "label")
-                        )
+                        onchange: (e) =>
+                                vm.itemChanged.bind(this, item.index, "label")(e.target.value)
                     }))
                 ]);
 

@@ -16,7 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*global require, module*/
-/*jslint this*/
+/*jslint this, es6*/
 (function () {
     "use strict";
 
@@ -39,7 +39,7 @@
                     id: this.id,
                     class: "suite-checkbox-input",
                     type: "checkbox",
-                    onclick: m.withAttr("checked", vnode.attrs.onclick),
+                    onclick: (e) => vnode.attrs.onclick(e.target.checked),
                     checked: vnode.attrs.value,
                     style: vnode.attrs.style || {},
                     required: !!vnode.attrs.required,

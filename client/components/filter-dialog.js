@@ -16,7 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*global require, module*/
-/*jslint white, this*/
+/*jslint white, this, es6*/
 (function () {
   "use strict";
 
@@ -86,10 +86,8 @@
           });
         } else {
           opts.type = f.inputMap[format];
-          opts.onchange = m.withAttr(
-            "value",
-            vm.itemChanged.bind(this, index, "value")
-          );
+          opts.onchange = (e) =>
+            vm.itemChanged.bind(this, index, "value")(e.target.value);
           opts.value = value;
           component = m("input", opts);
         }
@@ -263,9 +261,8 @@
           m("td", m("select", {
               class: "suite-filter-dialog-property",
               value: item.property,
-              onchange: m.withAttr(
-                "value",
-                vm.itemPropertyChanged.bind(this, item.index))
+              onchange: (e) =>
+                vm.itemPropertyChanged.bind(this, item.index)(e.target.value)
             }, vm.attrs().map(function (attr) {
                 return m("option", {value: attr}, attr.toName());
               })
@@ -275,9 +272,8 @@
            class: "suite-filter-dialog-operator"
           }, [
             m("select", {
-              onchange: m.withAttr(
-                "value",
-                vm.itemChanged.bind(this, item.index, "operator"))
+              onchange: (e) =>
+                vm.itemChanged.bind(this, item.index, "operator")(e.target.value)
             }, Object.keys(operators).map(function (op) {
               return m("option", {value: op}, operators[op]);
             }), item.operator || "=")
