@@ -103,7 +103,7 @@
       onclick: vm.doBack,
       label: "&Back",
       icon: "arrow-left",
-      class: "suite-toolbar-button"
+      class: "fb-toolbar-button"
     }));
 
     vm.buttonSelect(button.viewModel({
@@ -111,7 +111,7 @@
       label: "&Select",
       title: vm.selectTitle,
       disabled: vm.selectDisabled,
-      class: "suite-toolbar-button"
+      class: "fb-toolbar-button"
     }));
     vm.buttonSelect().isDisabled = function () {
       return !vm.tableWidget().selection();

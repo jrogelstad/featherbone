@@ -15,36 +15,36 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-.suite-input {
+.fb-input {
   width: 215px;
 }
-.suite-input-number {
+.fb-input-number {
   width: 215px;
   text-align: right;
 }
 
-.suite-dialog-button {
+.fb-dialog-button {
   margin-right: 10px;
 }
 
-.suite-toolbar-button {
+.fb-toolbar-button {
   background-color: Snow;
 }
 
-.suite-button-disabled {
+.fb-button-disabled {
     pointer-events: auto !important;
 }
 
-.suite-checkbox {
+.fb-checkbox {
   display: inline-block;
 }
 
-.suite-checkbox-input {
+.fb-checkbox-input {
   position: absolute;
   left: -999px;
 }
 
-.suite-checkbox-label {
+.fb-checkbox-label {
   border-width: thin;
   border-style: solid;
   border-radius: 4px;
@@ -56,48 +56,48 @@
   background-color: White;
 }
 
-.suite-cell-view {
+.fb-cell-view {
   white-space: nowrap;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
 }
 
-.suite-column-filter-icon {
+.fb-column-filter-icon {
   float: right;
   color: DarkBlue;
   margin-right: 3px;
 }
 
-.suite-column-header {
+.fb-column-header {
   white-space: nowrap;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   cursor: move;
 }
 
-.suite-column-sort-icon {
+.fb-column-sort-icon {
   float: right;
   color: Grey;
 }
 
-.suite-column-sort-number {
+.fb-column-sort-number {
   float: right;
   color: Grey;
   margin-right: 3px;
 }
 
-.suite-column-header-grabber {
+.fb-column-header-grabber {
   cursor: w-resize;
 }
 
-.suite-column-spacer {
+.fb-column-spacer {
   padding: 0px !important;
   min-width: 6px !important;
   max-width: 6px !important;
   border-left: none !important;
 }
 
-.suite-contact-relation-icon {
+.fb-contact-relation-icon {
   margin-left: 12px;
   margin-top: 6px;
   margin-right: 8px;
@@ -106,65 +106,65 @@
   text-align: center;
 }
 
-.suite-dialog {
+.fb-dialog {
   border-radius: 10px;
   padding: 0px;
 }
 
-.suite-dialog-button-ok {
+.fb-dialog-button-ok {
   margin-right: 5px;
 }
 
-.suite-dialog-content-frame {
+.fb-dialog-content-frame {
   padding: 1em;
 }
 
-.suite-dialog-icon {
+.fb-dialog-icon {
   margin-right: 5px;
 }
 
-.suite-filter-dialog-input {
+.fb-filter-dialog-input {
   max-width: 200px;
 }
 
-.suite-filter-dialog-input-cell {
+.fb-filter-dialog-input-cell {
   min-width: 225px;
   max-width: 225px;
 }
 
-.suite-filter-dialog-operator {
+.fb-filter-dialog-operator {
   width: 200px;
 }
 
-.suite-filter-dialog-property {
+.fb-filter-dialog-property {
   max-width: 175px;
 }
 
-.suite-filter-dialog-table-header-column {
+.fb-filter-dialog-table-header-column {
   min-width: 175px;
 }
 
-.suite-filter-dialog-table-header-operator {
+.fb-filter-dialog-table-header-operator {
   min-width: 200px;
 }
 
-.suite-filter-dialog-table-header-value {
+.fb-filter-dialog-table-header-value {
   min-width: 225px;
 }
 
-.suite-main-button {
+.fb-main-button {
   border-radius: 4px;
   margin: 3px;
   min-width: 110px;
 }
 
-.suite-navigator-menu-container {
+.fb-navigator-menu-container {
   display: inline-flex;
   position: absolute;
   height: 100%;
 }
 
-.suite-navigator-menu {
+.fb-navigator-menu {
   font-family: Raleway;
   background-color: #191818;
   color: white;
@@ -172,22 +172,22 @@
   padding: 8px; 
 }
 
-.suite-navigator-menu-expanded {
+.fb-navigator-menu-expanded {
   min-width: 128px;
 }
 
-.suite-navigator-menu-collapsed {
+.fb-navigator-menu-collapsed {
   max-width: 42px;
 }
 
-.suite-navigator-menu-header-collapsed {
+.fb-navigator-menu-header-collapsed {
   transform: rotate(180deg);
   writing-mode: vertical-lr;
   font-size: small;
   margin-left: 8px;
 }
 
-.suite-navigator-item-icon {
+.fb-navigator-item-icon {
 	margin-right: 8px;
 	margin-top: 8px;
 	margin-left: 8px;
@@ -195,7 +195,7 @@
 	text-align: center;
 }
 
-.suite-navigator-item {
+.fb-navigator-item {
   color: #999;
   font-size: 14.4px;
   font-family:sans-serif;
@@ -203,15 +203,15 @@
   cursor:default;
 }
 
-.suite-navigator-item-selected {
+.fb-navigator-item-selected {
   color: cornsilk;
 }
 
-.suite-navigator-item-mouseover {
+.fb-navigator-item-mouseover {
   color: white;
 }
 
-.suite-table-dialog-table-body {
+.fb-table-dialog-table-body {
   max-height: 175px;
   min-height: 175px;
   overflow-x: hidden;
@@ -219,25 +219,25 @@
   display: inline-block;
 }
 
-.suite-table-dialog-table-header {
+.fb-table-dialog-table-header {
   min-width: inherit;
   display: inherit;
 }
-.suite-title-icon {
+.fb-title-icon {
   margin-right: 5px;
 }
 
-.suite-form-content {
+.fb-form-content {
   overflow: auto;
 }
 
-.suite-form-label {
+.fb-form-label {
   vertical-align: top !important;
   margin-top: 9px !important;
   margin-bottom: 3px !important;
 }
 
-.suite-form-label-button {
+.fb-form-label-button {
   margin-bottom: 9px !important;
   vertical-align: top !important;
   background-color: white;
@@ -250,15 +250,15 @@
   margin-left: 0px;
 }
 
-.suite-form-label-menu-item {
+.fb-form-label-menu-item {
   text-align: left;
 }
 
-.suite-sheet-configure-content {
+.fb-sheet-configure-content {
   height: 290px;
 }
 
-.suite-sheet-configure-group-box {
+.fb-sheet-configure-group-box {
   border: thin #0078e7 solid;
   border-radius: 6px;
   padding: 6px;
@@ -267,7 +267,7 @@
   top: 20px;
 }
 
-.suite-sheet-group-tab {
+.fb-sheet-group-tab {
   background-color: White;
   color: #0078e7;
   border-color: #0078e7;
@@ -275,22 +275,22 @@
   border-width: thin;
 }
 
-.suite-sheet-group-tab-form {
+.fb-sheet-group-tab-form {
   position: relative;
   top: -18px;
   border-radius: 0px;
 }
 
-.suite-sheet-group-tab-active {
+.fb-sheet-group-tab-active {
   background-color: #0078e7 !important;
   color: #fff !important;
 }
 
-.suite-sheet-group-tab-middle {
+.fb-sheet-group-tab-middle {
   border-right-style: none;
 }
 
-.suite-sheet-group-tab-left {
+.fb-sheet-group-tab-left {
   border-top-right-radius: 0px;
   border-bottom-right-radius: 0px;
   border-top-left-radius: 4px;
@@ -298,50 +298,50 @@
   border-right-style: none;
 }
 
-.suite-sheet-group-tab-right {
+.fb-sheet-group-tab-right {
   border-top-left-radius: 0px;
   border-bottom-left-radius: 0px;
   border-top-right-radius: 4px;
   border-bottom-right-radius: 4px;
 }
 
-.suite-sheet-group-tab-lonely {
+.fb-sheet-group-tab-lonely {
   border-top-left-radius: 4px;
   border-bottom-left-radius: 4px;
   border-top-right-radius: 4px;
   border-bottom-right-radius: 4px;
 }
 
-.suite-sheet-configure-tabs {
+.fb-sheet-configure-tabs {
   position: absolute;
   z-index: 1;
   left: 225px;
 }
 
-.suite-top-pane {
+.fb-top-pane {
   margin: 10px;
 }
 
-.suite-tabbed-pane {
+.fb-tabbed-pane {
   text-align: left;
 }
 
-.suite-tabbed-panes {
+.fb-tabbed-panes {
   border: solid thin blue;
   border-radius: 4px;
 }
 
-.suite-tabbed-panes-form {
+.fb-tabbed-panes-form {
   text-align: center;
   width: 98%;
   margin: 10px;
 }
 
-.suite-tabbed-panes-hidden {
+.fb-tabbed-panes-hidden {
   display: none;
 }
 
-.suite-header {
+.fb-header {
   background-color: Snow;
   border-bottom-color: LightGrey;
   border-bottom-style: solid;
@@ -350,12 +350,12 @@
   padding: 6px;
 }
 
-.suite-header-home {
+.fb-header-home {
   position: fixed;
   width: 100%
 }
 
-.suite-title {
+.fb-title {
   background-color: #e0e0e0;
   font-weight: bold;
   border-top: 1px solid #cbcbcb;
@@ -365,55 +365,55 @@
   padding: 6px;
 }
 
-.suite-menu {
+.fb-menu {
   display: inline-block;
   top: 2px;
 }
 
-.suite-menu-button {
+.fb-menu-button {
   background-color: Snow;
   margin: 2px;
   min-height: 34px;
 }
 
-.suite-menu-list {
+.fb-menu-list {
   background-color: White;
   position: absolute;
   z-index: 9999;
   border: 1px solid LightGrey;
 }
 
-.suite-relation-button {
+.fb-relation-button {
   margin-left: 3px;
   margin-top: 1px;
   margin-right: 3px;
 }
 
-.suite-relation-button-cell {
+.fb-relation-button-cell {
   position: absolute;
 }
 
-.suite-relation-label {
+.fb-relation-label {
   display: inline;
 }
 
-.suite-relation-label-cell {
+.fb-relation-label-cell {
   display: none;
 }
 
-.suite-relation-menu {
+.fb-relation-menu {
   position: absolute;
   display: inline;
 }
 
-.suite-relation-menu-list {
+.fb-relation-menu-list {
   background-color: White;
   position: absolute;
   z-index: 9999;
   border: 1px solid lightgrey;
 }
 
-.suite-sheet-tab {
+.fb-sheet-tab {
   border-top-left-radius: 0px;
   border-top-right-radius: 0px;
   border-right-style: solid;
@@ -424,44 +424,44 @@
   border-bottom-width: thin;
 }
 
-.suite-table {
+.fb-table {
   table-layout: fixed;
   width: 100%;
 }
 
-.suite-table-body {
+.fb-table-body {
   display: inline-block;
   width: 100%;
   overflow: auto;
 }
 
-.suite-table-header {
+.fb-table-header {
   display: inline-block;
   width: 100%;
   overflow: hidden;
 }
 
-.suite-toolbar {
+.fb-toolbar {
   background-color: Snow;
 }
 
-.suite-zoom-control {
+.fb-zoom-control {
   float: right;
   margin-top: 6px;
   cursor: pointer;
 }
 
-.suite-zoom-icon {
+.fb-zoom-icon {
   color: LightGrey;
   margin-top: 9px;
   float: right;
 }
 
-.suite-zoom-left-icon {
+.fb-zoom-left-icon {
   margin-right: 5px;
 }
 
-.suite-zoom-right-icon {
+.fb-zoom-right-icon {
   margin-left: 5px;
   margin-right: 8px;
 }

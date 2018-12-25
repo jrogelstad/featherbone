@@ -168,27 +168,27 @@
             onclick: vm.doBack,
             label: "&Back",
             icon: "arrow-left",
-            class: "suite-toolbar-button"
+            class: "fb-toolbar-button"
         }));
 
         vm.buttonApply(button.viewModel({
             onclick: vm.doApply,
             label: "&Apply",
-            class: "suite-toolbar-button"
+            class: "fb-toolbar-button"
         }));
 
         vm.buttonSave(button.viewModel({
             onclick: vm.doSave,
             label: "&Save",
             icon: "cloud-upload",
-            class: "suite-toolbar-button"
+            class: "fb-toolbar-button"
         }));
 
         vm.buttonSaveAndNew(button.viewModel({
             onclick: vm.doSaveAndNew,
             label: "Save and &New",
             icon: "plus-circle",
-            class: "suite-toolbar-button"
+            class: "fb-toolbar-button"
         }));
         if (catalog.getFeather(feather).isReadOnly) {
             vm.buttonSaveAndNew().label("&New");
@@ -258,7 +258,7 @@
             return m("div", [
                 m("div", {
                     id: "toolbar",
-                    class: "suite-toolbar"
+                    class: "fb-toolbar"
                 }, [
                     m(button.component, {
                         viewModel: vm.buttonBack()
@@ -274,10 +274,10 @@
                     })
                 ]),
                 m("div", {
-                    class: "suite-title"
+                    class: "fb-title"
                 }, [
                     m("i", {
-                        class: "fa fa-" + icon + " suite-title-icon",
+                        class: "fa fa-" + icon + " fb-title-icon",
                         title: title
                     }),
                     m("label", vm.title())

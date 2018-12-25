@@ -389,7 +389,7 @@
                     }
                 }, [
                     m("div", {
-                        class: "suite-navigator-menu-container"
+                        class: "fb-navigator-menu-container"
                     }, [
                         m(navigator.component, {
                             viewModel: menu
@@ -399,7 +399,7 @@
                             }),
                             m("div", [
                                 m("h2", {
-                                    class: "suite-header suite-header-home"
+                                    class: "fb-header fb-header-home"
                                 }, "Home")
                             ]),
                             m("a", {

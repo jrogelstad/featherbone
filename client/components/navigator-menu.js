@@ -34,7 +34,7 @@
             this.event("toggle", function () {
                 this.goto("../Collapsed");
             });
-            this.classMenu = "pure-menu suite-navigator-menu suite-navigator-menu-expanded";
+            this.classMenu = "pure-menu fb-navigator-menu fb-navigator-menu-expanded";
             this.classHeader = "";
             this.content = function (value) {
                 return value;
@@ -47,8 +47,8 @@
             this.event("toggle", function () {
                 this.goto("../Expanded");
             });
-            this.classMenu = "pure-menu suite-navigator-menu suite-navigator-menu-collapsed";
-            this.classHeader = "suite-navigator-menu-header-collapsed";
+            this.classMenu = "pure-menu fb-navigator-menu fb-navigator-menu-collapsed";
+            this.classHeader = "fb-navigator-menu-header-collapsed";
             this.content = function () {
                 return undefined;
             };
@@ -128,12 +128,12 @@
             function items(key) {
                 var name = workbooks[key].data.name();
 
-                itemClass = "pure-menu-item suite-navigator-item";
+                itemClass = "pure-menu-item fb-navigator-item";
 
                 if (vm.selected() && vm.selected() === key) {
-                    itemClass += " suite-navigator-item-selected";
+                    itemClass += " fb-navigator-item-selected";
                 } else if (vm.mouseoverKey() === key) {
-                    itemClass += " suite-navigator-item-mouseover";
+                    itemClass += " fb-navigator-item-mouseover";
                 }
 
                 return m("li", {
@@ -145,18 +145,18 @@
                 }, [
                     m("i", {
                         class: "fa fa-" + workbooks[key].data.launchConfig().icon +
-                                " suite-navigator-item-icon"
+                                " fb-navigator-item-icon"
                     })
                 ], vm.itemContent(name));
             }
 
             menuItems = Object.keys(workbooks).map(items);
 
-            itemClass = "pure-menu-item suite-navigator-item";
+            itemClass = "pure-menu-item fb-navigator-item";
             if (vm.selected() === "home") {
-                itemClass += " suite-navigator-item-selected";
+                itemClass += " fb-navigator-item-selected";
             } else if (vm.mouseoverKey() === "home") {
-                itemClass += " suite-navigator-item-mouseover";
+                itemClass += " fb-navigator-item-mouseover";
             }
 
             menuItems.unshift(
@@ -168,7 +168,7 @@
                     title: vm.itemTitle("Home")
                 }, [
                     m("i", {
-                        class: "fa fa-home suite-navigator-item-icon"
+                        class: "fa fa-home fb-navigator-item-icon"
                     })
                 ], vm.itemContent("Home"))
             );

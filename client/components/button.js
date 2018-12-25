@@ -255,7 +255,7 @@
             };
 
             if (vm.isDisabled()) {
-                classes.push("suite-button-disabled");
+                classes.push("fb-button-disabled");
             }
 
             if (vm.class()) {

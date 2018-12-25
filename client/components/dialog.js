@@ -107,7 +107,7 @@
         vm.buttonOk(button.viewModel({
             onclick: vm.ok,
             label: "&Ok",
-            class: "suite-dialog-button"
+            class: "fb-dialog-button"
         }));
         vm.buttonOk().id(vm.ids().buttonOk);
         vm.buttonOk().state().send("primaryOn");
@@ -115,7 +115,7 @@
         vm.buttonCancel(button.viewModel({
             onclick: vm.cancel,
             label: "&Cancel",
-            class: "suite-dialog-button"
+            class: "fb-dialog-button"
         }));
         vm.buttonCancel().id(vm.ids().buttonCancel);
         vm.buttonCancel().style = vm.displayCancel;
@@ -186,7 +186,7 @@
 
             return m("dialog", {
                 id: ids.dialog,
-                class: "suite-dialog",
+                class: "fb-dialog",
                 style: f.copy(vm.style()),
                 oncreate: function (vnode) {
                     // Make Chrome style dialog available for all browsers
@@ -198,12 +198,12 @@
             }, [
                 m("h3", {
                     id: ids.header,
-                    class: "suite-header"
+                    class: "fb-header"
                 }, [m("i", {
-                    class: "fa fa-" + vm.icon() + " suite-dialog-icon"
+                    class: "fa fa-" + vm.icon() + " fb-dialog-icon"
                 })], vm.title().toName()),
                 m("div", {
-                    class: "suite-dialog-content-frame"
+                    class: "fb-dialog-content-frame"
                 }, content)
             ]);
         }

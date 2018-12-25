@@ -29,7 +29,7 @@
 
     function buildButtons(vm) {
         var ret, className,
-                lonelyTabClass = ["pure-button", "suite-sheet-group-tab", "suite-sheet-group-tab-form"],
+                lonelyTabClass = ["pure-button", "fb-sheet-group-tab", "fb-sheet-group-tab-form"],
                 midTabClass = f.copy(lonelyTabClass),
                 leftTabClass = f.copy(lonelyTabClass),
                 rightTabClass = f.copy(lonelyTabClass),
@@ -39,9 +39,9 @@
         tabs = tabs.map((tab) => tab.name);
 
         if (tabs.length > 1) {
-            midTabClass.push("suite-sheet-group-tab-middle");
-            leftTabClass.push("suite-sheet-group-tab-left");
-            rightTabClass.push("suite-sheet-group-tab-right");
+            midTabClass.push("fb-sheet-group-tab-middle");
+            leftTabClass.push("fb-sheet-group-tab-left");
+            rightTabClass.push("fb-sheet-group-tab-right");
 
             ret = tabs.map(function (name, idx) {
                 switch (idx) {
@@ -56,7 +56,7 @@
                 }
 
                 if (idx + 1 === vm.selectedTab()) {
-                    className.push("suite-sheet-group-tab-active");
+                    className.push("fb-sheet-group-tab-active");
                 }
 
                 return m("button", {
@@ -66,8 +66,8 @@
             });
             // One button only gets all four corners rounded
         } else {
-            lonelyTabClass.push("suite-sheet-group-tab-lonely");
-            lonelyTabClass.push("suite-sheet-group-tab-active");
+            lonelyTabClass.push("fb-sheet-group-tab-lonely");
+            lonelyTabClass.push("fb-sheet-group-tab-active");
 
             return m("button", {
                 class: lonelyTabClass.join(" "),
@@ -91,7 +91,7 @@
                     relation = vm.relations()[key];
 
             function openMenuClass() {
-                var ret = "pure-menu-link suite-form-label-menu-item";
+                var ret = "pure-menu-link fb-form-label-menu-item";
 
                 if (relation && relation.model && !relation.model()) {
                     ret += " pure-menu-disabled";
@@ -101,7 +101,7 @@
             }
 
             function editMenuClass() {
-                var ret = "pure-menu-link suite-form-label-menu-item";
+                var ret = "pure-menu-link fb-form-label-menu-item";
 
                 if (relation && relation.isDisabled && relation.isDisabled()) {
                     ret += " pure-menu-disabled";
@@ -127,7 +127,7 @@
 
             labelOpts = {
                 for: key,
-                class: "suite-form-label",
+                class: "fb-form-label",
                 style: {}
             };
 
@@ -139,7 +139,7 @@
                     };
                 }
 
-                labelOpts.class = "pure-button suite-form-label-button";
+                labelOpts.class = "pure-button fb-form-label-button";
                 labelOpts.onclick = function () {
                     menuButtons[key].display = "block";
                 };
@@ -148,13 +148,13 @@
                 };
                 label = m("div", labelOpts, [
                     m("div", {
-                        class: "pure-menu suite-relation-menu",
+                        class: "pure-menu fb-relation-menu",
                         onmouseover: function () {
                             menuButtons[key].display = "block";
                         }
                     }, [
                         m("ul", {
-                            class: "pure-menu-list suite-relation-menu-list",
+                            class: "pure-menu-list fb-relation-menu-list",
                             style: {
                                 top: "27px",
                                 display: menuButtons[key].display
@@ -241,7 +241,7 @@
     function buildGrid(grid, idx) {
         var units,
             vm = this,
-            className = "suite-tabbed-panes suite-tabbed-panes-form";
+            className = "fb-tabbed-panes fb-tabbed-panes-form";
 
         units = grid.map(function (unit) {
             return buildUnit(vm, unit, grid.length);
@@ -249,12 +249,12 @@
 
         if (!idx) {
             return m("div", {
-                class: "pure-g suite-top-pane"
+                class: "pure-g fb-top-pane"
             }, units);
         }
 
         if (idx !== vm.selectedTab()) {
-            className += " suite-tabbed-panes-hidden";
+            className += " fb-tabbed-panes-hidden";
         }
 
         return m("div", {
@@ -262,7 +262,7 @@
         }, [
             buildButtons(vm),
             m("div", {
-                class: "pure-g suite-tabbed-pane"
+                class: "pure-g fb-tabbed-pane"
             }, units)
         ]);
     }
@@ -359,7 +359,7 @@
 
             return m("div", {
                 id: model.id(),
-                class: "suite-form-content",
+                class: "fb-form-content",
                 oncreate: function (vnode) {
                     var e = document.getElementById(vnode.dom.id),
                         bodyHeight = window.innerHeight,

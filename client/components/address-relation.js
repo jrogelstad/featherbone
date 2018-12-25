@@ -179,7 +179,7 @@
                 m("textarea", {
                     id: vm.id(),
                     title: "Click or Enter key to edit",
-                    class: "suite-input",
+                    class: "fb-input",
                     onkeydown: vm.onkeydown,
                     onclick: vm.doEdit,
                     value: vm.content(vm.isCell()),

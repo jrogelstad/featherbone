@@ -109,7 +109,7 @@
         vm.labels = function () {
             return [
                 m("div", {
-                    class: "suite-input",
+                    class: "fb-input",
                     style: {
                         marginLeft: "12px",
                         marginTop: vm.label()
@@ -342,8 +342,8 @@
                     style = vm.style(),
                     openMenuClass = "pure-menu-link",
                     editMenuClass = "pure-menu-link",
-                    buttonClass = "pure-button fa fa-bars suite-relation-button",
-                    labelClass = "suite-relation-label";
+                    buttonClass = "pure-button fa fa-bars fb-relation-button",
+                    labelClass = "fb-relation-label";
 
             menuStyle = {
                 display: vm.showMenu()
@@ -378,10 +378,10 @@
                     maxWidth: "100%",
                     border: "none"
                 };
-                buttonClass += " suite-relation-button-cell";
+                buttonClass += " fb-relation-button-cell";
                 menuStyle.top = "35px";
                 menuStyle.right = "-100px";
-                labelClass = "suite-relation-label-cell";
+                labelClass = "fb-relation-label-cell";
 
                 menu = m("div", {
                     style: {
@@ -390,7 +390,7 @@
                     }
                 }, [
                     m("div", {
-                        class: "pure-menu custom-restricted-width suite-relation-menu",
+                        class: "pure-menu custom-restricted-width fb-relation-menu",
                         onmouseover: vm.onmouseovermenu,
                         onmouseout: vm.onmouseoutmenu
                     }, [
@@ -398,7 +398,7 @@
                             class: buttonClass
                         }),
                         m("ul", {
-                            class: "pure-menu-list suite-relation-menu-list",
+                            class: "pure-menu-list fb-relation-menu-list",
                             style: menuStyle
                         }, [
                             m("li", {
