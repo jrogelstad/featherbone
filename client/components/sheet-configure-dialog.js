@@ -103,10 +103,10 @@
             });
 
             return m("div", {
-                class: "pure-form pure-form-aligned suite-sheet-configure-content"
+                class: "pure-form pure-form-aligned fb-sheet-configure-content"
             }, [
                 m("div", {
-                    class: "suite-sheet-configure-tabs"
+                    class: "fb-sheet-configure-tabs"
                 }, [
                     m("button", {
                         class: sheetButtonClass,
@@ -124,7 +124,7 @@
                     }, "Columns")
                 ]),
                 m("div", {
-                    class: "suite-sheet-configure-group-box"
+                    class: "fb-sheet-configure-group-box"
                 }, [
                     m("div", {
                         class: sheetTabClass
@@ -245,7 +245,7 @@
             sheetButtonClass = "pure-button pure-button-primary";
             listButtonClass = "pure-button";
             sheetTabClass = "";
-            listTabClass = "suite-tabbed-panes-hidden";
+            listTabClass = "fb-tabbed-panes-hidden";
         };
         vm.resolveProperties = function (feather, properties, ary, prefix) {
             prefix = prefix || "";
@@ -278,11 +278,11 @@
                 sheetButtonClass = "pure-button pure-button-primary";
                 listButtonClass = "pure-button";
                 sheetTabClass = "";
-                listTabClass = "suite-tabbed-panes-hidden";
+                listTabClass = "fb-tabbed-panes-hidden";
             } else {
                 sheetButtonClass = "pure-button";
                 listButtonClass = "pure-button pure-button-primary";
-                sheetTabClass = "suite-tabbed-panes-hidden";
+                sheetTabClass = "fb-tabbed-panes-hidden";
                 listTabClass = "";
             }
         };

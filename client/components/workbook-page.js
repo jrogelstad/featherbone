@@ -435,7 +435,7 @@
             title: "Edit mode",
             hotkey: "E",
             icon: "pencil",
-            class: "suite-toolbar-button"
+            class: "fb-toolbar-button"
         }));
         if (!vm.tableWidget().isEditModeEnabled()) {
             vm.buttonEdit().disable();
@@ -445,7 +445,7 @@
             onclick: vm.tableWidget().save,
             label: "&Save",
             icon: "cloud-upload",
-            class: "suite-toolbar-button"
+            class: "fb-toolbar-button"
         }));
         vm.buttonSave().hide();
 
@@ -453,14 +453,14 @@
             onclick: vm.modelNew,
             label: "&New",
             icon: "plus-circle",
-            class: "suite-toolbar-button"
+            class: "fb-toolbar-button"
         }));
 
         vm.buttonDelete(button.viewModel({
             onclick: vm.tableWidget().modelDelete,
             label: "&Delete",
             icon: "remove",
-            class: "suite-toolbar-button"
+            class: "fb-toolbar-button"
         }));
         vm.buttonDelete().disable();
 
@@ -474,7 +474,7 @@
             onclick: vm.tableWidget().undo,
             label: "&Undo",
             icon: "undo",
-            class: "suite-toolbar-button"
+            class: "fb-toolbar-button"
         }));
 
         vm.buttonRefresh(button.viewModel({
@@ -482,7 +482,7 @@
             title: "Refresh",
             hotkey: "R",
             icon: "refresh",
-            class: "suite-toolbar-button"
+            class: "fb-toolbar-button"
         }));
 
         vm.buttonClear(button.viewModel({
@@ -490,7 +490,7 @@
             title: "Clear search",
             hotkey: "C",
             icon: "eraser",
-            class: "suite-toolbar-button"
+            class: "fb-toolbar-button"
         }));
 
         // Bind button states to list statechart events
@@ -607,7 +607,7 @@
 
                 // Build tab
                 tabOpts = {
-                    class: "suite-sheet-tab pure-button" +
+                    class: "fb-sheet-tab pure-button" +
                             (activeSheet.name.toName() === sheet.toName()
                         ? " pure-button-primary"
                         : ""),
@@ -686,7 +686,7 @@
                     viewModel: vm.sseErrorDialog()
                 }),
                 m("div", {
-                    class: "suite-navigator-menu-container"
+                    class: "fb-navigator-menu-container"
                 }, [
                     m(navigator.component, {
                         viewModel: vm.menu()
@@ -694,7 +694,7 @@
                     m("div", [
                         m("div", {
                             id: "toolbar",
-                            class: "suite-toolbar",
+                            class: "fb-toolbar",
                             onkeydown: vm.onkeydown
                         }, [
                             m(button.component, {
@@ -702,18 +702,18 @@
                             }),
                             m("div", {
                                 id: "nav-div",
-                                class: "pure-menu custom-restricted-width suite-menu",
+                                class: "pure-menu custom-restricted-width fb-menu",
                                 onmouseover: vm.onmouseoveractions,
                                 onmouseout: vm.onmouseoutactions
                             }, [
                                 m("span", {
                                     id: "nav-button",
-                                    class: "pure-button fa fa-bolt suite-menu-button",
+                                    class: "pure-button fa fa-bolt fb-menu-button",
                                     disabled: actionsDisabled
                                 }),
                                 m("ul", {
                                     id: "nav-menu-list",
-                                    class: "pure-menu-list suite-menu-list",
+                                    class: "pure-menu-list fb-menu-list",
                                     style: {
                                         display: vm.showActions()
                                             ? "block"
@@ -744,17 +744,17 @@
                             }),
                             m("div", {
                                 id: "nav-div",
-                                class: "pure-menu custom-restricted-width suite-menu",
+                                class: "pure-menu custom-restricted-width fb-menu",
                                 onmouseover: vm.onmouseovermenu,
                                 onmouseout: vm.onmouseoutmenu
                             }, [
                                 m("span", {
                                     id: "nav-button",
-                                    class: "pure-button fa fa-gear suite-menu-button"
+                                    class: "pure-button fa fa-gear fb-menu-button"
                                 }),
                                 m("ul", {
                                     id: "nav-menu-list",
-                                    class: "pure-menu-list suite-menu-list",
+                                    class: "pure-menu-list fb-menu-list",
                                     style: {
                                         display: vm.showMenu()
                                             ? "block"
@@ -865,10 +865,10 @@
                         }, [
                             tabs,
                             m("i", {
-                                class: "fa fa-search-plus suite-zoom-icon suite-zoom-right-icon"
+                                class: "fa fa-search-plus fb-zoom-icon fb-zoom-right-icon"
                             }),
                             m("input", {
-                                class: "suite-zoom-control",
+                                class: "fb-zoom-control",
                                 title: "Zoom " + vm.zoom() + "%",
                                 type: "range",
                                 step: "5",
@@ -878,7 +878,7 @@
                                 oninput: (e) => vm.zoom(e.target.value)
                             }),
                             m("i", {
-                                class: "fa fa-search-minus suite-zoom-icon suite-zoom-left-icon"
+                                class: "fa fa-search-minus fb-zoom-icon fb-zoom-left-icon"
                             })
                         ])
                     ])

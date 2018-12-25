@@ -33,11 +33,11 @@
 
         view: function (vnode) {
             return m("div", {
-                class: "suite-checkbox"
+                class: "fb-checkbox"
             }, [
                 m("input", {
                     id: this.id,
-                    class: "suite-checkbox-input",
+                    class: "fb-checkbox-input",
                     type: "checkbox",
                     onclick: (e) => vnode.attrs.onclick(e.target.checked),
                     checked: vnode.attrs.value,
@@ -47,7 +47,7 @@
                 }),
                 m("label", {
                     for: this.id,
-                    class: "suite-checkbox-label"
+                    class: "fb-checkbox-label"
                 }, m("i", {
                     class: "fa fa-check",
                     style: {

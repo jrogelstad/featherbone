@@ -100,11 +100,11 @@
           class: "pure-table"
         }, [
           m("thead", {
-            class: "suite-table-dialog-table-header"
+            class: "fb-table-dialog-table-header"
           }, vm.viewHeaders()),
           m("tbody", {
             id: "sortTbody",
-            class: "suite-table-dialog-table-body",
+            class: "fb-table-dialog-table-body",
             oncreate: function (vnode) {
               var e = document.getElementById(vnode.dom.id);
               if (vm.scrollBottom()) {

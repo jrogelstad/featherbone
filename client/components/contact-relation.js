@@ -62,7 +62,7 @@
                                 target: "_blank"
                             }, [
                                 m("i", {
-                                    class: "fa fa-phone suite-contact-relation-icon"
+                                    class: "fa fa-phone fb-contact-relation-icon"
                                 })
                             ])
                         ], phone)
@@ -81,7 +81,7 @@
                                 target: "_blank"
                             }, [
                                 m("i", {
-                                    class: "fa fa-envelope-o suite-contact-relation-icon"
+                                    class: "fa fa-envelope-o fb-contact-relation-icon"
                                 })
                             ])
                         ], email)
@@ -104,7 +104,7 @@
                                 target: "_blank"
                             }, [
                                 m("i", {
-                                    class: "fa fa-map-marker suite-contact-relation-icon"
+                                    class: "fa fa-map-marker fb-contact-relation-icon"
                                 })
                             ])
                         ], address.data.city() + ", " + address.data.state())

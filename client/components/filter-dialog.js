@@ -251,15 +251,15 @@
             var ids = vm.viewHeaderIds();
             return [
                 m("th", {
-                    class: "suite-filter-dialog-table-header-column",
+                    class: "fb-filter-dialog-table-header-column",
                     id: ids.column
                 }, "Column"),
                 m("th", {
-                    class: "suite-filter-dialog-table-header-operator",
+                    class: "fb-filter-dialog-table-header-operator",
                     id: ids.operator
                 }, "Operator"),
                 m("th", {
-                    class: "suite-filter-dialog-table-header-value",
+                    class: "fb-filter-dialog-table-header-value",
                     id: ids.value
                 }, "Value")
             ];
@@ -278,7 +278,7 @@
                     }
                 }, [
                     m("td", m("select", {
-                        class: "suite-filter-dialog-property",
+                        class: "fb-filter-dialog-property",
                         value: item.property,
                         onchange: (e) =>
                                 vm.itemPropertyChanged.bind(this, item.index)(e.target.value)
@@ -288,7 +288,7 @@
                         }, attr.toName());
                     }))),
                     m("td", {
-                        class: "suite-filter-dialog-operator"
+                        class: "fb-filter-dialog-operator"
                     }, [
                         m("select", {
                             onchange: (e) =>
@@ -300,12 +300,12 @@
                         }), item.operator || "=")
                     ]),
                     m("td", {
-                        class: "suite-filter-dialog-input-cell"
+                        class: "fb-filter-dialog-input-cell"
                     }, [buildInputComponent({
                         index: item.index,
                         key: item.property,
                         value: item.value,
-                        class: "suite-filter-dialog-input"
+                        class: "fb-filter-dialog-input"
                     })])
                 ]);
 

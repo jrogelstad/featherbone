@@ -753,7 +753,7 @@
                         }
 
                         icon.push(m("i", {
-                            class: name + " suite-column-sort-icon",
+                            class: name + " fb-column-sort-icon",
                             style: {
                                 fontSize: zoom
                             }
@@ -761,7 +761,7 @@
 
                         if (sort.length > 1) {
                             icon.push(m("span", {
-                                class: "suite-column-sort-number",
+                                class: "fb-column-sort-number",
                                 style: {
                                     fontSize: vm.zoom() * 0.6 + "%"
                                 }
@@ -773,7 +773,7 @@
                     fidx = findFilterIndex(key);
                     if (fidx !== false) {
                         icon.push(m("i", {
-                            class: "fa fa-filter suite-column-filter-icon",
+                            class: "fa fa-filter fb-column-filter-icon",
                             title: operators[(filter.criteria[fidx].operator || "=")] +
                                     " " + filter.criteria[fidx].value,
                             style: {
@@ -788,7 +788,7 @@
                             draggable: true,
                             ondragstart: vm.ondragstart.bind(this, idx, "column"),
                             ondrop: vm.ondrop.bind(this, idx, "column", config.columns),
-                            class: "suite-column-header",
+                            class: "fb-column-header",
                             style: {
                                 minWidth: columnWidth,
                                 maxWidth: columnWidth,
@@ -799,7 +799,7 @@
                             ondragover: vm.ondragover.bind(this, idx),
                             draggable: true,
                             ondragstart: vm.ondragstart.bind(this, idx, "width"),
-                            class: "suite-column-spacer suite-column-header-grabber",
+                            class: "fb-column-spacer fb-column-header-grabber",
                             style: {
                                 fontSize: zoom
                             }
@@ -874,7 +874,7 @@
                                 }
                                 vm.toggleSelection(model, vm.formatInputId(col), optKey);
                             },
-                            class: "suite-cell-view",
+                            class: "fb-cell-view",
                             style: {
                                 minWidth: columnWidth,
                                 maxWidth: columnWidth,
@@ -988,7 +988,7 @@
                             m("td", tdOpts, content),
                             // This exists to force exact alignment with header on all browsers
                             m("td", {
-                                class: "suite-column-spacer",
+                                class: "fb-column-spacer",
                                 style: {
                                     fontSize: zoom
                                 }
@@ -1169,7 +1169,7 @@
                                     borderWidth: "thin",
                                     fontSize: zoom
                                 },
-                                class: "suite-column-spacer"
+                                class: "fb-column-spacer"
                             })
                         ];
 
@@ -1276,15 +1276,15 @@
                     viewModel: vm.errorDialog()
                 }),
                 m("table", {
-                    class: "pure-table suite-table"
+                    class: "pure-table fb-table"
                 }, [
                     m("thead", {
                         id: ids.header,
-                        class: "suite-table-header"
+                        class: "fb-table-header"
                     }, [header]),
                     m("tbody", {
                         id: ids.rows,
-                        class: "suite-table-body",
+                        class: "fb-table-body",
                         onscroll: vm.onscroll,
                         oncreate: function (vnode) {
                             // Key down handler for up down movement

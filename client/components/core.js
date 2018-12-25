@@ -280,7 +280,7 @@
                 opts.id = id;
                 opts.onchange = (e) => prop(e.target.value);
                 opts.value = prop();
-                opts.class = "suite-input";
+                opts.class = "fb-input";
 
                 // If options were passed in, used a select element
                 if (obj.dataList) {
@@ -297,7 +297,7 @@
                         if (prop.max !== undefined) {
                             opts.max = prop.max;
                         }
-                        opts.class = "suite-input-number";
+                        opts.class = "fb-input-number";
                     }
 
                     if (prop.format === "textArea") {

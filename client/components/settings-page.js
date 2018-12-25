@@ -112,15 +112,15 @@
       return m("div", [
         m("div", {
           id: "toolbar",
-          class: "suite-toolbar"
+          class: "fb-toolbar"
         }, [
           m(button.component, {viewModel: vm.buttonDone()})
         ]),
         m("div", {
-          class: "suite-title"
+          class: "fb-title"
         }, [
         m("i", {
-          class:"fa fa-wrench suite-title-icon"
+          class:"fa fa-wrench fb-title-icon"
         }),
         m("label", vm.title())
         ]),
