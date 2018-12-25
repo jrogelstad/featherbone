@@ -110,7 +110,8 @@
             },
             actions: {
                 description: "Menu actions that can be performed on rows",
-                type: "object"
+                type: "object",
+                default: []
             }
         }
     };
