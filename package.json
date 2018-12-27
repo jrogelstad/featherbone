@@ -24,11 +24,9 @@
     "pg-format": "^1.0.4",
     "purecss": "^0.6.2",
     "qs": "^5.2.1",
+    "redoc": "^2.0.0-alpha.41",
     "sse-nodejs": "^0.1.0",
     "statechartjs": "^0.1.2",
     "systemjs": "^0.20.19"
-  },
-  "devDependencies": {
-    "redoc": "^2.0.0-alpha.41"
   }
 }
