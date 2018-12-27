@@ -1213,10 +1213,7 @@
                         style: iconStyle
                     };
                     if (currentMode === "/Mode/Edit" && isSelected) {
-                        cellOpts.style.borderColor = "blue";
-                        cellOpts.style.borderWidth = "thin";
-                        cellOpts.style.borderStyle = "solid";
-                        cellOpts.style.borderLeftStyle = "none";
+                        cellOpts.class = "fb-table-cell-edit fb-table-cell-edit-header";
                     }
                 }
                 tds.unshift(m("th", cellOpts, thContent));

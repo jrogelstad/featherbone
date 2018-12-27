@@ -437,6 +437,10 @@
   border-style: solid;
 }
 
+.fb-table-cell-edit-header {
+  border-left-style: none;
+}
+
 .fb-table-cell-edit-cell {
   border-right: none !important;
 }
