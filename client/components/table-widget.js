@@ -1006,13 +1006,8 @@
 
                     // Build editable row
                 } else {
-
                     cellOpts = {
-                        style: {
-                            borderColor: "blue",
-                            borderWidth: "thin",
-                            borderStyle: "solid"
-                        }
+                        class: "fb-table-cell-edit"
                     };
 
                     lastFocusId = vm.lastFocus(model);
@@ -1035,14 +1030,13 @@
                     // Build cells
                     idx = 0;
                     tds = vm.attrs().map(function (col) {
-                        var cell, tdOpts, inputOpts,
+                        var cell, tdOpts, inputOpts, columnSpacerClass,
                                 prop = f.resolveProperty(model, col),
                                 id = vm.formatInputId(col),
                                 item = config.columns[idx],
                                 columnWidth = item.width || COL_WIDTH_DEFAULT,
                                 dataList = item.dataList || prop.dataList,
-                                cfilter = item.filter,
-                                borderColor = "blue";
+                                cfilter = item.filter;
 
                         columnWidth = (columnWidth.replace("px", "") - 6) + "px";
 
@@ -1050,12 +1044,10 @@
                             id: id,
                             onclick: vm.toggleSelection.bind(this, model, id),
                             value: prop(),
+                            class: "fb-table-cell-edit-input",
                             style: {
                                 minWidth: columnWidth,
                                 maxWidth: columnWidth,
-                                boxShadow: "none",
-                                border: "none",
-                                padding: "0px",
                                 backgroundColor: color,
                                 fontSize: zoom
                             },
@@ -1114,23 +1106,14 @@
 
                         if (prop.isRequired && prop.isRequired() &&
                                 (prop() === null || prop() === undefined)) {
-                            borderColor = "red";
                             tdOpts = {
-                                style: {
-                                    borderColor: borderColor,
-                                    borderWidth: "thin",
-                                    borderStyle: "ridge",
-                                    borderRight: "none"
-                                }
+                                class: "fb-table-cell-edit fb-table-cell-edit-cell fb-table-cell-edit-required",
+                                style: {}
                             };
                         } else {
                             tdOpts = {
-                                style: {
-                                    borderColor: borderColor,
-                                    borderWidth: "thin",
-                                    borderStyle: "solid",
-                                    borderRight: "none"
-                                }
+                                class: "fb-table-cell-edit fb-table-cell-edit-cell",
+                                style: {}
                             };
                         }
 
@@ -1151,6 +1134,7 @@
                             }
                         }
 
+                        columnSpacerClass = "fb-column-spacer " + tdOpts.class;
                         cell = [
                             m("td", tdOpts, [
                                 f.buildInputComponent({
@@ -1164,12 +1148,9 @@
                             ]),
                             m("td", {
                                 style: {
-                                    borderStyle: "solid",
-                                    borderColor: borderColor,
-                                    borderWidth: "thin",
                                     fontSize: zoom
                                 },
-                                class: "fb-column-spacer"
+                                class: columnSpacerClass
                             })
                         ];
 
@@ -1181,7 +1162,7 @@
 
                 // Front cap header navigation
                 onclick = vm.toggleSelection.bind(this, model, defaultFocusId);
-                iconStyle =  {
+                iconStyle = {
                     fontSize: zoom,
                     minWidth: "25px"
                 };

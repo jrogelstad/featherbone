@@ -431,6 +431,27 @@
   width: 100%;
 }
 
+.fb-table-cell-edit {
+  border-color: blue;
+  border-width: thin !important;
+  border-style: solid;
+}
+
+.fb-table-cell-edit-cell {
+  border-right: none !important;
+}
+
+.fb-table-cell-edit-required {
+  border-color: red;
+  border-style: ridge;
+}
+
+.fb-table-cell-edit-input {
+  box-shadow: none !important;
+  border: none !important;
+  padding: 0px !important;
+}
+
 .fb-table-body {
   display: inline-block;
   width: 100%;
