@@ -190,7 +190,7 @@
                                 path.patch = {
                                     tags: [tag],
                                     summary: "Update an existing " + name,
-                                    operationId: "doPatch",
+                                    operationId: "doPatch" + name,
                                     parameters: [
                                         {
                                             "name": "id",
@@ -229,9 +229,9 @@
                                     }
                                 };
                                 path.delete = {
-                                    tags: [feather.module],
+                                    tags: [tag],
                                     summary: "Delete a " + name,
-                                    operationId: "doDelete",
+                                    operationId: "doDelete" + name,
                                     parameters: [
                                         {
                                             "name": "id",
@@ -275,7 +275,7 @@
                                 path.post = {
                                     tags: [tag],
                                     summary: "Add a new " + name + " to the database",
-                                    operationId: "doInsert",
+                                    operationId: "doInsert" + name,
                                     requestBody: {
                                         "content": {
                                             "application/json": {
@@ -331,7 +331,7 @@
                                     post: {
                                         tags: [tag],
                                         summary: "Query " + key + " data",
-                                        operationId: "doSelect",
+                                        operationId: "doSelect" + name,
                                         requestBody: {
                                             $ref: "#/components/requestBodies/Query"
                                         },
