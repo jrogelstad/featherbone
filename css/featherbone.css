@@ -381,6 +381,19 @@
   position: absolute;
   z-index: 9999;
   border: 1px solid LightGrey;
+  display: none;
+}
+
+.fb-menu-list-icon {
+  margin-right: 4px;
+}
+
+.fb-menu-list-separator {
+  border-top: solid thin lightgrey;
+}
+
+.fb-menu-list-show {
+  display: block;
 }
 
 .fb-relation-button {
@@ -413,17 +426,6 @@
   border: 1px solid lightgrey;
 }
 
-.fb-sheet-tab {
-  border-top-left-radius: 0px;
-  border-top-right-radius: 0px;
-  border-right-style: solid;
-  border-right-color: Silver;
-  border-right-width: thin;
-  border-bottom-style: solid;
-  border-bottom-color: Silver;
-  border-bottom-width: thin;
-}
-
 .fb-table {
   table-layout: fixed;
   width: 100%;
@@ -443,6 +445,33 @@
 
 .fb-toolbar {
   background-color: Snow;
+}
+
+.fb-workbook-tab {
+  border-top-left-radius: 0px;
+  border-top-right-radius: 0px;
+  border-right-style: solid;
+  border-right-color: Silver;
+  border-right-width: thin;
+  border-bottom-style: solid;
+  border-bottom-color: Silver;
+  border-bottom-width: thin;
+}
+
+.fb-workbook-tab-draggable {
+  -webkit-user-drag: element;
+}
+
+.fb-workbook-tab-edit {
+  background-color: white;
+}
+
+.fb-workbook-tab-edit-show {
+  display: inline-block;	
+}
+
+.fb-workbook-tab-edit-hide {
+  display: none;
 }
 
 .fb-zoom-control {

@@ -58,8 +58,8 @@
                 selections = vm.tableWidget().selections();
 
             menu = actions.map(function (action) {
-                var opts,
-                    method = staticModel[action.method];
+                var opts, actionIcon,
+                        method = staticModel[action.method];
 
                 action.id = action.id || f.createId();
 
@@ -76,16 +76,16 @@
                 }
 
                 if (action.hasSeparator) {
-                    opts.style = {};
-                    opts.style.borderTop = "solid thin lightgrey";
+                    opts.class += " fb-menu-list-separator";
                 }
 
-                return m("li", opts, [m("i", {
-                    class: "fa fa-thumbtack",
-                    style: {
-                        marginRight: "4px"
-                    }
-                })], action.name);
+                if (action.icon) {
+                    actionIcon = [m("i", {
+                        class: "fa fa-" + action.icon + " fb-menu-list-icon"
+                    })];
+                }
+
+                return m("li", opts, actionIcon, action.name);
             });
 
             return menu;
@@ -596,6 +596,8 @@
         view: function () {
             var filterMenuClass, tabs,
                     vm = this.viewModel,
+                    createTabClass = "pure-button fb-workbook-tab-edit",
+                    deleteTabClass = "pure-button fb-workbook-tab-edit",
                     activeSheet = vm.sheet(),
                     config = vm.config(),
                     idx = 0,
@@ -607,7 +609,7 @@
 
                 // Build tab
                 tabOpts = {
-                    class: "fb-sheet-tab pure-button" +
+                    class: "fb-workbook-tab pure-button" +
                             (activeSheet.name.toName() === sheet.toName()
                         ? " pure-button-primary"
                         : ""),
@@ -620,9 +622,7 @@
                     tabOpts.ondragstart = vm.ondragstart.bind(this, idx);
                     tabOpts.ondrop = vm.ondrop.bind(this, idx, config);
                     tabOpts.ondragend = vm.ondragend;
-                    tabOpts.style = {
-                        webkitUserDrag: "element"
-                    };
+                    tabOpts.class += " fb-workbook-tab-draggable";
                 }
 
                 tab = m("button[type=button]", tabOpts, sheet.toName());
@@ -631,16 +631,18 @@
                 return tab;
             });
 
-            // New tab button
+            // Create/delete tab buttons
+            if (vm.isDraggingTab()) {
+                createTabClass += " fb-workbook-tab-edit-hide";
+                deleteTabClass += " fb-workbook-tab-edit-show";
+            } else {
+                createTabClass += " fb-workbook-tab-edit-show";
+                deleteTabClass += " fb-workbook-tab-edit-hide";
+            }
+
             tabs.push(m("button[type=button]", {
-                class: "pure-button",
+                class: createTabClass,
                 title: "Add sheet",
-                style: {
-                    backgroundColor: "White",
-                    display: vm.isDraggingTab()
-                        ? "none"
-                        : "inline-block"
-                },
                 onclick: vm.newSheet
             }, [m("i", {
                 class: "fa fa-plus"
@@ -648,13 +650,7 @@
 
             // Delete target
             tabs.push(m("div", {
-                class: "pure-button",
-                style: {
-                    backgroundColor: "White",
-                    display: vm.isDraggingTab()
-                        ? "inline-block"
-                        : "none"
-                },
+                class: deleteTabClass,
                 ondragover: vm.ondragover,
                 ondrop: vm.deleteSheet
             }, [m("i", {
@@ -713,12 +709,10 @@
                                 }),
                                 m("ul", {
                                     id: "nav-menu-list",
-                                    class: "pure-menu-list fb-menu-list",
-                                    style: {
-                                        display: vm.showActions()
-                                            ? "block"
-                                            : "none"
-                                    }
+                                    class: "pure-menu-list fb-menu-list" +
+                                            (vm.showActions()
+                                        ? " fb-menu-list-show"
+                                        : "")
                                 }, vm.actions())
                             ]),
                             m(button.component, {
@@ -754,12 +748,10 @@
                                 }),
                                 m("ul", {
                                     id: "nav-menu-list",
-                                    class: "pure-menu-list fb-menu-list",
-                                    style: {
-                                        display: vm.showMenu()
-                                            ? "block"
-                                            : "none"
-                                    }
+                                    class: "pure-menu-list fb-menu-list" +
+                                            (vm.showMenu()
+                                        ? " fb-menu-list-show"
+                                        : "")
                                 }, [
                                     m("li", {
                                         id: "nav-sort",
@@ -767,10 +759,7 @@
                                         title: "Change sheet sort",
                                         onclick: vm.showSortDialog
                                     }, [m("i", {
-                                        class: "fa fa-sort",
-                                        style: {
-                                            marginRight: "4px"
-                                        }
+                                        class: "fa fa-sort fb-menu-list-icon"
                                     })], "Sort"),
                                     m("li", {
                                         id: "nav-filter",
@@ -778,10 +767,7 @@
                                         title: "Change sheet filter",
                                         onclick: vm.showFilterDialog
                                     }, [m("i", {
-                                        class: "fa fa-filter",
-                                        style: {
-                                            marginRight: "4px"
-                                        }
+                                        class: "fa fa-filter fb-menu-list-icon"
                                     })], "Filter"),
                                     /*
                                     m("li", {
@@ -789,9 +775,8 @@
                                       class: "pure-menu-link pure-menu-disabled",
                                       title: "Format sheet"
                                       //onclick: vm.showFormatDialog
-                                    }, [m("i", {class:"fa fa-paint-brush", style: {
-                                      marginRight: "4px"
-                                    }})], "Format"),
+                                    }, [m("i", {class:"fa fa-paint-brush  fb-menu-list-icon",
+                                    })], "Format"),
                                     m("li", {
                                       id: "nav-subtotal",
                                       class: "pure-menu-link pure-menu-disabled",
@@ -804,17 +789,11 @@
                                     */
                                     m("li", {
                                         id: "nav-configure",
-                                        class: "pure-menu-link",
-                                        style: {
-                                            borderTop: "solid thin lightgrey"
-                                        },
+                                        class: "pure-menu-link fb-menu-list-separator",
                                         title: "Configure current worksheet",
                                         onclick: vm.configureSheet
                                     }, [m("i", {
-                                        class: "fa fa-gear",
-                                        style: {
-                                            marginRight: "4px"
-                                        }
+                                        class: "fa fa-gear  fb-menu-list-icon"
                                     })], "Configure"),
                                     m("li", {
                                         id: "nav-share",
@@ -822,10 +801,7 @@
                                         title: "Share workbook configuration",
                                         onclick: vm.share
                                     }, [m("i", {
-                                        class: "fa fa-share-alt",
-                                        style: {
-                                            marginRight: "4px"
-                                        }
+                                        class: "fa fa-share-alt fb-menu-list-icon"
                                     })], "Share"),
                                     m("li", {
                                         id: "nav-revert",
@@ -833,26 +809,18 @@
                                         title: "Revert workbook configuration to original state",
                                         onclick: vm.revert
                                     }, [m("i", {
-                                        class: "fa fa-reply",
-                                        style: {
-                                            marginRight: "4px"
-                                        }
+                                        class: "fa fa-reply fb-menu-list-icon"
                                     })], "Revert"),
                                     m("li", {
                                         id: "nav-settings",
-                                        class: vm.hasSettings()
-                                            ? "pure-menu-link"
-                                            : "pure-menu-link pure-menu-disabled",
-                                        style: {
-                                            borderTop: "solid thin lightgrey"
-                                        },
+                                        class: "pure-menu-link fb-menu-list-separator" +
+                                                (vm.hasSettings()
+                                            ? ""
+                                            : " pure-menu-disabled"),
                                         title: "Change module settings",
                                         onclick: vm.goSettings
                                     }, [m("i", {
-                                        class: "fa fa-wrench",
-                                        style: {
-                                            marginRight: "4px"
-                                        }
+                                        class: "fa fa-wrench fb-menu-list-icon"
                                     })], "Settings")
                                 ])
                             ])
