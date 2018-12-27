@@ -208,6 +208,14 @@
 
             dataSource.request(payload).then(function (data) {
                 moduleData = data;
+                // Resolve dependencies back to array for easier handling
+                moduleData.forEach(function (module) {
+                    if (module.dependencies && module.dependencies.value) {
+                        module.dependencies = module.dependencies.value;
+                    } else {
+                        module.dependencies = [];
+                    }
+                });
                 resolve();
             });
         });
@@ -274,7 +282,40 @@
                 workbookModel = models.workbook,
                 keys = Object.keys(feathers);
 
-        // Process modules
+        function resolveDependencies(module, dependencies) {
+            dependencies = dependencies || module.dependencies;
+
+            module.dependencies.forEach(function (dependency) {
+                var parent = moduleData.find((module) => module.name === dependency);
+
+                parent.dependencies.forEach((pDepencency) => dependencies.push(pDepencency));
+
+                resolveDependencies(parent, dependencies);
+            });
+        }
+
+        // Process modules, start by resolving, then sorting on dependencies
+        moduleData.forEach((module) => resolveDependencies(module));
+        moduleData = (function () {
+            var module, idx,
+                    ret = [];
+
+            function top(mod) {
+                return mod.dependencies.every((dep) =>
+                        ret.some((added) => added.name === dep));
+            }
+
+            while (moduleData.length) {
+                module = moduleData.find(top);
+
+                ret.push(module);
+                idx = moduleData.indexOf(module);
+                moduleData.splice(idx, 1);
+            }
+
+            return ret;
+        }());
+
         moduleData.forEach(function (module) {
             eval(module.script);
         });
