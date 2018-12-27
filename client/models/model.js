@@ -1213,6 +1213,7 @@
 
                             return result.round(scale);
                         };
+                        formatter.default = 0;
                     } else {
                         formatter = f.formats[p.format] || f.types[p.type] || {};
                     }
