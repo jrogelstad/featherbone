@@ -104,7 +104,7 @@
     };
 
     processFile = function () {
-        var filepath, module, version;
+        var filepath, module, version, dependencies;
 
         function done() {
             console.log("Configuration completed!");
@@ -134,8 +134,10 @@
             dir: dir,
             base: filename
         });
+
         module = file.module || manifest.module;
         version = file.version || manifest.version;
+        dependencies = file.dependencies || manifest.dependencies;
 
         fs.readFile(filepath, "utf8", function (err, data) {
             if (err) {
@@ -155,7 +157,7 @@
                 execute(filename);
                 break;
             case "module":
-                saveModule(module, content, version);
+                saveModule(module, content, version, dependencies);
                 break;
             case "service":
                 saveService(file.name || name, module, content, version);
@@ -203,6 +205,7 @@
                 file.path = subdir + "/" + file.path;
                 file.module = file.module || submanifest.module || manifest.module;
                 file.version = file.version || submanifest.version || manifest.version;
+                file.dependencies = file.dependencies || submanifest.dependencies || manifest.dependencies;
                 manifest.files.splice(n, 0, file);
                 n += 1;
             });
@@ -233,10 +236,16 @@
         });
     };
 
-    saveModule = function (name, script, version) {
+    saveModule = function (name, script, version, dependencies) {
         var sql = "SELECT * FROM \"$module\" WHERE name='" + name + "';";
 
         client.query(sql, function (err, result) {
+            var params = [
+                name,
+                version,
+                {value: dependencies}
+            ];
+
             if (err) {
                 rollback(err);
                 return;
@@ -244,14 +253,14 @@
             if (result.rows.length) {
                 sql = "UPDATE \"$module\" SET " +
                         "script=$$" + script + "$$," +
-                        "version='" + version + "' " +
-                        "WHERE name='" + name + "';";
+                        "version=$2," +
+                        "dependencies=$3 " +
+                        "WHERE name=$1;";
             } else {
-                sql = "INSERT INTO \"$module\" VALUES ('" + name +
-                        "',$$" + script + "$$, '" + version + "');";
+                sql = "INSERT INTO \"$module\" VALUES ($1, $$" + script + "$$, $2, $3);";
             }
 
-            client.query(sql, processFile);
+            client.query(sql, params, processFile);
         });
     };
 
