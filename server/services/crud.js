@@ -15,28 +15,28 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*global Promise*/
-/*jslint node, es6, for*/
+/*jslint node, for*/
 (function (exports) {
-    "strict";
+    "use strict";
 
     const {
         Currency
-    } = require('./currency');
+    } = require("./currency");
     const {
         Events
-    } = require('./events');
+    } = require("./events");
     const {
         Feathers
-    } = require('./feathers');
+    } = require("./feathers");
     const {
         Tools
-    } = require('./tools');
+    } = require("./tools");
 
     const currency = new Currency();
     const events = new Events();
     const feathers = new Feathers();
     const tools = new Tools();
+    const formats = tools.formats;
     const f = require("../../common/core");
     const jsonpatch = require("fast-json-patch");
 
@@ -58,9 +58,11 @@
                 });
             }
 
-            currency.baseCurrency({data: {}})
-                .then(callback)
-                .catch(reject);
+            currency.baseCurrency({data: {}}).then(
+                callback
+            ).catch(
+                reject
+            );
         });
     };
 
@@ -88,157 +90,162 @@
         */
         crud.doDelete = function (obj, isChild, isSuperUser) {
             return new Promise(function (resolve, reject) {
-                var oldRec, keys, props, noChildProps, afterGetFeather,
-                        afterAuthorization, afterDoSelect, afterDelete, afterLog,
-                        sql = "UPDATE object SET is_deleted = true WHERE id=$1;",
-                        clen = 1,
-                        c = 0;
+                let oldRec;
+                let keys;
+                let props;
+                let noChildProps;
+                let afterGetFeather;
+                let afterAuthorization;
+                let afterDoSelect;
+                let afterDelete;
+                let afterLog;
+                let sql = "UPDATE object SET is_deleted = true WHERE id=$1;";
+                let clen = 1;
+                let c = 0;
 
                 if (obj.isHard === true) {
                     sql = "DELETE FROM object WHERE id=$1;";
                 }
 
                 noChildProps = function (key) {
-                    if (typeof props[key].type !== "object" ||
-                            !props[key].type.childOf) {
+                    let t = props[key].type;
+
+                    if (typeof t !== "object" || !t.childOf) {
                         return true;
                     }
                 };
 
                 afterGetFeather = function (feather) {
-                    try {
-                        props = feather.properties;
+                    props = feather.properties;
 
-                        if (!isChild && feather.isChild) {
-                            throw "Can not directly delete a child class";
-                        }
-
-                        if (isSuperUser === false) {
-                            feathers.isAuthorized({
-                                client: obj.client,
-                                data: {
-                                    id: obj.id,
-                                    action: "canDelete"
-                                }
-                            }).then(afterAuthorization).catch(reject);
-                            return;
-                        }
-
-                        afterAuthorization(true);
-                    } catch (e) {
-                        reject(e);
+                    if (!isChild && feather.isChild) {
+                        reject("Can not directly delete a child class");
+                        return;
                     }
+
+                    if (isSuperUser === false) {
+                        feathers.isAuthorized({
+                            client: obj.client,
+                            data: {
+                                id: obj.id,
+                                action: "canDelete"
+                            }
+                        }).then(afterAuthorization).catch(reject);
+                        return;
+                    }
+
+                    afterAuthorization(true);
                 };
 
                 afterAuthorization = function (authorized) {
-                    try {
-                        if (!authorized) {
-                            throw "Not authorized to delete \"" + obj.id + "\"";
-                        }
-
-                        // Get old record, bail if it doesn't exist
-                        // Exclude childOf relations when we select
-                        crud.doSelect({
-                            name: obj.name,
-                            id: obj.id,
-                            showDeleted: true,
-                            properties: Object.keys(props).filter(noChildProps),
-                            client: obj.client,
-                            callback: afterDoSelect
-                        }, true).then(afterDoSelect).catch(reject);
-                    } catch (e) {
-                        reject(e);
+                    if (!authorized) {
+                        reject("Not authorized to delete \"" + obj.id + "\"");
+                        return;
                     }
+
+                    // Get old record, bail if it doesn't exist
+                    // Exclude childOf relations when we select
+                    crud.doSelect({
+                        name: obj.name,
+                        id: obj.id,
+                        showDeleted: true,
+                        properties: Object.keys(props).filter(noChildProps),
+                        client: obj.client,
+                        callback: afterDoSelect
+                    }, true).then(afterDoSelect).catch(reject);
                 };
 
                 afterDoSelect = function (resp) {
-                    var sessionId = "_sessionid"; // JSLint doesn't like underscore
+                    let sessionId = "_sessionid"; // JSLint no underscore
+                    let msg;
 
-                    try {
-                        oldRec = resp;
+                    oldRec = resp;
 
-                        if (!oldRec) {
-                            throw "Record " + obj.id + " not found.";
-                        }
-
-                        if (oldRec.isDeleted) {
-                            throw "Record " + obj.id + " already deleted.";
-                        }
-
-                        if (oldRec && oldRec.lock &&
-                                oldRec.lock[sessionId] !== obj.sessionid) {
-                            throw "Record is locked by " + oldRec.lock.username + " and cannot be updated.";
-                        }
-
-                        // Get keys for properties of child arrays.
-                        // Count expected callbacks along the way.
-                        keys = Object.keys(props).filter(function (key) {
-                            if (typeof props[key].type === "object" &&
-                                    props[key].type.parentOf) {
-                                clen += oldRec[key].length;
-                                return true;
-                            }
-                        });
-
-                        // Delete children recursively
-                        keys.forEach(function (key) {
-                            var rel = props[key].type.relation;
-                            oldRec[key].forEach(function (row) {
-                                crud.doDelete({
-                                    name: rel,
-                                    id: row.id,
-                                    client: obj.client,
-                                    isHard: obj.isHard
-                                }, true).then(afterDelete).catch(reject);
-                            });
-                        });
-
-                        // Finally, delete parent object
-                        obj.client.query(sql, [obj.id], afterDelete);
-                    } catch (e) {
-                        reject(e);
+                    if (!oldRec) {
+                        reject("Record " + obj.id + " not found.");
+                        return;
                     }
+
+                    if (oldRec.isDeleted) {
+                        reject("Record " + obj.id + " already deleted.");
+                        return;
+                    }
+
+                    if (
+                        oldRec && oldRec.lock &&
+                        oldRec.lock[sessionId] !== obj.sessionid
+                    ) {
+                        msg = "Record is locked by " + oldRec.lock.username;
+                        msg += " and cannot be updated.";
+                        reject(new Error(msg));
+                        return;
+                    }
+
+                    // Get keys for properties of child arrays.
+                    // Count expected callbacks along the way.
+                    keys = Object.keys(props).filter(function (key) {
+                        if (
+                            typeof props[key].type === "object" &&
+                            props[key].type.parentOf
+                        ) {
+                            clen += oldRec[key].length;
+                            return true;
+                        }
+                    });
+
+                    // Delete children recursively
+                    keys.forEach(function (key) {
+                        let rel = props[key].type.relation;
+                        oldRec[key].forEach(function (row) {
+                            crud.doDelete({
+                                name: rel,
+                                id: row.id,
+                                client: obj.client,
+                                isHard: obj.isHard
+                            }, true).then(afterDelete).catch(reject);
+                        });
+                    });
+
+                    // Finally, delete parent object
+                    obj.client.query(sql, [obj.id], afterDelete);
                 };
 
                 // Handle change log
                 afterDelete = function () {
-                    try {
-                        var now = f.now();
+                    let now = f.now();
 
-                        // Move on only after all callbacks report back
-                        c += 1;
-                        if (c < clen) {
-                            return;
-                        }
-
-                        if (isChild || obj.isHard) {
-                            afterLog();
-                            return;
-                        }
-
-                        // Log the completed deletion
-                        crud.doInsert({
-                            name: "Log",
-                            data: {
-                                objectId: obj.id,
-                                action: "DELETE",
-                                created: now,
-                                createdBy: now,
-                                updated: now,
-                                updatedBy: now
-                            },
-                            client: obj.client
-                        }, true).then(afterLog).catch(reject);
-                    } catch (e) {
-                        reject(e);
+                    // Move on only after all callbacks report back
+                    c += 1;
+                    if (c < clen) {
+                        return;
                     }
+
+                    if (isChild || obj.isHard) {
+                        afterLog();
+                        return;
+                    }
+
+                    // Log the completed deletion
+                    crud.doInsert({
+                        name: "Log",
+                        data: {
+                            objectId: obj.id,
+                            action: "DELETE",
+                            created: now,
+                            createdBy: now,
+                            updated: now,
+                            updatedBy: now
+                        },
+                        client: obj.client
+                    }, true).then(afterLog).catch(reject);
                 };
 
                 afterLog = function () {
                     resolve(true);
                 };
 
-                // Kick off query by getting feather, the rest falls through callbacks
+                // Kick off query by getting feather, the rest falls
+                // through callbacks
                 feathers.getFeather({
                     client: obj.client,
                     data: {
@@ -261,21 +268,44 @@
         */
         crud.doInsert = function (obj, isChild, isSuperUser) {
             return new Promise(function (resolve, reject) {
-                var sql, col, key, child, pk, n, dkeys, fkeys, len, msg, props, prop,
-                        value, result, afterGetFeather, afterIdCheck, afterNextVal,
-                        afterAuthorized, buildInsert, afterGetPk, afterHandleRelations,
-                        insertChildren, afterInsert, afterDoSelect, afterLog,
-                        afterUniqueCheck, feather, payload,
-                        data = f.copy(obj.data),
-                        name = obj.name || "",
-                        args = [name.toSnakeCase()],
-                        tokens = [],
-                        params = [],
-                        values = [],
-                        unique = false,
-                        clen = 1,
-                        c = 0,
-                        p = 2;
+                let sql;
+                let col;
+                let key;
+                let child;
+                let pk;
+                let n;
+                let dkeys;
+                let fkeys;
+                let len;
+                let msg;
+                let props;
+                let prop;
+                let value;
+                let result;
+                let afterGetFeather;
+                let afterIdCheck;
+                let afterNextVal;
+                let afterAuthorized;
+                let buildInsert;
+                let afterGetPk;
+                let afterHandleRelations;
+                let insertChildren;
+                let afterInsert;
+                let afterDoSelect;
+                let afterLog;
+                let afterUniqueCheck;
+                let feather;
+                let payload;
+                let data = f.copy(obj.data);
+                let name = obj.name || "";
+                let args = [name.toSnakeCase()];
+                let tokens = [];
+                let params = [];
+                let values = [];
+                let unique = false;
+                let clen = 1;
+                let c = 0;
+                let p = 2;
 
                 payload = {
                     data: {
@@ -285,153 +315,146 @@
                 };
 
                 afterGetFeather = function (resp) {
-                    try {
-                        if (!resp) {
-                            throw "Class \"" + name + "\" not found";
-                        }
+                    if (!resp) {
+                        reject("Class \"" + name + "\" not found");
+                        return;
+                    }
 
-                        feather = resp;
-                        props = feather.properties;
-                        fkeys = Object.keys(props);
-                        dkeys = Object.keys(data);
+                    feather = resp;
+                    props = feather.properties;
+                    fkeys = Object.keys(props);
+                    dkeys = Object.keys(data);
 
-                        /* Validate properties are valid */
-                        len = dkeys.length;
-                        for (n = 0; n < len; n += 1) {
-                            if (fkeys.indexOf(dkeys[n]) === -1) {
-                                throw "Feather \"" + name +
-                                        "\" does not contain property \"" + dkeys[n] + "\"";
-                            }
-                        }
-
-                        /* Check id for existence and uniqueness and regenerate if needed */
-                        if (!data.id) {
-                            afterIdCheck(null, -1);
+                    /* Validate properties are valid */
+                    len = dkeys.length;
+                    for (n = 0; n < len; n += 1) {
+                        if (fkeys.indexOf(dkeys[n]) === -1) {
+                            msg = "Feather \"" + name;
+                            msg += "\" does not contain property \"";
+                            msg += dkeys[n] + "\"";
+                            reject(new Error(msg));
                             return;
                         }
-
-                        tools.getKey({
-                            id: data.id,
-                            client: obj.client
-                        }, true).then(afterIdCheck).catch(reject);
-                    } catch (e) {
-                        reject(e);
                     }
+
+                    /* Check id for existence and uniqueness and regenerate
+                       if needed */
+                    if (!data.id) {
+                        afterIdCheck(null, -1);
+                        return;
+                    }
+
+                    tools.getKey({
+                        id: data.id,
+                        client: obj.client
+                    }, true).then(afterIdCheck).catch(reject);
                 };
 
                 afterIdCheck = function (id) {
-                    try {
-                        if (id !== undefined) {
-                            data.id = f.createId();
-                        }
-
-                        Object.keys(feather.properties).some(function (key) {
-                            if (feather.properties[key].isUnique && !feather.properties[key].autonumber) {
-                                unique = {
-                                    feather: feather.properties[key].inheritedFrom || feather.name,
-                                    prop: key,
-                                    value: obj.data[key],
-                                    label: feather.properties[key].alias || key
-                                };
-
-                                return true;
-                            }
-
-                            return false;
-                        });
-
-                        if (unique) {
-                            tools.getKeys({
-                                client: obj.client,
-                                name: unique.feather,
-                                filter: {
-                                    criteria: [{
-                                        property: unique.prop,
-                                        value: unique.value
-                                    }]
-                                }
-                            }).then(afterUniqueCheck).catch(reject);
-                            return;
-                        }
-
-                        afterUniqueCheck();
-                    } catch (e) {
-                        reject(e);
+                    if (id !== undefined) {
+                        data.id = f.createId();
                     }
+
+                    Object.keys(feather.properties).some(function (key) {
+                        let fp = feather.properties[key];
+
+                        if (fp.isUnique && !fp.autonumber) {
+                            unique = {
+                                feather: fp.inheritedFrom || feather.name,
+                                prop: key,
+                                value: obj.data[key],
+                                label: fp.alias || key
+                            };
+
+                            return true;
+                        }
+
+                        return false;
+                    });
+
+                    if (unique) {
+                        tools.getKeys({
+                            client: obj.client,
+                            name: unique.feather,
+                            filter: {
+                                criteria: [{
+                                    property: unique.prop,
+                                    value: unique.value
+                                }]
+                            }
+                        }).then(afterUniqueCheck).catch(reject);
+                        return;
+                    }
+
+                    afterUniqueCheck();
                 };
 
                 afterUniqueCheck = function (resp) {
-                    try {
-                        if (resp && resp.length) {
-                            throw "Value '" + unique.value + "' assigned to " +
-                                    unique.label.toName() + " on " +
-                                    feather.name.toName() + " is not unique to data type " +
-                                    unique.feather.toName() + ".";
-                        }
-
-                        if (!isChild && isSuperUser === false) {
-                            feathers.isAuthorized({
-                                client: obj.client,
-                                data: {
-                                    feather: name,
-                                    action: "canCreate"
-                                }
-                            }).then(afterAuthorized).catch(reject);
-                            return;
-                        }
-
-                        afterAuthorized(true);
-                    } catch (e) {
-                        reject(e);
+                    if (resp && resp.length) {
+                        msg = "Value '" + unique.value + "' assigned to ";
+                        msg += unique.label.toName() + " on ";
+                        msg += feather.name.toName();
+                        msg += " is not unique to data type ";
+                        msg += unique.feather.toName() + ".";
+                        reject(new Error(msg));
+                        return;
                     }
+
+                    if (!isChild && isSuperUser === false) {
+                        feathers.isAuthorized({
+                            client: obj.client,
+                            data: {
+                                feather: name,
+                                action: "canCreate"
+                            }
+                        }).then(afterAuthorized).catch(reject);
+                        return;
+                    }
+
+                    afterAuthorized(true);
                 };
 
                 afterAuthorized = function (authorized) {
-                    try {
-                        if (!authorized) {
-                            msg = "Not authorized to create \"" + obj.name + "\"";
-                            throw {
-                                statusCode: 401,
-                                message: msg
-                            };
-                        }
-
-                        // Set some system controlled values
-                        data.updated = f.now();
-                        data.created = data.updated;
-                        data.createdBy = obj.client.currentUser;
-                        data.updatedBy = obj.client.currentUser;
-                        data.isDeleted = false;
-                        data.lock = null;
-
-                        // Get primary key
-                        sql = "select nextval('object__pk_seq')";
-                        obj.client.query(sql, afterNextVal);
-                    } catch (e) {
-                        reject(e);
+                    if (!authorized) {
+                        msg = "Not authorized to create \"";
+                        msg += obj.name + "\"";
+                        reject({
+                            statusCode: 401,
+                            message: msg
+                        });
+                        return;
                     }
+
+                    // Set some system controlled values
+                    data.updated = f.now();
+                    data.created = data.updated;
+                    data.createdBy = obj.client.currentUser;
+                    data.updatedBy = obj.client.currentUser;
+                    data.isDeleted = false;
+                    data.lock = null;
+
+                    // Get primary key
+                    sql = "select nextval('object__pk_seq')";
+                    obj.client.query(sql, afterNextVal);
                 };
 
                 afterNextVal = function (err, resp) {
-                    try {
-                        if (err) {
-                            throw err;
-                        }
-
-                        pk = resp.rows[0].nextval;
-                        values.push(pk);
-
-                        /* Build values */
-                        len = fkeys.length;
-                        n = 0;
-                        buildInsert();
-                    } catch (e) {
-                        reject(e);
+                    if (err) {
+                        reject(err);
+                        return;
                     }
+
+                    pk = resp.rows[0].nextval;
+                    values.push(pk);
+
+                    /* Build values */
+                    len = fkeys.length;
+                    n = 0;
+                    buildInsert();
                 };
 
                 buildInsert = function () {
-                    var callback;
+                    let callback;
 
                     if (n < len) {
                         key = fkeys[n];
@@ -448,14 +471,28 @@
 
                                 /* To one */
                             } else {
-                                col = tools.relationColumn(key, prop.type.relation);
-                                if (data[key] === null || data[key] === undefined) {
-                                    if (prop.default !== undefined && prop.default !== null) {
+                                col = tools.relationColumn(
+                                    key,
+                                    prop.type.relation
+                                );
+
+                                if (
+                                    data[key] === null ||
+                                    data[key] === undefined
+                                ) {
+                                    if (
+                                        prop.default !== undefined &&
+                                        prop.default !== null
+                                    ) {
                                         data[key] = prop.default;
                                     } else if (prop.isRequired !== true) {
                                         value = -1;
                                     } else {
-                                        throw "Property " + key + " is required on " + feather.name + ".";
+                                        msg = "Property " + key;
+                                        msg += " is required on ";
+                                        msg += feather.name + ".";
+                                        reject(new Error(msg));
+                                        return;
                                     }
                                 }
                                 if (value !== -1) {
@@ -497,60 +534,76 @@
                             col = key.toSnakeCase();
 
                             // Handle objects whose values are actually strings
-                            if (prop.type === "object" && typeof value === "string" &&
-                                    value.slice(0, 1) !== "[") {
-                                value = '"' + value + '"';
+                            if (
+                                prop.type === "object" &&
+                                typeof value === "string" &&
+                                value.slice(0, 1) !== "["
+                            ) {
+                                value = "\"" + value + "\"";
                             }
 
                             // Handle autonumber
-                            if (prop.autonumber && (value === undefined || prop.isReadOnly)) {
+                            if (
+                                prop.autonumber && (
+                                    value === undefined || prop.isReadOnly
+                                )
+                            ) {
                                 callback = function (err, resp) {
-                                    var lpad = function (str, length) {
-                                        str += "";
-                                        length = length || 0;
-                                        while (str.length < length) {
-                                            str = "0" + str;
-                                        }
-                                        return str;
-                                    };
+                                    let seq = resp.rows[0].seq - 0;
+
                                     if (err) {
                                         reject(err);
                                         return;
                                     }
 
                                     value = prop.autonumber.prefix || "";
-                                    value += lpad(resp.rows[0].seq, prop.autonumber.length);
+                                    value += seq.pad(prop.autonumber.length);
                                     value += prop.autonumber.suffix || "";
                                     afterHandleRelations();
                                 };
 
-                                obj.client.query("SELECT nextval($1) AS seq", [prop.autonumber.sequence], callback);
+                                obj.client.query(
+                                    "SELECT nextval($1) AS seq",
+                                    [prop.autonumber.sequence],
+                                    callback
+                                );
                                 return;
                             }
 
                             // Handle other types of defaults
                             if (value === undefined) {
-                                if (prop.default !== undefined && prop.default !== null) {
+                                if (
+                                    prop.default !== undefined &&
+                                    prop.default !== null
+                                ) {
                                     value = prop.default;
-                                } else if (prop.format &&
-                                        tools.formats[prop.format] &&
-                                        tools.formats[prop.format].default !== undefined) {
-                                    value = tools.formats[prop.format].default;
+                                } else if (
+                                    prop.format &&
+                                    formats[prop.format] &&
+                                    formats[prop.format].default !== undefined
+                                ) {
+                                    value = formats[prop.format].default;
                                 } else {
                                     value = tools.types[prop.type].default;
                                 }
 
-                                // If we have a class specific default that calls a function
-                                if (typeof value === "string" && value.match(/\(\)$/)) {
+                                // If we have a class specific default that
+                                // calls a function
+                                if (
+                                    typeof value === "string" &&
+                                    value.match(/\(\)$/)
+                                ) {
                                     value = f[value.replace(/\(\)$/, "")]();
 
-                                    if (value instanceof Promise) {
-                                        Promise.all([value])
-                                            .then(function (resp) {
+                                    if (value.constructor.name === "Promise") {
+                                        Promise.all([value]).then(
+                                            function (resp) {
                                                 value = resp[0];
                                                 afterHandleRelations();
-                                            })
-                                            .catch(reject);
+                                            }
+                                        ).catch(
+                                            reject
+                                        );
                                         return;
                                     }
                                 }
@@ -561,42 +614,50 @@
                         return;
                     }
 
-                    sql = ("INSERT INTO %I (_pk, " + tokens.toString(",") +
-                            ") VALUES ($1," + params.toString(",") + ");");
+                    sql = "INSERT INTO %I (_pk, " + tokens.toString(",");
+                    sql += ") VALUES ($1," + params.toString(",") + ");";
                     sql = sql.format(args);
 
-                    // Insert children first, parent last so notification gets full object
+                    // Insert children first so notification gets full object
                     insertChildren();
                 };
 
                 afterGetPk = function (id) {
-                    try {
-                        value = id;
+                    value = id;
 
-                        if (value === undefined) {
-                            throw 'Relation not found in "' + prop.type.relation +
-                                    '" for "' + key + '" with id "' + data[key].id + '"';
-                        }
-
-                        if (!isChild && prop.type.childOf) {
-                            throw "Child records may only be created from the parent.";
-                        }
-
-                        afterHandleRelations();
-                    } catch (e) {
-                        reject(e);
+                    if (value === undefined) {
+                        msg = "Relation not found in \"";
+                        msg += prop.type.relation;
+                        msg += "\" for \"" + key + "\" with id \"";
+                        msg += data[key].id + "\"";
+                        reject(new Error(msg));
+                        return;
                     }
+
+                    if (!isChild && prop.type.childOf) {
+                        msg = "Child records may only be created from the";
+                        msg += " parent.";
+                        reject(new Error(msg));
+                        return;
+                    }
+
+                    afterHandleRelations();
                 };
 
                 afterHandleRelations = function () {
                     if (!child) {
                         if (prop.isRequired && value === null) {
-                            throw "\"" + key + "\" is required on " + feather.name + ".";
+                            msg = "\"" + key + "\" is required on ";
+                            msg += feather.name + ".";
+                            reject(new Error(msg));
+                            return;
                         }
 
                         /* Handle non-relational composites */
-                        if (prop.type === "object" &&
-                                prop.format) {
+                        if (
+                            prop.type === "object" &&
+                            prop.format
+                        ) {
                             Object.keys(value || {}).forEach(function (attr) {
                                 args.push(col);
                                 args.push(attr.toSnakeCase());
@@ -621,43 +682,44 @@
                 };
 
                 insertChildren = function (err) {
-                    var ckeys;
-                    try {
-                        if (err) {
-                            throw err;
-                        }
+                    let ckeys;
 
-                        // Get keys for properties of child arrays.
-                        // Count expected callbacks along the way.
-                        ckeys = Object.keys(props).filter(function (key) {
-                            if (typeof props[key].type === "object" &&
-                                    props[key].type.parentOf &&
-                                    data[key] !== undefined) {
-                                clen += data[key].length;
-                                return true;
-                            }
-                        });
-
-                        // Insert children recursively
-                        ckeys.forEach(function (key) {
-                            var rel = props[key].type.relation;
-                            data[key].forEach(function (row) {
-                                row[props[key].type.parentOf] = {
-                                    id: data.id
-                                };
-                                crud.doInsert({
-                                    pk: pk,
-                                    name: rel,
-                                    data: row,
-                                    client: obj.client
-                                }, true).then(afterInsert).catch(reject);
-                            });
-                        });
-
-                        afterInsert();
-                    } catch (e) {
-                        reject(e);
+                    if (err) {
+                        reject(err);
+                        return;
                     }
+
+                    // Get keys for properties of child arrays.
+                    // Count expected callbacks along the way.
+                    ckeys = Object.keys(props).filter(function (key) {
+                        if (
+                            typeof props[key].type === "object" &&
+                            props[key].type.parentOf &&
+                            data[key] !== undefined
+                        ) {
+                            clen += data[key].length;
+                            return true;
+                        }
+                    });
+
+                    // Insert children recursively
+                    ckeys.forEach(function (key) {
+                        let rel = props[key].type.relation;
+
+                        data[key].forEach(function (row) {
+                            row[props[key].type.parentOf] = {
+                                id: data.id
+                            };
+                            crud.doInsert({
+                                pk: pk,
+                                name: rel,
+                                data: row,
+                                client: obj.client
+                            }, true).then(afterInsert).catch(reject);
+                        });
+                    });
+
+                    afterInsert();
                 };
 
                 afterInsert = function () {
@@ -676,59 +738,54 @@
                         }).then(afterDoSelect).catch(reject);
                     }
 
-                    try {
-                        // Done only when all callbacks report back
-                        c += 1;
-                        if (c < clen) {
-                            return;
-                        }
-
-                        // Perform the parent insert
-                        obj.client.query(sql, values)
-                            .then(afterParentInsert)
-                            .catch(reject);
-                    } catch (e) {
-                        reject(e);
+                    // Done only when all callbacks report back
+                    c += 1;
+                    if (c < clen) {
+                        return;
                     }
+
+                    // Perform the parent insert
+                    obj.client.query(sql, values).then(
+                        afterParentInsert
+                    ).catch(
+                        reject
+                    );
                 };
 
                 afterDoSelect = function (resp) {
-                    try {
-                        result = resp;
+                    result = resp;
 
-                        /* Handle change log */
-                        crud.doInsert({
-                            name: "Log",
-                            data: {
-                                objectId: data.id,
-                                action: "POST",
-                                created: data.created,
-                                createdBy: data.createdBy,
-                                updated: data.updated,
-                                updatedBy: data.updatedBy,
-                                change: f.copy(result)
-                            },
-                            client: obj.client
-                        }, true).then(afterLog).catch(reject);
-                    } catch (e) {
-                        reject(e);
-                    }
+                    /* Handle change log */
+                    crud.doInsert({
+                        name: "Log",
+                        data: {
+                            objectId: data.id,
+                            action: "POST",
+                            created: data.created,
+                            createdBy: data.createdBy,
+                            updated: data.updated,
+                            updatedBy: data.updatedBy,
+                            change: f.copy(result)
+                        },
+                        client: obj.client
+                    }, true).then(afterLog).catch(reject);
                 };
 
                 afterLog = function () {
-                    try {
-                        // We're going to return the changes
-                        result = jsonpatch.compare(obj.cache, result);
+                    // We're going to return the changes
+                    result = jsonpatch.compare(obj.cache, result);
 
-                        // Report back result
-                        resolve(result);
-                    } catch (e) {
-                        reject(e);
-                    }
+                    // Report back result
+                    resolve(result);
                 };
 
-                // Kick off query by getting feather, the rest falls through callbacks
-                feathers.getFeather(payload).then(afterGetFeather).catch(reject);
+                // Kick off query by getting feather, the rest falls
+                // through callbacks
+                feathers.getFeather(payload).then(
+                    afterGetFeather
+                ).catch(
+                    reject
+                );
             });
         };
 
@@ -742,7 +799,7 @@
           @param {Object} [payload.client] Database client
           @param {Function} [payload.callback] callback
           @param {Boolean} [payload.showDeleted] include deleted records
-          @param {Object} [payload.subscription] subscribe to events on returned rows
+          @param {Object} [payload.subscription] subscribe to events on results
           @param {Boolean} [payload.sanitize] sanitize result. Default true
           @param {Boolean} Request as child. Default false.
           @param {Boolean} Request as super user. Default false.
@@ -750,10 +807,16 @@
         */
         crud.doSelect = function (obj, isChild, isSuperUser) {
             return new Promise(function (resolve, reject) {
-                var sql, table, keys, payload,
-                        afterGetFeather, afterGetKey, afterGetKeys, mapKeys,
-                        tokens = [],
-                        cols = [];
+                let sql;
+                let table;
+                let keys;
+                let payload;
+                let afterGetFeather;
+                let afterGetKey;
+                let afterGetKeys;
+                let mapKeys;
+                let tokens = [];
+                let cols = [];
 
                 payload = {
                     name: obj.name,
@@ -762,140 +825,156 @@
                 };
 
                 afterGetFeather = function (feather) {
-                    try {
-                        if (!feather.name) {
-                            throw "Feather \"" + obj.name + "\" not found.";
-                        }
+                    if (!feather.name) {
+                        reject("Feather \"" + obj.name + "\" not found.");
+                        return;
+                    }
 
-                        table = "_" + feather.name.toSnakeCase();
-                        keys = obj.properties || Object.keys(feather.properties);
+                    table = "_" + feather.name.toSnakeCase();
+                    keys = obj.properties || Object.keys(
+                        feather.properties
+                    );
 
-                        /* Validate */
-                        if (!isChild && feather.isChild && !isSuperUser) {
-                            throw "Can not query directly on a child class";
-                        }
+                    /* Validate */
+                    if (!isChild && feather.isChild && !isSuperUser) {
+                        reject("Can not query directly on a child class");
+                        return;
+                    }
 
-                        keys.forEach(function (key) {
-                            tokens.push("%I");
-                            cols.push(key.toSnakeCase());
-                        });
+                    keys.forEach(function (key) {
+                        tokens.push("%I");
+                        cols.push(key.toSnakeCase());
+                    });
 
-                        cols.push(table);
-                        sql = ("SELECT to_json((" + tokens.toString(",") +
-                                ")) AS result FROM %I");
-                        sql = sql.format(cols);
+                    cols.push(table);
+                    sql = "SELECT to_json((" + tokens.toString(",");
+                    sql += ")) AS result FROM %I";
+                    sql = sql.format(cols);
 
-                        /* Get one result by key */
-                        if (obj.id) {
-                            payload.id = obj.id;
-                            tools.getKey(payload, isSuperUser)
-                                .then(afterGetKey).catch(reject);
+                    /* Get one result by key */
+                    if (obj.id) {
+                        payload.id = obj.id;
+                        tools.getKey(
+                            payload,
+                            isSuperUser
+                        ).then(afterGetKey).catch(reject);
 
-                            /* Get a filtered result */
-                        } else {
-                            payload.filter = obj.filter;
-                            tools.getKeys(payload, isSuperUser)
-                                .then(afterGetKeys).catch(reject);
-                        }
-                    } catch (e) {
-                        reject(e);
+                        /* Get a filtered result */
+                    } else {
+                        payload.filter = obj.filter;
+                        tools.getKeys(
+                            payload,
+                            isSuperUser
+                        ).then(afterGetKeys).catch(reject);
                     }
                 };
 
                 afterGetKey = function (key) {
-                    try {
-                        if (key === undefined) {
-                            resolve(undefined);
+                    if (key === undefined) {
+                        resolve(undefined);
+                        return;
+                    }
+
+                    sql += " WHERE _pk = $1";
+
+                    obj.client.query(sql, [key], function (err, resp) {
+                        let result;
+
+                        if (err) {
+                            reject(err);
                             return;
                         }
 
-                        sql += " WHERE _pk = $1";
+                        result = mapKeys(resp.rows[0]);
+                        if (obj.sanitize !== false) {
+                            result = tools.sanitize(result);
+                        }
 
-                        obj.client.query(sql, [key], function (err, resp) {
-                            var result;
+                        resolve(result);
+                    });
+                };
 
+                afterGetKeys = function (keys) {
+                    let result;
+                    let feathername;
+                    let sort = (
+                        obj.filter
+                        ? obj.filter.sort || []
+                        : []
+                    );
+                    let subscription = obj.subscription || {};
+                    let i = 0;
+
+                    if (keys.length) {
+                        tokens = [];
+
+                        while (keys[i]) {
+                            i += 1;
+                            tokens.push("$" + i);
+                        }
+
+                        sql += " WHERE _pk IN (";
+                        sql += tokens.toString(",") + ")";
+
+                        tokens = [];
+                        sql += tools.processSort(sort, tokens);
+                        sql = sql.format(tokens);
+
+                        obj.client.query(sql, keys, function (err, resp) {
                             if (err) {
                                 reject(err);
                                 return;
                             }
 
-                            result = mapKeys(resp.rows[0]);
-                            if (obj.sanitize !== false) {
-                                result = tools.sanitize(result);
+                            result = tools.sanitize(resp.rows.map(mapKeys));
+
+                            function ids(item) {
+                                return item.id;
                             }
 
-                            resolve(result);
-                        });
-                    } catch (e) {
-                        reject(e);
-                    }
-                };
-
-                afterGetKeys = function (keys) {
-                    try {
-                        var result, feathername,
-                                sort = obj.filter
-                            ? obj.filter.sort || []
-                            : [],
-                                subscription = obj.subscription || {},
-                                i = 0;
-
-                        if (keys.length) {
-                            tokens = [];
-
-                            while (keys[i]) {
-                                i += 1;
-                                tokens.push("$" + i);
+                            if (
+                                !obj.filter || (
+                                    !obj.filter.criteria &&
+                                    !obj.filter.limit
+                                )
+                            ) {
+                                feathername = obj.name;
                             }
 
-                            sql += " WHERE _pk IN (" + tokens.toString(",") + ")";
-
-                            tokens = [];
-                            sql += tools.processSort(sort, tokens);
-                            sql = sql.format(tokens);
-
-                            obj.client.query(sql, keys, function (err, resp) {
-                                if (err) {
-                                    reject(err);
-                                    return;
-                                }
-
-                                result = tools.sanitize(resp.rows.map(mapKeys));
-
-                                function ids(item) {
-                                    return item.id;
-                                }
-
-                                if (!obj.filter || (!obj.filter.criteria && !obj.filter.limit)) {
-                                    feathername = obj.name;
-                                }
-
-                                // Handle subscription
-                                events.subscribe(obj.client, obj.subscription, result.map(ids),
-                                        feathername)
-                                    .then(function () {
-                                        resolve(result);
-                                    })
-                                    .catch(reject);
-                            });
-                        } else {
                             // Handle subscription
-                            events.unsubscribe(obj.client, subscription.id)
-                                .then(function () {
-                                    resolve([]);
-                                })
-                                .catch(reject);
-                        }
-                    } catch (e) {
-                        reject(e);
+                            events.subscribe(
+                                obj.client,
+                                obj.subscription,
+                                result.map(ids),
+                                feathername
+                            ).then(
+                                function () {
+                                    resolve(result);
+                                }
+                            ).catch(
+                                reject
+                            );
+                        });
+                    } else {
+                        // Handle subscription
+                        events.unsubscribe(
+                            obj.client,
+                            subscription.id
+                        ).then(
+                            function () {
+                                resolve([]);
+                            }
+                        ).catch(
+                            reject
+                        );
                     }
                 };
 
                 mapKeys = function (row) {
-                    var rkeys,
-                        result = row.result,
-                        ret = {},
-                        i = 0;
+                    let rkeys;
+                    let result = row.result;
+                    let ret = {};
+                    let i = 0;
 
                     if (typeof result === "object") {
                         rkeys = Object.keys(result);
@@ -912,7 +991,8 @@
                     return ret;
                 };
 
-                // Kick off query by getting feather, the rest falls through callbacks
+                // Kick off query by getting feather, the rest falls through
+                // callbacks
                 feathers.getFeather({
                     client: obj.client,
                     data: {
@@ -934,107 +1014,121 @@
         */
         crud.doUpdate = function (obj, isChild, isSuperUser) {
             return new Promise(function (resolve, reject) {
-                var result, updRec, props, value, sql, pk, relation, key, keys,
-                        oldRec, newRec, cpatches, feather, tokens, find, noChildProps,
-                        afterGetFeather, afterGetKey, afterAuthorization, afterDoSelect,
-                        afterUpdate, afterSelectUpdated, done, nextProp, afterProperties,
-                        afterUniqueCheck, unique, doUnlock,
-                        afterGetRelKey, cacheRec,
-                        patches = obj.data || [],
-                        id = obj.id,
-                        doList = [],
-                        params = [],
-                        ary = [],
-                        clen = 0,
-                        children = [],
-                        p = 1,
-                        n = 0;
+                let result;
+                let updRec;
+                let props;
+                let value;
+                let sql;
+                let pk;
+                let relation;
+                let key;
+                let keys;
+                let oldRec;
+                let newRec;
+                let cpatches;
+                let feather;
+                let tokens;
+                let afterGetKey;
+                let afterDoSelect;
+                let afterUpdate;
+                let afterSelectUpdated;
+                let done;
+                let nextProp;
+                let afterProperties;
+                let afterUniqueCheck;
+                let unique;
+                let doUnlock;
+                let afterGetRelKey;
+                let cacheRec;
+                let patches = obj.data || [];
+                let id = obj.id;
+                let doList = [];
+                let params = [];
+                let ary = [];
+                let clen = 0;
+                let children = [];
+                let p = 1;
+                let n = 0;
 
                 if (!patches.length) {
                     resolve([]);
                     return;
                 }
 
-                find = function (ary, id) {
+                function find(ary, id) {
                     return ary.filter(function (item) {
                         return item && item.id === id;
                     })[0] || false;
-                };
+                }
 
-                noChildProps = function (key) {
-                    if (typeof feather.properties[key].type !== "object" ||
-                            !feather.properties[key].type.childOf) {
+                function noChildProps(key) {
+                    if (
+                        typeof feather.properties[key].type !== "object" ||
+                        !feather.properties[key].type.childOf
+                    ) {
                         return true;
                     }
-                };
+                }
 
-                afterGetFeather = function (resp) {
-                    try {
-                        if (!resp) {
-                            throw "Feather \"" + obj.name + "\" not found.";
-                        }
-
-                        feather = resp;
-                        tokens = [feather.name.toSnakeCase()];
-                        props = feather.properties;
-
-                        /* Validate */
-                        if (!isChild && feather.isChild) {
-                            throw "Can not directly update a child class";
-                        }
-
-                        if (isSuperUser === false) {
-                            feathers.isAuthorized({
-                                client: obj.client,
-                                data: {
-                                    id: id,
-                                    action: "canUpdate"
-                                }
-                            }).then(afterAuthorization).catch(reject);
-                            return;
-                        }
-
-                        afterAuthorization(true);
-                    } catch (e) {
-                        reject(e);
+                function afterAuthorization(authorized) {
+                    if (!authorized) {
+                        reject("Not authorized to update \"" + id + "\"");
+                        return;
                     }
-                };
 
-                afterAuthorization = function (authorized) {
-                    try {
-                        if (!authorized) {
-                            throw "Not authorized to update \"" + id + "\"";
-                        }
+                    tools.getKey({
+                        id: id,
+                        client: obj.client
+                    }).then(afterGetKey).catch(reject);
+                }
 
-                        tools.getKey({
-                            id: id,
-                            client: obj.client
-                        }).then(afterGetKey).catch(reject);
-                    } catch (e) {
-                        reject(e);
+                function afterGetFeather(resp) {
+                    if (!resp) {
+                        reject("Feather \"" + obj.name + "\" not found.");
+                        return;
                     }
-                };
+
+                    feather = resp;
+                    tokens = [feather.name.toSnakeCase()];
+                    props = feather.properties;
+
+                    /* Validate */
+                    if (!isChild && feather.isChild) {
+                        reject("Can not directly update a child class");
+                        return;
+                    }
+
+                    if (isSuperUser === false) {
+                        feathers.isAuthorized({
+                            client: obj.client,
+                            data: {
+                                id: id,
+                                action: "canUpdate"
+                            }
+                        }).then(afterAuthorization).catch(reject);
+                        return;
+                    }
+
+                    afterAuthorization(true);
+                }
 
                 afterGetKey = function (resp) {
-                    try {
-                        pk = resp;
-                        keys = Object.keys(props);
+                    pk = resp;
+                    keys = Object.keys(props);
 
-                        // Get existing record
-                        crud.doSelect({
-                            name: obj.name,
-                            id: obj.id,
-                            properties: keys.filter(noChildProps),
-                            client: obj.client,
-                            sanitize: false
-                        }, isChild).then(afterDoSelect).catch(reject);
-                    } catch (e) {
-                        reject(e);
-                    }
+                    // Get existing record
+                    crud.doSelect({
+                        name: obj.name,
+                        id: obj.id,
+                        properties: keys.filter(noChildProps),
+                        client: obj.client,
+                        sanitize: false
+                    }, isChild).then(afterDoSelect).catch(reject);
                 };
 
                 afterDoSelect = function (resp) {
-                    var sessionId = "_sessionid"; // JSLint doesn't like underscore
+                    let sessionId = "_sessionid"; // JSLint no underscore
+                    let msg;
 
                     function requiredIsNull(fkey) {
                         if (props[fkey].isRequired && updRec[fkey] === null) {
@@ -1044,399 +1138,435 @@
                     }
 
                     function uniqueChanged(fkey) {
-                        if (props[fkey].isUnique &&
-                                updRec[fkey] !== oldRec[fkey]) {
+                        let pf = props[fkey];
+
+                        if (
+                            pf.isUnique &&
+                            updRec[fkey] !== oldRec[fkey]
+                        ) {
 
                             unique = {
-                                feather: props[fkey].inheritedFrom || feather.name,
+                                feather: pf.inheritedFrom || feather.name,
                                 prop: fkey,
                                 value: updRec[fkey],
-                                label: props[fkey].alias || fkey
+                                label: pf.alias || fkey
                             };
 
                             return true;
                         }
                     }
 
-                    try {
-                        if (oldRec && oldRec.lock &&
-                                oldRec.lock[sessionId] !== obj.sessionid) {
-                            throw "Record is locked by " + oldRec.lock.username + " and cannot be updated.";
-                        }
-
-                        oldRec = tools.sanitize(resp);
-
-                        if (!Object.keys(oldRec).length || oldRec.isDeleted) {
-                            resolve(false);
-                            return;
-                        }
-
-                        newRec = f.copy(oldRec);
-                        jsonpatch.apply(newRec, patches);
-
-                        // Capture changes from original request
-                        if (obj.cache) {
-                            cacheRec = f.copy(oldRec);
-                            jsonpatch.apply(cacheRec, obj.cache);
-                        }
-
-                        if (!patches.length) {
-                            afterUpdate();
-                            return;
-                        }
-
-                        updRec = f.copy(newRec);
-
-                        // Revert data that may not be updated directly
-                        updRec.created = oldRec.created;
-                        updRec.createdBy = oldRec.createdBy;
-                        updRec.updated = new Date().toJSON();
-                        updRec.updatedBy = obj.client.currentUser;
-                        updRec.isDeleted = false;
-                        updRec.lock = oldRec.lock;
-
-                        if (props.etag) {
-                            updRec.etag = f.createId();
-                        }
-
-                        // Check required properties
-                        if (keys.some(requiredIsNull)) {
-                            throw "\"" + key + "\" is required.";
-                        }
-
-                        // Check unique properties
-                        if (keys.some(uniqueChanged)) {
-                            tools.getKeys({
-                                client: obj.client,
-                                name: unique.feather,
-                                filter: {
-                                    criteria: [{
-                                        property: unique.prop,
-                                        value: unique.value
-                                    }]
-                                }
-                            }).then(afterUniqueCheck).catch(reject);
-                            return;
-                        }
-
-                        // Process properties
-                        nextProp();
-                    } catch (e) {
-                        reject(e);
+                    if (
+                        oldRec && oldRec.lock &&
+                        oldRec.lock[sessionId] !== obj.sessionid
+                    ) {
+                        msg = "Record is locked by ";
+                        msg += oldRec.lock.username;
+                        msg += " and cannot be updated.";
+                        reject(new Error(msg));
+                        return;
                     }
+
+                    oldRec = tools.sanitize(resp);
+
+                    if (!Object.keys(oldRec).length || oldRec.isDeleted) {
+                        resolve(false);
+                        return;
+                    }
+
+                    newRec = f.copy(oldRec);
+                    jsonpatch.apply(newRec, patches);
+
+                    // Capture changes from original request
+                    if (obj.cache) {
+                        cacheRec = f.copy(oldRec);
+                        jsonpatch.apply(cacheRec, obj.cache);
+                    }
+
+                    if (!patches.length) {
+                        afterUpdate();
+                        return;
+                    }
+
+                    updRec = f.copy(newRec);
+
+                    // Revert data that may not be updated directly
+                    updRec.created = oldRec.created;
+                    updRec.createdBy = oldRec.createdBy;
+                    updRec.updated = new Date().toJSON();
+                    updRec.updatedBy = obj.client.currentUser;
+                    updRec.isDeleted = false;
+                    updRec.lock = oldRec.lock;
+
+                    if (props.etag) {
+                        updRec.etag = f.createId();
+                    }
+
+                    // Check required properties
+                    if (keys.some(requiredIsNull)) {
+                        reject("\"" + key + "\" is required.");
+                        return;
+                    }
+
+                    // Check unique properties
+                    if (keys.some(uniqueChanged)) {
+                        tools.getKeys({
+                            client: obj.client,
+                            name: unique.feather,
+                            filter: {
+                                criteria: [{
+                                    property: unique.prop,
+                                    value: unique.value
+                                }]
+                            }
+                        }).then(afterUniqueCheck).catch(reject);
+                        return;
+                    }
+
+                    // Process properties
+                    nextProp();
                 };
 
                 afterUniqueCheck = function (resp) {
-                    try {
-                        if (resp && resp.length) {
-                            throw "Value '" + unique.value + "' assigned to " +
-                                    unique.label.toName() + " on " +
-                                    feather.name.toName() + " is not unique to data type " +
-                                    unique.feather.toName() + ".";
-                        }
+                    let msg;
 
-                        nextProp();
-                    } catch (e) {
-                        reject(e);
+                    if (resp && resp.length) {
+                        msg = "Value '" + unique.value + "' assigned to ";
+                        msg += unique.label.toName() + " on ";
+                        msg += feather.name.toName();
+                        msg += " is not unique to data type ";
+                        msg += unique.feather.toName() + ".";
+                        reject(new Error(msg));
+                        return;
                     }
+
+                    nextProp();
                 };
 
                 nextProp = function () {
-                    var updProp, oldProp;
+                    let updProp;
+                    let oldProp;
+                    let msg;
 
-                    try {
-                        key = keys[n];
-                        n += 1;
+                    key = keys[n];
+                    n += 1;
 
-                        if (n <= keys.length) {
-                            /* Handle composite types */
-                            if (typeof props[key].type === "object") {
-                                updProp = updRec[key] || {};
-                                oldProp = oldRec[key] || {};
+                    if (n <= keys.length) {
+                        /* Handle composite types */
+                        if (typeof props[key].type === "object") {
+                            updProp = updRec[key] || {};
+                            oldProp = oldRec[key] || {};
 
-                                /* Handle child records */
-                                if (Array.isArray(updRec[key])) {
-                                    relation = props[key].type.relation;
+                            /* Handle child records */
+                            if (Array.isArray(updRec[key])) {
+                                relation = props[key].type.relation;
 
-                                    /* Process deletes */
-                                    oldRec[key].forEach(function (row) {
-                                        var cid = row.id;
+                                /* Process deletes */
+                                oldRec[key].forEach(function (row) {
+                                    let cid = row.id;
 
-                                        if (!find(updRec[key], cid)) {
+                                    if (!find(updRec[key], cid)) {
+                                        clen += 1;
+                                        doList.push({
+                                            func: crud.doDelete,
+                                            payload: {
+                                                name: relation,
+                                                id: cid,
+                                                client: obj.client
+                                            }
+                                        });
+                                    }
+                                });
+
+                                /* Process inserts and updates */
+                                updRec[key].forEach(function (cNewRec) {
+                                    if (!cNewRec) {
+                                        return;
+                                    }
+
+                                    let cid = cNewRec.id || null;
+                                    let cOldRec = find(oldRec[key], cid);
+
+                                    if (cOldRec) {
+                                        cpatches = jsonpatch.compare(
+                                            cOldRec,
+                                            cNewRec
+                                        );
+
+                                        if (cpatches.length) {
                                             clen += 1;
                                             doList.push({
-                                                func: crud.doDelete,
+                                                func: crud.doUpdate,
                                                 payload: {
                                                     name: relation,
                                                     id: cid,
+                                                    data: cpatches,
                                                     client: obj.client
                                                 }
                                             });
                                         }
-                                    });
-
-                                    /* Process inserts and updates */
-                                    updRec[key].forEach(function (cNewRec) {
-                                        if (!cNewRec) {
-                                            return;
-                                        }
-
-                                        var cid = cNewRec.id || null,
-                                            cOldRec = find(oldRec[key], cid);
-
-                                        if (cOldRec) {
-                                            cpatches = jsonpatch.compare(cOldRec, cNewRec);
-
-                                            if (cpatches.length) {
-                                                clen += 1;
-                                                doList.push({
-                                                    func: crud.doUpdate,
-                                                    payload: {
-                                                        name: relation,
-                                                        id: cid,
-                                                        data: cpatches,
-                                                        client: obj.client
-                                                    }
-                                                });
+                                    } else {
+                                        cNewRec[props[key].type.parentOf] = {
+                                            id: updRec.id
+                                        };
+                                        clen += 1;
+                                        doList.push({
+                                            func: crud.doInsert,
+                                            payload: {
+                                                name: relation,
+                                                data: cNewRec,
+                                                client: obj.client
                                             }
-                                        } else {
-                                            cNewRec[props[key].type.parentOf] = {
-                                                id: updRec.id
-                                            };
-                                            clen += 1;
-                                            doList.push({
-                                                func: crud.doInsert,
-                                                payload: {
-                                                    name: relation,
-                                                    data: cNewRec,
-                                                    client: obj.client
-                                                }
-                                            });
-                                        }
-                                    });
-
-                                /* Handle child relation updates */
-                                } else if (props[key].type.isChild) {
-                                    /* Do delete */
-                                    if (oldRec[key] && !updRec[key]) {
-                                        crud.doDelete({
-                                            name: props[key].type.relation,
-                                            id: oldRec[key].id,
-                                            client: obj.client,
-                                            isHard: true
-                                        }, true, true).then(function () {
-                                            afterGetRelKey(null, -1);
-                                        }).catch(reject);
-
-                                        return;
+                                        });
                                     }
+                                });
 
-                                    /* Do insert */
-                                    if (updRec[key] && !oldRec[key]) {
-                                        crud.doInsert({
-                                            name: props[key].type.relation,
-                                            id: updRec[key].id,
-                                            data: updRec[key],
-                                            client: obj.client
-                                        }, true, true).then(function () {
-                                            tools.getKey({
-                                                id: updRec[key].id,
-                                                client: obj.client
-                                            }).then(afterGetRelKey).catch(reject);
-                                        }).catch(reject);
+                            /* Handle child relation updates */
+                            } else if (props[key].type.isChild) {
+                                /* Do delete */
+                                if (oldRec[key] && !updRec[key]) {
+                                    crud.doDelete({
+                                        name: props[key].type.relation,
+                                        id: oldRec[key].id,
+                                        client: obj.client,
+                                        isHard: true
+                                    }, true, true).then(function () {
+                                        afterGetRelKey(null, -1);
+                                    }).catch(reject);
 
-                                        return;
-                                    }
-
-                                    if (updRec[key] && oldRec[key] && updRec[key].id !== oldRec[key].id) {
-                                        throw "Id cannot be changed on child relation '" + key + "'";
-                                    }
-
-                                    /* Do update */
-                                    cpatches = jsonpatch.compare(oldRec[key] || {}, updRec[key] || {});
-
-                                    if (cpatches.length) {
-                                        crud.doUpdate({
-                                            name: props[key].type.relation,
-                                            id: updRec[key].id,
-                                            data: cpatches,
-                                            client: obj.client
-                                        }, true, true).then(function () {
-                                            tools.getKey({
-                                                id: updRec[key].id,
-                                                client: obj.client
-                                            }).then(afterGetRelKey).catch(reject);
-                                        }).catch(reject);
-                                        return;
-                                    }
-
-                                    nextProp();
                                     return;
                                 }
 
-                                /* Handle regular to one relations */
-                                if (!props[key].type.childOf &&
-                                        updProp.id !== oldProp.id) {
-
-                                    if (updProp.id) {
+                                /* Do insert */
+                                if (updRec[key] && !oldRec[key]) {
+                                    crud.doInsert({
+                                        name: props[key].type.relation,
+                                        id: updRec[key].id,
+                                        data: updRec[key],
+                                        client: obj.client
+                                    }, true, true).then(function () {
                                         tools.getKey({
                                             id: updRec[key].id,
                                             client: obj.client
-                                        }).then(afterGetRelKey).catch(reject);
-                                    } else {
-                                        afterGetRelKey(null, -1);
-                                    }
+                                        }).then(
+                                            afterGetRelKey
+                                        ).catch(
+                                            reject
+                                        );
+                                    }).catch(reject);
+
                                     return;
                                 }
 
-                                /* Handle non-relational composites */
-                            } else if (updRec[key] !== oldRec[key] &&
-                                    props[key].type === "object" &&
-                                    props[key].format) {
+                                if (
+                                    updRec[key] && oldRec[key] &&
+                                    updRec[key].id !== oldRec[key].id
+                                ) {
+                                    msg = "Id cannot be changed on child";
+                                    msg += "relation '" + key + "'";
+                                    reject(new Error(msg));
+                                    return;
+                                }
 
-                                Object.keys(updRec[key]).forEach(function (attr) {
+                                /* Do update */
+                                cpatches = jsonpatch.compare(
+                                    oldRec[key] || {},
+                                    updRec[key] || {}
+                                );
+
+                                if (cpatches.length) {
+                                    crud.doUpdate({
+                                        name: props[key].type.relation,
+                                        id: updRec[key].id,
+                                        data: cpatches,
+                                        client: obj.client
+                                    }, true, true).then(function () {
+                                        tools.getKey({
+                                            id: updRec[key].id,
+                                            client: obj.client
+                                        }).then(
+                                            afterGetRelKey
+                                        ).catch(
+                                            reject
+                                        );
+                                    }).catch(reject);
+                                    return;
+                                }
+
+                                nextProp();
+                                return;
+                            }
+
+                            /* Handle regular to one relations */
+                            if (
+                                !props[key].type.childOf &&
+                                updProp.id !== oldProp.id
+                            ) {
+
+                                if (updProp.id) {
+                                    tools.getKey({
+                                        id: updRec[key].id,
+                                        client: obj.client
+                                    }).then(afterGetRelKey).catch(reject);
+                                } else {
+                                    afterGetRelKey(null, -1);
+                                }
+                                return;
+                            }
+
+                            /* Handle non-relational composites */
+                        } else if (
+                            updRec[key] !== oldRec[key] &&
+                            props[key].type === "object" &&
+                            props[key].format
+                        ) {
+
+                            Object.keys(updRec[key]).forEach(
+                                function (attr) {
                                     tokens.push(key.toSnakeCase());
                                     tokens.push(attr.toSnakeCase());
                                     ary.push("%I.%I = $" + p);
                                     params.push(updRec[key][attr]);
                                     p += 1;
-                                });
-
-                                /* Handle regular data types */
-                            } else if (updRec[key] !== oldRec[key] && key !== "objectType") {
-
-                                // Handle objects whose values are actually strings
-                                if (props[key].type === "object" &&
-                                        typeof updRec[key] === "string" &&
-                                        updRec[key].slice(0, 1) !== "[") {
-                                    updRec[key] = '"' + value + '"';
                                 }
+                            );
 
-                                tokens.push(key.toSnakeCase());
-                                ary.push("%I = $" + p);
-                                params.push(updRec[key]);
-                                p += 1;
+                            /* Handle regular data types */
+                        } else if (
+                            updRec[key] !== oldRec[key] && key !== "objectType"
+                        ) {
+
+                            // Handle objects whose values are actually
+                            // strings
+                            if (
+                                props[key].type === "object" &&
+                                typeof updRec[key] === "string" &&
+                                updRec[key].slice(0, 1) !== "["
+                            ) {
+                                updRec[key] = "\"" + value + "\"";
                             }
 
-                            nextProp();
-                            return;
+                            tokens.push(key.toSnakeCase());
+                            ary.push("%I = $" + p);
+                            params.push(updRec[key]);
+                            p += 1;
                         }
 
-                        // Done, move on
-                        afterProperties();
-                    } catch (e) {
-                        reject(e);
+                        nextProp();
+                        return;
                     }
+
+                    // Done, move on
+                    afterProperties();
                 };
 
                 afterGetRelKey = function (resp) {
-                    try {
-                        value = resp;
-                        relation = props[key].type.relation;
+                    let msg;
 
-                        if (value === undefined) {
-                            throw "Relation not found in \"" + relation +
-                                    "\" for \"" + key + "\" with id \"" + updRec[key].id + "\"";
-                        }
+                    value = resp;
+                    relation = props[key].type.relation;
 
-                        tokens.push(tools.relationColumn(key, relation));
-                        ary.push("%I = $" + p);
-                        params.push(value);
-                        p += 1;
-
-                        nextProp();
-                    } catch (e) {
-                        reject(e);
+                    if (value === undefined) {
+                        msg = "Relation not found in \"";
+                        msg += relation + "\" for \"" + key;
+                        msg += "\" with id \"" + updRec[key].id + "\"";
+                        reject(new Error(msg));
+                        return;
                     }
+
+                    tokens.push(tools.relationColumn(key, relation));
+                    ary.push("%I = $" + p);
+                    params.push(value);
+                    p += 1;
+
+                    nextProp();
                 };
 
                 afterProperties = function () {
-                    try {
-                        // Execute child changes first so all captured in any notification
-                        children = doList.map((item) => item.func(item.payload, true));
+                    // Execute child changes first so all captured in any
+                    // notification
+                    children = doList.map(
+                        (item) => item.func(item.payload, true)
+                    );
 
-                        // Execute top level object change
-                        sql = ("UPDATE %I SET " + ary.join(",") + " WHERE _pk = $" + p);
-                        sql = sql.format(tokens);
-                        params.push(pk);
-                        clen += 1;
+                    // Execute top level object change
+                    sql = "UPDATE %I SET " + ary.join(",");
+                    sql += " WHERE _pk = $" + p;
+                    sql = sql.format(tokens);
+                    params.push(pk);
+                    clen += 1;
 
-                        Promise.all(children)
-                            .then(() => obj.client.query(sql, params))
-                            .then(afterUpdate)
-                            .catch(reject);
-                    } catch (e) {
-                        reject(e);
-                    }
+                    Promise.all(children).then(
+                        () => obj.client.query(sql, params)
+                    ).then(
+                        afterUpdate
+                    ).catch(
+                        reject
+                    );
                 };
 
                 afterUpdate = function () {
-                    try {
-                        // If child, we're done here
-                        if (isChild) {
-                            resolve();
-                            return;
-                        }
-
-                        // If a top level record, return patch of what changed
-                        crud.doSelect({
-                            name: feather.name,
-                            id: id,
-                            client: obj.client
-                        }).then(afterSelectUpdated).catch(reject);
-                    } catch (e) {
-                        reject(e);
+                    // If child, we're done here
+                    if (isChild) {
+                        resolve();
+                        return;
                     }
+
+                    // If a top level record, return patch of what changed
+                    crud.doSelect({
+                        name: feather.name,
+                        id: id,
+                        client: obj.client
+                    }).then(afterSelectUpdated).catch(reject);
                 };
 
                 afterSelectUpdated = function (resp) {
-                    try {
-                        result = resp;
+                    result = resp;
 
-                        // Handle change log
-                        if (updRec) {
-                            crud.doInsert({
-                                name: "Log",
-                                data: {
-                                    objectId: id,
-                                    action: "PATCH",
-                                    created: updRec.updated,
-                                    createdBy: updRec.updatedBy,
-                                    updated: updRec.updated,
-                                    updatedBy: updRec.updatedBy,
-                                    change: JSON.stringify(jsonpatch.compare(oldRec, result))
-                                },
-                                client: obj.client
-                            }, true).then(doUnlock).catch(reject);
-                            return;
-                        }
-                        doUnlock();
-                    } catch (e) {
-                        reject(e);
+                    // Handle change log
+                    if (updRec) {
+                        crud.doInsert({
+                            name: "Log",
+                            data: {
+                                objectId: id,
+                                action: "PATCH",
+                                created: updRec.updated,
+                                createdBy: updRec.updatedBy,
+                                updated: updRec.updated,
+                                updatedBy: updRec.updatedBy,
+                                change: JSON.stringify(jsonpatch.compare(
+                                    oldRec,
+                                    result
+                                ))
+                            },
+                            client: obj.client
+                        }, true).then(doUnlock).catch(reject);
+                        return;
                     }
+                    doUnlock();
                 };
 
                 doUnlock = function () {
                     crud.unlock(obj.client, {
                         id: obj.id
-                    })
-                        .then(done)
-                        .catch(reject);
+                    }).then(
+                        done
+                    ).catch(
+                        reject
+                    );
                 };
 
                 done = function () {
-                    try {
-                        // Remove the lock information
-                        result.lock = null;
+                    // Remove the lock information
+                    result.lock = null;
 
-                        // Send back the differences between what user asked for and result
-                        resolve(jsonpatch.compare(cacheRec, result));
-                    } catch (e) {
-                        reject(e);
-                    }
+                    // Send back the differences between what user asked
+                    // for and result
+                    resolve(jsonpatch.compare(cacheRec, result));
                 };
 
-                // Kick off query by getting feather, the rest falls through callbacks
+                // Kick off query by getting feather, the rest falls
+                // through callbacks
                 feathers.getFeather({
                     client: obj.client,
                     data: {
@@ -1458,48 +1588,64 @@
         */
         crud.lock = function (client, nodeid, id, username, sessionid) {
             return new Promise(function (resolve, reject) {
+                let msg;
+
                 if (!nodeid) {
-                    throw new Error('Lock requires a node id.');
+                    reject(new Error("Lock requires a node id."));
+                    return;
                 }
 
                 if (!sessionid) {
-                    throw new Error('Lock requires a sessionid.');
+                    reject(new Error("Lock requires a sessionid."));
+                    return;
                 }
 
                 if (!id) {
-                    throw new Error('Lock requires an object id.');
+                    reject(new Error("Lock requires an object id."));
+                    return;
                 }
 
                 if (!username) {
-                    throw new Error('Lock requires a username.');
+                    reject(new Error("Lock requires a username."));
+                    return;
                 }
 
                 function checkLock() {
                     return new Promise(function (resolve, reject) {
-                        var sql = "SELECT lock FROM object WHERE id = $1";
+                        let sql = "SELECT lock FROM object WHERE id = $1";
 
                         function callback(resp) {
                             if (!resp.rows.length) {
-                                throw new Error("Record " + id + " not found.");
+                                msg = "Record " + id + " not found.";
+                                reject(new Error(msg));
+                                return;
                             }
 
                             if (resp.rows[0].lock) {
-                                throw new Error("Record " + id + " is already locked.");
+                                msg = "Record " + id + " is already locked.";
+                                reject(new Error(msg));
+                                return;
                             }
 
                             resolve();
                         }
 
-                        client.query(sql, [id])
-                            .then(callback)
-                            .catch(reject);
+                        client.query(sql, [id]).then(
+                            callback
+                        ).catch(
+                            reject
+                        );
                     });
                 }
 
                 function doLock() {
                     return new Promise(function (resolve, reject) {
-                        var params,
-                            sql = "UPDATE object SET lock = ROW($1, now(), $2, $3) WHERE id = $4";
+                        let params;
+                        let sql;
+
+                        sql = "UPDATE object ";
+                        sql += "SET lock = ROW($1, now(), $2, $3) ";
+                        sql += "WHERE id = $4";
 
                         function callback() {
                             resolve(true);
@@ -1512,17 +1658,23 @@
                             id
                         ];
 
-                        client.query(sql, params)
-                            .then(callback)
-                            .catch(reject);
+                        client.query(sql, params).then(
+                            callback
+                        ).catch(
+                            reject
+                        );
                     });
                 }
 
-                Promise.resolve()
-                    .then(checkLock)
-                    .then(doLock)
-                    .then(resolve)
-                    .catch(reject);
+                Promise.resolve().then(
+                    checkLock
+                ).then(
+                    doLock
+                ).then(
+                    resolve
+                ).catch(
+                    reject
+                );
 
             });
         };
@@ -1540,45 +1692,48 @@
         */
         crud.unlock = function (client, criteria) {
             return new Promise(function (resolve, reject) {
-                var sql,
-                    params = [];
+                let sql;
+                let params = [];
 
                 function callback(resp) {
                     resolve(resp.rows);
                 }
 
-                sql = 'UPDATE object SET lock = NULL ' +
-                        'WHERE true ';
+                sql = "UPDATE object SET lock = NULL ";
+                sql += "WHERE true ";
 
                 if (criteria.id) {
                     params.push(criteria.id);
-                    sql += ' AND object.id = $1';
+                    sql += " AND object.id = $1";
                 }
 
                 if (criteria.username) {
                     params.push(criteria.username);
-                    sql += ' AND username(lock) = $' + params.length;
+                    sql += " AND username(lock) = $" + params.length;
                 }
 
                 if (criteria.sessionId) {
                     params.push(criteria.sessionId);
-                    sql += ' AND _sessionid(lock) = $' + params.length;
+                    sql += " AND _sessionid(lock) = $" + params.length;
                 }
 
                 if (criteria.nodeId) {
                     params.push(criteria.nodeId);
-                    sql += ' AND _nodeid(lock) = $' + params.length;
+                    sql += " AND _nodeid(lock) = $" + params.length;
                 }
 
                 if (!params.length) {
-                    throw new Error("No lock criteria defined.");
+                    reject(new Error("No lock criteria defined."));
+                    return;
                 }
 
                 sql += " RETURNING id; ";
 
-                client.query(sql, params)
-                    .then(callback)
-                    .catch(reject);
+                client.query(sql, params).then(
+                    callback
+                ).catch(
+                    reject
+                );
             });
         };
 

@@ -28,7 +28,6 @@
           pad(12, 3);     // "012"
           pad(9, 3, '-')  // "--9"
 
-        @param {Number} Number
         @param {Number} Width
         @param {String} Pad character, default 0
         @return {String}
