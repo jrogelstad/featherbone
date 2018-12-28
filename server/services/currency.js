@@ -15,10 +15,9 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*global Promise*/
-/*jslint node, es6*/
+/*jslint node*/
 (function (exports) {
-    "strict";
+    "use strict";
 
     const {
         Database
@@ -36,68 +35,83 @@
     const tools = new Tools();
     const f = require("../../common/core");
 
-    var baseCurrs, currencies;
+    let baseCurrs;
+    let currencies;
 
     function byEffective(a, b) {
-        var aEffect = a.effective,
-            bEffect = b.effective;
+        let aEffect = a.effective;
+        let bEffect = b.effective;
 
-        return aEffect > bEffect
+        return (
+            aEffect > bEffect
             ? -1
-            : 1;
+            : 1
+        );
     }
 
     // Get currency info and listen for any subsequent changes
     function init() {
         return new Promise(function (resolve, reject) {
-            var id;
+            let id;
 
             function getCurrencies(obj) {
                 return new Promise(function (resolve, reject) {
-                    var sql = "SELECT to_json(_currency) AS result FROM _currency;";
+                    let sql;
+
+                    sql = "SELECT to_json(_currency) AS result ";
+                    sql += "FROM _currency;";
 
                     function callback(resp) {
-                        currencies = tools.sanitize(resp.rows).map((row) => row.result);
+                        currencies = tools.sanitize(resp.rows).map(
+                            (row) => row.result
+                        );
                         resolve(obj);
                     }
 
-                    obj.client.query(sql)
-                        .then(callback)
-                        .catch(reject);
+                    obj.client.query(sql).then(callback).catch(reject);
                 });
             }
 
             function getBaseCurrencies(obj) {
                 return new Promise(function (resolve, reject) {
-                    var sql = "SELECT to_json(_base_currency) AS result FROM _base_currency;";
+                    let sql;
+
+                    sql = "SELECT to_json(_base_currency) AS result ";
+                    sql += "FROM _base_currency;";
 
                     function callback(resp) {
-                        baseCurrs = tools.sanitize(resp.rows).map((row) => row.result);
+                        baseCurrs = tools.sanitize(resp.rows).map(
+                            (row) => row.result
+                        );
                         resolve(obj);
                     }
 
-                    obj.client.query(sql)
-                        .then(callback)
-                        .catch(reject);
+                    obj.client.query(sql).then(callback).catch(reject);
                 });
             }
 
             function receiver(message) {
-                var found,
-                    data = message.payload.data,
-                    change = message.payload.subscription.change;
+                let found;
+                let data = message.payload.data;
+                let change = message.payload.subscription.change;
 
                 // Handle change to currency
                 if (data.objectType === "Currency") {
                     if (change === "create") {
                         currencies.push(data);
                     } else {
-                        found = currencies.find((currency) => currency.id === data.id);
+                        found = currencies.find(
+                            (currency) => currency.id === data.id
+                        );
 
                         if (change === "delete") {
                             currencies.splice(currencies.indexOf(found), 1);
                         } else {
-                            currencies.splice(currencies.indexOf(found), 1, data);
+                            currencies.splice(
+                                currencies.indexOf(found),
+                                1,
+                                data
+                            );
                         }
                     }
                 // Base currency records only ever get added
@@ -108,7 +122,8 @@
 
             function subscribe(obj) {
                 return new Promise(function (resolve, reject) {
-                    var ids, subscription;
+                    let ids;
+                    let subscription;
 
                     id = db.nodeId() + "$currency";
 
@@ -123,29 +138,48 @@
                         id: id
                     };
 
-                    events.subscribe(obj.client, subscription, ids)
-                        .then(resolve.bind(null, obj))
-                        .catch(reject);
+                    events.subscribe(
+                        obj.client,
+                        subscription,
+                        ids
+                    ).then(
+                        resolve.bind(null, obj)
+                    ).catch(
+                        reject
+                    );
                 });
             }
 
             function listen(obj) {
                 return new Promise(function (resolve, reject) {
-                    events.listen(obj.client, id, receiver)
-                        .then(resolve)
-                        .catch(reject);
+                    events.listen(
+                        obj.client,
+                        id,
+                        receiver
+                    ).then(
+                        resolve
+                    ).catch(
+                        reject
+                    );
                 });
             }
 
             // Note the client stays open here listening for events
-            Promise.resolve()
-                .then(db.connect)
-                .then(getCurrencies)
-                .then(getBaseCurrencies)
-                .then(subscribe)
-                .then(listen)
-                .then(resolve)
-                .catch(reject);
+            Promise.resolve().then(
+                db.connect
+            ).then(
+                getCurrencies
+            ).then(
+                getBaseCurrencies
+            ).then(
+                subscribe
+            ).then(
+                listen
+            ).then(
+                resolve
+            ).catch(
+                reject
+            );
         });
     }
 
@@ -154,24 +188,28 @@
         // PUBLIC
         //
 
-        var that = {};
+        let that = {};
 
         /**
           Resolves to a base currency object based on an effective date.
 
           @param {Object} [payload] Payload
           @param {String} [payload.data] Arguments.
-          @param {String} [payload.data.effective] ISO formatted effective date. Default today.
+          @param {String} [payload.data.effective] ISO formatted date.
+                Default today.
           @return {Object} Promise
         */
         that.baseCurrency = function (obj) {
             return new Promise(function (resolve, reject) {
-                var effective = obj.data.effective
+                let effective = (
+                    obj.data.effective
                     ? new Date(obj.data.effective).toDate()
-                    : new Date();
+                    : new Date()
+                );
 
                 function calculate() {
-                    var current, baseCurr;
+                    let current;
+                    let baseCurr;
 
                     baseCurrs.sort(byEffective);
                     current = baseCurrs.find(function (item) {
@@ -196,57 +234,85 @@
                     return;
                 }
 
-                init(obj).then(calculate).catch(reject);
+                init(obj).then(
+                    calculate
+                ).catch(
+                    reject
+                );
             });
         };
 
         /**
-          Resolves to a base currency money object populated with the base currency amount.
+          Resolves to a base currency money object populated with the base
+          currency amount.
 
           @param {Object} [payload] Payload
           @param {Object} [payload.client] Database client
           @param {String} [payload.data] Arguments
-          @param {String} [payload.data.fromCurrency] Currency code to convert from
+          @param {String} [payload.data.fromCurrency] Currency code from
           @param {Number} [payload.data.amount] Amount
-          @param {String} [payload.data.toCurrency] Target currencny to convert to. Default base.
-          @param {String} [payload.data.effective] ISO formatted effective date. Default today.
+          @param {String} [payload.data.toCurrency] Target currency.
+                Default base.
+          @param {String} [payload.data.effective] ISO formatted date.
+                Default today.
           @return {Object} Promise
         */
         that.convertCurrency = function (obj) {
             return new Promise(function (resolve, reject) {
-                var baseCurr, err, effective,
-                        fromCurr = obj.data.fromCurrency,
-                        fromAmount = obj.data.amount;
+                let baseCurr;
+                let err;
+                let effective;
+                let fromCurr = obj.data.fromCurrency;
+                let fromAmount = obj.data.amount;
+                let msg;
 
-                // Advance date to next day so we get latest conversion for that day
-                effective = f.parseDate(obj.data.effective || f.today()).toDate();
+                // Advance date to next day so we get latest conversion for
+                // that day
+                effective = (
+                    f.parseDate(obj.data.effective || f.today()).toDate()
+                );
                 effective.setDate(effective.getDate() + 1);
 
                 if (obj.data.toCurrency) {
-                    err = new Error("Conversion to a specific currency is not implemented yet.");
+                    msg = "Conversion to a specific currency is not";
+                    msg += "implemented yet.";
+                    err = new Error(msg);
                     err.statusCode = "501";
+                    reject(err);
+                    return;
                 }
 
                 function calculate(resp) {
-                    var conv, amount;
+                    let conv;
+                    let amount;
 
                     if (!resp.rows.length) {
-                        err = new Error("Conversion not found for " +
-                                fromCurr + " to " + baseCurr.code + " on " + effective.toLocaleString());
+                        msg = "Conversion not found for ";
+                        msg += fromCurr + " to " + baseCurr.code + " on ";
+                        msg += effective.toLocaleString();
+                        err = new Error(msg);
                         err.statusCode = "404";
+                        reject(err);
+                        return;
                     }
 
                     conv = tools.sanitize(resp.rows[0]);
                     if (conv.fromCurrency.code === baseCurr.code) {
-                        amount = new Big(fromAmount)
-                            .div(conv.ratio)
-                            .round(baseCurr.minorUnit)
-                            .valueOf() - 0;
+                        amount = new Big(
+                            fromAmount
+                        ).div(
+                            conv.ratio
+                        ).round(
+                            baseCurr.minorUnit
+                        ).valueOf() - 0;
                     } else {
-                        amount = new Big(fromAmount)
-                            .times(conv.ratio)
-                            .round(baseCurr.minorUnit)
-                            .valueOf() - 0;
+                        amount = new Big(
+                            fromAmount
+                        ).times(
+                            conv.ratio
+                        ).round(
+                            baseCurr.minorUnit
+                        ).valueOf() - 0;
                     }
 
                     resolve({
@@ -258,7 +324,8 @@
                 }
 
                 function getConversion(resp) {
-                    var sql, params;
+                    let sql;
+                    let params;
 
                     baseCurr = resp;
 
@@ -273,12 +340,12 @@
                         return;
                     }
 
-                    sql = "SELECT * FROM _currency_conversion " +
-                            "WHERE (from_currency).code IN ($1, $2) " +
-                            "AND (to_currency).code IN ($1,$2) " +
-                            "AND effective < $3 " +
-                            "ORDER BY effective DESC " +
-                            "LIMIT 1;";
+                    sql = "SELECT * FROM _currency_conversion ";
+                    sql += "WHERE (from_currency).code IN ($1, $2) ";
+                    sql += "AND (to_currency).code IN ($1,$2) ";
+                    sql += "AND effective < $3 ";
+                    sql += "ORDER BY effective DESC ";
+                    sql += "LIMIT 1;";
 
                     params = [
                         fromCurr,
@@ -286,18 +353,22 @@
                         effective.toISOString()
                     ];
 
-                    obj.client.query(sql, params)
-                        .then(calculate)
-                        .catch(reject);
+                    obj.client.query(sql, params).then(
+                        calculate
+                    ).catch(
+                        reject
+                    );
                 }
 
                 that.baseCurrency({
                     data: {
                         effective: effective
                     }
-                })
-                    .then(getConversion)
-                    .catch(reject);
+                }).then(
+                    getConversion
+                ).catch(
+                    reject
+                );
             });
         };
 
