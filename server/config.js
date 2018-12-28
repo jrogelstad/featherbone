@@ -15,20 +15,20 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*global Promise*/
 /*jslint node*/
 (function (exports) {
-    "strict";
-    var fs = require("fs"),
-        path = require("path");
+    "use strict";
+    const fs = require("fs");
+    const path = require("path");
 
     exports.Config = function () {
-        var config = {};
+        let config = {};
 
         config.read = function () {
             return new Promise(function (resolve, reject) {
-
-                var filename = path.format({root: "./", base: "/server/config.json"});
+                let filename = path.format(
+                    {root: "./", base: "/server/config.json"}
+                );
 
                 fs.readFile(filename, "utf8", function (err, data) {
                     if (err) {

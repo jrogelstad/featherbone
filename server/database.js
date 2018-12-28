@@ -15,33 +15,33 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*global Promise*/
-/*jslint node, es6*/
+/*jslint node*/
 (function (exports) {
-    "strict";
+    "use strict";
 
     const {
         Pool
-    } = require('pg');
+    } = require("pg");
     const {
         Config
-    } = require('./config');
+    } = require("./config");
 
     const config = new Config();
     const stream = require("../common/stream");
 
     exports.Database = function () {
-        var conn, pool,
-                that = {};
+        let conn;
+        let pool;
+        let that = {};
 
         // Reslove connection string
         function setConnectionString(config) {
             return new Promise(function (resolve) {
-                conn = "postgres://" +
-                        config.postgres.user + ":" +
-                        config.postgres.password + "@" +
-                        config.postgres.host + "/" +
-                        config.postgres.database;
+                conn = "postgres://";
+                conn += config.postgres.user + ":";
+                conn += config.postgres.password + "@";
+                conn += config.postgres.host + "/";
+                conn += config.postgres.database;
 
                 resolve();
             });
@@ -72,7 +72,10 @@
                         pool.connect(function (err, c, d) {
                             // handle an error from the connection
                             if (err) {
-                                console.error("Could not connect to server", err);
+                                console.error(
+                                    "Could not connect to server",
+                                    err
+                                );
                                 reject(err);
                                 return;
                             }
@@ -86,20 +89,24 @@
                 }
 
                 if (conn) {
-                    doConnect()
-                        .then(resolve)
-                        .catch(reject);
+                    doConnect().then(resolve).catch(reject);
                     return;
                 }
 
                 // If no connection string, go get it
-                Promise.resolve()
-                    .then(config.read)
-                    .then(setNodeId)
-                    .then(setConnectionString)
-                    .then(doConnect)
-                    .then(resolve)
-                    .catch(reject);
+                Promise.resolve().then(
+                    config.read
+                ).then(
+                    setNodeId
+                ).then(
+                    setConnectionString
+                ).then(
+                    doConnect
+                ).then(
+                    resolve
+                ).catch(
+                    reject
+                );
             });
         };
 

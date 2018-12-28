@@ -15,10 +15,9 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*global Promise*/
-/*jslint node, es6, this, devel*/
+/*jslint node, this, devel*/
 (function (exports) {
-    "strict";
+    "use strict";
 
     require("../common/extend-string");
     require("../common/extend-number");
@@ -26,34 +25,34 @@
 
     const {
         Database
-    } = require('./database');
+    } = require("./database");
     const {
         Events
-    } = require('./services/events');
+    } = require("./services/events");
     const {
         CRUD
-    } = require('./services/crud');
+    } = require("./services/crud");
     const {
         Currency
-    } = require('./services/currency');
+    } = require("./services/currency");
     const {
         Feathers
-    } = require('./services/feathers');
+    } = require("./services/feathers");
     const {
         Modules
-    } = require('./services/modules');
+    } = require("./services/modules");
     const {
         Routes
-    } = require('./services/routes');
+    } = require("./services/routes");
     const {
         Services
-    } = require('./services/services');
+    } = require("./services/services");
     const {
         Settings
-    } = require('./services/settings');
+    } = require("./services/settings");
     const {
         Workbooks
-    } = require('./services/workbooks');
+    } = require("./services/workbooks");
 
     const f = require("../common/core");
     const jsonpatch = require("fast-json-patch");
@@ -69,7 +68,7 @@
     const workbooks = new Workbooks();
     const that = {};
 
-    var registered;
+    let registered;
 
     registered = {
         GET: {},
@@ -87,14 +86,14 @@
     //
 
     function isRegistered(method, name, trigger) {
-        if (trigger &&
-                registered[method][name] &&
-                registered[method][name][trigger]) {
-            return registered[method][name][trigger];
+        let found = registered[method][name];
+
+        if (trigger && found && found[trigger]) {
+            return found[trigger];
         }
 
         if (trigger === undefined) {
-            return registered[method][name] || false;
+            return found || false;
         }
 
         return false;
@@ -102,17 +101,28 @@
 
     function subscribe(obj) {
         return new Promise(function (resolve, reject) {
-            events.subscribe(obj.client, obj.subscription, [obj.id])
-                .then(resolve.bind(null, true))
-                .catch(reject);
+            events.subscribe(
+                obj.client,
+                obj.subscription,
+                [obj.id]
+            ).then(
+                resolve.bind(null, true)
+            ).catch(
+                reject
+            );
         });
     }
 
     function unsubscribe(obj) {
         return new Promise(function (resolve, reject) {
-            events.unsubscribe(obj.client, obj.subscription.id)
-                .then(resolve.bind(null, true))
-                .catch(reject);
+            events.unsubscribe(
+                obj.client,
+                obj.subscription.id
+            ).then(
+                resolve.bind(null, true)
+            ).catch(
+                reject
+            );
         });
     }
 
@@ -130,7 +140,7 @@
     */
     that.getCatalog = function () {
         return new Promise(function (resolve, reject) {
-            var payload = {
+            let payload = {
                 method: "GET",
                 name: "getSettings",
                 user: that.getCurrentUser(),
@@ -150,7 +160,7 @@
     */
     that.getServices = function () {
         return new Promise(function (resolve, reject) {
-            var payload = {
+            let payload = {
                 method: "GET",
                 name: "getServices",
                 user: that.getCurrentUser()
@@ -172,7 +182,7 @@
     */
     that.getRoutes = function () {
         return new Promise(function (resolve, reject) {
-            var payload = {
+            let payload = {
                 method: "GET",
                 name: "getRoutes",
                 user: that.getCurrentUser()
@@ -190,18 +200,28 @@
     that.listen = function (callback) {
         function doListen(resp) {
             return new Promise(function (resolve, reject) {
-                events.listen(resp.client, db.nodeId(), callback)
-                    .then(resolve)
-                    .catch(reject);
+                events.listen(
+                    resp.client,
+                    db.nodeId(),
+                    callback
+                ).then(
+                    resolve
+                ).catch(
+                    reject
+                );
             });
         }
 
         return new Promise(function (resolve, reject) {
-            Promise.resolve()
-                .then(db.connect)
-                .then(doListen)
-                .then(resolve)
-                .catch(reject);
+            Promise.resolve().then(
+                db.connect
+            ).then(
+                doListen
+            ).then(
+                resolve
+            ).catch(
+                reject
+            );
         });
     };
 
@@ -220,17 +240,27 @@
                         resolve();
                     }
 
-                    events.unsubscribe(resp.client, id || db.nodeId(), type || 'node')
-                        .then(callback)
-                        .catch(reject);
+                    events.unsubscribe(
+                        resp.client,
+                        id || db.nodeId(),
+                        type || "node"
+                    ).then(
+                        callback
+                    ).catch(
+                        reject
+                    );
                 });
             }
 
-            Promise.resolve()
-                .then(db.connect)
-                .then(doUnsubscribe)
-                .then(resolve)
-                .catch(reject);
+            Promise.resolve().then(
+                db.connect
+            ).then(
+                doUnsubscribe
+            ).then(
+                resolve
+            ).catch(
+                reject
+            );
         });
     };
 
@@ -252,17 +282,29 @@
                         resolve(ok);
                     }
 
-                    crud.lock(resp.client, db.nodeId(), id, username, sessionid)
-                        .then(callback)
-                        .catch(reject);
+                    crud.lock(
+                        resp.client,
+                        db.nodeId(),
+                        id,
+                        username,
+                        sessionid
+                    ).then(
+                        callback
+                    ).catch(
+                        reject
+                    );
                 });
             }
 
-            Promise.resolve()
-                .then(db.connect)
-                .then(doLock)
-                .then(resolve)
-                .catch(reject);
+            Promise.resolve().then(
+                db.connect
+            ).then(
+                doLock
+            ).then(
+                resolve
+            ).catch(
+                reject
+            );
         });
     };
 
@@ -288,17 +330,23 @@
                         resolve(ids);
                     }
 
-                    crud.unlock(resp.client, criteria)
-                        .then(callback)
-                        .catch(reject);
+                    crud.unlock(resp.client, criteria).then(
+                        callback
+                    ).catch(
+                        reject
+                    );
                 });
             }
 
-            Promise.resolve()
-                .then(db.connect)
-                .then(doUnlock)
-                .then(resolve)
-                .catch(reject);
+            Promise.resolve().then(
+                db.connect
+            ).then(
+                doUnlock
+            ).then(
+                resolve
+            ).catch(
+                reject
+            );
         });
     };
 
@@ -309,9 +357,7 @@
                 name: obj.name,
                 id: obj.id,
                 client: client
-            }, true)
-                .then(resolve)
-                .catch(reject);
+            }, true).then(resolve).catch(reject);
         });
     }
 
@@ -390,19 +436,28 @@
     */
     that.request = function (obj, isSuperUser) {
         return new Promise(function (resolve, reject) {
-            isSuperUser = isSuperUser === undefined
+            isSuperUser = (
+                isSuperUser === undefined
                 ? false
-                : isSuperUser;
+                : isSuperUser
+            );
 
-            var client, done, transaction, isChild,
-                    catalog = settings.data.catalog
+            let client;
+            let done;
+            let transaction;
+            let isChild;
+            let catalog = (
+                settings.data.catalog
                 ? settings.data.catalog.data
-                : {},
-                    isExternalClient = false,
-                    wrap = false,
-                    isTriggering = obj.client
+                : {}
+            );
+            let isExternalClient = false;
+            let wrap = false;
+            let isTriggering = (
+                obj.client
                 ? obj.client.isTriggering
-                : false;
+                : false
+            );
 
             // Cache original request that may get changed by triggers
             if (obj.data) {
@@ -486,28 +541,35 @@
             }
 
             function doExecute() {
-                // console.log("EXECUTE->", obj.name, obj.method, transaction.name);
+                // console.log("EXECUTE->", obj.name, obj.method);
                 return new Promise(function (resolve, reject) {
                     if (wrap && !client.wrapped && !isTriggering) {
-                        client.query("BEGIN;", function (err) {
-                            if (err) {
-                                reject(err);
-                                return;
-                            }
-                            //console.log("BEGAN");
+                        client.query(
+                            "BEGIN;",
+                            function (err) {
+                                if (err) {
+                                    reject(err);
+                                    return;
+                                }
+                                //console.log("BEGAN");
 
-                            client.wrapped = true;
-                            transaction(obj, false, isSuperUser)
-                                .then(resolve)
-                                .catch(reject);
-                        });
+                                client.wrapped = true;
+                                transaction(obj, false, isSuperUser).then(
+                                    resolve
+                                ).catch(
+                                    reject
+                                );
+                            }
+                        );
                         return;
                     }
 
                     // Passed client must handle its own transaction wrapping
-                    transaction(obj, isChild, isSuperUser)
-                        .then(resolve)
-                        .catch(reject);
+                    transaction(obj, isChild, isSuperUser).then(
+                        resolve
+                    ).catch(
+                        reject
+                    );
                 });
             }
 
@@ -518,14 +580,19 @@
                     obj.data = obj.data || {};
                     obj.data.id = obj.data.id || obj.id;
                     obj.client = client;
-                    transaction = trigger
+                    transaction = (
+                        trigger
                         ? registered[obj.method][name][trigger]
-                        : registered[obj.method][name];
+                        : registered[obj.method][name]
+                    );
 
-                    Promise.resolve()
-                        .then(doExecute)
-                        .then(resolve)
-                        .catch(reject);
+                    Promise.resolve().then(
+                        doExecute
+                    ).then(
+                        resolve
+                    ).catch(
+                        reject
+                    );
                 });
             }
 
@@ -543,33 +610,47 @@
             function doTraverseAfter(name) {
                 // console.log("TRAVERSE_AFTER->", obj.name, obj.method, name);
                 return new Promise(function (resolve, reject) {
-                    var feather = settings.data.catalog.data[name],
-                        parent = feather.inherits || "Object";
+                    let feather = settings.data.catalog.data[name];
+                    let parent = feather.inherits || "Object";
 
                     function doTrigger() {
                         client.isTriggering = true;
 
                         if (name === "Object") {
-                            Promise.resolve()
-                                .then(doMethod.bind(null, name, TRIGGER_AFTER))
-                                .then(clearTriggerStatus)
-                                .then(commit)
-                                .then(resolve)
-                                .catch(reject);
+                            Promise.resolve().then(
+                                doMethod.bind(null, name, TRIGGER_AFTER)
+                            ).then(
+                                clearTriggerStatus
+                            ).then(
+                                commit
+                            ).then(
+                                resolve
+                            ).catch(
+                                reject
+                            );
                             return;
                         }
 
-                        Promise.resolve()
-                            .then(doMethod.bind(null, name, TRIGGER_AFTER))
-                            .then(clearTriggerStatus)
-                            .then(doTraverseAfter.bind(null, parent))
-                            .then(resolve)
-                            .catch(reject);
+                        Promise.resolve().then(
+                            doMethod.bind(null, name, TRIGGER_AFTER)
+                        ).then(
+                            clearTriggerStatus
+                        ).then(
+                            doTraverseAfter.bind(null, parent)
+                        ).then(
+                            resolve
+                        ).catch(
+                            reject
+                        );
                     }
 
                     // If business logic defined, do it
                     if (isRegistered(obj.method, name, TRIGGER_AFTER)) {
-                        doPrepareTrigger(client, obj).then(doTrigger).catch(reject);
+                        doPrepareTrigger(client, obj).then(
+                            doTrigger
+                        ).catch(
+                            reject
+                        );
 
                     // If traversal done, finish transaction
                     } else if (name === "Object") {
@@ -590,9 +671,11 @@
 
                     switch (obj.method) {
                     case "GET":
-                        crud.doSelect(obj, false, isSuperUser)
-                            .then(resolve)
-                            .catch(reject);
+                        crud.doSelect(obj, false, isSuperUser).then(
+                            resolve
+                        ).catch(
+                            reject
+                        );
                         return;
                     case "POST":
                         transaction = crud.doInsert;
@@ -608,47 +691,65 @@
                         return;
                     }
 
-                    doExecute()
-                        .then(function (resp) {
+                    doExecute().then(
+                        function (resp) {
                             obj.response = resp;
-                            doTraverseAfter(obj.name)
-                                .then(resolve)
-                                .catch(reject);
-                        })
-                        .catch(reject);
+                            doTraverseAfter(obj.name).then(
+                                resolve
+                            ).catch(
+                                reject
+                            );
+                        }
+                    ).catch(
+                        reject
+                    );
                 });
             }
 
             function doTraverseBefore(name) {
                 // console.log("TRAVERSE_BEFORE->", obj.name, obj.method, name);
                 return new Promise(function (resolve, reject) {
-                    var feather = settings.data.catalog.data[name],
-                        parent = feather.inherits || "Object";
+                    let feather = settings.data.catalog.data[name];
+                    let parent = feather.inherits || "Object";
 
                     function doTrigger() {
                         client.isTriggering = true;
 
                         if (name === "Object") {
-                            Promise.resolve()
-                                .then(doMethod.bind(null, name, TRIGGER_BEFORE))
-                                .then(clearTriggerStatus)
-                                .then(doQuery)
-                                .then(resolve)
-                                .catch(reject);
+                            Promise.resolve().then(
+                                doMethod.bind(null, name, TRIGGER_BEFORE)
+                            ).then(
+                                clearTriggerStatus
+                            ).then(
+                                doQuery
+                            ).then(
+                                resolve
+                            ).catch(
+                                reject
+                            );
                             return;
                         }
 
-                        Promise.resolve()
-                            .then(doMethod.bind(null, name, TRIGGER_BEFORE))
-                            .then(clearTriggerStatus)
-                            .then(doTraverseBefore.bind(null, parent))
-                            .then(resolve)
-                            .catch(reject);
+                        Promise.resolve().then(
+                            doMethod.bind(null, name, TRIGGER_BEFORE)
+                        ).then(
+                            clearTriggerStatus
+                        ).then(
+                            doTraverseBefore.bind(null, parent)
+                        ).then(
+                            resolve
+                        ).catch(
+                            reject
+                        );
                     }
 
                     // If business logic defined, do it
                     if (isRegistered(obj.method, name, TRIGGER_BEFORE)) {
-                        doPrepareTrigger(client, obj).then(doTrigger).catch(reject);
+                        doPrepareTrigger(client, obj).then(
+                            doTrigger
+                        ).catch(
+                            reject
+                        );
 
                     // Traversal done
                     } else if (name === "Object") {
@@ -659,7 +760,10 @@
                                 obj.data = obj.newRec;
                                 break;
                             case "PATCH":
-                                obj.data = jsonpatch.compare(obj.oldRec, obj.newRec);
+                                obj.data = jsonpatch.compare(
+                                    obj.oldRec,
+                                    obj.newRec
+                                );
                                 break;
                             }
                         }
@@ -676,7 +780,7 @@
             // Determine with POST with id is insert or update
             function doUpsert() {
                 return new Promise(function (resolve, reject) {
-                    var payload = {
+                    let payload = {
                         id: obj.id,
                         name: obj.name,
                         client: obj.client
@@ -685,9 +789,14 @@
                     function callback(resp) {
                         if (resp) {
                             obj.method = "PATCH";
-                            obj.data = jsonpatch.compare(resp, obj.data).filter(function (item) {
-                                return item.op !== 'remove';
-                            });
+                            obj.data = jsonpatch.compare(
+                                resp,
+                                obj.data
+                            ).filter(
+                                function (item) {
+                                    return item.op !== "remove";
+                                }
+                            );
                         } else {
                             obj.data.id = obj.id;
                         }
@@ -695,9 +804,11 @@
                         resolve();
                     }
 
-                    crud.doSelect(payload, false, isSuperUser)
-                        .then(callback)
-                        .catch(reject);
+                    crud.doSelect(payload, false, isSuperUser).then(
+                        callback
+                    ).catch(
+                        reject
+                    );
                 });
             }
 
@@ -709,8 +820,11 @@
 
                 //console.log("REQUEST->", obj.name, obj.method);
                 return new Promise(function (resolve, reject) {
+                    let msg;
+
                     if (!client.currentUser && !obj.user) {
-                        reject("User undefined. " + obj.method + " " + obj.name);
+                        msg = "User undefined. " + obj.method + " " + obj.name;
+                        reject(msg);
                         return;
                     }
 
@@ -727,37 +841,48 @@
                         if (obj.method === "GET") {
                             doQuery().then(resolve).catch(reject);
                         } else if (obj.method === "POST" && obj.id) {
-                            doUpsert()
-                                .then(doTraverseBefore.bind(null, obj.name))
-                                .then(resolve)
-                                .catch(function (err) {
+                            doUpsert().then(
+                                doTraverseBefore.bind(null, obj.name)
+                            ).then(
+                                resolve
+                            ).catch(
+                                function (err) {
                                     rollback(err, reject);
-                                });
+                                }
+                            );
                         } else {
                             if (!isExternalClient) {
                                 wrap = true;
                             }
 
-                            doTraverseBefore(obj.name)
-                                .then(resolve)
-                                .catch(function (err) {
+                            doTraverseBefore(obj.name).then(
+                                resolve
+                            ).catch(
+                                function (err) {
                                     rollback(err, reject);
-                                });
+                                }
+                            );
                         }
 
                     // If function, execute it
                     } else if (isRegistered(obj.method, obj.name)) {
-                        Promise.resolve()
-                            .then(doMethod.bind(null, obj.name))
-                            .then(commit)
-                            .then(resolve)
-                            .catch(function (err) {
+                        Promise.resolve().then(
+                            doMethod.bind(null, obj.name)
+                        ).then(
+                            commit
+                        ).then(
+                            resolve
+                        ).catch(
+                            function (err) {
                                 rollback(err, reject);
-                            });
+                            }
+                        );
 
                     // Young fool, now you will die.
                     } else {
-                        throw new Error("Function " + obj.method + " " + obj.name + " is not registered.");
+                        msg = "Function " + obj.method + " ";
+                        msg += obj.name + " is not registered.";
+                        throw new Error(msg);
                     }
                 });
             }
@@ -765,19 +890,27 @@
             if (obj.client) {
                 isExternalClient = true;
                 client = obj.client;
-                Promise.resolve()
-                    .then(doRequest)
-                    .then(resolve)
-                    .catch(reject);
+                Promise.resolve().then(
+                    doRequest
+                ).then(
+                    resolve
+                ).catch(
+                    reject
+                );
                 return;
             }
 
-            Promise.resolve()
-                .then(db.connect)
-                .then(doRequest)
-                .then(close)
-                .then(resolve)
-                .catch(reject);
+            Promise.resolve().then(
+                db.connect
+            ).then(
+                doRequest
+            ).then(
+                close
+            ).then(
+                resolve
+            ).catch(
+                reject
+            );
         });
     };
 
@@ -854,8 +987,8 @@
       @return {Object} Object listing register functions
     */
     that.registeredFunctions = function () {
-        var keys = Object.keys(registered),
-            result = {};
+        let keys = Object.keys(registered);
+        let result = {};
 
         keys.forEach(function (key) {
             result[key] = Object.keys(registered[key]);
@@ -873,11 +1006,12 @@
 
     /**
       Helper to expose a registered function to the public API. Use by binding
-      the name of the registered function to be called. The function will transform
-      the data on a routed requset to the proper format to make a `POST` request
-      on the registered function.
+      the name of the registered function to be called. The function will
+      transform the data on a routed requset to the proper format to make a
+      `POST` request on the registered function.
 
-        // Expose the example function described on `registerFunction` to a router.
+        // Expose the example function described on `registerFunction` to a
+        // router.
         (function (app, datasource) {
           "strict";
 
@@ -887,7 +1021,7 @@
             func = datasource.postFunction.bind("myUpdate");
 
           router.route("/my-update").post(func);
-          app.use('/my-app', router);
+          app.use("/my-app", router);
 
         }(app, datasource));
 
@@ -897,8 +1031,8 @@
       @return receiver
     */
     that.postFunction = function (req, res) {
-        var payload,
-            args = req.body;
+        let payload;
+        let args = req.body;
 
         function error(err) {
             if (typeof err === "string") {
@@ -918,7 +1052,10 @@
             }
 
             // No caching... ever
-            res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate"); // HTTP 1.1.
+            res.setHeader(
+                "Cache-Control",
+                "no-cache, no-store,must-revalidate"
+            ); // HTTP 1.1.
             res.setHeader("Pragma", "no-cache"); // HTTP 1.0.
             res.setHeader("Expires", "0"); //
             res.json(resp);
@@ -932,9 +1069,7 @@
         };
 
         console.log(JSON.stringify(payload, null, 2));
-        that.request(payload)
-            .then(callback)
-            .catch(error.bind(res));
+        that.request(payload).then(callback).catch(error.bind(res));
     };
 
     // Set properties on exports
@@ -951,15 +1086,21 @@
     that.registerFunction("GET", "getRoutes", routes.getRoutes);
     that.registerFunction("GET", "getSettings", settings.getSettings);
     that.registerFunction("GET", "getSettingsRow", settings.getSettingsRow);
-    that.registerFunction("GET", "getSettingsDefinition",
-            settings.getSettingsDefinition);
+    that.registerFunction(
+        "GET",
+        "getSettingsDefinition",
+        settings.getSettingsDefinition
+    );
     that.registerFunction("GET", "getWorkbook", workbooks.getWorkbook);
     that.registerFunction("GET", "getWorkbooks", workbooks.getWorkbooks);
     that.registerFunction("GET", "isAuthorized", feathers.isAuthorized);
     that.registerFunction("POST", "subscribe", subscribe);
     that.registerFunction("POST", "unsubscribe", unsubscribe);
-    that.registerFunction("PUT", "saveAuthorization",
-            feathers.saveAuthorization);
+    that.registerFunction(
+        "PUT",
+        "saveAuthorization",
+        feathers.saveAuthorization
+    );
     that.registerFunction("PUT", "saveFeather", feathers.saveFeather);
     that.registerFunction("PUT", "saveSettings", settings.saveSettings);
     that.registerFunction("PUT", "saveWorkbook", workbooks.saveWorkbook);
