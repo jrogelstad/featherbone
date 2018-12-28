@@ -15,9 +15,9 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*jslint node, es6, eval */
+/*jslint node, eval */
 (function () {
-    "strict";
+    "use strict";
 
     require("./common/extend-string.js");
 
@@ -37,19 +37,35 @@
     const MANIFEST = "manifest.json";
     const api = new API();
 
-    var manifest, file, content, execute, name, defineSettings,
-            saveModule, saveService, saveRoute, saveFeathers, saveWorkbooks,
-            rollback, connect, commit, begin, processFile, client, user,
-            runBatch, configure,
-            config = new Config(),
-            dir = path.resolve(__dirname, process.argv[2] || "."),
-            filename = path.format({
+    let manifest;
+    let file;
+    let content;
+    let execute;
+    let name;
+    let defineSettings;
+    let saveModule;
+    let saveService;
+    let saveRoute;
+    let saveFeathers;
+    let saveWorkbooks;
+    let rollback;
+    let connect;
+    let commit;
+    let begin;
+    let processFile;
+    let client;
+    let user;
+    let runBatch;
+    let configure;
+    let config = new Config();
+    let dir = path.resolve(__dirname, process.argv[2] || ".");
+    let filename = path.format({
         root: "/",
         dir: dir,
         base: MANIFEST
-    }),
-            exit = process.exit,
-            i = 0;
+    });
+    let exit = process.exit;
+    let i = 0;
 
     connect = function (callback) {
         config.read().then(function (config) {
@@ -92,19 +108,20 @@
     };
 
     execute = function (filename) {
-        var dep = path.resolve(filename),
-            exp = require(dep);
+        let dep = path.resolve(filename);
+        let exp = require(dep);
 
         exp.execute({
             user: user,
             client: client
-        })
-            .then(processFile)
-            .catch(rollback);
+        }).then(processFile).catch(rollback);
     };
 
     processFile = function () {
-        var filepath, module, version, dependencies;
+        let filepath;
+        let module;
+        let version;
+        let dependencies;
 
         function done() {
             console.log("Configuration completed!");
@@ -116,14 +133,12 @@
 
         // If we've processed all the files, wrap this up
         if (!file) {
-            Promise.resolve()
-                .then(commit)
-                .then(api.build)
-                .then(done)
-                .catch(function (err) {
+            Promise.resolve().then(commit).then(api.build).then(done).catch(
+                function (err) {
                     console.error(err);
                     process.exit();
-                });
+                }
+            );
             return;
         }
 
@@ -185,14 +200,14 @@
     };
 
     configure = function (filename) {
-        var submanifest,
-            subfilepath = path.format({
-                root: "/",
-                dir: dir,
-                base: filename
-            }),
-            subdir = path.parse(filename).dir,
-            n = i;
+        let subman;
+        let subfilepath = path.format({
+            root: "/",
+            dir: dir,
+            base: filename
+        });
+        let subdir = path.parse(filename).dir;
+        let n = i;
 
         fs.readFile(subfilepath, "utf8", function (err, data) {
             if (err) {
@@ -200,12 +215,15 @@
                 return;
             }
 
-            submanifest = JSON.parse(data);
-            submanifest.files.forEach(function (file) {
+            subman = JSON.parse(data);
+            subman.files.forEach(function (file) {
                 file.path = subdir + "/" + file.path;
-                file.module = file.module || submanifest.module || manifest.module;
-                file.version = file.version || submanifest.version || manifest.version;
-                file.dependencies = file.dependencies || submanifest.dependencies || manifest.dependencies;
+                file.module = file.module || subman.module;
+                file.module = file.module || manifest.module;
+                file.version = file.version || subman.version;
+                file.version = file.version || manifest.version;
+                file.dependencies = file.dependencies || subman.dependencies;
+                file.dependencies = file.dependencies || manifest.dependencies;
                 manifest.files.splice(n, 0, file);
                 n += 1;
             });
@@ -214,8 +232,11 @@
     };
 
     defineSettings = function (settings) {
-        var sql = "SELECT * FROM \"$settings\" WHERE name='" + settings.name + "';",
-            params = [settings.name, settings];
+        let sql;
+        let params = [settings.name, settings];
+
+        sql = "SELECT * FROM \"$settings\" WHERE name='";
+        sql += settings.name + "';";
 
         client.query(sql, function (err, result) {
             if (err) {
@@ -223,13 +244,14 @@
                 return;
             }
             if (result.rows.length) {
-                sql = "UPDATE \"$settings\" SET " +
-                        "definition=$2 WHERE name=$1;";
+                sql = "UPDATE \"$settings\" SET ";
+                sql += "definition=$2 WHERE name=$1;";
             } else {
                 params.push(user);
-                sql = "INSERT INTO \"$settings\" (name, definition, id, " +
-                        " created, created_by, updated, updated_by, is_deleted) " +
-                        "VALUES ($1, $2, $1, now(), $3, now(), $3, false);";
+                sql = "INSERT INTO \"$settings\" (name, definition, id, ";
+                sql += "created, created_by, updated, updated_by,";
+                sql += " is_deleted) ";
+                sql += "VALUES ($1, $2, $1, now(), $3, now(), $3, false);";
             }
 
             client.query(sql, params, processFile);
@@ -237,10 +259,10 @@
     };
 
     saveModule = function (name, script, version, dependencies) {
-        var sql = "SELECT * FROM \"$module\" WHERE name='" + name + "';";
+        let sql = "SELECT * FROM \"$module\" WHERE name='" + name + "';";
 
         client.query(sql, function (err, result) {
-            var params = [
+            let params = [
                 name,
                 version,
                 {value: dependencies}
@@ -251,13 +273,14 @@
                 return;
             }
             if (result.rows.length) {
-                sql = "UPDATE \"$module\" SET " +
-                        "script=$$" + script + "$$," +
-                        "version=$2," +
-                        "dependencies=$3 " +
-                        "WHERE name=$1;";
+                sql = "UPDATE \"$module\" SET ";
+                sql += "script=$$" + script + "$$,";
+                sql += "version=$2,";
+                sql += "dependencies=$3 ";
+                sql += "WHERE name=$1;";
             } else {
-                sql = "INSERT INTO \"$module\" VALUES ($1, $$" + script + "$$, $2, $3);";
+                sql = "INSERT INTO \"$module\" ";
+                sql += "VALUES ($1, $$" + script + "$$, $2, $3);";
             }
 
             client.query(sql, params, processFile);
@@ -265,7 +288,7 @@
     };
 
     saveService = function (name, module, script, version) {
-        var sql = "SELECT * FROM \"$service\" WHERE name='" + name + "';";
+        let sql = "SELECT * FROM \"$service\" WHERE name='" + name + "';";
 
         client.query(sql, function (err, result) {
             if (err) {
@@ -273,13 +296,14 @@
                 return;
             }
             if (result.rows.length) {
-                sql = "UPDATE \"$service\" SET " +
-                        "script=$$" + script + "$$," +
-                        "version='" + version + "' " +
-                        "WHERE name='" + name + "';";
+                sql = "UPDATE \"$service\" SET ";
+                sql += "script=$$" + script + "$$,";
+                sql += "version='" + version + "' ";
+                sql += "WHERE name='" + name + "';";
             } else {
-                sql = "INSERT INTO \"$service\" VALUES ('" + name +
-                        "','" + module + "',$$" + script + "$$, '" + version + "');";
+                sql = "INSERT INTO \"$service\" VALUES ('" + name;
+                sql += "','" + module + "',$$" + script + "$$, '";
+                sql += version + "');";
             }
 
             client.query(sql, processFile);
@@ -288,7 +312,7 @@
 
 
     saveRoute = function (name, module, script, version) {
-        var sql = "SELECT * FROM \"$route\" WHERE name='" + name + "';";
+        let sql = "SELECT * FROM \"$route\" WHERE name='" + name + "';";
 
         client.query(sql, function (err, result) {
             if (err) {
@@ -296,13 +320,14 @@
                 return;
             }
             if (result.rows.length) {
-                sql = "UPDATE \"$route\" SET " +
-                        "script=$$" + script + "$$," +
-                        "version='" + version + "' " +
-                        "WHERE name='" + name + "';";
+                sql = "UPDATE \"$route\" SET ";
+                sql += "script=$$" + script + "$$,";
+                sql += "version='" + version + "' ";
+                sql += "WHERE name='" + name + "';";
             } else {
-                sql = "INSERT INTO \"$route\" VALUES ('" + name +
-                        "','" + module + "',$$" + script + "$$, '" + version + "');";
+                sql = "INSERT INTO \"$route\" VALUES ('" + name;
+                sql += "','" + module + "',$$" + script + "$$, '";
+                sql += version + "');";
             }
 
             client.query(sql, processFile);
@@ -310,8 +335,8 @@
     };
 
     saveFeathers = function (feathers, isSystem) {
-        var payload,
-            data = [];
+        let payload;
+        let data = [];
 
         // System feathers don't get to be tables
         if (isSystem) {
@@ -325,19 +350,17 @@
                 }
             };
 
-            datasource.request(payload)
-                .then(processFile)
-                .catch(rollback);
+            datasource.request(payload).then(processFile).catch(rollback);
             return;
         }
 
         // Map feather structure to table structure
         feathers.forEach(function (feather) {
-            var keys = Object.keys(feather.properties || {}),
-                props = feather.properties;
+            let keys = Object.keys(feather.properties || {});
+            let props = feather.properties;
 
             feather.properties = keys.map(function (key) {
-                var prop = props[key];
+                let prop = props[key];
                 prop.name = key;
                 return prop;
             });
@@ -354,7 +377,7 @@
     };
 
     saveWorkbooks = function (workbooks) {
-        var payload = {
+        let payload = {
             method: "PUT",
             name: "saveWorkbook",
             user: user,
@@ -364,18 +387,18 @@
             }
         };
 
-        datasource.request(payload)
-            .then(processFile)
-            .catch(rollback);
+        datasource.request(payload).then(processFile).catch(rollback);
     };
 
     runBatch = function (data) {
-        var getServices, nextItem,
-                len = data.length,
-                b = 0;
+        let getServices;
+        let nextItem;
+        let len = data.length;
+        let b = 0;
 
         getServices = function () {
-            var payload, after;
+            let payload;
+            let after;
 
             after = function (resp) {
                 resp.forEach(function (service) {
@@ -396,16 +419,14 @@
 
         // Iterate recursively
         nextItem = function () {
-            var payload;
+            let payload;
 
             if (b < len) {
                 payload = data[b];
                 payload.user = user;
                 payload.client = client;
                 b += 1;
-                datasource.request(payload)
-                    .then(nextItem)
-                    .catch(rollback);
+                datasource.request(payload).then(nextItem).catch(rollback);
                 return;
             }
 
@@ -424,18 +445,20 @@
             return;
         }
 
-        var exec = function () {
+        let exec = function () {
             manifest = JSON.parse(data);
             connect(begin);
         };
 
         config.read().then(function (config) {
-            var pgclient,
-                conn = "postgres://" +
-                        config.postgres.user + ":" +
-                        config.postgres.password + "@" +
-                        config.postgres.host + ":" +
-                        config.postgres.port + "/" + "postgres";
+            let pgclient;
+            let conn;
+
+            conn = "postgres://";
+            conn += config.postgres.user + ":";
+            conn += config.postgres.password + "@";
+            conn += config.postgres.host + ":";
+            conn += config.postgres.port + "/" + "postgres";
 
             pgclient = new Client({
                 connectionString: conn
@@ -446,10 +469,17 @@
                     return console.error(err);
                 }
 
-                var sql = "SELECT datname FROM pg_database " +
-                        "WHERE datistemplate = false AND datname = $1";
+                let sql;
 
-                pgclient.query(sql, [config.postgres.database], function (err, resp) {
+                sql = "SELECT datname FROM pg_database ";
+                sql += "WHERE datistemplate = false AND datname = $1";
+
+                pgclient.query(sql, [config.postgres.database], function (
+                    err,
+                    resp
+                ) {
+                    let msg;
+
                     if (err) {
                         return console.error(err);
                     }
@@ -459,9 +489,16 @@
                         datasource.getCatalog().then(exec).catch(exit);
                         // Otherwise create database first
                     } else {
-                        console.log('Creating database "' + config.postgres.database + '"');
+                        msg = "Creating database \"";
+                        msg += config.postgres.database + "\"";
+                        console.log(msg);
+
                         sql = "CREATE DATABASE %I;";
-                        sql = format(sql, config.postgres.database, config.postgres.user);
+                        sql = format(
+                            sql,
+                            config.postgres.database,
+                            config.postgres.user
+                        );
                         pgclient.query(sql, function () {
                             if (err) {
                                 return console.error(err);
