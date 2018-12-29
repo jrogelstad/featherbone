@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2018  John Rogelstad
+    Copyright (C) 2019  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -16,17 +16,25 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*global require, module*/
-/*jslint*/
+/*jslint browser*/
 (function () {
     "use strict";
 
-    var workbook, workbookModel, workbookChild,
-            workbookDefaultConifg, workbookLocalConfig,
-            workbookList, models, feathers,
-            f = require("common-core"),
-            model = require("model"),
-            dataSource = require("datasource"),
-            catalog = require("catalog");
+    let workbook;
+    let workbookModel;
+    let workbookChild;
+    let workbookDefaultConifg;
+    let workbookLocalConfig;
+    let workbookList;
+    let models;
+    let feathers;
+
+    const f = require("common-core");
+    const model = require("model");
+    const dataSource = require("datasource");
+    const catalog = require("catalog");
+
+    let descr = "Parent of \"parent\" on \"WorkbookDefaultConfig\"";
 
     workbook = {
         name: "Workbook",
@@ -51,7 +59,7 @@
                 type: "object"
             },
             defaultConfig: {
-                description: "Parent of \"parent\" on \"WorkbookDefaultConfig\"",
+                description: descr,
                 type: "object"
             },
             localConfig: {
@@ -148,7 +156,7 @@
     feathers.WorkbookLocalConfig = workbookLocalConfig;
     feathers.WorkbookList = workbookList;
 
-    var resolveConfig = function (config) {
+    function resolveConfig(config) {
         config.forEach(function (sheet) {
             if (!sheet.id) {
                 sheet.id = f.createId();
@@ -157,7 +165,7 @@
                 sheet.form = catalog.store().forms()[sheet.form];
             }
         });
-    };
+    }
 
     /**
       Model with special rest API handling for Workbook saves.
@@ -165,7 +173,10 @@
       return {Object}
     */
     workbookModel = function (data) {
-        var that, state, substate, doPut;
+        let that;
+        let state;
+        let substate;
+        let doPut;
 
         // ..........................................................
         // PUBLIC
@@ -182,7 +193,8 @@
         that.idProperty("name");
 
         that.path = function (name, id) {
-            var ret = "/" + name.toSpinalCase();
+            let ret = "/" + name.toSpinalCase();
+
             if (id) {
                 ret += "/" + id;
             }
@@ -190,8 +202,9 @@
         };
 
         that.getConfig = function () {
-            var d = that.data,
-                config = d.defaultConfig();
+            let d = that.data;
+            let config = d.defaultConfig();
+
             if (d.localConfig().length) {
                 config = d.localConfig();
             }
@@ -203,18 +216,19 @@
         //
 
         doPut = function (context) {
-            var cache = that.toJSON(),
-                payload = {
-                    method: "PUT",
-                    path: that.path(that.name, that.data.name()),
-                    data: cache
-                },
-                callback = function (result) {
-                    if (result) {
-                        state.send('fetched');
-                        context.promise.resolve(that.data);
-                    }
-                };
+            let cache = that.toJSON();
+            let payload = {
+                method: "PUT",
+                path: that.path(that.name, that.data.name()),
+                data: cache
+            };
+
+            function callback(result) {
+                if (result) {
+                    state.send("fetched");
+                    context.promise.resolve(that.data);
+                }
+            }
 
             if (that.isValid()) {
                 dataSource.request(payload).then(callback);
@@ -247,20 +261,28 @@
       return {Object}
     */
     workbookChild = function (data) {
-        var that = model(data, workbookLocalConfig);
+        let that = model(data, workbookLocalConfig);
 
         that.onChanged("feather", function (property) {
-            var id, forms, keys, invalid, feather,
-                    value = property.newValue(),
-                    list = that.data.list(),
-                    columns = list.data.columns(),
-                    filter = list.data.filter(),
-                    sort = filter
+            let id;
+            let forms;
+            let keys;
+            let invalid;
+            let feather;
+            let value = property.newValue();
+            let list = that.data.list();
+            let columns = list.data.columns();
+            let filter = list.data.filter();
+            let sort = (
+                filter
                 ? filter.sort
-                : false,
-                    criteria = filter
+                : false
+            );
+            let criteria = (
+                filter
                 ? filter.criteria
-                : false;
+                : false
+            );
 
             if (value) {
                 // When feather changes, automatically assign
@@ -282,7 +304,7 @@
                     return !feather.properties[column.attr];
                 });
                 invalid.forEach(function (item) {
-                    var idx = columns.indexOf(item);
+                    let idx = columns.indexOf(item);
                     columns.splice(idx, 1);
                 });
 
@@ -292,7 +314,7 @@
                         return !feather.properties[item.property];
                     });
                     invalid.forEach(function (item) {
-                        var idx = sort.indexOf(item);
+                        let idx = sort.indexOf(item);
                         sort.splice(idx, 1);
                     });
                 }
@@ -303,7 +325,7 @@
                         return !feather.properties[item.property];
                     });
                     invalid.forEach(function (item) {
-                        var idx = criteria.indexOf(item);
+                        let idx = criteria.indexOf(item);
                         criteria.splice(idx, 1);
                     });
                 }
@@ -318,7 +340,7 @@
         });
 
         that.onValidate(function () {
-            var list = that.data.list();
+            let list = that.data.list();
 
             if (!list.data.columns().length) {
                 throw "List must include at least one column.";

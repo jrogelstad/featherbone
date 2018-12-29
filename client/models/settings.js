@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2018  John Rogelstad
+    Copyright (C) 2019  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,150 +15,170 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-
+/*global module, require*/
+/*jslint this, browser*/
 (function () {
-  "use strict";
+    "use strict";
 
-  var settings,
-    store = {},
-    model = require("model"),
-    stream = require("stream"),
-    dataSource = require("datasource"),
-    statechart = require("statechartjs"),
-    jsonpatch = require("fast-json-patch");
+    const store = {};
+    let model = require("model");
+    let stream = require("stream");
+    let dataSource = require("datasource");
+    let statechart = require("statechartjs");
+    let jsonpatch = require("fast-json-patch");
 
-  /*
-    Model for handling settings.
+    /*
+      Model for handling settings.
 
-    @param {Object} [definition] Definition
-    @param {String} [definition.name] Definition name
-    @param {Object} [definition.properties] Properties of definition
-    @return {Object}
-  */
-  settings = function (definition) {
-    var that, doInit, doFetch, doPut,
-      name = definition.name;
+      @param {Object} [definition] Definition
+      @param {String} [definition.name] Definition name
+      @param {Object} [definition.properties] Properties of definition
+      @return {Object}
+    */
+    function settings(definition) {
+        let that;
+        let doInit;
+        let doFetch;
+        let doPut;
+        let name = definition.name;
 
-    if (!name) { throw "Settings name is required"; }
+        if (!name) {
+            throw "Settings name is required";
+        }
 
-    // If we've already instantiated these settings, just return them
-    if (store[name]) { return store[name]; }
-    
-    // Otherwise build the model
-    store[name] = model(undefined, definition);
-    that = store[name];
+        // If we've already instantiated these settings, just return them
+        if (store[name]) {
+            return store[name];
+        }
 
-    // ..........................................................
-    // PUBLIC
-    //
+        // Otherwise build the model
+        store[name] = model(undefined, definition);
+        that = store[name];
 
-    that.id = function () {
-      return name;
-    };
+        // ..........................................................
+        // PUBLIC
+        //
 
-    that.etag = stream();
-
-    // ..........................................................
-    // PRIVATE
-    //
-
-    doFetch = function (context) {
-      var payload = {method: "GET", path: "/settings/" + name},
-        callback = function (result) {
-          var data = result || {};
-          that.set(data.data);
-          that.etag(data.etag);
-          that.state().send('fetched');
-          context.resolve(that.data);
+        that.id = function () {
+            return name;
         };
 
-      that.state().goto("/Busy");
-      dataSource.request(payload).then(callback);
-    };
+        that.etag = stream();
 
-    doPut = function (context) {
-      var ds = dataSource,
-        cache = {etag: that.etag(), data: that.toJSON()},
-        payload = {method: "PUT", path: "/settings/" + name,
-          data: cache},
-        callback = function (result) {
-          jsonpatch.apply(cache, result);
-          that.set(cache.data);
-          that.state().send('fetched');
-          context.resolve(that.data);
+        // ..........................................................
+        // PRIVATE
+        //
+
+        doFetch = function (context) {
+            let payload = {
+                method: "GET",
+                path: "/settings/" + name
+            };
+
+            function callback(result) {
+                let data = result || {};
+                that.set(data.data);
+                that.etag(data.etag);
+                that.state().send("fetched");
+                context.resolve(that.data);
+            }
+
+            that.state().goto("/Busy");
+            dataSource.request(payload).then(callback);
         };
 
-      if (that.isValid()) {
-        ds.request(payload).then(callback);
-      }
-    };
+        doPut = function (context) {
+            let ds = dataSource;
+            let cache = {
+                etag: that.etag(),
+                data: that.toJSON()
+            };
+            let payload = {
+                method: "PUT",
+                path: "/settings/" + name,
+                data: cache
+            };
 
-    // Pickup originial init function from model
-    doInit = that.state().enters.shift();
+            function callback(result) {
+                jsonpatch.apply(cache, result);
+                that.set(cache.data);
+                that.state().send("fetched");
+                context.resolve(that.data);
+            }
 
-    // Redfine statechart for this purpose
-    that.state(statechart.define(function () {
-      this.enter(doInit.bind({}));
-      this.state("Ready", function () {
-        this.event("fetch", function (context) {
-          this.goto("/Busy", {
-            context: context
-          });
-        });
+            if (that.isValid()) {
+                ds.request(payload).then(callback);
+            }
+        };
 
-        this.state("New", function () {
-          this.canSave = stream(false);
-        });
+        // Pickup originial init function from model
+        doInit = that.state().enters.shift();
 
-        this.state("Fetched", function () {
-          this.state("Clean", function () {
-            this.event("changed", function () {
-              this.goto("../Dirty");
+        // Redfine statechart for this purpose
+        that.state(statechart.define(function () {
+            this.enter(doInit.bind({}));
+            this.state("Ready", function () {
+                this.event("fetch", function (context) {
+                    this.goto("/Busy", {
+                        context: context
+                    });
+                });
+
+                this.state("New", function () {
+                    this.canSave = stream(false);
+                });
+
+                this.state("Fetched", function () {
+                    this.state("Clean", function () {
+                        this.event("changed", function () {
+                            this.goto("../Dirty");
+                        });
+                        this.canSave = stream(false);
+                    });
+
+                    this.state("Dirty", function () {
+                        this.event("save", function (context) {
+                            this.goto("/Busy/Saving", {
+                                context: context
+                            });
+                        });
+                        this.canSave = that.isValid;
+                    });
+                });
             });
-            this.canSave = stream(false);
-          });
 
-          this.state("Dirty", function () {
-            this.event("save", function (context) {
-              this.goto("/Busy/Saving", {
-                context: context
-              });
+            this.state("Busy", function () {
+                this.state("Fetching", function () {
+                    this.enter(doFetch);
+                    this.canSave = stream(false);
+                });
+                this.state("Saving", function () {
+                    this.enter(doPut);
+                    this.canSave = stream(false);
+                });
+
+                this.event("fetched", function () {
+                    this.goto("/Ready/Fetched");
+                });
+                this.event("error", function () {
+                    this.goto("/Error");
+                });
             });
-            this.canSave = that.isValid;
-          });
-        });
-      });
 
-      this.state("Busy", function () {
-        this.state("Fetching", function () {
-          this.enter(doFetch);
-          this.canSave = stream(false);
-        });
-        this.state("Saving", function () {
-          this.enter(doPut);
-          this.canSave = stream(false);
-        });
+            this.state("Error", function () {
+                // Prevent exiting from this state
+                this.canExit = function () {
+                    return false;
+                };
+                this.canSave = stream(false);
+            });
+        }));
 
-        this.event("fetched", function () {
-          this.goto("/Ready/Fetched");
-        });
-        this.event("error", function () {
-          this.goto("/Error");
-        });
-      });
+        that.state().goto();
 
-      this.state("Error", function () {
-        // Prevent exiting from this state
-        this.canExit = function () { return false; };
-        this.canSave = stream(false);
-      });
-    }));
+        return that;
+    }
 
-    that.state().goto();
-
-    return that;
-  };
-
-  module.exports = settings;
+    module.exports = settings;
 
 }());
