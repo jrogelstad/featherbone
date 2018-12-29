@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2018  John Rogelstad
+    Copyright (C) 2019  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -16,20 +16,20 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*global require, module*/
-/*jslint*/
+/*jslint browser*/
 (function () {
-    "strict";
+    "use strict";
 
-    var catalog = require("catalog"),
-        model = require("model"),
-        list = require("list");
+    let catalog = require("catalog");
+    let model = require("model");
+    let list = require("list");
 
     /*
       Currency Unit model
     */
     function currencyUnitModel(data, feather) {
         feather = feather || catalog.getFeather("CurrencyUnit");
-        var that = model(data, feather);
+        let that = model(data, feather);
 
         that.onValidate(function () {
             if (that.data.code().length > 4) {
