@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2018  John Rogelstad
+    Copyright (C) 2019  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,15 +15,36 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*jslint this, es6, devel, bitwise*/
+/*jslint this, devel, bitwise, browser*/
 /*global window, require, module*/
 (function () {
     "use strict";
 
-    var that, isToMany, isToOne, isChild, lastTick,
-            statechart = require("statechartjs");
+    const statechart = require("statechartjs");
 
-    that = {
+    // ..........................................................
+    // PRIVATE
+    //
+
+    /** private */
+    function isChild(p) {
+        return p.type && typeof p.type === "object" && p.type.childOf;
+    }
+
+    /** private */
+    function isToOne(p) {
+        return (
+            p.type && typeof p.type === "object" &&
+            !p.type.childOf && !p.type.parentOf
+        );
+    }
+
+    /** private */
+    function isToMany(p) {
+        return p.type && typeof p.type === "object" && p.type.parentOf;
+    }
+
+    const that = {
         PRECISION_DEFAULT: 18,
         SCALE_DEFAULT: 8,
 
@@ -47,10 +68,12 @@
           @return {String}
         */
         createId: function () {
-            var x = 2147483648,
-                d = new Date(),
-                result = Math.floor(Math.random() * x).toString(36) +
-                        Math.abs(Math.floor(Math.random() * x) ^ d).toString(36);
+            let x = 2147483648;
+            let d = new Date();
+            let result;
+
+            result = Math.floor(Math.random() * x).toString(36);
+            result += Math.abs(Math.floor(Math.random() * x) ^ d).toString(36);
 
             return result;
         },
@@ -76,14 +99,18 @@
             boolean: {
                 default: false,
                 toType: function (value) {
-                    return !!value;
+                    return Boolean(value);
                 }
             },
             date: {
                 toType: function (value) {
-                    var month,
-                        ret = "";
-                    if (value instanceof Date) {
+                    let month;
+                    let ret = "";
+
+                    if (
+                        value &&
+                        value.constructor.name === "Date"
+                    ) {
                         month = value.getUTCMonth() + 1;
                         ret += value.getUTCFullYear() + "-";
                         ret += month.pad(2, "0") + "-";
@@ -105,7 +132,10 @@
                     return new Date(value).toLocalDateTime();
                 },
                 toType: function (value) {
-                    if (value instanceof Date) {
+                    if (
+                        value &&
+                        value.constructor.name === "Date"
+                    ) {
                         return new Date(value).toISOString();
                     }
                     return value;
@@ -181,27 +211,35 @@
           Includes state...
           @param {Any} Initial
           @param {Object} Formatter. Optional
-          @param {Any} [formatter.default] Function or value returned by default.
+          @param {Any} [formatter.default] Function or value returned
+                by default.
           @param {Function} [formatter.toType] Converts input to internal type.
-          @param {Function} [formatter.fromType] Formats internal value for output.
+          @param {Function} [formatter.fromType] Formats internal
+                value for output.
           @return {Function}
         */
         prop: function (store, formatter) {
             formatter = formatter || {};
 
-            var newValue, oldValue, proposed, p, state, revert, alias,
-                    isReadOnly = false,
-                    isRequired = false,
-                    defaultTransform = function (value) {
+            let newValue;
+            let oldValue;
+            let proposed;
+            let p;
+            let state;
+            let alias;
+            let isReadOnly = false;
+            let isRequired = false;
+
+            function defaultTransform(value) {
                 return value;
-            };
+            }
+
+            function revert() {
+                store = oldValue;
+            }
 
             formatter.toType = formatter.toType || defaultTransform;
             formatter.fromType = formatter.fromType || defaultTransform;
-
-            revert = function () {
-                store = oldValue;
-            };
 
             // Define state
             state = statechart.define(function () {
@@ -240,7 +278,7 @@
 
             // Private function that will be returned
             p = function (...args) {
-                var value = args[0];
+                let value = args[0];
 
                 if (args.length) {
                     if (p.state().current()[0] === "/Changing") {
@@ -257,9 +295,11 @@
                     oldValue = store;
 
                     p.state().send("change");
-                    store = value === newValue
+                    store = (
+                        value === newValue
                         ? proposed
-                        : formatter.toType(newValue);
+                        : formatter.toType(newValue)
+                    );
                     p.state().send("changed");
                     newValue = undefined;
                     oldValue = undefined;
@@ -308,8 +348,10 @@
             p.ignore = 0;
 
             p.toJSON = function () {
-                if (typeof store === "object" && store !== null &&
-                        typeof store.toJSON === "function") {
+                if (
+                    typeof store === "object" && store !== null &&
+                    typeof store.toJSON === "function"
+                ) {
                     return store.toJSON();
                 }
 
@@ -317,8 +359,10 @@
             };
 
             p.newValue.toJSON = function () {
-                if (typeof newValue === "object" && newValue !== null &&
-                        typeof newValue.toJSON === "function") {
+                if (
+                    typeof newValue === "object" && newValue !== null &&
+                    typeof newValue.toJSON === "function"
+                ) {
                     return newValue.toJSON();
                 }
 
@@ -331,7 +375,7 @@
             */
             p.isReadOnly = function (value) {
                 if (value !== undefined) {
-                    isReadOnly = !!value;
+                    isReadOnly = Boolean(value);
                 }
                 return isReadOnly;
             };
@@ -341,7 +385,7 @@
             */
             p.isRequired = function (value) {
                 if (value !== undefined) {
-                    isRequired = !!value;
+                    isRequired = Boolean(value);
                 }
                 return isRequired;
             };
@@ -362,32 +406,16 @@
         },
 
         /**
-          Return milliseconds since last tick. Useful for basic
-          debugging for length of time to process a routine.
-
-          @returns {Number}
-        */
-        tick: function () {
-            var result,
-                d = new Date();
-            result = lastTick
-                ? d - lastTick
-                : 0;
-            lastTick = d;
-            return result;
-        },
-
-        /**
             Parse date string "YYYY-MM-DD" to a date in a sensical way because
-            https://stackoverflow.com/questions/2587345/why-does-date-parse-give-incorrect-results
+            https://stackoverflow.com/questions/2587345
 
             @param {String} Date string
             @return {Date}
         */
         parseDate: function parseDate(input) {
-            var parts = input.split('-');
-            // new Date(year, month [, day [, hours[, minutes[, seconds[, ms]]]]])
-            return new Date(parts[0], parts[1] - 1, parts[2]); // Note: months are 0-based
+            let parts = input.split("-");
+
+            return new Date(parts[0], parts[1] - 1, parts[2]);
         },
 
         /**
@@ -412,7 +440,7 @@
             boolean: {
                 default: false,
                 toType: function (value) {
-                    return !!value;
+                    return Boolean(value);
                 }
             },
             integer: {
@@ -424,20 +452,25 @@
             number: {
                 default: 0,
                 fromType: function (value) {
-                    return value === null
+                    return (
+                        value === null
                         ? null
-                        : value.toLocaleString();
+                        : value.toLocaleString()
+                    );
                 },
                 toType: function (value) {
-                    var result;
+                    let result;
+
                     if (typeof value === "string") {
-                        result = Number(value.replace(/[^\d\.\-eE+]/g, ""));
+                        result = Number(value.replace(/[^\d.\-eE+]/g, ""));
                     } else {
                         result = Number(value);
                     }
-                    return isNaN(result)
+                    return (
+                        Number.isNaN(result)
                         ? null
-                        : result;
+                        : result
+                    );
                 }
             },
             object: {
@@ -448,32 +481,14 @@
             string: {
                 default: "",
                 toType: function (value) {
-                    return value === null
+                    return (
+                        value === null
                         ? null
-                        : value.toString();
+                        : value.toString()
+                    );
                 }
             }
         }
-    };
-
-    // ..........................................................
-    // PRIVATE
-    //
-
-    /** private */
-    isChild = function (p) {
-        return p.type && typeof p.type === "object" && p.type.childOf;
-    };
-
-    /** private */
-    isToOne = function (p) {
-        return p.type && typeof p.type === "object" &&
-                !p.type.childOf && !p.type.parentOf;
-    };
-
-    /** private */
-    isToMany = function (p) {
-        return p.type && typeof p.type === "object" && p.type.parentOf;
     };
 
     module.exports = that;

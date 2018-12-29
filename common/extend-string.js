@@ -15,7 +15,9 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
+/*jslint this*/
 (function () {
+    "use strict";
 
     /**
        Change string with underscores '_' or '-' to camel case.
@@ -23,12 +25,21 @@
        @returns {String}
     */
     String.prototype.toCamelCase = function (upper) {
-        var f = this.slice(0, 1),
-            str = this.replace(/[_,-]+(.)?/g, function (match, chr) {
-                return chr ? chr.toUpperCase() : '';
-            });
+        let f = this.slice(0, 1);
+        let re = new RegExp("[_,-]+(.)?", "g");
+        let str = this.replace(re, function (ignore, chr) {
+            return (
+                chr
+                ? chr.toUpperCase()
+                : ""
+            );
+        });
 
-        return(upper ? f.toUpperCase() : f.toLowerCase()) + str.slice(1);
+        return (
+            upper
+            ? f.toUpperCase()
+            : f.toLowerCase()
+        ) + str.slice(1);
     };
 
     /**
@@ -39,7 +50,7 @@
        @returns {String}
     */
     String.prototype.toName = function () {
-        return this.replace(/\./g, ' _').toCamelCase().toProperCase();
+        return this.replace(/\./g, " _").toCamelCase().toProperCase();
     };
 
     /**
@@ -47,7 +58,7 @@
        @returns {String} The argument modified
     */
     String.prototype.toProperCase = function () {
-        var str = this.replace((/([a-z])([A-Z])/g), '$1 $2');
+        let str = this.replace((/([a-z])([A-Z])/g), "$1 $2");
         return str.slice(0, 1).toUpperCase() + str.slice(1);
     };
 
@@ -56,7 +67,7 @@
        @returns {String} The argument modified
     */
     String.prototype.toSnakeCase = function () {
-        return this.replace((/([a-z])([A-Z])/g), '$1_$2').toLowerCase();
+        return this.replace((/([a-z])([A-Z])/g), "$1_$2").toLowerCase();
     };
 
     /**
@@ -64,7 +75,7 @@
        @returns {String} The argument modified
     */
     String.prototype.toSpinalCase = function () {
-        return this.replace((/([a-z])([A-Z])/g), '$1-$2').toLowerCase();
+        return this.replace((/([a-z])([A-Z])/g), "$1-$2").toLowerCase();
     };
 
 }());

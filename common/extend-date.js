@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2018  John Rogelstad
+    Copyright (C) 2019  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -17,32 +17,39 @@
 **/
 /*jslint this*/
 (function () {
-    'strict';
+    "use strict";
 
     /**
-       Change string with underscores '_' or '-' to camel case.
-       @param {Boolean} Convert first character to upper case. Default false.
+       Convert date to "YYYY-MM-DDTHH:MM" date time format.
        @returns {String}
     */
     Date.prototype.toLocalDateTime = function () {
-        var month = this.getMonth() + 1;
-        return this.getFullYear() + '-' + month.pad(2) + '-' + this.getDate().pad(2) +
-                "T" + this.getHours().pad(2) + ":" + this.getMinutes().pad(2);
+        let month = this.getMonth() + 1;
+        let ret;
+
+        ret = this.getFullYear() + "-" + month.pad(2) + "-";
+        ret += this.getDate().pad(2) + "T" + this.getHours().pad(2);
+        ret += ":" + this.getMinutes().pad(2);
+
+        return ret;
     };
 
     /**
-       Change string with underscores '_' or '-' to camel case.
-       @param {Boolean} Convert first character to upper case. Default false.
+       Convert date to "YYYY-MM-DD" format.
        @returns {String}
     */
     Date.prototype.toLocalDate = function () {
-        var month = this.getMonth() + 1;
-        return this.getFullYear() + '-' + month.pad(2) + '-' + this.getDate().pad(2);
+        let month = this.getMonth() + 1;
+        let ret;
+
+        ret = this.getFullYear() + "-" + month.pad(2) + "-";
+        ret += this.getDate().pad(2);
+
+        return ret;
     };
 
     /**
-       Change string with underscores '_' or '-' to camel case.
-       @param {Boolean} Convert first character to upper case. Default false.
+       Strip time off date
        @returns {String}
     */
     Date.prototype.toDate = function () {
