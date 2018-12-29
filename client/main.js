@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2018  John Rogelstad
+    Copyright (C) 2019  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,11 +15,10 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*global window, require, Promise, EventSource, console*/
-/*jslint this, browser, eval, es6 */
+/*global require, console, EventSource*/
+/*jslint this, browser, eval*/
 (function () {
-
-    "strict";
+    "use strict";
 
     // Load pre-requisites
     require("extend-number");
@@ -56,31 +55,49 @@
     const statechart = require("statechartjs");
     const dialog = require("dialog");
 
-    var feathers, loadCatalog, loadModules, moduleData, workbookData, sseState,
-            loadForms, loadRelationWidgets, loadWorkbooks, evstart, evsubscr, menu,
-            workbooks = catalog.register("workbooks");
+    let feathers;
+    let loadCatalog;
+    let loadModules;
+    let moduleData;
+    let workbookData;
+    let sseState;
+    let loadForms;
+    let loadRelationWidgets;
+    let loadWorkbooks;
+    let evstart;
+    let evsubscr;
+    let menu;
+    let workbooks = catalog.register("workbooks");
 
     // Helper function for building relation widgets.
     function buildRelationWidget(relopts) {
-        var that,
-            relationWidget = catalog.store().components().relationWidget,
-            name = relopts.feather.toCamelCase() + "Relation";
+        let that;
+        let relationWidget = catalog.store().components().relationWidget;
+        let name = relopts.feather.toCamelCase() + "Relation";
 
         that = {
             oninit: function (vnode) {
-                var options = vnode.attrs,
-                    id = vnode.attrs.form || relopts.form,
-                    oninit = relationWidget.oninit.bind(this);
+                let options = vnode.attrs;
+                let id = vnode.attrs.form || relopts.form;
+                let oninit = relationWidget.oninit.bind(this);
 
-                options.parentProperty = options.parentProperty || relopts.parentProperty;
-                options.valueProperty = options.valueProperty || relopts.valueProperty;
-                options.labelProperty = options.labelProperty || relopts.labelProperty;
+                options.parentProperty = (
+                    options.parentProperty || relopts.parentProperty
+                );
+                options.valueProperty = (
+                    options.valueProperty || relopts.valueProperty
+                );
+                options.labelProperty = (
+                    options.labelProperty || relopts.labelProperty
+                );
                 options.form = catalog.store().forms()[id];
                 options.list = options.list || relopts.list;
                 options.style = options.style || relopts.style;
-                options.isCell = options.isCell === undefined
+                options.isCell = (
+                    options.isCell === undefined
                     ? relopts.isCell
-                    : options.isCell;
+                    : options.isCell
+                );
                 oninit(vnode);
             },
             view: relationWidget.view
@@ -100,18 +117,18 @@
         loadCatalog = new Promise(function (resolve) {
 
             catalog.fetch(true).then(function (data) {
-                var models = catalog.register("models"),
-                    payload = {
-                        method: "GET",
-                        path: "/settings-definition"
-                    },
-                    initSettings = [],
-                    toFetch = [];
+                let models = catalog.register("models");
+                let payload = {
+                    method: "GET",
+                    path: "/settings-definition"
+                };
+                let initSettings = [];
+                let toFetch = [];
 
                 feathers = data;
 
                 Object.keys(data).forEach(function (name) {
-                    var feather = catalog.getFeather(name);
+                    let feather = catalog.getFeather(name);
 
                     if (feather.isFetchOnStartup) {
                         toFetch.push(feather);
@@ -136,9 +153,11 @@
                 // Load settings
                 dataSource.request(payload).then(function (definitions) {
 
-                    // Loop through each definition and build a settings model function
+                    // Loop through each definition and build a settings model
+                    // function
                     definitions.forEach(function (definition) {
-                        var name = definition.name;
+                        let name = definition.name;
+
                         // Implement generic function to object from model
                         if (typeof models[name] !== "function") {
                             // Model instance
@@ -160,19 +179,24 @@
 
                     // Load data as indicated
                     function fetchData() {
-                        var requests = [];
+                        let requests = [];
 
                         toFetch.forEach(function (feather) {
-                            var name = feather.name.toCamelCase(),
-                                ary = models[name].list({
-                                    subscribe: true,
-                                    fetch: false,
-                                    showDeleted: true
-                                });
+                            let name = feather.name.toCamelCase();
+                            let ary = models[name].list({
+                                subscribe: true,
+                                fetch: false,
+                                showDeleted: true
+                            });
 
-                            catalog.register("data", feather.plural.toCamelCase(), ary);
+                            catalog.register(
+                                "data",
+                                feather.plural.toCamelCase(),
+                                ary
+                            );
                             ary().defaultLimit(undefined);
-                            requests.push(ary().fetch({})); // No limit on fetch
+                            // No limit on fetch
+                            requests.push(ary().fetch({}));
                         });
 
                         Promise.all(requests).then(resolve);
@@ -201,7 +225,7 @@
 
         // Load modules
         loadModules = new Promise(function (resolve) {
-            var payload = {
+            let payload = {
                 method: "GET",
                 path: "/modules/"
             };
@@ -222,11 +246,11 @@
 
         // Load forms
         loadForms = new Promise(function (resolve) {
-            var payload = {
-                    method: "POST",
-                    path: "/data/forms"
-                },
-                forms = catalog.register("forms");
+            let payload = {
+                method: "POST",
+                path: "/data/forms"
+            };
+            let forms = catalog.register("forms");
 
             dataSource.request(payload).then(function (data) {
                 // Loop through each form record and load into catalog
@@ -240,7 +264,7 @@
 
         // Load relation widgets
         loadRelationWidgets = new Promise(function (resolve) {
-            var payload = {
+            let payload = {
                 method: "POST",
                 path: "/data/relation-widgets"
             };
@@ -263,7 +287,7 @@
 
         // Load workbooks
         loadWorkbooks = new Promise(function (resolve) {
-            var payload = {
+            let payload = {
                 method: "GET",
                 path: "/workbooks/"
             };
@@ -276,19 +300,25 @@
     }
 
     function initApp() {
-        var home, sseErrorDialog,
-                components = catalog.store().components(),
-                models = catalog.store().models(),
-                workbookModel = models.workbook,
-                keys = Object.keys(feathers);
+        let home;
+        let sseErrorDialog;
+        let components = catalog.store().components();
+        let models = catalog.store().models();
+        let workbookModel = models.workbook;
+        let keys = Object.keys(feathers);
+        let msg;
 
         function resolveDependencies(module, dependencies) {
             dependencies = dependencies || module.dependencies;
 
             module.dependencies.forEach(function (dependency) {
-                var parent = moduleData.find((module) => module.name === dependency);
+                let parent = moduleData.find(
+                    (module) => module.name === dependency
+                );
 
-                parent.dependencies.forEach((pDepencency) => dependencies.push(pDepencency));
+                parent.dependencies.forEach(
+                    (pDepencency) => dependencies.push(pDepencency)
+                );
 
                 resolveDependencies(parent, dependencies);
             });
@@ -297,12 +327,14 @@
         // Process modules, start by resolving, then sorting on dependencies
         moduleData.forEach((module) => resolveDependencies(module));
         moduleData = (function () {
-            var module, idx,
-                    ret = [];
+            let module;
+            let idx;
+            let ret = [];
 
             function top(mod) {
-                return mod.dependencies.every((dep) =>
-                        ret.some((added) => added.name === dep));
+                return mod.dependencies.every(
+                    (dep) => ret.some((added) => added.name === dep)
+                );
             }
 
             while (moduleData.length) {
@@ -326,7 +358,7 @@
         });
 
         keys.forEach(function (key) {
-            var parent = feathers[key].inherits || "Object";
+            let parent = feathers[key].inherits || "Object";
 
             feathers[parent].children[key] = feathers[key];
         });
@@ -334,11 +366,11 @@
         delete feathers.Object.children.Object;
 
         function subclass(name, parent) {
-            var feather = feathers[name],
-                funcs = Object.keys(parent);
+            let feather = feathers[name];
+            let funcs = Object.keys(parent);
 
             Object.keys(feather.children).forEach(function (name) {
-                var child = models[name.toCamelCase()];
+                let child = models[name.toCamelCase()];
 
                 funcs.forEach(function (func) {
                     child[func] = child[func] || parent[func];
@@ -379,8 +411,8 @@
 
         // Process workbooks
         workbookData.forEach(function (workbook) {
-            var name = workbook.name.toSpinalCase().toCamelCase(),
-                wmodel = workbookModel(workbook);
+            let name = workbook.name.toSpinalCase().toCamelCase();
+            let wmodel = workbookModel(workbook);
             workbooks[name] = wmodel;
             catalog.register("workbooks", name, wmodel);
         });
@@ -389,10 +421,12 @@
         menu = navigator.viewModel();
 
         // Handle connection errors
+        msg = "You have lost connection to the server.";
+        msg += "Click \"Ok\" to attempt to reconnect.";
         sseErrorDialog = dialog.viewModel({
             icon: "close",
             title: "Connection Error",
-            message: "You have lost connection to the server. Click \"Ok\" to attempt to reconnect.",
+            message: msg,
             onOk: function () {
                 document.location.reload();
             }
@@ -406,8 +440,8 @@
         home = {
             oninit: function (vnode) {
                 Object.keys(workbooks).forEach(function (key) {
-                    var workbook = workbooks[key],
-                        config = workbook.getConfig();
+                    let workbook = workbooks[key];
+                    let config = workbook.getConfig();
 
                     vnode["go" + workbook.data.name()] = function () {
                         m.route.set("/workbook/:workbook/:key", {
@@ -423,6 +457,10 @@
                 menu.selected("home");
             },
             view: function () {
+                let apiUrl;
+
+                apiUrl = "http://" + window.location.hostname + ":";
+                apiUrl += window.location.port + "/api.html";
                 return m("div", {
                     style: {
                         position: "absolute",
@@ -444,8 +482,7 @@
                                 }, "Home")
                             ]),
                             m("a", {
-                                href: "http://" + window.location.hostname + ":" +
-                                        window.location.port + "/api.html",
+                                href: apiUrl,
                                 style: {
                                     position: "relative",
                                     width: "150px",
@@ -469,18 +506,24 @@
     }
 
     // Listen for session id
-    evstart = new EventSource('/sse');
+    evstart = new EventSource("/sse");
     evstart.onmessage = function (event) {
-        var sessionId = event.data;
+        let sessionId = event.data;
 
         if (sessionId) {
             catalog.sessionId(sessionId);
             catalog.register("subscriptions");
 
             // Listen for event changes for this session
-            evsubscr = new EventSource('/sse/' + sessionId);
+            evsubscr = new EventSource("/sse/" + sessionId);
             evsubscr.onmessage = function (event) {
-                var instance, ary, payload, subscriptionId, change, data, state;
+                let instance;
+                let ary;
+                let payload;
+                let subscriptionId;
+                let change;
+                let data;
+                let state;
 
                 // Ignore heartbeats
                 if (event.data === "") {
@@ -494,13 +537,12 @@
                 ary = catalog.store().subscriptions()[subscriptionId];
 
                 if (!ary) {
-                    //console.error('Target list for ' + subscriptionId + ' not found');
                     return;
                 }
 
                 // Apply event to the catalog;
                 switch (change) {
-                case 'update':
+                case "update":
                     instance = ary.find(function (model) {
                         return model.id() === data.id;
                     });
@@ -514,10 +556,10 @@
                         }
                     }
                     break;
-                case 'create':
+                case "create":
                     ary.add(ary.model(data));
                     break;
-                case 'delete':
+                case "delete":
                     instance = ary.find(function (model) {
                         return model.id() === data;
                     });
@@ -530,7 +572,7 @@
                         }
                     }
                     break;
-                case 'lock':
+                case "lock":
                     instance = ary.find(function (model) {
                         return model.id() === data.id;
                     });
@@ -540,7 +582,7 @@
                         m.redraw();
                     }
                     break;
-                case 'unlock':
+                case "unlock":
                     instance = ary.find(function (model) {
                         return model.id() === data;
                     });
@@ -572,13 +614,12 @@
                 loadModules,
                 loadRelationWidgets,
                 loadWorkbooks
-            ])
-                .then(initApp);
+            ]).then(initApp);
         }
     };
 
     // Let displays handle their own overflow locally
-    document.documentElement.style.overflow = 'hidden';
+    document.documentElement.style.overflow = "hidden";
 
     window.onresize = function () {
         m.redraw(true);

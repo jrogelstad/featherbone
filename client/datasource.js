@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2018  John Rogelstad
+    Copyright (C) 2019  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,33 +15,34 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-
-/*global window, f */
+/*jslint browser*/
+/*global require, module*/
 (function () {
-  "use strict";
+    "use strict";
 
-  var that = {},
-    m = require("mithril");
+    const that = {};
+    const m = require("mithril");
 
-  /**
+    /**
     Returns the base url used to fetch and post data
     @return {String}
-  */
-  that.baseUrl = function () {
-    var l = window.location;
-    return "http://" + l.hostname + ":" + l.port;
-  };
+    */
+    that.baseUrl = function () {
+        let l = window.location;
+        return "http://" + l.hostname + ":" + l.port;
+    };
 
-  that.request = function (options) {
-    options.url = that.baseUrl() + options.path;
-    if (options.id) { options.url += options.id; }
-    delete options.name;
-    delete options.id;
+    that.request = function (options) {
+        options.url = that.baseUrl() + options.path;
+        if (options.id) {
+            options.url += options.id;
+        }
+        delete options.name;
+        delete options.id;
 
-    return m.request(options);
-  };
+        return m.request(options);
+    };
 
-  module.exports = that;
-
+    module.exports = that;
 }());
 
