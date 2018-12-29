@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2018  John Rogelstad
+    Copyright (C) 2019  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -16,18 +16,18 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*global require, module*/
-/*jslint this, es6*/
+/*jslint this, browser*/
 (function () {
     "use strict";
 
-    var filterDialog = {},
-        m = require("mithril"),
-        stream = require("stream"),
-        f = require("component-core"),
-        catalog = require("catalog"),
-        model = require("model"),
-        checkbox = require("checkbox"),
-        tableDialog = require("table-dialog");
+    const filterDialog = {};
+    const m = require("mithril");
+    const stream = require("stream");
+    const f = require("component-core");
+    const catalog = require("catalog");
+    const model = require("model");
+    const checkbox = require("checkbox");
+    const tableDialog = require("table-dialog");
 
     /**
       View model for sort dialog.
@@ -40,16 +40,22 @@
     */
     filterDialog.viewModel = function (options) {
         options = options || {};
-        var vm, store;
+        let vm;
+        let store;
 
         function resolveProperty(feather, property) {
-            var prefix, suffix, rel,
-                    idx = property.indexOf(".");
+            let prefix;
+            let suffix;
+            let rel;
+            let idx = property.indexOf(".");
 
             if (idx > -1) {
                 prefix = property.slice(0, idx);
                 suffix = property.slice(idx + 1, property.length);
-                rel = feather.properties[prefix].type.relation || feather.properties[prefix].format.toProperCase();
+                rel = (
+                    feather.properties[prefix].type.relation ||
+                    feather.properties[prefix].format.toProperCase()
+                );
                 feather = catalog.getFeather(rel);
                 return resolveProperty(feather, suffix);
             }
@@ -66,12 +72,17 @@
           @param {Object} [obj.value] Value
         */
         function buildInputComponent(obj) {
-            var rel, w, component, prop, type, format,
-                    feather = vm.feather(),
-                    attr = obj.key,
-                    value = obj.value,
-                    index = obj.index,
-                    opts = {};
+            let rel;
+            let w;
+            let component;
+            let prop;
+            let type;
+            let format;
+            let feather = vm.feather();
+            let attr = obj.key;
+            let value = obj.value;
+            let index = obj.index;
+            let opts = {};
 
             prop = resolveProperty(feather, attr);
             type = prop.type;
@@ -86,8 +97,11 @@
                     });
                 } else {
                     opts.type = f.inputMap[format];
-                    opts.onchange = (e) =>
-                            vm.itemChanged.bind(this, index, "value")(e.target.value);
+                    opts.onchange = (e) => vm.itemChanged.bind(
+                        this,
+                        index,
+                        "value"
+                    )(e.target.value);
                     opts.value = value;
                     component = m("input", opts);
                 }
@@ -113,11 +127,11 @@
         }
 
         function getDefault(attr) {
-            var value,
-                feather = vm.feather(),
-                prop = resolveProperty(feather, attr),
-                type = prop.type,
-                format = prop.format;
+            let value;
+            let feather = vm.feather();
+            let prop = resolveProperty(feather, attr);
+            let type = prop.type;
+            let format = prop.format;
 
             if (typeof type === "object") {
                 return {
@@ -125,8 +139,10 @@
                 };
             }
 
-            if (format && f.formats[format] &&
-                    f.formats[format].default) {
+            if (
+                format && f.formats[format] &&
+                f.formats[format].default
+            ) {
                 value = f.formats[format].default;
             } else {
                 value = f.types[type].default;
@@ -161,8 +177,8 @@
             }
         };
         vm.attrs = function () {
-            var feather = vm.feather(),
-                keys = Object.keys(feather.properties);
+            let feather = vm.feather();
+            let keys = Object.keys(feather.properties);
             return vm.resolveProperties(feather, keys).sort();
         };
         vm.data = function () {
@@ -179,8 +195,10 @@
             return store;
         };
         vm.operators = function (attr) {
-            var ops, prop, format,
-                    feather = vm.feather();
+            let ops;
+            let prop;
+            let format;
+            let feather = vm.feather();
 
             ops = f.copy(f.operators);
 
@@ -233,8 +251,9 @@
         vm.propertyName = stream(options.propertyName || "criteria");
         vm.relations = stream({});
         vm.reset = function () {
-            var name = vm.propertyName(),
-                filter = f.copy(options.filter());
+            let name = vm.propertyName();
+            let filter = f.copy(options.filter());
+
             filter[name] = filter[name] || [];
             vm.filter(filter);
             if (!filter[name].length) {
@@ -248,7 +267,7 @@
             value: f.createId()
         });
         vm.viewHeaders = function () {
-            var ids = vm.viewHeaderIds();
+            let ids = vm.viewHeaderIds();
             return [
                 m("th", {
                     class: "fb-filter-dialog-table-header-column",
@@ -265,11 +284,11 @@
             ];
         };
         vm.viewRows = function () {
-            var view;
+            let view;
 
             view = vm.items().map(function (item) {
-                var row,
-                    operators = vm.operators(item.property);
+                let row;
+                let operators = vm.operators(item.property);
 
                 row = m("tr", {
                     onclick: vm.selection.bind(this, item.index, true),
@@ -281,7 +300,10 @@
                         class: "fb-filter-dialog-property",
                         value: item.property,
                         onchange: (e) =>
-                                vm.itemPropertyChanged.bind(this, item.index)(e.target.value)
+                        vm.itemPropertyChanged.bind(
+                            this,
+                            item.index
+                        )(e.target.value)
                     }, vm.attrs().map(function (attr) {
                         return m("option", {
                             value: attr
@@ -291,8 +313,11 @@
                         class: "fb-filter-dialog-operator"
                     }, [
                         m("select", {
-                            onchange: (e) =>
-                                    vm.itemChanged.bind(this, item.index, "operator")(e.target.value)
+                            onchange: (e) => vm.itemChanged.bind(
+                                this,
+                                item.index,
+                                "operator"
+                            )(e.target.value)
                         }, Object.keys(operators).map(function (op) {
                             return m("option", {
                                 value: op
@@ -327,18 +352,20 @@
             if (store.data[key].isToOne()) {
                 // If property updated, forward change
                 store.onChange(key, function (prop) {
-                    var items = vm.items();
+                    let items = vm.items();
                     items.forEach(function (item) {
-                        var value;
+                        let value;
                         if (item.property === key) {
                             value = prop.newValue();
-                            value = value
+                            value = (
+                                value
                                 ? {
                                     id: value.data.id()
                                 }
                                 : {
                                     id: ""
-                                };
+                                }
+                            );
                             vm.itemChanged(item.index, "value", value);
                         }
                     });
