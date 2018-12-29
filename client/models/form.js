@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2018  John Rogelstad
+    Copyright (C) 2019  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,88 +15,108 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-
+/*global require, module*/
+/*jslint browser*/
 (function () {
-  "use strict";
+    "use strict";
 
-  var formModel,
-    catalog = require("catalog"),
-    model = require("model");
+    const catalog = require("catalog");
+    const model = require("model");
+    const list = require("list");
 
-  formModel = function (data) {
-    var that, properties, modules, feathers,
-      feather = catalog.getFeather("Form");
+    function formModel(data) {
+        let that;
+        let properties;
+        let modules;
+        let feathers;
+        let feather = catalog.getFeather("Form");
 
-    // ..........................................................
-    // PUBLIC
-    //
+        // ..........................................................
+        // PUBLIC
+        //
 
-    that = model(data, feather);
+        that = model(data, feather);
 
-    properties = function () {
-      var keys,
-        formFeather = that.data.feather(),
-        result = [];
-      if (!formFeather) { return result; }
-      formFeather = catalog.getFeather(formFeather);
-      keys = Object.keys(formFeather.properties || []);
-      return keys.map(function (key) {
-        return {value: key, label: key};
-      });
-    };
+        properties = function () {
+            let keys;
+            let formFeather = that.data.feather();
+            let result = [];
 
-    that.addCalculated({
-      name: "properties",
-      type: "array",
-      function: properties
-    });
+            if (!formFeather) {
+                return result;
+            }
+            formFeather = catalog.getFeather(formFeather);
+            keys = Object.keys(formFeather.properties || []);
+            return keys.map(function (key) {
+                return {
+                    value: key,
+                    label: key
+                };
+            });
+        };
 
-    feathers = function () {
-      var tables = catalog.store().feathers(),
-        keys = Object.keys(tables);
+        that.addCalculated({
+            name: "properties",
+            type: "array",
+            function: properties
+        });
 
-      keys = keys.filter(function (key) {
-        return !tables[key].isSystem;
-      }).sort();
+        feathers = function () {
+            let tables = catalog.store().feathers();
+            let keys = Object.keys(tables);
 
-      return keys.map(function (key) {
-        return {value: key, label: key};
-      });
-    };
+            keys = keys.filter(function (key) {
+                return !tables[key].isSystem;
+            }).sort();
 
-    that.addCalculated({
-      name: "feathers",
-      type: "array",
-      function: feathers
-    });
+            return keys.map(function (key) {
+                return {
+                    value: key,
+                    label: key
+                };
+            });
+        };
 
-    modules = function () {
-      var tables = catalog.store().feathers(),
-        keys = Object.keys(tables),
-        ary = [];
+        that.addCalculated({
+            name: "feathers",
+            type: "array",
+            function: feathers
+        });
 
-      keys.forEach(function (key) {
-        var mod = tables[key].module;
-        if (mod && ary.indexOf(mod) === -1) {
-          ary.push(mod);
-        }
-      });
+        modules = function () {
+            let tables = catalog.store().feathers();
+            let keys = Object.keys(tables);
+            let ary = [];
 
-      return ary.map(function (item) {
-        return {value: item, label: item};
-      });
-    };
+            keys.forEach(function (key) {
+                let mod = tables[key].module;
 
-    that.addCalculated({
-      name: "modules",
-      type: "array",
-      function: modules
-    });
+                if (mod && ary.indexOf(mod) === -1) {
+                    ary.push(mod);
+                }
+            });
 
-    return that;
-  };
+            return ary.map(function (item) {
+                return {
+                    value: item,
+                    label: item
+                };
+            });
+        };
 
-  catalog.register("models", "form", formModel);
-  module.exports = formModel;
+        that.addCalculated({
+            name: "modules",
+            type: "array",
+            function: modules
+        });
+
+        return that;
+    }
+
+    formModel.list = list("Form");
+
+    catalog.register("models", "form", formModel);
+
+    module.exports = formModel;
 
 }());

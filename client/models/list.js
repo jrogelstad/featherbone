@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2018  John Rogelstad
+    Copyright (C) 2019  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,24 +15,25 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*global require, Promise, module, console*/
-/*jslint this, es6*/
+/*global require, module, console*/
+/*jslint this, browser*/
 (function () {
     "use strict";
 
-    var list, createList,
-            m = require("mithril"),
-            f = require("common-core"),
-            stream = require("stream"),
-            qs = require("Qs"),
-            catalog = require("catalog"),
-            statechart = require("statechartjs"),
-            LIMIT = 20;
+    let list;
+    let createList;
+    const m = require("mithril");
+    const f = require("common-core");
+    const stream = require("stream");
+    const qs = require("Qs");
+    const catalog = require("catalog");
+    const statechart = require("statechartjs");
+    const LIMIT = 20;
 
     /**
       Return a function that when called will return an array of models
-      based on the feather name passed. The function accepts an object supporting
-      the following options:
+      based on the feather name passed. The function accepts an object
+      supporting the following options:
 
         fetch: Boolean flags whether to automatically fetch a list of models.
         subscribe: Boolean flags whether to subscribe to events.
@@ -53,9 +54,9 @@
         // and return a property that contains the array.
         return function (options) {
             options = options || {};
-            var plural,
-                ary = options.value || createList(feather),
-                prop = stream(ary);
+            let plural;
+            let ary = options.value || createList(feather);
+            let prop = stream(ary);
 
             if (options.path) {
                 ary.path(options.path);
@@ -82,14 +83,19 @@
     //
 
     createList = function (feather) {
-        var state, doFetch, doSave, doSend,
-                onClean, onDirty, onDelete,
-                models = catalog.store().models(),
-                name = feather.toCamelCase(),
-                isSubscribed = false,
-                ary = [],
-                dirty = [],
-                sid = f.createId();
+        let state;
+        let doFetch;
+        let doSave;
+        let doSend;
+        let onClean;
+        let onDirty;
+        let onDelete;
+        let models = catalog.store().models();
+        let name = feather.toCamelCase();
+        let isSubscribed = false;
+        let ary = [];
+        let dirty = [];
+        let sid = f.createId();
 
         // ..........................................................
         // PUBLIC
@@ -98,12 +104,16 @@
         // Add a model to the list. Will replace existing
         // if model with same id is already found in array
         ary.add = function (model, subscribe) {
-            var mstate, payload, url, query, subid,
-                    id = model.id(),
-                    idx = ary.index(),
-                    oid = idx[id];
+            let mstate;
+            let payload;
+            let url;
+            let query;
+            let subid;
+            let id = model.id();
+            let idx = ary.index();
+            let oid = Number(idx[id]);
 
-            if (!isNaN(oid)) {
+            if (!Number.isNaN(oid)) {
                 dirty.remove(ary[oid]);
                 ary.splice(oid, 1, model);
             } else {
@@ -169,7 +179,7 @@
 
         ary.index = stream({});
 
-        ary.model = models[feather.toCamelCase() || 'Model'];
+        ary.model = models[feather.toCamelCase() || "Model"];
 
         ary.path = stream();
 
@@ -181,11 +191,11 @@
 
         // Remove a model from the list
         ary.remove = function (model) {
-            var id = model.id(),
-                idx = ary.index(),
-                i = idx[id];
+            let id = model.id();
+            let idx = ary.index();
+            let i = Number(idx[id]);
 
-            if (!isNaN(i)) {
+            if (!Number.isNaN(i)) {
                 ary.splice(i, 1);
                 Object.keys(idx).forEach(function (key) {
                     if (idx[key] > i) {
@@ -223,7 +233,9 @@
           @return {String} Subcription id.
         */
         ary.subscribe = function (...args) {
-            var query, url, payload;
+            let query;
+            let url;
+            let payload;
 
             if (args.length) {
                 if (args[0] === true) {
@@ -247,17 +259,18 @@
                             url: url
                         };
 
-                        return m.request(payload)
-                            .catch(console.error);
+                        return m.request(payload).catch(console.error);
                     }
 
                     isSubscribed = false;
                 }
             }
 
-            return isSubscribed
+            return (
+                isSubscribed
                 ? sid
-                : false;
+                : false
+            );
         };
 
         // ..........................................................
@@ -280,17 +293,19 @@
         };
 
         dirty.remove = function (model) {
-            var i = dirty.indexOf(model);
+            let i = dirty.indexOf(model);
+
             if (i > -1) {
                 dirty.splice(i, 1);
             }
         };
 
         doFetch = function (context) {
-            var url, payload,
-                    subid = ary.subscribe(),
-                    body = {},
-                    merge = true;
+            let url;
+            let payload;
+            let subid = ary.subscribe();
+            let body = {};
+            let merge = true;
 
             // Undo any edited rows
             ary.forEach(function (model) {
@@ -307,7 +322,8 @@
                 }
 
                 data.forEach(function (item) {
-                    var model = models[name]();
+                    let model = models[name]();
+
                     model.set(item, true, true);
                     model.state().goto("/Ready/Fetched");
                     ary.add(model);
@@ -342,29 +358,25 @@
                 data: body
             };
 
-            return m.request(payload)
-                .then(callback)
-                .catch(console.error);
+            return m.request(payload).then(callback).catch(console.error);
         };
 
         doSave = function (context) {
-            var requests = [];
+            let requests = [];
 
             dirty.forEach(function (model) {
                 requests.push(model.save());
             });
 
-            Promise.all(requests)
-                .then(context.resolve)
-                .catch(context.reject);
+            Promise.all(requests).then(context.resolve).catch(context.reject);
         };
 
         doSend = function (...args) {
-            var evt = args[0],
-                merge = args[1];
+            let evt = args[0];
+            let merge = args[1];
 
             return new Promise(function (resolve, reject) {
-                var context = {
+                let context = {
                     resolve: resolve,
                     reject: reject
                 };
@@ -411,7 +423,8 @@
                         force: true
                     });
                 });
-                this.C(function () {
+                this.c = this.C; // Squelch jslint complaint
+                this.c(function () {
                     if (dirty.length) {
                         return "./Dirty";
                     }
