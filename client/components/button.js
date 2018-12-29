@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2018  John Rogelstad
+    Copyright (C) 2019  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -16,15 +16,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*global require, module*/
-/*jslint es6, this, browser*/
+/*jslint this, browser*/
 (function () {
     "use strict";
 
-    var button = {},
-        f = require("common-core"),
-        m = require("mithril"),
-        stream = require("stream"),
-        statechart = require("statechartjs");
+    const button = {};
+    const f = require("common-core");
+    const m = require("mithril");
+    const stream = require("stream");
+    const statechart = require("statechartjs");
 
     /**
       @param {Object} Options
@@ -37,7 +37,13 @@
     */
     button.viewModel = function (options) {
         options = options || {};
-        var vm, state, display, primary, mode, label, hotkey;
+        let vm;
+        let state;
+        let display;
+        let primary;
+        let mode;
+        let label;
+        let hotkey;
 
         // ..........................................................
         // PUBLIC
@@ -69,8 +75,9 @@
             state.send("hide");
         };
         vm.hotKey = function (...args) {
-            var title, len,
-                    value = args[0];
+            let title;
+            let len;
+            let value = args[0];
 
             if (args.length) {
                 hotkey = value;
@@ -90,15 +97,18 @@
         vm.icon = stream(options.icon || "");
         vm.id = stream(f.createId());
         vm.label = function (...args) {
-            var idx, ary,
-                    value = args[0];
+            let idx;
+            let ary;
+            let value = args[0];
 
             if (args.length) {
                 label = value;
                 idx = value.indexOf("&");
                 if (idx > -1) {
                     label = value.replace("&", "");
-                    vm.hotKey(label.slice(idx, idx + 1).toUpperCase().charCodeAt(0));
+                    vm.hotKey(
+                        label.slice(idx, idx + 1).toUpperCase().charCodeAt(0)
+                    );
                     ary = [];
                     if (idx > 0) {
                         ary.push(m("span", label.slice(0, idx)));
@@ -116,7 +126,8 @@
         };
         vm.onclick = stream(options.onclick);
         vm.onkeydown = function (e) {
-            var id;
+            let id;
+
             if (e.altKey && e.which === vm.hotKey()) {
                 id = vm.id();
                 e.preventDefault();
@@ -233,18 +244,20 @@
     // Define button component
     button.component = {
         oninit: function (vnode) {
-            var vm = vnode.attrs.viewModel || button.viewModel(vnode.attrs);
+            let vm = vnode.attrs.viewModel || button.viewModel(vnode.attrs);
             this.viewModel = vm;
         },
 
         view: function () {
-            var opts, view, iconView,
-                    vm = this.viewModel,
-                    classes = ["pure-button"],
-                    style = vm.style(),
-                    title = vm.title(),
-                    icon = vm.icon(),
-                    label = vm.label();
+            let opts;
+            let view;
+            let iconView;
+            let vm = this.viewModel;
+            let classes = ["pure-button"];
+            let style = vm.style();
+            let title = vm.title();
+            let icon = vm.icon();
+            let label = vm.label();
 
             opts = {
                 id: vm.id(),

@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2018  John Rogelstad
+    Copyright (C) 2019  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -16,14 +16,14 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*global require, module*/
-/*jslint this, es6*/
+/*jslint this, browser*/
 (function () {
     "use strict";
 
-    var checkbox = {},
-        m = require("mithril"),
-        f = require("common-core"),
-        catalog = require("catalog");
+    const checkbox = {};
+    const m = require("mithril");
+    const f = require("common-core");
+    const catalog = require("catalog");
 
     // Define checkbox component
     checkbox.component = {
@@ -42,8 +42,8 @@
                     onclick: (e) => vnode.attrs.onclick(e.target.checked),
                     checked: vnode.attrs.value,
                     style: vnode.attrs.style || {},
-                    required: !!vnode.attrs.required,
-                    disabled: !!vnode.attrs.disabled
+                    required: Boolean(vnode.attrs.required),
+                    disabled: Boolean(vnode.attrs.disabled)
                 }),
                 m("label", {
                     for: this.id,
@@ -51,9 +51,11 @@
                 }, m("i", {
                     class: "fa fa-check",
                     style: {
-                        visibility: vnode.attrs.value
+                        visibility: (
+                            vnode.attrs.value
                             ? "visible"
                             : "hidden"
+                        )
                     }
                 }))
             ]);
