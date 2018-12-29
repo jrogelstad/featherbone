@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2018  John Rogelstad
+    Copyright (C) 2019  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,18 +15,18 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*jslint this*/
+/*jslint this, browser*/
 /*global dialogPolyfill, require, module, document*/
 (function () {
     "use strict";
 
-    var dialog = {},
-        m = require("mithril"),
-        stream = require("stream"),
-        f = require("common-core"),
-        statechart = require("statechartjs"),
-        dialogPolyfill = require("dialog-polyfill"),
-        button = require("button");
+    const dialog = {};
+    const m = require("mithril");
+    const stream = require("stream");
+    const f = require("common-core");
+    const statechart = require("statechartjs");
+    const dialogPolyfill = require("dialog-polyfill");
+    const button = require("button");
 
     /**
       View model for sort dialog.
@@ -39,7 +39,8 @@
     */
     dialog.viewModel = function (options) {
         options = options || {};
-        var vm, state;
+        let vm;
+        let state;
 
         // ..........................................................
         // PUBLIC
@@ -61,7 +62,7 @@
             content: f.createId()
         });
         vm.cancel = function () {
-            var doCancel = vm.onCancel();
+            let doCancel = vm.onCancel();
             if (typeof doCancel === "function") {
                 doCancel();
             }
@@ -73,15 +74,17 @@
             }, vm.message());
         };
         vm.displayCancel = function () {
-            return vm.onOk()
+            return (
+                vm.onOk()
                 ? "inline-block"
-                : "none";
+                : "none"
+            );
         };
         vm.message = stream(options.message || "Your message here");
         vm.onCancel = stream(options.onCancel);
         vm.onOk = stream(options.onOk);
         vm.ok = function () {
-            var doOk = vm.onOk();
+            let doOk = vm.onOk();
             if (typeof doOk === "function") {
                 doOk();
             }
@@ -125,8 +128,9 @@
             this.state("Display", function () {
                 this.state("Closed", function () {
                     this.enter(function () {
-                        var id = vm.ids().dialog,
-                            dlg = document.getElementById(id);
+                        let id = vm.ids().dialog;
+                        let dlg = document.getElementById(id);
+
                         if (dlg && dlg.open) {
                             dlg.close();
                         }
@@ -137,8 +141,9 @@
                 });
                 this.state("Showing", function () {
                     this.enter(function () {
-                        var id = vm.ids().dialog,
-                            dlg = document.getElementById(id);
+                        let id = vm.ids().dialog;
+                        let dlg = document.getElementById(id);
+
                         if (dlg) {
                             dlg.showModal();
                         }
@@ -161,13 +166,16 @@
     */
     dialog.component = {
         oninit: function (vnode) {
-            this.viewModel = vnode.attrs.viewModel || dialog.viewModel(vnode.attrs);
+            this.viewModel = (
+                vnode.attrs.viewModel ||
+                dialog.viewModel(vnode.attrs)
+            );
         },
 
         view: function () {
-            var content,
-                vm = this.viewModel,
-                ids = vm.ids();
+            let content;
+            let vm = this.viewModel;
+            let ids = vm.ids();
 
             if (vm.okDisabled()) {
                 vm.buttonOk().disable();
@@ -190,7 +198,7 @@
                 style: f.copy(vm.style()),
                 oncreate: function (vnode) {
                     // Make Chrome style dialog available for all browsers
-                    var dlg = document.getElementById(vnode.dom.id);
+                    let dlg = document.getElementById(vnode.dom.id);
                     if (!dlg.showModal) {
                         dialogPolyfill.registerDialog(dlg);
                     }
