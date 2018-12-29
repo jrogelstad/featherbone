@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2018  John Rogelstad
+    Copyright (C) 2019  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -16,17 +16,17 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*global require, module, console */
-/*jslint es6*/
+/*jslint browser*/
 (function () {
     "use strict";
 
     require("workbook");
     require("money-relation");
 
-    var f = require("common-core"),
-        catalog = require("catalog"),
-        m = require("mithril"),
-        stream = require("stream");
+    const f = require("common-core");
+    const catalog = require("catalog");
+    const m = require("mithril");
+    const stream = require("stream");
 
     /**
       Return the matching currency object.
@@ -36,9 +36,12 @@
     */
     f.getCurrency = function (code) {
         return catalog.store().data().currencies().find(function (curr) {
-            return curr.data.code() === code ||
-                    (curr.data.hasDisplayUnit() &&
-                    curr.data.displayUnit().data.code() === code);
+            return (
+                curr.data.code() === code || (
+                    curr.data.hasDisplayUnit() &&
+                    curr.data.displayUnit().data.code() === code
+                )
+            );
         });
     };
 
@@ -62,14 +65,16 @@
     };
 
     f.formats.money.fromType = function (value) {
-        var style,
-            amount = value.amount || 0,
-            currency = value.currency,
-            curr = f.getCurrency(value.currency),
-            hasDisplayUnit = curr.data.hasDisplayUnit(),
-            minorUnit = hasDisplayUnit
-                ? curr.data.displayUnit().data.minorUnit()
-                : curr.data.minorUnit();
+        let style;
+        let amount = value.amount || 0;
+        let currency = value.currency;
+        let curr = f.getCurrency(value.currency);
+        let hasDisplayUnit = curr.data.hasDisplayUnit();
+        let minorUnit = (
+            hasDisplayUnit
+            ? curr.data.displayUnit().data.minorUnit()
+            : curr.data.minorUnit()
+        );
 
         style = {
             minimumFractionDigits: minorUnit,
@@ -90,25 +95,31 @@
         return {
             amount: amount.toLocaleString(undefined, style),
             currency: currency,
-            effective: value.effective === null
+            effective: (
+                value.effective === null
                 ? null
-                : f.formats.dateTime.fromType(value.effective),
-            baseAmount: value.baseAmount === null
+                : f.formats.dateTime.fromType(value.effective)
+            ),
+            baseAmount: (
+                value.baseAmount === null
                 ? null
                 : f.types.number.fromType(value.baseAmount)
+            )
         };
     };
 
     f.formats.money.toType = function (value) {
         value = value || f.money();
-        var amount = f.types.number.toType(value.amount),
-            currency = f.formats.string.toType(value.currency),
-            curr = f.getCurrency(value.currency);
+        let amount = f.types.number.toType(value.amount);
+        let currency = f.formats.string.toType(value.currency);
+        let curr = f.getCurrency(value.currency);
 
         if (curr.data.hasDisplayUnit() && currency !== curr.data.code()) {
             curr.data.conversions().some(function (conv) {
                 if (conv.data.toUnit().id() === curr.data.displayUnit().id()) {
-                    amount = amount.times(conv.data.ratio().round(curr.data.minorUnit()));
+                    amount = amount.times(
+                        conv.data.ratio().round(curr.data.minorUnit())
+                    );
                     return true;
                 }
             });
@@ -119,32 +130,40 @@
         return {
             amount: amount,
             currency: currency,
-            effective: value.effective === null
+            effective: (
+                value.effective === null
                 ? null
-                : f.formats.dateTime.toType(value.effective),
-            baseAmount: value.baseAmount === null
+                : f.formats.dateTime.toType(value.effective)
+            ),
+            baseAmount: (
+                value.baseAmount === null
                 ? null
                 : f.types.number.toType(value.baseAmount)
+            )
         };
     };
 
     function byEffective(a, b) {
-        var aEffect = a.data.effective(),
-            bEffect = b.data.effective();
+        let aEffect = a.data.effective();
+        let bEffect = b.data.effective();
 
-        return aEffect > bEffect
+        return (
+            aEffect > bEffect
             ? -1
-            : 1;
+            : 1
+        );
     }
 
     f.baseCurrency = function (effective) {
-        effective = effective
+        effective = (
+            effective
             ? new Date(effective)
-            : new Date();
+            : new Date()
+        );
 
-        var current,
-            currs = catalog.store().data().currencies(),
-            baseCurrs = catalog.store().data().baseCurrencies();
+        let current;
+        let currs = catalog.store().data().currencies();
+        let baseCurrs = catalog.store().data().baseCurrencies();
 
         baseCurrs.sort(byEffective);
         current = baseCurrs.find(function (item) {
@@ -173,7 +192,7 @@
       @return {Object}
     */
     f.money = function (amount, currency, effective, baseAmount) {
-        var ret = {
+        let ret = {
             amount: amount || 0,
             currency: currency || f.baseCurrency().data.code(),
             effective: effective || null,
@@ -196,25 +215,31 @@
       @param {Array} [options.dataList] Array for input lists
     */
     f.buildInputComponent = function (obj) {
-        var rel, w, component,
-                key = obj.key,
-                isPath = key.indexOf(".") !== -1,
-                prop = f.resolveProperty(obj.model, key),
-                format = prop.format || prop.type,
-                opts = obj.options || {},
-                components = catalog.store().components(),
-                id = opts.id || key;
+        let rel;
+        let w;
+        let component;
+        let key = obj.key;
+        let isPath = key.indexOf(".") !== -1;
+        let prop = f.resolveProperty(obj.model, key);
+        let format = prop.format || prop.type;
+        let opts = obj.options || {};
+        let components = catalog.store().components();
+        let id = opts.id || key;
 
         function buildSelector() {
-            var vm = obj.viewModel,
-                selectComponents = vm.selectComponents(),
-                value = opts.value === ""
-                    ? undefined
-                    : opts.value;
+            let vm = obj.viewModel;
+            let selectComponents = vm.selectComponents();
+            let value = (
+                opts.value === ""
+                ? undefined
+                : opts.value
+            );
 
             if (selectComponents[id]) {
-                if (selectComponents[id].value === value &&
-                        selectComponents[id].disabled === opts.disabled) {
+                if (
+                    selectComponents[id].value === value &&
+                    selectComponents[id].disabled === opts.disabled
+                ) {
                     return selectComponents[id].content;
                 }
             } else {
@@ -261,8 +286,10 @@
                     disabled: opts.disabled,
                     style: opts.style
                 });
-            } else if (prop.type === "object" &&
-                    prop.format === "money") {
+            } else if (
+                prop.type === "object" &&
+                prop.format === "money"
+            ) {
                 component = m(components.moneyRelation, {
                     parentViewModel: obj.viewModel,
                     parentProperty: key,
@@ -280,6 +307,7 @@
                 opts.id = id;
                 opts.onchange = (e) => prop(e.target.value);
                 opts.value = prop();
+
                 if (opts.class) {
                     opts.class = "fb-input " + opts.class;
                 } else {
@@ -356,12 +384,20 @@
       http://www.kirupa.com/html5/get_element_position_using_javascript.htm
     */
     f.getElementPosition = function (element) {
-        var xPosition = 0,
-            yPosition = 0;
+        let xPosition = 0;
+        let yPosition = 0;
 
         while (element) {
-            xPosition += (element.offsetLeft - element.scrollLeft + element.clientLeft);
-            yPosition += (element.offsetTop - element.scrollTop + element.clientTop);
+            xPosition += (
+                element.offsetLeft -
+                element.scrollLeft +
+                element.clientLeft
+            );
+            yPosition += (
+                element.offsetTop -
+                element.scrollTop +
+                element.clientTop
+            );
             element = element.offsetParent;
         }
 
@@ -373,16 +409,22 @@
 
     /** @private  Helper function to resolve property dot notation */
     f.resolveAlias = function (feather, attr) {
-        var prefix, suffix, ret,
-                overload = feather.overloads
+        let prefix;
+        let suffix;
+        let ret;
+        let overload = (
+            feather.overloads
             ? feather.overloads[attr] || {}
-            : {},
-                idx = attr.indexOf(".");
+            : {}
+        );
+        let idx = attr.indexOf(".");
 
         if (idx > -1) {
             prefix = attr.slice(0, idx);
             suffix = attr.slice(idx + 1, attr.length);
-            feather = catalog.getFeather(feather.properties[prefix].type.relation);
+            feather = catalog.getFeather(
+                feather.properties[prefix].type.relation
+            );
             return f.resolveAlias(feather, suffix);
         }
 
@@ -392,8 +434,9 @@
 
     /** @private  Helper function to resolve property dot notation */
     f.resolveProperty = function (model, property) {
-        var prefix, suffix,
-                idx = property.indexOf(".");
+        let prefix;
+        let suffix;
+        let idx = property.indexOf(".");
 
         if (!model) {
             return stream(null);
