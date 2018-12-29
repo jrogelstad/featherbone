@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2018  John Rogelstad
+    Copyright (C) 2019  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -16,26 +16,28 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*global require, module*/
-/*jslint this*/
+/*jslint browser, this*/
 (function () {
     "use strict";
 
-    var addressRelation = {},
-        m = require("mithril"),
-        f = require("common-core"),
-        formDialog = require("form-dialog"),
-        stream = require("stream"),
-        catalog = require("catalog"),
-        button = require("button");
+    const addressRelation = {};
+    const m = require("mithril");
+    const f = require("common-core");
+    const formDialog = require("form-dialog");
+    const stream = require("stream");
+    const catalog = require("catalog");
+    const button = require("button");
 
     addressRelation.viewModel = function (options) {
-        var vm = {},
-            parent = options.parentViewModel;
+        let vm = {};
+        let parent = options.parentViewModel;
 
         vm.addressDialog = stream();
         vm.buttonClear = stream();
         vm.content = function (isCell) {
-            var d, content;
+            let d;
+            let content;
+            let cr = "\n";
 
             if (!vm.model()) {
                 return content;
@@ -49,19 +51,21 @@
             }
 
             if (d.unit()) {
-                content += "\x0A" + d.unit();
+                content += cr + d.unit();
             }
 
-            content += "\x0A" + d.city() + ", " +
-                    d.state() + " " + d.postalCode() +
-                    "\x0A" + d.country();
+            content += cr + d.city() + ", ";
+            content += d.state() + " " + d.postalCode();
+            content += cr + d.country();
 
             return content;
         };
         vm.countries = function () {
-            var countries = catalog.store().data().countries().map(function (model) {
-                return model.data.name();
-            }).sort();
+            let countries = catalog.store().data().countries().map(
+                function (model) {
+                    return model.data.name();
+                }
+            ).sort();
 
             countries.unshift("");
 
@@ -72,8 +76,9 @@
             vm.model(null);
         };
         vm.doEdit = function () {
-            var value, dmodel,
-                    addressDialog = vm.addressDialog();
+            let value;
+            let dmodel;
+            let addressDialog = vm.addressDialog();
 
             function applyEdit() {
                 vm.model(dmodel.toJSON());
@@ -99,7 +104,7 @@
             }
         };
         vm.states = function () {
-            var states = catalog.store().data().states().map(function (model) {
+            let states = catalog.store().data().states().map(function (model) {
                 return model.data.code();
             }).sort();
 
@@ -148,7 +153,7 @@
 
     addressRelation.component = {
         oninit: function (vnode) {
-            var options = vnode.attrs;
+            let options = vnode.attrs;
 
             // Set up viewModel if required
             this.viewModel = addressRelation.viewModel({
@@ -162,10 +167,10 @@
         },
 
         view: function (vnode) {
-            var ret,
-                vm = this.viewModel,
-                style = vm.style(),
-                disabled = vnode.attrs.disabled === true;
+            let ret;
+            let vm = this.viewModel;
+            let style = vm.style();
+            let disabled = vnode.attrs.disabled === true;
 
             style.display = style.display || "inline-block";
 
@@ -192,7 +197,11 @@
         }
     };
 
-    catalog.register("components", "addressRelation", addressRelation.component);
+    catalog.register(
+        "components",
+        "addressRelation",
+        addressRelation.component
+    );
     module.exports = addressRelation;
 
 }());

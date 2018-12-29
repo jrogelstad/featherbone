@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2018  John Rogelstad
+    Copyright (C) 2019  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -16,22 +16,21 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*global require, module*/
-/*jslint this*/
+/*jslint this, browser*/
 (function () {
     "use strict";
 
-    var findRoot,
-        childTable = {},
-        m = require("mithril"),
-        stream = require("stream"),
-        button = require("button"),
-        catalog = require("catalog"),
-        tableWidget = require("table-widget");
+    const childTable = {};
+    const m = require("mithril");
+    const stream = require("stream");
+    const button = require("button");
+    const catalog = require("catalog");
+    const tableWidget = require("table-widget");
 
-    findRoot = function (model) {
-        var parent,
-            d = model.data,
-            keys = Object.keys(d);
+    function findRoot(model) {
+        let parent;
+        let d = model.data;
+        let keys = Object.keys(d);
 
         parent = keys.find(function (key) {
             if (d[key].isChild()) {
@@ -39,10 +38,12 @@
             }
         });
 
-        return parent
+        return (
+            parent
             ? findRoot(d[parent]())
-            : model;
-    };
+            : model
+        );
+    }
 
     /**
       View model for child table.
@@ -53,16 +54,19 @@
       @param {Array} [options.config] Column configuration
     */
     childTable.viewModel = function (options) {
-        var tableState, canAdd,
-                root = findRoot(options.parentViewModel.model()),
-                vm = {};
+        let tableState;
+        let canAdd;
+        let root = findRoot(options.parentViewModel.model());
+        let vm = {};
 
         function toggleCanAdd() {
-            var currentState = root.state().current();
+            let currentState = root.state().current();
 
-            if (canAdd() &&
-                    currentState !== "/Ready/Fetched/ReadOnly" &&
-                    currentState !== "/Locked") {
+            if (
+                canAdd() &&
+                currentState !== "/Ready/Fetched/ReadOnly" &&
+                currentState !== "/Locked"
+            ) {
                 vm.buttonAdd().enable();
             } else {
                 vm.buttonAdd().disable();
@@ -161,8 +165,11 @@
             vm.buttonUndo().hide();
         });
         tableState.resolve("/Selection/On").enter(function () {
-            var current = root.state().current()[0];
-            if (current !== "/Ready/Fetched/ReadOnly" && current !== "/Locked") {
+            let current = root.state().current()[0];
+            if (
+                current !== "/Ready/Fetched/ReadOnly" &&
+                current !== "/Locked"
+            ) {
                 //vm.buttonOpen().enable();
                 vm.buttonRemove().enable();
             }
@@ -176,10 +183,12 @@
             vm.buttonUndo().show();
         });
         root.state().resolve("/Ready/Fetched/Clean").enter(function () {
-            var selection = vm.tableWidget().selection(),
-                found = function (model) {
-                    return selection.id() === model.id();
-                };
+            let selection = vm.tableWidget().selection();
+
+            function found(model) {
+                return selection.id() === model.id();
+            }
+
             // Unselect potentially deleted model
             if (selection && !vm.tableWidget().models().some(found)) {
                 vm.tableWidget().select(undefined);
@@ -187,7 +196,9 @@
         });
         canAdd = vm.tableWidget().models().canAdd;
 
-        root.state().resolve("/Ready/Fetched/ReadOnly").enter(vm.buttonAdd().disable);
+        root.state().resolve("/Ready/Fetched/ReadOnly").enter(
+            vm.buttonAdd().disable
+        );
         root.state().resolve("/Ready/Fetched/ReadOnly").exit(toggleCanAdd);
         root.state().resolve("/Locked").enter(vm.buttonAdd().disable);
         root.state().resolve("/Locked").exit(toggleCanAdd);
@@ -204,15 +215,19 @@
     */
     childTable.component = {
         oninit: function (vnode) {
-            var config, overload, keys,
-                    parentProperty = vnode.attrs.parentProperty,
-                    parentViewModel = vnode.attrs.parentViewModel,
-                    prop = parentViewModel.model().data[parentProperty],
-                    models = prop(),
-                    feather = catalog.getFeather(prop.type.relation),
-                    parentFeather = catalog.getFeather(parentViewModel.model().name),
-                    overloads = parentFeather.overloads || {},
-                    relations = vnode.attrs.parentViewModel.relations();
+            let config;
+            let overload;
+            let keys;
+            let parentProperty = vnode.attrs.parentProperty;
+            let parentViewModel = vnode.attrs.parentViewModel;
+            let prop = parentViewModel.model().data[parentProperty];
+            let models = prop();
+            let feather = catalog.getFeather(prop.type.relation);
+            let parentFeather = catalog.getFeather(
+                parentViewModel.model().name
+            );
+            let overloads = parentFeather.overloads || {};
+            let relations = vnode.attrs.parentViewModel.relations();
 
             config = parentViewModel.config().attrs.find(function (item) {
                 return item.attr === parentProperty;
@@ -241,7 +256,7 @@
         },
 
         view: function () {
-            var vm = this.viewModel;
+            let vm = this.viewModel;
 
             return m("div", [
                 m(button.component, {
