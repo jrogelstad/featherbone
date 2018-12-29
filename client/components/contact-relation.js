@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2018  John Rogelstad
+    Copyright (C) 2019  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -16,20 +16,21 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*global require, module*/
-/*jslint this, es6*/
+/*jslint this, browser*/
 (function () {
     "use strict";
 
-    var contactRelation = {},
-        catalog = require("catalog"),
-        relationWidget = require("relation-widget"),
-        stream = require("stream"),
-        m = require("mithril");
+    const contactRelation = {};
+    const catalog = require("catalog");
+    const relationWidget = require("relation-widget");
+    const stream = require("stream");
+    const m = require("mithril");
 
     /**
       @param {Object} Options
       @param {Object} [options.parentViewModel] Parent view-model. Required
-        property "relations" returning javascript object to attach relation view model to.
+        property "relations" returning javascript object to attach relation
+        view model to.
       @param {String} [options.parentProperty] Name of the relation
         in view model to attached to
       @param {String} [options.valueProperty] Value property
@@ -39,12 +40,21 @@
       @param {Object} [options.filter] Filter object used for search
     */
     contactRelation.viewModel = function (options) {
-        var vm = relationWidget.viewModel(options);
+        let vm = relationWidget.viewModel(options);
 
         vm.labels = function () {
-            var phone, email, address, phoneUrl, emailUrl, addressUrl,
-                    elements = [],
-                    model = options.parentViewModel.model().data[options.parentProperty]();
+            let phone;
+            let email;
+            let address;
+            let phoneUrl;
+            let emailUrl;
+            let addressUrl;
+            let elements = [];
+            let parentModel = options.parentViewModel.model();
+            let model = parentModel.data[options.parentProperty]();
+            let phoneClass = "fa fa-phone fb-contact-relation-icon";
+            let mailClass = "fa fa-envelope-o fb-contact-relation-icon";
+            let mapClass = "fa fa-map-marker fb-contact-relation-icon";
 
             if (model) {
                 phone = model.data.phone();
@@ -62,7 +72,7 @@
                                 target: "_blank"
                             }, [
                                 m("i", {
-                                    class: "fa fa-phone fb-contact-relation-icon"
+                                    class: phoneClass
                                 })
                             ])
                         ], phone)
@@ -81,7 +91,7 @@
                                 target: "_blank"
                             }, [
                                 m("i", {
-                                    class: "fa fa-envelope-o fb-contact-relation-icon"
+                                    class: mailClass
                                 })
                             ])
                         ], email)
@@ -89,11 +99,11 @@
                 }
 
                 if (address) {
-                    addressUrl = "https://maps.google.com/?q=" +
-                            address.data.street() + ", " +
-                            address.data.city() + ", " +
-                            address.data.state() + ", " +
-                            address.data.postalCode() + "/";
+                    addressUrl = "https://maps.google.com/?q=";
+                    addressUrl += address.data.street() + ", ";
+                    addressUrl += address.data.city() + ", ";
+                    addressUrl += address.data.state() + ", ";
+                    addressUrl += address.data.postalCode() + "/";
 
                     elements.push(
                         m("li", {
@@ -104,7 +114,7 @@
                                 target: "_blank"
                             }, [
                                 m("i", {
-                                    class: "fa fa-map-marker fb-contact-relation-icon"
+                                    class: mapClass
                                 })
                             ])
                         ], address.data.city() + ", " + address.data.state())
@@ -122,10 +132,10 @@
 
     contactRelation.component = {
         oninit: function (vnode) {
-            var list,
-                options = vnode.attrs,
-                id = vnode.attrs.form || "6kir5kogekam",
-                relations = options.parentViewModel.relations();
+            let list;
+            let options = vnode.attrs;
+            let id = vnode.attrs.form || "6kir5kogekam";
+            let relations = options.parentViewModel.relations();
 
             list = {
                 columns: [{
@@ -143,9 +153,11 @@
                 }]
             };
 
-            options.isCell = options.isCell === undefined
+            options.isCell = (
+                options.isCell === undefined
                 ? false
-                : options.isCell;
+                : options.isCell
+            );
 
             // Set up viewModel if required
             if (!relations[options.parentProperty]) {
@@ -169,7 +181,11 @@
         valueProperty: stream("fullName")
     };
 
-    catalog.register("components", "contactRelation", contactRelation.component);
+    catalog.register(
+        "components",
+        "contactRelation",
+        contactRelation.component
+    );
     module.exports = contactRelation;
 
 }());
