@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2018  John Rogelstad
+    Copyright (C) 2019  John Rogelstad
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
@@ -12,14 +12,13 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*global Promise*/
-/*jslint node, es6*/
+/*jslint node*/
 (function (exports) {
-    "strict";
+    "use strict";
 
     const f = require("../../common/core");
     const settings = {};
-    
+
     // ..........................................................
     // PRIVATE
     //
@@ -34,10 +33,10 @@
     */
     function checkEtag(obj) {
         return new Promise(function (resolve, reject) {
-            var sql = "SELECT etag FROM %I WHERE id = $1";
+            let sql = "SELECT etag FROM %I WHERE id = $1";
 
             function callback(resp) {
-                var result = false;
+                let result = false;
 
                 if (resp.rows.length) {
                     result = resp.rows[0].etag === obj.etag;
@@ -48,9 +47,7 @@
 
             sql = sql.format([obj.name.toSnakeCase()]);
 
-            obj.client.query(sql, [obj.id])
-                .then(callback)
-                .catch(reject);
+            obj.client.query(sql, [obj.id]).then(callback).catch(reject);
         });
     }
 
@@ -70,11 +67,14 @@
     */
     settings.getSettings = function (obj) {
         return new Promise(function (resolve, reject) {
-            var payload,
-                name = obj.data.name;
+            let payload;
+            let name = obj.data.name;
 
             function callback(ok) {
-                var sql = "SELECT id, etag, data FROM \"$settings\" WHERE name = $1";
+                let sql;
+
+                sql = "SELECT id, etag, data FROM \"$settings\"";
+                sql += "WHERE name = $1";
 
                 // If etag checks out, pass back cached
                 if (ok) {
@@ -84,7 +84,7 @@
 
                 // If here, need to query for the current settings
                 obj.client.query(sql, [name]).then(function (resp) {
-                    var rec;
+                    let rec;
 
                     // If we found something, cache it
                     if (resp.rows.length) {
@@ -96,7 +96,8 @@
                         };
                     }
 
-                    // Send back the settings if any were found, otherwise "false"
+                    // Send back the settings if any were found, otherwise
+                    // "false"
                     if (settings.data[name]) {
                         resolve(settings.data[name].data);
                         return;
@@ -116,9 +117,7 @@
                     callback: callback
                 };
 
-                checkEtag(payload)
-                    .then(callback)
-                    .catch(reject);
+                checkEtag(payload).then(callback).catch(reject);
 
                 return;
             }
@@ -136,8 +135,10 @@
     */
     settings.getSettingsDefinition = function (obj) {
         return new Promise(function (resolve, reject) {
-            var sql = "SELECT definition FROM \"$settings\" " +
-                    "WHERE definition is NOT NULL";
+            let sql;
+
+            sql = "SELECT definition FROM \"$settings\" ";
+            sql += "WHERE definition is NOT NULL";
 
             function definition(row) {
                 return row.definition;
@@ -147,9 +148,7 @@
                 resolve(resp.rows.map(definition));
             }
 
-            obj.client.query(sql)
-                .then(callback)
-                .catch(reject);
+            obj.client.query(sql).then(callback).catch(reject);
         });
     };
 
@@ -161,7 +160,7 @@
     */
     settings.getSettingsRow = function (obj) {
         return new Promise(function (resolve, reject) {
-            var ret = {};
+            let ret = {};
 
             function callback(resp) {
                 if (resp !== false) {
@@ -174,9 +173,7 @@
                 resolve(false);
             }
 
-            settings.getSettings(obj)
-                .then(callback)
-                .catch(reject);
+            settings.getSettings(obj).then(callback).catch(reject);
         });
     };
 
@@ -194,12 +191,12 @@
     */
     settings.saveSettings = function (obj) {
         return new Promise(function (resolve, reject) {
-            var row,
-                sql = "SELECT * FROM \"$settings\" WHERE name = $1;",
-                name = obj.data.name,
-                data = obj.data.data,
-                etag = obj.etag || f.createId(),
-                params = [name, data, etag, obj.client.currentUser];
+            let row;
+            let sql = "SELECT * FROM \"$settings\" WHERE name = $1;";
+            let name = obj.data.name;
+            let data = obj.data.data;
+            let etag = obj.etag || f.createId();
+            let params = [name, data, etag, obj.client.currentUser];
 
             function done() {
                 settings[name] = {
@@ -212,39 +209,47 @@
 
             function update(resp) {
                 return new Promise(function (resolve, reject) {
+                    let msg;
+
                     // If found existing, update
                     if (resp.rows.length) {
                         row = resp.rows[0];
 
-                        if (settings[name] && settings[name].etag !== row.etag) {
-                            obj.callback('Settings for "' + name +
-                                    '" changed by another user. Save failed.');
+                        if (
+                            settings[name] &&
+                            settings[name].etag !== row.etag
+                        ) {
+                            msg = "Settings for \"" + name;
+                            msg += "\" changed by another user. Save failed.";
+                            obj.callback(msg);
                             return;
                         }
 
-                        sql = "UPDATE \"$settings\" SET " +
-                                " data = $2, etag = $3, " +
-                                " updated = now(), updated_by = $4 " +
-                                "WHERE name = $1;";
+                        sql = "UPDATE \"$settings\" SET ";
+                        sql += " data = $2, etag = $3, ";
+                        sql += " updated = now(), updated_by = $4 ";
+                        sql += "WHERE name = $1;";
                         obj.client.query(sql, params, done);
                         return;
                     }
 
                     // otherwise create new
-                    sql = "INSERT INTO \"$settings\" (name, data, etag, id, " +
-                            " created, created_by, updated, updated_by, is_deleted) " +
-                            "VALUES ($1, $2, $3, $1, now(), $4, now(), $4, false);";
+                    sql = "INSERT INTO \"$settings\" (name, data, etag, id, ";
+                    sql += " created, created_by, updated, updated_by, ";
+                    sql += "is_deleted) VALUES ";
+                    sql += "($1, $2, $3, $1, now(), $4, now(), $4, false);";
 
-                    obj.client.query(sql, params)
-                        .then(resolve)
-                        .catch(reject);
+                    obj.client.query(sql, params).then(resolve).catch(reject);
                 });
             }
 
-            obj.client.query(sql, [name])
-                .then(update)
-                .then(done)
-                .catch(reject);
+            obj.client.query(sql, [name]).then(
+                update
+            ).then(
+                done
+            ).catch(
+                reject
+            );
         });
     };
 
