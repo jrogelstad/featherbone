@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2018  John Rogelstad
+    Copyright (C) 2019  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,17 +15,16 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*global Promise*/
-/*jslint node, es6*/
+/*jslint node*/
 (function (exports) {
-    "strict";
+    "use strict";
 
     exports.Services = function () {
         // ..........................................................
         // PUBLIC
         //
 
-        var that = {};
+        let that = {};
 
         /**
           Return services.
@@ -36,7 +35,7 @@
         */
         that.getServices = function (obj) {
             return new Promise(function (resolve, reject) {
-                var sql = "SELECT * FROM \"$service\";";
+                let sql = "SELECT * FROM \"$service\";";
 
                 // Query routes
                 obj.client.query(sql, function (err, resp) {

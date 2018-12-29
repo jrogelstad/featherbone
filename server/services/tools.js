@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2018  John Rogelstad
+    Copyright (C) 2019  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,10 +15,9 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*global Promise*/
-/*jslint node, es6, this*/
+/*jslint node, this*/
 (function (exports) {
-    "strict";
+    "use strict";
 
     const f = require("../../common/core");
     const ops = Object.keys(f.operators);
@@ -27,9 +26,9 @@
     const tools = {};
 
     function curry(...args1) {
-        var fn = args1[0],
-            args = args1[1],
-            ary = [];
+        let fn = args1[0];
+        let args = args1[1];
+        let ary = [];
 
         return function () {
             return fn.apply(this, args.concat(ary.slice.call(args1)));
@@ -45,8 +44,8 @@
       * @return {String} Escaped string.
     */
     String.prototype.format = function (ary) {
-        var params = [],
-            i = 0;
+        let params = [];
+        let i = 0;
 
         ary = ary || [];
         ary.unshift(this);
@@ -67,8 +66,10 @@
         tools.PKCOL = "_pk";
 
         tools.buildAuthSql = function (action, table, tokens) {
-            var actions,
-                i = 6;
+            let actions;
+            let i = 6;
+            let msg;
+            let sql;
 
             actions = [
                 "canRead",
@@ -77,7 +78,9 @@
             ];
 
             if (actions.indexOf(action) === -1) {
-                throw "Invalid authorization action for object \"" + action + "\"";
+                msg = "Invalid authorization action for object \"";
+                msg += action + "\"";
+                throw msg;
             }
 
             while (i) {
@@ -87,40 +90,47 @@
 
             action = action.toSnakeCase();
 
-            return " AND _pk IN (" +
-                    "SELECT %I._pk " +
-                    "FROM %I " +
-                    "  JOIN \"$feather\" ON \"$feather\".id::regclass::oid=%I.tableoid " +
-                    "WHERE EXISTS (" +
-                    "  SELECT " + action + " FROM ( " +
-                    "    SELECT " + action +
-                    "    FROM \"$auth\"" +
-                    "      JOIN \"role\" on \"$auth\".\"role_pk\"=\"role\".\"_pk\"" +
-                    "      JOIN \"role_member\"" +
-                    "        ON \"role\".\"_pk\"=\"role_member\".\"_parent_role_pk\"" +
-                    "    WHERE member=$1" +
-                    "      AND object_pk=\"$feather\".parent_pk" +
-                    "    ORDER BY " + action + " DESC" +
-                    "    LIMIT 1" +
-                    "  ) AS data" +
-                    "  WHERE " + action +
-                    ") " +
-                    "EXCEPT " +
-                    "SELECT %I._pk " +
-                    "FROM %I " +
-                    "WHERE EXISTS ( " +
-                    "  SELECT " + action + " FROM (" +
-                    "    SELECT " + action +
-                    "    FROM \"$auth\"" +
-                    "    JOIN \"role\" on \"$auth\".\"role_pk\"=\"role\".\"_pk\"" +
-                    "    JOIN \"role_member\" " +
-                    "      ON \"role\".\"_pk\"=\"role_member\".\"_parent_role_pk\"" +
-                    "    WHERE member=$1" +
-                    "      AND object_pk=%I._pk" +
-                    "    ORDER BY " + action + " DESC" +
-                    "    LIMIT 1 " +
-                    "  ) AS data " +
-                    "WHERE NOT " + action + "))";
+            sql = " AND _pk IN (";
+            sql += "SELECT %I._pk ";
+            sql += "FROM %I ";
+            sql += "  JOIN \"$feather\" ";
+            sql += "  ON \"$feather\".id::regclass::oid=%I.tableoid ";
+            sql += "WHERE EXISTS (";
+            sql += "  SELECT " + action + " FROM ( ";
+            sql += "    SELECT " + action;
+            sql += "    FROM \"$auth\"";
+            sql += "      JOIN \"role\" ON";
+            sql += "\"$auth\".\"role_pk\"=\"role\".\"_pk\"";
+            sql += "      JOIN \"role_member\"";
+            sql += "        ON \"role\".\"_pk\"=";
+            sql += "           \"role_member\".\"_parent_role_pk\"";
+            sql += "    WHERE member=$1";
+            sql += "      AND object_pk=\"$feather\".parent_pk";
+            sql += "    ORDER BY " + action + " DESC";
+            sql += "    LIMIT 1";
+            sql += "  ) AS data";
+            sql += "  WHERE " + action;
+            sql += ") ";
+            sql += "EXCEPT ";
+            sql += "SELECT %I._pk ";
+            sql += "FROM %I ";
+            sql += "WHERE EXISTS ( ";
+            sql += "  SELECT " + action + " FROM (";
+            sql += "    SELECT " + action;
+            sql += "    FROM \"$auth\"";
+            sql += "    JOIN \"role\" ON";
+            sql += "         \"$auth\".\"role_pk\"=\"role\".\"_pk\"";
+            sql += "    JOIN \"role_member\" ";
+            sql += "      ON \"role\".\"_pk\"=";
+            sql += "         \"role_member\".\"_parent_role_pk\"";
+            sql += "    WHERE member=$1";
+            sql += "      AND object_pk=%I._pk";
+            sql += "    ORDER BY " + action + " DESC";
+            sql += "    LIMIT 1 ";
+            sql += "  ) AS data ";
+            sql += "WHERE NOT " + action + "))";
+
+            return sql;
         };
 
         tools.formats = {
@@ -204,7 +214,7 @@
         */
         tools.getKey = function (obj, isSuperUser) {
             return new Promise(function (resolve, reject) {
-                var payload;
+                let payload;
 
                 payload = {
                     name: obj.name || "Object",
@@ -217,9 +227,11 @@
                     resolve(keys[0]);
                 }
 
-                tools.getKeys(payload, isSuperUser)
-                    .then(callback)
-                    .catch(reject);
+                tools.getKeys(payload, isSuperUser).then(
+                    callback
+                ).catch(
+                    reject
+                );
             });
         };
         /**
@@ -234,8 +246,24 @@
         */
         tools.getKeys = function (obj, isSuperUser) {
             return new Promise(function (resolve, reject) {
+                let part;
+                let op;
+                let err;
+                let or;
+                let name = obj.name;
+                let filter = obj.filter;
+                let table = name.toSnakeCase();
+                let clause = "NOT is_deleted";
+                let sql = "SELECT _pk FROM %I WHERE " + clause;
+                let tokens = ["_" + table];
+                let criteria = false;
+                let sort = [];
+                let params = [];
+                let parts = [];
+                let p = 1;
+
                 function callback(resp) {
-                    var keys = resp.rows.map(function (rec) {
+                    let keys = resp.rows.map(function (rec) {
                         return rec[tools.PKCOL];
                     });
 
@@ -243,19 +271,6 @@
                 }
 
                 try {
-                    var part, op, err, or,
-                            name = obj.name,
-                            filter = obj.filter,
-                            table = name.toSnakeCase(),
-                            clause = "NOT is_deleted",
-                            sql = "SELECT _pk FROM %I WHERE " + clause,
-                            tokens = ["_" + table],
-                            criteria = false,
-                            sort = [],
-                            params = [],
-                            parts = [],
-                            p = 1;
-
                     if (obj.showDeleted) {
                         clause = "true";
                     }
@@ -280,7 +295,7 @@
                             op = where.operator || "=";
 
                             if (ops.indexOf(op) === -1) {
-                                err = 'Unknown operator "' + op + '"';
+                                err = "Unknown operator \"" + op + "\"";
                                 throw err;
                             }
 
@@ -293,29 +308,45 @@
                                     part.push("$" + p);
                                     p += 1;
                                 });
-                                part = tools.resolvePath(where.property, tokens) + " IN (" + part.join(",") + ")";
+                                part = tools.resolvePath(
+                                    where.property,
+                                    tokens
+                                ) + " IN (" + part.join(",") + ")";
 
-                            // Property "OR" array compared to value (["name","email"]="Andy")
+                            // Property "OR" array compared to value
+                            // (["name","email"]="Andy")
                             // Whether "name"="Andy" OR "email"="Andy"
                             } else if (Array.isArray(where.property)) {
                                 or = [];
                                 where.property.forEach(function (prop) {
                                     params.push(where.value);
-                                    or.push(tools.resolvePath(prop, tokens) + " " + op + " $" + p);
+                                    or.push(tools.resolvePath(
+                                        prop,
+                                        tokens
+                                    ) + " " + op + " $" + p);
                                     p += 1;
                                 });
                                 part = "(" + or.join(" OR ") + ")";
 
                             // Regular comparison ("name"="Andy")
-                            } else if (typeof where.value === "object" && !where.value.id) {
-                                part = tools.resolvePath(where.property, tokens) + " IS NULL";
+                            } else if (
+                                typeof where.value === "object" &&
+                                !where.value.id
+                            ) {
+                                part = tools.resolvePath(
+                                    where.property,
+                                    tokens
+                                ) + " IS NULL";
                             } else {
                                 if (typeof where.value === "object") {
                                     where.property = where.property + ".id";
                                     where.value = where.value.id;
                                 }
                                 params.push(where.value);
-                                part = tools.resolvePath(where.property, tokens) + " " + op + " $" + p;
+                                part = tools.resolvePath(
+                                    where.property,
+                                    tokens
+                                ) + " " + op + " $" + p;
                                 p += 1;
                             }
                             parts.push(part);
@@ -346,9 +377,7 @@
 
                     sql = sql.format(tokens);
 
-                    obj.client.query(sql, params)
-                        .then(callback)
-                        .catch(reject);
+                    obj.client.query(sql, params).then(callback).catch(reject);
                 } catch (e) {
                     reject(e);
                 }
@@ -356,10 +385,10 @@
         };
 
         tools.isChildFeather = function (feather) {
-            var props = feather.properties;
+            let props = feather.properties;
 
             return Object.keys(props).some(function (key) {
-                return !!props[key].type.childOf;
+                return Boolean(props[key].type.childOf);
             });
         };
 
@@ -373,10 +402,12 @@
         */
         tools.isSuperUser = function (obj) {
             return new Promise(function (resolve, reject) {
-                var sql = "SELECT is_super FROM \"$user\" WHERE username=$1;",
-                    user = obj.user === undefined
-                        ? obj.client.currentUser
-                        : obj.user;
+                let sql = "SELECT is_super FROM \"$user\" WHERE username=$1;";
+                let user = (
+                    obj.user === undefined
+                    ? obj.client.currentUser
+                    : obj.user
+                );
 
                 obj.client.query(sql, [user], function (err, resp) {
                     if (err) {
@@ -384,9 +415,11 @@
                         return;
                     }
 
-                    resolve(resp.rows.length
+                    resolve(
+                        resp.rows.length
                         ? resp.rows[0].is_super
-                        : false);
+                        : false
+                    );
                 });
             });
         };
@@ -397,10 +430,17 @@
           @returns {Object} Sanitized object
         */
         tools.sanitize = function (obj) {
-            var oldObj, newObj, oldKey, ary, len,
-                    newKey, keys, klen, n,
-                    isArray = Array.isArray(obj),
-                    i = 0;
+            let oldObj;
+            let newObj;
+            let oKey;
+            let ary;
+            let len;
+            let nKey;
+            let keys;
+            let klen;
+            let n;
+            let isArray = Array.isArray(obj);
+            let i = 0;
 
             if (isArray) {
                 ary = obj;
@@ -413,7 +453,8 @@
                 if (typeof ary[i] === "string") {
                     i += 1;
                 } else {
-                    /* Copy to convert dates back to string for accurate comparisons */
+                    /* Copy to convert dates back to string for accurate
+                       comparisons */
                     oldObj = JSON.parse(JSON.stringify(ary[i]));
                     newObj = {};
 
@@ -422,20 +463,23 @@
                     n = 0;
 
                     while (n < klen) {
-                        oldKey = keys[n];
+                        oKey = keys[n];
                         n += 1;
 
                         /* Remove internal properties */
-                        if (oldKey.match("^_")) {
-                            delete oldObj[oldKey];
+                        if (oKey.match("^_")) {
+                            delete oldObj[oKey];
                         } else {
                             /* Make properties camel case */
-                            newKey = oldKey.toCamelCase();
-                            newObj[newKey] = oldObj[oldKey];
+                            nKey = oKey.toCamelCase();
+                            newObj[nKey] = oldObj[oKey];
 
                             /* Recursively sanitize objects */
-                            if (typeof newObj[newKey] === "object" && newObj[newKey] !== null) {
-                                newObj[newKey] = tools.sanitize(newObj[newKey]);
+                            if (
+                                typeof newObj[nKey] === "object" &&
+                                newObj[nKey] !== null
+                            ) {
+                                newObj[nKey] = tools.sanitize(newObj[nKey]);
                             }
                         }
                     }
@@ -445,9 +489,11 @@
                 }
             }
 
-            return isArray
+            return (
+                isArray
                 ? ary
-                : ary[0];
+                : ary[0]
+            );
         };
 
         /**
@@ -460,12 +506,18 @@
         */
         tools.setSuperUser = function (obj, isSuper) {
             return new Promise(function (resolve, reject) {
-                isSuper = obj.isSuper === undefined
+                isSuper = (
+                    obj.isSuper === undefined
                     ? true
-                    : obj.isSuper;
+                    : obj.isSuper
+                );
 
-                var sql, afterCheckSuperUser, afterGetPgUser, afterGetUser, afterUpsert,
-                        user = obj.user;
+                let sql;
+                let afterCheckSuperUser;
+                let afterGetPgUser;
+                let afterGetUser;
+                let afterUpsert;
+                let user = obj.user;
 
                 afterCheckSuperUser = function (err, ok) {
                     if (err) {
@@ -502,7 +554,8 @@
                     }
 
                     if (resp.rows.length) {
-                        sql = "UPDATE \"$user\" SET is_super=$2 WHERE username=$1";
+                        sql = "UPDATE \"$user\" SET is_super=$2 ";
+                        sql += "WHERE username=$1";
                     } else {
                         sql = "INSERT INTO \"$user\" VALUES ($1, $2)";
                     }
@@ -528,9 +581,11 @@
         };
 
         tools.processSort = function (sort, tokens) {
-            var order, part, clause = "",
-                    i = 0,
-                    parts = [];
+            let order;
+            let part;
+            let clause = "";
+            let i = 0;
+            let parts = [];
 
             // Always sort on primary key as final tie breaker
             sort.push({property: tools.PKCOL});
@@ -539,7 +594,7 @@
                 order = (sort[i].order || "ASC");
                 order = order.toUpperCase();
                 if (order !== "ASC" && order !== "DESC") {
-                    throw 'Unknown operator "' + order + '"';
+                    throw "Unknown operator \"" + order + "\"";
                 }
                 part = tools.resolvePath(sort[i].property, tokens);
                 parts.push(part + " " + order);
@@ -554,12 +609,19 @@
         };
 
         tools.relationColumn = function (key, relation) {
-            return "_" + key.toSnakeCase() + "_" + relation.toSnakeCase() + "_pk";
+            let ret;
+
+            ret = "_" + key.toSnakeCase() + "_" + relation.toSnakeCase();
+            ret += "_pk";
+
+            return ret;
         };
 
         tools.resolvePath = function (col, tokens) {
-            var prefix, suffix, ret,
-                    idx = col.lastIndexOf(".");
+            let prefix;
+            let suffix;
+            let ret;
+            let idx = col.lastIndexOf(".");
 
             if (idx > -1) {
                 prefix = col.slice(0, idx);
