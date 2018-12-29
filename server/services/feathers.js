@@ -12,10 +12,9 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*global Promise*/
-/*jslint node, es6*/
+/*jslint node, this*/
 (function (exports) {
-    "strict";
+    "use strict";
 
     const {
         Tools
@@ -27,24 +26,33 @@
 
     const settings = new Settings();
     const tools = new Tools();
+    const formats = tools.formats;
 
     exports.Feathers = function () {
         // ..........................................................
         // PRIVATE
         //
 
-        var that = {};
+        let that = {};
 
         function createView(obj) {
-            var parent, alias, type, view, sub, col, feather, props, keys,
-                    afterGetFeather,
-                    name = obj.name,
-                    execute = obj.execute !== false,
-                    dropFirst = obj.dropFirst,
-                    table = name.toSnakeCase(),
-                    args = ["_" + table, "_pk"],
-                    cols = ["%I"],
-                    sql = "";
+            let parent;
+            let alias;
+            let type;
+            let view;
+            let sub;
+            let col;
+            let feather;
+            let props;
+            let keys;
+            let afterGetFeather;
+            let name = obj.name;
+            let execute = obj.execute !== false;
+            let dropFirst = obj.dropFirst;
+            let table = name.toSnakeCase();
+            let args = ["_" + table, "_pk"];
+            let cols = ["%I"];
+            let sql = "";
 
             afterGetFeather = function (resp) {
                 feather = resp;
@@ -52,46 +60,66 @@
                 keys = Object.keys(props);
 
                 keys.forEach(function (key) {
+                    let clause;
+
                     alias = key.toSnakeCase();
 
                     /* Handle discriminator */
                     if (key === "objectType") {
                         cols.push("%s");
-                        args.push("to_camel_case(tableoid::regclass::text) AS " +
-                                alias);
+                        clause = "to_camel_case(tableoid::regclass::text) AS ";
+                        clause += alias;
+                        args.push(clause);
 
                         /* Handle relations */
                     } else if (typeof props[key].type === "object") {
                         type = props[key].type;
-                        parent = props[key].inheritedFrom
+                        parent = (
+                            props[key].inheritedFrom
                             ? props[key].inheritedFrom.toSnakeCase()
-                            : table;
+                            : table
+                        );
 
                         /* Handle to many */
                         if (type.parentOf) {
-                            sub = "ARRAY(SELECT %I FROM %I WHERE %I.%I = %I._pk " +
-                                    "AND NOT %I.is_deleted ORDER BY %I._pk) AS %I";
-                            view = "_" + props[key].type.relation.toSnakeCase();
-                            col = "_" + type.parentOf.toSnakeCase() + "_" + parent + "_pk";
-                            args = args.concat([view, view, view, col, table, view, view,
-                                    alias]);
+                            sub = "ARRAY(SELECT %I FROM %I ";
+                            sub += "WHERE %I.%I = %I._pk ";
+                            sub += "AND NOT %I.is_deleted ORDER BY %I._pk) ";
+                            sub += "AS %I";
+                            view = "_";
+                            view += props[key].type.relation.toSnakeCase();
+                            col = "_" + type.parentOf.toSnakeCase();
+                            col += "_" + parent + "_pk";
+                            args = args.concat([
+                                view,
+                                view,
+                                view,
+                                col,
+                                table,
+                                view,
+                                view,
+                                alias
+                            ]);
 
                             /* Handle to one */
                         } else if (!type.childOf) {
-                            col = "_" + key.toSnakeCase() + "_" +
-                                    props[key].type.relation.toSnakeCase() + "_pk";
-                            sub = "(SELECT %I FROM %I WHERE %I._pk = %I) AS %I";
+                            col = "_" + key.toSnakeCase() + "_";
+                            col += props[key].type.relation.toSnakeCase();
+                            col += "_pk";
+                            sub = "(SELECT %I FROM %I WHERE %I._pk = %I) ";
+                            sub += "AS %I";
 
                             if (props[key].type.properties) {
                                 view = "_" + parent + "$" + key.toSnakeCase();
                             } else {
-                                view = "_" + props[key].type.relation.toSnakeCase();
+                                view = "_";
+                                view += props[key].type.relation.toSnakeCase();
                             }
 
                             args = args.concat([view, view, view, col, alias]);
                         } else {
-                            sub = "_" + key.toSnakeCase() + "_" + type.relation.toSnakeCase() +
-                                    "_pk";
+                            sub = "_" + key.toSnakeCase() + "_";
+                            sub += type.relation.toSnakeCase() + "_pk";
                         }
 
                         cols.push(sub);
@@ -110,7 +138,8 @@
                     sql = sql.format(["_" + table]);
                 }
 
-                sql += "CREATE OR REPLACE VIEW %I AS SELECT " + cols.join(",") + " FROM %I;";
+                sql += "CREATE OR REPLACE VIEW %I AS SELECT " + cols.join(",");
+                sql += " FROM %I;";
                 sql = sql.format(args);
 
                 // If execute, run the sql now
@@ -139,12 +168,14 @@
         }
 
         function propagateViews(obj) {
-            var cprops, catalog,
-                    afterGetCatalog, afterCreateView,
-                    name = obj.name,
-                    statements = obj.statements || [],
-                    level = obj.level || 0,
-                    sql = "";
+            let cprops;
+            let catalog;
+            let afterGetCatalog;
+            let afterCreateView;
+            let name = obj.name;
+            let statements = obj.statements || [];
+            let level = obj.level || 0;
+            let sql = "";
 
             afterGetCatalog = function (resp) {
                 catalog = resp;
@@ -158,9 +189,11 @@
             };
 
             afterCreateView = function (err, resp) {
-                var keys, next, propagateUp,
-                        functions = [],
-                        i = 0;
+                let keys;
+                let next;
+                let propagateUp;
+                let functions = [];
+                let i = 0;
 
                 if (err) {
                     obj.callback(err);
@@ -174,7 +207,7 @@
 
                 // Callback to process functions sequentially
                 next = function (err, resp) {
-                    var o;
+                    let o;
 
                     if (err) {
                         obj.callback(err);
@@ -230,17 +263,19 @@
                 // Build object to propagate relations */
                 keys = Object.keys(catalog);
                 keys.forEach(function (key) {
-                    var ckeys;
+                    let ckeys;
 
                     cprops = catalog[key].properties;
                     ckeys = Object.keys(cprops);
 
                     ckeys.forEach(function (ckey) {
-                        if (cprops.hasOwnProperty(ckey) &&
-                                typeof cprops[ckey].type === "object" &&
-                                cprops[ckey].type.relation === name &&
-                                !cprops[ckey].type.childOf &&
-                                !cprops[ckey].type.parentOf) {
+                        if (
+                            cprops.hasOwnProperty(ckey) &&
+                            typeof cprops[ckey].type === "object" &&
+                            cprops[ckey].type.relation === name &&
+                            !cprops[ckey].type.childOf &&
+                            !cprops[ckey].type.parentOf
+                        ) {
                             functions.push({
                                 func: propagateViews,
                                 payload: {
@@ -274,12 +309,14 @@
 
                 /* Propagate up */
                 propagateUp = function (name, plevel) {
-                    var pkeys, props;
+                    let pkeys;
+                    let props;
+
                     plevel = plevel - 1;
                     props = catalog[name].properties;
                     pkeys = Object.keys(props);
                     pkeys.forEach(function (key) {
-                        var type = props[key].type;
+                        let type = props[key].type;
                         if (typeof type === "object" && type.childOf) {
                             functions.push({
                                 func: createView,
@@ -310,16 +347,22 @@
 
         function getParentKey(obj) {
             return new Promise(function (resolve, reject) {
-                var cParent, afterGetChildFeather, afterGetParentFeather, done;
+                let cParent;
+                let afterGetChildFeather;
+                let afterGetParentFeather;
+                let done;
 
                 afterGetChildFeather = function (resp) {
-                    var cKeys, cProps;
+                    let cKeys;
+                    let cProps;
 
                     cProps = resp.properties;
                     cKeys = Object.keys(cProps);
                     cKeys.every(function (cKey) {
-                        if (typeof cProps[cKey].type === "object" &&
-                                cProps[cKey].type.childOf) {
+                        if (
+                            typeof cProps[cKey].type === "object" &&
+                            cProps[cKey].type.childOf
+                        ) {
                             cParent = cProps[cKey].type.relation;
 
                             that.getFeather({
@@ -379,19 +422,33 @@
 
             @param {Object} Request payload
             @param {Object} [payload.data] Payload data
-            @param {Object | Array} [payload.data.name] Name(s) of feather(s) to delete
+            @param {Object | Array} [payload.data.name] Name(s) of
+                feather(s) to delete
             @param {Object} [payload.client] Database client
             @return {Object} Promise
         */
         that.deleteFeather = function (obj) {
             return new Promise(function (resolve, reject) {
-                var name, table, catalog, sql, rels, props, view, type, keys,
-                        afterGetCatalog, next, createViews, dropTables,
-                        names = Array.isArray(obj.data.name)
+                let name;
+                let table;
+                let catalog;
+                let sql;
+                let rels;
+                let props;
+                let view;
+                let type;
+                let keys;
+                let afterGetCatalog;
+                let next;
+                let createViews;
+                let dropTables;
+                let names = (
+                    Array.isArray(obj.data.name)
                     ? obj.data.name
-                    : [obj.data.name],
-                        o = 0,
-                        c = 0;
+                    : [obj.data.name]
+                );
+                let o = 0;
+                let c = 0;
 
                 afterGetCatalog = function (resp) {
                     catalog = resp;
@@ -413,8 +470,8 @@
                             return;
                         }
 
-                        sql = "DELETE FROM \"$auth\" WHERE object_pk=" +
-                                "(SELECT _pk FROM \"$feather\" WHERE id=$1);";
+                        sql = "DELETE FROM \"$auth\" WHERE object_pk=";
+                        sql += "(SELECT _pk FROM \"$feather\" WHERE id=$1);";
                         obj.client.query(sql, [table], function (err) {
                             if (err) {
                                 reject(err);
@@ -435,7 +492,7 @@
                 };
 
                 createViews = function () {
-                    var rel;
+                    let rel;
 
                     if (c < rels.length) {
                         rel = rels[c];
@@ -471,17 +528,21 @@
                         props = catalog[name].properties;
                         keys = Object.keys(props);
                         keys.forEach(function (key) {
+                            let cfp;
+
                             if (typeof props[key].type === "object") {
                                 type = props[key].type;
 
                                 if (type.properties) {
-                                    view = "_" + name.toSnakeCase() + "$" + key.toSnakeCase();
+                                    view = "_" + name.toSnakeCase() + "$";
+                                    view += key.toSnakeCase();
                                     sql += "DROP VIEW %I;";
                                     sql = sql.format([view]);
                                 }
 
                                 if (type.childOf && catalog[type.relation]) {
-                                    delete catalog[type.relation].properties[type.childOf];
+                                    cfp = catalog[type.relation].properties;
+                                    delete cfp[type.childOf];
                                     rels.push(type.relation);
                                 }
                             }
@@ -517,22 +578,27 @@
           @param {Object} Request payload
           @param {Object} [payload.name] Feather name
           @param {Object} [payload.client] Database client
-          @param {Boolean} [payload.includeInherited] Include inherited or not. Default = true.
+          @param {Boolean} [payload.includeInherited] Include inherited
+                or not. Default = true.
           @return {Object} Promise
         */
         that.getFeather = function (obj) {
             return new Promise(function (resolve, reject) {
-                var callback, name = obj.data.name;
+                let callback;
+                let name = obj.data.name;
 
                 callback = function (catalog) {
-                    var resultProps, featherProps, keys, appendParent,
-                            result = {name: name, inherits: "Object"};
+                    let resultProps;
+                    let featherProps;
+                    let keys;
+                    let appendParent;
+                    let result = {name: name, inherits: "Object"};
 
                     appendParent = function (child, parent) {
-                        var feather = catalog[parent],
-                            parentProps = feather.properties,
-                            childProps = child.properties,
-                            ckeys = Object.keys(parentProps);
+                        let feather = catalog[parent];
+                        let parentProps = feather.properties;
+                        let childProps = child.properties;
+                        let ckeys = Object.keys(parentProps);
 
                         if (parent !== "Object") {
                             appendParent(child, feather.inherits || "Object");
@@ -561,7 +627,10 @@
                     });
 
                     /* Want inherited properites before class properties */
-                    if (obj.data.includeInherited !== false && name !== "Object") {
+                    if (
+                        obj.data.includeInherited !== false &&
+                        name !== "Object"
+                    ) {
                         result.properties = {};
                         result = appendParent(result, result.inherits);
                     } else {
@@ -606,26 +675,32 @@
         */
         that.isAuthorized = function (obj) {
             return new Promise(function (resolve, reject) {
-                var table, pk, authSql, sql, params,
-                        user = obj.data.user || obj.client.currentUser,
-                        feather = obj.data.feather,
-                        action = obj.data.action,
-                        id = obj.data.id,
-                        tokens = [],
-                        result = false;
+                let table;
+                let pk;
+                let authSql;
+                let sql;
+                let params;
+                let user = obj.data.user || obj.client.currentUser;
+                let feather = obj.data.feather;
+                let action = obj.data.action;
+                let id = obj.data.id;
+                let tokens = [];
+                let result = false;
 
                 /* If feather, check class authorization */
                 if (feather) {
                     params = [feather.toSnakeCase(), user];
-                    sql =
-                            "SELECT pk FROM \"$auth\" AS auth " +
-                            "  JOIN \"$feather\" AS feather ON feather._pk=auth.object_pk " +
-                            "  JOIN role ON role._pk=auth.role_pk " +
-                            "  JOIN role_member ON role_member._parent_role_pk=role._pk " +
-                            "WHERE feather.id=$1" +
-                            "  AND role_member.member=$2" +
-                            "  AND %I";
+                    sql = "SELECT pk FROM \"$auth\" AS auth ";
+                    sql += " JOIN \"$feather\" AS feather ";
+                    sql += "ON feather._pk=auth.object_pk ";
+                    sql += "  JOIN role ON role._pk=auth.role_pk ";
+                    sql += "  JOIN role_member ";
+                    sql += "ON role_member._parent_role_pk=role._pk ";
+                    sql += "WHERE feather.id=$1";
+                    sql += "  AND role_member.member=$2";
+                    sql += "  AND %I";
                     sql = sql.format([action.toSnakeCase()]);
+
                     obj.client.query(sql, params, function (err, resp) {
                         if (err) {
                             reject(err);
@@ -639,8 +714,9 @@
                     /* Otherwise check object authorization */
                 } else if (id) {
                     /* Find object */
-                    sql = "SELECT _pk, tableoid::regclass::text AS \"t\" " +
-                            "FROM object WHERE id = $1;";
+                    sql = "SELECT _pk, tableoid::regclass::text AS \"t\" ";
+                    sql += "FROM object WHERE id = $1;";
+
                     obj.client.query(sql, [id], function (err, resp) {
                         if (err) {
                             reject(err);
@@ -654,19 +730,24 @@
 
                             tokens.push(table);
                             authSql = tools.buildAuthSql(action, table, tokens);
-                            sql = "SELECT _pk FROM %I WHERE _pk = $2 " + authSql;
+                            sql = "SELECT _pk FROM %I WHERE _pk = $2 ";
+                            sql += authSql;
                             sql = sql.format(tokens);
 
-                            obj.client.query(sql, [user, pk], function (err, resp) {
-                                if (err) {
-                                    reject(err);
-                                    return;
+                            obj.client.query(
+                                sql,
+                                [user, pk],
+                                function (err, resp) {
+                                    if (err) {
+                                        reject(err);
+                                        return;
+                                    }
+
+                                    result = resp.rows.length > 0;
+
+                                    resolve(result);
                                 }
-
-                                result = resp.rows.length > 0;
-
-                                resolve(result);
-                            });
+                            );
                         }
                     });
                 }
@@ -703,16 +784,30 @@
         */
         that.saveAuthorization = function (obj) {
             return new Promise(function (resolve, reject) {
-                var result, sql, pk, feather, params, objPk, rolePk, err,
-                        afterGetObjKey, afterGetRoleKey, afterGetFeatherName,
-                        afterGetFeather, checkSuperUser, afterCheckSuperUser,
-                        afterQueryAuth, done,
-                        id = obj.data.feather
+                let result;
+                let sql;
+                let pk;
+                let feather;
+                let params;
+                let objPk;
+                let rolePk;
+                let err;
+                let afterGetObjKey;
+                let afterGetRoleKey;
+                let afterGetFeatherName;
+                let afterGetFeather;
+                let checkSuperUser;
+                let afterCheckSuperUser;
+                let afterQueryAuth;
+                let done;
+                let id = (
+                    obj.data.feather
                     ? obj.data.feather.toSnakeCase()
-                    : obj.data.id,
-                        actions = obj.data.actions || {},
-                        isMember = false,
-                        hasAuth = false;
+                    : obj.data.id
+                );
+                let actions = obj.data.actions || {};
+                let isMember = false;
+                let hasAuth = false;
 
                 afterGetObjKey = function (resp) {
                     objPk = resp;
@@ -739,8 +834,8 @@
                     }
 
                     if (obj.data.id && obj.data.isMember) {
-                        sql = "SELECT tableoid::regclass::text AS feather " +
-                                "FROM object WHERE id=$1";
+                        sql = "SELECT tableoid::regclass::text AS feather ";
+                        sql += "FROM object WHERE id=$1";
                         obj.client.query(sql, [id], afterGetFeatherName);
                         return;
                     }
@@ -770,7 +865,8 @@
                     if (tools.isChildFeather(feather)) {
                         err = "Can not set authorization on child feathers.";
                     } else if (!feather.properties.owner) {
-                        err = "Feather must have owner property to set authorization";
+                        err = "Feather must have owner property to set ";
+                        err += "authorization";
                     }
 
                     if (err) {
@@ -805,8 +901,8 @@
                             }
 
                             if (resp.rows[0].owner !== obj.client.currentUser) {
-                                err = "Must be super user or owner of \"" + id + "\" to set " +
-                                        "authorization.";
+                                err = "Must be super user or owner of \"" + id;
+                                err += "\" to set authorization.";
                                 reject(err);
                                 return;
                             }
@@ -819,17 +915,25 @@
 
                 afterCheckSuperUser = function () {
                     // Determine whether any authorization has been granted
-                    hasAuth = actions.canCreate ||
-                            actions.canRead ||
-                            actions.canUpdate ||
-                            actions.canDelete;
+                    hasAuth = (
+                        actions.canCreate ||
+                        actions.canRead ||
+                        actions.canUpdate ||
+                        actions.canDelete
+                    );
 
                     // Find an existing authorization record
-                    sql = "SELECT auth.* FROM \"$auth\" AS auth " +
-                            "JOIN object ON object._pk=object_pk " +
-                            "JOIN role ON role._pk=role_pk " +
-                            "WHERE object.id=$1 AND role.id=$2 AND is_member_auth=$3 ";
-                    obj.client.query(sql, [id, obj.data.role, isMember], afterQueryAuth);
+                    sql = "SELECT auth.* FROM \"$auth\" AS auth ";
+                    sql += "JOIN object ON object._pk=object_pk ";
+                    sql += "JOIN role ON role._pk=role_pk ";
+                    sql += "WHERE object.id=$1 AND role.id=$2";
+                    sql += " AND is_member_auth=$3 ";
+
+                    obj.client.query(
+                        sql,
+                        [id, obj.data.role, isMember],
+                        afterQueryAuth
+                    );
                 };
 
                 afterQueryAuth = function (err, resp) {
@@ -849,48 +953,65 @@
                             params = [pk];
                         } else {
 
-                            sql = "UPDATE \"$auth\" SET can_create=$1, can_read=$2," +
-                                    "can_update=$3, can_delete=$4 WHERE pk=$5";
+                            sql = "UPDATE \"$auth\" SET can_create=$1,";
+                            sql += "can_read=$2,";
+                            sql += "can_update=$3, can_delete=$4 WHERE pk=$5";
+
                             params = [
-                                actions.canCreate === undefined
+                                (
+                                    actions.canCreate === undefined
                                     ? result.can_create
-                                    : actions.canCreate,
-                                actions.canRead === undefined
+                                    : actions.canCreate
+                                ),
+                                (
+                                    actions.canRead === undefined
                                     ? result.can_read
-                                    : actions.canRead,
-                                actions.canUpdate === undefined
+                                    : actions.canRead
+                                ),
+                                (
+                                    actions.canUpdate === undefined
                                     ? result.can_update
-                                    : actions.canUpdate,
-                                actions.canDelete === undefined
+                                    : actions.canUpdate
+                                ),
+                                (
+                                    actions.canDelete === undefined
                                     ? result.can_delete
-                                    : actions.canDelete,
+                                    : actions.canDelete
+                                ),
                                 pk
                             ];
                         }
                     } else if (hasAuth || !isMember) {
 
-                        sql = "INSERT INTO \"$auth\" VALUES (" +
-                                "nextval('$auth_pk_seq'), $1, $2," +
-                                "$3, $4, $5, $6, $7)";
+                        sql = "INSERT INTO \"$auth\" VALUES (";
+                        sql += "nextval('$auth_pk_seq'), $1, $2,";
+                        sql += "$3, $4, $5, $6, $7)";
                         params = [
                             objPk,
                             rolePk,
-                            actions.canCreate === undefined
+                            (
+                                actions.canCreate === undefined
                                 ? false
-                                : actions.canCreate,
-                            actions.canRead === undefined
+                                : actions.canCreate
+                            ),
+                            (
+                                actions.canRead === undefined
                                 ? false
-                                : actions.canRead,
-                            actions.canUpdate === undefined
+                                : actions.canRead
+                            ),
+                            (
+                                actions.canUpdate === undefined
                                 ? false
-                                : actions.canUpdate,
-                            actions.canDelete === undefined
+                                : actions.canUpdate
+                            ),
+                            (
+                                actions.canDelete === undefined
                                 ? false
-                                : actions.canDelete,
+                                : actions.canDelete
+                            ),
                             isMember
                         ];
                     } else {
-
                         done(null, false);
                         return;
                     }
@@ -907,7 +1028,8 @@
                     resolve(true);
                 };
 
-                // Kick off query by getting object key, the rest falls through callbacks
+                // Kick off query by getting object key, the rest falls
+                // through callbacks
                 tools.getKey({
                     id: id,
                     client: obj.client
@@ -950,16 +1072,17 @@
          * @param {String} [payload.spec.name] Name
          * @param {String} [payload.spec.description] Description
          * @param {Object | Boolean} [payload.spec.authorization]
-         *  Authorization spec. Defaults to grant all to everyone if undefined. Pass
-         *  false to grant no auth.
+         *      Authorization spec. Defaults to grant all to everyone if
+         *      undefined. Pass false to grant no auth.
          * @param {String} [payload.spec.properties] Feather properties
          * @param {String} [payload.spec.properties.description]
-         * Description
+         *      Description
          * @param {String} [spec.properties.default] Default value
-         *  or function name.
+         *      or function name.
          * @param {String | Object} [payload.spec.properties.type]
-         *  Type. Standard types are string, boolean, number, date. Object is used
-         *  for relation specs.
+         *      Type. Standard types are string, boolean, number, date.
+         *      Object is used
+         *      for relation specs.
          * @param {String} [payload.spec.properties.relation] Feather name of
          *  relation.
          * @param {String} [payload.spec.properties.childOf] Property name
@@ -968,42 +1091,75 @@
         */
         that.saveFeather = function (obj) {
             return new Promise(function (resolve, reject) {
-                var spec, nextSpec, parent,
-                        specs = Array.isArray(obj.data.specs)
+                let spec;
+                let parent;
+                let specs = (
+                    Array.isArray(obj.data.specs)
                     ? obj.data.specs
-                    : [obj.data.specs],
-                        c = 0,
-                        len = specs.length;
+                    : [obj.data.specs]
+                );
+                let c = 0;
+                let len = specs.length;
 
-                nextSpec = function () {
-                    var sqlUpd, token, values, defaultValue, props, keys, recs, type,
-                            name, isChild, pk, precision, scale, feather, catalog, autonumber,
-                            afterGetFeather, afterGetCatalog, afterUpdateSchema, updateCatalog,
-                            afterUpdateCatalog, afterPropagateViews, afterNextVal, createIndex,
-                            afterInsertFeather, afterSaveAuthorization, createSequence,
-                            table, inherits, authorization, dropSql, createDropSql,
-                            changed = false,
-                            sql = "",
-                            tokens = [],
-                            adds = [],
-                            args = [],
-                            fns = [],
-                            cols = [],
-                            unique = [],
-                            indices = [],
-                            i = 0,
-                            n = 0,
-                            p = 1;
+                function nextSpec() {
+                    let sqlUpd;
+                    let token;
+                    let values;
+                    let defaultValue;
+                    let props;
+                    let keys;
+                    let recs;
+                    let type;
+                    let name;
+                    let isChild;
+                    let pk;
+                    let prec;
+                    let scale;
+                    let feather;
+                    let catalog;
+                    let autonumber;
+                    let afterGetCatalog;
+                    let afterUpdateSchema;
+                    let updateCatalog;
+                    let afterUpdateCatalog;
+                    let afterPropagateViews;
+                    let afterNextVal;
+                    let createIndex;
+                    let afterInsertFeather;
+                    let afterSaveAuthorization;
+                    let createSequence;
+                    let table;
+                    let inherits;
+                    let authorization;
+                    let dropSql;
+                    let changed = false;
+                    let sql = "";
+                    let tokens = [];
+                    let adds = [];
+                    let args = [];
+                    let fns = [];
+                    let cols = [];
+                    let unique = [];
+                    let indices = [];
+                    let i = 0;
+                    let n = 0;
+                    let p = 1;
+                    let err;
 
-                    createDropSql = function (name) {
-                        var statements, buildDeps,
-                                feathers = [];
+                    function createDropSql(name) {
+                        let statements;
+                        let buildDeps;
+                        let feathers = [];
+
                         buildDeps = function (name) {
-                            var dkeys = Object.keys(catalog);
+                            let dkeys = Object.keys(catalog);
 
                             feathers.push(name);
                             dkeys.forEach(function (key) {
-                                if (key !== name && catalog[key].inherits === name) {
+                                if (
+                                    key !== name &&
+                                    catalog[key].inherits === name
+                                ) {
                                     buildDeps(key);
                                 }
                             });
@@ -1012,14 +1168,14 @@
                         buildDeps(name);
 
                         statements = feathers.map(function (feather) {
-                            var stmt = "DROP VIEW IF EXISTS %I CASCADE";
+                            let stmt = "DROP VIEW IF EXISTS %I CASCADE";
                             return stmt.format(["_" + feather.toSnakeCase()]);
                         });
 
                         return statements.join(";") + ";";
-                    };
+                    }
 
-                    afterGetFeather = function (resp) {
+                    function afterGetFeather(resp) {
                         feather = resp;
 
                         settings.getSettings({
@@ -1028,24 +1184,223 @@
                                 name: "catalog"
                             }
                         }).then(afterGetCatalog).catch(reject);
-                    };
+                    }
+
+                    function handleProps(key) {
+                        let vSql;
+                        let prop = props[key];
+                        let pProps;
+                        let tProps;
+                        let tRel;
+                        let descr;
+
+                        type = (
+                            typeof prop.type === "string"
+                            ? tools.types[prop.type]
+                            : prop.type
+                        );
+
+                        if (type && key !== spec.discriminator) {
+                            if (!feather || !feather.properties[key]) {
+
+                                /* Drop views */
+                                if (feather && !changed) {
+                                    sql += dropSql;
+                                }
+
+                                changed = true;
+                                sql += "ALTER TABLE %I ADD COLUMN %I ";
+
+                                /* Handle composite types */
+                                if (typeof prop.type === "object") {
+                                    if (type.relation) {
+                                        sql += "integer;";
+                                        token = tools.relationColumn(
+                                            key,
+                                            type.relation
+                                        );
+
+                                        /* Update parent class for to-many
+                                           children */
+                                        if (type.childOf) {
+                                            parent = catalog[type.relation];
+                                            pProps = parent.properties;
+                                            if (!pProps[type.childOf]) {
+                                                descr = "Parent of \"" + key;
+                                                descr += "\" on \"";
+                                                descr += spec.name + "\"";
+
+                                                pProps[type.childOf] = {
+                                                    description: descr,
+                                                    type: {
+                                                        relation: spec.name,
+                                                        parentOf: key
+                                                    }
+                                                };
+
+                                            } else {
+                                                err = "Property \"";
+                                                err += type.childOf;
+                                                err += "\" already exists on";
+                                                err += "\"" + type.relation;
+                                                err += "\"";
+                                            }
+                                        } else if (type.parentOf) {
+                                            err = "Can not set parent ";
+                                            err += "directly for \"";
+                                            err += key + "\"";
+                                        } else if (
+                                            !type.properties ||
+                                            !type.properties.length
+                                        ) {
+                                            err = "Properties must be defined";
+                                            err += "for relation \"" + key;
+                                            err += "\"";
+                                        /* Must be to-one relation.
+                                           If relation feather is flagged
+                                           as child, flag property as
+                                           child on this feather. */
+                                        } else {
+                                            parent = catalog[type.relation];
+                                            if (parent.isChild) {
+                                                prop.type.isChild = true;
+                                            }
+                                        }
+                                    } else {
+                                        err = "Relation not defined for ";
+                                        err += "composite type \"" + key;
+                                        err += "\"";
+                                    }
+
+                                    if (err) {
+                                        return false;
+                                    }
+
+                                    tProps = type.properties;
+
+                                    if (tProps) {
+                                        cols = ["%I"];
+                                        name = "_" + table + "$";
+                                        name += key.toSnakeCase();
+                                        args = [name, "_pk"];
+
+                                        /* Always include "id" whether
+                                           specified or not */
+                                        if (tProps.indexOf("id") === -1) {
+                                            tProps.unshift("id");
+                                        }
+
+                                        i = 0;
+                                        while (i < tProps.length) {
+                                            cols.push("%I");
+                                            args.push(tProps[i].toSnakeCase());
+                                            i += 1;
+                                        }
+
+                                        tRel = "_";
+                                        tRel += type.relation.toSnakeCase();
+                                        args.push(tRel);
+                                        vSql = "CREATE VIEW %I AS SELECT ";
+                                        vSql += cols.join(",");
+                                        vSql += " FROM %I ";
+                                        vSql += "WHERE NOT is_deleted;";
+                                        sql += vSql.format(args);
+                                    }
+
+                                    /* Handle standard types */
+                                } else {
+                                    if (prop.format) {
+                                        if (formats[prop.format]) {
+                                            sql += formats[prop.format].type;
+                                        } else {
+                                            err = "Invalid format \"";
+                                            err += prop.format;
+                                            err += "\" for property \"";
+                                            err += key + "\" on class \"";
+                                            err += spec.name + "\"";
+                                            return false;
+                                        }
+                                    } else {
+                                        sql += type.type;
+                                        if (type.type === "numeric") {
+                                            if (
+                                                prop.precision !== undefined &&
+                                                !Number.isNaN(prop.precision) &&
+                                                prop.precision !== -1
+                                            ) {
+                                                prec = prop.precision;
+                                            } else {
+                                                prec = f.PRECISION_DEFAULT;
+                                            }
+
+                                            if (
+                                                prop.scale !== undefined &&
+                                                !Number.isNaN(prop.scale) &&
+                                                prop.scale !== -1
+                                            ) {
+                                                scale = prop.scale;
+                                            } else {
+                                                scale = f.SCALE_DEFAULT;
+                                            }
+
+                                            sql += "(" + prec + "," + scale;
+                                            sql += ")";
+                                        }
+                                    }
+                                    sql += ";";
+                                    token = key.toSnakeCase();
+                                }
+
+                                adds.push(key);
+                                tokens = tokens.concat([table, token]);
+
+                                if (prop.isUnique) {
+                                    unique.push(key);
+                                }
+
+                                if (prop.isIndexed) {
+                                    indices.push(key);
+                                }
+
+                                if (prop.description) {
+                                    sql += "COMMENT ON COLUMN %I.%I IS %L;";
+
+                                    tokens = tokens.concat([
+                                        table,
+                                        token,
+                                        prop.description || ""
+                                    ]);
+                                }
+                            }
+                        } else {
+                            err = "Invalid type \"" + prop.type;
+                            err += "\" for property \"";
+                            err += key + "\" on class \"" + spec.name + "\"";
+
+                            return false;
+                        }
+
+                        return true;
+                    }
 
                     afterGetCatalog = function (resp) {
-                        var err;
                         catalog = resp;
 
                         dropSql = createDropSql(spec.name);
 
                         /* Create table if applicable */
                         if (!feather) {
-                            sql = "CREATE TABLE %I( " +
-                                    "CONSTRAINT %I PRIMARY KEY (_pk), " +
-                                    "CONSTRAINT %I UNIQUE (id)) " +
-                                    "INHERITS (%I);" +
-                                    "CREATE TRIGGER %I AFTER INSERT ON %I " +
-                                    "FOR EACH ROW EXECUTE PROCEDURE insert_trigger();" +
-                                    "CREATE TRIGGER %I AFTER UPDATE ON %I " +
-                                    "FOR EACH ROW EXECUTE PROCEDURE update_trigger();";
+                            sql = "CREATE TABLE %I( ";
+                            sql += "CONSTRAINT %I PRIMARY KEY (_pk), ";
+                            sql += "CONSTRAINT %I UNIQUE (id)) ";
+                            sql += "INHERITS (%I);";
+                            sql += "CREATE TRIGGER %I AFTER INSERT ON %I ";
+                            sql += "FOR EACH ROW EXECUTE PROCEDURE ";
+                            sql += "insert_trigger();";
+                            sql += "CREATE TRIGGER %I AFTER UPDATE ON %I ";
+                            sql += "FOR EACH ROW EXECUTE PROCEDURE ";
+                            sql += "update_trigger();";
+
                             tokens = tokens.concat([
                                 table,
                                 table + "_pkey",
@@ -1058,13 +1413,19 @@
                             ]);
 
                         } else {
-                            /* Drop non-inherited columns not included in properties */
+                            /* Drop non-inherited columns not included
+                               in properties */
                             props = feather.properties;
                             keys = Object.keys(props);
                             keys.forEach(function (key) {
-                                if (spec.properties && !spec.properties[key] &&
-                                        !(typeof feather.properties[key].type === "object" &&
-                                        typeof feather.properties[key].type.parentOf)) {
+                                let viewName;
+                                if (
+                                    spec.properties && !spec.properties[key] &&
+                                    !(
+                                        typeof props[key].type === "object" &&
+                                        typeof props[key].type.parentOf
+                                    )
+                                ) {
                                     /* Drop views */
                                     if (!changed) {
                                         sql += dropSql;
@@ -1074,16 +1435,27 @@
                                     /* Handle relations */
                                     type = props[key].type;
 
-                                    if (typeof type === "object" && type.properties) {
-                                        /* Drop associated view if applicable */
+                                    if (
+                                        typeof type === "object" &&
+                                        type.properties
+                                    ) {
+                                        // Drop associated view if applicable
                                         sql += "DROP VIEW %I;";
+                                        viewName = "_" + table;
+                                        viewName += "_" + key.toSnakeCase();
                                         tokens = tokens.concat([
-                                            "_" + table + "_" + key.toSnakeCase(),
+                                            viewName,
                                             table,
-                                            tools.relationColumn(key, type.relation)
+                                            tools.relationColumn(
+                                                key,
+                                                type.relation
+                                            )
                                         ]);
                                     } else {
-                                        tokens = tokens.concat([table, key.toSnakeCase()]);
+                                        tokens = tokens.concat([
+                                            table,
+                                            key.toSnakeCase()
+                                        ]);
                                     }
 
                                     sql += "ALTER TABLE %I DROP COLUMN %I;";
@@ -1094,11 +1466,16 @@
                                         delete parent.properties[type.childOf];
                                     }
 
-                                    // Parent properties need to be added back into spec so not lost
-                                } else if (spec.properties && !spec.properties[key] &&
-                                        (typeof feather.properties[key].type === "object" &&
-                                        typeof feather.properties[key].type.parentOf)) {
-                                    spec.properties[key] = feather.properties[key];
+                                    // Parent properties need to be added back
+                                    // into spec so not lost
+                                } else if (
+                                    spec.properties &&
+                                    !spec.properties[key] && (
+                                        typeof props[key].type === "object" &&
+                                        typeof props[key].type.parentOf
+                                    )
+                                ) {
+                                    spec.properties[key] = props[key];
                                 }
                             });
                         }
@@ -1106,14 +1483,17 @@
                         // Add table description
                         if (spec.description) {
                             sql += "COMMENT ON TABLE %I IS %L;";
-                            tokens = tokens.concat([table, spec.description || ""]);
+                            tokens = tokens.concat([
+                                table,
+                                spec.description || ""
+                            ]);
                         }
 
                         /* Add columns */
                         spec.properties = spec.properties || {};
                         props = spec.properties;
                         keys = Object.keys(props).filter(function (item) {
-                            var prop = props[item];
+                            let prop = props[item];
                             if (prop.autonumber) {
                                 autonumber = prop.autonumber;
                                 autonumber.key = item;
@@ -1121,148 +1501,7 @@
 
                             return !prop.inheritedFrom;
                         });
-                        keys.every(function (key) {
-                            var vSql,
-                                prop = props[key];
-
-                            type = typeof prop.type === "string"
-                                ? tools.types[prop.type]
-                                : prop.type;
-
-                            if (type && key !== spec.discriminator) {
-                                if (!feather || !feather.properties[key]) {
-
-                                    /* Drop views */
-                                    if (feather && !changed) {
-                                        sql += dropSql;
-                                    }
-
-                                    changed = true;
-                                    sql += "ALTER TABLE %I ADD COLUMN %I ";
-
-                                    /* Handle composite types */
-                                    if (typeof prop.type === "object") {
-                                        if (type.relation) {
-                                            sql += "integer;";
-                                            token = tools.relationColumn(key, type.relation);
-
-                                            /* Update parent class for to-many children */
-                                            if (type.childOf) {
-                                                parent = catalog[type.relation];
-                                                if (!parent.properties[type.childOf]) {
-                                                    parent.properties[type.childOf] = {
-                                                        description: 'Parent of "' + key + '" on "' +
-                                                                spec.name + '"',
-                                                        type: {
-                                                            relation: spec.name,
-                                                            parentOf: key
-                                                        }
-                                                    };
-
-                                                } else {
-                                                    err = 'Property "' + type.childOf +
-                                                            '" already exists on "' + type.relation + '"';
-                                                }
-                                            } else if (type.parentOf) {
-                                                err = 'Can not set parent directly for "' + key + '"';
-                                            } else if (!type.properties || !type.properties.length) {
-                                                err = 'Properties must be defined for relation "' + key + '"';
-                                            /* Must be to-one relation.
-                                               If relation feather is flagged as child, flag property as child on this feather. */
-                                            } else {
-                                                parent = catalog[type.relation];
-                                                if (parent.isChild) {
-                                                    prop.type.isChild = true;
-                                                }
-                                            }
-                                        } else {
-                                            err = 'Relation not defined for composite type "' + key + '"';
-                                        }
-
-                                        if (err) {
-                                            return false;
-                                        }
-
-                                        if (type.properties) {
-                                            cols = ["%I"];
-                                            name = "_" + table + "$" + key.toSnakeCase();
-                                            args = [name, "_pk"];
-
-                                            /* Always include "id" whether specified or not */
-                                            if (type.properties.indexOf("id") === -1) {
-                                                type.properties.unshift("id");
-                                            }
-
-                                            i = 0;
-                                            while (i < type.properties.length) {
-                                                cols.push("%I");
-                                                args.push(type.properties[i].toSnakeCase());
-                                                i += 1;
-                                            }
-
-                                            args.push("_" + type.relation.toSnakeCase());
-                                            vSql = "CREATE VIEW %I AS SELECT " + cols.join(",") +
-                                                    " FROM %I WHERE NOT is_deleted;";
-                                            sql += vSql.format(args);
-                                        }
-
-                                        /* Handle standard types */
-                                    } else {
-                                        if (prop.format) {
-                                            if (tools.formats[prop.format]) {
-                                                sql += tools.formats[prop.format].type;
-                                            } else {
-                                                err = 'Invalid format "' + prop.format + '" for property "' +
-                                                        key + '" on class "' + spec.name + '"';
-                                                return false;
-                                            }
-                                        } else {
-                                            sql += type.type;
-                                            if (type.type === "numeric") {
-                                                precision = (typeof prop.precision === "number" &&
-                                                        prop.precision !== -1)
-                                                    ? prop.precision
-                                                    : f.PRECISION_DEFAULT;
-                                                scale = (typeof prop.scale === "number" &&
-                                                        prop.precision !== -1)
-                                                    ? prop.scale
-                                                    : f.SCALE_DEFAULT;
-                                                sql += "(" + precision + "," + scale + ")";
-                                            }
-                                        }
-                                        sql += ";";
-                                        token = key.toSnakeCase();
-                                    }
-
-                                    adds.push(key);
-                                    tokens = tokens.concat([table, token]);
-
-                                    if (prop.isUnique) {
-                                        unique.push(key);
-                                    }
-
-                                    if (prop.isIndexed) {
-                                        indices.push(key);
-                                    }
-
-                                    if (prop.description) {
-                                        sql += "COMMENT ON COLUMN %I.%I IS %L;";
-
-                                        tokens = tokens.concat([
-                                            table,
-                                            token,
-                                            prop.description || ""
-                                        ]);
-                                    }
-                                }
-                            } else {
-                                err = 'Invalid type "' + prop.type + '" for property "' +
-                                        key + '" on class "' + spec.name + '"';
-                                return false;
-                            }
-
-                            return true;
-                        });
+                        keys.every(handleProps);
 
                         if (err) {
                             reject(err);
@@ -1284,10 +1523,12 @@
                             afterUpdateSchema();
                             return;
                         }
-                        var sequence = autonumber.sequence;
-                        sql = "SELECT relname FROM pg_class " +
-                                "JOIN pg_namespace ON relnamespace=pg_namespace.oid " +
-                                "WHERE relkind = 'S' AND relname = $1 AND nspname = 'public'";
+                        let sequence = autonumber.sequence;
+                        sql = "SELECT relname FROM pg_class ";
+                        sql += "JOIN pg_namespace ";
+                        sql += "ON relnamespace=pg_namespace.oid ";
+                        sql += "WHERE relkind = 'S' AND relname = $1 ";
+                        sql += "AND nspname = 'public'";
 
                         obj.client.query(sql, [sequence], function (err, resp) {
                             if (err) {
@@ -1314,25 +1555,31 @@
                     };
 
                     afterUpdateSchema = function (err) {
-                        var afterPopulateDefaults, iterateDefaults;
+                        let afterPopulateDefaults;
+                        let iterateDefaults;
 
                         function disableTriggers() {
                             return new Promise(function (resolve, reject) {
                                 sql = "ALTER TABLE %I DISABLE TRIGGER ALL;";
                                 sql = sql.format([table]);
-                                obj.client.query(sql)
-                                    .then(resolve)
-                                    .catch(reject);
+                                obj.client.query(sql).then(
+                                    resolve
+                                ).catch(
+                                    reject
+                                );
                             });
                         }
 
                         function updateTable() {
                             return new Promise(function (resolve, reject) {
-                                sql = "UPDATE %I SET " + tokens.join(",") + ";";
+                                sql = "UPDATE %I SET " + tokens.join(",");
+                                sql += ";";
                                 sql = sql.format(args);
-                                obj.client.query(sql, values)
-                                    .then(resolve)
-                                    .catch(reject);
+                                obj.client.query(sql, values).then(
+                                    resolve
+                                ).catch(
+                                    reject
+                                );
                             });
                         }
 
@@ -1340,9 +1587,11 @@
                             return new Promise(function (resolve, reject) {
                                 sql = "ALTER TABLE %I ENABLE TRIGGER ALL;";
                                 sql = sql.format([table]);
-                                obj.client.query(sql)
-                                    .then(resolve)
-                                    .catch(reject);
+                                obj.client.query(sql).then(
+                                    resolve
+                                ).catch(
+                                    reject
+                                );
                             });
                         }
 
@@ -1352,6 +1601,8 @@
                         }
 
                         afterPopulateDefaults = function () {
+                            let atoken;
+
                             // Update function based defaults (one by one)
                             if (fns.length || autonumber) {
                                 tokens = [];
@@ -1365,16 +1616,23 @@
                                 });
 
                                 if (autonumber) {
-                                    tokens.push("%I='" + (autonumber.prefix || "") +
-                                            "' || lpad(nextval('" + autonumber.sequence + "')::text, " +
-                                            (autonumber.length || 0) + ", '0') || '" +
-                                            (autonumber.suffix || "") + "'");
+                                    atoken = "%I='";
+                                    atoken += (autonumber.prefix || "");
+                                    atoken += "' || lpad(nextval('";
+                                    atoken += autonumber.sequence;
+                                    atoken += "')::text, ";
+                                    atoken += (autonumber.length || 0);
+                                    atoken += ", '0') || '";
+                                    atoken += (autonumber.suffix || "") + "'";
+                                    tokens.push(atoken);
                                     args.push(autonumber.key);
                                 }
 
-                                sql = "SELECT _pk FROM %I ORDER BY _pk OFFSET $1 LIMIT 1;";
+                                sql = "SELECT _pk FROM %I ORDER BY _pk ";
+                                sql += "OFFSET $1 LIMIT 1;";
                                 sql = sql.format([table]);
-                                sqlUpd = "UPDATE %I SET " + tokens.join(",") + " WHERE _pk = $1";
+                                sqlUpd = "UPDATE %I SET " + tokens.join(",");
+                                sqlUpd += " WHERE _pk = $1";
                                 sqlUpd = sqlUpd.format(args);
                                 obj.client.query(sql, [n], iterateDefaults);
                                 return;
@@ -1401,15 +1659,23 @@
                                     i += 1;
                                 }
 
-                                obj.client.query(sqlUpd, values, function (err) {
-                                    if (err) {
-                                        reject(err);
-                                        return;
-                                    }
+                                obj.client.query(
+                                    sqlUpd,
+                                    values,
+                                    function (err) {
+                                        if (err) {
+                                            reject(err);
+                                            return;
+                                        }
 
-                                    // Look for next record
-                                    obj.client.query(sql, [n], iterateDefaults);
-                                });
+                                        // Look for next record
+                                        obj.client.query(
+                                            sql,
+                                            [n],
+                                            iterateDefaults
+                                        );
+                                    }
+                                );
                                 return;
                             }
 
@@ -1423,28 +1689,44 @@
                             args = [table];
 
                             adds.forEach(function (add) {
-                                var pformat = props[add].format;
+                                let pformat = props[add].format;
+
                                 type = props[add].type;
+
                                 if (typeof type === "object") {
                                     defaultValue = -1;
                                 } else {
-                                    defaultValue = props[add].default ||
-                                            ((pformat && tools.formats[pformat])
-                                        ? tools.formats[pformat].default
-                                        : false) ||
-                                            tools.types[type].default;
+                                    defaultValue = props[add].default;
+                                    if (defaultValue === undefined) {
+                                        defaultValue = (
+                                            (pformat && formats[pformat])
+                                            ? formats[pformat].default
+                                            : false
+                                        ) || tools.types[type].default;
+                                    }
                                 }
-                                if (typeof defaultValue === "string" &&
-                                        defaultValue.match(/\(\)$/)) {
+
+                                if (
+                                    typeof defaultValue === "string" &&
+                                    defaultValue.match(/\(\)$/)
+                                ) {
                                     fns.push({
                                         col: add.toSnakeCase(),
-                                        default: defaultValue.replace(/\(\)$/, "")
+                                        default: defaultValue.replace(
+                                            /\(\)$/,
+                                            ""
+                                        )
                                     });
                                 } else {
                                     values.push(defaultValue);
                                     tokens.push("%I=$" + p);
                                     if (typeof type === "object") {
-                                        args.push(tools.relationColumn(add, type.relation));
+                                        args.push(
+                                            tools.relationColumn(
+                                                add,
+                                                type.relation
+                                            )
+                                        );
                                     } else {
                                         args.push(add.toSnakeCase());
                                     }
@@ -1453,12 +1735,17 @@
                             });
 
                             if (values.length) {
-                                Promise.resolve()
-                                    .then(disableTriggers)
-                                    .then(updateTable)
-                                    .then(enableTriggers)
-                                    .then(afterPopulateDefaults)
-                                    .catch(reject);
+                                Promise.resolve().then(
+                                    disableTriggers
+                                ).then(
+                                    updateTable
+                                ).then(
+                                    enableTriggers
+                                ).then(
+                                    afterPopulateDefaults
+                                ).catch(
+                                    reject
+                                );
 
                                 return;
                             }
@@ -1498,34 +1785,57 @@
                                 ]);
                             });
 
-                            obj.client.query(sql.format(tokens), updateCatalog);
+                            obj.client.query(
+                                sql.format(tokens),
+                                updateCatalog
+                            );
                             return;
                         }
                         updateCatalog();
                     };
 
                     updateCatalog = function (err) {
+                        let fprops;
+                        let sprops;
+
+                        function handleFP(attr) {
+                            let pr = this;
+                            let st = sprops[pr].type;
+                            let ft = fprops[pr].type;
+
+                            if (attr === "type") {
+                                if (
+                                    typeof sprops[pr].type === "object" &&
+                                    st.relation === ft.relation &&
+                                    ft.isChild
+                                ) {
+                                    st.isChild = true;
+                                }
+                            }
+                        }
+
+                        function handleSP(p) {
+                            if (fprops[p]) {
+                                Object.keys(
+                                    fprops[p]
+                                ).forEach(
+                                    handleFP.bind(p)
+                                );
+                            }
+                        }
+
                         if (err) {
                             reject(err);
                             return;
                         }
 
-                        /* Make sure certain values added automatically persist */
+                        /* Make sure certain values added automatically
+                           persist */
                         if (feather) {
-                            Object.keys(spec.properties).forEach(function (p) {
-                                var fprops = feather.properties;
-                                if (fprops[p]) {
-                                    Object.keys(fprops[p]).forEach(function (attr) {
-                                        if (attr === "type") {
-                                            if (typeof spec.properties[p].type === "object" &&
-                                                    spec.properties[p].type.relation === feather.properties[p].type.relation &&
-                                                    feather.properties[p].type.isChild) {
-                                                spec.properties[p].type.isChild = true;
-                                            }
-                                        }
-                                    });
-                                }
-                            });
+                            fprops = feather.properties;
+                            sprops = spec.properties;
+
+                            Object.keys(sprops).forEach(handleSP);
                         }
 
                         /* Update catalog settings */
@@ -1533,7 +1843,9 @@
                         catalog[name] = spec;
                         delete spec.name;
                         delete spec.authorization;
-                        spec.isChild = spec.isChild || tools.isChildFeather(spec);
+                        spec.isChild = (
+                            spec.isChild || tools.isChildFeather(spec)
+                        );
 
                         settings.saveSettings({
                             client: obj.client,
@@ -1545,7 +1857,7 @@
                     };
 
                     afterUpdateCatalog = function () {
-                        var callback;
+                        let callback;
 
                         callback = function (resp) {
                             isChild = tools.isChildFeather(resp);
@@ -1568,7 +1880,7 @@
                     };
 
                     afterNextVal = function (err, resp) {
-                        var callback;
+                        let callback;
 
                         if (err) {
                             reject(err);
@@ -1578,7 +1890,7 @@
                         pk = resp.rows[0].pk;
 
                         callback = function (err, resp) {
-                            var key;
+                            let key;
 
                             if (err) {
                                 reject(err);
@@ -1587,13 +1899,20 @@
 
                             key = resp;
 
-                            sql = "INSERT INTO \"$feather\" " +
-                                    "(_pk, id, created, created_by, updated, updated_by, " +
-                                    "is_deleted, is_child, parent_pk) VALUES " +
-                                    "($1, $2, now(), $3, now(), $4, false, $5, $6);";
-                            values = [pk, table, obj.client.currentUser,
-                                    obj.client.currentUser, isChild,
-                                    key];
+                            sql = "INSERT INTO \"$feather\" ";
+                            sql += "(_pk, id, created, created_by, updated, ";
+                            sql += "updated_by, is_deleted, is_child, ";
+                            sql += "parent_pk) VALUES ";
+                            sql += "($1, $2, now(), $3, now(), $4, false, ";
+                            sql += "$5, $6);";
+                            values = [
+                                pk,
+                                table,
+                                obj.client.currentUser,
+                                obj.client.currentUser,
+                                isChild,
+                                key
+                            ];
                             obj.client.query(sql, values, afterInsertFeather);
                         };
 
@@ -1654,9 +1973,13 @@
 
                         /* Set authorization */
                         if (authorization) {
-                            that.saveAuthorization(authorization)
-                                .then(afterSaveAuthorization)
-                                .catch(reject);
+                            that.saveAuthorization(
+                                authorization
+                            ).then(
+                                afterSaveAuthorization
+                            ).catch(
+                                reject
+                            );
                             return;
                         }
 
@@ -1675,9 +1998,11 @@
                     // Real work starts here
                     spec = specs[c];
                     c += 1;
-                    table = spec.name
+                    table = (
+                        spec.name
                         ? spec.name.toSnakeCase()
-                        : false;
+                        : false
+                    );
                     inherits = (spec.inherits || "Object");
                     inherits = inherits.toSnakeCase();
                     authorization = spec.authorization;
@@ -1694,13 +2019,12 @@
                             includeInherited: false
                         }
                     }).then(afterGetFeather).catch(reject);
-                };
+                }
 
                 // Real work starts here
                 nextSpec();
             });
         };
-
 
         return that;
     };
