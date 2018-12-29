@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2018  John Rogelstad
+    Copyright (C) 2019  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,35 +15,11 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*jslint this */
+/*jslint this, node */
 (function () {
-    'strict';
-    
+    "use strict";
+
     const Big = require("big.js");
-
-    /**
-        Add padding to a number.
-
-          pad(9, 3);      // "009";
-          pad(12, 3);     // "012"
-          pad(9, 3, '-')  // "--9"
-
-        @param {Number} Width
-        @param {String} Pad character, default 0
-        @return {String}
-    */
-    Number.prototype.pad = function (width, str) {
-        var n = this + '',
-            a = [];
-        str = str || '0';
-        if (n.length < width) {
-            a.length = width - n.length + 1;
-        }
-
-        return a.length
-            ? a.join(str) + n
-            : n;
-    };
 
     /**
         Add padding to a number.
@@ -58,16 +34,18 @@
         @return {String}
     */
     Number.prototype.pad = function (width, str) {
-        var n = this + '',
-            a = [];
-        str = str || '0';
+        let n = String(this);
+        let a = [];
+        str = str || "0";
         if (n.length < width) {
             a.length = width - n.length + 1;
         }
 
-        return a.length
+        return (
+            a.length
             ? a.join(str) + n
-            : n;
+            : n
+        );
     };
 
     Number.prototype.div = function (n) {
@@ -81,7 +59,7 @@
     Number.prototype.plus = function (n) {
         return new Big(this).plus(n).valueOf() - 0;
     };
-    
+
     Number.prototype.times = function (n) {
         return new Big(this).times(n).valueOf() - 0;
     };
