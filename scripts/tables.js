@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2018  John Rogelstad
+    Copyright (C) 2019  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,20 +15,352 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*global Promise*/
-/*jslint node*/
+/*global exports*/
+/*jslint node, browser*/
 (function (exports) {
-    "strict";
+    "use strict";
+
+    const createTriggerFuncSql = (
+        "CREATE OR REPLACE FUNCTION insert_trigger() RETURNS trigger AS $$" +
+        "DECLARE " +
+        "  node RECORD;" +
+        "  sub RECORD; " +
+        "  rec RECORD; " +
+        "  payload TEXT; " +
+        "BEGIN" +
+        "  FOR node IN " +
+        "    SELECT DISTINCT nodeid FROM \"$subscription\"" +
+        "    WHERE objectid = TG_TABLE_NAME LOOP " +
+        "    EXECUTE format('SELECT * FROM %I" +
+        "    WHERE id = $1', '_' || TG_TABLE_NAME) INTO rec USING NEW.id;" +
+        "    FOR sub IN" +
+        "      SELECT 'create' AS change,sessionid, subscriptionid " +
+        "      FROM \"$subscription\"" +
+        "      WHERE nodeid = node.nodeid AND objectid = TG_TABLE_NAME" +
+        "    LOOP" +
+        "        INSERT INTO \"$subscription\" " +
+        "        VALUES (node.nodeid, sub.sessionid, sub.subscriptionid, " +
+        "        NEW.id);" +
+        "        payload := '{\"subscription\": ' || " +
+        "        row_to_json(sub)::text || ',\"data\":' || " +
+        "        row_to_json(rec)::text || '}';" +
+        "        PERFORM pg_notify(node.nodeid, payload); " +
+        "    END LOOP;" +
+        "  END LOOP; " +
+        "RETURN NEW; " +
+        "END; " +
+        "$$ LANGUAGE plpgsql;" +
+        "CREATE OR REPLACE FUNCTION update_trigger() RETURNS trigger AS $$" +
+        "DECLARE " +
+        "  node RECORD;" +
+        "  sub RECORD; " +
+        "  rec RECORD; " +
+        "  payload TEXT; " +
+        "  change TEXT DEFAULT 'update';" +
+        "  data TEXT; " +
+        "BEGIN" +
+        "  FOR node IN " +
+        "    SELECT DISTINCT nodeid FROM \"$subscription\"" +
+        "    WHERE objectid = NEW.id LOOP " +
+        "    IF NEW.is_deleted THEN " +
+        "      change := 'delete'; " +
+        "      data := '\"' || OLD.id || '\"'; " +
+        "    ELSEIF NEW.lock IS NOT NULL AND OLD.lock IS NULL THEN " +
+        "      change := 'lock'; " +
+        "      data := '{\"id\":\"' || NEW.id || '\",\"lock\": ' || " +
+        "      row_to_json(NEW.lock)::text || '}'; " +
+        "    ELSEIF OLD.lock IS NOT NULL AND NEW.lock IS NULL THEN " +
+        "      change := 'unlock'; " +
+        "      data := '\"' || OLD.id || '\"'; " +
+        "    ELSE" +
+        "      EXECUTE format('SELECT * FROM %I" +
+        "      WHERE id = $1', '_' || TG_TABLE_NAME) INTO rec USING NEW.id;" +
+        "      data := row_to_json(rec)::text; " +
+        "    END IF; " +
+        "    FOR sub IN" +
+        "      SELECT change AS change, sessionid, subscriptionid " +
+        "      FROM \"$subscription\"" +
+        "      WHERE nodeid = node.nodeid AND objectid = NEW.id" +
+        "    LOOP" +
+        "        payload := '{\"subscription\": ' || " +
+        "        row_to_json(sub)::text || ',\"data\":' || data || '}';" +
+        "        PERFORM pg_notify(node.nodeid, payload); " +
+        "    END LOOP;" +
+        "  END LOOP; " +
+        "RETURN NEW; " +
+        "END; " +
+        "$$ LANGUAGE plpgsql;"
+    );
+
+    const createSubcriptionSql = (
+        "CREATE TABLE \"$subscription\" (" +
+        "nodeid text," +
+        "sessionid text," +
+        "subscriptionid text," +
+        "objectid text," +
+        "PRIMARY KEY (nodeid, sessionid, subscriptionid, objectid)); " +
+        "COMMENT ON TABLE \"$subscription\" IS " +
+        "'Track which changes to listen for';" +
+        "COMMENT ON COLUMN \"$subscription\".nodeid IS 'Node server id';" +
+        "COMMENT ON COLUMN \"$subscription\".sessionid IS " +
+        "'Client session id';" +
+        "COMMENT ON COLUMN \"$subscription\".subscriptionid IS " +
+        "'Subscription id';" +
+        "COMMENT ON COLUMN \"$subscription\".objectid IS 'Object id';"
+    );
+
+    const createObjectSql = (
+        "CREATE TABLE object (" +
+        "_pk bigserial PRIMARY KEY," +
+        "id text UNIQUE," +
+        "created timestamp with time zone," +
+        "created_by text," +
+        "updated timestamp with time zone," +
+        "updated_by text," +
+        "is_deleted boolean, " +
+        "lock lock); " +
+        "COMMENT ON TABLE object IS " +
+        "'Abstract object class from which all other classes will inherit';" +
+        "COMMENT ON COLUMN object._pk IS 'Internal primary key';" +
+        "COMMENT ON COLUMN object.id IS 'Surrogate key';" +
+        "COMMENT ON COLUMN object.created IS 'Create time of the record';" +
+        "COMMENT ON COLUMN object.created_by IS " +
+        "'User who created the record';" +
+        "COMMENT ON COLUMN object.updated IS " +
+        "'Last time the record was updated';" +
+        "COMMENT ON COLUMN object.updated_by IS " +
+        "'Last user who created the record';" +
+        "COMMENT ON COLUMN object.is_deleted IS " +
+        "'Indicates the record is no longer active';" +
+        "COMMENT ON COLUMN object.lock IS 'Record lock';" +
+        "CREATE OR REPLACE VIEW _object AS SELECT *," +
+        "to_camel_case(tableoid::regclass::text) AS object_type FROM object;"
+    );
+
+    const createModuleSql = (
+        "CREATE TABLE \"$module\" (" +
+        "name text PRIMARY KEY," +
+        "script text," +
+        "version text," +
+        "dependencies json," +
+        "is_active boolean DEFAULT true);" +
+        "COMMENT ON TABLE \"$module\" IS " +
+        "'Internal table for storing JavaScript';" +
+        "COMMENT ON COLUMN \"$module\".name IS 'Primary key';" +
+        "COMMENT ON COLUMN \"$module\".script IS 'JavaScript';" +
+        "COMMENT ON COLUMN \"$module\".version IS 'Version number';" +
+        "COMMENT ON COLUMN \"$module\".dependencies IS " +
+        "'Module dependencies';" +
+        "COMMENT ON COLUMN \"$module\".dependencies IS 'Active state';"
+    );
+
+    const createAuthSql = (
+        "CREATE TABLE \"$auth\" (" +
+        "pk serial PRIMARY KEY," +
+        "object_pk bigint not null," +
+        "role_pk bigint not null," +
+        "can_create boolean not null," +
+        "can_read boolean not null," +
+        "can_update boolean not null," +
+        "can_delete boolean not null," +
+        "is_member_auth boolean not null," +
+        "CONSTRAINT \"$auth_object_pk_role_pk_is_member_auth_key\" " +
+        "UNIQUE (object_pk, role_pk, is_member_auth));" +
+        "COMMENT ON TABLE \"$auth\" IS " +
+        "'Table for storing object level authorization information';" +
+        "COMMENT ON COLUMN \"$auth\".pk IS 'Primary key';" +
+        "COMMENT ON COLUMN \"$auth\".object_pk IS " +
+        "'Primary key for object authorization applies to';" +
+        "COMMENT ON COLUMN \"$auth\".role_pk IS " +
+        "'Primary key for role authorization applies to';" +
+        "COMMENT ON COLUMN \"$auth\".can_create IS 'Can create the object';" +
+        "COMMENT ON COLUMN \"$auth\".can_read IS 'Can read the object';" +
+        "COMMENT ON COLUMN \"$auth\".can_update IS 'Can update the object';" +
+        "COMMENT ON COLUMN \"$auth\".can_delete IS 'Can delete the object';" +
+        "COMMENT ON COLUMN \"$auth\".is_member_auth IS " +
+        "'Is authorization for members of a parent';"
+    );
+
+    const createFeatherSql = (
+        "CREATE TABLE \"$feather\" (" +
+        "is_child boolean," +
+        "parent_pk bigint," +
+        "CONSTRAINT feather_pkey PRIMARY KEY (_pk), " +
+        "CONSTRAINT feather_id_key UNIQUE (id)) INHERITS (object);" +
+        "COMMENT ON TABLE \"$feather\" IS " +
+        "'Internal table for storing class names';"
+    );
+
+    const createServiceSql = (
+        "CREATE TABLE \"$service\" (" +
+        "name text PRIMARY KEY," +
+        "module text REFERENCES \"$module\" (name)," +
+        "script text," +
+        "version text);" +
+        "COMMENT ON TABLE \"$service\" IS " +
+        "'Internal table for storing JavaScript services';" +
+        "COMMENT ON COLUMN \"$service\".name IS 'Primary key';" +
+        "COMMENT ON COLUMN \"$service\".module IS 'Module reference';" +
+        "COMMENT ON COLUMN \"$service\".script IS 'JavaScript';" +
+        "COMMENT ON COLUMN \"$service\".version IS 'Version number';"
+    );
+
+    const createRouteSql = (
+        "CREATE TABLE \"$route\" (" +
+        "name text PRIMARY KEY," +
+        "module text REFERENCES \"$module\" (name)," +
+        "script text," +
+        "version text);" +
+        "COMMENT ON TABLE \"$route\" IS " +
+        "'Internal table for storing JavaScript routes';" +
+        "COMMENT ON COLUMN \"$route\".name IS 'Primary key';" +
+        "COMMENT ON COLUMN \"$route\".module IS 'Module reference';" +
+        "COMMENT ON COLUMN \"$route\".script IS 'JavaScript';" +
+        "COMMENT ON COLUMN \"$route\".version IS 'Version number';"
+    );
+
+    const createWorkbookSql = (
+        "CREATE TABLE \"$workbook\" (" +
+        "name text UNIQUE," +
+        "description text," +
+        "launch_config json," +
+        "default_config json," +
+        "local_config json," +
+        "module text REFERENCES \"$module\" (name)," +
+        "CONSTRAINT workbook_pkey PRIMARY KEY (_pk), " +
+        "CONSTRAINT workbook_id_key UNIQUE (id)) INHERITS (object);" +
+        "COMMENT ON TABLE \"$workbook\" IS " +
+        "'Internal table for storing workbook';" +
+        "COMMENT ON COLUMN \"$workbook\".name IS 'Primary key';" +
+        "COMMENT ON COLUMN \"$workbook\".description IS 'Description';" +
+        "COMMENT ON COLUMN \"$workbook\".launch_config IS " +
+        "'Launcher configuration';" +
+        "COMMENT ON COLUMN \"$workbook\".default_config IS " +
+        "'Default configuration';" +
+        "COMMENT ON COLUMN \"$workbook\".local_config IS " +
+        "'Local configuration';" +
+        "COMMENT ON COLUMN \"$workbook\".module IS 'Foreign key to module';"
+    );
+
+    const createUserSql = (
+        "CREATE TABLE \"$user\" (" +
+        "username text PRIMARY KEY," +
+        "is_super boolean);" +
+        "COMMENT ON TABLE \"$user\" IS " +
+        "'Internal table for storing supplimental user information';" +
+        "COMMENT ON COLUMN \"$user\".username IS 'System user';" +
+        "COMMENT ON COLUMN \"$user\".is_super IS " +
+        "'Indicates whether user is super user';"
+    );
+
+    const createSettingsSql = (
+        "CREATE TABLE \"$settings\" (" +
+        "name text," +
+        "definition json," +
+        "data json," +
+        "etag text," +
+        "CONSTRAINT settings_pkey PRIMARY KEY (_pk), " +
+        "CONSTRAINT settings_id_key UNIQUE (id)) INHERITS (object);" +
+        "COMMENT ON TABLE \"$settings\" IS " +
+        "'Internal table for storing system settings';" +
+        "COMMENT ON COLUMN \"$settings\".name IS 'Name of settings';" +
+        "COMMENT ON COLUMN \"$settings\".definition IS " +
+        "'Attribute types definition';" +
+        "COMMENT ON COLUMN \"$settings\".data IS " +
+        "'Object containing settings';"
+    );
+
+    const objectDef = {
+        Object: {
+            description: (
+                "Abstract object class from which all feathers will inherit"
+            ),
+            module: "Core",
+            discriminator: "objectType",
+            plural: "Objects",
+            properties: {
+                id: {
+                    description: "Surrogate key",
+                    type: "string",
+                    default: "createId()",
+                    isRequired: true,
+                    isReadOnly: true
+                },
+                created: {
+                    description: "Create time of the record",
+                    type: "string",
+                    format: "dateTime",
+                    default: "now()",
+                    isReadOnly: true
+                },
+                createdBy: {
+                    description: "User who created the record",
+                    type: "string",
+                    default: "getCurrentUser()",
+                    isReadOnly: true
+                },
+                updated: {
+                    description: "Last time the record was updated",
+                    type: "string",
+                    format: "dateTime",
+                    default: "now()",
+                    isReadOnly: true
+                },
+                updatedBy: {
+                    description: "User who created the record",
+                    type: "string",
+                    default: "getCurrentUser()",
+                    isReadOnly: true
+                },
+                isDeleted: {
+                    description: "Indicates the record is no longer active",
+                    type: "boolean",
+                    isReadOnly: true
+                },
+                lock: {
+                    description: "Record lock information",
+                    type: "object",
+                    format: "lock",
+                    isReadOnly: true
+                },
+                objectType: {
+                    description: (
+                        "Discriminates which inherited object type the " +
+                        "object represents"
+                    ),
+                    type: "string",
+                    isReadOnly: true
+                }
+            }
+        }
+    };
 
     exports.execute = function (obj) {
         return new Promise(function (resolve, reject) {
-            var createCamelCase, createMoney, createObject, createFeather, createAuth,
-                    createModule, createService, createRoute, createWorkbook, createSubscription,
-                    createSettings, createEventTrigger, createUser, createLock,
-                    sqlCheck, done, sql, params;
+            let createCamelCase;
+            let createMoney;
+            let createObject;
+            let createFeather;
+            let createAuth;
+            let createModule;
+            let createService;
+            let createRoute;
+            let createWorkbook;
+            let createSubscription;
+            let createSettings;
+            let createEventTrigger;
+            let createUser;
+            let createLock;
+            let sqlCheck;
+            let done;
+            let sql;
+            let params;
 
             sqlCheck = function (table, callback, statement) {
-                var sqlChk = statement || "SELECT * FROM pg_tables WHERE schemaname = 'public' AND tablename = $1;";
+                let sqlChk = statement || (
+                    "SELECT * FROM pg_tables " +
+                    "WHERE schemaname = 'public' AND tablename = $1;"
+                );
 
                 obj.client.query(sqlChk, [table], function (err, resp) {
                     if (err) {
@@ -42,9 +374,12 @@
 
             // Create a camel case function
             createCamelCase = function () {
-                sql = "CREATE OR REPLACE FUNCTION to_camel_case(str text) RETURNS text AS $$" +
-                        "SELECT replace(initcap($1), '_', '');" +
-                        "$$ LANGUAGE SQL IMMUTABLE;";
+                sql = (
+                    "CREATE OR REPLACE FUNCTION to_camel_case(str text) " +
+                    "RETURNS text AS $$" +
+                    "SELECT replace(initcap($1), '_', '');" +
+                    "$$ LANGUAGE SQL IMMUTABLE;"
+                );
                 obj.client.query(sql, createMoney);
             };
 
@@ -57,12 +392,14 @@
                     }
 
                     if (!exists) {
-                        sql = "CREATE TYPE mono AS (" +
-                                "   amount numeric," +
-                                "   currency text," +
-                                "   effective timestamp with time zone," +
-                                "   base_amount numeric" +
-                                ");";
+                        sql = (
+                            "CREATE TYPE mono AS (" +
+                            "   amount numeric," +
+                            "   currency text," +
+                            "   effective timestamp with time zone," +
+                            "   base_amount numeric" +
+                            ");"
+                        );
                         obj.client.query(sql, createLock);
                         return;
                     }
@@ -70,7 +407,7 @@
                 }
 
                 sql = "SELECT * FROM pg_class WHERE relname = $1";
-                sqlCheck('mono', callback, sql);
+                sqlCheck("mono", callback, sql);
             };
 
             // Create "lock" data type
@@ -82,12 +419,14 @@
                     }
 
                     if (!exists) {
-                        sql = "CREATE TYPE lock AS (" +
-                                "   username text," +
-                                "   created timestamp with time zone," +
-                                "   _nodeid text," +
-                                "   _sessionid text" +
-                                ");";
+                        sql = (
+                            "CREATE TYPE lock AS (" +
+                            "   username text," +
+                            "   created timestamp with time zone," +
+                            "   _nodeid text," +
+                            "   _sessionid text" +
+                            ");"
+                        );
                         obj.client.query(sql, createEventTrigger);
                         return;
                     }
@@ -95,102 +434,25 @@
                 }
 
                 sql = "SELECT * FROM pg_class WHERE relname = $1";
-                sqlCheck('lock', callback, sql);
+                sqlCheck("lock", callback, sql);
             };
 
             // Create event trigger for notifications
             createEventTrigger = function () {
-                sql = 'CREATE OR REPLACE FUNCTION insert_trigger() RETURNS trigger AS $$' +
-                        'DECLARE ' +
-                        '  node RECORD;' +
-                        '  sub RECORD; ' +
-                        '  rec RECORD; ' +
-                        '  payload TEXT; ' +
-                        'BEGIN' +
-                        '  FOR node IN ' +
-                        '    SELECT DISTINCT nodeid FROM "$subscription"' +
-                        '    WHERE objectid = TG_TABLE_NAME LOOP ' +
-                        '' +
-                        '    EXECUTE format(\'SELECT * FROM %I' +
-                        '    WHERE id = $1\', \'_\' || TG_TABLE_NAME) INTO rec USING NEW.id;' +
-                        '' +
-                        '    FOR sub IN' +
-                        '      SELECT \'create\' AS change,sessionid, subscriptionid FROM "$subscription"' +
-                        '      WHERE nodeid = node.nodeid AND objectid = TG_TABLE_NAME' +
-                        '    LOOP' +
-                        '        INSERT INTO "$subscription" VALUES (node.nodeid, sub.sessionid, sub.subscriptionid, NEW.id);' +
-                        '' +
-                        '        payload := \'{"subscription": \' || row_to_json(sub)::text || \',"data":\' || row_to_json(rec)::text || \'}\';' +
-                        '        PERFORM pg_notify(node.nodeid, payload); ' +
-                        '    END LOOP;' +
-                        '  END LOOP; ' +
-                        'RETURN NEW; ' +
-                        'END; ' +
-                        '$$ LANGUAGE plpgsql;' +
-                        'CREATE OR REPLACE FUNCTION update_trigger() RETURNS trigger AS $$' +
-                        'DECLARE ' +
-                        '  node RECORD;' +
-                        '  sub RECORD; ' +
-                        '  rec RECORD; ' +
-                        '  payload TEXT; ' +
-                        '  change TEXT DEFAULT \'update\';' +
-                        '  data TEXT; ' +
-                        'BEGIN' +
-                        '  FOR node IN ' +
-                        '    SELECT DISTINCT nodeid FROM "$subscription"' +
-                        '    WHERE objectid = NEW.id LOOP ' +
-                        '' +
-                        '    IF NEW.is_deleted THEN ' +
-                        '      change := \'delete\'; ' +
-                        '      data := \'"\' || OLD.id || \'"\'; ' +
-                        '    ELSEIF NEW.lock IS NOT NULL AND OLD.lock IS NULL THEN ' +
-                        '      change := \'lock\'; ' +
-                        '      data := \'{"id":"\' || NEW.id || \'","lock": \' || row_to_json(NEW.lock)::text || \'}\'; ' +
-                        '    ELSEIF OLD.lock IS NOT NULL AND NEW.lock IS NULL THEN ' +
-                        '      change := \'unlock\'; ' +
-                        '      data := \'"\' || OLD.id || \'"\'; ' +
-                        '    ELSE' +
-                        '      EXECUTE format(\'SELECT * FROM %I' +
-                        '      WHERE id = $1\', \'_\' || TG_TABLE_NAME) INTO rec USING NEW.id;' +
-                        '      data := row_to_json(rec)::text; ' +
-                        '    END IF; ' +
-                        '' +
-                        '    FOR sub IN' +
-                        '      SELECT change AS change, sessionid, subscriptionid FROM "$subscription"' +
-                        '      WHERE nodeid = node.nodeid AND objectid = NEW.id' +
-                        '    LOOP' +
-                        '        payload := \'{"subscription": \' || row_to_json(sub)::text || \',"data":\' || data || \'}\';' +
-                        '        PERFORM pg_notify(node.nodeid, payload); ' +
-                        '    END LOOP;' +
-                        '  END LOOP; ' +
-                        'RETURN NEW; ' +
-                        'END; ' +
-                        '$$ LANGUAGE plpgsql;';
-                obj.client.query(sql, createSubscription);
+                obj.client.query(createTriggerFuncSql, createSubscription);
                 return;
             };
 
             // Create the subscription table
             createSubscription = function () {
-                sqlCheck('$subscription', function (err, exists) {
+                sqlCheck("$subscription", function (err, exists) {
                     if (err) {
                         reject(err);
                         return;
                     }
 
                     if (!exists) {
-                        sql = "CREATE TABLE \"$subscription\" (" +
-                                "nodeid text," +
-                                "sessionid text," +
-                                "subscriptionid text," +
-                                "objectid text," +
-                                "PRIMARY KEY (nodeid, sessionid, subscriptionid, objectid)); " +
-                                "COMMENT ON TABLE \"$subscription\" IS 'Track which changes to listen for';" +
-                                "COMMENT ON COLUMN \"$subscription\".nodeid IS 'Node server id';" +
-                                "COMMENT ON COLUMN \"$subscription\".sessionid IS 'Client session id';" +
-                                "COMMENT ON COLUMN \"$subscription\".subscriptionid IS 'Subscription id';" +
-                                "COMMENT ON COLUMN \"$subscription\".objectid IS 'Object id';";
-                        obj.client.query(sql, createObject);
+                        obj.client.query(createSubcriptionSql, createObject);
                         return;
                     }
                     createObject();
@@ -199,33 +461,14 @@
 
             // Create the base object table
             createObject = function () {
-                sqlCheck('object', function (err, exists) {
+                sqlCheck("object", function (err, exists) {
                     if (err) {
                         reject(err);
                         return;
                     }
 
                     if (!exists) {
-                        sql = "CREATE TABLE object (" +
-                                "_pk bigserial PRIMARY KEY," +
-                                "id text UNIQUE," +
-                                "created timestamp with time zone," +
-                                "created_by text," +
-                                "updated timestamp with time zone," +
-                                "updated_by text," +
-                                "is_deleted boolean, " +
-                                "lock lock); " +
-                                "COMMENT ON TABLE object IS 'Abstract object class from which all other classes will inherit';" +
-                                "COMMENT ON COLUMN object._pk IS 'Internal primary key';" +
-                                "COMMENT ON COLUMN object.id IS 'Surrogate key';" +
-                                "COMMENT ON COLUMN object.created IS 'Create time of the record';" +
-                                "COMMENT ON COLUMN object.created_by IS 'User who created the record';" +
-                                "COMMENT ON COLUMN object.updated IS 'Last time the record was updated';" +
-                                "COMMENT ON COLUMN object.updated_by IS 'Last user who created the record';" +
-                                "COMMENT ON COLUMN object.is_deleted IS 'Indicates the record is no longer active';" +
-                                "COMMENT ON COLUMN object.lock IS 'Record lock';" +
-                                "CREATE OR REPLACE VIEW _object AS SELECT *, to_camel_case(tableoid::regclass::text) AS object_type FROM object;";
-                        obj.client.query(sql, createAuth);
+                        obj.client.query(createObjectSql, createAuth);
                         return;
                     }
                     createAuth();
@@ -234,33 +477,14 @@
 
             // Create the object auth table
             createAuth = function () {
-                sqlCheck('$auth', function (err, exists) {
+                sqlCheck("$auth", function (err, exists) {
                     if (err) {
                         reject(err);
                         return;
                     }
 
                     if (!exists) {
-                        sql = "CREATE TABLE \"$auth\" (" +
-                                "pk serial PRIMARY KEY," +
-                                "object_pk bigint not null," +
-                                "role_pk bigint not null," +
-                                "can_create boolean not null," +
-                                "can_read boolean not null," +
-                                "can_update boolean not null," +
-                                "can_delete boolean not null," +
-                                "is_member_auth boolean not null," +
-                                "CONSTRAINT \"$auth_object_pk_role_pk_is_member_auth_key\" UNIQUE (object_pk, role_pk, is_member_auth));" +
-                                "COMMENT ON TABLE \"$auth\" IS 'Table for storing object level authorization information';" +
-                                "COMMENT ON COLUMN \"$auth\".pk IS 'Primary key';" +
-                                "COMMENT ON COLUMN \"$auth\".object_pk IS 'Primary key for object authorization applies to';" +
-                                "COMMENT ON COLUMN \"$auth\".role_pk IS 'Primary key for role authorization applies to';" +
-                                "COMMENT ON COLUMN \"$auth\".can_create IS 'Can create the object';" +
-                                "COMMENT ON COLUMN \"$auth\".can_read IS 'Can read the object';" +
-                                "COMMENT ON COLUMN \"$auth\".can_update IS 'Can update the object';" +
-                                "COMMENT ON COLUMN \"$auth\".can_delete IS 'Can delete the object';" +
-                                "COMMENT ON COLUMN \"$auth\".is_member_auth IS 'Is authorization for members of a parent';";
-                        obj.client.query(sql, createFeather);
+                        obj.client.query(createAuthSql, createFeather);
                         return;
                     }
                     createFeather();
@@ -269,20 +493,14 @@
 
             // Create the feather table
             createFeather = function () {
-                sqlCheck('$feather', function (err, exists) {
+                sqlCheck("$feather", function (err, exists) {
                     if (err) {
                         reject(err);
                         return;
                     }
 
                     if (!exists) {
-                        sql = "CREATE TABLE \"$feather\" (" +
-                                "is_child boolean," +
-                                "parent_pk bigint," +
-                                "CONSTRAINT feather_pkey PRIMARY KEY (_pk), " +
-                                "CONSTRAINT feather_id_key UNIQUE (id)) INHERITS (object);" +
-                                "COMMENT ON TABLE \"$feather\" is 'Internal table for storing class names';";
-                        obj.client.query(sql, createModule);
+                        obj.client.query(createFeatherSql, createModule);
                         return;
                     }
                     createModule();
@@ -291,26 +509,14 @@
 
             // Create the module table
             createModule = function () {
-                sqlCheck('$module', function (err, exists) {
+                sqlCheck("$module", function (err, exists) {
                     if (err) {
                         reject(err);
                         return;
                     }
 
                     if (!exists) {
-                        sql = "CREATE TABLE \"$module\" (" +
-                                "name text PRIMARY KEY," +
-                                "script text," +
-                                "version text," +
-                                "dependencies json," +
-                                "is_active boolean DEFAULT true);" +
-                                "COMMENT ON TABLE \"$module\" IS 'Internal table for storing JavaScript';" +
-                                "COMMENT ON COLUMN \"$module\".name IS 'Primary key';" +
-                                "COMMENT ON COLUMN \"$module\".script IS 'JavaScript';" +
-                                "COMMENT ON COLUMN \"$module\".version IS 'Version number';" +
-                                "COMMENT ON COLUMN \"$module\".dependencies IS 'Module dependencies';" +
-                                "COMMENT ON COLUMN \"$module\".dependencies IS 'Active state';";
-                        obj.client.query(sql, createService());
+                        obj.client.query(createModuleSql, createService);
                         return;
                     }
                     createService();
@@ -319,24 +525,14 @@
 
             // Create the service table
             createService = function () {
-                sqlCheck('$service', function (err, exists) {
+                sqlCheck("$service", function (err, exists) {
                     if (err) {
                         reject(err);
                         return;
                     }
 
                     if (!exists) {
-                        sql = "CREATE TABLE \"$service\" (" +
-                                "name text PRIMARY KEY," +
-                                "module text REFERENCES \"$module\" (name)," +
-                                "script text," +
-                                "version text);" +
-                                "COMMENT ON TABLE \"$service\" IS 'Internal table for storing JavaScript services';" +
-                                "COMMENT ON COLUMN \"$service\".name IS 'Primary key';" +
-                                "COMMENT ON COLUMN \"$service\".module IS 'Module reference';" +
-                                "COMMENT ON COLUMN \"$service\".script IS 'JavaScript';" +
-                                "COMMENT ON COLUMN \"$service\".version IS 'Version number';";
-                        obj.client.query(sql, createRoute());
+                        obj.client.query(createServiceSql, createRoute);
                         return;
                     }
                     createRoute();
@@ -345,24 +541,14 @@
 
             // Create the route table
             createRoute = function () {
-                sqlCheck('$route', function (err, exists) {
+                sqlCheck("$route", function (err, exists) {
                     if (err) {
                         reject(err);
                         return;
                     }
 
                     if (!exists) {
-                        sql = "CREATE TABLE \"$route\" (" +
-                                "name text PRIMARY KEY," +
-                                "module text REFERENCES \"$module\" (name)," +
-                                "script text," +
-                                "version text);" +
-                                "COMMENT ON TABLE \"$route\" IS 'Internal table for storing JavaScript routes';" +
-                                "COMMENT ON COLUMN \"$route\".name IS 'Primary key';" +
-                                "COMMENT ON COLUMN \"$route\".module IS 'Module reference';" +
-                                "COMMENT ON COLUMN \"$route\".script IS 'JavaScript';" +
-                                "COMMENT ON COLUMN \"$route\".version IS 'Version number';";
-                        obj.client.query(sql, createWorkbook());
+                        obj.client.query(createRouteSql, createWorkbook);
                         return;
                     }
                     createWorkbook();
@@ -371,30 +557,14 @@
 
             // Create the workbook table
             createWorkbook = function () {
-                sqlCheck('$workbook', function (err, exists) {
+                sqlCheck("$workbook", function (err, exists) {
                     if (err) {
                         reject(err);
                         return;
                     }
 
                     if (!exists) {
-                        sql = "CREATE TABLE \"$workbook\" (" +
-                                "name text UNIQUE," +
-                                "description text," +
-                                "launch_config json," +
-                                "default_config json," +
-                                "local_config json," +
-                                "module text REFERENCES \"$module\" (name)," +
-                                "CONSTRAINT workbook_pkey PRIMARY KEY (_pk), " +
-                                "CONSTRAINT workbook_id_key UNIQUE (id)) INHERITS (object);" +
-                                "COMMENT ON TABLE \"$workbook\" IS 'Internal table for storing workbook';" +
-                                "COMMENT ON COLUMN \"$workbook\".name IS 'Primary key';" +
-                                "COMMENT ON COLUMN \"$workbook\".description IS 'Description';" +
-                                "COMMENT ON COLUMN \"$workbook\".launch_config IS 'Launcher configuration';" +
-                                "COMMENT ON COLUMN \"$workbook\".default_config IS 'Default configuration';" +
-                                "COMMENT ON COLUMN \"$workbook\".local_config IS 'Local configuration';" +
-                                "COMMENT ON COLUMN \"$workbook\".module IS 'Foreign key to module';";
-                        obj.client.query(sql, createUser);
+                        obj.client.query(createWorkbookSql, createUser);
                         return;
                     }
                     createUser();
@@ -403,26 +573,24 @@
 
             // Create the user table
             createUser = function () {
-                sqlCheck('$user', function (err, exists) {
+                sqlCheck("$user", function (err, exists) {
                     if (err) {
                         reject(err);
                         return;
                     }
 
                     if (!exists) {
-                        sql = "CREATE TABLE \"$user\" (" +
-                                "username text PRIMARY KEY," +
-                                "is_super boolean);" +
-                                "COMMENT ON TABLE \"$user\" IS 'Internal table for storing supplimental user information';" +
-                                "COMMENT ON COLUMN \"$user\".username IS 'System user';" +
-                                "COMMENT ON COLUMN \"$user\".is_super IS 'Indicates whether user is super user';";
-                        obj.client.query(sql, function (err) {
+                        obj.client.query(createUserSql, function (err) {
                             if (err) {
                                 reject(err);
                                 return;
                             }
 
-                            obj.client.query("INSERT INTO \"$user\" VALUES ($1, true)", [obj.user], createSettings);
+                            obj.client.query(
+                                "INSERT INTO \"$user\" VALUES ($1, true)",
+                                [obj.user],
+                                createSettings
+                            );
                         });
                         return;
                     }
@@ -432,93 +600,30 @@
 
             // Create the settings table
             createSettings = function () {
-                sqlCheck('$settings', function (err, exists) {
+                sqlCheck("$settings", function (err, exists) {
                     if (err) {
                         reject(err);
                         return;
                     }
 
                     if (!exists) {
-                        sql = "CREATE TABLE \"$settings\" (" +
-                                "name text," +
-                                "definition json," +
-                                "data json," +
-                                "etag text," +
-                                "CONSTRAINT settings_pkey PRIMARY KEY (_pk), " +
-                                "CONSTRAINT settings_id_key UNIQUE (id)) INHERITS (object);" +
-                                "COMMENT ON TABLE \"$settings\" IS 'Internal table for storing system settings';" +
-                                "COMMENT ON COLUMN \"$settings\".name IS 'Name of settings';" +
-                                "COMMENT ON COLUMN \"$settings\".definition IS 'Attribute types definition';" +
-                                "COMMENT ON COLUMN \"$settings\".data IS 'Object containing settings';";
-                        obj.client.query(sql, function (err) {
+                        obj.client.query(createSettingsSql, function (err) {
                             if (err) {
                                 reject(err);
                                 return;
                             }
 
-                            sql = "INSERT INTO \"$settings\" VALUES (nextval('object__pk_seq'), $1, now(), CURRENT_USER, now(), CURRENT_USER, false, NULL, $2, NULL, $3);";
+                            sql = (
+                                "INSERT INTO \"$settings\" " +
+                                "VALUES (" +
+                                "  nextval('object__pk_seq'), $1, now(), " +
+                                "  CURRENT_USER, now(), CURRENT_USER, " +
+                                "  false, NULL, $2, NULL, $3);"
+                            );
                             params = [
                                 "catalog",
                                 "catalog",
-                                JSON.stringify({
-                                    Object: {
-                                        description: "Abstract object class from which all feathers will inherit",
-                                        module: "Core",
-                                        discriminator: "objectType",
-                                        plural: "Objects",
-                                        properties: {
-                                            id: {
-                                                description: "Surrogate key",
-                                                type: "string",
-                                                default: "createId()",
-                                                isRequired: true,
-                                                isReadOnly: true
-                                            },
-                                            created: {
-                                                description: "Create time of the record",
-                                                type: "string",
-                                                format: "dateTime",
-                                                default: "now()",
-                                                isReadOnly: true
-                                            },
-                                            createdBy: {
-                                                description: "User who created the record",
-                                                type: "string",
-                                                default: "getCurrentUser()",
-                                                isReadOnly: true
-                                            },
-                                            updated: {
-                                                description: "Last time the record was updated",
-                                                type: "string",
-                                                format: "dateTime",
-                                                default: "now()",
-                                                isReadOnly: true
-                                            },
-                                            updatedBy: {
-                                                description: "User who created the record",
-                                                type: "string",
-                                                default: "getCurrentUser()",
-                                                isReadOnly: true
-                                            },
-                                            isDeleted: {
-                                                description: "Indicates the record is no longer active",
-                                                type: "boolean",
-                                                isReadOnly: true
-                                            },
-                                            lock: {
-                                                description: "Record lock information",
-                                                type: "object",
-                                                format: "lock",
-                                                isReadOnly: true
-                                            },
-                                            objectType: {
-                                                description: "Discriminates which inherited object type the object represents",
-                                                type: "string",
-                                                isReadOnly: true
-                                            }
-                                        }
-                                    }
-                                })
+                                JSON.stringify(objectDef)
                             ];
                             obj.client.query(sql, params, done);
                         });
