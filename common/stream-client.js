@@ -16,27 +16,33 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-import * as m from "../node_modules/mithril/mithril.js";
+/**
+  This is used instead of Mithril `stream` because
+  we aren't using all the stream features there
+  and would prefer to avoid the overhead.
 
-export const datasource = Object.freeze({
-    /**
-    Returns the base url used to fetch and post data
-    @return {String}
-    */
-    baseUrl: function () {
-        let l = window.location;
-        return "http://" + l.hostname + ":" + l.port;
-    },
+  Returns a getter setter function.
 
-    request: function (options) {
-        options.url = that.baseUrl() + options.path;
-        if (options.id) {
-            options.url += options.id;
+    var prop1 = stream("Demo"),
+    var prop2 = stream(5);
+
+    console.log(prop1())           // Prints 'Demo'
+    console.log(prop2())           // Prints 5
+    console.log(prop1(10))         // Prints 10;
+    console.log(prop1() * prop2()) // Prints 50
+
+  @param {Any} Value to persist locally
+  @return {Function}
+*/
+export function stream(store) {
+    return function (...args) {
+        if (
+            args.length &&
+            args[0] !== store
+        ) {
+            store = args[0];
         }
-        delete options.name;
-        delete options.id;
 
-        return m.request(options);
-    }
-});
-
+        return store;
+    };
+};
