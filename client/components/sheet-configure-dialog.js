@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2018  John Rogelstad
+    Copyright (C) 2019  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -16,16 +16,16 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*global require, module*/
-/*jslint this, es6*/
+/*jslint this, browser*/
 (function () {
     "use strict";
 
-    var sheetConfigureDialog = {},
-        m = require("mithril"),
-        stream = require("stream"),
-        f = require("component-core"),
-        catalog = require("catalog"),
-        tableDialog = require("table-dialog");
+    const sheetConfigureDialog = {};
+    const m = require("mithril");
+    const stream = require("stream");
+    const f = require("component-core");
+    const catalog = require("catalog");
+    const tableDialog = require("table-dialog");
 
     /**
       View model for sort dialog.
@@ -36,15 +36,19 @@
     */
     sheetConfigureDialog.viewModel = function (options) {
         options = options || {};
-        var vm, tableView,
-                createModel = catalog.store().models().workbookLocalConfig,
-                cache = f.copy(options.parentViewModel.sheet()),
-                sheetButtonClass, listButtonClass, sheetTabClass, listTabClass;
+        let vm;
+        let tableView;
+        let createModel = catalog.store().models().workbookLocalConfig;
+        let cache = f.copy(options.parentViewModel.sheet());
+        let sheetButtonClass;
+        let listButtonClass;
+        let sheetTabClass;
+        let listTabClass;
 
         options.onOk = function () {
-            var id = vm.sheetId(),
-                sheet = vm.model().toJSON(),
-                tableWidget = options.parentViewModel.tableWidget();
+            let id = vm.sheetId();
+            let sheet = vm.model().toJSON();
+            let tableWidget = options.parentViewModel.tableWidget();
 
             vm.sheet(id, sheet);
             // If we updated current sheet (not new), update list
@@ -63,7 +67,7 @@
         vm = tableDialog.viewModel(options);
         tableView = vm.content;
         vm.alias = function (attr) {
-            var feather = catalog.getFeather(vm.model().data.feather());
+            let feather = catalog.getFeather(vm.model().data.feather());
 
             return f.resolveAlias(feather, attr);
         };
@@ -76,23 +80,29 @@
             }
         };
         vm.attrs = function () {
-            var model = vm.model(),
-                feather = catalog.getFeather(model.data.feather()),
-                keys = feather
-                    ? Object.keys(feather.properties)
-                    : false;
-            return keys
+            let model = vm.model();
+            let feather = catalog.getFeather(model.data.feather());
+            let keys = (
+                feather
+                ? Object.keys(feather.properties)
+                : false
+            );
+
+            return (
+                keys
                 ? vm.resolveProperties(feather, keys).sort()
-                : [];
+                : []
+            );
         };
         vm.config = options.parentViewModel.config;
         vm.content = function () {
-            var feathers, forms,
-                    d = vm.model().data,
-                    ids = vm.ids(),
-                    nameId = ids.name,
-                    featherId = ids.feather,
-                    formId = ids.form;
+            let feathers;
+            let forms;
+            let d = vm.model().data;
+            let ids = vm.ids();
+            let nameId = ids.name;
+            let featherId = ids.feather;
+            let formId = ids.form;
 
             feathers = vm.feathers().map(function (feather) {
                 return m("option", feather);
@@ -181,16 +191,19 @@
             return item.attr === this;
         };
         vm.feathers = function () {
-            var feathers = catalog.store().feathers(),
-                result = Object.keys(feathers).filter(function (name) {
-                    return !feathers[name].isChild && !feathers[name].isSystem;
-                }).sort();
+            let feathers = catalog.store().feathers();
+            let result = Object.keys(feathers).filter(function (name) {
+                return !feathers[name].isChild && !feathers[name].isSystem;
+            }).sort();
+
             return result;
         };
         vm.form = function (...args) {
-            var forms, form,
-                    name = args[0],
-                    prop = vm.model().data.form;
+            let forms;
+            let form;
+            let name = args[0];
+            let prop = vm.model().data.form;
+
             if (args.length) {
                 forms = catalog.store().forms();
                 form = Object.keys(forms).find(function (key) {
@@ -198,14 +211,16 @@
                 });
                 prop(forms[form]);
             }
-            return prop()
+            return (
+                prop()
                 ? prop().data.name()
-                : "";
+                : ""
+            );
         };
         vm.forms = function () {
-            var result,
-                forms = catalog.store().forms(),
-                feather = vm.model().data.feather();
+            let result;
+            let forms = catalog.store().forms();
+            let feather = vm.model().data.feather();
 
             // Only forms that have matching feather
             result = Object.keys(forms).filter(function (id) {
@@ -228,8 +243,8 @@
         vm.sheetId = stream(options.sheetId);
         vm.relations = stream({});
         vm.reset = function () {
-            var model,
-                id = vm.sheetId();
+            let model;
+            let id = vm.sheetId();
 
             // Setup local model
             cache = f.copy(vm.sheet(id));
@@ -249,21 +264,31 @@
         };
         vm.resolveProperties = function (feather, properties, ary, prefix) {
             prefix = prefix || "";
-            var result = ary || [];
+            let result = ary || [];
 
             properties.forEach(function (key) {
-                var rfeather,
-                    prop = feather.properties[key],
-                    isObject = typeof prop.type === "object",
-                    path = prefix + key;
+                let rfeather;
+                let prop = feather.properties[key];
+                let isObject = typeof prop.type === "object";
+                let path = prefix + key;
 
                 if (isObject && prop.type.properties) {
                     rfeather = catalog.getFeather(prop.type.relation);
-                    vm.resolveProperties(rfeather, prop.type.properties, result, path + ".");
+                    vm.resolveProperties(
+                        rfeather,
+                        prop.type.properties,
+                        result,
+                        path + "."
+                    );
                 }
 
-                if (isObject &&
-                        (prop.type.childOf || prop.type.parentOf || prop.type.isChild)) {
+                if (
+                    isObject && (
+                        prop.type.childOf ||
+                        prop.type.parentOf ||
+                        prop.type.isChild
+                    )
+                ) {
                     return;
                 }
 
@@ -292,7 +317,8 @@
             label: f.createId()
         });
         vm.viewHeaders = function () {
-            var ids = vm.viewHeaderIds();
+            let ids = vm.viewHeaderIds();
+
             return [
                 m("th", {
                     style: {
@@ -309,10 +335,10 @@
             ];
         };
         vm.viewRows = function () {
-            var view;
+            let view;
 
             view = vm.items().map(function (item) {
-                var row;
+                let row;
 
                 row = m("tr", {
                     onclick: vm.selection.bind(this, item.index, true),
@@ -332,7 +358,11 @@
                             maxWidth: "165px"
                         },
                         onchange: (e) =>
-                                vm.itemChanged.bind(this, item.index, "attr")(e.target.value)
+                        vm.itemChanged.bind(
+                            this,
+                            item.index,
+                            "attr"
+                        )(e.target.value)
                     }, vm.attrs().map(function (attr) {
                         return m("option", {
                             value: attr
@@ -346,7 +376,11 @@
                     }, m("input", {
                         value: item.label || vm.alias(item.attr),
                         onchange: (e) =>
-                                vm.itemChanged.bind(this, item.index, "label")(e.target.value)
+                        vm.itemChanged.bind(
+                            this,
+                            item.index,
+                            "label"
+                        )(e.target.value)
                     }))
                 ]);
 

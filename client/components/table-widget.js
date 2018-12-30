@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2018  John Rogelstad
+    Copyright (C) 2019  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -20,21 +20,25 @@
 (function () {
     "use strict";
 
-    var scrWidth, inner, widthNoScroll, widthWithScroll,
-            tableWidget = {},
-            m = require("mithril"),
-            stream = require("stream"),
-            f = require("component-core"),
-            statechart = require("statechartjs"),
-            catalog = require("catalog"),
-            dialog = require("dialog"),
-            outer = document.createElement("div"),
-            COL_WIDTH_DEFAULT = "150px",
-            LIMIT = 20,
-            ROW_COUNT = 2;
+    let scrWidth;
+    let inner;
+    let widthNoScroll;
+    let widthWithScroll;
+
+    const tableWidget = {};
+    const m = require("mithril");
+    const stream = require("stream");
+    const f = require("component-core");
+    const statechart = require("statechartjs");
+    const catalog = require("catalog");
+    const dialog = require("dialog");
+    const outer = document.createElement("div");
+    const COL_WIDTH_DEFAULT = "150px";
+    const LIMIT = 20;
+    const ROW_COUNT = 2;
 
     // Calculate scroll bar width
-    // http://stackoverflow.com/questions/13382516/getting-scroll-bar-width-using-javascript
+    // http://stackoverflow.com/questions/13382516
     outer.style.visibility = "hidden";
     outer.style.width = "100px";
     outer.style.msOverflowStyle = "scrollbar"; // needed for WinJS apps
@@ -59,14 +63,19 @@
     // Define workbook view model
     tableWidget.viewModel = function (options) {
         options = options || {};
-        var fromWidthIdx, dataTransfer,
-                selectionChanged, selectionFetched, fetch,
-                feather = typeof options.feather === "object"
+        let fromWidthIdx;
+        let dataTransfer;
+        let selectionChanged;
+        let selectionFetched;
+        let fetch;
+        let feather = (
+            typeof options.feather === "object"
             ? options.feather
-            : catalog.getFeather(options.feather),
-                modelName = feather.name.toCamelCase(),
-                offset = 0,
-                vm = {};
+            : catalog.getFeather(options.feather)
+        );
+        let modelName = feather.name.toCamelCase();
+        let offset = 0;
+        let vm = {};
 
         // ..........................................................
         // PUBLIC
@@ -76,10 +85,11 @@
             return f.resolveAlias(vm.feather(), attr);
         };
         vm.attrs = function () {
-            var columns = vm.config().columns,
-                result = columns.map(function (column) {
-                    return column.attr;
-                });
+            let columns = vm.config().columns;
+            let result = columns.map(function (column) {
+                return column.attr;
+            });
+
             return result || [{
                 attr: "id"
             }];
@@ -100,12 +110,15 @@
           @return {String}
         */
         vm.defaultFocus = function (model) {
-            var col = vm.attrs().find(function (attr) {
+            let col = vm.attrs().find(function (attr) {
                 return !model.data[attr] || !model.data[attr].isReadOnly();
             });
-            return col
+
+            return (
+                col
                 ? vm.formatInputId(col)
-                : undefined;
+                : undefined
+            );
         };
         vm.errorDialog = stream(dialog.viewModel({
             icon: "exclamation-triangle",
@@ -117,22 +130,26 @@
             return "input" + col.toCamelCase(true);
         };
         vm.goNextRow = function () {
-            var list = vm.models(),
-                ids = list.map(function (model) {
-                    return model.id();
-                }),
-                model = vm.model(),
-                idx = model
-                    ? ids.indexOf(model.id()) + 1
-                    : 0;
+            let list = vm.models();
+            let ids = list.map(function (model) {
+                return model.id();
+            });
+            let model = vm.model();
+            let idx = (
+                model
+                ? ids.indexOf(model.id()) + 1
+                : 0
+            );
+
             if (list.length > idx) {
                 vm.select(list[idx]);
             }
         };
         vm.goPrevRow = function () {
-            var list = vm.models(),
-                model = vm.model(),
-                idx = list.indexOf(model) - 1;
+            let list = vm.models();
+            let model = vm.model();
+            let idx = list.indexOf(model) - 1;
+
             if (idx >= 0) {
                 vm.select(list[idx]);
             }
@@ -151,14 +168,17 @@
           @returns {String}
         */
         vm.lastFocus = function (model) {
-            var col, attrs = vm.attrs().slice().reverse();
+            let col;
+            let attrs = vm.attrs().slice().reverse();
 
             col = attrs.find(function (attr) {
                 return model.data[attr] && !model.data[attr].isReadOnly();
             });
-            return col
+            return (
+                col
                 ? vm.formatInputId(col)
-                : undefined;
+                : undefined
+            );
         };
         /*
           Set or return the last model that was selected in the list.
@@ -168,7 +188,7 @@
         */
         vm.lastSelected = stream();
         vm.mode = function () {
-            var state = vm.state();
+            let state = vm.state();
             return state.resolve(state.current()[0]);
         };
         vm.model = function () {
@@ -189,7 +209,7 @@
             }
         };
         vm.ondragover = function (toIdx, ev) {
-            if (!isNaN(toIdx)) {
+            if (!Number.isNaN(toIdx)) {
                 if (fromWidthIdx > toIdx) {
                     return;
                 }
@@ -212,8 +232,13 @@
             dataTransfer[type] = idx;
         };
         vm.ondrop = function (toIdx, type, ary, ev) {
-            var moved, column, fromIdx, oldWidth, newWidth, widthStart,
-                    typeStart = dataTransfer.typeStart;
+            let moved;
+            let column;
+            let fromIdx;
+            let oldWidth;
+            let newWidth;
+            let widthStart;
+            let typeStart = dataTransfer.typeStart;
 
             ev.preventDefault();
 
@@ -237,18 +262,19 @@
             }
         };
         vm.onkeydown = function (e) {
-            var id,
-                key = e.key || e.keyIdentifier,
-                nav = function (name) {
-                    id = e.target.id;
-                    document.getElementById(id).blur();
+            let id;
+            let key = e.key || e.keyIdentifier;
 
-                    // Navigate in desired direction
-                    vm[name]();
-                    m.redraw();
-                    // Set focus on the same cell we left
-                    document.getElementById(id).focus();
-                };
+            function nav(name) {
+                id = e.target.id;
+                document.getElementById(id).blur();
+
+                // Navigate in desired direction
+                vm[name]();
+                m.redraw();
+                // Set focus on the same cell we left
+                document.getElementById(id).focus();
+            }
 
             switch (key) {
             case "Up":
@@ -262,16 +288,19 @@
             }
         };
         vm.onscroll = function (evt) {
-            var ids = vm.ids(),
-                e = evt.srcElement,
-                remainScroll = e.scrollHeight - e.clientHeight - e.scrollTop,
-                childHeight = e.lastChild.clientHeight,
-                header = document.getElementById(ids.header),
-                rows = document.getElementById(ids.rows);
+            let ids = vm.ids();
+            let e = evt.srcElement;
+            let remainScroll = e.scrollHeight - e.clientHeight - e.scrollTop;
+            let childHeight = e.lastChild.clientHeight;
+            let header = document.getElementById(ids.header);
+            let rows = document.getElementById(ids.rows);
 
             // Lazy load: fetch more rows if near bottom and more possible
             if (vm.isQuery()) {
-                if (remainScroll < childHeight * ROW_COUNT && vm.models().length >= offset) {
+                if (
+                    remainScroll < childHeight *
+                    ROW_COUNT && vm.models().length >= offset
+                ) {
                     offset = offset + LIMIT;
                     fetch();
                 }
@@ -291,13 +320,15 @@
         vm.scrollbarWidth = stream(scrWidth);
         vm.search = options.search || stream("");
         vm.select = function (models) {
-            var state,
-                selections = vm.selections(),
-                ids = vm.selectionIds();
+            let state;
+            let selections = vm.selections();
+            let ids = vm.selectionIds();
 
             if (!Array.isArray(models)) {
-                if (selections.length !== 1 ||
-                        selections[0].id() !== models.id()) {
+                if (
+                    selections.length !== 1 ||
+                    selections[0].id() !== models.id()
+                ) {
                     vm.unselect(selections);
                 }
                 models = [models];
@@ -353,16 +384,18 @@
             return vm.mode().toggleSelection(model, id, optKey);
         };
         vm.undo = function () {
-            var selection = vm.selection();
+            let selection = vm.selection();
+
             if (selection) {
                 selection.undo();
             }
         };
         vm.unselect = function (models) {
-            var idx, state,
-                    ids = [],
-                    selections = vm.selections(),
-                    remaining = [];
+            let idx;
+            let state;
+            let ids = [];
+            let selections = vm.selections();
+            let remaining = [];
 
             // Cache model ids if applicable
             if (models) {
@@ -380,7 +413,7 @@
             // (i.e. no mixup up of interal pointers)
             if (models) {
                 models = selections.filter(function (selection) {
-                    var isClearing = ids.some(function (id) {
+                    let isClearing = ids.some(function (id) {
                         return selection.id() === id;
                     });
 
@@ -437,9 +470,11 @@
         }
 
         fetch = function (refresh) {
-            var fattrs, formatOf, criterion,
-                    value = vm.search(),
-                    filter = f.copy(vm.filter());
+            let fattrs;
+            let formatOf;
+            let criterion;
+            let value = vm.search();
+            let filter = f.copy(vm.filter());
 
             if (refresh) {
                 offset = 0;
@@ -449,8 +484,11 @@
 
             // Recursively resolve type
             formatOf = function (feather, property) {
-                var prefix, suffix, rel, prop,
-                        idx = property.indexOf(".");
+                let prefix;
+                let suffix;
+                let rel;
+                let prop;
+                let idx = property.indexOf(".");
 
                 if (idx > -1) {
                     prefix = property.slice(0, idx);
@@ -514,25 +552,34 @@
                         }
                     });
                     this.modelDelete = function () {
-                        var confirmDialog = vm.confirmDialog();
+                        let confirmDialog = vm.confirmDialog();
 
-                        confirmDialog.message("Are you sure you want to delete the selected rows?");
+                        confirmDialog.message(
+                            "Are you sure you want to delete the " +
+                            "selected rows?"
+                        );
                         confirmDialog.onOk(function () {
-                            var candidates = vm.selections().filter(function (selection) {
-                                return selection.canDelete();
-                            });
+                            let candidates = vm.selections().filter(
+                                function (selection) {
+                                    return selection.canDelete();
+                                }
+                            );
 
                             candidates.forEach(function (selection) {
-                                return selection.delete(true)
-                                    .then(function () {
+                                return selection.delete(
+                                    true
+                                ).then(
+                                    function () {
                                         vm.unselect(selection);
                                         vm.models().remove(selection);
-                                    })
-                                    .catch(function (err) {
+                                    }
+                                ).catch(
+                                    function (err) {
                                         vm.errorDialog().message(err.message);
                                         m.redraw();
                                         vm.errorDialog().show();
-                                    });
+                                    }
+                                );
                             });
                         });
                         confirmDialog.show();
@@ -542,9 +589,15 @@
                         return "LightSkyBlue";
                     };
                     this.toggleSelection = function (model, id, optKey) {
-                        var startIdx, endIdx, lastIdx, currentIdx,
-                                i, models, modelIds, adds,
-                                isSelected = vm.isSelected(model);
+                        let startIdx;
+                        let endIdx;
+                        let lastIdx;
+                        let currentIdx;
+                        let i;
+                        let models;
+                        let modelIds;
+                        let adds;
+                        let isSelected = vm.isSelected(model);
 
                         switch (optKey) {
                         case "ctrlKey":
@@ -563,7 +616,9 @@
                             modelIds = vm.models().map(function (item) {
                                 return item.id();
                             });
-                            lastIdx = Math.max(modelIds.indexOf(vm.lastSelected().id()), 0);
+                            lastIdx = Math.max(modelIds.indexOf(
+                                vm.lastSelected().id()
+                            ), 0);
                             currentIdx = modelIds.indexOf(model.id());
 
                             if (currentIdx > lastIdx) {
@@ -595,7 +650,7 @@
                 });
                 this.state("Edit", function () {
                     this.enter(function () {
-                        var last;
+                        let last;
 
                         if (vm.selections().length > 1) {
                             last = vm.lastSelected();
@@ -610,8 +665,8 @@
                         this.goto("../View");
                     });
                     this.modelDelete = function () {
-                        var selection = vm.selection(),
-                            prevState = selection.state().current()[0];
+                        let selection = vm.selection();
+                        let prevState = selection.state().current()[0];
 
                         selection.delete();
                         if (prevState === "/Ready/New") {
@@ -619,9 +674,9 @@
                         }
                     };
                     this.modelNew = function () {
-                        var name = vm.feather().name.toCamelCase(),
-                            model = catalog.store().models()[name](),
-                            input = vm.defaultFocus(model);
+                        let name = vm.feather().name.toCamelCase();
+                        let model = catalog.store().models()[name]();
+                        let input = vm.defaultFocus(model);
 
                         vm.models().add(model);
                         vm.nextFocus(input);
@@ -650,7 +705,8 @@
                     this.event("unselected", function () {
                         this.goto("../Off");
                     });
-                    this.C(function () {
+                    this.c = this.C; // Squelch jslint complaint
+                    this.c(function () {
                         if (vm.selection().canUndo()) {
                             return "./Dirty";
                         }
@@ -684,38 +740,55 @@
         },
 
         view: function (vnode) {
-            var findFilterIndex, header, rows, rel, resize,
-                    vm = vnode.attrs.viewModel,
-                    ids = vm.ids(),
-                    config = vm.config(),
-                    filter = vm.filter(),
-                    sort = filter.sort || [],
-                    idx = 0,
-                    zoom = vm.zoom() + "%";
+            let findFilterIndex;
+            let header;
+            let rows;
+            let rel;
+            let resize;
+            let vm = vnode.attrs.viewModel;
+            let ids = vm.ids();
+            let config = vm.config();
+            let filter = vm.filter();
+            let sort = filter.sort || [];
+            let idx = 0;
+            let zoom = vm.zoom() + "%";
 
             // Resize according to surroundings
             resize = function (vnode) {
-                var footer, containerHeight, bottomHeight, yPosition,
-                        e = document.getElementById(vnode.dom.id),
-                        id = vm.footerId();
+                let footer;
+                let containerHeight;
+                let bottomHeight;
+                let yPosition;
+                let e = document.getElementById(vnode.dom.id);
+                let id = vm.footerId();
 
                 if (id) {
                     footer = document.getElementById(id);
-                    e.style.height = window.innerHeight - f.getElementPosition(e.parentElement).y -
-                            e.offsetTop - footer.offsetHeight - 1 + "px";
+                    e.style.height = (
+                        window.innerHeight -
+                        f.getElementPosition(e.parentElement).y -
+                        e.offsetTop - footer.offsetHeight - 1 + "px"
+                    );
                 } else {
                     yPosition = f.getElementPosition(e).y;
-                    containerHeight = document.body.offsetHeight + f.getElementPosition(document.body).y;
-                    bottomHeight = containerHeight - yPosition - e.offsetHeight;
-                    e.style.height = window.innerHeight - yPosition - bottomHeight + "px";
+                    containerHeight = (
+                        document.body.offsetHeight +
+                        f.getElementPosition(document.body).y
+                    );
+                    bottomHeight = (
+                        containerHeight - yPosition - e.offsetHeight
+                    );
+                    e.style.height = (
+                        window.innerHeight - yPosition - bottomHeight + "px"
+                    );
                 }
             };
 
             findFilterIndex = function (col, name) {
                 name = name || "criteria";
-                var hasCol,
-                    ary = filter[name] || [],
-                    i = 0;
+                let hasCol;
+                let ary = filter[name] || [];
+                let i = 0;
 
                 hasCol = function (item) {
                     if (item.property === col) {
@@ -733,13 +806,17 @@
             // Build header
             idx = 0;
             header = (function () {
-                var ths = config.columns.map(function (col) {
-                    var hview, order, name,
-                            key = col.attr,
-                            icon = [],
-                            fidx = findFilterIndex(key, "sort"),
-                            operators = f.operators,
-                            columnWidth = config.columns[idx].width || COL_WIDTH_DEFAULT;
+                let ths = config.columns.map(function (col) {
+                    let hview;
+                    let order;
+                    let name;
+                    let key = col.attr;
+                    let icon = [];
+                    let fidx = findFilterIndex(key, "sort");
+                    let operators = f.operators;
+                    let columnWidth = (
+                        config.columns[idx].width || COL_WIDTH_DEFAULT
+                    );
 
                     columnWidth = (columnWidth.replace("px", "") - 6) + "px";
 
@@ -774,8 +851,9 @@
                     if (fidx !== false) {
                         icon.push(m("i", {
                             class: "fa fa-filter fb-column-filter-icon",
-                            title: operators[(filter.criteria[fidx].operator || "=")] +
-                                    " " + filter.criteria[fidx].value,
+                            title: operators[
+                                (filter.criteria[fidx].operator || "=")
+                            ] + " " + filter.criteria[fidx].value,
                             style: {
                                 fontSize: vm.zoom() * 0.80 + "%"
                             }
@@ -786,8 +864,17 @@
                         m("th", {
                             ondragover: vm.ondragover.bind(this, idx),
                             draggable: true,
-                            ondragstart: vm.ondragstart.bind(this, idx, "column"),
-                            ondrop: vm.ondrop.bind(this, idx, "column", config.columns),
+                            ondragstart: vm.ondragstart.bind(
+                                this,
+                                idx,
+                                "column"
+                            ),
+                            ondrop: vm.ondrop.bind(
+                                this,
+                                idx,
+                                "column",
+                                config.columns
+                            ),
                             class: "fb-column-header",
                             style: {
                                 minWidth: columnWidth,
@@ -798,7 +885,11 @@
                         m("th", {
                             ondragover: vm.ondragover.bind(this, idx),
                             draggable: true,
-                            ondragstart: vm.ondragstart.bind(this, idx, "width"),
+                            ondragstart: vm.ondragstart.bind(
+                                this,
+                                idx,
+                                "width"
+                            ),
                             class: "fb-column-spacer fb-column-header-grabber",
                             style: {
                                 fontSize: zoom
@@ -833,16 +924,24 @@
             // Build rows
             idx = 0;
             rows = vm.models().map(function (model) {
-                var tds, row, thContent, onclick, lock, iconStyle,
-                        lastFocusId, ontab, onshifttab, url,
-                        defaultFocusId = vm.defaultFocus(model),
-                        currentMode = vm.mode().current()[0],
-                        color = "White",
-                        isSelected = vm.isSelected(model),
-                        currentState = model.state().current()[0],
-                        d = model.data,
-                        rowOpts = {},
-                        cellOpts = {};
+                let tds;
+                let row;
+                let thContent;
+                let onclick;
+                let lock;
+                let iconStyle;
+                let lastFocusId;
+                let ontab;
+                let onshifttab;
+                let url;
+                let defaultFocusId = vm.defaultFocus(model);
+                let currentMode = vm.mode().current()[0];
+                let color = "White";
+                let isSelected = vm.isSelected(model);
+                let currentState = model.state().current()[0];
+                let d = model.data;
+                let rowOpts = {};
+                let cellOpts = {};
 
                 // Build row
                 if (isSelected) {
@@ -854,25 +953,37 @@
                     // Build cells
                     idx = 0;
                     tds = vm.attrs().map(function (col) {
-                        var cell, content, curr, tdOpts,
-                                symbol = "",
-                                minorUnit = 2,
-                                prop = f.resolveProperty(model, col),
-                                value = prop(),
-                                format = prop.format || prop.type,
-                                columnWidth = config.columns[idx].width || COL_WIDTH_DEFAULT;
+                        let cell;
+                        let content;
+                        let curr;
+                        let tdOpts;
+                        let symbol = "";
+                        let minorUnit = 2;
+                        let prop = f.resolveProperty(model, col);
+                        let value = prop();
+                        let format = prop.format || prop.type;
+                        let columnWidth = (
+                            config.columns[idx].width || COL_WIDTH_DEFAULT
+                        );
+                        let du;
 
-                        columnWidth = (columnWidth.replace("px", "") - 6) + "px";
+                        columnWidth = (
+                            columnWidth.replace("px", "") - 6
+                        ) + "px";
 
                         tdOpts = {
                             onclick: function (ev) {
-                                var optKey;
+                                let optKey;
                                 if (ev.shiftKey) {
                                     optKey = "shiftKey";
                                 } else if (ev.ctrlKey) {
                                     optKey = "ctrlKey";
                                 }
-                                vm.toggleSelection(model, vm.formatInputId(col), optKey);
+                                vm.toggleSelection(
+                                    model,
+                                    vm.formatInputId(col),
+                                    optKey
+                                );
                             },
                             class: "fb-cell-view",
                             style: {
@@ -899,23 +1010,30 @@
                             break;
                         case "date":
                             if (value) {
-                                // Turn into date adjusting time for current timezone
+                                // Turn into date adjusting time for
+                                // current timezone
                                 value = new Date(value + f.now().slice(10));
                                 content = value.toLocaleDateString();
                             }
                             break;
                         case "dateTime":
-                            value = value
+                            value = (
+                                value
                                 ? new Date(value)
-                                : "";
-                            content = value
+                                : ""
+                            );
+                            content = (
+                                value
                                 ? value.toLocaleString()
-                                : "";
+                                : ""
+                            );
                             break;
                         case "url":
-                            url = value.slice(0, 4) === "http"
+                            url = (
+                                value.slice(0, 4) === "http"
                                 ? value
-                                : "http://" + value;
+                                : "http://" + value
+                            );
                             content = m("a", {
                                 href: url,
                                 target: "_blank",
@@ -931,18 +1049,22 @@
                             curr = f.getCurrency(value.currency);
                             if (curr) {
                                 if (curr.data.hasDisplayUnit()) {
-                                    symbol = curr.data.displayUnit().data.symbol();
-                                    minorUnit = curr.data.displayUnit().data.minorUnit();
+                                    du = curr.data.displayUnit();
+                                    symbol = du.data.symbol();
+                                    minorUnit = du.data.minorUnit();
                                 } else {
                                     symbol = curr.data.symbol();
                                     minorUnit = curr.data.minorUnit();
                                 }
                             }
 
-                            content = value.amount.toLocaleString(undefined, {
-                                minimumFractionDigits: minorUnit,
-                                maximumFractionDigits: minorUnit
-                            });
+                            content = value.amount.toLocaleString(
+                                undefined,
+                                {
+                                    minimumFractionDigits: minorUnit,
+                                    maximumFractionDigits: minorUnit
+                                }
+                            );
 
                             if (value.amount < 0) {
                                 content = "(" + Math.abs(content) + ")";
@@ -962,15 +1084,24 @@
                             break;
                         default:
                             if (typeof format === "object" && d[col]()) {
-                                // If relation, use relation widget to find display
-                                rel = catalog.store().components()[format.relation.toCamelCase() + "Relation"];
+                                // If relation, use relation widget to
+                                // find display
+                                rel = catalog.store().components()[(
+                                    format.relation.toCamelCase()
+                                    + "Relation"
+                                )];
                                 if (rel) {
-                                    value = d[col]().data[rel.valueProperty()]();
+                                    value = d[col]().data[
+                                        rel.valueProperty()
+                                    ]();
 
-                                    url = "http://" + window.location.hostname + ":" +
-                                            window.location.port + "#!/edit/" +
-                                            prop.type.relation.toSnakeCase() +
-                                            "/" + d[col]().id();
+                                    url = (
+                                        "http://" +
+                                        window.location.hostname + ":" +
+                                        window.location.port + "#!/edit/" +
+                                        prop.type.relation.toSnakeCase() +
+                                        "/" + d[col]().id()
+                                    );
 
                                     content = m("a", {
                                         href: url,
@@ -986,7 +1117,8 @@
 
                         cell = [
                             m("td", tdOpts, content),
-                            // This exists to force exact alignment with header on all browsers
+                            // This exists to force exact alignment
+                            // with header on all browsers
                             m("td", {
                                 class: "fb-column-spacer",
                                 style: {
@@ -1012,7 +1144,7 @@
 
                     lastFocusId = vm.lastFocus(model);
                     ontab = function (e) {
-                        var key = e.key || e.keyIdentifier;
+                        let key = e.key || e.keyIdentifier;
                         if (key === "Tab" && !e.shiftKey) {
                             e.preventDefault();
                             document.getElementById(defaultFocusId).focus();
@@ -1020,7 +1152,7 @@
                     };
 
                     onshifttab = function (e) {
-                        var key = e.key || e.keyIdentifier;
+                        let key = e.key || e.keyIdentifier;
                         if (key === "Tab" && e.shiftKey) {
                             e.preventDefault();
                             document.getElementById(lastFocusId).focus();
@@ -1030,15 +1162,20 @@
                     // Build cells
                     idx = 0;
                     tds = vm.attrs().map(function (col) {
-                        var cell, tdOpts, inputOpts, columnSpacerClass,
-                                prop = f.resolveProperty(model, col),
-                                id = vm.formatInputId(col),
-                                item = config.columns[idx],
-                                columnWidth = item.width || COL_WIDTH_DEFAULT,
-                                dataList = item.dataList || prop.dataList,
-                                cfilter = item.filter;
+                        let cell;
+                        let tdOpts;
+                        let inputOpts;
+                        let columnSpacerClass;
+                        let prop = f.resolveProperty(model, col);
+                        let id = vm.formatInputId(col);
+                        let item = config.columns[idx];
+                        let columnWidth = item.width || COL_WIDTH_DEFAULT;
+                        let dataList = item.dataList || prop.dataList;
+                        let cfilter = item.filter;
 
-                        columnWidth = (columnWidth.replace("px", "") - 6) + "px";
+                        columnWidth = (
+                            columnWidth.replace("px", "") - 6
+                        ) + "px";
 
                         inputOpts = {
                             id: id,
@@ -1058,19 +1195,23 @@
                         // Set up self focus
                         if (vm.nextFocus() === id && id === defaultFocusId) {
                             inputOpts.oncreate = function (vnode) {
-                                var e = document.getElementById(vnode.dom.id);
+                                let e = document.getElementById(vnode.dom.id);
 
                                 e.addEventListener("keydown", onshifttab);
                                 e.focus();
                             };
                             inputOpts.onremove = function (vnode) {
                                 // Key down handler for up down movement
-                                document.getElementById(vnode.dom.id)
-                                    .removeEventListener("keydown", onshifttab);
+                                document.getElementById(
+                                    vnode.dom.id
+                                ).removeEventListener("keydown", onshifttab);
                             };
                             vm.nextFocus(undefined);
 
-                        } else if (vm.nextFocus() === id && id !== defaultFocusId) {
+                        } else if (
+                            vm.nextFocus() === id &&
+                            id !== defaultFocusId
+                        ) {
                             inputOpts.oncreate = function (vnode) {
                                 document.getElementById(vnode.dom.id).focus();
                             };
@@ -1078,41 +1219,56 @@
                         } else if (id === defaultFocusId) {
                             inputOpts.oncreate = function (vnode) {
                                 // Key down handler for up down movement
-                                document.getElementById(vnode.dom.id)
-                                    .addEventListener("keydown", onshifttab);
+                                document.getElementById(
+                                    vnode.dom.id
+                                ).addEventListener("keydown", onshifttab);
                             };
 
                             inputOpts.onremove = function (vnode) {
                                 // Key down handler for up down movement
-                                document.getElementById(vnode.dom.id)
-                                    .removeEventListener("keydown", onshifttab);
+                                document.getElementById(
+                                    vnode.dom.id
+                                ).removeEventListener("keydown", onshifttab);
                             };
                         }
 
-                        // We want tab out of last cell to loop back to the first
+                        // We want tab out of last cell to loop back to
+                        // the first
                         if (lastFocusId === id) {
                             inputOpts.oncreate = function (vnode) {
                                 // Key down handler for up down movement
-                                document.getElementById(vnode.dom.id)
-                                    .addEventListener("keydown", ontab);
+                                document.getElementById(
+                                    vnode.dom.id
+                                ).addEventListener("keydown", ontab);
                             };
 
                             inputOpts.onremove = function (vnode) {
                                 // Key down handler for up down movement
-                                document.getElementById(vnode.dom.id)
-                                    .removeEventListener("keydown", ontab);
+                                document.getElementById(
+                                    vnode.dom.id
+                                ).removeEventListener("keydown", ontab);
                             };
                         }
 
-                        if (prop.isRequired && prop.isRequired() &&
-                                (prop() === null || prop() === undefined)) {
+                        if (
+                            prop.isRequired && prop.isRequired() && (
+                                prop() === null || prop() === undefined
+                            )
+                        ) {
                             tdOpts = {
-                                class: "fb-table-cell-edit fb-table-cell-edit-cell fb-table-cell-edit-required",
+                                class: (
+                                    "fb-table-cell-edit " +
+                                    "fb-table-cell-edit-cell " +
+                                    "fb-table-cell-edit-required"
+                                ),
                                 style: {}
                             };
                         } else {
                             tdOpts = {
-                                class: "fb-table-cell-edit fb-table-cell-edit-cell",
+                                class: (
+                                    "fb-table-cell-edit " +
+                                    "fb-table-cell-edit-cell"
+                                ),
                                 style: {}
                             };
                         }
@@ -1124,7 +1280,10 @@
                         if (dataList) {
                             // If reference a property, get the property
                             if (typeof dataList === "string") {
-                                dataList = f.resolveProperty(model, dataList)();
+                                dataList = f.resolveProperty(
+                                    model,
+                                    dataList
+                                )();
 
                             // Must referencoe a simple array, transform
                             } else if (typeof dataList[0] !== "object") {
@@ -1134,7 +1293,9 @@
                             }
                         }
 
-                        columnSpacerClass = "fb-column-spacer " + tdOpts.class;
+                        columnSpacerClass = (
+                            "fb-column-spacer " + tdOpts.class
+                        );
                         cell = [
                             m("td", tdOpts, [
                                 f.buildInputComponent({
@@ -1161,7 +1322,11 @@
                 }
 
                 // Front cap header navigation
-                onclick = vm.toggleSelection.bind(this, model, defaultFocusId);
+                onclick = vm.toggleSelection.bind(
+                    this,
+                    model,
+                    defaultFocusId
+                );
                 iconStyle = {
                     fontSize: zoom,
                     minWidth: "25px"
@@ -1184,8 +1349,10 @@
                     lock = d.lock() || {};
                     thContent = m("i", {
                         onclick: onclick,
-                        title: "User: " + lock.username + "\x0ASince: " +
-                                new Date(lock.created).toLocaleTimeString(),
+                        title: (
+                            "User: " + lock.username + "\nSince: " +
+                            new Date(lock.created).toLocaleTimeString()
+                        ),
                         class: "fa fa-lock",
                         style: iconStyle
                     });
@@ -1213,7 +1380,9 @@
                         style: iconStyle
                     };
                     if (currentMode === "/Mode/Edit" && isSelected) {
-                        cellOpts.class = "fb-table-cell-edit fb-table-cell-edit-header";
+                        cellOpts.class = (
+                            "fb-table-cell-edit fb-table-cell-edit-header"
+                        );
                     }
                 }
                 tds.unshift(m("th", cellOpts, thContent));
@@ -1235,7 +1404,8 @@
                 return row;
             });
 
-            // Put a dummy row in to manage spacing correctly if none otherwise.
+            // Put a dummy row in to manage spacing correctly if
+            // none otherwise.
             if (!rows.length) {
                 rows.push(m("tr", {
                     style: {
@@ -1266,14 +1436,14 @@
                         onscroll: vm.onscroll,
                         oncreate: function (vnode) {
                             // Key down handler for up down movement
-                            var e = document.getElementById(vnode.dom.id);
+                            let e = document.getElementById(vnode.dom.id);
                             e.addEventListener("keydown", vm.onkeydown);
                             resize(vnode);
                         },
                         onupdate: resize,
                         onremove: function (vnode) {
                             // Key down handler for up down movement
-                            var e = document.getElementById(vnode.dom.id);
+                            let e = document.getElementById(vnode.dom.id);
                             e.removeEventListener("keydown", vm.onkeydown);
                         }
                     }, rows)
