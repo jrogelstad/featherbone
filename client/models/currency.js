@@ -15,61 +15,55 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*global require, module*/
 /*jslint browser*/
-(function () {
-    "use strict";
+import { catalog } from "./catalog.js";
+import { model } from "./model.js";
+import { list } from "./list.js";
 
-    let catalog = require("catalog");
-    let model = require("model");
-    let list = require("list");
+/*
+  Currency Model
+*/
+function currency(data, feather) {
+    feather = feather || catalog.getFeather("Currency");
+    let that = model(data, feather);
 
-    /*
-      Currency Model
-    */
-    function currencyModel(data, feather) {
-        feather = feather || catalog.getFeather("Currency");
-        let that = model(data, feather);
+    that.data.displayUnit.isReadOnly = function () {
+        return !that.data.hasDisplayUnit();
+    };
 
-        that.data.displayUnit.isReadOnly = function () {
-            return !that.data.hasDisplayUnit();
-        };
+    that.data.displayUnit.isRequired = that.data.hasDisplayUnit;
 
-        that.data.displayUnit.isRequired = that.data.hasDisplayUnit;
+    that.onChanged("hasDisplayUnit", function (prop) {
+        if (!prop()) {
+            that.data.displayUnit(null);
+        }
+    });
 
-        that.onChanged("hasDisplayUnit", function (prop) {
-            if (!prop()) {
-                that.data.displayUnit(null);
+    that.onValidate(function () {
+        let id;
+        let displayUnit = that.data.displayUnit();
+        let conversions = that.data.conversions();
+
+        function containsDisplayUnit(model) {
+            return model.data.toUnit().id() === id;
+        }
+
+        if (displayUnit) {
+            id = displayUnit.id();
+            if (!conversions.some(containsDisplayUnit)) {
+                throw "A conversion must exist for the display unit.";
             }
-        });
+        }
 
-        that.onValidate(function () {
-            let id;
-            let displayUnit = that.data.displayUnit();
-            let conversions = that.data.conversions();
+        if (that.data.code().length > 4) {
+            throw "code may not be more than 4 characters";
+        }
+    });
 
-            function containsDisplayUnit(model) {
-                return model.data.toUnit().id() === id;
-            }
+    return that;
+}
 
-            if (displayUnit) {
-                id = displayUnit.id();
-                if (!conversions.some(containsDisplayUnit)) {
-                    throw "A conversion must exist for the display unit.";
-                }
-            }
+currency.list = list("Currency");
 
-            if (that.data.code().length > 4) {
-                throw "code may not be more than 4 characters";
-            }
-        });
-
-        return that;
-    }
-
-    currencyModel.list = list("Currency");
-
-    catalog.register("models", "currency", currencyModel);
-    module.exports = currencyModel;
-
-}());
+catalog.register("models", "currency", currency);
+export { currency };

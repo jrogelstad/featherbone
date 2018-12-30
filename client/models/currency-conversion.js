@@ -15,38 +15,31 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*global require, module*/
-/*jslint browser*/
-(function () {
-    "use strict";
+import { catalog } from "./catalog.js";
+import { model } from "./model.js";
+import { list } from "./list.js";
 
-    let catalog = require("catalog");
-    let model = require("model");
-    let list = require("list");
+/*
+  Currency Conversion model
+*/
+function currencyConversion(data, feather) {
+    feather = feather || catalog.getFeather("CurrencyConversion");
+    let that = model(data, feather);
 
-    /*
-      Currency Conversion model
-    */
-    function currencyConversionModel(data, feather) {
-        feather = feather || catalog.getFeather("CurrencyConversion");
-        let that = model(data, feather);
+    that.onValidate(function () {
+        if (that.data.fromCurrency().id() === that.data.toCurrency().id()) {
+            throw "'From' currency cannot be the same as 'to' currency.";
+        }
 
-        that.onValidate(function () {
-            if (that.data.fromCurrency().id() === that.data.toCurrency().id()) {
-                throw "'From' currency cannot be the same as 'to' currency.";
-            }
+        if (that.data.ratio() < 0) {
+            throw "The conversion ratio nust be a positive number.";
+        }
+    });
 
-            if (that.data.ratio() < 0) {
-                throw "The conversion ratio nust be a positive number.";
-            }
-        });
+    return that;
+}
 
-        return that;
-    }
+currencyConversion.list = list("CurrencyConversion");
 
-    currencyConversionModel.list = list("CurrencyConversion");
-
-    catalog.register("models", "currencyConversion", currencyConversionModel);
-    module.exports.currencyConversion = currencyConversionModel;
-
-}());
+catalog.register("models", "currencyConversion", currencyConversion);
+export { currencyConversion };
