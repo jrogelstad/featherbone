@@ -17,16 +17,20 @@
 **/
 /*jslint this, browser, eval*/
 
+import "./models/table.js";
+import "./models/form.js";
+
 import * as m from "../node_modules/mithril/mithril.js";
 import { f } from "./components/core.js";
+import { datasource } from "./datasource.js";
+import { model } from "./models/model.js";
+import { settings } from "./models/settings.js";
+import { catalog } from "./models/catalog.js";
+import { State as statechart } from "../common/state.js";
 
 window.f = f;
 
 /*
-// Load pre-requisites
-require("table");
-require("form");
-
 // These get pre-registered for
 // on-the-fly instantiation
 require("form-page");
@@ -48,14 +52,8 @@ require("currency-unit");
 */
 
 /*
-const f = require("component-core");
-const model = require("model");
-const settings = require("settings");
-const catalog = require("catalog");
-const dataSource = require("datasource");
 const list = require("list");
 const navigator = require("navigator-menu");
-const statechart = require("statechartjs");
 const dialog = require("dialog");
 
 let feathers;

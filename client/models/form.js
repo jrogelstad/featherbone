@@ -15,108 +15,101 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*global require, module*/
-/*jslint browser*/
-(function () {
-    "use strict";
+import { catalog } from "./catalog.js";
+import { model } from "./model.js";
+import { list } from "./list.js";
 
-    const catalog = require("catalog");
-    const model = require("model");
-    const list = require("list");
+function form(data) {
+    let that;
+    let properties;
+    let modules;
+    let feathers;
+    let feather = catalog.getFeather("Form");
 
-    function formModel(data) {
-        let that;
-        let properties;
-        let modules;
-        let feathers;
-        let feather = catalog.getFeather("Form");
+    // ..........................................................
+    // PUBLIC
+    //
 
-        // ..........................................................
-        // PUBLIC
-        //
+    that = model(data, feather);
 
-        that = model(data, feather);
+    properties = function () {
+        let keys;
+        let formFeather = that.data.feather();
+        let result = [];
 
-        properties = function () {
-            let keys;
-            let formFeather = that.data.feather();
-            let result = [];
+        if (!formFeather) {
+            return result;
+        }
+        formFeather = catalog.getFeather(formFeather);
+        keys = Object.keys(formFeather.properties || []);
+        return keys.map(function (key) {
+            return {
+                value: key,
+                label: key
+            };
+        });
+    };
 
-            if (!formFeather) {
-                return result;
+    that.addCalculated({
+        name: "properties",
+        type: "array",
+        function: properties
+    });
+
+    feathers = function () {
+        let tables = catalog.store().feathers();
+        let keys = Object.keys(tables);
+
+        keys = keys.filter(function (key) {
+            return !tables[key].isSystem;
+        }).sort();
+
+        return keys.map(function (key) {
+            return {
+                value: key,
+                label: key
+            };
+        });
+    };
+
+    that.addCalculated({
+        name: "feathers",
+        type: "array",
+        function: feathers
+    });
+
+    modules = function () {
+        let tables = catalog.store().feathers();
+        let keys = Object.keys(tables);
+        let ary = [];
+
+        keys.forEach(function (key) {
+            let mod = tables[key].module;
+
+            if (mod && ary.indexOf(mod) === -1) {
+                ary.push(mod);
             }
-            formFeather = catalog.getFeather(formFeather);
-            keys = Object.keys(formFeather.properties || []);
-            return keys.map(function (key) {
-                return {
-                    value: key,
-                    label: key
-                };
-            });
-        };
-
-        that.addCalculated({
-            name: "properties",
-            type: "array",
-            function: properties
         });
 
-        feathers = function () {
-            let tables = catalog.store().feathers();
-            let keys = Object.keys(tables);
-
-            keys = keys.filter(function (key) {
-                return !tables[key].isSystem;
-            }).sort();
-
-            return keys.map(function (key) {
-                return {
-                    value: key,
-                    label: key
-                };
-            });
-        };
-
-        that.addCalculated({
-            name: "feathers",
-            type: "array",
-            function: feathers
+        return ary.map(function (item) {
+            return {
+                value: item,
+                label: item
+            };
         });
+    };
 
-        modules = function () {
-            let tables = catalog.store().feathers();
-            let keys = Object.keys(tables);
-            let ary = [];
+    that.addCalculated({
+        name: "modules",
+        type: "array",
+        function: modules
+    });
 
-            keys.forEach(function (key) {
-                let mod = tables[key].module;
+    return that;
+}
 
-                if (mod && ary.indexOf(mod) === -1) {
-                    ary.push(mod);
-                }
-            });
+form.list = list("Form");
 
-            return ary.map(function (item) {
-                return {
-                    value: item,
-                    label: item
-                };
-            });
-        };
+catalog.register("models", "form", form);
 
-        that.addCalculated({
-            name: "modules",
-            type: "array",
-            function: modules
-        });
-
-        return that;
-    }
-
-    formModel.list = list("Form");
-
-    catalog.register("models", "form", formModel);
-
-    module.exports = formModel;
-
-}());
+export { form };
