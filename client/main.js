@@ -17,8 +17,26 @@
 **/
 /*jslint this, browser, eval*/
 
+// Register models
 import "./models/table.js";
 import "./models/form.js";
+import "./models/contact.js";
+import "./models/currency.js";
+import "./models/currency-conversion.js";
+import "./models/currency-unit.js";
+
+import "./components/checkbox.js";
+/*
+require("form-page");
+require("workbook-page");
+require("search-page");
+require("settings-page");
+require("relation-widget");
+require("child-table");
+require("address-relation");
+*/
+import "./components/contact-relation.js";
+import "../common/core-client.js";
 
 import * as m from "../node_modules/mithril/mithril.js";
 import { f } from "./components/core.js";
@@ -26,6 +44,7 @@ import { datasource } from "./datasource.js";
 import { model } from "./models/model.js";
 import { settings } from "./models/settings.js";
 import { catalog } from "./models/catalog.js";
+import { list } from "./models/list.js";
 import { State as statechart } from "../common/state.js";
 
 window.f = f;
@@ -37,22 +56,15 @@ require("form-page");
 require("workbook-page");
 require("search-page");
 require("settings-page");
-require("checkbox");
 require("relation-widget");
 require("child-table");
 require("address-relation");
 require("contact-relation");
 require("common-core");
 
-// Core models
-require("contact");
-require("currency");
-require("currency-conversion");
-require("currency-unit");
 */
 
 /*
-const list = require("list");
 const navigator = require("navigator-menu");
 const dialog = require("dialog");
 

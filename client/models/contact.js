@@ -15,40 +15,34 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*global require, module*/
 /*jslint browser*/
-(function () {
-    "use strict";
+import { catalog } from "./catalog.js";
+import { model } from "./model.js";
+import { list } from "./list.js";
 
-    const catalog = require("catalog");
-    const model = require("model");
-    const list = require("list");
+/*
+  Contact Model
+*/
+function contact(data, feather) {
+    feather = feather || catalog.getFeather("Contact");
+    let that = model(data, feather);
+    let d = that.data;
 
-    /*
-      Contact Model
-    */
-    function contactModel(data, feather) {
-        feather = feather || catalog.getFeather("Contact");
-        let that = model(data, feather);
-        let d = that.data;
-
-        function handleName() {
-            if (d.firstName()) {
-                d.fullName(d.firstName() + " " + d.lastName());
-            } else {
-                d.fullName(d.lastName());
-            }
+    function handleName() {
+        if (d.firstName()) {
+            d.fullName(d.firstName() + " " + d.lastName());
+        } else {
+            d.fullName(d.lastName());
         }
-
-        that.onChanged("firstName", handleName);
-        that.onChanged("lastName", handleName);
-
-        return that;
     }
 
-    contactModel.list = list("Contact");
+    that.onChanged("firstName", handleName);
+    that.onChanged("lastName", handleName);
 
-    catalog.register("models", "contact", contactModel);
-    module.exports = contactModel;
+    return that;
+}
 
-}());
+contact.list = list("Contact");
+
+catalog.register("models", "contact", contact);
+export { contact };

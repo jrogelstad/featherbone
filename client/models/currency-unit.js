@@ -15,34 +15,27 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*global require, module*/
-/*jslint browser*/
-(function () {
-    "use strict";
+import { catalog } from "./catalog.js";
+import { model } from "./model.js";
+import { list } from "./list.js";
 
-    let catalog = require("catalog");
-    let model = require("model");
-    let list = require("list");
+/*
+  Currency Unit model
+*/
+function currencyUnit(data, feather) {
+    feather = feather || catalog.getFeather("CurrencyUnit");
+    let that = model(data, feather);
 
-    /*
-      Currency Unit model
-    */
-    function currencyUnitModel(data, feather) {
-        feather = feather || catalog.getFeather("CurrencyUnit");
-        let that = model(data, feather);
+    that.onValidate(function () {
+        if (that.data.code().length > 4) {
+            throw "code may not be more than 4 characters";
+        }
+    });
 
-        that.onValidate(function () {
-            if (that.data.code().length > 4) {
-                throw "code may not be more than 4 characters";
-            }
-        });
+    return that;
+}
 
-        return that;
-    }
+currencyUnit.list = list("CurrencyUnit");
 
-    currencyUnitModel.list = list("CurrencyUnit");
-
-    catalog.register("models", "currencyUnit", currencyUnitModel);
-    module.exports = currencyUnitModel;
-
-}());
+catalog.register("models", "currencyUnit", currencyUnit);
+export { currencyUnit };

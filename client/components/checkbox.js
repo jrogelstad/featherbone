@@ -15,54 +15,49 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*global require, module*/
-/*jslint this, browser*/
-(function () {
-    "use strict";
 
-    const checkbox = {};
-    const m = require("mithril");
-    const f = require("common-core");
-    const catalog = require("catalog");
+/*jslint this*/
+const checkbox = {};
+import * as m from "../../node_modules/mithril/mithril.js";
+import { f } from "../../common/core-client.js";
+import { catalog } from "../models/catalog.js";
 
-    // Define checkbox component
-    checkbox.component = {
-        oninit: function (vnode) {
-            this.id = vnode.attrs.id || f.createId();
-        },
+// Define checkbox component
+checkbox.component = {
+    oninit: function (vnode) {
+        this.id = vnode.attrs.id || f.createId();
+    },
 
-        view: function (vnode) {
-            return m("div", {
-                class: "fb-checkbox"
-            }, [
-                m("input", {
-                    id: this.id,
-                    class: "fb-checkbox-input",
-                    type: "checkbox",
-                    onclick: (e) => vnode.attrs.onclick(e.target.checked),
-                    checked: vnode.attrs.value,
-                    style: vnode.attrs.style || {},
-                    required: Boolean(vnode.attrs.required),
-                    disabled: Boolean(vnode.attrs.disabled)
-                }),
-                m("label", {
-                    for: this.id,
-                    class: "fb-checkbox-label"
-                }, m("i", {
-                    class: "fa fa-check",
-                    style: {
-                        visibility: (
-                            vnode.attrs.value
-                            ? "visible"
-                            : "hidden"
-                        )
-                    }
-                }))
-            ]);
-        }
-    };
+    view: function (vnode) {
+        return m("div", {
+            class: "fb-checkbox"
+        }, [
+            m("input", {
+                id: this.id,
+                class: "fb-checkbox-input",
+                type: "checkbox",
+                onclick: (e) => vnode.attrs.onclick(e.target.checked),
+                checked: vnode.attrs.value,
+                style: vnode.attrs.style || {},
+                required: Boolean(vnode.attrs.required),
+                disabled: Boolean(vnode.attrs.disabled)
+            }),
+            m("label", {
+                for: this.id,
+                class: "fb-checkbox-label"
+            }, m("i", {
+                class: "fa fa-check",
+                style: {
+                    visibility: (
+                        vnode.attrs.value
+                        ? "visible"
+                        : "hidden"
+                    )
+                }
+            }))
+        ]);
+    }
+};
 
-    catalog.register("components", "checkbox", checkbox.component);
-    module.exports = checkbox;
-
-}());
+catalog.register("components", "checkbox", checkbox.component);
+export { checkbox };
