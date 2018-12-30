@@ -52,9 +52,6 @@
             let elements = [];
             let parentModel = options.parentViewModel.model();
             let model = parentModel.data[options.parentProperty]();
-            let phoneClass = "fa fa-phone fb-contact-relation-icon";
-            let mailClass = "fa fa-envelope-o fb-contact-relation-icon";
-            let mapClass = "fa fa-map-marker fb-contact-relation-icon";
 
             if (model) {
                 phone = model.data.phone();
@@ -72,7 +69,9 @@
                                 target: "_blank"
                             }, [
                                 m("i", {
-                                    class: phoneClass
+                                    class: (
+                                        "fa fa-phone fb-contact-relation-icon"
+                                    )
                                 })
                             ])
                         ], phone)
@@ -91,7 +90,10 @@
                                 target: "_blank"
                             }, [
                                 m("i", {
-                                    class: mailClass
+                                    class: (
+                                        "fa fa-envelope-o " +
+                                        "fb-contact-relation-icon"
+                                    )
                                 })
                             ])
                         ], email)
@@ -114,7 +116,10 @@
                                 target: "_blank"
                             }, [
                                 m("i", {
-                                    class: mapClass
+                                    class: (
+                                        "fa fa-map-marker " +
+                                        "fb-contact-relation-icon"
+                                    )
                                 })
                             ])
                         ], address.data.city() + ", " + address.data.state())

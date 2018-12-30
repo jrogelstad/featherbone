@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2018  John Rogelstad
+    Copyright (C) 2019  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -16,25 +16,26 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*global require, module*/
-/*jslint es6, this, browser*/
+/*jslint this, browser*/
 (function () {
     "use strict";
 
-    var state,
-        navigator = {},
-        m = require("mithril"),
-        catalog = require("catalog"),
-        stream = require("stream"),
-        statechart = require("statechartjs"),
-        selected = stream();
+    const navigator = {};
+    const m = require("mithril");
+    const catalog = require("catalog");
+    const stream = require("stream");
+    const statechart = require("statechartjs");
+    const selected = stream();
 
     // Define state (global)
-    state = statechart.define(function () {
+    const state = statechart.define(function () {
         this.state("Expanded", function () {
             this.event("toggle", function () {
                 this.goto("../Collapsed");
             });
-            this.classMenu = "pure-menu fb-navigator-menu fb-navigator-menu-expanded";
+            this.classMenu = (
+                "pure-menu fb-navigator-menu fb-navigator-menu-expanded"
+            );
             this.classHeader = "";
             this.content = function (value) {
                 return value;
@@ -47,7 +48,9 @@
             this.event("toggle", function () {
                 this.goto("../Expanded");
             });
-            this.classMenu = "pure-menu fb-navigator-menu fb-navigator-menu-collapsed";
+            this.classMenu = (
+                "pure-menu fb-navigator-menu fb-navigator-menu-collapsed"
+            );
             this.classHeader = "fb-navigator-menu-header-collapsed";
             this.content = function () {
                 return undefined;
@@ -61,7 +64,7 @@
 
     navigator.viewModel = function (options) {
         options = options || {};
-        var vm;
+        let vm;
 
         // ..........................................................
         // PUBLIC
@@ -74,7 +77,7 @@
             m.route.set("/home");
         };
         vm.goto = function () {
-            var config = this.getConfig();
+            let config = this.getConfig();
 
             m.route.set("/workbook/:workbook/:key", {
                 workbook: this.data.name().toSpinalCase(),
@@ -116,17 +119,18 @@
     // Define navigator component
     navigator.component = {
         oninit: function (vnode) {
-            var vm = vnode.attrs.viewModel || navigator.viewModel(vnode.attrs);
+            let vm = vnode.attrs.viewModel || navigator.viewModel(vnode.attrs);
             this.viewModel = vm;
         },
 
         view: function () {
-            var menuItems, itemClass,
-                    vm = this.viewModel,
-                    workbooks = vm.workbooks();
+            let menuItems;
+            let itemClass;
+            let vm = this.viewModel;
+            let workbooks = vm.workbooks();
 
             function items(key) {
-                var name = workbooks[key].data.name();
+                let name = workbooks[key].data.name();
 
                 itemClass = "pure-menu-item fb-navigator-item";
 
@@ -144,8 +148,11 @@
                     title: vm.itemTitle(name)
                 }, [
                     m("i", {
-                        class: "fa fa-" + workbooks[key].data.launchConfig().icon +
-                                " fb-navigator-item-icon"
+                        class: (
+                            "fa fa-" +
+                            workbooks[key].data.launchConfig().icon +
+                            " fb-navigator-item-icon"
+                        )
                     })
                 ], vm.itemContent(name));
             }
