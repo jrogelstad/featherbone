@@ -15,194 +15,189 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*global require, module*/
-/*jslint this, browser*/
-(function () {
-    "use strict";
+/*jslint this*/
+import * as m from "../../node_modules/mithril/mithril.js";
+import { stream } from "../../common/stream-client.js";
+import { catalog } from "../models/catalog.js";
+import { State as statechart } from "../../common/state.js";
 
-    const navigator = {};
-    const m = require("mithril");
-    const catalog = require("catalog");
-    const stream = require("stream");
-    const statechart = require("statechartjs");
-    const selected = stream();
+const selected = stream();
+const navigator = {};
 
-    // Define state (global)
-    const state = statechart.define(function () {
-        this.state("Expanded", function () {
-            this.event("toggle", function () {
-                this.goto("../Collapsed");
-            });
-            this.classMenu = (
-                "pure-menu fb-navigator-menu fb-navigator-menu-expanded"
-            );
-            this.classHeader = "";
-            this.content = function (value) {
-                return value;
-            };
-            this.title = function () {
-                return undefined;
-            };
+// Define state (global)
+const state = statechart.define(function () {
+    this.state("Expanded", function () {
+        this.event("toggle", function () {
+            this.goto("../Collapsed");
         });
-        this.state("Collapsed", function () {
-            this.event("toggle", function () {
-                this.goto("../Expanded");
-            });
-            this.classMenu = (
-                "pure-menu fb-navigator-menu fb-navigator-menu-collapsed"
-            );
-            this.classHeader = "fb-navigator-menu-header-collapsed";
-            this.content = function () {
-                return undefined;
-            };
-            this.title = function (value) {
-                return value;
-            };
-        });
+        this.classMenu = (
+            "pure-menu fb-navigator-menu fb-navigator-menu-expanded"
+        );
+        this.classHeader = "";
+        this.content = function (value) {
+            return value;
+        };
+        this.title = function () {
+            return undefined;
+        };
     });
-    state.goto();
+    this.state("Collapsed", function () {
+        this.event("toggle", function () {
+            this.goto("../Expanded");
+        });
+        this.classMenu = (
+            "pure-menu fb-navigator-menu fb-navigator-menu-collapsed"
+        );
+        this.classHeader = "fb-navigator-menu-header-collapsed";
+        this.content = function () {
+            return undefined;
+        };
+        this.title = function (value) {
+            return value;
+        };
+    });
+});
+state.goto();
 
-    navigator.viewModel = function (options) {
-        options = options || {};
-        let vm;
+navigator.viewModel = function (options) {
+    options = options || {};
+    let vm;
 
-        // ..........................................................
-        // PUBLIC
-        //
+    // ..........................................................
+    // PUBLIC
+    //
 
-        vm = {};
+    vm = {};
 
-        vm.workbooks = catalog.store().workbooks;
-        vm.goHome = function () {
-            m.route.set("/home");
-        };
-        vm.goto = function () {
-            let config = this.getConfig();
-
-            m.route.set("/workbook/:workbook/:key", {
-                workbook: this.data.name().toSpinalCase(),
-                key: config[0].name.toSpinalCase()
-            });
-        };
-        vm.itemContent = function (value) {
-            return state.resolve(state.current()[0]).content(value);
-        };
-        vm.itemTitle = function (value) {
-            return state.resolve(state.current()[0]).title(value);
-        };
-        vm.mouseoverKey = stream();
-        vm.mouseout = function () {
-            vm.mouseoverKey(undefined);
-        };
-        vm.mouseover = function () {
-            vm.mouseoverKey(this);
-        };
-        vm.toggle = function () {
-            state.send("toggle");
-        };
-        vm.classHeader = function () {
-            return state.resolve(state.current()[0]).classHeader;
-        };
-        vm.classMenu = function () {
-            return state.resolve(state.current()[0]).classMenu;
-        };
-        vm.selected = selected;
-        vm.state = stream(state);
-
-        // ..........................................................
-        // PRIVATE
-        //
-
-        return vm;
+    vm.workbooks = catalog.store().workbooks;
+    vm.goHome = function () {
+        m.route.set("/home");
     };
+    vm.goto = function () {
+        let config = this.getConfig();
 
-    // Define navigator component
-    navigator.component = {
-        oninit: function (vnode) {
-            let vm = vnode.attrs.viewModel || navigator.viewModel(vnode.attrs);
-            this.viewModel = vm;
-        },
+        m.route.set("/workbook/:workbook/:key", {
+            workbook: this.data.name().toSpinalCase(),
+            key: config[0].name.toSpinalCase()
+        });
+    };
+    vm.itemContent = function (value) {
+        return state.resolve(state.current()[0]).content(value);
+    };
+    vm.itemTitle = function (value) {
+        return state.resolve(state.current()[0]).title(value);
+    };
+    vm.mouseoverKey = stream();
+    vm.mouseout = function () {
+        vm.mouseoverKey(undefined);
+    };
+    vm.mouseover = function () {
+        vm.mouseoverKey(this);
+    };
+    vm.toggle = function () {
+        state.send("toggle");
+    };
+    vm.classHeader = function () {
+        return state.resolve(state.current()[0]).classHeader;
+    };
+    vm.classMenu = function () {
+        return state.resolve(state.current()[0]).classMenu;
+    };
+    vm.selected = selected;
+    vm.state = stream(state);
 
-        view: function () {
-            let menuItems;
-            let itemClass;
-            let vm = this.viewModel;
-            let workbooks = vm.workbooks();
+    // ..........................................................
+    // PRIVATE
+    //
 
-            function items(key) {
-                let name = workbooks[key].data.name();
+    return vm;
+};
 
-                itemClass = "pure-menu-item fb-navigator-item";
+// Define navigator component
+navigator.component = {
+    oninit: function (vnode) {
+        let vm = vnode.attrs.viewModel || navigator.viewModel(vnode.attrs);
+        this.viewModel = vm;
+    },
 
-                if (vm.selected() && vm.selected() === key) {
-                    itemClass += " fb-navigator-item-selected";
-                } else if (vm.mouseoverKey() === key) {
-                    itemClass += " fb-navigator-item-mouseover";
-                }
+    view: function () {
+        let menuItems;
+        let itemClass;
+        let vm = this.viewModel;
+        let workbooks = vm.workbooks();
 
-                return m("li", {
-                    class: itemClass,
-                    onclick: vm.goto.bind(workbooks[key]),
-                    onmouseover: vm.mouseover.bind(key),
-                    onmouseout: vm.mouseout,
-                    title: vm.itemTitle(name)
-                }, [
-                    m("i", {
-                        class: (
-                            "fa fa-" +
-                            workbooks[key].data.launchConfig().icon +
-                            " fb-navigator-item-icon"
-                        )
-                    })
-                ], vm.itemContent(name));
-            }
-
-            menuItems = Object.keys(workbooks).map(items);
+        function items(key) {
+            let name = workbooks[key].data.name();
 
             itemClass = "pure-menu-item fb-navigator-item";
-            if (vm.selected() === "home") {
+
+            if (vm.selected() && vm.selected() === key) {
                 itemClass += " fb-navigator-item-selected";
-            } else if (vm.mouseoverKey() === "home") {
+            } else if (vm.mouseoverKey() === key) {
                 itemClass += " fb-navigator-item-mouseover";
             }
 
-            menuItems.unshift(
-                m("li", {
-                    class: itemClass,
-                    onclick: vm.goHome,
-                    onmouseover: vm.mouseover.bind("home"),
-                    onmouseout: vm.mouseout,
-                    title: vm.itemTitle("Home")
-                }, [
-                    m("i", {
-                        class: "fa fa-home fb-navigator-item-icon"
-                    })
-                ], vm.itemContent("Home"))
-            );
-
-            return m("div", {
-                class: vm.classMenu()
+            return m("li", {
+                class: itemClass,
+                onclick: vm.goto.bind(workbooks[key]),
+                onmouseover: vm.mouseover.bind(key),
+                onmouseout: vm.mouseout,
+                title: vm.itemTitle(name)
             }, [
-                m("div", {
-                    class: vm.classHeader()
-                }, "Featherbone", [
-                    m("i", {
-                        style: {
-                            fontSize: "x-small",
-                            marginLeft: "8px",
-                            marginTop: "4px"
-                        },
-                        class: "fa fa-chevron-left",
-                        onclick: vm.toggle
-                    })
-                ]),
-                m("ul", {
-                    class: "pure-menu-list"
-                }, menuItems)
-            ]);
+                m("i", {
+                    class: (
+                        "fa fa-" +
+                        workbooks[key].data.launchConfig().icon +
+                        " fb-navigator-item-icon"
+                    )
+                })
+            ], vm.itemContent(name));
         }
-    };
 
-    module.exports = navigator;
+        menuItems = Object.keys(workbooks).map(items);
 
-}());
+        itemClass = "pure-menu-item fb-navigator-item";
+        if (vm.selected() === "home") {
+            itemClass += " fb-navigator-item-selected";
+        } else if (vm.mouseoverKey() === "home") {
+            itemClass += " fb-navigator-item-mouseover";
+        }
+
+        menuItems.unshift(
+            m("li", {
+                class: itemClass,
+                onclick: vm.goHome,
+                onmouseover: vm.mouseover.bind("home"),
+                onmouseout: vm.mouseout,
+                title: vm.itemTitle("Home")
+            }, [
+                m("i", {
+                    class: "fa fa-home fb-navigator-item-icon"
+                })
+            ], vm.itemContent("Home"))
+        );
+
+        return m("div", {
+            class: vm.classMenu()
+        }, [
+            m("div", {
+                class: vm.classHeader()
+            }, "Featherbone", [
+                m("i", {
+                    style: {
+                        fontSize: "x-small",
+                        marginLeft: "8px",
+                        marginTop: "4px"
+                    },
+                    class: "fa fa-chevron-left",
+                    onclick: vm.toggle
+                })
+            ]),
+            m("ul", {
+                class: "pure-menu-list"
+            }, menuItems)
+        ]);
+    }
+};
+
+export { navigator };

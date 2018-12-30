@@ -26,9 +26,9 @@ import "./models/currency-conversion.js";
 import "./models/currency-unit.js";
 
 import "./components/checkbox.js";
+import "./components/form-page.js";
+import "./components/workbook-page.js";
 /*
-require("form-page");
-require("workbook-page");
 require("search-page");
 require("settings-page");
 require("relation-widget");
