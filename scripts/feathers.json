@@ -1,5 +1,4 @@
-[
-    {
+[{
         "name": "TableSpec",
         "plural": "TableSpecs",
         "module": "Core",
@@ -170,7 +169,7 @@
                 "description": "Flag whether to index property",
                 "type": "boolean",
                 "default": false
-            }             
+            }
         }
     },
     {
@@ -413,8 +412,8 @@
                 "type": {
                     "relation": "Form",
                     "properties": [
-                      "name",
-                      "description"
+                        "name",
+                        "description"
                     ]
                 },
                 "isRequired": true
@@ -462,4 +461,3 @@
         }
     }
 ]
-

@@ -1,71 +1,71 @@
 {
-	"openapi": "3.0.0",
-	"info": {
-		"version": "1.0.0",
-		"title": "Featherbone data service",
-		"description": "REST data service for featherbone based applications.",
-		"license": {
-			"name": "Affero GPLv3",
-			"url": "http://www.gnu.org/licenses/agpl.txt"
-		}
-	},
-	"servers": [{
-		"url": "http://localhost:10001"
-	}],
-	"tags": [{
-			"name": "currency",
-			"description": "Currency functions"
-		},{
-			"name": "feather",
-			"description": "Data class specifications"
-		},
-		{
-			"name": "lock",
-			"description": "Lock and unlock methods"
-		},
-		{
-			"name": "module",
-			"description": "Javascript client code module"
-		},
-		{
-			"name": "settings",
-			"description": "Application settings"
-		},
-		{
-			"name": "subscribe",
-			"description": "Subscribe to change events"
-		},
-		{
-			"name": "workbook",
-			"description": "Workbook UI layout configuration"
-		}
-	],
-	"paths": {
+    "openapi": "3.0.0",
+    "info": {
+        "version": "1.0.0",
+        "title": "Featherbone data service",
+        "description": "REST data service for featherbone based applications.",
+        "license": {
+            "name": "Affero GPLv3",
+            "url": "http://www.gnu.org/licenses/agpl.txt"
+        }
+    },
+    "servers": [{
+        "url": "http://localhost:10001"
+    }],
+    "tags": [{
+            "name": "currency",
+            "description": "Currency functions"
+        }, {
+            "name": "feather",
+            "description": "Data class specifications"
+        },
+        {
+            "name": "lock",
+            "description": "Lock and unlock methods"
+        },
+        {
+            "name": "module",
+            "description": "Javascript client code module"
+        },
+        {
+            "name": "settings",
+            "description": "Application settings"
+        },
+        {
+            "name": "subscribe",
+            "description": "Subscribe to change events"
+        },
+        {
+            "name": "workbook",
+            "description": "Workbook UI layout configuration"
+        }
+    ],
+    "paths": {
         "/currency/base": {
-			"get": {
-				"summary": "Return the base currency",
-				"operationId": "baseCurrency",
-				"tags": [
-					"currency"
-				],
-				"parameters": [{
-					"name": "effective",
-					"in": "query",
-					"description": "Effective date time. Default now.",
-					"schema": {
-						"type": "string"
-					}
-				}],
-				"responses": {
-					"200": {
-						"description": "Currency object",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/Currency"
-								}
-							}
-						}
+            "get": {
+                "summary": "Return the base currency",
+                "operationId": "baseCurrency",
+                "tags": [
+                    "currency"
+                ],
+                "parameters": [{
+                    "name": "effective",
+                    "in": "query",
+                    "description": "Effective date time. Default now.",
+                    "schema": {
+                        "type": "string"
+                    }
+                }],
+                "responses": {
+                    "200": {
+                        "description": "Currency object",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Currency"
+                                }
+                            }
+                        }
                     },
                     "default": {
                         "description": "Unexpected error",
@@ -77,47 +77,47 @@
                             }
                         }
                     }
-				}
-			}
-		},
+                }
+            }
+        },
         "/currency/convert": {
-			"get": {
-				"summary": "Return a converted value in base currency",
-				"operationId": "convertCurrency",
-				"tags": [
-					"currency"
-				],
-				"parameters": [{
-					"name": "fromCurrency",
-					"in": "query",
-					"description": "From currency code",
+            "get": {
+                "summary": "Return a converted value in base currency",
+                "operationId": "convertCurrency",
+                "tags": [
+                    "currency"
+                ],
+                "parameters": [{
+                    "name": "fromCurrency",
+                    "in": "query",
+                    "description": "From currency code",
                     "required": true,
-					"schema": {
-						"type": "string"
-					}
-				}, {
-					"name": "amount",
-					"in": "query",
-					"description": "Amount",
+                    "schema": {
+                        "type": "string"
+                    }
+                }, {
+                    "name": "amount",
+                    "in": "query",
+                    "description": "Amount",
                     "required": true,
-					"schema": {
-						"type": "number"
-					}
-				}, {
-					"name": "effective",
-					"in": "query",
-					"description": "Effective date time. Default now.",
-					"schema": {
-						"type": "string"
-					}
-				}],
-				"responses": {
-					"200": {
-						"description": "Money in base currency",
-						"content": {
-							"application/json": {
-								"schema": {
-									"type": "object",
+                    "schema": {
+                        "type": "number"
+                    }
+                }, {
+                    "name": "effective",
+                    "in": "query",
+                    "description": "Effective date time. Default now.",
+                    "schema": {
+                        "type": "string"
+                    }
+                }],
+                "responses": {
+                    "200": {
+                        "description": "Money in base currency",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
                                     "properties": {
                                         "currency": {
                                             "description": "Currency code",
@@ -128,9 +128,9 @@
                                             "type": "string"
                                         }
                                     }
-								}
-							}
-						}
+                                }
+                            }
+                        }
                     },
                     "default": {
                         "description": "Unexpected error",
@@ -142,155 +142,69 @@
                             }
                         }
                     }
-				}
-			}
-		},
-		"/feather/{name}": {
-			"get": {
-				"summary": "Get feather by name",
-				"operationId": "getFeather",
-				"tags": [
-					"feather"
-				],
-				"parameters": [{
-					"name": "name",
-					"in": "path",
-					"description": "The name of the feather to retrieve",
-					"required": true,
-					"schema": {
-						"type": "string"
-					}
-				}],
-				"responses": {
-					"200": {
-						"description": "Expected response to a valid request",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/Feather"
-								}
-							}
-						}
-					},
-					"default": {
-						"description": "Unexpected error",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					}
-				}
-			},
-			"put": {
-				"tags": [
-					"feather"
-				],
-				"summary": "Save feather",
-				"operationId": "saveFeather",
-				"parameters": [{
-					"name": "name",
-					"in": "path",
-					"description": "The name of the feather",
-					"required": true,
-					"schema": {
-						"type": "string"
-					}
-				}],
+                }
+            }
+        },
+        "/feather/{name}": {
+            "get": {
+                "summary": "Get feather by name",
+                "operationId": "getFeather",
+                "tags": [
+                    "feather"
+                ],
+                "parameters": [{
+                    "name": "name",
+                    "in": "path",
+                    "description": "The name of the feather to retrieve",
+                    "required": true,
+                    "schema": {
+                        "type": "string"
+                    }
+                }],
+                "responses": {
+                    "200": {
+                        "description": "Expected response to a valid request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Feather"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "description": "Unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "feather"
+                ],
+                "summary": "Save feather",
+                "operationId": "saveFeather",
+                "parameters": [{
+                    "name": "name",
+                    "in": "path",
+                    "description": "The name of the feather",
+                    "required": true,
+                    "schema": {
+                        "type": "string"
+                    }
+                }],
                 "requestBody": {
-                  "$ref": "#/components/requestBodies/Feather"
+                    "$ref": "#/components/requestBodies/Feather"
                 },
-				"responses": {
-					"204": {
-						"description": "Expected response to a valid request"
-					},
-					"default": {
-						"description": "Unexpected error",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					}
-				}
-			},
-			"delete": {
-				"tags": [
-					"feather"
-				],
-				"summary": "Delete feather",
-				"operationId": "deleteFeather",
-				"parameters": [{
-					"name": "name",
-					"in": "path",
-					"description": "Delete a feather",
-					"required": true,
-					"schema": {
-						"type": "string"
-					}
-				}],
-				"responses": {
-					"200": {
-						"description": "Expected response to a valid request",
-						"content": {
-							"application/json": {
-								"schema": {
-									"type": "boolean"
-								}
-							}
-						}
-					},
-					"default": {
-						"description": "Unexpected error",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
-		"/do/lock": {
-			"post": {
-				"summary": "Obtain a lock on an object for a session",
-				"operationId": "doLock",
-				"tags": [
-					"lock"
-				],
-				"parameters": [{
-					"name": "id",
-					"in": "query",
-					"description": "Object id to lock",
-					"required": true,
-					"schema": {
-						"type": "string"
-					}
-				}, {
-					"name": "sessionId",
-					"in": "query",
-					"description": "Session id",
-					"required": true,
-					"schema": {
-						"type": "string"
-					}
-				}],
-				"responses": {
-					"200": {
-						"description": "Response of 'true' indicates successful lock",
-						"content": {
-							"application/json": {
-								"schema": {
-									"type": "boolean"
-								}
-							}
-						}
+                "responses": {
+                    "204": {
+                        "description": "Expected response to a valid request"
                     },
                     "default": {
                         "description": "Unexpected error",
@@ -302,44 +216,130 @@
                             }
                         }
                     }
-				}
-			}
-		},
-		"/do/unlock": {
-			"post": {
-				"summary": "Unlock an object",
-				"operationId": "doUnlock",
-				"tags": [
-					"lock"
-				],
-				"parameters": [{
-					"name": "id",
-					"in": "query",
-					"description": "Object id to unlock",
-					"required": true,
-					"schema": {
-						"type": "string"
-					}
-				}],
-				"responses": {
-					"200": {
-						"description": "Record id(s) successfully unlocked",
-						"content": {
-							"application/json": {
-								"schema": {
-									"type": "array",
+                }
+            },
+            "delete": {
+                "tags": [
+                    "feather"
+                ],
+                "summary": "Delete feather",
+                "operationId": "deleteFeather",
+                "parameters": [{
+                    "name": "name",
+                    "in": "path",
+                    "description": "Delete a feather",
+                    "required": true,
+                    "schema": {
+                        "type": "string"
+                    }
+                }],
+                "responses": {
+                    "200": {
+                        "description": "Expected response to a valid request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "boolean"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "description": "Unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/do/lock": {
+            "post": {
+                "summary": "Obtain a lock on an object for a session",
+                "operationId": "doLock",
+                "tags": [
+                    "lock"
+                ],
+                "parameters": [{
+                    "name": "id",
+                    "in": "query",
+                    "description": "Object id to lock",
+                    "required": true,
+                    "schema": {
+                        "type": "string"
+                    }
+                }, {
+                    "name": "sessionId",
+                    "in": "query",
+                    "description": "Session id",
+                    "required": true,
+                    "schema": {
+                        "type": "string"
+                    }
+                }],
+                "responses": {
+                    "200": {
+                        "description": "Response of 'true' indicates successful lock",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "boolean"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "description": "Unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/do/unlock": {
+            "post": {
+                "summary": "Unlock an object",
+                "operationId": "doUnlock",
+                "tags": [
+                    "lock"
+                ],
+                "parameters": [{
+                    "name": "id",
+                    "in": "query",
+                    "description": "Object id to unlock",
+                    "required": true,
+                    "schema": {
+                        "type": "string"
+                    }
+                }],
+                "responses": {
+                    "200": {
+                        "description": "Record id(s) successfully unlocked",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
                                     "items": {
-										"type": "object",
+                                        "type": "object",
                                         "properties": {
                                             "id": {
                                                 "description": "Object id",
                                                 "type": "string"
                                             }
                                         }
-									}
-								}
-							}
-						}
+                                    }
+                                }
+                            }
+                        }
                     },
                     "default": {
                         "description": "Unexpected error",
@@ -351,29 +351,29 @@
                             }
                         }
                     }
-				}
-			}
-		},
-		"/module/": {
-			"get": {
-				"summary": "Get javascript modules",
-				"operationId": "getModules",
-				"tags": [
-					"module"
-				],
-				"responses": {
-					"200": {
-						"description": "Expected response to a valid request",
-						"content": {
-							"application/json": {
-								"schema": {
-									"type": "array",
-									"items": {
-										"$ref": "#/components/schemas/Module"
-									}
-								}
-							}
-						}
+                }
+            }
+        },
+        "/module/": {
+            "get": {
+                "summary": "Get javascript modules",
+                "operationId": "getModules",
+                "tags": [
+                    "module"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Expected response to a valid request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Module"
+                                    }
+                                }
+                            }
+                        }
                     },
                     "default": {
                         "description": "Unexpected error",
@@ -385,105 +385,105 @@
                             }
                         }
                     }
-				}
-			}
-		},
-		"/settings/{name}": {
-			"get": {
-				"summary": "Get settings by name",
-				"operationId": "getSettings",
-				"tags": [
-					"settings"
-				],
-				"parameters": [{
-					"name": "name",
-					"in": "path",
-					"description": "The name of the settings to retrieve",
-					"required": true,
-					"schema": {
-						"type": "string"
-					}
-				}],
-				"responses": {
-					"200": {
-						"description": "Expected response to a valid request",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/Settings"
-								}
-							}
-						}
-					},
-					"default": {
-						"description": "Unexpected error",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					}
-				}
-			},
-			"put": {
-				"tags": [
-					"settings"
-				],
-				"summary": "Save new settings",
-				"operationId": "saveSettings",
-				"parameters": [{
-					"name": "name",
-					"in": "path",
-					"description": "The name of the settings",
-					"required": true,
-					"schema": {
-						"type": "string"
-					}
-				}],
+                }
+            }
+        },
+        "/settings/{name}": {
+            "get": {
+                "summary": "Get settings by name",
+                "operationId": "getSettings",
+                "tags": [
+                    "settings"
+                ],
+                "parameters": [{
+                    "name": "name",
+                    "in": "path",
+                    "description": "The name of the settings to retrieve",
+                    "required": true,
+                    "schema": {
+                        "type": "string"
+                    }
+                }],
+                "responses": {
+                    "200": {
+                        "description": "Expected response to a valid request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Settings"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "description": "Unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "settings"
+                ],
+                "summary": "Save new settings",
+                "operationId": "saveSettings",
+                "parameters": [{
+                    "name": "name",
+                    "in": "path",
+                    "description": "The name of the settings",
+                    "required": true,
+                    "schema": {
+                        "type": "string"
+                    }
+                }],
                 "requestBody": {
-                  "$ref": "#/components/requestBodies/Settings"
+                    "$ref": "#/components/requestBodies/Settings"
                 },
-				"responses": {
-					"204": {
-						"description": "Expected response to a valid request"
-					},
-					"default": {
-						"description": "Unexpected error",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
-		"/do/subscribe": {
-			"post": {
-				"summary": "Subscribe to change events on an object",
-				"operationId": "doSubscribe",
-				"tags": [
-					"subscribe"
-				],
-				"parameters": [{
-					"name": "id",
-					"in": "query",
-					"description": "Object id to subscribe to",
-					"required": true,
-					"schema": {
-						"type": "string"
-					}
-				}, {
-					"name": "subscription",
-					"in": "query",
-					"description": "Subscription information",
-					"required": true,
-					"schema": {
-						"type": "object",
+                "responses": {
+                    "204": {
+                        "description": "Expected response to a valid request"
+                    },
+                    "default": {
+                        "description": "Unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/do/subscribe": {
+            "post": {
+                "summary": "Subscribe to change events on an object",
+                "operationId": "doSubscribe",
+                "tags": [
+                    "subscribe"
+                ],
+                "parameters": [{
+                    "name": "id",
+                    "in": "query",
+                    "description": "Object id to subscribe to",
+                    "required": true,
+                    "schema": {
+                        "type": "string"
+                    }
+                }, {
+                    "name": "subscription",
+                    "in": "query",
+                    "description": "Subscription information",
+                    "required": true,
+                    "schema": {
+                        "type": "object",
                         "properties": {
                             "id": {
                                 "description": "Subscription id",
@@ -494,18 +494,18 @@
                                 "type": "string"
                             }
                         }
-					}
-				}],
-				"responses": {
-					"200": {
-						"description": "Response of 'true' indicates successful request",
-						"content": {
-							"application/json": {
-								"schema": {
-									"type": "boolean"
-								}
-							}
-						}
+                    }
+                }],
+                "responses": {
+                    "200": {
+                        "description": "Response of 'true' indicates successful request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "boolean"
+                                }
+                            }
+                        }
                     },
                     "default": {
                         "description": "Unexpected error",
@@ -517,41 +517,41 @@
                             }
                         }
                     }
-				}
-			}
-		},
-		"/do/unsubscribe": {
-			"post": {
-				"summary": "Unsubscribe to change events for a subscription",
-				"operationId": "doUnsubscribe",
-				"tags": [
-					"subscribe"
-				],
-				"parameters": [{
-					"name": "subscription",
-					"in": "query",
-					"description": "Subscription information",
-					"required": true,
-					"schema": {
-						"type": "object",
+                }
+            }
+        },
+        "/do/unsubscribe": {
+            "post": {
+                "summary": "Unsubscribe to change events for a subscription",
+                "operationId": "doUnsubscribe",
+                "tags": [
+                    "subscribe"
+                ],
+                "parameters": [{
+                    "name": "subscription",
+                    "in": "query",
+                    "description": "Subscription information",
+                    "required": true,
+                    "schema": {
+                        "type": "object",
                         "properties": {
                             "id": {
                                 "description": "Subscription id",
                                 "type": "string"
                             }
                         }
-					}
-				}],
-				"responses": {
-					"200": {
-						"description": "Response of 'true' indicates successful request",
-						"content": {
-							"application/json": {
-								"schema": {
-									"type": "boolean"
-								}
-							}
-						}
+                    }
+                }],
+                "responses": {
+                    "200": {
+                        "description": "Response of 'true' indicates successful request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "boolean"
+                                }
+                            }
+                        }
                     },
                     "default": {
                         "description": "Unexpected error",
@@ -563,151 +563,79 @@
                             }
                         }
                     }
-				}
-			}
-		},
-		"/workbook/{name}": {
-			"get": {
-				"summary": "Get workbook by name",
-				"operationId": "getWorkbook",
-				"tags": [
-					"workbook"
-				],
-				"parameters": [{
-					"name": "name",
-					"in": "path",
-					"description": "The name of the workbook to retrieve",
-					"required": true,
-					"schema": {
-						"type": "string"
-					}
-				}],
-				"responses": {
-					"200": {
-						"description": "Expected response to a valid request",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/Workbook"
-								}
-							}
-						}
-					},
-					"404": {
-						"description": "Workbook not found",
-						"content": {
-							"application/json": {
-								"schema": {
-									"type": "string"
-								}
-							}
-						}
-					},
-					"default": {
-						"description": "Unexpected error",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					}
-				}
-			},
-			"put": {
-				"tags": [
-					"workbook"
-				],
-				"summary": "Save Workbook",
-				"operationId": "saveWorkbook",
-				"parameters": [{
-					"name": "name",
-					"in": "path",
-					"description": "The name of the workbook",
-					"required": true,
-					"schema": {
-						"type": "string"
-					}
-				}],
+                }
+            }
+        },
+        "/workbook/{name}": {
+            "get": {
+                "summary": "Get workbook by name",
+                "operationId": "getWorkbook",
+                "tags": [
+                    "workbook"
+                ],
+                "parameters": [{
+                    "name": "name",
+                    "in": "path",
+                    "description": "The name of the workbook to retrieve",
+                    "required": true,
+                    "schema": {
+                        "type": "string"
+                    }
+                }],
+                "responses": {
+                    "200": {
+                        "description": "Expected response to a valid request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Workbook"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Workbook not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "description": "Unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "workbook"
+                ],
+                "summary": "Save Workbook",
+                "operationId": "saveWorkbook",
+                "parameters": [{
+                    "name": "name",
+                    "in": "path",
+                    "description": "The name of the workbook",
+                    "required": true,
+                    "schema": {
+                        "type": "string"
+                    }
+                }],
                 "requestBody": {
-                  "$ref": "#/components/requestBodies/Workbook"
+                    "$ref": "#/components/requestBodies/Workbook"
                 },
-				"responses": {
-					"204": {
-						"description": "Expected response to a valid request"
-					},
-					"default": {
-						"description": "Unexpected error",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					}
-				}
-			},
-			"delete": {
-				"tags": [
-					"workbook"
-				],
-				"summary": "Delete workbook",
-				"operationId": "deleteWorkbook",
-				"parameters": [{
-					"name": "name",
-					"in": "path",
-					"description": "Delete a workbook",
-					"required": true,
-					"schema": {
-						"type": "string"
-					}
-				}],
-				"responses": {
-					"200": {
-						"description": "Expected response to a valid request",
-						"content": {
-							"application/json": {
-								"schema": {
-									"type": "boolean"
-								}
-							}
-						}
-					},
-					"default": {
-						"description": "Unexpected error",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
-		"/workbooks/": {
-			"get": {
-				"summary": "Get all workbooks",
-				"operationId": "getWorkbooks",
-				"tags": [
-					"workbook"
-				],
-				"responses": {
-					"200": {
-						"description": "Expected response to a valid request",
-						"content": {
-							"application/json": {
-								"schema": {
-									"type": "array",
-									"items": {
-										"$ref": "#/components/schemas/Workbook"
-									}
-								}
-							}
-						}
+                "responses": {
+                    "204": {
+                        "description": "Expected response to a valid request"
                     },
                     "default": {
                         "description": "Unexpected error",
@@ -719,9 +647,81 @@
                             }
                         }
                     }
-				}
-			}
-		}
+                }
+            },
+            "delete": {
+                "tags": [
+                    "workbook"
+                ],
+                "summary": "Delete workbook",
+                "operationId": "deleteWorkbook",
+                "parameters": [{
+                    "name": "name",
+                    "in": "path",
+                    "description": "Delete a workbook",
+                    "required": true,
+                    "schema": {
+                        "type": "string"
+                    }
+                }],
+                "responses": {
+                    "200": {
+                        "description": "Expected response to a valid request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "boolean"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "description": "Unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/workbooks/": {
+            "get": {
+                "summary": "Get all workbooks",
+                "operationId": "getWorkbooks",
+                "tags": [
+                    "workbook"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Expected response to a valid request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Workbook"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "description": "Unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     },
     "components": {
         "schemas": {
@@ -777,7 +777,7 @@
                         "description": "Indicates feather always a child of another record",
                         "type": "boolean",
                         "default": false
-                    }, 
+                    },
                     "overloads": {
                         "description": "Property overloads",
                         "type": "object"
@@ -985,44 +985,44 @@
         "requestBodies": {
             "Feather": {
                 "content": {
-                  "application/json": {
-                    "schema": {
-                        "$ref": "#/components/schemas/Feather"
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Feather"
+                        }
                     }
-                  }
                 },
                 "description": "Feather to be saved",
                 "required": true
             },
             "JSONPatch": {
                 "content": {
-                  "application/json": {
-                    "schema": {
-                        "$ref": "#/components/schemas/JSONPatch"
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/JSONPatch"
+                        }
                     }
-                  }
                 },
                 "description": "JSON Patch (RFC 6902)",
                 "required": true
             },
             "Settings": {
                 "content": {
-                  "application/json": {
-                    "schema": {
-                        "$ref": "#/components/schemas/Settings"
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Settings"
+                        }
                     }
-                  }
                 },
                 "description": "Settings to be saved",
                 "required": true
             },
             "Workbook": {
                 "content": {
-                  "application/json": {
-                    "schema": {
-                        "$ref": "#/components/schemas/Workbook"
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Workbook"
+                        }
                     }
-                  }
                 },
                 "description": "Workbook to be saved",
                 "required": true

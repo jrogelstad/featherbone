@@ -1,16 +1,15 @@
-[	
-	{
-		"name": "Comment",
-		"module": "Core",
-		"description": "Note",
-		"properties": {
-			"text": {
-				"description": "Note text",
-				"type": "string",
+[{
+        "name": "Comment",
+        "module": "Core",
+        "description": "Note",
+        "properties": {
+            "text": {
+                "description": "Note text",
+                "type": "string",
                 "format": "textArea"
-			}
-		}
-	},
+            }
+        }
+    },
     {
         "name": "Document",
         "module": "Core",
@@ -31,304 +30,303 @@
         }
     },
     {
-		"name": "DocumentComment",
-		"module": "Core",
-		"description": "Comment on document",
-		"inherits": "Comment",
-		"properties": {
-			"parent": {
-				"description": "Parent document",
-				"type": {
-					"relation": "Document",
-					"childOf": "comments"
-				}
-			}
-		}
-	}, {
-		"name": "Kind",
-		"plural": "Kinds",
-		"module": "Core",
-		"description": "Base class for physical types",
+        "name": "DocumentComment",
+        "module": "Core",
+        "description": "Comment on document",
+        "inherits": "Comment",
+        "properties": {
+            "parent": {
+                "description": "Parent document",
+                "type": {
+                    "relation": "Document",
+                    "childOf": "comments"
+                }
+            }
+        }
+    }, {
+        "name": "Kind",
+        "plural": "Kinds",
+        "module": "Core",
+        "description": "Base class for physical types",
         "inherits": "Document",
-		"properties": {
-			"code": {
-				"description": "Natural key",
-				"type": "string",
-				"isUnique": true,
-				"isRequired": true
-			},
-			"description": {
-				"description": "Description",
-				"type": "string"
-			},
-			"note": {
-				"description": "Note",
-				"type": "string"
-			}
-		}
-	},
-	{
-		"name": "Unit",
-		"plural": "Units",
-		"module": "Core",
-		"description": "Unit of measure",
-		"properties": {
-			"code": {
-				"description": "Natural key",
-				"type": "string",
-				"isUnique": true,
-				"isRequired": true
-			},
-			"description": {
-				"description": "Description",
-				"type": "string"
-			},
-			"dimension": {
-				"description": "Dimension",
-				"type": "string",
+        "properties": {
+            "code": {
+                "description": "Natural key",
+                "type": "string",
+                "isUnique": true,
+                "isRequired": true
+            },
+            "description": {
+                "description": "Description",
+                "type": "string"
+            },
+            "note": {
+                "description": "Note",
+                "type": "string"
+            }
+        }
+    },
+    {
+        "name": "Unit",
+        "plural": "Units",
+        "module": "Core",
+        "description": "Unit of measure",
+        "properties": {
+            "code": {
+                "description": "Natural key",
+                "type": "string",
+                "isUnique": true,
+                "isRequired": true
+            },
+            "description": {
+                "description": "Description",
+                "type": "string"
+            },
+            "dimension": {
+                "description": "Dimension",
+                "type": "string",
                 "default": "Q",
                 "format": "enum",
                 "dataList": [{
-                        "value": "Q",
-                        "label": "Quantity"
-                    }, {
-                        "value": "W",
-                        "label": "Weight"
-                    }, {
-                        "value": "L",
-                        "label": "Length"
-                    }, {
-                        "value": "A",
-                        "label": "Area"
-                    }, {
-                        "value": "V",
-                        "label": "Volume"
-                    }, {
-                        "value": "T",
-                        "label": "Time"
-                    }
-                ]
-			}
-		}
-	},
-	{
-		"name": "CurrencyUnit",
-		"plural": "CurrencyUnits",
-		"module": "Core",
-		"description": "Currency Unit of measure",
-		"inherits": "Unit",
-		"properties": {
-			"symbol": {
-				"type": "string",
-				"description": "Currency unit symbol"
-			},
-			"minorUnit": {
-				"description": "Precision",
-				"type": "integer",
-				"default": 2,
-				"isRequired": true
-			}
-		}
-	},
-	{
-		"name": "Currency",
-		"plural": "Currencies",
-		"module": "Core",
-		"description": "Currency",
-		"inherits": "Kind",
-		"isFetchOnStartup": true,
-		"properties": {
-			"symbol": {
-				"description": "Symbol",
-				"type": "string"
-			},
-			"minorUnit": {
-				"description": "Precision",
-				"type": "integer",
-				"default": 2
-			},
-			"isBase": {
-				"description": "System base currency flag",
-				"type": "boolean"
-			},
-			"hasDisplayUnit": {
-				"description": "Use alternate unit of mesaure in display",
-				"type": "boolean",
-				"isRequired": true,
-				"default": false
-			},
-			"displayUnit": {
-				"type": {
-					"relation": "CurrencyUnit",
-					"properties": [
-						"code",
-						"description",
-						"minorUnit",
-						"symbol"
-					]
-				},
-				"description": "Display unit of mesaure"
-			}
-		}
-	},
-	{
-		"name": "CurrencyUnitConversion",
-		"plural": "CurrencyUnitConversions",
-		"module": "Core",
-		"description": "Currency Unit Conversion",
-		"properties": {
-			"parent": {
-				"description": "Parent",
-				"type": {
-					"relation": "Currency",
-					"childOf": "conversions"
-				}
-			},
-			"toUnit": {
-				"description": "To unit of measure",
-				"type": {
-					"relation": "Unit",
-					"properties": ["code", "description"]
-				},
-				"isRequired": true
-			},
-			"ratio": {
-				"description": "conversion ratio",
-				"type": "number",
-				"default": 1,
-				"isRequired": true
-			}
-		}
-	},
-	{
-		"name": "CurrencyConversion",
-		"plural": "CurrencyConversions",
-		"module": "Core",
-		"description": "Currency Conversion rates",
-		"properties": {
-			"fromCurrency": {
-				"description": "Currency converting from",
-				"type": {
-					"relation": "Currency",
-					"properties": [
-						"code",
-						"description",
-						"symbol",
-						"minorUnit"
-					]
-				},
-				"default": "baseCurrency()",
-				"isRequired": true
-			},
-			"toCurrency": {
-				"description": "Currency converting to",
-				"type": {
-					"relation": "Currency",
-					"properties": [
-						"code",
-						"description",
-						"symbol",
-						"minorUnit"
-					]
-				},
-				"isRequired": true
-			},
-			"ratio": {
-				"description": "conversion ratio",
-				"type": "number",
-				"default": 1,
-				"isRequired": true
-			},
-			"effective": {
-				"description": "effective date",
-				"type": "string",
-				"format": "dateTime",
-				"default": "now()",
-				"isRequired": true
-			}
-		}
-	},
-	{
-		"name": "BaseCurrency",
-		"plural": "BaseCurrencies",
-		"module": "Core",
-		"description": "Base currency effectivity",
-		"isFetchOnStartup": true,
-		"properties": {
-			"currency": {
-				"description": "Base currency",
-				"type": {
-					"relation": "Currency",
-					"properties": [
-						"code",
-						"description",
-						"symbol",
-						"minorUnit"
-					]
-				},
-				"isRequired": true
-			},
-			"effective": {
-				"description": "Effective time",
-				"type": "string",
-				"format": "dateTime",
-				"isRequired": true
-			}
-		}
-	},
-	{
-		"name": "Country",
-		"plural": "Countries",
-		"module": "Core",
-		"description": "Country",
-		"isFetchOnStartup": true,
+                    "value": "Q",
+                    "label": "Quantity"
+                }, {
+                    "value": "W",
+                    "label": "Weight"
+                }, {
+                    "value": "L",
+                    "label": "Length"
+                }, {
+                    "value": "A",
+                    "label": "Area"
+                }, {
+                    "value": "V",
+                    "label": "Volume"
+                }, {
+                    "value": "T",
+                    "label": "Time"
+                }]
+            }
+        }
+    },
+    {
+        "name": "CurrencyUnit",
+        "plural": "CurrencyUnits",
+        "module": "Core",
+        "description": "Currency Unit of measure",
+        "inherits": "Unit",
         "properties": {
-			"code": {
-				"description": "Country code",
-				"type": "string",
+            "symbol": {
+                "type": "string",
+                "description": "Currency unit symbol"
+            },
+            "minorUnit": {
+                "description": "Precision",
+                "type": "integer",
+                "default": 2,
+                "isRequired": true
+            }
+        }
+    },
+    {
+        "name": "Currency",
+        "plural": "Currencies",
+        "module": "Core",
+        "description": "Currency",
+        "inherits": "Kind",
+        "isFetchOnStartup": true,
+        "properties": {
+            "symbol": {
+                "description": "Symbol",
+                "type": "string"
+            },
+            "minorUnit": {
+                "description": "Precision",
+                "type": "integer",
+                "default": 2
+            },
+            "isBase": {
+                "description": "System base currency flag",
+                "type": "boolean"
+            },
+            "hasDisplayUnit": {
+                "description": "Use alternate unit of mesaure in display",
+                "type": "boolean",
+                "isRequired": true,
+                "default": false
+            },
+            "displayUnit": {
+                "type": {
+                    "relation": "CurrencyUnit",
+                    "properties": [
+                        "code",
+                        "description",
+                        "minorUnit",
+                        "symbol"
+                    ]
+                },
+                "description": "Display unit of mesaure"
+            }
+        }
+    },
+    {
+        "name": "CurrencyUnitConversion",
+        "plural": "CurrencyUnitConversions",
+        "module": "Core",
+        "description": "Currency Unit Conversion",
+        "properties": {
+            "parent": {
+                "description": "Parent",
+                "type": {
+                    "relation": "Currency",
+                    "childOf": "conversions"
+                }
+            },
+            "toUnit": {
+                "description": "To unit of measure",
+                "type": {
+                    "relation": "Unit",
+                    "properties": ["code", "description"]
+                },
+                "isRequired": true
+            },
+            "ratio": {
+                "description": "conversion ratio",
+                "type": "number",
+                "default": 1,
+                "isRequired": true
+            }
+        }
+    },
+    {
+        "name": "CurrencyConversion",
+        "plural": "CurrencyConversions",
+        "module": "Core",
+        "description": "Currency Conversion rates",
+        "properties": {
+            "fromCurrency": {
+                "description": "Currency converting from",
+                "type": {
+                    "relation": "Currency",
+                    "properties": [
+                        "code",
+                        "description",
+                        "symbol",
+                        "minorUnit"
+                    ]
+                },
+                "default": "baseCurrency()",
+                "isRequired": true
+            },
+            "toCurrency": {
+                "description": "Currency converting to",
+                "type": {
+                    "relation": "Currency",
+                    "properties": [
+                        "code",
+                        "description",
+                        "symbol",
+                        "minorUnit"
+                    ]
+                },
+                "isRequired": true
+            },
+            "ratio": {
+                "description": "conversion ratio",
+                "type": "number",
+                "default": 1,
+                "isRequired": true
+            },
+            "effective": {
+                "description": "effective date",
+                "type": "string",
+                "format": "dateTime",
+                "default": "now()",
+                "isRequired": true
+            }
+        }
+    },
+    {
+        "name": "BaseCurrency",
+        "plural": "BaseCurrencies",
+        "module": "Core",
+        "description": "Base currency effectivity",
+        "isFetchOnStartup": true,
+        "properties": {
+            "currency": {
+                "description": "Base currency",
+                "type": {
+                    "relation": "Currency",
+                    "properties": [
+                        "code",
+                        "description",
+                        "symbol",
+                        "minorUnit"
+                    ]
+                },
+                "isRequired": true
+            },
+            "effective": {
+                "description": "Effective time",
+                "type": "string",
+                "format": "dateTime",
+                "isRequired": true
+            }
+        }
+    },
+    {
+        "name": "Country",
+        "plural": "Countries",
+        "module": "Core",
+        "description": "Country",
+        "isFetchOnStartup": true,
+        "properties": {
+            "code": {
+                "description": "Country code",
+                "type": "string",
                 "isRequired": true,
                 "isUnique": true
-			},
-			"name": {
-				"description": "Name",
-				"type": "string",
+            },
+            "name": {
+                "description": "Name",
+                "type": "string",
                 "isRequired": true
-			}
-		}
-	},
-	{
-		"name": "State",
-		"plural": "States",
-		"module": "Core",
-		"description": "State",
-		"isFetchOnStartup": true,
+            }
+        }
+    },
+    {
+        "name": "State",
+        "plural": "States",
+        "module": "Core",
+        "description": "State",
+        "isFetchOnStartup": true,
         "properties": {
-			"code": {
-				"description": "State code",
-				"type": "string",
+            "code": {
+                "description": "State code",
+                "type": "string",
                 "isRequired": true,
                 "isUnique": true
-			},
-			"name": {
-				"description": "Name",
-				"type": "string",
+            },
+            "name": {
+                "description": "Name",
+                "type": "string",
                 "isRequired": true
-			}
-		}
-	},
-	{
-		"name": "Address",
-		"module": "Core",
-		"description": "Physical location",
+            }
+        }
+    },
+    {
+        "name": "Address",
+        "module": "Core",
+        "description": "Physical location",
         "isChild": true,
-		"properties": {
-			"type": {
-				"description": "Home, work, other",
-				"type": "string",
-				"format": "enum",
+        "properties": {
+            "type": {
+                "description": "Home, work, other",
+                "type": "string",
+                "format": "enum",
                 "default": "H",
                 "isRequired": true,
-				"dataList": [{
+                "dataList": [{
                     "value": "H",
                     "label": "Home"
                 }, {
@@ -338,115 +336,115 @@
                     "value": "O",
                     "label": "Other"
                 }]
-			},
-			"street": {
-				"description": "Street",
-				"type": "string",
+            },
+            "street": {
+                "description": "Street",
+                "type": "string",
                 "isRequired": true
-			},
-			"unit": {
-				"description": "Unit",
-				"type": "string"
-			},
-			"city": {
-				"description": "City",
-				"type": "string",
+            },
+            "unit": {
+                "description": "Unit",
+                "type": "string"
+            },
+            "city": {
+                "description": "City",
+                "type": "string",
                 "isRequired": true
-			},
-			"state": {
-				"description": "State",
-				"type": "string",
+            },
+            "state": {
+                "description": "State",
+                "type": "string",
                 "isRequired": true
-			},
-			"postalCode": {
-				"description": "Postal code",
-				"type": "string",
+            },
+            "postalCode": {
+                "description": "Postal code",
+                "type": "string",
                 "isRequired": true
-			},
-			"country": {
-				"description": "Country",
-				"type": "string",
+            },
+            "country": {
+                "description": "Country",
+                "type": "string",
                 "isRequired": true
-			}
-		}
-	},
-	{
-		"name": "SocialNetwork",
-		"plural": "SocialNetworks",
-		"module": "Core",
-		"description": "Social media networks",
-		"properties": {
-			"name": {
-				"description": "Network name",
-				"type": "string"
-			},
-			"description": {
-				"description": "description",
-				"type": "string"
-			},
-			"url": {
-				"description": "Url",
-				"type": "string",
-				"format": "url"
-			}
-		}
-	},
-	{
-		"name": "Honorific",
+            }
+        }
+    },
+    {
+        "name": "SocialNetwork",
+        "plural": "SocialNetworks",
+        "module": "Core",
+        "description": "Social media networks",
+        "properties": {
+            "name": {
+                "description": "Network name",
+                "type": "string"
+            },
+            "description": {
+                "description": "description",
+                "type": "string"
+            },
+            "url": {
+                "description": "Url",
+                "type": "string",
+                "format": "url"
+            }
+        }
+    },
+    {
+        "name": "Honorific",
         "plural": "Honorifics",
-		"module": "Core",
-		"description": "Honorific",
-		"properties": {
-			"title": {
-				"description": "Title",
-				"type": "string"
-			}
-		}
-	},
-	{
-		"name": "Contact",
-		"plural": "Contacts",
-		"module": "Core",
-		"description": "Information about a person",
-		"inherits": "Document",
-		"properties": {
-			"honorific": {
-				"description": "Honorific",
-				"type": {
-					"relation": "Honorific",
-					"properties": [
-						"title"
-					]
-				}
-			},
-			"firstName": {
-				"description": "First name",
-				"type": "string"
-			},
-			"lastName": {
-				"description": "Last name",
-				"type": "string",
+        "module": "Core",
+        "description": "Honorific",
+        "properties": {
+            "title": {
+                "description": "Title",
+                "type": "string"
+            }
+        }
+    },
+    {
+        "name": "Contact",
+        "plural": "Contacts",
+        "module": "Core",
+        "description": "Information about a person",
+        "inherits": "Document",
+        "properties": {
+            "honorific": {
+                "description": "Honorific",
+                "type": {
+                    "relation": "Honorific",
+                    "properties": [
+                        "title"
+                    ]
+                }
+            },
+            "firstName": {
+                "description": "First name",
+                "type": "string"
+            },
+            "lastName": {
+                "description": "Last name",
+                "type": "string",
                 "isRequired": true
-			},
-			"fullName": {
-				"description": "Name",
-				"type": "string",
+            },
+            "fullName": {
+                "description": "Name",
+                "type": "string",
                 "isReadOnly": true,
                 "isIndexed": true
-			},
-			"phone": {
-				"description": "Primary phone number",
-				"type": "string",
-				"format": "tel",
+            },
+            "phone": {
+                "description": "Primary phone number",
+                "type": "string",
+                "format": "tel",
                 "alias": "Phone"
-			},
-			"phoneType": {
-				"description": "Home, work, other",
-				"type": "string",
-				"default": "M",
-				"format": "enum",
+            },
+            "phoneType": {
+                "description": "Home, work, other",
+                "type": "string",
+                "default": "M",
+                "format": "enum",
                 "isRequired": true,
-				"dataList": [{
+                "dataList": [{
                     "value": "M",
                     "label": "Mobile"
                 }, {
@@ -459,19 +457,19 @@
                     "value": "O",
                     "label": "Other"
                 }]
-			},
-			"email": {
-				"description": "Primary phone number",
-				"type": "string",
-				"format": "email"
-			},
-			"emailType": {
-				"description": "Personal, work, other",
-				"type": "string",
-				"default": "P",
-				"format": "enum",
+            },
+            "email": {
+                "description": "Primary phone number",
+                "type": "string",
+                "format": "email"
+            },
+            "emailType": {
+                "description": "Personal, work, other",
+                "type": "string",
+                "default": "P",
+                "format": "enum",
                 "isRequired": true,
-				"dataList": [{
+                "dataList": [{
                     "value": "P",
                     "label": "Personal"
                 }, {
@@ -481,42 +479,43 @@
                     "value": "O",
                     "label": "Other"
                 }]
-			},
-			"address": {
-				"description": "Primary Address",
-				"type": {
-					"relation": "Address",
-					"properties": ["type", "street", "unit",
-                        "city", "state", "postalCode", "country"]
-				}
-			},
+            },
+            "address": {
+                "description": "Primary Address",
+                "type": {
+                    "relation": "Address",
+                    "properties": ["type", "street", "unit",
+                        "city", "state", "postalCode", "country"
+                    ]
+                }
+            },
             "webSite": {
-				"description": "Personal web page",
-				"type": "string",
-				"format": "url"
-			}
-		}
-	},
-	{
-		"name": "ContactPhone",
-		"plural": "ContactPhones",
-		"module": "Core",
-		"description": "Contact phone numbers",
-		"properties": {
-			"parent": {
-				"description": "Parent",
-				"type": {
-					"relation": "Contact",
-					"childOf": "phones"
-				}
-			},
-			"type": {
-				"description": "Home, work, other",
-				"type": "string",
-				"default": "M",
-				"format": "enum",
+                "description": "Personal web page",
+                "type": "string",
+                "format": "url"
+            }
+        }
+    },
+    {
+        "name": "ContactPhone",
+        "plural": "ContactPhones",
+        "module": "Core",
+        "description": "Contact phone numbers",
+        "properties": {
+            "parent": {
+                "description": "Parent",
+                "type": {
+                    "relation": "Contact",
+                    "childOf": "phones"
+                }
+            },
+            "type": {
+                "description": "Home, work, other",
+                "type": "string",
+                "default": "M",
+                "format": "enum",
                 "isRequired": true,
-				"dataList": [{
+                "dataList": [{
                     "value": "M",
                     "label": "Mobile"
                 }, {
@@ -529,38 +528,38 @@
                     "value": "O",
                     "label": "Other"
                 }]
-			},
-			"phone": {
-				"description": "Phone number",
-				"type": "string",
-				"format": "tel"
-			},
-			"isPrimary": {
-				"description": "Primary phone flag",
-				"type": "boolean"
-			}
-		}
-	},
-	{
-		"name": "ContactEmail",
-		"plural": "ContactEmailAddresses",
-		"module": "Core",
-		"description": "Contact email addresses",
-		"properties": {
-			"parent": {
-				"description": "Parent",
-				"type": {
-					"relation": "Contact",
-					"childOf": "emails"
-				}
-			},
-			"type": {
-				"description": "Personal, work, other",
-				"type": "string",
-				"default": "M",
-				"format": "enum",
+            },
+            "phone": {
+                "description": "Phone number",
+                "type": "string",
+                "format": "tel"
+            },
+            "isPrimary": {
+                "description": "Primary phone flag",
+                "type": "boolean"
+            }
+        }
+    },
+    {
+        "name": "ContactEmail",
+        "plural": "ContactEmailAddresses",
+        "module": "Core",
+        "description": "Contact email addresses",
+        "properties": {
+            "parent": {
+                "description": "Parent",
+                "type": {
+                    "relation": "Contact",
+                    "childOf": "emails"
+                }
+            },
+            "type": {
+                "description": "Personal, work, other",
+                "type": "string",
+                "default": "M",
+                "format": "enum",
                 "isRequired": true,
-				"dataList": [{
+                "dataList": [{
                     "value": "P",
                     "label": "Personal"
                 }, {
@@ -570,72 +569,73 @@
                     "value": "O",
                     "label": "Other"
                 }]
-			},
-			"email": {
-				"description": "Email address",
-				"type": "string",
-				"format": "email"
-			},
-			"isPrimary": {
-				"description": "Primary email flag",
-				"type": "boolean"
-			}
-		}
-	},
-	{
-		"name": "ContactAddress",
-		"module": "Core",
-		"description": "Contact address",
-		"properties": {
-			"parent": {
-				"description": "Parent",
-				"type": {
-					"relation": "Contact",
-					"childOf": "addresses"
-				}
-			},
-			"address": {
-				"description": "Address",
-				"type": {
-					"relation": "Address",
-					"properties": ["type", "street", "unit", "city",
-                        "state", "postalCode", "country"]
-				}
-			},
-			"isPrimary": {
-				"description": "Primary address flag",
-				"type": "boolean"
-			}
-		}
-	},
-	{
-		"name": "ContactSocialAccount",
-		"plural": "ContactSocialAccounts",
-		"module": "Core",
-		"description": "Contact social media accounts",
-		"properties": {
-			"parent": {
-				"description": "Parent",
-				"type": {
-					"relation": "Contact",
-					"childOf": "social"
-				}
-			},
-			"network": {
-				"description": "Social network",
-				"type": {
-					"relation": "SocialNetwork",
-					"properties": [
-						"name",
-						"description",
-						"url"
-					]
-				}
-			},
-			"userName": {
-				"description": "User name",
-				"type": "string"
-			}
-		}
-	}
+            },
+            "email": {
+                "description": "Email address",
+                "type": "string",
+                "format": "email"
+            },
+            "isPrimary": {
+                "description": "Primary email flag",
+                "type": "boolean"
+            }
+        }
+    },
+    {
+        "name": "ContactAddress",
+        "module": "Core",
+        "description": "Contact address",
+        "properties": {
+            "parent": {
+                "description": "Parent",
+                "type": {
+                    "relation": "Contact",
+                    "childOf": "addresses"
+                }
+            },
+            "address": {
+                "description": "Address",
+                "type": {
+                    "relation": "Address",
+                    "properties": ["type", "street", "unit", "city",
+                        "state", "postalCode", "country"
+                    ]
+                }
+            },
+            "isPrimary": {
+                "description": "Primary address flag",
+                "type": "boolean"
+            }
+        }
+    },
+    {
+        "name": "ContactSocialAccount",
+        "plural": "ContactSocialAccounts",
+        "module": "Core",
+        "description": "Contact social media accounts",
+        "properties": {
+            "parent": {
+                "description": "Parent",
+                "type": {
+                    "relation": "Contact",
+                    "childOf": "social"
+                }
+            },
+            "network": {
+                "description": "Social network",
+                "type": {
+                    "relation": "SocialNetwork",
+                    "properties": [
+                        "name",
+                        "description",
+                        "url"
+                    ]
+                }
+            },
+            "userName": {
+                "description": "User name",
+                "type": "string"
+            }
+        }
+    }
 ]
