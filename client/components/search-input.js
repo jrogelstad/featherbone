@@ -15,143 +15,138 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*global require, module*/
-/*jslint this, browser*/
-(function () {
-    "use strict";
+/*jslint this*/
+import * as m from "../../node_modules/mithril/mithril.js";
+import { f } from "./core.js";
+import { stream } from "../../common/stream-client.js";
+import { State as statechart } from "../../common/state.js";
 
-    const searchInput = {};
-    const m = require("mithril");
-    const stream = require("stream");
-    const f = require("component-core");
-    const statechart = require("statechartjs");
+const searchInput = {};
 
-    /**
-      @param {Object} Options
-      @param {Object} [options.style] Style
-      @param {String} [options.icon] Icon name
-      @param {Function} [options.onclick] On click function
-    */
-    searchInput.viewModel = function (options) {
-        options = options || {};
-        let vm;
-        let state;
+/**
+  @param {Object} Options
+  @param {Object} [options.style] Style
+  @param {String} [options.icon] Icon name
+  @param {Function} [options.onclick] On click function
+*/
+searchInput.viewModel = function (options) {
+    options = options || {};
+    let vm;
+    let state;
 
-        // ..........................................................
-        // PUBLIC
-        //
+    // ..........................................................
+    // PUBLIC
+    //
 
-        vm = {};
-        vm.clear = function () {
-            vm.text("");
-            vm.end();
-        };
-        vm.end = function () {
-            state.send("end");
-        };
-        vm.id = stream(f.createId());
-        vm.onkeydown = function (e) {
-            let key = e.key || e.keyIdentifier;
-            if (key === "Enter") {
-                vm.refresh();
-            }
-        };
-        vm.refresh = function () {
-            if (options.refresh) {
-                options.refresh();
-            }
-        };
-        vm.start = function () {
-            state.send("start");
-        };
-        vm.state = function () {
-            return state;
-        };
-        vm.style = function () {
-            return state.resolve(state.current()[0]).style();
-        };
-        vm.text = stream();
-        vm.value = function () {
-            return state.resolve(state.current()[0]).value();
-        };
-
-        // ..........................................................
-        // PRIVATE
-        //
-
-        // Define statechart
-        state = statechart.define(function () {
-            this.state("Search", function () {
-                this.state("Off", function () {
-                    this.enter(function () {
-                        vm.text("Search");
-                    });
-                    this.event("start", function () {
-                        this.goto("../On");
-                    });
-                    this.style = function () {
-                        return {
-                            color: "LightGrey",
-                            margin: "2px"
-                        };
-                    };
-                    this.value = function () {
-                        return "";
-                    };
-                });
-                this.state("On", function () {
-                    this.enter(function () {
-                        vm.text("");
-                    });
-                    this.exit(function () {
-                        vm.refresh();
-                    });
-                    this.canExit = function () {
-                        return !vm.text();
-                    };
-                    this.event("end", function () {
-                        this.goto("../Off");
-                    });
-                    this.style = function () {
-                        return {
-                            color: "Black",
-                            margin: "2px"
-                        };
-                    };
-                    this.value = function () {
-                        return vm.text();
-                    };
-                });
-            });
-        });
-        state.goto();
-
-        return vm;
+    vm = {};
+    vm.clear = function () {
+        vm.text("");
+        vm.end();
     };
-
-    // Define dialog component
-    searchInput.component = {
-        oninit: function (vnode) {
-            this.viewModel = (
-                vnode.attrs.viewModel || searchInput.viewModel(vnode.attrs)
-            );
-        },
-
-        view: function () {
-            let vm = this.viewModel;
-
-            return m("input", {
-                id: vm.id(),
-                value: vm.text(),
-                style: vm.style(),
-                onfocus: vm.start,
-                onblur: vm.end,
-                oninput: (e) => vm.text(e.target.value),
-                onkeydown: vm.onkeydown
-            });
+    vm.end = function () {
+        state.send("end");
+    };
+    vm.id = stream(f.createId());
+    vm.onkeydown = function (e) {
+        let key = e.key || e.keyIdentifier;
+        if (key === "Enter") {
+            vm.refresh();
         }
     };
+    vm.refresh = function () {
+        if (options.refresh) {
+            options.refresh();
+        }
+    };
+    vm.start = function () {
+        state.send("start");
+    };
+    vm.state = function () {
+        return state;
+    };
+    vm.style = function () {
+        return state.resolve(state.current()[0]).style();
+    };
+    vm.text = stream();
+    vm.value = function () {
+        return state.resolve(state.current()[0]).value();
+    };
 
-    module.exports = searchInput;
+    // ..........................................................
+    // PRIVATE
+    //
 
-}());
+    // Define statechart
+    state = statechart.define(function () {
+        this.state("Search", function () {
+            this.state("Off", function () {
+                this.enter(function () {
+                    vm.text("Search");
+                });
+                this.event("start", function () {
+                    this.goto("../On");
+                });
+                this.style = function () {
+                    return {
+                        color: "LightGrey",
+                        margin: "2px"
+                    };
+                };
+                this.value = function () {
+                    return "";
+                };
+            });
+            this.state("On", function () {
+                this.enter(function () {
+                    vm.text("");
+                });
+                this.exit(function () {
+                    vm.refresh();
+                });
+                this.canExit = function () {
+                    return !vm.text();
+                };
+                this.event("end", function () {
+                    this.goto("../Off");
+                });
+                this.style = function () {
+                    return {
+                        color: "Black",
+                        margin: "2px"
+                    };
+                };
+                this.value = function () {
+                    return vm.text();
+                };
+            });
+        });
+    });
+    state.goto();
+
+    return vm;
+};
+
+// Define dialog component
+searchInput.component = {
+    oninit: function (vnode) {
+        this.viewModel = (
+            vnode.attrs.viewModel || searchInput.viewModel(vnode.attrs)
+        );
+    },
+
+    view: function () {
+        let vm = this.viewModel;
+
+        return m("input", {
+            id: vm.id(),
+            value: vm.text(),
+            style: vm.style(),
+            onfocus: vm.start,
+            onblur: vm.end,
+            oninput: (e) => vm.text(e.target.value),
+            onkeydown: vm.onkeydown
+        });
+    }
+};
+
+export { searchInput };

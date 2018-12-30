@@ -15,143 +15,138 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*global require, module*/
-/*jslint this, browser*/
-(function () {
-    "use strict";
+/*jslint this*/
+import * as m from "../../node_modules/mithril/mithril.js";
+import { f } from "./core.js";
+import { stream } from "../../common/stream-client.js";
+import { filterDialog } from "./filter-dialog.js";
 
-    const sortDialog = {};
-    const m = require("mithril");
-    const stream = require("stream");
-    const f = require("common-core");
-    const filterDialog = require("filter-dialog");
+const sortDialog = {};
 
-    /**
-      View model for sort dialog.
+/**
+  View model for sort dialog.
 
-      @param {Object} Options
-      @param {Array} [options.attrs] Attributes
-      @param {Array} [options.list] Model list
-      @param {Function} [options.filter] Filter property
-    */
-    sortDialog.viewModel = function (options) {
-        options = options || {};
-        let vm;
+  @param {Object} Options
+  @param {Array} [options.attrs] Attributes
+  @param {Array} [options.list] Model list
+  @param {Function} [options.filter] Filter property
+*/
+sortDialog.viewModel = function (options) {
+    options = options || {};
+    let vm;
 
-        options.propertyName = "sort";
-        options.title = options.title || "Sort";
-        options.icon = options.icon || "sort";
+    options.propertyName = "sort";
+    options.title = options.title || "Sort";
+    options.icon = options.icon || "sort";
 
-        // ..........................................................
-        // PUBLIC
-        //
+    // ..........................................................
+    // PUBLIC
+    //
 
-        vm = filterDialog.viewModel(options);
-        vm.addAttr = function (attr) {
-            if (!this.some(vm.hasAttr.bind(attr))) {
-                this.push({
-                    property: attr
-                });
-                return true;
-            }
-        };
-        vm.viewHeaderIds = stream({
-            column: f.createId(),
-            order: f.createId()
-        });
-        vm.viewHeaders = function () {
-            let ids = vm.viewHeaderIds();
+    vm = filterDialog.viewModel(options);
+    vm.addAttr = function (attr) {
+        if (!this.some(vm.hasAttr.bind(attr))) {
+            this.push({
+                property: attr
+            });
+            return true;
+        }
+    };
+    vm.viewHeaderIds = stream({
+        column: f.createId(),
+        order: f.createId()
+    });
+    vm.viewHeaders = function () {
+        let ids = vm.viewHeaderIds();
 
-            return [
-                m("th", {
+        return [
+            m("th", {
+                style: {
+                    minWidth: "175px"
+                },
+                id: ids.column
+            }, "Column"),
+            m("th", {
+                style: {
+                    minWidth: "175px"
+                },
+                id: ids.order
+            }, "Order")
+        ];
+    };
+    vm.viewRows = function () {
+        let view;
+
+        view = vm.items().map(function (item) {
+            let row;
+
+            row = m("tr", {
+                onclick: vm.selection.bind(this, item.index, true),
+                style: {
+                    backgroundColor: vm.rowColor(item.index)
+                }
+            }, [
+                m("td", {
                     style: {
-                        minWidth: "175px"
+                        minWidth: "175px",
+                        maxWidth: "175px"
+                    }
+                }, m("select", {
+                    style: {
+                        minWidth: "175px",
+                        maxWidth: "175px"
                     },
-                    id: ids.column
-                }, "Column"),
-                m("th", {
+                    value: item.property,
+                    onchange: (e) =>
+                    vm.itemChanged.bind(
+                        this,
+                        item.index,
+                        "property"
+                    )(e.target.value)
+                }, vm.attrs().map(function (attr) {
+                    return m("option", {
+                        value: attr
+                    }, attr.toName());
+                }))),
+                m("td", {
                     style: {
-                        minWidth: "175px"
-                    },
-                    id: ids.order
-                }, "Order")
-            ];
-        };
-        vm.viewRows = function () {
-            let view;
-
-            view = vm.items().map(function (item) {
-                let row;
-
-                row = m("tr", {
-                    onclick: vm.selection.bind(this, item.index, true),
-                    style: {
-                        backgroundColor: vm.rowColor(item.index)
+                        minWidth: "175px",
+                        maxWidth: "175px"
                     }
                 }, [
-                    m("td", {
-                        style: {
-                            minWidth: "175px",
-                            maxWidth: "175px"
-                        }
-                    }, m("select", {
+                    m("select", {
                         style: {
                             minWidth: "175px",
                             maxWidth: "175px"
                         },
-                        value: item.property,
+                        value: item.order || "ASC",
                         onchange: (e) =>
                         vm.itemChanged.bind(
                             this,
                             item.index,
-                            "property"
+                            "order"
                         )(e.target.value)
-                    }, vm.attrs().map(function (attr) {
-                        return m("option", {
-                            value: attr
-                        }, attr.toName());
-                    }))),
-                    m("td", {
-                        style: {
-                            minWidth: "175px",
-                            maxWidth: "175px"
-                        }
                     }, [
-                        m("select", {
-                            style: {
-                                minWidth: "175px",
-                                maxWidth: "175px"
-                            },
-                            value: item.order || "ASC",
-                            onchange: (e) =>
-                            vm.itemChanged.bind(
-                                this,
-                                item.index,
-                                "order"
-                            )(e.target.value)
-                        }, [
-                            m("option", {
-                                value: "ASC"
-                            }, "Ascending"),
-                            m("option", {
-                                value: "DESC"
-                            }, "Descending")
-                        ])
+                        m("option", {
+                            value: "ASC"
+                        }, "Ascending"),
+                        m("option", {
+                            value: "DESC"
+                        }, "Descending")
                     ])
-                ]);
+                ])
+            ]);
 
-                return row;
-            });
+            return row;
+        });
 
-            return view;
-        };
-
-        vm.style().width = "460px";
-
-        return vm;
+        return view;
     };
 
-    sortDialog.component = filterDialog.component;
-    module.exports = sortDialog;
+    vm.style().width = "460px";
 
-}());
+    return vm;
+};
+
+sortDialog.component = filterDialog.component;
+export { sortDialog };
