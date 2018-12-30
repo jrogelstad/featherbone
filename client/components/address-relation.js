@@ -15,195 +15,189 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*global require, module*/
-/*jslint browser, this*/
-(function () {
-    "use strict";
+/*jslint this*/
+import * as m from "../../node_modules/mithril/mithril.js";
+import { f } from "../../common/core-client.js";
+import { stream } from "../../common/stream-client.js";
+import { catalog } from "../models/catalog.js";
+import { button } from "./button.js";
+import { formDialog } from "./form-dialog.js";
 
-    const addressRelation = {};
-    const m = require("mithril");
-    const f = require("common-core");
-    const formDialog = require("form-dialog");
-    const stream = require("stream");
-    const catalog = require("catalog");
-    const button = require("button");
+const addressRelation = {};
 
-    addressRelation.viewModel = function (options) {
-        let vm = {};
-        let parent = options.parentViewModel;
+addressRelation.viewModel = function (options) {
+    let vm = {};
+    let parent = options.parentViewModel;
 
-        vm.addressDialog = stream();
-        vm.buttonClear = stream();
-        vm.content = function (isCell) {
-            let d;
-            let content;
-            let cr = "\n";
+    vm.addressDialog = stream();
+    vm.buttonClear = stream();
+    vm.content = function (isCell) {
+        let d;
+        let content;
+        let cr = "\n";
 
-            if (!vm.model()) {
-                return content;
-            }
-            d = vm.model().data;
-
-            content = d.street();
-
-            if (isCell) {
-                return content;
-            }
-
-            if (d.unit()) {
-                content += cr + d.unit();
-            }
-
-            content += cr + d.city() + ", ";
-            content += d.state() + " " + d.postalCode();
-            content += cr + d.country();
-
+        if (!vm.model()) {
             return content;
-        };
-        vm.countries = function () {
-            let countries = catalog.store().data().countries().map(
-                function (model) {
-                    return model.data.name();
-                }
-            ).sort();
+        }
+        d = vm.model().data;
 
-            countries.unshift("");
+        content = d.street();
 
-            return countries;
-        };
-        vm.doClear = function () {
-            vm.addressDialog().cancel();
-            vm.model(null);
-        };
-        vm.doEdit = function () {
-            let value;
-            let dmodel;
-            let addressDialog = vm.addressDialog();
+        if (isCell) {
+            return content;
+        }
 
-            function applyEdit() {
-                vm.model(dmodel.toJSON());
-            }
+        if (d.unit()) {
+            content += cr + d.unit();
+        }
 
-            addressDialog.onOk(applyEdit);
-            addressDialog.show();
-            dmodel = vm.addressDialog().formWidget().model();
-            if (vm.model()) {
-                value = vm.model().toJSON();
-                dmodel.set(value);
-                dmodel.state().goto("/Ready/Fetched/Clean");
-            }
-        };
-        vm.id = stream(options.id || f.createId());
-        vm.isCell = stream(options.isCell);
-        vm.model = parent.model().data[options.parentProperty];
-        vm.onkeydown = function (e) {
-            if (e.key === "Enter") { // Enter key
-                vm.doEdit();
-            } else if (e.key !== "Tab") {
-                e.preventDefault();
-            }
-        };
-        vm.states = function () {
-            let states = catalog.store().data().states().map(function (model) {
-                return model.data.code();
-            }).sort();
+        content += cr + d.city() + ", ";
+        content += d.state() + " " + d.postalCode();
+        content += cr + d.country();
 
-            states.unshift("");
-            return states;
-        };
-        vm.style = stream(options.style || {});
-
-        // ..........................................................
-        // PRIVATE
-        //
-
-        vm.addressDialog(formDialog.viewModel({
-            title: "Address",
-            model: "address",
-            config: {
-                attrs: [{
-                    attr: "type"
-                }, {
-                    attr: "street"
-                }, {
-                    attr: "unit"
-                }, {
-                    attr: "city"
-                }, {
-                    attr: "state",
-                    dataList: vm.states()
-                }, {
-                    attr: "postalCode"
-                }, {
-                    attr: "country",
-                    dataList: vm.countries()
-                }]
-            }
-        }));
-
-        vm.buttonClear(button.viewModel({
-            onclick: vm.doClear,
-            label: "C&lear"
-        }));
-
-        vm.addressDialog().buttons().push(vm.buttonClear);
-
-        return vm;
+        return content;
     };
+    vm.countries = function () {
+        let countries = catalog.store().data().countries().map(
+            function (model) {
+                return model.data.name();
+            }
+        ).sort();
 
-    addressRelation.component = {
-        oninit: function (vnode) {
-            let options = vnode.attrs;
+        countries.unshift("");
 
-            // Set up viewModel if required
-            this.viewModel = addressRelation.viewModel({
-                parentViewModel: options.parentViewModel,
-                parentProperty: options.parentProperty,
-                id: options.id,
-                isCell: options.isCell,
-                style: options.style,
-                disabled: options.disabled
-            });
-        },
+        return countries;
+    };
+    vm.doClear = function () {
+        vm.addressDialog().cancel();
+        vm.model(null);
+    };
+    vm.doEdit = function () {
+        let value;
+        let dmodel;
+        let addressDialog = vm.addressDialog();
 
-        view: function (vnode) {
-            let ret;
-            let vm = this.viewModel;
-            let style = vm.style();
-            let disabled = vnode.attrs.disabled === true;
+        function applyEdit() {
+            vm.model(dmodel.toJSON());
+        }
 
-            style.display = style.display || "inline-block";
-
-            // Build the view
-            ret = m("div", {
-                style: style
-            }, [
-                m(formDialog.component, {
-                    viewModel: vm.addressDialog()
-                }),
-                m("textarea", {
-                    id: vm.id(),
-                    title: "Click or Enter key to edit",
-                    class: "fb-input",
-                    onkeydown: vm.onkeydown,
-                    onclick: vm.doEdit,
-                    value: vm.content(vm.isCell()),
-                    disabled: disabled,
-                    rows: 4
-                })
-            ]);
-
-            return ret;
+        addressDialog.onOk(applyEdit);
+        addressDialog.show();
+        dmodel = vm.addressDialog().formWidget().model();
+        if (vm.model()) {
+            value = vm.model().toJSON();
+            dmodel.set(value);
+            dmodel.state().goto("/Ready/Fetched/Clean");
         }
     };
+    vm.id = stream(options.id || f.createId());
+    vm.isCell = stream(options.isCell);
+    vm.model = parent.model().data[options.parentProperty];
+    vm.onkeydown = function (e) {
+        if (e.key === "Enter") { // Enter key
+            vm.doEdit();
+        } else if (e.key !== "Tab") {
+            e.preventDefault();
+        }
+    };
+    vm.states = function () {
+        let states = catalog.store().data().states().map(function (model) {
+            return model.data.code();
+        }).sort();
 
-    catalog.register(
-        "components",
-        "addressRelation",
-        addressRelation.component
-    );
-    module.exports = addressRelation;
+        states.unshift("");
+        return states;
+    };
+    vm.style = stream(options.style || {});
 
-}());
+    // ..........................................................
+    // PRIVATE
+    //
 
+    vm.addressDialog(formDialog.viewModel({
+        title: "Address",
+        model: "address",
+        config: {
+            attrs: [{
+                attr: "type"
+            }, {
+                attr: "street"
+            }, {
+                attr: "unit"
+            }, {
+                attr: "city"
+            }, {
+                attr: "state",
+                dataList: vm.states()
+            }, {
+                attr: "postalCode"
+            }, {
+                attr: "country",
+                dataList: vm.countries()
+            }]
+        }
+    }));
+
+    vm.buttonClear(button.viewModel({
+        onclick: vm.doClear,
+        label: "C&lear"
+    }));
+
+    vm.addressDialog().buttons().push(vm.buttonClear);
+
+    return vm;
+};
+
+addressRelation.component = {
+    oninit: function (vnode) {
+        let options = vnode.attrs;
+
+        // Set up viewModel if required
+        this.viewModel = addressRelation.viewModel({
+            parentViewModel: options.parentViewModel,
+            parentProperty: options.parentProperty,
+            id: options.id,
+            isCell: options.isCell,
+            style: options.style,
+            disabled: options.disabled
+        });
+    },
+
+    view: function (vnode) {
+        let ret;
+        let vm = this.viewModel;
+        let style = vm.style();
+        let disabled = vnode.attrs.disabled === true;
+
+        style.display = style.display || "inline-block";
+
+        // Build the view
+        ret = m("div", {
+            style: style
+        }, [
+            m(formDialog.component, {
+                viewModel: vm.addressDialog()
+            }),
+            m("textarea", {
+                id: vm.id(),
+                title: "Click or Enter key to edit",
+                class: "fb-input",
+                onkeydown: vm.onkeydown,
+                onclick: vm.doEdit,
+                value: vm.content(vm.isCell()),
+                disabled: disabled,
+                rows: 4
+            })
+        ]);
+
+        return ret;
+    }
+};
+
+catalog.register(
+    "components",
+    "addressRelation",
+    addressRelation.component
+);
+export { addressRelation };
 
