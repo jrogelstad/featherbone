@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2018  John Rogelstad
+    Copyright (C) 2019  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -16,15 +16,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*global require, module*/
-/*jslint this, es6*/
+/*jslint this, browser*/
 (function () {
     "use strict";
 
-    var searchInput = {},
-        m = require("mithril"),
-        stream = require("stream"),
-        f = require("component-core"),
-        statechart = require("statechartjs");
+    const searchInput = {};
+    const m = require("mithril");
+    const stream = require("stream");
+    const f = require("component-core");
+    const statechart = require("statechartjs");
 
     /**
       @param {Object} Options
@@ -34,7 +34,8 @@
     */
     searchInput.viewModel = function (options) {
         options = options || {};
-        var vm, state;
+        let vm;
+        let state;
 
         // ..........................................................
         // PUBLIC
@@ -50,7 +51,7 @@
         };
         vm.id = stream(f.createId());
         vm.onkeydown = function (e) {
-            var key = e.key || e.keyIdentifier;
+            let key = e.key || e.keyIdentifier;
             if (key === "Enter") {
                 vm.refresh();
             }
@@ -131,11 +132,13 @@
     // Define dialog component
     searchInput.component = {
         oninit: function (vnode) {
-            this.viewModel = vnode.attrs.viewModel || searchInput.viewModel(vnode.attrs);
+            this.viewModel = (
+                vnode.attrs.viewModel || searchInput.viewModel(vnode.attrs)
+            );
         },
 
         view: function () {
-            var vm = this.viewModel;
+            let vm = this.viewModel;
 
             return m("input", {
                 id: vm.id(),
