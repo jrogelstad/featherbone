@@ -15,24 +15,20 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*jslint browser*/
-/*global require, module*/
-(function () {
-    "use strict";
 
-    const that = {};
-    const m = require("mithril");
+import * as m from "../node_modules/mithril/mithril.js";
 
+export const datasource = Object.freeze({
     /**
     Returns the base url used to fetch and post data
     @return {String}
     */
-    that.baseUrl = function () {
+    baseUrl: function () {
         let l = window.location;
         return "http://" + l.hostname + ":" + l.port;
-    };
+    },
 
-    that.request = function (options) {
+    request: function (options) {
         options.url = that.baseUrl() + options.path;
         if (options.id) {
             options.url += options.id;
@@ -41,8 +37,6 @@
         delete options.id;
 
         return m.request(options);
-    };
-
-    module.exports = that;
-}());
+    }
+});
 
