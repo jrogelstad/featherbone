@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2018  John Rogelstad
+    Copyright (C) 2019  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*jslint this, es6, browser*/
+/*jslint this, browser*/
 /*global window, require, module*/
 (function () {
     "use strict";
@@ -30,22 +30,25 @@
     const dialog = require("dialog");
 
     formPage.viewModel = function (options) {
-        var isDisabled, applyTitle, saveTitle, model,
-                instances = catalog.register("instances"),
-                sseState = catalog.store().global().sseState,
-                feather = options.feather.toCamelCase(true),
-                forms = catalog.store().forms(),
-                formId = options.form || Object.keys(forms).find(function (id) {
+        let isDisabled;
+        let applyTitle;
+        let saveTitle;
+        let model;
+        let instances = catalog.register("instances");
+        let sseState = catalog.store().global().sseState;
+        let feather = options.feather.toCamelCase(true);
+        let forms = catalog.store().forms();
+        let formId = options.form || Object.keys(forms).find(function (id) {
             return forms[id].feather === feather;
-        }),
-                form = forms[formId],
-                vm = {},
-                pageIdx = options.index || 1,
-                isNew = options.create && options.isNew !== false;
+        });
+        let form = forms[formId];
+        let vm = {};
+        let pageIdx = options.index || 1;
+        let isNew = options.create && options.isNew !== false;
 
         // Helper function to pass back data to sending model
         function callReceiver() {
-            var receivers;
+            let receivers;
             if (options.receiver) {
                 receivers = catalog.register("receivers");
                 if (receivers[options.receiver]) {
@@ -75,7 +78,7 @@
             });
         };
         vm.doBack = function () {
-            var instance = vm.model();
+            let instance = vm.model();
 
             if (instance.state().current()[0] === "/Ready/Fetched/Dirty") {
                 instance.state().send("undo");
@@ -86,18 +89,18 @@
             window.history.go(pageIdx * -1);
         };
         vm.doNew = function () {
-            var opts = {
-                    feather: options.feather,
-                    key: f.createId()
-                },
-                state = {
-                    state: {
-                        form: options.form,
-                        index: pageIdx + 1,
-                        create: true,
-                        receiver: options.receiver
-                    }
-                };
+            let opts = {
+                feather: options.feather,
+                key: f.createId()
+            };
+            let state = {
+                state: {
+                    form: options.form,
+                    index: pageIdx + 1,
+                    create: true,
+                    receiver: options.receiver
+                }
+            };
             m.route.set("/edit/:feather/:key", opts, state);
         };
         vm.doSave = function () {
@@ -120,7 +123,10 @@
         vm.sseErrorDialog = stream(dialog.viewModel({
             icon: "close",
             title: "Connection Error",
-            message: "You have lost connection to the server. Click \"Ok\" to attempt to reconnect.",
+            message: (
+                "You have lost connection to the server." +
+                "Click \"Ok\" to attempt to reconnect."
+            ),
             onOk: function () {
                 document.location.reload();
             }
@@ -159,8 +165,8 @@
             });
         }
 
-        // Memoize our model instance in case we leave and come back while zooming
-        // deeper into detail
+        // Memoize our model instance in case we leave and come back while
+        // zooming deeper into detail
         instances[vm.model().id()] = vm.model();
 
         // Create button view models
@@ -226,14 +232,17 @@
 
     formPage.component = {
         oninit: function (vnode) {
-            this.viewModel = vnode.attrs.viewModel || formPage.viewModel(vnode.attrs);
+            this.viewModel = (
+                vnode.attrs.viewModel || formPage.viewModel(vnode.attrs)
+            );
         },
 
         view: function () {
-            var lock, title,
-                    vm = this.viewModel,
-                    model = vm.model(),
-                    icon = "file-text";
+            let lock;
+            let title;
+            let vm = this.viewModel;
+            let model = vm.model();
+            let icon = "file-text";
 
             vm.toggleNew();
 
@@ -241,8 +250,10 @@
             case "/Locked":
                 icon = "lock";
                 lock = model.data.lock() || {};
-                title = "User: " + lock.username + "\x0ASince: " +
-                        new Date(lock.created).toLocaleTimeString();
+                title = (
+                    "User: " + lock.username + "\nSince: " +
+                    new Date(lock.created).toLocaleTimeString()
+                );
                 break;
             case "/Ready/Fetched/Dirty":
                 icon = "pencil";
