@@ -15,10 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-
-import * as m from "../node_modules/mithril/mithril.js";
-
-export const datasource = Object.freeze({
+const that = {
     /**
     Returns the base url used to fetch and post data
     @return {String}
@@ -38,5 +35,7 @@ export const datasource = Object.freeze({
 
         return m.request(options);
     }
-});
+}
+
+export const datasource = Object.freeze(that);
 
