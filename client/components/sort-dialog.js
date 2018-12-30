@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2018  John Rogelstad
+    Copyright (C) 2019  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -16,15 +16,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*global require, module*/
-/*jslint this, es6*/
+/*jslint this, browser*/
 (function () {
     "use strict";
 
-    var sortDialog = {},
-        m = require("mithril"),
-        stream = require("stream"),
-        f = require("common-core"),
-        filterDialog = require("filter-dialog");
+    const sortDialog = {};
+    const m = require("mithril");
+    const stream = require("stream");
+    const f = require("common-core");
+    const filterDialog = require("filter-dialog");
 
     /**
       View model for sort dialog.
@@ -36,7 +36,7 @@
     */
     sortDialog.viewModel = function (options) {
         options = options || {};
-        var vm;
+        let vm;
 
         options.propertyName = "sort";
         options.title = options.title || "Sort";
@@ -60,7 +60,8 @@
             order: f.createId()
         });
         vm.viewHeaders = function () {
-            var ids = vm.viewHeaderIds();
+            let ids = vm.viewHeaderIds();
+
             return [
                 m("th", {
                     style: {
@@ -77,10 +78,10 @@
             ];
         };
         vm.viewRows = function () {
-            var view;
+            let view;
 
             view = vm.items().map(function (item) {
-                var row;
+                let row;
 
                 row = m("tr", {
                     onclick: vm.selection.bind(this, item.index, true),
@@ -100,7 +101,11 @@
                         },
                         value: item.property,
                         onchange: (e) =>
-                                vm.itemChanged.bind(this, item.index, "property")(e.target.value)
+                        vm.itemChanged.bind(
+                            this,
+                            item.index,
+                            "property"
+                        )(e.target.value)
                     }, vm.attrs().map(function (attr) {
                         return m("option", {
                             value: attr
@@ -119,7 +124,11 @@
                             },
                             value: item.order || "ASC",
                             onchange: (e) =>
-                                    vm.itemChanged.bind(this, item.index, "order")(e.target.value)
+                            vm.itemChanged.bind(
+                                this,
+                                item.index,
+                                "order"
+                            )(e.target.value)
                         }, [
                             m("option", {
                                 value: "ASC"
