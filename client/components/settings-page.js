@@ -15,127 +15,122 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*jslint browser, this*/
-/*global window, require, module*/
-(function () {
-    "use strict";
+/*jslint this*/
+import * as m from "../../node_modules/mithril/mithril.js";
+import { stream } from "../../common/stream-client.js";
+import { button } from "./button.js";
+import { catalog } from "../models/catalog.js";
+import { formWidget } from "./form-widget.js";
 
-    const settingsPage = {};
-    const m = require("mithril");
-    const stream = require("stream");
-    const button = require("button");
-    const formWidget = require("form-widget");
-    const catalog = require("catalog");
+const settingsPage = {};
 
-    /**
-      View model for settings page.
+/**
+  View model for settings page.
 
-      @param {Object} Options
-    */
-    settingsPage.viewModel = function (options) {
-        options = options || {};
-        let vm = {};
-        let form = {};
-        let models = catalog.store().models();
-        let model = models[options.settings]();
-        let definition = models[options.settings].definition();
+  @param {Object} Options
+*/
+settingsPage.viewModel = function (options) {
+    options = options || {};
+    let vm = {};
+    let form = {};
+    let models = catalog.store().models();
+    let model = models[options.settings]();
+    let definition = models[options.settings].definition();
 
-        // Build form from settings definition
-        form.name = definition.name;
-        form.description = definition.description;
-        form.attrs = [];
-        Object.keys(definition.properties).forEach(function (key) {
-            form.attrs.push({
-                attr: key,
-                grid: 0,
-                unit: 0
-            });
+    // Build form from settings definition
+    form.name = definition.name;
+    form.description = definition.description;
+    form.attrs = [];
+    Object.keys(definition.properties).forEach(function (key) {
+        form.attrs.push({
+            attr: key,
+            grid: 0,
+            unit: 0
         });
+    });
 
-        // ..........................................................
-        // PUBLIC
-        //
-        vm.buttonDone = stream();
-        vm.doDone = function () {
-            if (model.canSave()) {
-                vm.formWidget().model().save().then(function () {
-                    window.history.back();
-                });
-                return;
-            }
-
-            window.history.back();
-        };
-
-        vm.formWidget = stream(formWidget.viewModel({
-            model: model,
-            id: options.settings,
-            config: form,
-            outsideElementIds: ["toolbar"]
-        }));
-
-        vm.model = stream(model);
-        vm.title = function () {
-            return options.settings.toName();
-        };
-
-        // ..........................................................
-        // PRIVATE
-        //
-
-        vm.buttonDone(button.viewModel({
-            onclick: vm.doDone,
-            label: "&Done"
-        }));
-
-        if (model.state().current()[0] === "/Ready/New") {
-            model.fetch();
+    // ..........................................................
+    // PUBLIC
+    //
+    vm.buttonDone = stream();
+    vm.doDone = function () {
+        if (model.canSave()) {
+            vm.formWidget().model().save().then(function () {
+                window.history.back();
+            });
+            return;
         }
 
-        return vm;
+        window.history.back();
     };
 
-    /**
-      Settings page component
+    vm.formWidget = stream(formWidget.viewModel({
+        model: model,
+        id: options.settings,
+        config: form,
+        outsideElementIds: ["toolbar"]
+    }));
 
-      @params {Object} View model
-    */
-    settingsPage.component = {
-        oninit: function (vnode) {
-            this.viewModel = (
-                vnode.attrs.viewModel || settingsPage.viewModel(vnode.attrs)
-            );
-        },
+    vm.model = stream(model);
+    vm.title = function () {
+        return options.settings.toName();
+    };
 
-        view: function () {
-            let vm = this.viewModel;
+    // ..........................................................
+    // PRIVATE
+    //
 
-            // Build view
-            return m("div", [
-                m("div", {
-                    id: "toolbar",
-                    class: "fb-toolbar"
-                }, [
-                    m(button.component, {
-                        viewModel: vm.buttonDone()
-                    })
-                ]),
-                m("div", {
-                    class: "fb-title"
-                }, [
-                    m("i", {
-                        class: "fa fa-wrench fb-title-icon"
-                    }),
-                    m("label", vm.title())
-                ]),
-                m(formWidget.component, {
-                    viewModel: vm.formWidget()
+    vm.buttonDone(button.viewModel({
+        onclick: vm.doDone,
+        label: "&Done"
+    }));
+
+    if (model.state().current()[0] === "/Ready/New") {
+        model.fetch();
+    }
+
+    return vm;
+};
+
+/**
+  Settings page component
+
+  @params {Object} View model
+*/
+settingsPage.component = {
+    oninit: function (vnode) {
+        this.viewModel = (
+            vnode.attrs.viewModel || settingsPage.viewModel(vnode.attrs)
+        );
+    },
+
+    view: function () {
+        let vm = this.viewModel;
+
+        // Build view
+        return m("div", [
+            m("div", {
+                id: "toolbar",
+                class: "fb-toolbar"
+            }, [
+                m(button.component, {
+                    viewModel: vm.buttonDone()
                 })
-            ]);
-        }
-    };
+            ]),
+            m("div", {
+                class: "fb-title"
+            }, [
+                m("i", {
+                    class: "fa fa-wrench fb-title-icon"
+                }),
+                m("label", vm.title())
+            ]),
+            m(formWidget.component, {
+                viewModel: vm.formWidget()
+            })
+        ]);
+    }
+};
 
-    catalog.register("components", "settingsPage", settingsPage.component);
-    module.exports = settingsPage;
-
-}());
+catalog.register("components", "settingsPage", settingsPage.component);
+export { settingsPage };

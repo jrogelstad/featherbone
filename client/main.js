@@ -28,13 +28,11 @@ import "./models/currency-unit.js";
 import "./components/checkbox.js";
 import "./components/form-page.js";
 import "./components/workbook-page.js";
-/*
-require("search-page");
-require("settings-page");
-require("relation-widget");
-require("child-table");
-require("address-relation");
-*/
+import "./components/search-page.js";
+import "./components/settings-page.js";
+import "./components/relation-widget.js";
+import "./components/child-table.js";
+import "./components/address-relation.js";
 import "./components/contact-relation.js";
 import "../common/core-client.js";
 
