@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2018  John Rogelstad
+    Copyright (C) 2019  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -16,7 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*global window, require, module*/
-/*jslint this, es6, browser*/
+/*jslint this, browser*/
 (function () {
     "use strict";
 
@@ -33,16 +33,24 @@
     const tableWidget = require("table-widget");
     const navigator = require("navigator-menu");
 
-    var workbookPage = {};
+    let workbookPage = {};
 
     // Define workbook view model
     workbookPage.viewModel = function (options) {
-        var listState, tableState, searchState, currentSheet, feather, staticModel, sheetId,
-                sseState = catalog.store().global().sseState,
-                workbook = catalog.store().workbooks()[options.workbook.toCamelCase()],
-                config = workbook.getConfig(),
-                receiverKey = f.createId(),
-                vm = {};
+        let listState;
+        let tableState;
+        let searchState;
+        let currentSheet;
+        let feather;
+        let staticModel;
+        let sheetId;
+        let sseState = catalog.store().global().sseState;
+        let workbook = catalog.store().workbooks()[
+            options.workbook.toCamelCase()
+        ];
+        let config = workbook.getConfig();
+        let receiverKey = f.createId();
+        let vm = {};
 
         sheetId = config.find(function (sheet) {
             return sheet.name.toSpinalCase() === options.key;
@@ -53,13 +61,14 @@
         //
 
         vm.actions = function () {
-            var menu,
-                actions = vm.sheet().actions || [],
-                selections = vm.tableWidget().selections();
+            let menu;
+            let actions = vm.sheet().actions || [];
+            let selections = vm.tableWidget().selections();
 
             menu = actions.map(function (action) {
-                var opts, actionIcon,
-                        method = staticModel[action.method];
+                let opts;
+                let actionIcon;
+                let method = staticModel[action.method];
 
                 action.id = action.id || f.createId();
 
@@ -69,7 +78,10 @@
                     title: action.title
                 };
 
-                if (action.validator && !staticModel[action.validator](selections)) {
+                if (
+                    action.validator &&
+                    !staticModel[action.validator](selections)
+                ) {
                     opts.class = "pure-menu-link pure-menu-disabled";
                 } else {
                     opts.onclick = method.bind(null, vm);
@@ -103,20 +115,21 @@
             title: "Confirmation"
         }));
         vm.configureSheet = function () {
-            var dlg = vm.sheetConfigureDialog();
+            let dlg = vm.sheetConfigureDialog();
             dlg.onCancel(undefined);
             dlg.sheetId(sheetId);
             dlg.show();
         };
         vm.footerId = stream(f.createId());
         vm.deleteSheet = function (ev) {
-            var doDelete,
-                idx = ev.dataTransfer.getData("text") - 0,
-                confirmDialog = vm.confirmDialog();
+            let doDelete;
+            let idx = ev.dataTransfer.getData("text") - 0;
+            let confirmDialog = vm.confirmDialog();
 
             doDelete = function () {
-                var activeSheetId = vm.sheet().id,
-                    deleteSheetId = vm.config()[idx].id;
+                let activeSheetId = vm.sheet().id;
+                let deleteSheetId = vm.config()[idx].id;
+
                 vm.config().splice(idx, 1);
                 if (activeSheetId === deleteSheetId) {
                     if (idx === vm.config().length) {
@@ -126,7 +139,9 @@
                 }
             };
 
-            confirmDialog.message("Are you sure you want to delete this sheet?");
+            confirmDialog.message(
+                "Are you sure you want to delete this sheet?"
+            );
             confirmDialog.icon("question-circle");
             confirmDialog.onOk(doDelete);
             confirmDialog.show();
@@ -140,11 +155,14 @@
             m.route.set("/settings/:settings", {
                 settings: workbook.data.launchConfig().settings
             });
+            vm.showMenu(false);
         };
         vm.isDraggingTab = stream(false);
-        vm.hasSettings = stream(!!workbook.data.launchConfig().settings);
+        vm.hasSettings = stream(
+            Boolean(workbook.data.launchConfig().settings)
+        );
         vm.modelNew = function () {
-            var form = vm.sheet().form || {};
+            let form = vm.sheet().form || {};
             if (!vm.tableWidget().modelNew()) {
                 m.route.set("/edit/:feather/:key", {
                     feather: feather.name.toSpinalCase(),
@@ -159,10 +177,10 @@
             }
         };
         vm.modelOpen = function () {
-            var selection = vm.tableWidget().selection(),
-                sheet = vm.sheet() || {},
-                form = sheet.form || {},
-                type = vm.tableWidget().model().data.objectType();
+            let selection = vm.tableWidget().selection();
+            let sheet = vm.sheet() || {};
+            let form = sheet.form || {};
+            let type = vm.tableWidget().model().data.objectType();
 
             if (selection) {
                 m.route.set("/edit/:feather/:key", {
@@ -178,12 +196,15 @@
         };
         vm.menu = stream(navigator.viewModel());
         vm.newSheet = function () {
-            var undo, newSheet, sheetName, next,
-                    dialogSheetConfigure = vm.sheetConfigureDialog(),
-                    id = f.createId(),
-                    sheets = vm.sheets(),
-                    sheet = f.copy(vm.sheet()),
-                    i = 0;
+            let undo;
+            let newSheet;
+            let sheetName;
+            let next;
+            let dialogSheetConfigure = vm.sheetConfigureDialog();
+            let id = f.createId();
+            let sheets = vm.sheets();
+            let sheet = f.copy(vm.sheet());
+            let i = 0;
 
             while (!sheetName) {
                 i += 1;
@@ -225,7 +246,8 @@
             ev.dataTransfer.setData("text", idx);
         };
         vm.ondrop = function (toIdx, ary, ev) {
-            var moved, fromIdx;
+            let moved;
+            let fromIdx;
 
             ev.preventDefault();
             fromIdx = ev.dataTransfer.getData("text") - 0;
@@ -236,7 +258,7 @@
             vm.isDraggingTab(false);
         };
         vm.onkeydown = function (ev) {
-            var key = ev.key || ev.keyIdentifier;
+            let key = ev.key || ev.keyIdentifier;
 
             switch (key) {
             case "Up":
@@ -253,8 +275,10 @@
             vm.showActions(true);
         };
         vm.onmouseoutactions = function (ev) {
-            if (!ev || !ev.toElement || !ev.toElement.id ||
-                    ev.toElement.id.indexOf("nav-") === -1) {
+            if (
+                !ev || !ev.toElement || !ev.toElement.id ||
+                ev.toElement.id.indexOf("nav-") === -1
+            ) {
                 vm.showActions(false);
             }
         };
@@ -262,8 +286,10 @@
             vm.showMenu(true);
         };
         vm.onmouseoutmenu = function (ev) {
-            if (!ev || !ev.toElement || !ev.toElement.id ||
-                    ev.toElement.id.indexOf("nav-") === -1) {
+            if (
+                !ev || !ev.toElement || !ev.toElement.id ||
+                ev.toElement.id.indexOf("nav-") === -1
+            ) {
                 vm.showMenu(false);
             }
         };
@@ -271,10 +297,10 @@
             vm.tableWidget().refresh();
         };
         vm.revert = function () {
-            var workbookJSON = vm.workbook().toJSON(),
-                localConfig = vm.config(),
-                defaultConfig = workbookJSON.defaultConfig,
-                sheet = defaultConfig[0];
+            let workbookJSON = vm.workbook().toJSON();
+            let localConfig = vm.config();
+            let defaultConfig = workbookJSON.defaultConfig;
+            let sheet = defaultConfig[0];
 
             localConfig.length = 0;
             defaultConfig.forEach(function (item) {
@@ -288,22 +314,24 @@
         };
         vm.searchInput = stream();
         vm.share = function () {
-            var doShare,
-                confirmDialog = vm.confirmDialog();
+            let doShare;
+            let confirmDialog = vm.confirmDialog();
 
             doShare = function () {
                 workbook.data.localConfig(vm.config());
                 workbook.save();
             };
 
-            confirmDialog.message("Are you sure you want to share your workbook " +
-                    "configuration with all other users?");
+            confirmDialog.message(
+                "Are you sure you want to share your workbook " +
+                "configuration with all other users?"
+            );
             confirmDialog.icon("question-circle");
             confirmDialog.onOk(doShare);
             confirmDialog.show();
         };
         vm.sheet = function (id, value) {
-            var idx = 0;
+            let idx = 0;
 
             if (id) {
                 if (typeof id === "object") {
@@ -314,8 +342,7 @@
                 id = sheetId;
             }
 
-            if (currentSheet && currentSheet.id === id &&
-                    !value) {
+            if (currentSheet && currentSheet.id === id && !value) {
                 return currentSheet;
             }
 
@@ -354,7 +381,10 @@
         vm.sseErrorDialog = stream(dialog.viewModel({
             icon: "close",
             title: "Connection Error",
-            message: "You have lost connection to the server. Click \"Ok\" to attempt to reconnect.",
+            message: (
+                "You have lost connection to the server. " +
+                "Click \"Ok\" to attempt to reconnect."
+            ),
             onOk: function () {
                 document.location.reload();
             }
@@ -371,7 +401,7 @@
             return workbook;
         };
         vm.zoom = function (value) {
-            var w = vm.tableWidget();
+            let w = vm.tableWidget();
             if (value !== undefined) {
                 w.zoom(value);
             }
@@ -387,7 +417,7 @@
         // Register callback
         catalog.register("receivers", receiverKey, {
             callback: function (model) {
-                var tableModel = vm.tableWidget().selection();
+                let tableModel = vm.tableWidget().selection();
 
                 if (!(tableModel && tableModel.id() === model.id())) {
                     vm.tableWidget().models().add(model, true);
@@ -496,7 +526,8 @@
         // Bind button states to list statechart events
         listState = vm.tableWidget().models().state();
         listState.resolve("/Fetched").enter(function () {
-            var model = vm.tableWidget().selection();
+            let model = vm.tableWidget().selection();
+
             if (model && model.canUndo()) {
                 vm.buttonDelete().hide();
                 vm.buttonUndo().show();
@@ -538,10 +569,10 @@
             vm.buttonUndo().hide();
         });
         tableState.resolve("/Selection/On").enter(function () {
-            var canDelete = function (selection) {
-                    return selection.canDelete();
-                },
-                enableButton = vm.tableWidget().selections().some(canDelete);
+            let canDelete = function (selection) {
+                return selection.canDelete();
+            };
+            let enableButton = vm.tableWidget().selections().some(canDelete);
 
             if (enableButton) {
                 vm.buttonDelete().enable();
@@ -568,12 +599,11 @@
     // Define workbook component
     workbookPage.component = {
         oninit: function (vnode) {
-            var workbook = vnode.attrs.workbook,
-                sheet = vnode.attrs.key,
-                viewModels = catalog.register("workbookViewModels");
+            let workbook = vnode.attrs.workbook;
+            let sheet = vnode.attrs.key;
+            let viewModels = catalog.register("workbookViewModels");
 
-            if (viewModels[workbook] &&
-                    viewModels[workbook][sheet]) {
+            if (viewModels[workbook] && viewModels[workbook][sheet]) {
                 this.viewModel = viewModels[workbook][sheet];
                 return;
             }
@@ -594,25 +624,33 @@
         },
 
         view: function () {
-            var filterMenuClass, tabs,
-                    vm = this.viewModel,
-                    createTabClass = "pure-button fb-workbook-tab-edit",
-                    deleteTabClass = "pure-button fb-workbook-tab-edit",
-                    activeSheet = vm.sheet(),
-                    config = vm.config(),
-                    idx = 0,
-                    actionsDisabled = !Array.isArray(activeSheet.actions) || !activeSheet.actions.length;
+            let filterMenuClass;
+            let tabs;
+            let vm = this.viewModel;
+            let createTabClass = "pure-button fb-workbook-tab-edit";
+            let deleteTabClass = "pure-button fb-workbook-tab-edit";
+            let activeSheet = vm.sheet();
+            let config = vm.config();
+            let idx = 0;
+            let actionsDisabled = (
+                !Array.isArray(activeSheet.actions) ||
+                !activeSheet.actions.length
+            );
 
             // Build tabs
             tabs = vm.sheets().map(function (sheet) {
-                var tab, tabOpts;
+                let tab;
+                let tabOpts;
 
                 // Build tab
                 tabOpts = {
-                    class: "fb-workbook-tab pure-button" +
-                            (activeSheet.name.toName() === sheet.toName()
-                        ? " pure-button-primary"
-                        : ""),
+                    class: (
+                        "fb-workbook-tab pure-button" + (
+                            activeSheet.name.toName() === sheet.toName()
+                            ? " pure-button-primary"
+                            : ""
+                        )
+                    ),
                     onclick: vm.tabClicked.bind(this, sheet)
                 };
 
@@ -698,21 +736,32 @@
                             }),
                             m("div", {
                                 id: "nav-div",
-                                class: "pure-menu custom-restricted-width fb-menu",
+                                class: (
+                                    "pure-menu " +
+                                    "custom-restricted-width " +
+                                    "fb-menu"
+                                ),
                                 onmouseover: vm.onmouseoveractions,
                                 onmouseout: vm.onmouseoutactions
                             }, [
                                 m("span", {
                                     id: "nav-button",
-                                    class: "pure-button fa fa-bolt fb-menu-button",
+                                    class: (
+                                        "pure-button " +
+                                        "fa fa-bolt " +
+                                        "fb-menu-button"
+                                    ),
                                     disabled: actionsDisabled
                                 }),
                                 m("ul", {
                                     id: "nav-menu-list",
-                                    class: "pure-menu-list fb-menu-list" +
-                                            (vm.showActions()
-                                        ? " fb-menu-list-show"
-                                        : "")
+                                    class: (
+                                        "pure-menu-list fb-menu-list" + (
+                                            vm.showActions()
+                                            ? " fb-menu-list-show"
+                                            : ""
+                                        )
+                                    )
                                 }, vm.actions())
                             ]),
                             m(button.component, {
@@ -738,20 +787,31 @@
                             }),
                             m("div", {
                                 id: "nav-div",
-                                class: "pure-menu custom-restricted-width fb-menu",
+                                class: (
+                                    "pure-menu " +
+                                    "custom-restricted-width " +
+                                    "fb-menu"
+                                ),
                                 onmouseover: vm.onmouseovermenu,
                                 onmouseout: vm.onmouseoutmenu
                             }, [
                                 m("span", {
                                     id: "nav-button",
-                                    class: "pure-button fa fa-gear fb-menu-button"
+                                    class: (
+                                        "pure-button " +
+                                        "fa fa-gear " +
+                                        "fb-menu-button"
+                                    )
                                 }),
                                 m("ul", {
                                     id: "nav-menu-list",
-                                    class: "pure-menu-list fb-menu-list" +
-                                            (vm.showMenu()
-                                        ? " fb-menu-list-show"
-                                        : "")
+                                    class: (
+                                        "pure-menu-list fb-menu-list" + (
+                                            vm.showMenu()
+                                            ? " fb-menu-list-show"
+                                            : ""
+                                        )
+                                    )
                                 }, [
                                     m("li", {
                                         id: "nav-sort",
@@ -772,14 +832,23 @@
                                     /*
                                     m("li", {
                                       id: "nav-format",
-                                      class: "pure-menu-link pure-menu-disabled",
+                                      class: (
+                                            "pure-menu-link " +
+                                            "pure-menu-disabled"
+                                      ),
                                       title: "Format sheet"
                                       //onclick: vm.showFormatDialog
-                                    }, [m("i", {class:"fa fa-paint-brush  fb-menu-list-icon",
+                                    }, [m("i", {class: (
+                                        "fa fa-paint-brush " +
+                                        "fb-menu-list-icon"
+                                    ),
                                     })], "Format"),
                                     m("li", {
                                       id: "nav-subtotal",
-                                      class: "pure-menu-link pure-menu-disabled",
+                                      class: (
+                                            "pure-menu-link " +
+                                            "pure-menu-disabled"
+                                      ),
                                       title: "Edit subtotals"
                                     }, [m("div", {style: {
                                       display: "inline",
@@ -789,7 +858,10 @@
                                     */
                                     m("li", {
                                         id: "nav-configure",
-                                        class: "pure-menu-link fb-menu-list-separator",
+                                        class: (
+                                            "pure-menu-link " +
+                                            "fb-menu-list-separator"
+                                        ),
                                         title: "Configure current worksheet",
                                         onclick: vm.configureSheet
                                     }, [m("i", {
@@ -801,22 +873,32 @@
                                         title: "Share workbook configuration",
                                         onclick: vm.share
                                     }, [m("i", {
-                                        class: "fa fa-share-alt fb-menu-list-icon"
+                                        class: (
+                                            "fa fa-share-alt " +
+                                            "fb-menu-list-icon"
+                                        )
                                     })], "Share"),
                                     m("li", {
                                         id: "nav-revert",
                                         class: "pure-menu-link",
-                                        title: "Revert workbook configuration to original state",
+                                        title: (
+                                            "Revert workbook configuration " +
+                                            "to original state"
+                                        ),
                                         onclick: vm.revert
                                     }, [m("i", {
                                         class: "fa fa-reply fb-menu-list-icon"
                                     })], "Revert"),
                                     m("li", {
                                         id: "nav-settings",
-                                        class: "pure-menu-link fb-menu-list-separator" +
-                                                (vm.hasSettings()
-                                            ? ""
-                                            : " pure-menu-disabled"),
+                                        class: (
+                                            "pure-menu-link " +
+                                            "fb-menu-list-separator" + (
+                                                vm.hasSettings()
+                                                ? ""
+                                                : " pure-menu-disabled"
+                                            )
+                                        ),
                                         title: "Change module settings",
                                         onclick: vm.goSettings
                                     }, [m("i", {
@@ -833,7 +915,10 @@
                         }, [
                             tabs,
                             m("i", {
-                                class: "fa fa-search-plus fb-zoom-icon fb-zoom-right-icon"
+                                class: (
+                                    "fa fa-search-plus " +
+                                    "fb-zoom-icon fb-zoom-right-icon"
+                                )
                             }),
                             m("input", {
                                 class: "fb-zoom-control",
@@ -846,7 +931,10 @@
                                 oninput: (e) => vm.zoom(e.target.value)
                             }),
                             m("i", {
-                                class: "fa fa-search-minus fb-zoom-icon fb-zoom-left-icon"
+                                class: (
+                                    "fa fa-search-minus " +
+                                    "fb-zoom-icon fb-zoom-left-icon"
+                                )
                             })
                         ])
                     ])

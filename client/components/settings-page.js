@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2018  John Rogelstad
+    Copyright (C) 2019  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,121 +15,127 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-
-/*global window*/
+/*jslint browser, this*/
+/*global window, require, module*/
 (function () {
-  "use strict";
+    "use strict";
 
-  var settingsPage = {},
-    m = require("mithril"),
-    stream = require("stream"),
-    button = require("button"),
-    formWidget = require("form-widget"),
-    catalog = require("catalog");
+    const settingsPage = {};
+    const m = require("mithril");
+    const stream = require("stream");
+    const button = require("button");
+    const formWidget = require("form-widget");
+    const catalog = require("catalog");
 
-  /**
-    View model for settings page.
+    /**
+      View model for settings page.
 
-    @param {Object} Options
-  */
-  settingsPage.viewModel = function (options) {
-    options = options || {};
-    var vm = {},
-      form = {},
-      models = catalog.store().models(),
-      model = models[options.settings](),
-      definition = models[options.settings].definition();
+      @param {Object} Options
+    */
+    settingsPage.viewModel = function (options) {
+        options = options || {};
+        let vm = {};
+        let form = {};
+        let models = catalog.store().models();
+        let model = models[options.settings]();
+        let definition = models[options.settings].definition();
 
-    // Build form from settings definition
-    form.name = definition.name;
-    form.description = definition.description;
-    form.attrs = [];
-    Object.keys(definition.properties).forEach(function (key) {
-      form.attrs.push({
-        attr: key,
-        grid: 0,
-        unit: 0
-      });
-    });
-
-    // ..........................................................
-    // PUBLIC
-    //
-    vm.buttonDone = stream();
-    vm.doDone = function () {
-      if (model.canSave()) {
-        vm.formWidget().model().save().then(function () {
-          window.history.back();
+        // Build form from settings definition
+        form.name = definition.name;
+        form.description = definition.description;
+        form.attrs = [];
+        Object.keys(definition.properties).forEach(function (key) {
+            form.attrs.push({
+                attr: key,
+                grid: 0,
+                unit: 0
+            });
         });
-        return;
-      }
 
-      window.history.back();
+        // ..........................................................
+        // PUBLIC
+        //
+        vm.buttonDone = stream();
+        vm.doDone = function () {
+            if (model.canSave()) {
+                vm.formWidget().model().save().then(function () {
+                    window.history.back();
+                });
+                return;
+            }
+
+            window.history.back();
+        };
+
+        vm.formWidget = stream(formWidget.viewModel({
+            model: model,
+            id: options.settings,
+            config: form,
+            outsideElementIds: ["toolbar"]
+        }));
+
+        vm.model = stream(model);
+        vm.title = function () {
+            return options.settings.toName();
+        };
+
+        // ..........................................................
+        // PRIVATE
+        //
+
+        vm.buttonDone(button.viewModel({
+            onclick: vm.doDone,
+            label: "&Done"
+        }));
+
+        if (model.state().current()[0] === "/Ready/New") {
+            model.fetch();
+        }
+
+        return vm;
     };
 
-    vm.formWidget = stream(formWidget.viewModel({
-      model: model,
-      id: options.settings,
-      config: form,
-      outsideElementIds: ["toolbar"]
-    }));
+    /**
+      Settings page component
 
-    vm.model = stream(model);
-    vm.title = function () {
-      return options.settings.toName();
+      @params {Object} View model
+    */
+    settingsPage.component = {
+        oninit: function (vnode) {
+            this.viewModel = (
+                vnode.attrs.viewModel || settingsPage.viewModel(vnode.attrs)
+            );
+        },
+
+        view: function () {
+            let vm = this.viewModel;
+
+            // Build view
+            return m("div", [
+                m("div", {
+                    id: "toolbar",
+                    class: "fb-toolbar"
+                }, [
+                    m(button.component, {
+                        viewModel: vm.buttonDone()
+                    })
+                ]),
+                m("div", {
+                    class: "fb-title"
+                }, [
+                    m("i", {
+                        class: "fa fa-wrench fb-title-icon"
+                    }),
+                    m("label", vm.title())
+                ]),
+                m(formWidget.component, {
+                    viewModel: vm.formWidget()
+                })
+            ]);
+        }
     };
 
-    // ..........................................................
-    // PRIVATE
-    //
-
-    vm.buttonDone(button.viewModel({
-      onclick: vm.doDone,
-      label: "&Done"
-    }));
-
-    if (model.state().current()[0] === "/Ready/New") {
-      model.fetch();
-    }
-
-    return vm;
-  };
-
-  /**
-    Settings page component
-
-    @params {Object} View model
-  */
-  settingsPage.component = {
-    oninit: function (vnode) {
-      this.viewModel = vnode.attrs.viewModel || settingsPage.viewModel(vnode.attrs);
-    },
-
-    view: function () {
-      var vm = this.viewModel;
-
-      // Build view
-      return m("div", [
-        m("div", {
-          id: "toolbar",
-          class: "fb-toolbar"
-        }, [
-          m(button.component, {viewModel: vm.buttonDone()})
-        ]),
-        m("div", {
-          class: "fb-title"
-        }, [
-        m("i", {
-          class:"fa fa-wrench fb-title-icon"
-        }),
-        m("label", vm.title())
-        ]),
-        m(formWidget.component, {viewModel: vm.formWidget()})
-      ]);
-    }
-  };
-
-  catalog.register("components", "settingsPage", settingsPage.component);
-  module.exports = settingsPage;
+    catalog.register("components", "settingsPage", settingsPage.component);
+    module.exports = settingsPage;
 
 }());
