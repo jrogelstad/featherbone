@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2018  John Rogelstad
+    Copyright (C) 2019  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -16,20 +16,21 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*global require, module*/
-/*jslint this, es6, browser*/
+/*jslint this, browser*/
 (function () {
     "use strict";
 
-    var relationWidget = {},
-        m = require("mithril"),
-        stream = require("stream"),
-        f = require("common-core"),
-        catalog = require("catalog");
+    const relationWidget = {};
+    const m = require("mithril");
+    const stream = require("stream");
+    const f = require("common-core");
+    const catalog = require("catalog");
 
     /**
       @param {Object} Options
       @param {Object} [options.parentViewModel] Parent view-model. Required
-        property "relations" returning javascript object to attach relation view model to.
+        property "relations" returning javascript object to attach relation
+        view model to.
       @param {String} [options.parentProperty] Name of the relation
         in view model to attached to
       @param {String} [options.valueProperty] Value property
@@ -39,39 +40,43 @@
       @param {Object} [options.filter] Filter object used for search
     */
     relationWidget.viewModel = function (options) {
-        var duplicate,
-            vm = {},
-            registerReceiver,
-            hasFocus = false,
-            parent = options.parentViewModel,
-            parentProperty = options.parentProperty,
-            valueProperty = options.valueProperty,
-            labelProperty = options.labelProperty,
-            modelValue = parent.model().data[parentProperty],
-            current = modelValue()
-                ? modelValue().data[valueProperty]()
-                : null,
-            inputValue = stream(current),
-            type = modelValue.type,
-            modelName = type.relation.toCamelCase(),
-            criteria = options.filter
-                ? options.filter.criteria || []
-                : [],
-            filter = {
-                criteria: f.copy(criteria),
-                sort: [{
-                    property: valueProperty
-                }],
-                limit: 10
-            },
-            list = catalog.store().models()[modelName].list,
-            modelList = list({
-                filter: filter
-            }),
-            configId = f.createId();
+        let duplicate;
+        let vm = {};
+        let registerReceiver;
+        let hasFocus = false;
+        let parent = options.parentViewModel;
+        let parentProperty = options.parentProperty;
+        let valueProperty = options.valueProperty;
+        let labelProperty = options.labelProperty;
+        let modelValue = parent.model().data[parentProperty];
+        let current = (
+            modelValue()
+            ? modelValue().data[valueProperty]()
+            : null
+        );
+        let inputValue = stream(current);
+        let type = modelValue.type;
+        let modelName = type.relation.toCamelCase();
+        let criteria = (
+            options.filter
+            ? options.filter.criteria || []
+            : []
+        );
+        let filter = {
+            criteria: f.copy(criteria),
+            sort: [{
+                property: valueProperty
+            }],
+            limit: 10
+        };
+        let list = catalog.store().models()[modelName].list;
+        let modelList = list({
+            filter: filter
+        });
+        let configId = f.createId();
 
         function updateValue(prop) {
-            var value = prop();
+            let value = prop();
             if (value) {
                 vm.value(value.data[options.valueProperty]());
             } else {
@@ -79,10 +84,12 @@
             }
         }
 
-        // Make sure data changes made by biz logic in the model are recognized
+        // Make sure data changes made by biz logic in the model are
+        // recognized
         parent.model().onChanged(parentProperty, updateValue);
 
-        // Because if relation is first focus, no logical way to respond to fetch
+        // Because if relation is first focus, no logical way to respond
+        // to fetch
         parent.model().state().resolve("/Ready/Fetched").enter(
             updateValue.bind(null, parent.model().data[parentProperty])
         );
@@ -97,13 +104,15 @@
         };
         vm.formConfig = stream(options.form);
         vm.id = stream(options.id);
-        vm.isCell = stream(!!options.isCell);
+        vm.isCell = stream(Boolean(options.isCell));
         vm.isDisabled = options.disabled || stream(false);
         vm.label = function () {
-            var model = modelValue();
-            return (labelProperty && model)
+            let model = modelValue();
+            return (
+                (labelProperty && model)
                 ? model.data[labelProperty]()
-                : "";
+                : ""
+            );
         };
         vm.labelProperty = stream(options.labelProperty);
         vm.labels = function () {
@@ -112,9 +121,11 @@
                     class: "fb-input",
                     style: {
                         marginLeft: "12px",
-                        marginTop: vm.label()
+                        marginTop: (
+                            vm.label()
                             ? "6px"
                             : ""
+                        )
                     }
                 }, vm.label())
             ];
@@ -147,7 +158,7 @@
             });
         };
         vm.search = function (filter) {
-            var searchList = f.copy(options.list);
+            let searchList = f.copy(options.list);
             searchList.filter = filter || options.filter || searchList.filter;
 
             catalog.register("config", configId, searchList);
@@ -162,13 +173,13 @@
             });
         };
         vm.onchange = function (value) {
-            var currentModel,
-                currentValue = false,
-                models = vm.models(),
-                regexp = new RegExp("^" + value, "i");
+            let currentModel;
+            let currentValue = false;
+            let models = vm.models();
+            let regexp = new RegExp("^" + value, "i");
 
             function count(counter, model) {
-                var mValue = model.data[valueProperty]();
+                let mValue = model.data[valueProperty]();
 
                 if (mValue === currentValue) {
                     return counter + 1;
@@ -190,8 +201,10 @@
             }
 
             // If multiple matches, launch search to get one exactly
-            if (value.length && models.some(match) &&
-                    models.reduce(count, 0) > 1) {
+            if (
+                value.length && models.some(match) &&
+                models.reduce(count, 0) > 1
+            ) {
                 duplicate = {
                     criteria: [{
                         property: valueProperty,
@@ -217,12 +230,14 @@
             }
         };
         vm.onfocus = function () {
-            var value = modelValue();
+            let value = modelValue();
 
             hasFocus = true;
-            value = value
+            value = (
+                value
                 ? value.data[options.valueProperty]()
-                : null;
+                : null
+            );
             inputValue(value);
         };
         vm.onblur = function () {
@@ -234,10 +249,13 @@
             duplicate = undefined;
         };
         vm.oninput = function (value) {
-            var fetch = false,
-                inputVal = inputValue() || "";
-            if (value.length <= inputVal.length ||
-                    modelList().length === 10) {
+            let fetch = false;
+            let inputVal = inputValue() || "";
+
+            if (
+                value.length <= inputVal.length ||
+                modelList().length === 10
+            ) {
                 fetch = true;
             }
             inputValue(value);
@@ -262,8 +280,9 @@
         vm.showMenu = stream(false);
         vm.style = stream({});
         vm.value = function (...args) {
-            var result,
-                value = args[0];
+            let result;
+            let value = args[0];
+
             if (hasFocus) {
                 if (args.length) {
                     result = inputValue(value);
@@ -283,7 +302,7 @@
 
         // Helper function for registering callbacks
         registerReceiver = function () {
-            var receiverKey = f.createId();
+            let receiverKey = f.createId();
 
             catalog.register("receivers", receiverKey, {
                 callback: function (model) {
@@ -303,7 +322,8 @@
     /**
       @param {Object} Options
       @param {Object} [options.viewModel] Parent view-model. Must have
-        property "relations" returning javascript object to attach relation view model to.
+        property "relations" returning javascript object to attach relation
+        view model to.
       @param {String} [options.parentProperty] Name of the relation
         in view model to attached to
       @param {String} [options.valueProperty] Value property
@@ -311,9 +331,9 @@
     */
     relationWidget.component = {
         oninit: function (vnode) {
-            var options = vnode.attrs,
-                parentProperty = options.parentProperty,
-                relations = options.parentViewModel.relations();
+            let options = vnode.attrs;
+            let parentProperty = options.parentProperty;
+            let relations = options.parentViewModel.relations();
 
             // Set up viewModel if required
             if (!relations[parentProperty]) {
@@ -336,24 +356,30 @@
         },
 
         view: function (vnode) {
-            var listOptions, inputStyle, menuStyle, maxWidth, menu,
-                    vm = this.viewModel,
-                    disabled = vm.isDisabled(),
-                    style = vm.style(),
-                    openMenuClass = "pure-menu-link",
-                    editMenuClass = "pure-menu-link",
-                    buttonClass = "pure-button fa fa-bars fb-relation-button",
-                    labelClass = "fb-relation-label";
+            let listOptions;
+            let inputStyle;
+            let menuStyle;
+            let maxWidth;
+            let menu;
+            let vm = this.viewModel;
+            let disabled = vm.isDisabled();
+            let style = vm.style();
+            let openMenuClass = "pure-menu-link";
+            let editMenuClass = "pure-menu-link";
+            let buttonClass = "pure-button fa fa-bars fb-relation-button";
+            let labelClass = "fb-relation-label";
 
             menuStyle = {
-                display: vm.showMenu()
+                display: (
+                    vm.showMenu()
                     ? "block"
                     : "none"
+                )
             };
 
             // Generate picker list
             listOptions = vm.models().map(function (model) {
-                var content = {
+                let content = {
                     value: model.data[vm.valueProperty()]()
                 };
                 if (vm.labelProperty()) {
@@ -384,13 +410,18 @@
                 labelClass = "fb-relation-label-cell";
 
                 menu = m("div", {
+                    onmouseover: vm.onmouseovermenu,
                     style: {
                         position: "relative",
                         display: "inline"
                     }
                 }, [
                     m("div", {
-                        class: "pure-menu custom-restricted-width fb-relation-menu",
+                        class: (
+                            "pure-menu " +
+                            "custom-restricted-width " +
+                            "fb-relation-menu"
+                        ),
                         onmouseover: vm.onmouseovermenu,
                         onmouseout: vm.onmouseoutmenu
                     }, [
@@ -428,9 +459,11 @@
             if (style.maxWidth) {
                 maxWidth = style.maxWidth.replace("px", "");
                 maxWidth = maxWidth - 35;
-                maxWidth = maxWidth < 100
+                maxWidth = (
+                    maxWidth < 100
                     ? 100
-                    : maxWidth;
+                    : maxWidth
+                );
                 inputStyle.maxWidth = maxWidth + "px";
             }
 

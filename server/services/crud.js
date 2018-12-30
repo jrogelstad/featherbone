@@ -614,8 +614,10 @@
                         return;
                     }
 
-                    sql = "INSERT INTO %I (_pk, " + tokens.toString(",");
-                    sql += ") VALUES ($1," + params.toString(",") + ");";
+                    sql = (
+                        "INSERT INTO %I (_pk, " + tokens.toString(",") +
+                        ") VALUES ($1," + params.toString(",") + ");"
+                    );
                     sql = sql.format(args);
 
                     // Insert children first so notification gets full object
@@ -847,8 +849,10 @@
                     });
 
                     cols.push(table);
-                    sql = "SELECT to_json((" + tokens.toString(",");
-                    sql += ")) AS result FROM %I";
+                    sql = (
+                        "SELECT to_json((" + tokens.toString(",") +
+                        ")) AS result FROM %I"
+                    );
                     sql = sql.format(cols);
 
                     /* Get one result by key */
@@ -1490,8 +1494,10 @@
                     );
 
                     // Execute top level object change
-                    sql = "UPDATE %I SET " + ary.join(",");
-                    sql += " WHERE _pk = $" + p;
+                    sql = (
+                        "UPDATE %I SET " + ary.join(",") +
+                        " WHERE _pk = $" + p
+                    );
                     sql = sql.format(tokens);
                     params.push(pk);
                     clen += 1;
@@ -1643,9 +1649,11 @@
                         let params;
                         let sql;
 
-                        sql = "UPDATE object ";
-                        sql += "SET lock = ROW($1, now(), $2, $3) ";
-                        sql += "WHERE id = $4";
+                        sql = (
+                            "UPDATE object " +
+                            "SET lock = ROW($1, now(), $2, $3) " +
+                            "WHERE id = $4"
+                        );
 
                         function callback() {
                             resolve(true);
@@ -1699,8 +1707,7 @@
                     resolve(resp.rows);
                 }
 
-                sql = "UPDATE object SET lock = NULL ";
-                sql += "WHERE true ";
+                sql = "UPDATE object SET lock = NULL WHERE true ";
 
                 if (criteria.id) {
                     params.push(criteria.id);

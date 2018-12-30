@@ -90,45 +90,47 @@
 
             action = action.toSnakeCase();
 
-            sql = " AND _pk IN (";
-            sql += "SELECT %I._pk ";
-            sql += "FROM %I ";
-            sql += "  JOIN \"$feather\" ";
-            sql += "  ON \"$feather\".id::regclass::oid=%I.tableoid ";
-            sql += "WHERE EXISTS (";
-            sql += "  SELECT " + action + " FROM ( ";
-            sql += "    SELECT " + action;
-            sql += "    FROM \"$auth\"";
-            sql += "      JOIN \"role\" ON";
-            sql += "\"$auth\".\"role_pk\"=\"role\".\"_pk\"";
-            sql += "      JOIN \"role_member\"";
-            sql += "        ON \"role\".\"_pk\"=";
-            sql += "           \"role_member\".\"_parent_role_pk\"";
-            sql += "    WHERE member=$1";
-            sql += "      AND object_pk=\"$feather\".parent_pk";
-            sql += "    ORDER BY " + action + " DESC";
-            sql += "    LIMIT 1";
-            sql += "  ) AS data";
-            sql += "  WHERE " + action;
-            sql += ") ";
-            sql += "EXCEPT ";
-            sql += "SELECT %I._pk ";
-            sql += "FROM %I ";
-            sql += "WHERE EXISTS ( ";
-            sql += "  SELECT " + action + " FROM (";
-            sql += "    SELECT " + action;
-            sql += "    FROM \"$auth\"";
-            sql += "    JOIN \"role\" ON";
-            sql += "         \"$auth\".\"role_pk\"=\"role\".\"_pk\"";
-            sql += "    JOIN \"role_member\" ";
-            sql += "      ON \"role\".\"_pk\"=";
-            sql += "         \"role_member\".\"_parent_role_pk\"";
-            sql += "    WHERE member=$1";
-            sql += "      AND object_pk=%I._pk";
-            sql += "    ORDER BY " + action + " DESC";
-            sql += "    LIMIT 1 ";
-            sql += "  ) AS data ";
-            sql += "WHERE NOT " + action + "))";
+            sql = (
+                " AND _pk IN (" +
+                "SELECT %I._pk " +
+                "FROM %I " +
+                "  JOIN \"$feather\" " +
+                "  ON \"$feather\".id::regclass::oid=%I.tableoid " +
+                "WHERE EXISTS (" +
+                "  SELECT " + action + " FROM ( " +
+                "    SELECT " + action +
+                "    FROM \"$auth\"" +
+                "      JOIN \"role\" ON" +
+                "\"$auth\".\"role_pk\"=\"role\".\"_pk\"" +
+                "      JOIN \"role_member\"" +
+                "        ON \"role\".\"_pk\"=" +
+                "           \"role_member\".\"_parent_role_pk\"" +
+                "    WHERE member=$1" +
+                "      AND object_pk=\"$feather\".parent_pk" +
+                "    ORDER BY " + action + " DESC" +
+                "    LIMIT 1" +
+                "  ) AS data" +
+                "  WHERE " + action +
+                ") " +
+                "EXCEPT " +
+                "SELECT %I._pk " +
+                "FROM %I " +
+                "WHERE EXISTS ( " +
+                "  SELECT " + action + " FROM (" +
+                "    SELECT " + action +
+                "    FROM \"$auth\"" +
+                "    JOIN \"role\" ON" +
+                "         \"$auth\".\"role_pk\"=\"role\".\"_pk\"" +
+                "    JOIN \"role_member\" " +
+                "      ON \"role\".\"_pk\"=" +
+                "         \"role_member\".\"_parent_role_pk\"" +
+                "    WHERE member=$1" +
+                "      AND object_pk=%I._pk" +
+                "    ORDER BY " + action + " DESC" +
+                "    LIMIT 1 " +
+                "  ) AS data " +
+                "WHERE NOT " + action + "))"
+            );
 
             return sql;
         };
