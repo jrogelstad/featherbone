@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2018  John Rogelstad
+    Copyright (C) 2019  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -16,56 +16,67 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*global require, module*/
-/*jslint es6, this*/
+/*jslint this, browser*/
 (function () {
     "use strict";
 
-    var moneyRelation = {},
-        m = require("mithril"),
-        f = require("common-core"),
-        stream = require("stream"),
-        catalog = require("catalog");
+    const moneyRelation = {};
+    const m = require("mithril");
+    const f = require("common-core");
+    const stream = require("stream");
+    const catalog = require("catalog");
 
     function selections(item) {
-        var value = item.data.hasDisplayUnit()
+        let value = (
+            item.data.hasDisplayUnit()
             ? item.data.displayUnit().data.code()
-            : item.data.code();
+            : item.data.code()
+        );
 
         return m("option", value);
     }
 
     moneyRelation.viewModel = function (options) {
-        var selector, wasDisabled, wasCurrency,
-                vm = {},
-                parent = options.parentViewModel,
-                store = catalog.store(),
-                currencyList = store.data().currencies,
-                currConvList = store.models().currencyConversion.list({
+        let selector;
+        let wasDisabled;
+        let wasCurrency;
+        let vm = {};
+        let parent = options.parentViewModel;
+        let store = catalog.store();
+        let currencyList = store.data().currencies;
+        let currConvList = store.models().currencyConversion.list({
             fetch: false
-        }),
-                prop = parent.model().data[options.parentProperty];
+        });
+        let prop = parent.model().data[options.parentProperty];
 
-        // Bind to property state change to update conversion ratio if applicable
+        // Bind to property state change to update conversion ratio if
+        // applicable
         parent.model().onChange(options.parentProperty, function (p) {
-            var baseCode = f.baseCurrency().data.code(),
-                newCurr = p.newValue().currency;
+            let baseCode = f.baseCurrency().data.code();
+            let newCurr = p.newValue().currency;
 
             if (newCurr === baseCode) {
                 vm.conversion(null);
                 return;
             }
 
-            if (p.oldValue().currency !== newCurr &&
-                    !p.newValue().ratio) {
+            if (
+                p.oldValue().currency !== newCurr &&
+                !p.newValue().ratio
+            ) {
                 vm.conversion(null);
-                vm.fetchConversion(baseCode, f.getCurrency(newCurr).data.code());
+                vm.fetchConversion(
+                    baseCode,
+                    f.getCurrency(newCurr).data.code()
+                );
             }
         });
 
-        // Bind to property state change to update conversion ratio if applicable
+        // Bind to property state change to update conversion ratio if
+        // applicable
         parent.model().state().resolve("/Ready/Fetched").enter(function () {
-            var baseCode = f.baseCurrency().data.code(),
-                newCurr = prop().currency;
+            let baseCode = f.baseCurrency().data.code();
+            let newCurr = prop().currency;
 
             if (newCurr === baseCode) {
                 vm.conversion(null);
@@ -74,17 +85,20 @@
 
             if (newCurr && !prop().ratio) {
                 vm.conversion(null);
-                vm.fetchConversion(baseCode, f.getCurrency(newCurr).data.code());
+                vm.fetchConversion(
+                    baseCode,
+                    f.getCurrency(newCurr).data.code()
+                );
             }
         });
 
         vm.id = stream(options.id);
-        vm.isCell = stream(!!options.isCell);
+        vm.isCell = stream(Boolean(options.isCell));
         vm.label = function () {
             return f.baseCurrency(vm.effective()).data.code();
         };
         vm.amount = function (...args) {
-            var money;
+            let money;
 
             if (args.length) {
                 money = f.copy(prop());
@@ -95,15 +109,18 @@
             return prop().amount;
         };
         vm.baseAmount = function () {
-            var ret, money,
-                    baseCode = f.baseCurrency(vm.effective()).data.code(),
-                    conv = vm.conversion(),
-                    value = prop.toJSON(); // Raw value
+            let ret;
+            let money;
+            let baseCode = f.baseCurrency(vm.effective()).data.code();
+            let conv = vm.conversion();
+            let value = prop.toJSON(); // Raw value
 
             if (value.effective) {
                 ret = value.baseAmount;
-            } else if (conv &&
-                    conv.data.fromCurrency().data.code() === baseCode) {
+            } else if (
+                conv &&
+                conv.data.fromCurrency().data.code() === baseCode
+            ) {
                 ret = value.amount.times(conv.data.ratio.toJSON());
             } else if (conv) {
                 ret = value.amount.div(conv.data.ratio.toJSON());
@@ -122,7 +139,7 @@
         };
         vm.conversion = stream();
         vm.currency = function (...args) {
-            var money;
+            let money;
 
             if (args.length) {
                 money = f.copy(prop());
@@ -132,34 +149,44 @@
 
             return prop().currency;
         };
-        vm.disableCurrency = stream(!!options.disableCurrency);
+        vm.disableCurrency = stream(Boolean(options.disableCurrency));
         vm.currencies = function () {
-            var ret, curr = vm.currency();
+            let ret;
+            let curr = vm.currency();
 
             function same(item) {
                 return item;
             }
 
             function deleted(item) {
-                return !item.data.isDeleted() ||
-                        curr === item.data.code() ||
-                        (item.data.hasDisplayUnit() &&
-                        curr === item.data.displayUnit().data.code());
+                return (
+                    !item.data.isDeleted() ||
+                    curr === item.data.code() || (
+                        item.data.hasDisplayUnit() &&
+                        curr === item.data.displayUnit().data.code()
+                    )
+                );
             }
 
             ret = currencyList().map(same).filter(deleted); // Hack
 
             ret.sort(function (a, b) {
-                var attrA = a.data.hasDisplayUnit()
-                        ? a.data.displayUnit().data.code()
-                        : a.data.code(),
-                    attrB = b.data.hasDisplayUnit()
-                        ? b.data.displayUnit().data.code()
-                        : b.data.code();
+                let attrA = (
+                    a.data.hasDisplayUnit()
+                    ? a.data.displayUnit().data.code()
+                    : a.data.code()
+                );
+                let attrB = (
+                    b.data.hasDisplayUnit()
+                    ? b.data.displayUnit().data.code()
+                    : b.data.code()
+                );
 
-                return attrA > attrB
+                return (
+                    attrA > attrB
                     ? 1
-                    : -1;
+                    : -1
+                );
             });
 
             return ret;
@@ -175,12 +202,14 @@
         */
         vm.fetchConversion = function (fromCurr, toCurr) {
             return new Promise(function (resolve, reject) {
-                var filter;
+                let filter;
 
                 function callback(result) {
-                    vm.conversion(result.length
+                    vm.conversion(
+                        result.length
                         ? result[0]
-                        : null);
+                        : null
+                    );
                     resolve();
                 }
 
@@ -205,20 +234,27 @@
                     limit: 1
                 };
 
-                currConvList().fetch(filter, false)
-                    .then(callback)
-                    .catch(error);
+                currConvList().fetch(filter, false).then(
+                    callback
+                ).catch(
+                    error
+                );
             });
         };
         // Selector is memoized to prevent constant rerendering
         // that otherwise interferes with the relation widget autocompleter
         vm.selector = function (vnode) {
-            var selectorStyle,
-                disabled = vnode.attrs.disabled === true ||
-                        vm.disableCurrency() || vm.effective(),
-                currency = vm.currency();
+            let selectorStyle;
+            let disabled = (
+                vnode.attrs.disabled === true ||
+                vm.disableCurrency() || vm.effective()
+            );
+            let currency = vm.currency();
 
-            if (selector && disabled === wasDisabled && currency === wasCurrency) {
+            if (
+                selector && disabled === wasDisabled &&
+                currency === wasCurrency
+            ) {
                 return selector;
             }
 
@@ -249,7 +285,7 @@
 
     moneyRelation.component = {
         oninit: function (vnode) {
-            var options = vnode.attrs;
+            let options = vnode.attrs;
 
             // Set up viewModel if required
             this.viewModel = moneyRelation.viewModel({
@@ -264,10 +300,12 @@
         },
 
         view: function (vnode) {
-            var currencyLabelStyle, inputStyle, amountLabelStyle,
-                    displayStyle,
-                    vm = this.viewModel,
-                    disabled = vnode.attrs.disabled === true || vm.effective();
+            let currencyLabelStyle;
+            let inputStyle;
+            let amountLabelStyle;
+            let displayStyle;
+            let vm = this.viewModel;
+            let disabled = vnode.attrs.disabled === true || vm.effective();
 
             displayStyle = {
                 display: "inline-block"
@@ -275,9 +313,11 @@
 
             amountLabelStyle = {
                 textAlign: "right",
-                marginTop: vm.label()
+                marginTop: (
+                    vm.label()
                     ? "6px"
-                    : "",
+                    : ""
+                ),
                 marginRight: "30px",
                 display: "inline-block"
             };

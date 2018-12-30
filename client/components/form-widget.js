@@ -1,6 +1,6 @@
 /**
     Framework for building object relational database apps
-    Copyright (C) 2018  John Rogelstad
+    Copyright (C) 2019  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*jslint this, browser, es6*/
+/*jslint this, browser*/
 /*global window, require, module, Big*/
 (function () {
     "use strict";
@@ -28,13 +28,18 @@
     const dialog = require("dialog");
 
     function buildButtons(vm) {
-        var ret, className,
-                lonelyTabClass = ["pure-button", "fb-sheet-group-tab", "fb-sheet-group-tab-form"],
-                midTabClass = f.copy(lonelyTabClass),
-                leftTabClass = f.copy(lonelyTabClass),
-                rightTabClass = f.copy(lonelyTabClass),
-                tabs = vm.config().tabs || [],
-                last = tabs.length - 1;
+        let ret;
+        let className;
+        let lonelyTabClass = [
+            "pure-button",
+            "fb-sheet-group-tab",
+            "fb-sheet-group-tab-form"
+        ];
+        let midTabClass = f.copy(lonelyTabClass);
+        let leftTabClass = f.copy(lonelyTabClass);
+        let rightTabClass = f.copy(lonelyTabClass);
+        let tabs = vm.config().tabs || [];
+        let last = tabs.length - 1;
 
         tabs = tabs.map((tab) => tab.name);
 
@@ -80,18 +85,20 @@
 
     function buildFieldset(vm, attrs) {
         return attrs.map(function (item) {
-            var result, labelOpts, label,
-                    key = item.attr,
-                    model = vm.model(),
-                    prop = model.data[key],
-                    dataList = item.dataList || prop.dataList,
-                    value = prop(),
-                    options = {},
-                    menuButtons = vm.menuButtons(),
-                    relation = vm.relations()[key];
+            let result;
+            let labelOpts;
+            let label;
+            let key = item.attr;
+            let model = vm.model();
+            let prop = model.data[key];
+            let dataList = item.dataList || prop.dataList;
+            let value = prop();
+            let options = {};
+            let menuButtons = vm.menuButtons();
+            let relation = vm.relations()[key];
 
             function openMenuClass() {
-                var ret = "pure-menu-link fb-form-label-menu-item";
+                let ret = "pure-menu-link fb-form-label-menu-item";
 
                 if (relation && relation.model && !relation.model()) {
                     ret += " pure-menu-disabled";
@@ -101,9 +108,12 @@
             }
 
             function editMenuClass() {
-                var ret = "pure-menu-link fb-form-label-menu-item";
+                let ret = "pure-menu-link fb-form-label-menu-item";
 
-                if (relation && relation.isDisabled && relation.isDisabled()) {
+                if (
+                    relation && relation.isDisabled &&
+                    relation.isDisabled()
+                ) {
                     ret += " pure-menu-disabled";
                 }
 
@@ -198,15 +208,18 @@
             if (!prop.isReadOnly() && !vm.focusAttr()) {
                 vm.focusAttr(key);
             }
-            
+
             if (vm.focusAttr() === key) {
                 options.oncreate = function (vnode) {
                     document.getElementById(vnode.dom.id).focus();
                 };
             }
 
-            if (prop.isRequired() && (value === null ||
-                    (prop.type === "string" && !value))) {
+            if (
+                prop.isRequired() && (
+                    value === null || (prop.type === "string" && !value)
+                )
+            ) {
                 labelOpts.style.color = "Red";
             }
             result = m("div", {
@@ -227,7 +240,7 @@
     }
 
     function buildUnit(vm, attrs, n) {
-        var fieldset = buildFieldset(vm, attrs);
+        let fieldset = buildFieldset(vm, attrs);
 
         return m("div", {
             class: "pure-u-1 pure-u-md-1-" + n
@@ -239,9 +252,9 @@
     }
 
     function buildGrid(grid, idx) {
-        var units,
-            vm = this,
-            className = "fb-tabbed-panes fb-tabbed-panes-form";
+        let units;
+        let vm = this;
+        let className = "fb-tabbed-panes fb-tabbed-panes-form";
 
         units = grid.map(function (unit) {
             return buildUnit(vm, unit, grid.length);
@@ -268,9 +281,10 @@
     }
 
     formWidget.viewModel = function (options) {
-        var model, modelState,
-                vm = {},
-                models = catalog.store().models();
+        let model;
+        let modelState;
+        let vm = {};
+        let models = catalog.store().models();
 
         vm.config = stream(options.config);
         vm.containerId = stream(options.containerId);
@@ -307,7 +321,7 @@
         // Bind model state to error event
         modelState = vm.model().state();
         modelState.resolve("/Ready").enter(function () {
-            var err = vm.model().lastError();
+            let err = vm.model().lastError();
 
             if (err) {
                 vm.errorDialog().message(err.message);
@@ -332,15 +346,15 @@
         },
 
         view: function (vnode) {
-            var vm = vnode.attrs.viewModel,
-                attrs = vm.config().attrs || [],
-                model = vm.model(),
-                grids = [];
+            let vm = vnode.attrs.viewModel;
+            let attrs = vm.config().attrs || [];
+            let model = vm.model();
+            let grids = [];
 
             // build grid matrix from inside out
             attrs.forEach(function (item) {
-                var gidx = item.grid || 0,
-                    uidx = item.unit || 0;
+                let gidx = item.grid || 0;
+                let uidx = item.unit || 0;
                 if (!grids[gidx]) {
                     grids[gidx] = [];
                 }
@@ -361,12 +375,12 @@
                 id: model.id(),
                 class: "fb-form-content",
                 oncreate: function (vnode) {
-                    var e = document.getElementById(vnode.dom.id),
-                        bodyHeight = window.innerHeight,
-                        eids = vm.outsideElementIds();
+                    let e = document.getElementById(vnode.dom.id);
+                    let bodyHeight = window.innerHeight;
+                    let eids = vm.outsideElementIds();
 
                     eids.forEach(function (id) {
-                        var h = document.getElementById(id).clientHeight;
+                        let h = document.getElementById(id).clientHeight;
                         bodyHeight = bodyHeight.minus(h);
                     });
 
