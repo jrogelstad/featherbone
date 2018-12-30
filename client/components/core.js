@@ -16,7 +16,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint browser*/
-import * as m from "../../node_modules/mithril/mithril.js";
 import { f } from "../../common/core-client.js";
 import { catalog } from "../models/catalog.js";
 import { stream } from "../../common/stream-client.js";

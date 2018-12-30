@@ -36,7 +36,6 @@ import "./components/address-relation.js";
 import "./components/contact-relation.js";
 import "../common/core-client.js";
 
-import * as m from "../node_modules/mithril/mithril.js";
 import { f } from "./components/core.js";
 import { datasource } from "./datasource.js";
 import { model } from "./models/model.js";
@@ -44,27 +43,8 @@ import { settings } from "./models/settings.js";
 import { catalog } from "./models/catalog.js";
 import { list } from "./models/list.js";
 import { State as statechart } from "../common/state.js";
-
-window.f = f;
-
-/*
-// These get pre-registered for
-// on-the-fly instantiation
-require("form-page");
-require("workbook-page");
-require("search-page");
-require("settings-page");
-require("relation-widget");
-require("child-table");
-require("address-relation");
-require("contact-relation");
-require("common-core");
-
-*/
-
-/*
-const navigator = require("navigator-menu");
-const dialog = require("dialog");
+import { navigator } from "./components/navigator-menu.js"
+import { dialog } from "./components/dialog.js";
 
 let feathers;
 let loadCatalog;
@@ -162,7 +142,7 @@ function initPromises() {
             });
 
             // Load settings
-            dataSource.request(payload).then(function (definitions) {
+            datasource.request(payload).then(function (definitions) {
 
                 // Loop through each definition and build a settings model
                 // function
@@ -241,7 +221,7 @@ function initPromises() {
             path: "/modules/"
         };
 
-        dataSource.request(payload).then(function (data) {
+        datasource.request(payload).then(function (data) {
             moduleData = data;
             // Resolve dependencies back to array for easier handling
             moduleData.forEach(function (module) {
@@ -263,7 +243,7 @@ function initPromises() {
         };
         let forms = catalog.register("forms");
 
-        dataSource.request(payload).then(function (data) {
+        datasource.request(payload).then(function (data) {
             // Loop through each form record and load into catalog
             data.forEach(function (form) {
                 forms[form.id] = form;
@@ -280,7 +260,7 @@ function initPromises() {
             path: "/data/relation-widgets"
         };
 
-        return dataSource.request(payload).then(function (data) {
+        return datasource.request(payload).then(function (data) {
             // Loop through each record and build widget
             data.forEach(function (item) {
                 // Some transformation
@@ -303,7 +283,7 @@ function initPromises() {
             path: "/workbooks/"
         };
 
-        dataSource.request(payload).then(function (data) {
+        datasource.request(payload).then(function (data) {
             workbookData = data;
             resolve();
         });
@@ -642,6 +622,6 @@ window.featherbone = {
     catalog: catalog,
     workbooks: workbooks
 };
-*/
+
 console.log("hello world");
 

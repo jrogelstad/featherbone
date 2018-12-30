@@ -15,7 +15,6 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-import * as m from "../../node_modules/mithril/mithril.js";
 import { f } from "../../common/core-client.js";
 import { stream } from "../../common/stream-client.js";
 import * as qs from "../../node_modules/qs/dist/qs.js";
