@@ -1,21 +1,38 @@
-/*global datasource, Promise*/
-/*jslint node*/
-(function (datasource) {
-    "strict";
+/**
+    Framework for building object relational database apps
+    Copyright (C) 2019  John Rogelstad
 
-    var f = require("./common/core");
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+**/
+/*global datasource*/
+/*jslint node browser*/
+(function (datasource) {
+    "use strict";
+
+    let f = require("./common/core");
 
     /**
       Table specification
     */
     function doUpsertTableSpec(obj) {
         return new Promise(function (resolve, reject) {
-            var payload,
-                table = obj.newRec,
-                feather = f.copy(table);
+            let payload;
+            let table = obj.newRec;
+            let feather = f.copy(table);
 
             // Save the table as a feather in the catalog
-            var props = feather.properties;
+            let props = feather.properties;
             feather.properties = {};
             props.forEach(function (prop) {
                 feather.properties[prop.name] = prop;
@@ -31,24 +48,30 @@
                 client: obj.client
             };
 
-            datasource.request(payload, true)
-                .then(resolve)
-                .catch(reject);
+            datasource.request(payload, true).then(resolve).catch(reject);
         });
     }
 
-    datasource.registerFunction("POST", "TableSpec", doUpsertTableSpec,
-            datasource.TRIGGER_BEFORE);
+    datasource.registerFunction(
+        "POST",
+        "TableSpec",
+        doUpsertTableSpec,
+        datasource.TRIGGER_BEFORE
+    );
 
-    datasource.registerFunction("PATCH", "TableSpec", doUpsertTableSpec,
-            datasource.TRIGGER_BEFORE);
+    datasource.registerFunction(
+        "PATCH",
+        "TableSpec",
+        doUpsertTableSpec,
+        datasource.TRIGGER_BEFORE
+    );
 
     /**
       Contact
     */
     function handleContact(obj) {
         return new Promise(function (resolve) {
-            var newRec = obj.newRec;
+            let newRec = obj.newRec;
 
             if (newRec.firstName) {
                 newRec.fullName = newRec.firstName + " " + newRec.lastName;
@@ -60,11 +83,19 @@
         });
     }
 
-    datasource.registerFunction("POST", "Contact",
-            handleContact, datasource.TRIGGER_BEFORE);
+    datasource.registerFunction(
+        "POST",
+        "Contact",
+        handleContact,
+        datasource.TRIGGER_BEFORE
+    );
 
-    datasource.registerFunction("PATCH", "Contact",
-            handleContact, datasource.TRIGGER_BEFORE);
+    datasource.registerFunction(
+        "PATCH",
+        "Contact",
+        handleContact,
+        datasource.TRIGGER_BEFORE
+    );
 
     /**
       Currency
@@ -72,20 +103,27 @@
     function doUpdateCurrencyBefore(obj) {
         return new Promise(function (resolve) {
             if (obj.oldRec.code !== obj.newRec.code) {
-                throw new Error("Currency code '" + obj.oldRec.code + "' may not be changed");
+                throw new Error(
+                    "Currency code '" + obj.oldRec.code +
+                    "' may not be changed"
+                );
             }
 
             resolve();
         });
     }
 
-    datasource.registerFunction("PATCH", "Currency",
-            doUpdateCurrencyBefore, datasource.TRIGGER_BEFORE);
+    datasource.registerFunction(
+        "PATCH",
+        "Currency",
+        doUpdateCurrencyBefore,
+        datasource.TRIGGER_BEFORE
+    );
 
     function handleCurrency(obj) {
         return new Promise(function (resolve, reject) {
-            var payload,
-                curr = obj.newRec;
+            let payload;
+            let curr = obj.newRec;
 
             // Create a base currency effectivity record
             function insertBaseEffective() {
@@ -99,9 +137,11 @@
                         client: obj.client
                     };
 
-                    datasource.request(payload, true)
-                        .then(resolve)
-                        .catch(reject);
+                    datasource.request(payload, true).then(
+                        resolve
+                    ).catch(
+                        reject
+                    );
                 });
             }
 
@@ -110,7 +150,7 @@
                 return new Promise(function (resolve, reject) {
 
                     function callback(result) {
-                        var data;
+                        let data;
 
                         if (result.length) {
                             data = result[0];
@@ -124,9 +164,11 @@
                                 client: obj.client
                             };
 
-                            datasource.request(payload, true)
-                                .then(resolve)
-                                .catch(reject);
+                            datasource.request(payload, true).then(
+                                resolve
+                            ).catch(
+                                reject
+                            );
 
                             return;
                         }
@@ -150,18 +192,24 @@
                         client: obj.client
                     };
 
-                    datasource.request(payload, true)
-                        .then(callback)
-                        .catch(reject);
+                    datasource.request(payload, true).then(
+                        callback
+                    ).catch(
+                        reject
+                    );
                 });
             }
 
             if (curr.isBase && (!obj.oldRec || !obj.oldRec.isBase)) {
-                Promise.resolve()
-                    .then(insertBaseEffective)
-                    .then(updatePrevBase)
-                    .then(resolve)
-                    .catch(reject);
+                Promise.resolve().then(
+                    insertBaseEffective
+                ).then(
+                    updatePrevBase
+                ).then(
+                    resolve
+                ).catch(
+                    reject
+                );
 
                 return;
             }
@@ -170,11 +218,19 @@
         });
     }
 
-    datasource.registerFunction("POST", "Currency",
-            handleCurrency, datasource.TRIGGER_AFTER);
+    datasource.registerFunction(
+        "POST",
+        "Currency",
+        handleCurrency,
+        datasource.TRIGGER_AFTER
+    );
 
-    datasource.registerFunction("PATCH", "Currency",
-            handleCurrency, datasource.TRIGGER_AFTER);
+    datasource.registerFunction(
+        "PATCH",
+        "Currency",
+        handleCurrency,
+        datasource.TRIGGER_AFTER
+    );
 
     function doDeleteCurrency(obj) {
         return new Promise(function (resolve) {
@@ -186,8 +242,12 @@
         });
     }
 
-    datasource.registerFunction("DELETE", "Currency",
-            doDeleteCurrency, datasource.TRIGGER_BEFORE);
+    datasource.registerFunction(
+        "DELETE",
+        "Currency",
+        doDeleteCurrency,
+        datasource.TRIGGER_BEFORE
+    );
 
     /**
       Currency conversion
@@ -196,21 +256,33 @@
         return new Promise(function (resolve) {
             // Sanity check
             if (obj.newRec.fromCurrency.id === obj.newRec.toCurrency.id) {
-                throw new Error("'From' currency cannot be the same as the 'to' currency.");
+                throw new Error(
+                    "'From' currency cannot be the same as the 'to' currency."
+                );
             }
 
             if (obj.newRec.ratio <= 0) {
-                throw new Error("The conversion ratio nust be a positive number.");
+                throw new Error(
+                    "The conversion ratio nust be a positive number."
+                );
             }
 
             resolve();
         });
     }
 
-    datasource.registerFunction("POST", "CurrencyConversion",
-            doCheckCurrencyConversion, datasource.TRIGGER_BEFORE);
+    datasource.registerFunction(
+        "POST",
+        "CurrencyConversion",
+        doCheckCurrencyConversion,
+        datasource.TRIGGER_BEFORE
+    );
 
-    datasource.registerFunction("PATCH", "CurrencyConversion",
-            doCheckCurrencyConversion, datasource.TRIGGER_BEFORE);
+    datasource.registerFunction(
+        "PATCH",
+        "CurrencyConversion",
+        doCheckCurrencyConversion,
+        datasource.TRIGGER_BEFORE
+    );
 
 }(datasource));
