@@ -1179,12 +1179,12 @@
                     }
 
                     newRec = f.copy(oldRec);
-                    jsonpatch.apply(newRec, patches);
+                    jsonpatch.applyPatch(newRec, patches);
 
                     // Capture changes from original request
                     if (obj.cache) {
                         cacheRec = f.copy(oldRec);
-                        jsonpatch.apply(cacheRec, obj.cache);
+                        jsonpatch.applyPatch(cacheRec, obj.cache);
                     }
 
                     if (!patches.length) {

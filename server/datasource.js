@@ -373,7 +373,7 @@
             function setRecs(result) {
                 obj.oldRec = result;
                 obj.newRec = f.copy(result);
-                jsonpatch.apply(obj.newRec, obj.data);
+                jsonpatch.applyPatch(obj.newRec, obj.data);
                 resolve();
             }
 
