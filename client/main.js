@@ -605,7 +605,9 @@ evstart.onmessage = function (event) {
             loadModules,
             loadRelationWidgets,
             loadWorkbooks
-        ]).then(initApp);
+        ]).then(function () {
+            initApp();
+        });
     }
 };
 

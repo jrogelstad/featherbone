@@ -22,7 +22,6 @@ import { model } from "./model.js";
 import { stream } from "../../common/stream-client.js";
 import { datasource } from "../datasource.js";
 import { State as statechart } from "../../common/state.js";
-import * as jsonpatch from "../../node_modules/fast-json-patch/dist/json-patch-duplex.min.js";
 
 /*
   Model for handling settings.

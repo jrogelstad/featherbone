@@ -17,7 +17,6 @@
 **/
 import { f } from "../../common/core-client.js";
 import { stream } from "../../common/stream-client.js";
-import * as qs from "../../node_modules/qs/dist/qs.js";
 import { catalog } from "./catalog.js";
 import { State as statechart } from "../../common/state.js";
 
@@ -133,7 +132,7 @@ function createList(feather) {
                 return;
             }
 
-            query = qs.stringify({
+            query = Qs.stringify({
                 id: model.id(),
                 subscription: {
                     id: subid,
@@ -245,7 +244,7 @@ function createList(feather) {
                         }
                     };
 
-                    query = qs.stringify(query);
+                    query = Qs.stringify(query);
                     url = "/do/unsubscribe/" + query;
                     payload = {
                         method: "POST",

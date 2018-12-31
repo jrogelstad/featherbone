@@ -21,8 +21,6 @@ import { stream } from "../../common/stream-client.js";
 import { datasource } from "../datasource.js";
 import { catalog } from "./catalog.js";
 import { State as statechart } from "../../common/state.js";
-import * as jsonpatch from "../../node_modules/fast-json-patch/dist/json-patch-duplex.min.js";
-import * as qs from "../../node_modules/qs/dist/qs.js";
 
 const store = catalog.store();
 
@@ -782,7 +780,7 @@ function model(data, feather) {
         if (flag) {
             subcriptionId = f.createId();
 
-            query = qs.stringify({
+            query = Qs.stringify({
                 id: that.id(),
                 subscription: {
                     id: subcriptionId,
@@ -798,7 +796,7 @@ function model(data, feather) {
                 path: url
             };
 
-            dataSource.request(payload).catch(doError);
+            datasource.request(payload).catch(doError);
         } else if (flag === false && subcriptionId) {
             catalog.unregister("subscriptions", subcriptionId);
 
@@ -809,14 +807,14 @@ function model(data, feather) {
                 }
             };
 
-            query = qs.stringify(query);
+            query = Qs.stringify(query);
             url = "/do/unsubscribe/" + query;
             payload = {
                 method: "POST",
                 path: url
             };
 
-            dataSource.request(payload).catch(doError);
+            datasource.request(payload).catch(doError);
 
             subcriptionId = undefined;
             return false;
@@ -900,7 +898,7 @@ function model(data, feather) {
             }
         };
 
-        dataSource.request(payload).then(
+        datasource.request(payload).then(
             callback
         ).catch(
             doError.bind(context)
@@ -935,7 +933,7 @@ function model(data, feather) {
             context.resolve(d);
         }
 
-        dataSource.request(payload).then(
+        datasource.request(payload).then(
             callback
         ).catch(
             doError.bind(context)
@@ -1000,13 +998,13 @@ function model(data, feather) {
             username: f.getCurrentUser(),
             sessionId: catalog.sessionId()
         };
-        query = qs.stringify(lock);
+        query = Qs.stringify(lock);
         payload = {
             method: "POST",
             path: "/do/lock/" + query
         };
 
-        dataSource.request(payload).then(callback).catch(error);
+        datasource.request(payload).then(callback).catch(error);
     };
 
     doUnlock = function () {
@@ -1028,13 +1026,13 @@ function model(data, feather) {
             id: that.id(),
             username: f.getCurrentUser()
         };
-        query = qs.stringify(unlock);
+        query = Qs.stringify(unlock);
         payload = {
             method: "POST",
             path: "/do/unlock/" + query
         };
 
-        dataSource.request(payload).then(callback).catch(error);
+        datasource.request(payload).then(callback).catch(error);
     };
 
     doPatch = function (context) {
@@ -1056,7 +1054,7 @@ function model(data, feather) {
         }
 
         if (that.isValid()) {
-            dataSource.request(payload).then(
+            datasource.request(payload).then(
                 callback
             ).catch(
                 doError.bind(context)
@@ -1080,7 +1078,7 @@ function model(data, feather) {
         }
 
         if (that.isValid()) {
-            dataSource.request(payload).then(
+            datasource.request(payload).then(
                 callback
             ).catch(
                 doError.bind(context)
