@@ -117,12 +117,12 @@ const f = {
                 return ret;
             },
             default: function () {
-                return that.today();
+                return f.today();
             }
         },
         dateTime: {
             default: function () {
-                return that.now();
+                return f.now();
             },
             fromType: function (value) {
                 return new Date(value).toLocalDateTime();
@@ -160,7 +160,7 @@ const f = {
         },
         money: {
             default: function () {
-                return that.money();
+                return f.money();
             }
         },
         enum: {
