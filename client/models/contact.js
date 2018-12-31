@@ -16,9 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint browser*/
-import { catalog } from "./catalog.js";
-import { model } from "./model.js";
-import { list } from "./list.js";
+import {catalog} from "./catalog.js";
+import {model} from "./model.js";
+import {list} from "./list.js";
 
 /*
   Contact Model
@@ -45,4 +45,4 @@ function contact(data, feather) {
 contact.list = list("Contact");
 
 catalog.register("models", "contact", contact);
-export { contact };
+export {contact};

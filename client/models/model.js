@@ -15,12 +15,15 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*jslint this*/
-import { f } from "../../common/core-client.js";
-import { stream } from "../../common/stream-client.js";
-import { datasource } from "../datasource.js";
-import { catalog } from "./catalog.js";
-import { State as statechart } from "../../common/state.js";
+/*jslint this, browser*/
+import {f} from "../../common/core-client.js";
+import {stream} from "../../common/stream-client.js";
+import {datasource} from "../datasource.js";
+import {catalog} from "./catalog.js";
+import {State} from "../../common/state.js";
+
+const jsonpatch = window.jsonpatch;
+const Qs = window.Qs;
 
 const store = catalog.store();
 
@@ -1355,7 +1358,7 @@ function model(data, feather) {
     };
 
     // Define state
-    state = statechart.define(function () {
+    state = State.define(function () {
         this.enter(doInit.bind(data));
 
         this.state("Ready", {
@@ -1623,6 +1626,6 @@ function model(data, feather) {
     });
 
     return that;
-};
+}
 
-export { model };
+export {model};

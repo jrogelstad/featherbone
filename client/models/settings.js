@@ -15,13 +15,15 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*jslint this*/
+/*jslint this, browser*/
 const store = {};
 
-import { model } from "./model.js";
-import { stream } from "../../common/stream-client.js";
-import { datasource } from "../datasource.js";
-import { State as statechart } from "../../common/state.js";
+import {model} from "./model.js";
+import {stream} from "../../common/stream-client.js";
+import {datasource} from "../datasource.js";
+import {State} from "../../common/state.js";
+
+const jsonpatch = window.jsonpatch;
 
 /*
   Model for handling settings.
@@ -111,7 +113,7 @@ function settings(definition) {
     doInit = that.state().enters.shift();
 
     // Redfine statechart for this purpose
-    that.state(statechart.define(function () {
+    that.state(State.define(function () {
         this.enter(doInit.bind({}));
         this.state("Ready", function () {
             this.event("fetch", function (context) {
@@ -175,4 +177,4 @@ function settings(definition) {
     return that;
 }
 
-export { settings };
+export {settings};

@@ -15,10 +15,10 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-import { f } from "../../common/core-client.js";
-import { model } from "./model.js";
-import { datasource } from "../datasource.js";
-import { catalog } from "./catalog.js";
+import {f} from "../../common/core-client.js";
+import {model} from "./model.js";
+import {datasource} from "../datasource.js";
+import {catalog} from "./catalog.js";
 
 let models;
 let feathers;
@@ -161,7 +161,7 @@ function resolveConfig(config) {
   @param {Object} Default data
   return {Object}
 */
-function workbookModel (data) {
+function workbookModel(data) {
     let that;
     let state;
     let substate;
@@ -241,7 +241,7 @@ function workbookModel (data) {
     });
 
     return that;
-};
+}
 
 /**
   Workbook configuration model.
@@ -249,7 +249,7 @@ function workbookModel (data) {
   @param {Object} Default data
   return {Object}
 */
-function workbookChild (data) {
+function workbookChild(data) {
     let that = model(data, workbookLocalConfig);
 
     that.onChanged("feather", function (property) {
@@ -337,10 +337,10 @@ function workbookChild (data) {
     });
 
     return that;
-};
+}
 
 models = catalog.store().models();
 models.workbook = workbookModel;
 models.workbookLocalConfig = workbookChild;
 
-export { workbookModel };
+export {workbookModel};
