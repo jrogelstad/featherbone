@@ -1045,9 +1045,9 @@ function model(data, feather) {
 
         function callback(result) {
             // Update to sent changes
-            jsonpatch.apply(lastFetched, patch);
+            jsonpatch.applyPatch(lastFetched, patch);
             // Update server side changes
-            jsonpatch.apply(lastFetched, result);
+            jsonpatch.applyPatch(lastFetched, result);
             that.set(lastFetched, true);
             state.send("fetched");
             context.resolve(d);
@@ -1071,7 +1071,7 @@ function model(data, feather) {
         };
 
         function callback(result) {
-            jsonpatch.apply(cache, result);
+            jsonpatch.applyPatch(cache, result);
             that.set(cache, true, true);
             state.send("fetched");
             context.resolve(d);

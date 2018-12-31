@@ -96,7 +96,7 @@ function settings(definition) {
         };
 
         function callback(result) {
-            jsonpatch.apply(cache, result);
+            jsonpatch.applyPatch(cache, result);
             that.set(cache.data);
             that.state().send("fetched");
             context.resolve(that.data);
