@@ -15,7 +15,9 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-const that = {
+/*jslint browser*/
+/*global m*/
+const datasource = {
     /**
     Returns the base url used to fetch and post data
     @return {String}
@@ -26,7 +28,7 @@ const that = {
     },
 
     request: function (options) {
-        options.url = that.baseUrl() + options.path;
+        options.url = datasource.baseUrl() + options.path;
         if (options.id) {
             options.url += options.id;
         }
@@ -35,7 +37,7 @@ const that = {
 
         return m.request(options);
     }
-}
+};
 
-export const datasource = Object.freeze(that);
+export {datasource};
 
