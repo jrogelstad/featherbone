@@ -20,7 +20,7 @@
 (function () {
     "use strict";
 
-    const statechart = require("statechartjs");
+    const statechart = require("./state-node.js");
 
     // ..........................................................
     // PRIVATE

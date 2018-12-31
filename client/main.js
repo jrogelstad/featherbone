@@ -624,6 +624,3 @@ window.featherbone = {
     catalog: catalog,
     workbooks: workbooks
 };
-
-console.log("hello world");
-
