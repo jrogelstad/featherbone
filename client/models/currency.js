@@ -15,10 +15,9 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*jslint browser*/
-import { catalog } from "./catalog.js";
-import { model } from "./model.js";
-import { list } from "./list.js";
+import {catalog} from "./catalog.js";
+import {model} from "./model.js";
+import {list} from "./list.js";
 
 /*
   Currency Model
@@ -66,4 +65,4 @@ function currency(data, feather) {
 currency.list = list("Currency");
 
 catalog.register("models", "currency", currency);
-export { currency };
+export {currency};

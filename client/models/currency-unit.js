@@ -15,9 +15,9 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-import { catalog } from "./catalog.js";
-import { model } from "./model.js";
-import { list } from "./list.js";
+import {catalog} from "./catalog.js";
+import {model} from "./model.js";
+import {list} from "./list.js";
 
 /*
   Currency Unit model
@@ -38,4 +38,4 @@ function currencyUnit(data, feather) {
 currencyUnit.list = list("CurrencyUnit");
 
 catalog.register("models", "currencyUnit", currencyUnit);
-export { currencyUnit };
+export {currencyUnit};

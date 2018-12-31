@@ -15,8 +15,8 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-import { catalog } from "./catalog.js";
-import { model } from "./model.js";
+import {catalog} from "./catalog.js";
+import {model} from "./model.js";
 
 /**
   A factory that returns a persisting object based on a definition called a
@@ -87,4 +87,4 @@ function table(data) {
 }
 
 catalog.register("models", "tableSpec", table);
-export { table };
+export {table};

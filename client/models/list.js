@@ -15,60 +15,17 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-import { f } from "../../common/core-client.js";
-import { stream } from "../../common/stream-client.js";
-import { catalog } from "./catalog.js";
-import { State as statechart } from "../../common/state.js";
+/*jslint this, browser*/
+import {f} from "../../common/core-client.js";
+import {stream} from "../../common/stream-client.js";
+import {catalog} from "./catalog.js";
+import {State} from "../../common/state.js";
+
+const Qs = window.Qs;
+const m = window.m;
+const console = window.console;
 
 const LIMIT = 20;
-
-/**
-  Return a function that when called will return an array of models
-  based on the feather name passed. The function accepts an object
-  supporting the following options:
-
-    fetch: Boolean flags whether to automatically fetch a list of models.
-    subscribe: Boolean flags whether to subscribe to events.
-    filter: A filter object definition.
-    showDeleted: Boolean whether to include deleted records on fetch.
-
-  The model array includes support for the following three functions:
-
-    add(model): Adds the passed model to the array.
-    remove(model): Removes the passed model from the array.
-    fetch (filter): Requeries the server for new results.
-
-  @param {String} Feather name
-  @return {Function}
-*/
-function list(feather) {
-    // Instantiate the list, optionally auto fetch
-    // and return a property that contains the array.
-    return function (options) {
-        options = options || {};
-        let plural;
-        let ary = options.value || createList(feather);
-        let prop = stream(ary);
-
-        if (options.path) {
-            ary.path(options.path);
-        } else {
-            plural = catalog.getFeather(feather).plural.toSpinalCase();
-            ary.path("/data/" + plural);
-        }
-
-        ary.showDeleted(options.showDeleted === true);
-        ary.subscribe(options.subscribe === true);
-
-        if (options.fetch !== false) {
-            ary.fetch(options.filter, options.merge);
-        } else {
-            ary.filter(options.filter || {});
-        }
-
-        return prop;
-    };
-};
 
 // ..........................................................
 // PRIVATE
@@ -382,7 +339,7 @@ function createList(feather) {
     };
 
     // Define statechart
-    state = statechart.define(function () {
+    state = State.define(function () {
         this.state("Unitialized", function () {
             this.event("fetch", function (context) {
                 this.goto("/Busy", {
@@ -444,6 +401,59 @@ function createList(feather) {
     state.goto();
 
     return ary;
-};
+}
 
-export { list };
+// ..........................................................
+// PRIVATE
+//
+
+/**
+  Return a function that when called will return an array of models
+  based on the feather name passed. The function accepts an object
+  supporting the following options:
+
+    fetch: Boolean flags whether to automatically fetch a list of models.
+    subscribe: Boolean flags whether to subscribe to events.
+    filter: A filter object definition.
+    showDeleted: Boolean whether to include deleted records on fetch.
+
+  The model array includes support for the following three functions:
+
+    add(model): Adds the passed model to the array.
+    remove(model): Removes the passed model from the array.
+    fetch (filter): Requeries the server for new results.
+
+  @param {String} Feather name
+  @return {Function}
+*/
+function list(feather) {
+    // Instantiate the list, optionally auto fetch
+    // and return a property that contains the array.
+    return function (options) {
+        options = options || {};
+        let plural;
+        let ary = options.value || createList(feather);
+        let prop = stream(ary);
+
+        if (options.path) {
+            ary.path(options.path);
+        } else {
+            plural = catalog.getFeather(feather).plural.toSpinalCase();
+            ary.path("/data/" + plural);
+        }
+
+        ary.showDeleted(options.showDeleted === true);
+        ary.subscribe(options.subscribe === true);
+
+        if (options.fetch !== false) {
+            ary.fetch(options.filter, options.merge);
+        } else {
+            ary.filter(options.filter || {});
+        }
+
+        return prop;
+    };
+}
+
+
+export {list};

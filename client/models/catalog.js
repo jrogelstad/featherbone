@@ -16,10 +16,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint this, browser*/
-import { f } from "../../common/core-client.js";
-import { stream } from "../../common/stream-client.js";
-import { State as statechart } from "../../common/state.js";
-import { datasource } from "../datasource.js";
+import {f} from "../../common/core-client.js";
+import {stream} from "../../common/stream-client.js";
+import {State} from "../../common/state.js";
+import {datasource} from "../datasource.js";
 
 const store = {};
 
@@ -69,7 +69,7 @@ function settings() {
         datasource.request(payload).then(callback);
     };
 
-    state = statechart.define(function () {
+    state = State.define(function () {
         this.state("Ready", function () {
             this.event("fetch", function (context) {
                 this.goto("/Busy", {
@@ -109,7 +109,7 @@ function settings() {
 }
 
 // Invoke catalog settings as an object
-export const catalog = (function () {
+const catalog = (function () {
     let that = settings();
 
     /**
@@ -123,14 +123,14 @@ export const catalog = (function () {
         let resultProps;
         let modelProps;
         let appendParent;
-        let catalog = that.feathers();
+        let feathers = that.feathers();
         let result = {
             name: feather,
             inherits: "Object"
         };
 
         appendParent = function (child, parent) {
-            let model = catalog[parent];
+            let model = feathers[parent];
             let parentProps = model.properties;
             let childProps = child.properties;
             let modelOverloads = model.overloads || {};
@@ -158,13 +158,13 @@ export const catalog = (function () {
             return child;
         };
 
-        if (!catalog[feather]) {
+        if (!feathers[feather]) {
             return false;
         }
 
         // Add other attributes after nam
-        Object.keys(catalog[feather]).forEach(function (key) {
-            result[key] = catalog[feather][key];
+        Object.keys(feathers[feather]).forEach(function (key) {
+            result[key] = feathers[feather][key];
         });
 
         // Want inherited properites before class properties
@@ -176,7 +176,7 @@ export const catalog = (function () {
         }
 
         // Now add local properties back in
-        modelProps = catalog[feather].properties;
+        modelProps = feathers[feather].properties;
         resultProps = result.properties;
         Object.keys(modelProps).forEach(function (key) {
             resultProps[key] = modelProps[key];
@@ -217,8 +217,10 @@ export const catalog = (function () {
     that.store = function () {
         return store;
     };
-    
+
     that.register("models");
 
     return that;
 }());
+
+export {catalog};
