@@ -17,6 +17,7 @@
 **/
 /*jslint this, browser*/
 import {catalog} from "./models/catalog.js";
+import {datasource} from "./datasource.js";
 import {stream} from "../common/stream.js";
 import {State} from "../common/state.js";
 
@@ -45,6 +46,24 @@ function isToOne(p) {
 function isToMany(p) {
     return p.type && typeof p.type === "object" && p.type.parentOf;
 }
+
+/**
+  Return system catalog.
+
+  @return {Object}
+*/
+f.catalog = function () {
+    return catalog;
+};
+
+/**
+  Return system datasource.
+
+  @return {Object}
+*/
+f.datasource = function () {
+    return datasource;
+};
 
 /**
   Return the matching currency object.

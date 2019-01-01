@@ -1626,6 +1626,9 @@ function model(data, feather) {
     });
 
     return that;
+
 }
+
+catalog.register("factories", "model", model);
 
 export {model};
