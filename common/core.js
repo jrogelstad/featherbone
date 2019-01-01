@@ -268,7 +268,9 @@
         }
     };
 
-    if (typeof module !== "undefined") {
+    let test = typeof module;
+
+    if (test !== "undefined") {
         module.exports = that;
     } else {
         window.f = that;
