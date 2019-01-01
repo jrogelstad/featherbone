@@ -34,7 +34,7 @@
   @param {Any} Value to persist locally
   @return {Function}
 */
-export function stream(store) {
+function stream(store) {
     return function (...args) {
         if (
             args.length &&
@@ -45,4 +45,6 @@ export function stream(store) {
 
         return store;
     };
-};
+}
+
+export {stream};
