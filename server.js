@@ -18,7 +18,7 @@
 /*jslint node, this, eval, devel*/
 (function () {
     "use strict";
-    require("./common/extend-string.js");
+    require("./common/string.js");
 
     const datasource = require("./server/datasource");
     const express = require("express");
