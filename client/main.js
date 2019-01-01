@@ -524,7 +524,10 @@ evstart.onmessage = function (event) {
                 if (instance) {
                     // Only update if not caused by this instance
                     state = instance.state().current()[0];
-                    if (state !== "/Busy/Saving/Patching") {
+                    if (
+                        state !== "/Busy/Saving/Patching" &&
+                        data.etag !== instance.data.etag()
+                    ) {
                         instance.set(data, true, true);
                         m.redraw();
                     }
