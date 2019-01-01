@@ -16,7 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint this, browser*/
-import {stream} from "../../common/stream-client.js";
+import {stream} from "../../common/stream.js";
 import {catalog} from "../models/catalog.js";
 import {State} from "../../common/state.js";
 

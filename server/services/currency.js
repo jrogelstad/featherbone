@@ -125,7 +125,7 @@
                     let ids;
                     let subscription;
 
-                    id = db.nodeId() + "$currency";
+                    id = db.nodeId + "$currency";
 
                     // Subscribe to changes to currency and new records
                     ids = currencies.map((currency) => currency.id);

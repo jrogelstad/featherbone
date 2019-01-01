@@ -202,7 +202,7 @@
             return new Promise(function (resolve, reject) {
                 events.listen(
                     resp.client,
-                    db.nodeId(),
+                    db.nodeId,
                     callback
                 ).then(
                     resolve
@@ -242,7 +242,7 @@
 
                     events.unsubscribe(
                         resp.client,
-                        id || db.nodeId(),
+                        id || db.nodeId,
                         type || "node"
                     ).then(
                         callback
@@ -284,7 +284,7 @@
 
                     crud.lock(
                         resp.client,
-                        db.nodeId(),
+                        db.nodeId,
                         id,
                         username,
                         sessionid
@@ -320,7 +320,7 @@
     that.unlock = function (criteria) {
         return new Promise(function (resolve, reject) {
             criteria = criteria || {};
-            criteria.nodeId = db.nodeId();
+            criteria.nodeId = db.nodeId;
 
             // Do the work
             function doUnlock(resp) {
@@ -833,7 +833,7 @@
                     }
 
                     if (obj.subscription) {
-                        obj.subscription.nodeId = db.nodeId();
+                        obj.subscription.nodeId = db.nodeId;
                     }
 
                     // If alter data, process it

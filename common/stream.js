@@ -15,41 +15,34 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*global module*/
-/*jslint browser*/
-(function () {
-    "use strict";
 
-    /**
-      This is used instead of Mithril `stream` because
-      we aren't using all the stream features there
-      and would prefer to avoid the overhead.
+/**
+  This is used instead of Mithril `stream` because
+  we aren't using all the stream features there
+  and would prefer to avoid the overhead.
 
-      Returns a getter setter function.
+  Returns a getter setter function.
 
-        var prop1 = stream("Demo"),
-        var prop2 = stream(5);
+    var prop1 = stream("Demo"),
+    var prop2 = stream(5);
 
-        console.log(prop1())           // Prints 'Demo'
-        console.log(prop2())           // Prints 5
-        console.log(prop1(10))         // Prints 10;
-        console.log(prop1() * prop2()) // Prints 50
+    console.log(prop1())           // Prints 'Demo'
+    console.log(prop2())           // Prints 5
+    console.log(prop1(10))         // Prints 10;
+    console.log(prop1() * prop2()) // Prints 50
 
-      @param {Any} Value to persist locally
-      @return {Function}
-    */
-    function stream(store) {
-        return function (...args) {
-            if (
-                args.length &&
-                args[0] !== store
-            ) {
-                store = args[0];
-            }
+  @param {Any} Value to persist locally
+  @return {Function}
+*/
+export function stream(store) {
+    return function (...args) {
+        if (
+            args.length &&
+            args[0] !== store
+        ) {
+            store = args[0];
+        }
 
-            return store;
-        };
-    }
-
-    module.exports = stream;
-}());
+        return store;
+    };
+};

@@ -17,7 +17,7 @@
 **/
 /*jslint this, browser*/
 import {f} from "../core.js";
-import {stream} from "../../common/stream-client.js";
+import {stream} from "../../common/stream.js";
 import {filterDialog} from "./filter-dialog.js";
 
 const sortDialog = {};

@@ -16,7 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint browser*/
-import {stream} from "../../common/stream-client.js";
+import {stream} from "../../common/stream.js";
 import {dialog} from "./dialog.js";
 import {formWidget} from "./form-widget.js";
 
