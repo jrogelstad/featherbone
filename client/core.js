@@ -16,12 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint browser*/
-import {f} from "../common/core-client.js";
 import {catalog} from "./models/catalog.js";
 import {stream} from "../common/stream-client.js";
 import {State} from "../common/state.js";
 
 const m = window.m;
+const f = window.f;
 const console = window.console;
 
 // ..........................................................

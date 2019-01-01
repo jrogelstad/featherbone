@@ -268,5 +268,9 @@
         }
     };
 
-    module.exports = that;
+    if (typeof module !== "undefined") {
+        module["exports"] = that;
+    } else {
+        window.f = that
+    }
 }());
