@@ -21,7 +21,7 @@ let inner;
 let widthNoScroll;
 let widthWithScroll;
 
-import {f} from "./core.js";
+import {f} from "../core.js";
 import {stream} from "../../common/stream-client.js";
 import {catalog} from "../models/catalog.js";
 import {dialog} from "./dialog.js";

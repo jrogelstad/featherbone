@@ -17,7 +17,7 @@
 **/
 
 /*jslint this, browser*/
-import {f} from "../../common/core-client.js";
+import {f} from "../core.js";
 import {catalog} from "../models/catalog.js";
 
 const checkbox = {};

@@ -16,12 +16,35 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint browser*/
-import {f} from "../../common/core-client.js";
-import {catalog} from "../models/catalog.js";
-import {stream} from "../../common/stream-client.js";
+import {f} from "../common/core-client.js";
+import {catalog} from "./models/catalog.js";
+import {stream} from "../common/stream-client.js";
+import {State} from "../common/state.js";
 
 const m = window.m;
 const console = window.console;
+
+// ..........................................................
+// PRIVATE
+//
+
+/** private */
+function isChild(p) {
+    return p.type && typeof p.type === "object" && p.type.childOf;
+}
+
+/** private */
+function isToOne(p) {
+    return (
+        p.type && typeof p.type === "object" &&
+        !p.type.childOf && !p.type.parentOf
+    );
+}
+
+/** private */
+function isToMany(p) {
+    return p.type && typeof p.type === "object" && p.type.parentOf;
+}
 
 /**
   Return the matching currency object.
@@ -400,6 +423,205 @@ f.getElementPosition = function (element) {
         x: xPosition,
         y: yPosition
     };
+};
+
+/**
+  Creates a property getter setter function with a default value.
+  Includes state...
+  @param {Any} Initial
+  @param {Object} Formatter. Optional
+  @param {Any} [formatter.default] Function or value returned
+        by default.
+  @param {Function} [formatter.toType] Converts input to internal type.
+  @param {Function} [formatter.fromType] Formats internal
+        value for output.
+  @return {Function}
+*/
+f.prop = function (store, formatter) {
+    formatter = formatter || {};
+
+    let newValue;
+    let oldValue;
+    let proposed;
+    let p;
+    let state;
+    let alias;
+    let isReadOnly = false;
+    let isRequired = false;
+
+    function defaultTransform(value) {
+        return value;
+    }
+
+    function revert() {
+        store = oldValue;
+    }
+
+    formatter.toType = formatter.toType || defaultTransform;
+    formatter.fromType = formatter.fromType || defaultTransform;
+
+    // Define state
+    state = State.define(function () {
+        this.state("Ready", function () {
+            this.event("change", function () {
+                this.goto("../Changing");
+            });
+            this.event("silence", function () {
+                this.goto("../Silent");
+            });
+            this.event("disable", function () {
+                this.goto("../Disabled");
+            });
+        });
+        this.state("Changing", function () {
+            this.event("changed", function () {
+                this.goto("../Ready");
+            });
+        });
+        this.state("Silent", function () {
+            this.event("report", function () {
+                this.goto("../Ready");
+            });
+            this.event("disable", function () {
+                this.goto("../Disabled");
+            });
+        });
+        this.state("Disabled", function () {
+            // Attempts to make changes from disabled mode revert back
+            this.event("changed", revert);
+            this.event("enable", function () {
+                this.goto("../Ready");
+            });
+        });
+    });
+
+    // Private function that will be returned
+    p = function (...args) {
+        let value = args[0];
+
+        if (args.length) {
+            if (p.state().current()[0] === "/Changing") {
+                return p.newValue(value);
+            }
+
+            proposed = formatter.toType(value);
+
+            if (proposed === store) {
+                return;
+            }
+
+            newValue = value;
+            oldValue = store;
+
+            p.state().send("change");
+            store = (
+                value === newValue
+                ? proposed
+                : formatter.toType(newValue)
+            );
+            p.state().send("changed");
+            newValue = undefined;
+            oldValue = undefined;
+            proposed = undefined;
+        }
+
+        return formatter.fromType(store);
+    };
+
+    p.alias = function (...args) {
+        if (args.length) {
+            alias = args[0];
+        }
+        return alias;
+    };
+
+    /*
+      Getter setter for the new value
+      @param {Any} New value
+      @return {Any}
+    */
+    p.newValue = function (...args) {
+        if (args.length && p.state().current()[0] === "/Changing") {
+            newValue = args[0];
+        }
+
+        return newValue;
+    };
+
+    p.newValue.toJSON = function () {
+        return proposed;
+    };
+
+    p.oldValue = function () {
+        return formatter.fromType(oldValue);
+    };
+
+    p.oldValue.toJSON = function () {
+        return oldValue;
+    };
+
+    p.state = function () {
+        return state;
+    };
+
+    p.ignore = 0;
+
+    p.toJSON = function () {
+        if (
+            typeof store === "object" && store !== null &&
+            typeof store.toJSON === "function"
+        ) {
+            return store.toJSON();
+        }
+
+        return store;
+    };
+
+    p.newValue.toJSON = function () {
+        if (
+            typeof newValue === "object" && newValue !== null &&
+            typeof newValue.toJSON === "function"
+        ) {
+            return newValue.toJSON();
+        }
+
+        return formatter.toType(newValue);
+    };
+
+    /**
+      @param {Boolean} Is read only
+      @returns {Boolean}
+    */
+    p.isReadOnly = function (value) {
+        if (value !== undefined) {
+            isReadOnly = Boolean(value);
+        }
+        return isReadOnly;
+    };
+    /**
+      @param {Boolean} Is required
+      @returns {Boolean}
+    */
+    p.isRequired = function (value) {
+        if (value !== undefined) {
+            isRequired = Boolean(value);
+        }
+        return isRequired;
+    };
+    p.isToOne = function () {
+        return isToOne(p);
+    };
+    p.isToMany = function () {
+        return isToMany(p);
+    };
+    p.isChild = function () {
+        return isChild(p);
+    };
+
+    store = formatter.toType(store);
+    state.goto();
+
+    return p;
 };
 
 /** @private  Helper function to resolve property dot notation */
