@@ -1,6 +1,10 @@
 // Acknowledgement: Codebase from https://github.com/burrows/statechart.js
-/*jslint for, this*/
+/*jslint for, this, browser*/
+/*global console*/
 let slice = Array.prototype.slice;
+let trace;
+let exit;
+let enter;
 
 // Internal: Returns a boolean indicating whether the given object is an
 // Array.
@@ -34,13 +38,12 @@ function uniqStates(states) {
     let n;
 
     for (n = states.length; i < n; i += 1) {
-        if (!states[i]) {
-            continue;
-        }
-        path = states[i].path();
-        if (!seen[path]) {
-            a.push(states[i]);
-            seen[path] = true;
+        if (states[i]) {
+            path = states[i].path();
+            if (!seen[path]) {
+                a.push(states[i]);
+                seen[path] = true;
+            }
         }
     }
 
@@ -51,14 +54,16 @@ function uniqStates(states) {
 // receiver state. Subsequent calls will return the cached path array.
 //
 // Returns an array of `State` objects.
-function _path() {
-    return (
-        this.__cache__._path = this.__cache__._path || (
+function path() {
+    this.cache.path = (
+        this.cache.path || (
             this.superstate
-            ? _path.call(this.superstate).concat(this)
+            ? path.call(this.superstate).concat(this)
             : [this]
         )
     );
+
+    return this.cache.path;
 }
 
 // Internal: Returns an array of all current leaf states.
@@ -67,7 +72,7 @@ function _current() {
     let i = 0;
     let n;
 
-    if (!this.__isCurrent__) {
+    if (!this.isCurrent) {
         return [];
     }
     if (this.substates.length === 0) {
@@ -75,7 +80,7 @@ function _current() {
     }
 
     for (n = this.substates.length; i < n; i+= 1) {
-        if (this.substates[i].__isCurrent__) {
+        if (this.substates[i].isCurrent) {
             a = a.concat(_current.call(this.substates[i]));
         }
     }
@@ -89,8 +94,8 @@ function _current() {
 // Returns a `State` object.
 // Throws `Error` if the two states do not belong to the same statechart.
 function findPivot(other) {
-    let p1 = _path.call(this);
-    let p2 = _path.call(other);
+    let p1 = path.call(this);
+    let p2 = path.call(other);
     let i = 0;
     let len;
     let p;
@@ -129,7 +134,7 @@ function findPivot(other) {
 //
 // Returns nothing.
 function queueTransition(pivot, states, opts) {
-    this.__transitions__.push({
+    this.transitions.push({
         pivot: pivot,
         states: states,
         opts: opts
@@ -139,7 +144,7 @@ function queueTransition(pivot, states, opts) {
 // Internal: Performs all queued transitions. This is the method that actually
 // takes the statechart from one set of current states to another.
 function transition() {
-    let ts = this.__transitions__;
+    let ts = this.transitions;
     let i = 0;
     let len;
 
@@ -151,7 +156,7 @@ function transition() {
         enter.call(ts[i].pivot, ts[i].states, ts[i].opts);
     }
 
-    this.__transitions__ = [];
+    this.transitions = [];
 }
 
 // Internal: Invokes all registered enter handlers.
@@ -195,7 +200,7 @@ function callExitHandlers(context) {
 // Throws an `Error` if the given destination states include multiple
 //   substates.
 function enterClustered(states, opts) {
-    let selflen = _path.call(this).length;
+    let selflen = path.call(this).length;
     let nexts = [];
     let state;
     let paths;
@@ -205,7 +210,7 @@ function enterClustered(states, opts) {
     let n;
 
     for (n = this.substates.length; i < n; i += 1) {
-        if (this.substates[i].__isCurrent__) {
+        if (this.substates[i].isCurrent) {
             cur = this.substates[i];
             break;
         }
@@ -214,7 +219,7 @@ function enterClustered(states, opts) {
     i = 0;
 
     for (n = states.length; i < n; i += 1) {
-        nexts.push(_path.call(states[i])[selflen]);
+        nexts.push(path.call(states[i])[selflen]);
     }
 
     if (uniqStates(nexts).length > 1) {
@@ -224,34 +229,38 @@ function enterClustered(states, opts) {
         );
     }
 
-    if (
-        !(next = nexts[0]) &&
-        this.substates.length > 0
-    ) {
-        if (this.__condition__ && (paths = this.__condition__.call(
-            this,
-            opts.context
-        ))) {
-            paths = flatten([paths]);
-            states = [];
-            i = 0;
+    next = nexts[0];
 
-            for (n = paths.length; i < n; i++) {
-                if (!(state = this.resolve(paths[i]))) {
-                    throw new Error(
-                        "State#enterClustered: could not resolve path '"
-                        + paths[i] + "' returned by condition function from "
-                        + this
-                    );
+    if (!next && this.substates.length > 0) {
+        if (this.condition) {
+            paths = this.condition.call(this, opts.context);
+
+            if (paths) {
+                paths = flatten([paths]);
+                states = [];
+                i = 0;
+
+                for (n = paths.length; i < n; i += 1) {
+                    state = this.resolve(paths[i]);
+
+                    if (!state) {
+                        throw new Error(
+                            "State#enterClustered: could not resolve path '" +
+                            paths[i] + "' returned by condition function " +
+                            "from " + this
+                        );
+                    }
+                    states.push(state);
                 }
-                states.push(state);
-            }
 
-            return enterClustered.call(this, states, opts);
+                return enterClustered.call(this, states, opts);
+            }
         }
+
         if (this.history) {
-            next = this.__previous__;
+            next = this.previous;
         }
+
         if (!next) {
             next = this.substates[0];
         }
@@ -261,11 +270,11 @@ function enterClustered(states, opts) {
         exit.call(cur, opts);
     }
 
-    if (!this.__isCurrent__ || opts.force) {
+    if (!this.isCurrent || opts.force) {
         trace.call(this, "State: [ENTER]  : " + this.path() + (
-            this.__isCurrent__ ? " (forced)" : ""
+            this.isCurrent ? " (forced)" : ""
         ));
-        this.__isCurrent__ = true;
+        this.isCurrent = true;
         callEnterHandlers.call(this, opts.context);
     }
 
@@ -292,11 +301,11 @@ function enterConcurrent(states, opts) {
     let ni;
     let nj;
 
-    if (!this.__isCurrent__ || opts.force) {
+    if (!this.isCurrent || opts.force) {
         trace.call(this, "State: [ENTER]  : " + this.path() + (
-            this.__isCurrent__ ? " (forced)" : ""
+            this.isCurrent ? " (forced)" : ""
         ));
-        this.__isCurrent__ = true;
+        this.isCurrent = true;
         callEnterHandlers.call(this, opts.context);
     }
 
@@ -324,11 +333,13 @@ function enterConcurrent(states, opts) {
 // opts   - The options passed to `goto`.
 //
 // Returns the receiver.
-function enter(states, opts) {
-    return this.concurrent ?
-        enterConcurrent.call(this, states, opts) :
-        enterClustered.call(this, states, opts);
-}
+enter = function(states, opts) {
+    return (
+        this.concurrent
+        ? enterConcurrent.call(this, states, opts)
+        : enterClustered.call(this, states, opts)
+    );
+};
 
 // Internal: Exits a clustered state. Exiting happens bottom to top, so we
 // recursively exit the current substate and then invoke the `exit` method on
@@ -343,14 +354,14 @@ function exitClustered(opts) {
     let n;
 
     for (n = this.substates.length; i < n; i += 1) {
-        if (this.substates[i].__isCurrent__) {
+        if (this.substates[i].isCurrent) {
             cur = this.substates[i];
             break;
         }
     }
 
     if (this.history) {
-        this.__previous__ = cur;
+        this.previous = cur;
     }
 
     if (cur) {
@@ -358,7 +369,7 @@ function exitClustered(opts) {
     }
 
     callExitHandlers.call(this, opts.context);
-    this.__isCurrent__ = false;
+    this.isCurrent = false;
     trace.call(this, "State: [EXIT]   : " + this.path());
 
     return this;
@@ -381,7 +392,7 @@ function exitConcurrent(opts) {
     }
 
     callExitHandlers.call(this, opts.context);
-    this.__isCurrent__ = false;
+    this.isCurrent = false;
     if (this !== root) {
         trace.call(this, "State: [EXIT]   : " + this.path());
     }
@@ -395,13 +406,13 @@ function exitConcurrent(opts) {
 // opts   - The options passed to `goto`.
 //
 // Returns the receiver.
-function exit(opts) {
+exit = function(opts) {
     return (
         this.concurrent
         ? exitConcurrent.call(this, opts)
         : exitClustered.call(this, opts)
     );
-}
+};
 
 // Internal: Asks the receiver state if it can exit.
 //
@@ -414,7 +425,7 @@ function canExit(destStates, opts) {
     let n;
 
     for (n = this.substates.length; i < n; i += 1) {
-        if (this.substates[i].__isCurrent__) {
+        if (this.substates[i].isCurrent) {
             if (canExit.call(this.substates[i], destStates, opts) === false) {
                 return false;
             }
@@ -428,21 +439,21 @@ function canExit(destStates, opts) {
 //
 // Returns a boolean indicating whether or not the event was handled by the
 //   current substate.
-function sendClustered() {
+function sendClustered(...args) {
     let handled = false;
     let i = 0;
     let n;
     let cur;
 
     for (n = this.substates.length; i < n; i += 1) {
-        if (this.substates[i].__isCurrent__) {
+        if (this.substates[i].isCurrent) {
             cur = this.substates[i];
             break;
         }
     }
 
     if (cur) {
-        handled = !!cur.send.apply(cur, slice.call(arguments));
+        handled = Boolean(cur.send.apply(cur, slice.call(args)));
     }
 
     return handled;
@@ -452,8 +463,8 @@ function sendClustered() {
 //
 // Returns a boolean indicating whether or not the event was handled by all
 //   substates.
-function sendConcurrent() {
-    let args = slice.call(arguments);
+function sendConcurrent(...ary) {
+    let args = slice.call(ary);
     let handled = true;
     let state;
     let i = 0;
@@ -471,7 +482,7 @@ function sendConcurrent() {
 // by the `State.logger` property. By default this is `console`, but can be
 // setto use another logger object. It assumes that there is an `info` method
 // on the logger object.
-function trace(message) {
+trace = function(message) {
     let logger = State.logger || console;
 
     if (!this.root().trace || !logger) {
@@ -479,7 +490,7 @@ function trace(message) {
     }
 
     logger.info(message);
-}
+};
 
 // Public: The `State` constructor.
 //
@@ -516,12 +527,12 @@ function State(name, opts, f) {
     this.enters = [];
     this.exits = [];
     this.events = {};
-    this.concurrent = !!opts.concurrent;
-    this.history = !!(opts.H);
+    this.concurrent = Boolean(opts.concurrent);
+    this.history = Boolean(opts.H);
     this.deep = opts.H === "*";
-    this.__isCurrent__ = false;
-    this.__cache__ = {};
-    this.__transitions__ = [];
+    this.isCurrent = false;
+    this.cache = {};
+    this.transitions = [];
     this.trace = false;
 
     if (f) {
@@ -546,30 +557,30 @@ function State(name, opts, f) {
 //   });
 //
 // Returns the newly created root state.
-State.define = function() {
+State.define = function(...args) {
     let opts = {};
     let f = null;
     let s;
 
-    if (arguments.length === 2) {
-        opts = arguments[0];
-        f = arguments[1];
-    } else if (arguments.length === 1) {
-        if (typeof arguments[0] === "function") {
-            f = arguments[0];
+    if (args.length === 2) {
+        opts = args[0];
+        f = args[1];
+    } else if (args.length === 1) {
+        if (typeof args[0] === "function") {
+            f = args[0];
         } else {
-            opts = arguments[0];
+            opts = args[0];
         }
     }
 
-    s = new this("__root__", opts, f);
+    s = new this("root", opts, f);
     return s;
 };
 
 // Public: Indicates whether the state is the root of the statechart created
 // by the `State.define` method.
 State.prototype.isRoot = function() {
-    return this.name === "__root__";
+    return this.name === "root";
 };
 
 // Public: Creates a substate with the given name and adds it as a substate to
@@ -698,7 +709,7 @@ State.prototype.C = function pState_C(f) {
         );
     }
 
-    this.__condition__ = f;
+    this.condition = f;
 };
 
 // Public: Returns an array of paths to all current leaf states.
@@ -746,9 +757,10 @@ State.prototype.addSubstate = function pState_addSubstate(state) {
     this.substates.push(state);
     state.superstate = this;
     state.each(function(s) {
-        s.__cache__ = {};
+        s.cache = {};
         if (deep) {
-            s.history = s.deep = true;
+            s.history = true;
+            s.deep = true;
         }
         if (didAttach) {
             s.didAttach();
@@ -771,7 +783,7 @@ State.prototype.isAttached = function pState_isAttached() {
 // Public: Returns the root state.
 State.prototype.root = function pState_root() {
     return (
-        this.__cache__.root = this.__cache__.root || (
+        this.cache.root = this.cache.root || (
             this.superstate ? this.superstate.root() : this
         )
     );
@@ -796,7 +808,7 @@ State.prototype.root = function pState_root() {
 //   b.path(); // => "/a/b"
 //   c.path(); // => "/a/b/c"
 State.prototype.path = function pState_path() {
-    let states = _path.call(this);
+    let states = path.call(this);
     let names = [];
     let i = 1;
     let len;
@@ -846,9 +858,9 @@ State.prototype.path = function pState_path() {
 // Throws an `Error` if multiple pivot states are found between the receiver
 //   and destination states.
 // Throws an `Error` if a destination path is not reachable from the receiver.
-State.prototype.goto = function pState_goto() {
+State.prototype.goto = function pState_goto(...args) {
     let root = this.root();
-    let paths = flatten(slice.call(arguments));
+    let paths = flatten(slice.call(args));
     let opts = (
         typeof paths[paths.length - 1] === "object"
         ? paths.pop()
@@ -862,7 +874,9 @@ State.prototype.goto = function pState_goto() {
     let n;
 
     for (n = paths.length; i < n; i += 1) {
-        if (!(state = this.resolve(paths[i]))) {
+        state = this.resolve(paths[i]);
+
+        if (!state) {
             throw new Error(
                 "State#goto: could not resolve path " +
                 paths[i] + " from " + this
@@ -897,7 +911,7 @@ State.prototype.goto = function pState_goto() {
         "State: [GOTO]   : " + this + " -> [" + states.join(", ") + "]"
     );
 
-    if (!this.__isCurrent__ && this.superstate) {
+    if (!this.isCurrent && this.superstate) {
         throw new Error("State#goto: state " + this + " is not current");
     }
 
@@ -913,7 +927,7 @@ State.prototype.goto = function pState_goto() {
 
     queueTransition.call(root, pivot, states, opts);
 
-    if (!this.__isSending__) {
+    if (!this.isSending) {
         transition.call(root);
     }
 
@@ -932,12 +946,12 @@ State.prototype.goto = function pState_goto() {
 //
 // Returns a boolean indicating whether or not the event was handled.
 // Throws `Error` if the state is not current.
-State.prototype.send = function pState_send() {
-    let args = slice.call(arguments);
+State.prototype.send = function pState_send(...ary) {
+    let args = slice.call(ary);
     let events = this.events;
     let handled;
 
-    if (!this.__isCurrent__) {
+    if (!this.isCurrent) {
         throw new Error(
             "State#send: attempted to send an event to a state " +
             "that is not current: " + this
@@ -950,14 +964,14 @@ State.prototype.send = function pState_send() {
 
     handled = (
         this.concurrent
-        ? sendConcurrent.apply(this, arguments)
-        : sendClustered.apply(this, arguments)
+        ? sendConcurrent.apply(this, ary)
+        : sendClustered.apply(this, ary)
     );
 
     if (!handled && typeof events[args[0]] === "function") {
-        this.__isSending__ = true;
+        this.isSending = true;
         handled = !!events[args[0]].apply(this, args.slice(1));
-        this.__isSending__ = false;
+        this.isSending = false;
     }
 
     if (!this.superstate) {
@@ -980,7 +994,7 @@ State.prototype.reset = function pState_reset() {
 State.prototype.isCurrent = function pState_isCurrent(path) {
     let state = this.resolve(path);
 
-    return Boolean(state && state.__isCurrent__);
+    return Boolean(state && state.isCurrent);
 };
 
 // Public: Resolves a string path into an actual `State` object. Paths not
