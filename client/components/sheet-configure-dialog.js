@@ -15,13 +15,14 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*jslint this*/
-import { f } from "./core.js";
-import { stream } from "../../common/stream-client.js";
-import { catalog } from "../models/catalog.js";
-import { tableDialog } from "./table-dialog.js";
+/*jslint this, browser*/
+import {f} from "./core.js";
+import {stream} from "../../common/stream-client.js";
+import {catalog} from "../models/catalog.js";
+import {tableDialog} from "./table-dialog.js";
 
 const sheetConfigureDialog = {};
+const m = window.m;
 
 /**
   View model for sort dialog.
@@ -406,4 +407,4 @@ sheetConfigureDialog.viewModel = function (options) {
 */
 sheetConfigureDialog.component = tableDialog.component;
 
-export { sheetConfigureDialog };
+export {sheetConfigureDialog};

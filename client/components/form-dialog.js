@@ -16,11 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint browser*/
-import { stream } from "../../common/stream-client.js";
-import { dialog } from "./dialog.js";
-import { formWidget } from "./form-widget.js";
+import {stream} from "../../common/stream-client.js";
+import {dialog} from "./dialog.js";
+import {formWidget} from "./form-widget.js";
 
 const formDialog = {};
+const m = window.m;
 
 /**
   View model for form dialog.
@@ -123,4 +124,4 @@ formDialog.viewModel = function (options) {
   @params {Object} View model
 */
 formDialog.component = dialog.component;
-export { formDialog };
+export {formDialog};

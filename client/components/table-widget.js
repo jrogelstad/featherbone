@@ -15,23 +15,24 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*jslint this, for*/
+/*jslint this, for, browser*/
 let scrWidth;
 let inner;
 let widthNoScroll;
 let widthWithScroll;
 
-import { f } from "./core.js";
-import { stream } from "../../common/stream-client.js";
-import { catalog } from "../models/catalog.js";
-import { dialog } from "./dialog.js";
-import { State as statechart } from "../../common/state.js";
+import {f} from "./core.js";
+import {stream} from "../../common/stream-client.js";
+import {catalog} from "../models/catalog.js";
+import {dialog} from "./dialog.js";
+import {State} from "../../common/state.js";
 
 const tableWidget = {};
 const outer = document.createElement("div");
 const COL_WIDTH_DEFAULT = "150px";
 const LIMIT = 20;
 const ROW_COUNT = 2;
+const m = window.m;
 
 // Calculate scroll bar width
 // http://stackoverflow.com/questions/13382516
@@ -532,7 +533,7 @@ tableWidget.viewModel = function (options) {
     });
 
     // Create table widget statechart
-    vm.state(statechart.define({
+    vm.state(State.define({
         concurrent: true
     }, function () {
         this.state("Mode", function () {
@@ -1449,4 +1450,4 @@ tableWidget.component = {
 };
 
 catalog.register("components", "tableWidget", tableWidget.component);
-export { tableWidget };
+export {tableWidget};

@@ -15,12 +15,13 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*jslint this*/
-import { stream } from "../../common/stream-client.js";
-import { f } from "../../common/core-client.js";
-import { catalog } from "../models/catalog.js";
+/*jslint this, browser*/
+import {stream} from "../../common/stream-client.js";
+import {f} from "../../common/core-client.js";
+import {catalog} from "../models/catalog.js";
 
 const relationWidget = {};
+const m = window.m;
 
 /**
   @param {Object} Options
@@ -492,4 +493,4 @@ relationWidget.component = {
 };
 
 catalog.register("components", "relationWidget", relationWidget.component);
-export { relationWidget };
+export {relationWidget};

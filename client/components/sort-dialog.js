@@ -15,12 +15,13 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*jslint this*/
-import { f } from "./core.js";
-import { stream } from "../../common/stream-client.js";
-import { filterDialog } from "./filter-dialog.js";
+/*jslint this, browser*/
+import {f} from "./core.js";
+import {stream} from "../../common/stream-client.js";
+import {filterDialog} from "./filter-dialog.js";
 
 const sortDialog = {};
+const m = window.m;
 
 /**
   View model for sort dialog.
@@ -148,4 +149,4 @@ sortDialog.viewModel = function (options) {
 };
 
 sortDialog.component = filterDialog.component;
-export { sortDialog };
+export {sortDialog};

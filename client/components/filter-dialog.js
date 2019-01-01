@@ -15,15 +15,16 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*jslint this*/
-import { f } from "./core.js";
-import { stream } from "../../common/stream-client.js";
-import { catalog } from "../models/catalog.js";
-import { model } from "../models/model.js";
-import { checkbox } from "./checkbox.js";
-import { tableDialog } from "./table-dialog.js";
+/*jslint this, browser*/
+import {f} from "./core.js";
+import {stream} from "../../common/stream-client.js";
+import {catalog} from "../models/catalog.js";
+import {model} from "../models/model.js";
+import {checkbox} from "./checkbox.js";
+import {tableDialog} from "./table-dialog.js";
 
 const filterDialog = {};
+const m = window.m;
 
 /**
   View model for sort dialog.
@@ -380,4 +381,4 @@ filterDialog.viewModel = function (options) {
 */
 filterDialog.component = tableDialog.component;
 
-export { filterDialog };
+export {filterDialog};

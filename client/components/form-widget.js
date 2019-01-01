@@ -15,13 +15,14 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*jslint this*/
-import { f } from "../../common/core-client.js";
-import { stream } from "../../common/stream-client.js";
-import { catalog } from "../models/catalog.js";
-import { dialog } from "./dialog.js";
+/*jslint this, browser*/
+import {f} from "../../common/core-client.js";
+import {stream} from "../../common/stream-client.js";
+import {catalog} from "../models/catalog.js";
+import {dialog} from "./dialog.js";
 
 const formWidget = {};
+const m = window.m;
 
 function buildButtons(vm) {
     let ret;
@@ -387,4 +388,4 @@ formWidget.component = {
 };
 
 catalog.register("components", "formWidget", formWidget.component);
-export { formWidget };
+export {formWidget};

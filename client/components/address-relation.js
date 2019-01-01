@@ -15,14 +15,15 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*jslint this*/
-import { f } from "../../common/core-client.js";
-import { stream } from "../../common/stream-client.js";
-import { catalog } from "../models/catalog.js";
-import { button } from "./button.js";
-import { formDialog } from "./form-dialog.js";
+/*jslint this, browser*/
+import {f} from "../../common/core-client.js";
+import {stream} from "../../common/stream-client.js";
+import {catalog} from "../models/catalog.js";
+import {button} from "./button.js";
+import {formDialog} from "./form-dialog.js";
 
 const addressRelation = {};
+const m = window.m;
 
 addressRelation.viewModel = function (options) {
     let vm = {};
@@ -198,5 +199,5 @@ catalog.register(
     "addressRelation",
     addressRelation.component
 );
-export { addressRelation };
+export {addressRelation};
 
