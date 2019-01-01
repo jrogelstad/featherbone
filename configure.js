@@ -19,7 +19,7 @@
 (function () {
     "use strict";
 
-    require("./common/extend-string.js");
+    require("./common/string.js");
 
     const {
         Client

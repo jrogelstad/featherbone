@@ -19,9 +19,9 @@
 (function (exports) {
     "use strict";
 
-    require("../common/extend-string");
-    require("../common/extend-number");
-    require("../common/extend-date");
+    require("../common/string");
+    require("../common/number");
+    require("../common/date");
 
     const {
         Database
