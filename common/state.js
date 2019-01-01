@@ -1,43 +1,50 @@
-// Codebase from https://github.com/burrows/statechart.js
-
+// Acknowledgement: Codebase from https://github.com/burrows/statechart.js
+/*jslint for, this*/
 let slice = Array.prototype.slice;
 
 // Internal: Returns a boolean indicating whether the given object is an
 // Array.
 function isArray(o) {
-return Object.prototype.toString.call(o) === '[object Array]';
+    return Object.prototype.toString.call(o) === "[object Array]";
 }
 
 // Internal: Flattens the given array by removing all nesting.
 function flatten(array) {
-var result = [], i, n;
+    let result = [];
+    let i = 0;
+    let n;
 
-for (i = 0, n = array.length; i < n; i++) {
-  if (isArray(array[i])) {
-    result = result.concat(flatten(array[i]));
-  }
-  else {
-    result.push(array[i]);
-  }
-}
+    for (n = array.length; i < n; i += 1) {
+        if (isArray(array[i])) {
+            result = result.concat(flatten(array[i]));
+        } else {
+            result.push(array[i]);
+        }
+    }
 
-return result;
+    return result;
 }
 
 // Internal: Returns an array containing the unique states in the given array.
 function uniqStates(states) {
-var seen = {}, a = [], path, i, n;
+    let seen = {};
+    let a = [];
+    let path;
+    let i = 0;
+    let n;
 
-for (i = 0, n = states.length; i < n; i++) {
-  if (!states[i]) { continue; }
-  path = states[i].path();
-  if (!seen[path]) {
-    a.push(states[i]);
-    seen[path] = true;
-  }
-}
+    for (n = states.length; i < n; i += 1) {
+        if (!states[i]) {
+            continue;
+        }
+        path = states[i].path();
+        if (!seen[path]) {
+            a.push(states[i]);
+            seen[path] = true;
+        }
+    }
 
-return a;
+    return a;
 }
 
 // Internal: Calculates and caches the path from the root state to the
@@ -45,24 +52,35 @@ return a;
 //
 // Returns an array of `State` objects.
 function _path() {
-return this.__cache__._path = this.__cache__._path ||
-  (this.superstate ? _path.call(this.superstate).concat(this) : [this]);
+    return (
+        this.__cache__._path = this.__cache__._path || (
+            this.superstate
+            ? _path.call(this.superstate).concat(this)
+            : [this]
+        )
+    );
 }
 
 // Internal: Returns an array of all current leaf states.
 function _current() {
-var a = [], i, n;
+    let a = [];
+    let i = 0;
+    let n;
 
-if (!this.__isCurrent__) { return []; }
-if (this.substates.length === 0) { return [this]; }
+    if (!this.__isCurrent__) {
+        return [];
+    }
+    if (this.substates.length === 0) {
+        return [this];
+    }
 
-for (i = 0, n = this.substates.length; i < n; i++) {
-  if (this.substates[i].__isCurrent__) {
-    a = a.concat(_current.call(this.substates[i]));
-  }
-}
+    for (n = this.substates.length; i < n; i+= 1) {
+        if (this.substates[i].__isCurrent__) {
+            a = a.concat(_current.call(this.substates[i]));
+        }
+    }
 
-return a;
+    return a;
 }
 
 // Internal: Finds the pivot state between the receiver and the given state.
@@ -71,17 +89,34 @@ return a;
 // Returns a `State` object.
 // Throws `Error` if the two states do not belong to the same statechart.
 function findPivot(other) {
-var p1 = _path.call(this), p2 = _path.call(other), i, len, p;
+    let p1 = _path.call(this);
+    let p2 = _path.call(other);
+    let i = 0;
+    let len;
+    let p;
 
-for (i = 0, len = p1.length < p2.length ? p1.length : p2.length; i < len; i++) {
-  if (p1[i] === p2[i]) { p = p1[i]; } else { break; }
-}
+    for (
+        len = (
+            p1.length < p2.length ?
+            p1.length :
+            p2.length
+        ); i < len; i += 1
+    ) {
+        if (p1[i] === p2[i]) {
+            p = p1[i];
+        } else {
+            break;
+        }
+    }
 
-if (!p) {
-  throw new Error('State#findPivot: states ' + this + ' and ' + other + ' do not belong to the same statechart');
-}
+    if (!p) {
+        throw new Error(
+            "State#findPivot: states " + this + " and " + other +
+            " do not belong to the same statechart"
+        );
+    }
 
-return p;
+    return p;
 }
 
 // Internal: Queues up a transition for later processing. Transitions are
@@ -94,38 +129,49 @@ return p;
 //
 // Returns nothing.
 function queueTransition(pivot, states, opts) {
-this.__transitions__.push(
-  {pivot: pivot, states: states, opts: opts});
+    this.__transitions__.push({
+        pivot: pivot,
+        states: states,
+        opts: opts
+    });
 }
 
 // Internal: Performs all queued transitions. This is the method that actually
 // takes the statechart from one set of current states to another.
 function transition() {
-var ts = this.__transitions__, i, len;
+    let ts = this.__transitions__;
+    let i = 0;
+    let len;
 
-if (!ts || ts.length === 0) { return; }
+    if (!ts || ts.length === 0) {
+        return;
+    }
 
-for (i = 0, len = ts.length; i < len; i++) {
-  enter.call(ts[i].pivot, ts[i].states, ts[i].opts);
-}
+    for (len = ts.length; i < len; i += 1) {
+        enter.call(ts[i].pivot, ts[i].states, ts[i].opts);
+    }
 
-this.__transitions__ = [];
+    this.__transitions__ = [];
 }
 
 // Internal: Invokes all registered enter handlers.
 function callEnterHandlers(context) {
-var i, n;
-for (i = 0, n = this.enters.length; i < n; i++) {
-  this.enters[i].call(this, context);
-}
+    let i = 0;
+    let n;
+
+    for (n = this.enters.length; i < n; i += 1) {
+        this.enters[i].call(this, context);
+    }
 }
 
 // Internal: Invokes all registered exit handlers.
 function callExitHandlers(context) {
-var i, n;
-for (i = 0, n = this.exits.length; i < n; i++) {
-  this.exits[i].call(this, context);
-}
+    let i = 0;
+    let n;
+
+    for (n = this.exits.length; i < n; i+= 1) {
+        this.exits[i].call(this, context);
+    }
 }
 
 // Internal: Enters a clustered state. Entering a clustered state involves
@@ -149,49 +195,85 @@ for (i = 0, n = this.exits.length; i < n; i++) {
 // Throws an `Error` if the given destination states include multiple
 //   substates.
 function enterClustered(states, opts) {
-var selflen = _path.call(this).length,
-    nexts   = [],
-    state, paths, cur, next, i, n;
+    let selflen = _path.call(this).length;
+    let nexts = [];
+    let state;
+    let paths;
+    let cur;
+    let next;
+    let i = 0;
+    let n;
 
-for (i = 0, n = this.substates.length; i < n; i++) {
-  if (this.substates[i].__isCurrent__) { cur = this.substates[i]; break; }
-}
-
-for (i = 0, n = states.length; i < n; i++) {
-  nexts.push(_path.call(states[i])[selflen]);
-}
-
-if (uniqStates(nexts).length > 1) {
-  throw new Error("State#enterClustered: attempted to enter multiple substates of " + this + ": " + nexts.join(', '));
-}
-
-if (!(next = nexts[0]) && this.substates.length > 0) {
-  if (this.__condition__ && (paths = this.__condition__.call(this, opts.context))) {
-    paths  = flatten([paths]);
-    states = [];
-    for (i = 0, n = paths.length; i < n; i++) {
-      if (!(state = this.resolve(paths[i]))) {
-        throw new Error("State#enterClustered: could not resolve path '" + paths[i] + "' returned by condition function from " + this);
-      }
-      states.push(state);
+    for (n = this.substates.length; i < n; i += 1) {
+        if (this.substates[i].__isCurrent__) {
+            cur = this.substates[i];
+            break;
+        }
     }
-    return enterClustered.call(this, states, opts);
-  }
-  if (this.history) { next = this.__previous__; }
-  if (!next) { next = this.substates[0]; }
-}
 
-if (cur && cur !== next) { exit.call(cur, opts); }
+    i = 0;
 
-if (!this.__isCurrent__ || opts.force) {
-  trace.call(this, "State: [ENTER]  : " + this.path() + (this.__isCurrent__ ? ' (forced)' : ''));
-  this.__isCurrent__ = true;
-  callEnterHandlers.call(this, opts.context);
-}
+    for (n = states.length; i < n; i += 1) {
+        nexts.push(_path.call(states[i])[selflen]);
+    }
 
-if (next) { enter.call(next, states, opts); }
+    if (uniqStates(nexts).length > 1) {
+        throw new Error(
+            "State#enterClustered: attempted to enter multiple substates of "
+            + this + ": " + nexts.join(", ")
+        );
+    }
 
-return this;
+    if (
+        !(next = nexts[0]) &&
+        this.substates.length > 0
+    ) {
+        if (this.__condition__ && (paths = this.__condition__.call(
+            this,
+            opts.context
+        ))) {
+            paths = flatten([paths]);
+            states = [];
+            i = 0;
+
+            for (n = paths.length; i < n; i++) {
+                if (!(state = this.resolve(paths[i]))) {
+                    throw new Error(
+                        "State#enterClustered: could not resolve path '"
+                        + paths[i] + "' returned by condition function from "
+                        + this
+                    );
+                }
+                states.push(state);
+            }
+
+            return enterClustered.call(this, states, opts);
+        }
+        if (this.history) {
+            next = this.__previous__;
+        }
+        if (!next) {
+            next = this.substates[0];
+        }
+    }
+
+    if (cur && cur !== next) {
+        exit.call(cur, opts);
+    }
+
+    if (!this.__isCurrent__ || opts.force) {
+        trace.call(this, "State: [ENTER]  : " + this.path() + (
+            this.__isCurrent__ ? " (forced)" : ""
+        ));
+        this.__isCurrent__ = true;
+        callEnterHandlers.call(this, opts.context);
+    }
+
+    if (next) {
+        enter.call(next, states, opts);
+    }
+
+    return this;
 }
 
 // Internal: Enters a concurrent state. Entering a concurrent state simply
@@ -203,28 +285,36 @@ return this;
 //
 // Returns the receiver.
 function enterConcurrent(states, opts) {
-var sstate, dstates, i, j, ni, nj;
+    let sstate;
+    let dstates;
+    let i = 0;
+    let j;
+    let ni;
+    let nj;
 
-if (!this.__isCurrent__ || opts.force) {
-  trace.call(this, "State: [ENTER]  : " + this.path() + (this.__isCurrent__ ? ' (forced)' : ''));
-  this.__isCurrent__ = true;
-  callEnterHandlers.call(this, opts.context);
-}
-
-for (i = 0, ni = this.substates.length; i < ni; i++) {
-  sstate  = this.substates[i];
-  dstates = [];
-
-  for (j = 0, nj = states.length; j < nj; j++) {
-    if (findPivot.call(sstate, states[j]) === sstate) {
-      dstates.push(states[j]);
+    if (!this.__isCurrent__ || opts.force) {
+        trace.call(this, "State: [ENTER]  : " + this.path() + (
+            this.__isCurrent__ ? " (forced)" : ""
+        ));
+        this.__isCurrent__ = true;
+        callEnterHandlers.call(this, opts.context);
     }
 
-  }
-  enter.call(sstate, dstates, opts);
-}
+    for (ni = this.substates.length; i < ni; i += 1) {
+        sstate = this.substates[i];
+        dstates = [];
+        j = 0;
 
-return this;
+        for (nj = states.length; j < nj; j += 1) {
+            if (findPivot.call(sstate, states[j]) === sstate) {
+                dstates.push(states[j]);
+            }
+
+        }
+        enter.call(sstate, dstates, opts);
+    }
+
+    return this;
 }
 
 // Internal: Enters the receiver state. The actual entering logic is in the
@@ -235,9 +325,9 @@ return this;
 //
 // Returns the receiver.
 function enter(states, opts) {
-return this.concurrent ?
-  enterConcurrent.call(this, states, opts) :
-  enterClustered.call(this, states, opts);
+    return this.concurrent ?
+        enterConcurrent.call(this, states, opts) :
+        enterClustered.call(this, states, opts);
 }
 
 // Internal: Exits a clustered state. Exiting happens bottom to top, so we
@@ -248,21 +338,30 @@ return this.concurrent ?
 //
 // Returns the receiver.
 function exitClustered(opts) {
-var cur, i, n;
+    let cur;
+    let i = 0;
+    let n;
 
-for (i = 0, n = this.substates.length; i < n; i++) {
-  if (this.substates[i].__isCurrent__) { cur = this.substates[i]; break; }
-}
+    for (n = this.substates.length; i < n; i += 1) {
+        if (this.substates[i].__isCurrent__) {
+            cur = this.substates[i];
+            break;
+        }
+    }
 
-if (this.history) { this.__previous__ = cur; }
+    if (this.history) {
+        this.__previous__ = cur;
+    }
 
-if (cur) { exit.call(cur, opts); }
+    if (cur) {
+        exit.call(cur, opts);
+    }
 
-callExitHandlers.call(this, opts.context);
-this.__isCurrent__ = false;
-trace.call(this, "State: [EXIT]   : " + this.path());
+    callExitHandlers.call(this, opts.context);
+    this.__isCurrent__ = false;
+    trace.call(this, "State: [EXIT]   : " + this.path());
 
-return this;
+    return this;
 }
 
 // Internal: Exits a concurrent state. Similiar to `exitClustered` we
@@ -273,17 +372,21 @@ return this;
 //
 // Returns the receiver.
 function exitConcurrent(opts) {
-var root = this.root(), i, n;
+    let root = this.root();
+    let i = 0;
+    let n;
 
-for (i = 0, n = this.substates.length; i < n; i++) {
-  exit.call(this.substates[i], opts);
-}
+    for (n = this.substates.length; i < n; i += 1) {
+        exit.call(this.substates[i], opts);
+    }
 
-callExitHandlers.call(this, opts.context);
-this.__isCurrent__ = false;
-if (this !== root) { trace.call(this, "State: [EXIT]   : " + this.path()); }
+    callExitHandlers.call(this, opts.context);
+    this.__isCurrent__ = false;
+    if (this !== root) {
+        trace.call(this, "State: [EXIT]   : " + this.path());
+    }
 
-return this;
+    return this;
 }
 
 // Internal: Exits the receiver state. The actual exiting logic is in the
@@ -293,8 +396,11 @@ return this;
 //
 // Returns the receiver.
 function exit(opts) {
-return this.concurrent ?
-  exitConcurrent.call(this, opts) : exitClustered.call(this, opts);
+    return (
+        this.concurrent
+        ? exitConcurrent.call(this, opts)
+        : exitClustered.call(this, opts)
+    );
 }
 
 // Internal: Asks the receiver state if it can exit.
@@ -304,16 +410,18 @@ return this.concurrent ?
 //
 // Returns boolean.
 function canExit(destStates, opts) {
-var i, n;
-for (i = 0, n = this.substates.length; i < n; i++) {
-  if (this.substates[i].__isCurrent__) {
-    if (canExit.call(this.substates[i], destStates, opts) === false) {
-      return false;
-    }
-  }
-}
+    let i = 0;
+    let n;
 
-return this.canExit(destStates, opts.context);
+    for (n = this.substates.length; i < n; i += 1) {
+        if (this.substates[i].__isCurrent__) {
+            if (canExit.call(this.substates[i], destStates, opts) === false) {
+                return false;
+            }
+        }
+    }
+
+    return this.canExit(destStates, opts.context);
 }
 
 // Internal: Sends an event to a clustered state.
@@ -321,15 +429,23 @@ return this.canExit(destStates, opts.context);
 // Returns a boolean indicating whether or not the event was handled by the
 //   current substate.
 function sendClustered() {
-var handled = false, i, n, cur;
+    let handled = false;
+    let i = 0;
+    let n;
+    let cur;
 
-for (i = 0, n = this.substates.length; i < n; i++) {
-  if (this.substates[i].__isCurrent__) { cur = this.substates[i]; break; }
-}
+    for (n = this.substates.length; i < n; i += 1) {
+        if (this.substates[i].__isCurrent__) {
+            cur = this.substates[i];
+            break;
+        }
+    }
 
-if (cur) { handled = !!cur.send.apply(cur, slice.call(arguments)); }
+    if (cur) {
+        handled = !!cur.send.apply(cur, slice.call(arguments));
+    }
 
-return handled;
+    return handled;
 }
 
 // Internal: Sends an event to a concurrent state.
@@ -337,14 +453,18 @@ return handled;
 // Returns a boolean indicating whether or not the event was handled by all
 //   substates.
 function sendConcurrent() {
-var args = slice.call(arguments), handled = true, state, i, n;
+    let args = slice.call(arguments);
+    let handled = true;
+    let state;
+    let i = 0;
+    let n;
 
-for (i = 0, n = this.substates.length; i < n; i++) {
-  state   = this.substates[i];
-  handled = state.send.apply(state, args) && handled;
-}
+    for (n = this.substates.length; i < n; i += 1) {
+        state = this.substates[i];
+        handled = state.send.apply(state, args) && handled;
+    }
 
-return handled;
+    return handled;
 }
 
 // Internal: Logs the given message. How the message gets logged is determined
@@ -352,9 +472,13 @@ return handled;
 // setto use another logger object. It assumes that there is an `info` method
 // on the logger object.
 function trace(message) {
-var logger = State.logger || console;
-if (!this.root().trace || !logger) { return; }
-logger.info(message);
+    let logger = State.logger || console;
+
+    if (!this.root().trace || !logger) {
+        return;
+    }
+
+    logger.info(message);
 }
 
 // Public: The `State` constructor.
@@ -372,33 +496,37 @@ logger.info(message);
 // Returns nothing.
 // Throws `Error` if both the `concurrent` and `H` options are set.
 function State(name, opts, f) {
-if (typeof opts === 'function') {
-  f    = opts;
-  opts = {};
-}
+    if (typeof opts === "function") {
+        f = opts;
+        opts = {};
+    }
 
-opts = opts || {};
+    opts = opts || {};
 
-if (opts.concurrent && opts.H) {
-  throw new Error('State: history states are not allowed on concurrent states');
-}
+    if (opts.concurrent && opts.H) {
+        throw new Error(
+            "State: history states are not allowed on concurrent states"
+        );
+    }
 
-this.name            = name;
-this.substateMap     = {};
-this.substates       = [];
-this.superstate      = null;
-this.enters          = [];
-this.exits           = [];
-this.events          = {};
-this.concurrent      = !!opts.concurrent;
-this.history         = !!(opts.H);
-this.deep            = opts.H === '*';
-this.__isCurrent__   = false;
-this.__cache__       = {};
-this.__transitions__ = [];
-this.trace           = false;
+    this.name = name;
+    this.substateMap = {};
+    this.substates = [];
+    this.superstate = null;
+    this.enters = [];
+    this.exits = [];
+    this.events = {};
+    this.concurrent = !!opts.concurrent;
+    this.history = !!(opts.H);
+    this.deep = opts.H === "*";
+    this.__isCurrent__ = false;
+    this.__cache__ = {};
+    this.__transitions__ = [];
+    this.trace = false;
 
-if (f) { f.call(this); }
+    if (f) {
+        f.call(this);
+    }
 }
 
 // Public: Convenience method for creating a new statechart. Simply creates a
@@ -411,36 +539,38 @@ if (f) { f.call(this); }
 //
 // Examples
 //
-//   var sc = State.define({concurrent: true}, function() {
-//     this.state('a');
-//     this.state('b');
-//     this.state('c');
+//   let sc = State.define({concurrent: true}, function() {
+//     this.state("a");
+//     this.state("b");
+//     this.state("c");
 //   });
 //
 // Returns the newly created root state.
 State.define = function() {
-var opts = {}, f = null, s;
+    let opts = {};
+    let f = null;
+    let s;
 
-if (arguments.length === 2) {
-  opts = arguments[0];
-  f    = arguments[1];
-}
-else if (arguments.length === 1) {
-  if (typeof arguments[0] === 'function') {
-    f = arguments[0];
-  }
-  else {
-    opts = arguments[0];
-  }
-}
+    if (arguments.length === 2) {
+        opts = arguments[0];
+        f = arguments[1];
+    } else if (arguments.length === 1) {
+        if (typeof arguments[0] === "function") {
+            f = arguments[0];
+        } else {
+            opts = arguments[0];
+        }
+    }
 
-s = new this('__root__', opts, f);
-return s;
+    s = new this("__root__", opts, f);
+    return s;
 };
 
 // Public: Indicates whether the state is the root of the statechart created
 // by the `State.define` method.
-State.prototype.isRoot = function() { return this.name === '__root__'; };
+State.prototype.isRoot = function() {
+    return this.name === "__root__";
+};
 
 // Public: Creates a substate with the given name and adds it as a substate to
 // the receiver state. If a `State` object is given, then it simply adds the
@@ -455,15 +585,15 @@ State.prototype.isRoot = function() { return this.name === '__root__'; };
 //
 // Examples
 //
-//   var s2 = new State('s2');
-//   s2.state('s21');
-//   s2.state('s22');
+//   let s2 = new State("s2");
+//   s2.state("s21");
+//   s2.state("s22");
 //
-//   var sc = State.define(function() {
-//     this.state('s', function() {
-//       this.state('s1', function() {
-//         this.state('s11');
-//         this.state('s12');
+//   let sc = State.define(function() {
+//     this.state("s", function() {
+//       this.state("s1", function() {
+//         this.state("s11");
+//         this.state("s12");
 //       });
 //
 //       this.state(s2);
@@ -472,10 +602,13 @@ State.prototype.isRoot = function() { return this.name === '__root__'; };
 //
 // Returns the newly created state.
 State.prototype.state = function(name, opts, f) {
-var s = name instanceof this.constructor ? name :
-  new this.constructor(name, opts, f);
-this.addSubstate(s);
-return s;
+    let s = (
+        name instanceof this.constructor
+        ? name
+        : new this.constructor(name, opts, f)
+    );
+    this.addSubstate(s);
+    return s;
 };
 
 // Public: Registers an enter handler to be called with the receiver state
@@ -488,7 +621,10 @@ return s;
 // f - A function to call when the state is entered.
 //
 // Returns the receiver.
-State.prototype.enter = function pState_enter(f) { this.enters.push(f); return this; };
+State.prototype.enter = function pState_enter(f) {
+    this.enters.push(f);
+    return this;
+};
 
 // Public: Registers an exit handler to be called with the receiver state
 // is exited. The `context` option passed to `goto` will be passed to the
@@ -500,7 +636,10 @@ State.prototype.enter = function pState_enter(f) { this.enters.push(f); return t
 // f - A function to call when the state is exited.
 //
 // Returns the receiver.
-State.prototype.exit = function pState_exit(f) { this.exits.push(f); return this; };
+State.prototype.exit = function pState_exit(f) {
+    this.exits.push(f);
+    return this;
+};
 
 // Public: A function that can be used to prevent a state from being exited.
 // `destStates` and `context` are the destination states and context that
@@ -510,7 +649,9 @@ State.prototype.exit = function pState_exit(f) { this.exits.push(f); return this
 // context    - The destination context.
 //
 // Returns the receiver.
-State.prototype.canExit = function(/*destStates, context*/) { return true; };
+State.prototype.canExit = function( /*destStates, context*/ ) {
+    return true;
+};
 
 // Public: Registers an event handler to be called when an event with a
 // matching name is sent to the state via the `send` method.
@@ -521,7 +662,10 @@ State.prototype.canExit = function(/*destStates, context*/) { return true; };
 // f    - A function to call when the event occurs.
 //
 // Returns the receiver.
-State.prototype.event = function pState_event(name, f) { this.events[name] = f; return this; };
+State.prototype.event = function pState_event(name, f) {
+    this.events[name] = f;
+    return this;
+};
 
 // Public: Defines a condition state on the receiver state. Condition states
 // are consulted when entering a clustered state without specified destination
@@ -532,37 +676,43 @@ State.prototype.event = function pState_event(name, f) { this.events[name] = f; 
 //
 // Examples
 //
-//   var sc = State.define(function() {
-//     this.state('a', function() {
+//   let sc = State.define(function() {
+//     this.state("a", function() {
 //       this.C(function() {
-//         if (shouldGoToB) { return './b'; }
-//         if (shouldGoToC) { return './c'; }
-//         if (shouldGoToD) { return './d'; }
+//         if (shouldGoToB) { return "./b"; }
+//         if (shouldGoToC) { return "./c"; }
+//         if (shouldGoToD) { return "./d"; }
 //       });
-//       this.state('b');
-//       this.state('c');
-//       this.state('d');
+//       this.state("b");
+//       this.state("c");
+//       this.state("d");
 //     });
 //   });
 //
 // Returns nothing.
 State.prototype.C = function pState_C(f) {
-if (this.concurrent) {
-  throw new Error('State#C: a concurrent state may not have a condition state: ' + this);
-}
+    if (this.concurrent) {
+        throw new Error(
+            "State#C: a concurrent state may not have a " +
+            "condition state: " + this
+        );
+    }
 
-this.__condition__ = f;
+    this.__condition__ = f;
 };
 
 // Public: Returns an array of paths to all current leaf states.
 State.prototype.current = function pState_current() {
-var states = _current.call(this), paths = [], i, n;
+    let states = _current.call(this);
+    let paths = [];
+    let i = 0;
+    let n;
 
-for (i = 0, n = states.length; i < n; i++) {
-  paths.push(states[i].path());
-}
+    for (n = states.length; i < n; i += 1) {
+        paths.push(states[i].path());
+    }
 
-return paths;
+    return paths;
 };
 
 // Public: The `State` iterator - invokes the given function once for each
@@ -573,31 +723,38 @@ return paths;
 //
 // Returns the receiver.
 State.prototype.each = function pState_each(f) {
-var i, n;
+    let i = 0;
+    let n;
 
-f(this);
+    f(this);
 
-for (i = 0, n = this.substates.length; i < n; i++) {
-  this.substates[i].each(f);
-}
+    for (n = this.substates.length; i < n; i += 1) {
+        this.substates[i].each(f);
+    }
 
-return this;
+    return this;
 };
 
 // Public: Adds the given state as a substate of the receiver state.
 //
 // Returns the receiver.
 State.prototype.addSubstate = function pState_addSubstate(state) {
-var deep = this.deep, didAttach = this.root().isRoot();
-this.substateMap[state.name] = state;
-this.substates.push(state);
-state.superstate = this;
-state.each(function(s) {
-  s.__cache__ = {};
-  if (deep) { s.history = s.deep = true; }
-  if (didAttach) { s.didAttach(); }
-});
-return this;
+    let deep = this.deep;
+    let didAttach = this.root().isRoot();
+
+    this.substateMap[state.name] = state;
+    this.substates.push(state);
+    state.superstate = this;
+    state.each(function(s) {
+        s.__cache__ = {};
+        if (deep) {
+            s.history = s.deep = true;
+        }
+        if (didAttach) {
+            s.didAttach();
+        }
+    });
+    return this;
 };
 
 // Internal: Invoked by the `#addSubstate` method when the state has been
@@ -605,13 +762,19 @@ return this;
 // `RoutableState` substate and should not be invoked by client code.
 State.prototype.didAttach = function pState_didAttach() {};
 
-// Public: Indicates whether the receiver state is attached to a root statechart node.
-State.prototype.isAttached = function pState_isAttached() { return this.root().isRoot(); };
+// Public: Indicates whether the receiver state is attached to a root
+// statechart node.
+State.prototype.isAttached = function pState_isAttached() {
+    return this.root().isRoot();
+};
 
 // Public: Returns the root state.
 State.prototype.root = function pState_root() {
-return this.__cache__.root = this.__cache__.root ||
-  (this.superstate ? this.superstate.root() : this);
+    return (
+        this.__cache__.root = this.__cache__.root || (
+            this.superstate ? this.superstate.root() : this
+        )
+    );
 };
 
 // Public: Returns a string containing the full path from the root state to
@@ -619,10 +782,10 @@ return this.__cache__.root = this.__cache__.root ||
 //
 // Examples
 //
-//   var r = new State('root'),
-//       a = new State('a'),
-//       b = new State('b'),
-//       c = new State('c');
+//   let r = new State("root"),
+//       a = new State("a"),
+//       b = new State("b"),
+//       c = new State("c");
 //
 //   r.addSubstate(a);
 //   a.addSubstate(b);
@@ -633,13 +796,16 @@ return this.__cache__.root = this.__cache__.root ||
 //   b.path(); // => "/a/b"
 //   c.path(); // => "/a/b/c"
 State.prototype.path = function pState_path() {
-var states = _path.call(this), names = [], i, len;
+    let states = _path.call(this);
+    let names = [];
+    let i = 1;
+    let len;
 
-for (i = 1, len = states.length; i < len; i++) {
-  names.push(states[i].name);
-}
+    for (len = states.length; i < len; i += 1) {
+        names.push(states[i].name);
+    }
 
-return '/' + names.join('/');
+    return "/" + names.join("/");
 };
 
 // Public: Sets up a transition from the receiver state to the given
@@ -657,23 +823,23 @@ return '/' + names.join('/');
 //
 // Examples
 //
-//   var sc = State.define(function() {
-//     this.state('a', function() {
-//       this.state('b', function() {
-//         this.foo = function() { this.goto('../c'); };
+//   let sc = State.define(function() {
+//     this.state("a", function() {
+//       this.state("b", function() {
+//         this.foo = function() { this.goto("../c"); };
 //       });
-//       this.state('c', function() {
-//         this.bar = function() { this.goto('../b'); };
+//       this.state("c", function() {
+//         this.bar = function() { this.goto("../b"); };
 //       });
 //     });
 //   });
 //
 //   sc.goto();
-//   sc.current();   // => ['/a/b']
-//   sc.send('foo');
-//   sc.current();   // => ['/a/c']
-//   sc.send('bar');
-//   sc.current();   // => ['/a/b']
+//   sc.current();   // => ["/a/b"]
+//   sc.send("foo");
+//   sc.current();   // => ["/a/c"]
+//   sc.send("bar");
+//   sc.current();   // => ["/a/b"]
 //
 // Returns boolean. `false` if transition failed.
 // Throws an `Error` if called on a non-current non-root state.
@@ -681,54 +847,77 @@ return '/' + names.join('/');
 //   and destination states.
 // Throws an `Error` if a destination path is not reachable from the receiver.
 State.prototype.goto = function pState_goto() {
-var root   = this.root(),
-    paths  = flatten(slice.call(arguments)),
-    opts   = typeof paths[paths.length - 1] === 'object' ? paths.pop() : {},
-    states = [],
-    pivots = [],
-    state, pivot, i, n;
+    let root = this.root();
+    let paths = flatten(slice.call(arguments));
+    let opts = (
+        typeof paths[paths.length - 1] === "object"
+        ? paths.pop()
+        : {}
+    );
+    let states = [];
+    let pivots = [];
+    let state;
+    let pivot;
+    let i = 0;
+    let n;
 
-for (i = 0, n = paths.length; i < n; i++) {
-  if (!(state = this.resolve(paths[i]))) {
-    throw new Error('State#goto: could not resolve path ' + paths[i] + ' from ' + this);
-  }
+    for (n = paths.length; i < n; i += 1) {
+        if (!(state = this.resolve(paths[i]))) {
+            throw new Error(
+                "State#goto: could not resolve path " +
+                paths[i] + " from " + this
+            );
+        }
 
-  states.push(state);
-}
+        states.push(state);
+    }
 
-for (i = 0, n = states.length; i < n; i++) {
-  pivots.push(findPivot.call(this, states[i]));
-}
+    i = 0;
 
-if (uniqStates(pivots).length > 1) {
-  throw new Error("State#goto: multiple pivot states found between state " + this + " and paths " + paths.join(', '));
-}
+    for (n = states.length; i < n; i += 1) {
+        pivots.push(findPivot.call(this, states[i]));
+    }
 
-pivot = pivots[0] || this;
+    if (uniqStates(pivots).length > 1) {
+        throw new Error(
+            "State#goto: multiple pivot states found between state " +
+            this + " and paths " + paths.join(", ")
+        );
+    }
 
-if (canExit.call(pivot, states, opts) === false){
-  trace.call(this, 'State: [GOTO]   : ' + this + ' can not exit]');
-  return false;
-}
+    pivot = pivots[0] || this;
 
-trace.call(this, 'State: [GOTO]   : ' + this + ' -> [' + states.join(', ') + ']');
+    if (canExit.call(pivot, states, opts) === false) {
+        trace.call(this, "State: [GOTO]   : " + this + " can not exit]");
+        return false;
+    }
 
-if (!this.__isCurrent__ && this.superstate) {
-  throw new Error('State#goto: state ' + this + ' is not current');
-}
+    trace.call(
+        this,
+        "State: [GOTO]   : " + this + " -> [" + states.join(", ") + "]"
+    );
 
-// if the pivot state is a concurrent state and is not also the starting
-// state, then we're attempting to cross a concurrency boundary, which is
-// not allowed
-if (pivot.concurrent && pivot !== this) {
-  throw new Error('State#goto: one or more of the given paths are not reachable from state ' + this + ': ' +  paths.join(', '));
-}
+    if (!this.__isCurrent__ && this.superstate) {
+        throw new Error("State#goto: state " + this + " is not current");
+    }
 
-queueTransition.call(root, pivot, states, opts);
+    // if the pivot state is a concurrent state and is not also the starting
+    // state, then we're attempting to cross a concurrency boundary, which is
+    // not allowed
+    if (pivot.concurrent && pivot !== this) {
+        throw new Error(
+            "State#goto: one or more of the given paths are not reachable " +
+            "from state " + this + ": " + paths.join(", ")
+        );
+    }
 
-if (!this.__isSending__) { transition.call(root); }
+    queueTransition.call(root, pivot, states, opts);
 
-return true;
+    if (!this.__isSending__) {
+        transition.call(root);
+    }
+
+    return true;
 };
 
 // Public: Sends an event to the statechart. A statechart handles an event
@@ -744,32 +933,44 @@ return true;
 // Returns a boolean indicating whether or not the event was handled.
 // Throws `Error` if the state is not current.
 State.prototype.send = function pState_send() {
-var args = slice.call(arguments), events = this.events, handled;
+    let args = slice.call(arguments);
+    let events = this.events;
+    let handled;
 
-if (!this.__isCurrent__) {
-  throw new Error('State#send: attempted to send an event to a state that is not current: ' + this);
-}
+    if (!this.__isCurrent__) {
+        throw new Error(
+            "State#send: attempted to send an event to a state " +
+            "that is not current: " + this
+        );
+    }
 
-if (this === this.root()) {
-  trace.call(this, 'State: [EVENT]  : ' + args[0]);
-}
+    if (this === this.root()) {
+        trace.call(this, "State: [EVENT]  : " + args[0]);
+    }
 
-handled = this.concurrent ? sendConcurrent.apply(this, arguments) :
-  sendClustered.apply(this, arguments);
+    handled = (
+        this.concurrent
+        ? sendConcurrent.apply(this, arguments)
+        : sendClustered.apply(this, arguments)
+    );
 
-if (!handled && typeof events[args[0]] === 'function') {
-  this.__isSending__ = true;
-  handled = !!events[args[0]].apply(this, args.slice(1));
-  this.__isSending__ = false;
-}
+    if (!handled && typeof events[args[0]] === "function") {
+        this.__isSending__ = true;
+        handled = !!events[args[0]].apply(this, args.slice(1));
+        this.__isSending__ = false;
+    }
 
-if (!this.superstate) { transition.call(this); }
+    if (!this.superstate) {
+        transition.call(this);
+    }
 
-return handled;
+    return handled;
 };
 
 // Public: Resets the statechart by exiting all current states.
-State.prototype.reset = function pState_reset() { exit.call(this, {}); };
+State.prototype.reset = function pState_reset() {
+    exit.call(this, {});
+};
 
 // Public: Returns a boolean indicating whether or not the state at the given
 // path is current.
@@ -777,8 +978,9 @@ State.prototype.reset = function pState_reset() { exit.call(this, {}); };
 // Returns `true` or `false`.
 // Throws `Error` if the path cannot be resolved.
 State.prototype.isCurrent = function pState_isCurrent(path) {
-var state = this.resolve(path);
-return !!(state && state.__isCurrent__);
+    let state = this.resolve(path);
+
+    return Boolean(state && state.__isCurrent__);
 };
 
 // Public: Resolves a string path into an actual `State` object. Paths not
@@ -791,34 +993,40 @@ return !!(state && state.__isCurrent__);
 // Returns the `State` object the path represents if it can be resolve and
 //   `null` otherwise.
 State.prototype.resolve = function pState_resolve(path) {
-var head, next;
+    let head;
+    let next;
 
-if (!path) { return null; }
+    if (!path) {
+        return null;
+    }
 
-path      = typeof path === 'string' ? path.split('/') : path;
-head      = path.shift();
+    path = typeof path === "string" ? path.split("/") : path;
+    head = path.shift();
 
-switch (head) {
-case '':
-  next = this.root();
-  break;
-case '.':
-  next = this;
-  break;
-case '..':
-  next = this.superstate;
-  break;
-default:
-  next = this.substateMap[head];
-}
+    switch (head) {
+        case "":
+            next = this.root();
+            break;
+        case ".":
+            next = this;
+            break;
+        case "..":
+            next = this.superstate;
+            break;
+        default:
+            next = this.substateMap[head];
+    }
 
-if (!next) { return null; }
+    if (!next) {
+        return null;
+    }
 
-return path.length === 0 ? next : next.resolve(path);
+    return path.length === 0 ? next : next.resolve(path);
 };
 
 // Public: Returns a formatted string with the state's full path.
-State.prototype.toString = function pState_toString() { return 'State(' + this.path() + ')'; };
+State.prototype.toString = function pState_toString() {
+    return "State(" + this.path() + ")";
+};
 
-export { State };
-
+export {State};
