@@ -19,5 +19,6 @@
     "use strict";
 
     // Placeholder
+    return;
 
 }());
