@@ -573,8 +573,7 @@
                             // Handle other types of defaults
                             if (value === undefined) {
                                 if (
-                                    prop.default !== undefined &&
-                                    prop.default !== null
+                                    prop.default !== undefined
                                 ) {
                                     value = prop.default;
                                 } else if (
