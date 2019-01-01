@@ -15,16 +15,17 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*jslint this*/
-import { stream } from "../../common/stream-client.js";
-import { button } from "./button.js";
-import { catalog } from "../models/catalog.js";
-import { filterDialog } from "./filter-dialog.js";
-import { sortDialog } from "./sort-dialog.js";
-import { searchInput } from "./search-input.js";
-import { tableWidget } from "./table-widget.js";
+/*jslint this, browser*/
+import {stream} from "../../common/stream-client.js";
+import {button} from "./button.js";
+import {catalog} from "../models/catalog.js";
+import {filterDialog} from "./filter-dialog.js";
+import {sortDialog} from "./sort-dialog.js";
+import {searchInput} from "./search-input.js";
+import {tableWidget} from "./table-widget.js";
 
 const searchPage = {};
+const m = window.m;
 
 searchPage.viewModel = function (options) {
     let vm = {};
@@ -240,4 +241,4 @@ searchPage.component = {
 };
 
 catalog.register("components", "searchPage", searchPage.component);
-export { searchPage };
+export {searchPage};

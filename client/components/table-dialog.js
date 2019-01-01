@@ -15,15 +15,16 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*jslint this*/
-import { f } from "../../common/core-client.js";
-import { stream } from "../../common/stream-client.js";
-import { button } from "./button.js";
-import { catalog } from "../models/catalog.js";
-import { dialog } from "./dialog.js";
-import { State as statechart } from "../../common/state.js";
+/*jslint this, browser*/
+import {f} from "../../common/core-client.js";
+import {stream} from "../../common/stream-client.js";
+import {button} from "./button.js";
+import {catalog} from "../models/catalog.js";
+import {dialog} from "./dialog.js";
+import {State} from "../../common/state.js";
 
 const tableDialog = {};
+const m = window.m;
 
 /**
   View model for sort dialog.
@@ -333,7 +334,7 @@ tableDialog.viewModel = function (options) {
     });
 
     // Statechart
-    state = statechart.define(function () {
+    state = State.define(function () {
         this.state("Selection", function () {
             this.state("Off", function () {
                 this.event("selected", function () {
@@ -369,4 +370,4 @@ tableDialog.viewModel = function (options) {
 */
 tableDialog.component = dialog.component;
 
-export { tableDialog };
+export {tableDialog};

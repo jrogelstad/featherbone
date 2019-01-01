@@ -15,14 +15,16 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*jslint this*/
-import { f } from "../../common/core-client.js";
-import { stream } from "../../common/stream-client.js";
-import { State as statechart } from "../../common/state.js";
-import * as dialogPolyfill from "../../node_modules/dialog-polyfill/dialog-polyfill.js"
-import { button } from "./button.js";
+/*jslint this, browser*/
+import {f} from "../../common/core-client.js";
+import {stream} from "../../common/stream-client.js";
+import {State} from "../../common/state.js";
+import {button} from "./button.js";
 
 const dialog = {};
+const m = window.m;
+const dialogPolyfill = window.dialogPolyfill;
+
 /**
   View model for sort dialog.
 
@@ -119,7 +121,7 @@ dialog.viewModel = function (options) {
     vm.buttonCancel().style = vm.displayCancel;
 
     // Statechart
-    state = statechart.define(function () {
+    state = State.define(function () {
         this.state("Display", function () {
             this.state("Closed", function () {
                 this.enter(function () {
@@ -212,4 +214,4 @@ dialog.component = {
     }
 };
 
-export { dialog };
+export {dialog};

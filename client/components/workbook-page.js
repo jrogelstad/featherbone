@@ -15,20 +15,21 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*jslint this*/
-import { f } from "./core.js";
-import { stream } from "../../common/stream-client.js";
-import { button } from "./button.js";
-import { catalog } from "../models/catalog.js";
-import { dialog } from "./dialog.js";
-import { filterDialog } from "./filter-dialog.js";
-import { sortDialog } from "./sort-dialog.js";
-import { sheetConfigureDialog } from "./sheet-configure-dialog.js";
-import { searchInput } from "./search-input.js";
-import { tableWidget } from "./table-widget.js";
-import { navigator } from "./navigator-menu.js";
+/*jslint this, browser*/
+import {f} from "./core.js";
+import {stream} from "../../common/stream-client.js";
+import {button} from "./button.js";
+import {catalog} from "../models/catalog.js";
+import {dialog} from "./dialog.js";
+import {filterDialog} from "./filter-dialog.js";
+import {sortDialog} from "./sort-dialog.js";
+import {sheetConfigureDialog} from "./sheet-configure-dialog.js";
+import {searchInput} from "./search-input.js";
+import {tableWidget} from "./table-widget.js";
+import {navigator} from "./navigator-menu.js";
 
 const workbookPage = {};
+const m = window.m;
 
 // Define workbook view model
 workbookPage.viewModel = function (options) {
@@ -939,4 +940,4 @@ workbookPage.component = {
 };
 
 catalog.register("components", "workbookPage", workbookPage.component);
-export { workbookPage };
+export {workbookPage};

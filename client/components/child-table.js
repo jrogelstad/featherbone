@@ -15,13 +15,14 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*jslint this*/
-import { stream } from "../../common/stream-client.js";
-import { button } from "./button.js";
-import { catalog } from "../models/catalog.js";
-import { tableWidget } from "./table-widget.js";
+/*jslint this, browser*/
+import {stream} from "../../common/stream-client.js";
+import {button} from "./button.js";
+import {catalog} from "../models/catalog.js";
+import {tableWidget} from "./table-widget.js";
 
 const childTable = {};
+const m = window.m;
 
 function findRoot(model) {
     let parent;
@@ -276,4 +277,4 @@ childTable.component = {
 
 catalog.register("components", "childTable", childTable.component);
 
-export { childTable };
+export {childTable};

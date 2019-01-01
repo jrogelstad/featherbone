@@ -16,10 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-/*jslint this*/
+/*jslint this, browser*/
+import {f} from "../../common/core-client.js";
+import {catalog} from "../models/catalog.js";
+
 const checkbox = {};
-import { f } from "../../common/core-client.js";
-import { catalog } from "../models/catalog.js";
+const m = window.m;
 
 // Define checkbox component
 checkbox.component = {
@@ -59,4 +61,4 @@ checkbox.component = {
 };
 
 catalog.register("components", "checkbox", checkbox.component);
-export { checkbox };
+export {checkbox};

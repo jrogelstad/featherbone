@@ -15,13 +15,14 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*jslint this*/
-import { stream } from "../../common/stream-client.js";
-import { button } from "./button.js";
-import { catalog } from "../models/catalog.js";
-import { formWidget } from "./form-widget.js";
+/*jslint this, browser*/
+import {stream} from "../../common/stream-client.js";
+import {button} from "./button.js";
+import {catalog} from "../models/catalog.js";
+import {formWidget} from "./form-widget.js";
 
 const settingsPage = {};
+const m = window.m;
 
 /**
   View model for settings page.
@@ -132,4 +133,4 @@ settingsPage.component = {
 };
 
 catalog.register("components", "settingsPage", settingsPage.component);
-export { settingsPage };
+export {settingsPage};

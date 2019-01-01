@@ -16,12 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint browser*/
-import { f } from "../../common/core-client.js";
-import { catalog } from "../models/catalog.js";
-import { stream } from "../../common/stream-client.js";
+import {f} from "../../common/core-client.js";
+import {catalog} from "../models/catalog.js";
+import {stream} from "../../common/stream-client.js";
 
-import "../models/workbook.js";
-import "./money-relation.js";
+const m = window.m;
+const console = window.console;
 
 /**
   Return the matching currency object.
@@ -446,4 +446,4 @@ f.resolveProperty = function (model, property) {
     return model.data[property];
 };
 
-export { f };
+export {f};

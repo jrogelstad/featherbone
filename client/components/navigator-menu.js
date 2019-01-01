@@ -15,16 +15,17 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*jslint this*/
-import { stream } from "../../common/stream-client.js";
-import { catalog } from "../models/catalog.js";
-import { State as statechart } from "../../common/state.js";
+/*jslint this, browser*/
+import {stream} from "../../common/stream-client.js";
+import {catalog} from "../models/catalog.js";
+import {State} from "../../common/state.js";
 
 const selected = stream();
 const navigator = {};
+const m = window.m;
 
 // Define state (global)
-const state = statechart.define(function () {
+const state = State.define(function () {
     this.state("Expanded", function () {
         this.event("toggle", function () {
             this.goto("../Collapsed");
@@ -199,4 +200,4 @@ navigator.component = {
     }
 };
 
-export { navigator };
+export {navigator};

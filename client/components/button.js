@@ -15,12 +15,13 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*jslint this*/
-import { f } from "../../common/core-client.js";
-import { stream } from "../../common/stream-client.js";
-import { State as statechart } from "../../common/state.js";
-    
+/*jslint this, browser*/
+import {f} from "../../common/core-client.js";
+import {stream} from "../../common/stream-client.js";
+import {State} from "../../common/state.js";
+
 const button = {};
+const m = window.m;
 
 /**
   @param {Object} Options
@@ -154,7 +155,7 @@ button.viewModel = function (options) {
     }
 
     // Define statechart
-    state = statechart.define({
+    state = State.define({
         concurrent: true
     }, function () {
         this.state("Mode", function () {
@@ -304,4 +305,4 @@ button.component = {
     }
 };
 
-export { button };
+export {button};
