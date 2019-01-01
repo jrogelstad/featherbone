@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*jslint browser*/
+/*jslint this, browser*/
 import {catalog} from "./models/catalog.js";
 import {stream} from "../common/stream.js";
 import {State} from "../common/state.js";
