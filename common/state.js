@@ -1,6 +1,12 @@
-// Acknowledgement: Codebase from https://github.com/burrows/statechart.js
+// Acknowledgement:
+// Original codebase from https://github.com/burrows/statechart.js
+// Commit: 1e834e167bea4709034056703652b7d802d74979
+// License: MIT
+// Alterations: Convert to ES6 module and lint
+
 /*jslint for, this, browser*/
 /*global console*/
+
 let slice = Array.prototype.slice;
 let trace;
 let exit;
@@ -79,7 +85,7 @@ function _current() {
         return [this];
     }
 
-    for (n = this.substates.length; i < n; i+= 1) {
+    for (n = this.substates.length; i < n; i += 1) {
         if (this.substates[i].isCurrent) {
             a = a.concat(_current.call(this.substates[i]));
         }
@@ -102,10 +108,12 @@ function findPivot(other) {
 
     for (
         len = (
-            p1.length < p2.length ?
-            p1.length :
-            p2.length
-        ); i < len; i += 1
+            p1.length < p2.length
+            ? p1.length
+            : p2.length
+        );
+        i < len;
+        i += 1
     ) {
         if (p1[i] === p2[i]) {
             p = p1[i];
@@ -174,7 +182,7 @@ function callExitHandlers(context) {
     let i = 0;
     let n;
 
-    for (n = this.exits.length; i < n; i+= 1) {
+    for (n = this.exits.length; i < n; i += 1) {
         this.exits[i].call(this, context);
     }
 }
@@ -271,9 +279,16 @@ function enterClustered(states, opts) {
     }
 
     if (!this.isCurrent || opts.force) {
-        trace.call(this, "State: [ENTER]  : " + this.path() + (
-            this.isCurrent ? " (forced)" : ""
-        ));
+        trace.call(
+            this,
+            (
+                "State: [ENTER]  : " + this.path() + (
+                    this.isCurrent
+                    ? " (forced)"
+                    : ""
+                )
+            )
+        );
         this.isCurrent = true;
         callEnterHandlers.call(this, opts.context);
     }
@@ -302,9 +317,16 @@ function enterConcurrent(states, opts) {
     let nj;
 
     if (!this.isCurrent || opts.force) {
-        trace.call(this, "State: [ENTER]  : " + this.path() + (
-            this.isCurrent ? " (forced)" : ""
-        ));
+        trace.call(
+            this,
+            (
+                "State: [ENTER]  : " + this.path() + (
+                    this.isCurrent
+                    ? " (forced)"
+                    : ""
+                )
+            )
+        );
         this.isCurrent = true;
         callEnterHandlers.call(this, opts.context);
     }
@@ -333,7 +355,7 @@ function enterConcurrent(states, opts) {
 // opts   - The options passed to `goto`.
 //
 // Returns the receiver.
-enter = function(states, opts) {
+enter = function (states, opts) {
     return (
         this.concurrent
         ? enterConcurrent.call(this, states, opts)
@@ -406,7 +428,7 @@ function exitConcurrent(opts) {
 // opts   - The options passed to `goto`.
 //
 // Returns the receiver.
-exit = function(opts) {
+exit = function (opts) {
     return (
         this.concurrent
         ? exitConcurrent.call(this, opts)
@@ -478,20 +500,6 @@ function sendConcurrent(...ary) {
     return handled;
 }
 
-// Internal: Logs the given message. How the message gets logged is determined
-// by the `State.logger` property. By default this is `console`, but can be
-// setto use another logger object. It assumes that there is an `info` method
-// on the logger object.
-trace = function(message) {
-    let logger = State.logger || console;
-
-    if (!this.root().trace || !logger) {
-        return;
-    }
-
-    logger.info(message);
-};
-
 // Public: The `State` constructor.
 //
 // name - A string containing the name of the state.
@@ -550,17 +558,18 @@ function State(name, opts, f) {
 //
 // Examples
 //
-//   let sc = State.define({concurrent: true}, function() {
+//   let sc = State.define({concurrent: true}, function () {
 //     this.state("a");
 //     this.state("b");
 //     this.state("c");
 //   });
 //
 // Returns the newly created root state.
-State.define = function(...args) {
+State.define = function (...args) {
     let opts = {};
     let f = null;
     let s;
+    let Statechart = this; // Make jslint happy
 
     if (args.length === 2) {
         opts = args[0];
@@ -573,13 +582,13 @@ State.define = function(...args) {
         }
     }
 
-    s = new this("root", opts, f);
+    s = new Statechart("root", opts, f);
     return s;
 };
 
 // Public: Indicates whether the state is the root of the statechart created
 // by the `State.define` method.
-State.prototype.isRoot = function() {
+State.prototype.isRoot = function () {
     return this.name === "root";
 };
 
@@ -600,9 +609,9 @@ State.prototype.isRoot = function() {
 //   s2.state("s21");
 //   s2.state("s22");
 //
-//   let sc = State.define(function() {
-//     this.state("s", function() {
-//       this.state("s1", function() {
+//   let sc = State.define(function () {
+//     this.state("s", function () {
+//       this.state("s1", function () {
 //         this.state("s11");
 //         this.state("s12");
 //       });
@@ -612,11 +621,12 @@ State.prototype.isRoot = function() {
 //   });
 //
 // Returns the newly created state.
-State.prototype.state = function(name, opts, f) {
+State.prototype.state = function (name, opts, f) {
+    let Constructor = this.constructor; // Make jslint happy
     let s = (
-        name instanceof this.constructor
+        typeof name === "object"
         ? name
-        : new this.constructor(name, opts, f)
+        : new Constructor(name, opts, f)
     );
     this.addSubstate(s);
     return s;
@@ -660,7 +670,7 @@ State.prototype.exit = function pState_exit(f) {
 // context    - The destination context.
 //
 // Returns the receiver.
-State.prototype.canExit = function( /*destStates, context*/ ) {
+State.prototype.canExit = function ( /*destStates, context*/ ) {
     return true;
 };
 
@@ -687,9 +697,9 @@ State.prototype.event = function pState_event(name, f) {
 //
 // Examples
 //
-//   let sc = State.define(function() {
-//     this.state("a", function() {
-//       this.C(function() {
+//   let sc = State.define(function () {
+//     this.state("a", function () {
+//       this.C(function () {
 //         if (shouldGoToB) { return "./b"; }
 //         if (shouldGoToC) { return "./c"; }
 //         if (shouldGoToD) { return "./d"; }
@@ -756,7 +766,7 @@ State.prototype.addSubstate = function pState_addSubstate(state) {
     this.substateMap[state.name] = state;
     this.substates.push(state);
     state.superstate = this;
-    state.each(function(s) {
+    state.each(function (s) {
         s.cache = {};
         if (deep) {
             s.history = true;
@@ -772,7 +782,9 @@ State.prototype.addSubstate = function pState_addSubstate(state) {
 // Internal: Invoked by the `#addSubstate` method when the state has been
 // connected to a root statechart. This is currently only used by the
 // `RoutableState` substate and should not be invoked by client code.
-State.prototype.didAttach = function pState_didAttach() {};
+State.prototype.didAttach = function pState_didAttach() {
+    return;
+};
 
 // Public: Indicates whether the receiver state is attached to a root
 // statechart node.
@@ -782,11 +794,13 @@ State.prototype.isAttached = function pState_isAttached() {
 
 // Public: Returns the root state.
 State.prototype.root = function pState_root() {
-    return (
-        this.cache.root = this.cache.root || (
-            this.superstate ? this.superstate.root() : this
-        )
+    this.cache.root = this.cache.root || (
+        this.superstate
+        ? this.superstate.root()
+        : this
     );
+
+    return this.cache.root;
 };
 
 // Public: Returns a string containing the full path from the root state to
@@ -835,13 +849,13 @@ State.prototype.path = function pState_path() {
 //
 // Examples
 //
-//   let sc = State.define(function() {
-//     this.state("a", function() {
-//       this.state("b", function() {
-//         this.foo = function() { this.goto("../c"); };
+//   let sc = State.define(function () {
+//     this.state("a", function () {
+//       this.state("b", function () {
+//         this.foo = function () { this.goto("../c"); };
 //       });
-//       this.state("c", function() {
-//         this.bar = function() { this.goto("../b"); };
+//       this.state("c", function () {
+//         this.bar = function () { this.goto("../b"); };
 //       });
 //     });
 //   });
@@ -970,7 +984,7 @@ State.prototype.send = function pState_send(...ary) {
 
     if (!handled && typeof events[args[0]] === "function") {
         this.isSending = true;
-        handled = !!events[args[0]].apply(this, args.slice(1));
+        handled = Boolean(events[args[0]].apply(this, args.slice(1)));
         this.isSending = false;
     }
 
@@ -1014,33 +1028,55 @@ State.prototype.resolve = function pState_resolve(path) {
         return null;
     }
 
-    path = typeof path === "string" ? path.split("/") : path;
+    path = (
+        typeof path === "string"
+        ? path.split("/")
+        : path
+    );
     head = path.shift();
 
     switch (head) {
-        case "":
-            next = this.root();
-            break;
-        case ".":
-            next = this;
-            break;
-        case "..":
-            next = this.superstate;
-            break;
-        default:
-            next = this.substateMap[head];
+    case "":
+        next = this.root();
+        break;
+    case ".":
+        next = this;
+        break;
+    case "..":
+        next = this.superstate;
+        break;
+    default:
+        next = this.substateMap[head];
     }
 
     if (!next) {
         return null;
     }
 
-    return path.length === 0 ? next : next.resolve(path);
+    return (
+        path.length === 0
+        ? next
+        : next.resolve(path)
+    );
 };
 
 // Public: Returns a formatted string with the state's full path.
 State.prototype.toString = function pState_toString() {
     return "State(" + this.path() + ")";
+};
+
+// Internal: Logs the given message. How the message gets logged is determined
+// by the `State.logger` property. By default this is `console`, but can be
+// setto use another logger object. It assumes that there is an `info` method
+// on the logger object.
+trace = function (message) {
+    let logger = State.logger || console;
+
+    if (!this.root().trace || !logger) {
+        return;
+    }
+
+    logger.info(message);
 };
 
 export {State};
