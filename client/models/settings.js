@@ -21,6 +21,7 @@ const store = {};
 import {model} from "./model.js";
 import {stream} from "../../common/stream.js";
 import {datasource} from "../datasource.js";
+import {catalog} from "./catalog.js";
 import {State} from "../../common/state.js";
 
 const jsonpatch = window.jsonpatch;
@@ -176,5 +177,7 @@ function settings(definition) {
 
     return that;
 }
+
+catalog.register("factories", "model", model);
 
 export {settings};

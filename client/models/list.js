@@ -455,5 +455,6 @@ function list(feather) {
     };
 }
 
+catalog.register("factories", "list", list);
 
 export {list};
