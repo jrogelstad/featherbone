@@ -22,7 +22,7 @@ let widthNoScroll;
 let widthWithScroll;
 
 import {f} from "../core.js";
-import {stream} from "../../common/stream-client.js";
+import {stream} from "../../common/stream.js";
 import {catalog} from "../models/catalog.js";
 import {dialog} from "./dialog.js";
 import {State} from "../../common/state.js";

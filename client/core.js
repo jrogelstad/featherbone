@@ -17,7 +17,7 @@
 **/
 /*jslint browser*/
 import {catalog} from "./models/catalog.js";
-import {stream} from "../common/stream-client.js";
+import {stream} from "../common/stream.js";
 import {State} from "../common/state.js";
 
 const m = window.m;

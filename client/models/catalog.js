@@ -17,7 +17,7 @@
 **/
 /*jslint this, browser*/
 import {f} from "../core.js";
-import {stream} from "../../common/stream-client.js";
+import {stream} from "../../common/stream.js";
 import {State} from "../../common/state.js";
 import {datasource} from "../datasource.js";
 

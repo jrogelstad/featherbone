@@ -27,7 +27,6 @@
     } = require("./config");
 
     const config = new Config();
-    const stream = require("../common/stream");
 
     exports.Database = function () {
         let conn;
@@ -49,7 +48,7 @@
 
         function setNodeId(config) {
             return new Promise(function (resolve) {
-                that.nodeId(config.nodeId.toSnakeCase());
+                that.nodeId = config.nodeId.toSnakeCase();
                 resolve(config);
             });
         }
@@ -109,8 +108,6 @@
                 );
             });
         };
-
-        that.nodeId = stream();
 
         return that;
     };

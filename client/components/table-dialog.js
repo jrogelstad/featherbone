@@ -17,7 +17,7 @@
 **/
 /*jslint this, browser*/
 import {f} from "../core.js";
-import {stream} from "../../common/stream-client.js";
+import {stream} from "../../common/stream.js";
 import {button} from "./button.js";
 import {catalog} from "../models/catalog.js";
 import {dialog} from "./dialog.js";

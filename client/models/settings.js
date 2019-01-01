@@ -19,7 +19,7 @@
 const store = {};
 
 import {model} from "./model.js";
-import {stream} from "../../common/stream-client.js";
+import {stream} from "../../common/stream.js";
 import {datasource} from "../datasource.js";
 import {State} from "../../common/state.js";
 
