@@ -25,7 +25,6 @@
     "pg-format": "^1.0.4",
     "purecss": "^1.0.0",
     "qs": "^6.6.0",
-    "redoc": "^2.0.0-alpha.41",
     "sse-nodejs": "^0.1.0"
   }
 }
