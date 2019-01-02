@@ -26,6 +26,7 @@
     const f = require("./common/core");
     const qs = require("qs");
     const SSE = require("sse-nodejs");
+    const cors = require("cors");
 
     let app = express();
     let services = [];
@@ -52,8 +53,6 @@
         this.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
         this.setHeader("Pragma", "no-cache"); // HTTP 1.0.
         this.setHeader("Expires", "0");
-        // TODO: Make config option to turn this off for production
-        this.setHeader("Access-Control-Allow-Origin", "http://localhost");
 
         // Send back a JSON response
         this.json(resp);
@@ -467,27 +466,11 @@
             extended: true
         }));
         app.use(bodyParser.json());
+        
+        app.use(cors());
 
         // static pages
         app.use(express.static(__dirname));
-
-        // middleware to use for all requests
-        app.use(function (...args) {
-            let res = args[1];
-            let next = args[2];
-
-            // TODO: Make config option to turn these off for production
-            res.header("Access-Control-Allow-Origin", "*");
-            res.header(
-                "Access-Control-Allow-Methods",
-                "GET,PUT,POST,PATCH, DELETE"
-            );
-            res.header(
-                "Access-Control-Allow-Headers",
-                "Content-Type, Authorization"
-            );
-            next(); // make sure we go to the 'next' routes and don't stop here
-        });
 
         // Create routes for each catalog object
         registerDataRoutes();
