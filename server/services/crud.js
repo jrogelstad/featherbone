@@ -358,7 +358,7 @@
                     Object.keys(feather.properties).some(function (key) {
                         let fp = feather.properties[key];
 
-                        if (fp.isUnique && !fp.autonumber) {
+                        if (fp.isNaturalKey && !fp.autonumber) {
                             unique = {
                                 feather: fp.inheritedFrom || feather.name,
                                 prop: key,
@@ -1144,7 +1144,7 @@
                         let pf = props[fkey];
 
                         if (
-                            pf.isUnique &&
+                            pf.isNaturalKey &&
                             updRec[fkey] !== oldRec[fkey]
                         ) {
 

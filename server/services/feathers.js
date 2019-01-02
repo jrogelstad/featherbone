@@ -1354,7 +1354,7 @@
                                 adds.push(key);
                                 tokens = tokens.concat([table, token]);
 
-                                if (prop.isUnique) {
+                                if (prop.isNaturalKey) {
                                     unique.push(key);
                                 }
 

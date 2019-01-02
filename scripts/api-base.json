@@ -861,7 +861,7 @@
                         "type": "boolean",
                         "default": false
                     },
-                    "isUnique": {
+                    "isNaturalKey": {
                         "description": "Unique flag",
                         "type": "boolean",
                         "default": false
