@@ -431,10 +431,6 @@ function initApp() {
             menu.selected("home");
         },
         view: function () {
-            let apiUrl;
-
-            apiUrl = "http://" + window.location.hostname + ":";
-            apiUrl += window.location.port + "/api.html";
             return m("div", {
                 style: {
                     position: "absolute",
@@ -454,16 +450,7 @@ function initApp() {
                             m("h2", {
                                 class: "fb-header fb-header-home"
                             }, "Home")
-                        ]),
-                        m("a", {
-                            href: apiUrl,
-                            style: {
-                                position: "relative",
-                                width: "150px",
-                                top: "50px",
-                                padding: "10px"
-                            }
-                        }, "REST API")
+                        ])
                     ]
                 ])
             ]);

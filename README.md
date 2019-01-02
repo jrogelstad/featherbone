@@ -21,3 +21,5 @@ $ node server
 From your browser navigate to <http://localhost:10001> to run the application.
 
 An additional example module may be loaded [here](https://github.com/jrogelstad/cardinal)
+
+A REST API documentation server may be installed from [here](https://github.com/jrogelstad/canary)
