@@ -53,12 +53,13 @@
             "code": {
                 "description": "Natural key",
                 "type": "string",
-                "isUnique": true,
+                "isNaturalKey": true,
                 "isRequired": true
             },
             "description": {
                 "description": "Description",
-                "type": "string"
+                "type": "string",
+                "isLabelKey": true
             },
             "note": {
                 "description": "Note",
@@ -75,12 +76,13 @@
             "code": {
                 "description": "Natural key",
                 "type": "string",
-                "isUnique": true,
+                "isNaturalKey": true,
                 "isRequired": true
             },
             "description": {
                 "description": "Description",
-                "type": "string"
+                "type": "string",
+                "isLabelKey": true
             },
             "dimension": {
                 "description": "Dimension",
@@ -285,12 +287,13 @@
                 "description": "Country code",
                 "type": "string",
                 "isRequired": true,
-                "isUnique": true
+                "isNaturalKey": true
             },
             "name": {
                 "description": "Name",
                 "type": "string",
-                "isRequired": true
+                "isRequired": true,
+                "isLabelKey": true
             }
         }
     },
@@ -305,7 +308,7 @@
                 "description": "State code",
                 "type": "string",
                 "isRequired": true,
-                "isUnique": true
+                "isNaturalKey": true
             },
             "name": {
                 "description": "Name",
@@ -376,11 +379,13 @@
         "properties": {
             "name": {
                 "description": "Network name",
-                "type": "string"
+                "type": "string",
+                "isNaturalKey": true
             },
             "description": {
                 "description": "description",
-                "type": "string"
+                "type": "string",
+                "isLabelKey": true
             },
             "url": {
                 "description": "Url",
@@ -397,7 +402,8 @@
         "properties": {
             "title": {
                 "description": "Title",
-                "type": "string"
+                "type": "string",
+                "isNaturalKey": true
             }
         }
     },

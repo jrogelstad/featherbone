@@ -9,7 +9,7 @@
             "name": {
                 "description": "Name",
                 "type": "string",
-                "isUnique": true,
+                "isNaturalKey": true,
                 "isRequired": true
             },
             "description": {
@@ -149,8 +149,14 @@
                 "default": false,
                 "isRequired": true
             },
-            "isUnique": {
-                "description": "Unique flag",
+            "isNaturalKey": {
+                "description": "Flag unique property relations",
+                "type": "boolean",
+                "default": false,
+                "isRequired": true
+            },
+            "isLabelKey": {
+                "description": "Flag default property for relation label",
                 "type": "boolean",
                 "default": false,
                 "isRequired": true
@@ -182,13 +188,14 @@
             "name": {
                 "description": "Name",
                 "type": "string",
-                "isUnique": true,
+                "isNaturalKey": true,
                 "isRequired": true
             },
             "description": {
                 "description": "Description",
                 "type": "string",
-                "isRequired": true
+                "isRequired": true,
+                "isLabelKey": true
             }
         }
     },
@@ -243,13 +250,14 @@
             "name": {
                 "description": "Name",
                 "type": "string",
-                "isUnique": true,
+                "isNaturalKey": true,
                 "isRequired": true
             },
             "description": {
                 "description": "Description",
                 "type": "string",
-                "isRequired": true
+                "isRequired": true,
+                "isLabelKey": true
             },
             "module": {
                 "description": "Module",
@@ -390,13 +398,14 @@
             "name": {
                 "description": "Name",
                 "type": "string",
-                "isUnique": true,
+                "isNaturalKey": true,
                 "isRequired": true
             },
             "description": {
                 "description": "Description",
                 "type": "string",
-                "isRequired": true
+                "isRequired": true,
+                "isLabelKey": true
             },
             "module": {
                 "description": "Module",
