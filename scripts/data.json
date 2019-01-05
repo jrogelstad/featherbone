@@ -105,6 +105,23 @@
 }, {
     "name": "Form",
     "method": "POST",
+    "id": "2il4f55uj3ga",
+    "data": {
+        "name": "Route",
+        "description": "Route form",
+        "feather": "Route",
+        "module": "Core",
+        "attrs": [{
+            "attr": "module"
+        }, {
+            "attr": "path"
+        }, {
+            "attr": "function"
+        }]
+    }
+}, {
+    "name": "Form",
+    "method": "POST",
     "id": "b7198t6p0a3h",
     "data": {
         "name": "Form",

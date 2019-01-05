@@ -105,6 +105,28 @@
                 }
             },
             {
+                "name": "Routes",
+                "feather": "Route",
+                "list": {
+                    "columns": [{
+                        "attr": "module"
+                    }, {
+                        "attr": "path"
+                    }, {
+                        "attr": "function"
+                    }],
+                    "filter": {
+                        "sort": [{
+                            "property": "module",
+                            "order": "ASC"
+                        }, {
+                            "property": "path",
+                            "order": "ASC"
+                        }]
+                    }
+                }
+            },
+            {
                 "name": "Units",
                 "feather": "Unit",
                 "list": {

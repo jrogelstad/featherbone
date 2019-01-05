@@ -570,8 +570,11 @@
 
         // REGISTER MODULE ROUTES
         routes.forEach(function (route) {
-            console.log("Registering module route:", route.name);
-            eval(route.script);
+            let fullPath = "/" + route.module.toSpinalCase() + route.path;
+            let doPostRequest = datasource.postFunction.bind(route.function);
+
+            console.log("Registering module route:", fullPath);
+            app.post(fullPath, doPostRequest);
         });
 
         // START THE SERVER
