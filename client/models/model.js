@@ -951,11 +951,7 @@ function model(data, feather) {
             let prop = d[key];
             let value = prop();
 
-            if (
-                Array.isArray(value) &&
-                value.length &&
-                value[0].isModel
-            ) {
+            if (Array.isArray(value) && !value.isCalculated) {
                 value.forEach(function (item) {
                     item.state().goto("/Ready/Fetched/ReadOnly");
                 });
@@ -1110,7 +1106,7 @@ function model(data, feather) {
             let prop = d[key];
             let value = prop();
 
-            if (Array.isArray(value)) {
+            if (Array.isArray(value) && !value.isCalculated) {
                 value.forEach(function (item) {
                     item.state().goto("/Ready/Fetched/Clean");
                 });
