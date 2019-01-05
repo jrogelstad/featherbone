@@ -27,6 +27,9 @@
     const qs = require("qs");
     const SSE = require("sse-nodejs");
     const cors = require("cors");
+    
+    f.datasource = datasource;
+    f.jsonpatch = require("fast-json-patch");
 
     let app = express();
     let services = [];
@@ -562,7 +565,7 @@
         // REGISTER MODULE SERVICES
         services.forEach(function (service) {
             console.log("Registering module service:", service.name);
-            eval(service.script);
+            new Function("f", "\"use strict\";" + service.script)(f);
         });
 
         // REGISTER MODULE ROUTES

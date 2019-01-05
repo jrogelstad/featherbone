@@ -323,7 +323,7 @@ function initApp() {
     }());
 
     moduleData.forEach(function (module) {
-        new Function("\"use strict\";" + module.script)(f);
+        new Function("f", "\"use strict\";" + module.script)(f);
     });
 
     // Propagate static functions to child classes
