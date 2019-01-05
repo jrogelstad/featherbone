@@ -18,30 +18,23 @@
 import {catalog} from "./catalog.js";
 import {model} from "./model.js";
 
-/**
-  A factory that returns a persisting object based on a definition called a
-  `feather`. Can be extended by modifying the return object directly.
-  @param {Object} Default data
-  return {Object}
-*/
-function table(data) {
+function feather(data) {
     let that;
-    let feathers;
     let modules;
-    let feather = catalog.getFeather("TableSpec");
+    let spec = catalog.getFeather("Feather");
 
     // ..........................................................
     // PUBLIC
     //
 
-    that = model(data, feather);
+    that = model(data, spec);
 
-    feathers = function () {
-        let tables = catalog.store().feathers();
-        let keys = Object.keys(tables);
+    function featherList() {
+        let feathers = catalog.store().feathers();
+        let keys = Object.keys(feathers);
 
         keys = keys.filter(function (key) {
-            return !tables[key].isSystem;
+            return !feathers[key].isSystem;
         }).sort();
 
         return keys.map(function (key) {
@@ -50,20 +43,21 @@ function table(data) {
                 label: key
             };
         });
-    };
+    }
+
     that.addCalculated({
         name: "feathers",
         type: "array",
-        function: feathers
+        function: featherList
     });
 
     modules = function () {
-        let tables = catalog.store().feathers();
-        let keys = Object.keys(tables);
+        let feathers = catalog.store().feathers();
+        let keys = Object.keys(feathers);
         let ary = [];
 
         keys.forEach(function (key) {
-            let mod = tables[key].module;
+            let mod = feathers[key].module;
 
             if (mod && ary.indexOf(mod) === -1) {
                 ary.push(mod);
@@ -86,5 +80,5 @@ function table(data) {
     return that;
 }
 
-catalog.register("models", "tableSpec", table);
-export {table};
+catalog.register("models", "feather", feather);
+export {feather};

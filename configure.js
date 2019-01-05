@@ -370,7 +370,7 @@
             });
 
             data.push({
-                name: "TableSpec",
+                name: "Feather",
                 method: "POST",
                 id: feather.name,
                 data: feather

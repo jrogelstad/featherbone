@@ -87,7 +87,7 @@
                 let reqLog;
                 let reqForm;
                 let reqWidget;
-                let reqTable;
+                let reqFeather;
                 let promises = [];
 
                 req = function () {
@@ -118,9 +118,9 @@
                 reqForm = req();
                 reqForm.data.id = "form";
                 promises.push(datasource.request(reqForm));
-                reqTable = req();
-                reqTable.data.id = "table_spec";
-                promises.push(datasource.request(reqTable));
+                reqFeather = req();
+                reqFeather.data.id = "feather";
+                promises.push(datasource.request(reqFeather));
                 reqWidget = req();
                 reqWidget.data.id = "relation_widget";
                 promises.push(datasource.request(reqWidget));
