@@ -32,10 +32,14 @@
     } = require("./scripts/api");
     const fs = require("fs");
     const path = require("path");
+    const f = require("./common/core");
     const datasource = require("./server/datasource");
     const format = require("pg-format");
     const MANIFEST = "manifest.json";
     const api = new API();
+
+    f.datasource = datasource;
+    f.jsonpatch = require("fast-json-patch");
 
     let manifest;
     let file;
@@ -402,7 +406,7 @@
 
             after = function (resp) {
                 resp.forEach(function (service) {
-                    eval(service.script);
+                    new Function("f", "\"use strict\";" + service.script)(f);
                 });
                 nextItem();
             };
