@@ -153,7 +153,7 @@ sheetConfigureDialog.viewModel = function (options) {
                     }, [
                         m("label", {
                             for: featherId
-                        }, "Table:"),
+                        }, "Feather:"),
                         m("select", {
                             value: d.feather(),
                             required: true,
