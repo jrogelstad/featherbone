@@ -57,12 +57,6 @@ childFormPage.viewModel = function (options) {
     vm.buttonNext = stream();
     vm.buttonNew = stream();
     vm.doDone = function () {
-        let instance = vm.model();
-
-        if (instance.state().current()[0] === "/Ready/Fetched/Dirty") {
-            instance.state().send("undo");
-        }
-
         // Once we consciously leave, purge memoize
         delete instances[vm.model().id()];
         window.history.go(pageIdx * -1);
