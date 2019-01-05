@@ -35,9 +35,9 @@
         */
         that.getRoutes = function (obj) {
             return new Promise(function (resolve, reject) {
-                let sql = "SELECT * FROM \"$route\" ";
+                let sql = "SELECT module, path, function FROM \"_route\" ";
 
-                // Query modules
+                // Query routes
                 obj.client.query(sql, function (err, resp) {
                     if (err) {
                         reject(err);

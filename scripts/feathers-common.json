@@ -43,7 +43,32 @@
                 }
             }
         }
-    }, {
+    },
+    {
+        "name": "Route",
+        "plural": "Routes",
+        "module": "Core",
+        "inherits": "Document",
+        "description": "Route to expose post service to REST API",
+        "properties": {
+            "module": {
+                "description": "Module route belongs to",
+                "type": "string",
+                "isRequired": true
+            },
+            "path": {
+                "description": "Route path",
+                "type": "string",
+                "isRequired": true
+            },
+            "function": {
+                "description": "Registered function on datasource to execute",
+                "type": "string",
+                "isRequired": true
+            }
+        }
+    },
+    {
         "name": "Kind",
         "plural": "Kinds",
         "module": "Core",
