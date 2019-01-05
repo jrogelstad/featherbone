@@ -332,7 +332,7 @@ tableWidget.viewModel = function (options) {
             models = (
                 models === undefined
                 ? []
-                :[models]
+                : [models]
             );
         }
 
