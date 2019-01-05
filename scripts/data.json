@@ -217,7 +217,7 @@
         "feather": "FormAttr",
         "module": "Core",
         "attrs": [{
-            "attr": "attr",
+            "attr": "attr"
         }, {
             "attr": "grid"
         }, {
