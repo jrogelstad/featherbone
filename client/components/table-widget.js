@@ -324,11 +324,16 @@ tableWidget.viewModel = function (options) {
         if (!Array.isArray(models)) {
             if (
                 selections.length !== 1 ||
+                models === undefined ||
                 selections[0].id() !== models.id()
             ) {
                 vm.unselect(selections);
             }
-            models = [models];
+            models = (
+                models === undefined
+                ? []
+                :[models]
+            );
         }
 
         models.forEach(function (model) {
