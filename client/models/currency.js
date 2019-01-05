@@ -41,7 +41,9 @@ function currency(data, feather) {
     that.onValidate(function () {
         let id;
         let displayUnit = that.data.displayUnit();
-        let conversions = that.data.conversions();
+        let conversions = that.data.conversions().filter(
+            (item) => item.state().current()[0] !== "/Delete"
+        );
 
         function containsDisplayUnit(model) {
             return model.data.toUnit().id() === id;
