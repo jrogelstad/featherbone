@@ -25,6 +25,11 @@ import {list} from "./models/list.js";
 import {State} from "../common/state.js";
 import {navigator} from "./components/navigator-menu.js";
 import {dialog} from "./components/dialog.js";
+import {formPage} from "./components/form-page.js";
+import {childFormPage} from "./components/child-form-page.js";
+import {searchPage} from "./components/search-page.js";
+import {settingsPage} from "./components/settings-page.js";
+import {workbookPage} from "./components/workbook-page.js";
 
 const m = window.m;
 const EventSource = window.EventSource;
@@ -276,7 +281,6 @@ function initPromises() {
 function initApp() {
     let home;
     let sseErrorDialog;
-    let components = catalog.store().components();
     let models = catalog.store().models();
     let workbookModel = models.workbook;
     let keys = Object.keys(feathers);
@@ -459,10 +463,11 @@ function initApp() {
 
     m.route(document.body, "/home", {
         "/home": home,
-        "/workbook/:workbook/:key": components.workbookPage,
-        "/edit/:feather/:key": components.formPage,
-        "/search/:feather": components.searchPage,
-        "/settings/:settings": components.settingsPage
+        "/workbook/:workbook/:key": workbookPage.component,
+        "/edit/:feather/:key": formPage.component,
+        "/traverse/:feather/:key": childFormPage.component,
+        "/search/:feather": searchPage.component,
+        "/settings/:settings": settingsPage.component
     });
 }
 
@@ -512,13 +517,11 @@ evstart.onmessage = function (event) {
                     // Only update if not caused by this instance
                     state = instance.state().current()[0];
                     if (
-                        state !== "/Busy/Saving/Patching" &&
-                        (
-                            !data.etag ||
-                                (
-                                    data.etag &&
-                                    data.etag !== instance.data.etag()
-                                )
+                        state !== "/Busy/Saving/Patching" && (
+                            !data.etag || (
+                                data.etag &&
+                                data.etag !== instance.data.etag()
+                            )
                         )
                     ) {
                         instance.set(data, true, true);

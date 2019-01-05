@@ -55,6 +55,7 @@ childTable.viewModel = function (options) {
     let canAdd;
     let root = findRoot(options.parentViewModel.model());
     let vm = {};
+    let instances = catalog.store().instances();
 
     function toggleCanAdd() {
         let currentState = root.state().current();
@@ -78,7 +79,22 @@ childTable.viewModel = function (options) {
     vm.buttonOpen = stream();
     vm.buttonRemove = stream();
     vm.buttonUndo = stream();
-    //vm.formDialog = stream();
+    vm.childForm = stream();
+    vm.childOpen = function () {
+        let selection = vm.tableWidget().selection();
+        instances[selection.id()] = selection;
+
+        if (selection) {
+            m.route.set("/traverse/:feather/:key", {
+                feather: options.feather.name.toSpinalCase(),
+                key: selection.id()
+            }, {
+                state: {
+                    form: options.config.form
+                }
+            });
+        }
+    };
     vm.tableWidget = stream();
     vm.parentViewModel = stream(options.parentViewModel);
     vm.refresh = function () {
@@ -88,15 +104,6 @@ childTable.viewModel = function (options) {
     // ..........................................................
     // PRIVATE
     //
-
-    // Create dalog view model
-    /*
-    vm.formDialog(formDialog.viewModel({
-      filter: vm.tableWidget().filter,
-      list: vm.tableWidget().models(),
-      feather: feather
-    }));
-    */
 
     // Create table widget view model
     vm.tableWidget(tableWidget.viewModel({
@@ -143,7 +150,7 @@ childTable.viewModel = function (options) {
     vm.buttonUndo().hide();
 
     vm.buttonOpen(button.viewModel({
-        //onclick: vm.formDialog().show,
+        onclick: vm.childOpen,
         title: "Open",
         hotkey: "O",
         icon: "folder-open",
@@ -167,7 +174,7 @@ childTable.viewModel = function (options) {
             current !== "/Ready/Fetched/ReadOnly" &&
             current !== "/Locked"
         ) {
-            //vm.buttonOpen().enable();
+            vm.buttonOpen().enable();
             vm.buttonRemove().enable();
         }
     });
@@ -204,6 +211,8 @@ childTable.viewModel = function (options) {
 
     return vm;
 };
+
+catalog.register("viewModels", "childTable", childTable.viewModel);
 
 /**
   Child table component
