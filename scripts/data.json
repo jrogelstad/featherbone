@@ -151,7 +151,10 @@
         }, {
             "attr": "feather",
             "dataList": "feathers",
-            "label": "Table",
+            "grid": 0,
+            "unit": 1
+        }, {
+            "attr": "focus",
             "grid": 0,
             "unit": 1
         }, {
@@ -163,9 +166,20 @@
                 "attr": "attr",
                 "label": "Attribute"
             }, {
-                "attr": "grid"
+                "attr": "grid",
+                "width": "50px"
             }, {
-                "attr": "unit"
+                "attr": "unit",
+                "width": "50px"
+            }, {
+                "attr": "showLabel",
+                "width": "100px"
+            }, {
+                "attr": "label"
+            }, {
+                "attr": "dataList"
+            }, {
+                "attr": "disableCurrency"
             }]
         }, {
             "attr": "tabs",
@@ -191,6 +205,31 @@
             "attr": "updatedBy",
             "grid": 3,
             "unit": 0
+        }]
+    }
+}, {
+    "name": "Form",
+    "method": "POST",
+    "id": "b334s6bin7dg",
+    "data": {
+        "name": "FormAttr",
+        "description": "Form attributes form",
+        "feather": "FormAttr",
+        "module": "Core",
+        "attrs": [{
+            "attr": "attr",
+        }, {
+            "attr": "grid"
+        }, {
+            "attr": "unit"
+        }, {
+            "attr": "showLabel"
+        }, {
+            "attr": "label"
+        }, {
+            "attr": "dataList"
+        }, {
+            "attr": "disableCurrency"
         }]
     }
 }, {

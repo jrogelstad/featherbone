@@ -195,7 +195,7 @@ formPage.viewModel = function (options) {
     }));
     if (catalog.getFeather(feather).isReadOnly) {
         vm.buttonSaveAndNew().label("&New");
-        vm.buttonSaveAndNew().title("Table is read only");
+        vm.buttonSaveAndNew().title("Data is read only");
         vm.buttonSaveAndNew().disable();
     }
 
