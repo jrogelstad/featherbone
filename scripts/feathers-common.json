@@ -30,21 +30,6 @@
         }
     },
     {
-        "name": "DocumentComment",
-        "module": "Core",
-        "description": "Comment on document",
-        "inherits": "Comment",
-        "properties": {
-            "parent": {
-                "description": "Parent document",
-                "type": {
-                    "relation": "Document",
-                    "childOf": "comments"
-                }
-            }
-        }
-    },
-    {
         "name": "Route",
         "plural": "Routes",
         "module": "Core",
