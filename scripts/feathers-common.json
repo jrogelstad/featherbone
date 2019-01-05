@@ -30,6 +30,231 @@
         }
     },
     {
+        "name": "Form",
+        "plural": "Forms",
+        "module": "Core",
+        "inherits": "Document",
+        "description": "Form definitions",
+        "properties": {
+            "name": {
+                "description": "Name",
+                "type": "string",
+                "isNaturalKey": true,
+                "isRequired": true
+            },
+            "description": {
+                "description": "Description",
+                "type": "string",
+                "isRequired": true,
+                "isLabelKey": true
+            },
+            "module": {
+                "description": "Module",
+                "type": "string"
+            },
+            "feather": {
+                "description": "Feather",
+                "type": "string",
+                "isRequired": true
+            },
+            "focus": {
+                "description": "Attribute that receives first focus",
+                "type": "string"
+            }
+        }
+    },
+    {
+        "name": "FormTab",
+        "plural": "FormTabs",
+        "module": "Core",
+        "description": "Form tab definitions",
+        "properties": {
+            "parent": {
+                "description": "Parent form",
+                "type": {
+                    "relation": "Form",
+                    "childOf": "tabs"
+                }
+            },
+            "name": {
+                "description": "Tab name",
+                "type": "string"
+            }
+        }
+    },
+    {
+        "name": "FormAttr",
+        "plural": "FormAttrs",
+        "module": "Core",
+        "description": "Form attribute definitions",
+        "properties": {
+            "parent": {
+                "description": "Parent form",
+                "type": {
+                    "relation": "Form",
+                    "childOf": "attrs"
+                }
+            },
+            "attr": {
+                "description": "Attribute name",
+                "type": "string",
+                "alias: "attribute"
+            },
+            "grid": {
+                "description": "Grid (pane) number",
+                "type": "integer",
+                "default": 0
+            },
+            "unit": {
+                "description": "Unit (column) number",
+                "type": "integer",
+                "default": 0
+            },
+            "showLabel": {
+                "description": "Flag to show or hide label",
+                "type": "boolean",
+                "default": true
+            },
+            "label": {
+                "description": "Alternate attribute label",
+                "type": "string"
+            },
+            "dataList": {
+                "description": "Property that returns an array of options",
+                "type": "string"
+            },
+            "filter": {
+                "description": "Filter definition for relation widget",
+                "type": "object"
+            },
+            "disableCurrency": {
+                "description": "Flag to disable currency selector on currency widget",
+                "type": "boolean",
+                "default": false
+            }
+        }
+    },
+    {
+        "name": "FormAttrColumn",
+        "plural": "FormAttrColumns",
+        "module": "Core",
+        "description": "Form attribute column definitions for child objects",
+        "properties": {
+            "parent": {
+                "description": "Parent form attribute",
+                "type": {
+                    "relation": "FormAttr",
+                    "childOf": "columns"
+                }
+            },
+            "attr": {
+                "description": "Attribute name",
+                "type": "string"
+            },
+            "label": {
+                "description": "Alternate column label",
+                "type": "string"
+            },
+            "dataList": {
+                "description": "Property that returns an array of options",
+                "type": "string"
+            },
+            "filter": {
+                "description": "Filter for relation search criteria",
+                "type": "object"
+            },
+            "showCurrency": {
+                "description": "Show currency selector if money",
+                "type": "boolean",
+                "default": true
+            },
+            "width": {
+                "description": "Default column width",
+                "type": "string"
+            }
+        }
+    },
+    {
+        "name": "RelationWidget",
+        "plural": "RelationWidgets",
+        "module": "Core",
+        "inherits": "Document",
+        "description": "Relation widget definitions",
+        "properties": {
+            "name": {
+                "description": "Name",
+                "type": "string",
+                "isNaturalKey": true,
+                "isRequired": true
+            },
+            "description": {
+                "description": "Description",
+                "type": "string",
+                "isRequired": true,
+                "isLabelKey": true
+            },
+            "module": {
+                "description": "Module",
+                "type": "string"
+            },
+            "feather": {
+                "description": "Feather",
+                "type": "string",
+                "isRequired": true
+            },
+            "form": {
+                "description": "Form relation",
+                "type": {
+                    "relation": "Form",
+                    "properties": [
+                        "name",
+                        "description"
+                    ]
+                },
+                "isRequired": true
+            },
+            "valueProperty": {
+                "description": "User key property",
+                "type": "string",
+                "isRequired": true
+            },
+            "labelProperty": {
+                "description": "Description property",
+                "type": "string"
+            },
+            "isActive": {
+                "description": "Active status",
+                "type": "boolean",
+                "isRequired": true,
+                "default": true
+            }
+        }
+    },
+    {
+        "name": "RelationSearchColumn",
+        "plural": "RelationSearchColumns",
+        "module": "Core",
+        "description": "Columns shown on relation widget search",
+        "properties": {
+            "parent": {
+                "description": "Parent relation widget",
+                "type": {
+                    "relation": "RelationWidget",
+                    "childOf": "searchColumns"
+                }
+            },
+            "attr": {
+                "description": "Attribute name",
+                "type": "string",
+                "isRequired": true
+            },
+            "label": {
+                "description": "Alternate column label",
+                "type": "string"
+            }
+        }
+    },
+    {
         "name": "Route",
         "plural": "Routes",
         "module": "Core",
