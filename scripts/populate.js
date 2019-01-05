@@ -115,15 +115,9 @@
                 reqLog = req();
                 reqLog.data.id = "log";
                 promises.push(datasource.request(reqLog));
-                reqForm = req();
-                reqForm.data.id = "form";
-                promises.push(datasource.request(reqForm));
                 reqFeather = req();
                 reqFeather.data.id = "feather";
                 promises.push(datasource.request(reqFeather));
-                reqWidget = req();
-                reqWidget.data.id = "relation_widget";
-                promises.push(datasource.request(reqWidget));
 
                 Promise.all(promises).then(resolve).catch(reject);
             };
