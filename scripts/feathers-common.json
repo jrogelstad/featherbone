@@ -98,7 +98,7 @@
             "attr": {
                 "description": "Attribute name",
                 "type": "string",
-                "alias: "attribute"
+                "alias": "attribute"
             },
             "grid": {
                 "description": "Grid (pane) number",
