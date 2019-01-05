@@ -513,7 +513,13 @@ evstart.onmessage = function (event) {
                     state = instance.state().current()[0];
                     if (
                         state !== "/Busy/Saving/Patching" &&
-                        data.etag !== instance.data.etag()
+                        (
+                            !data.etag ||
+                                (
+                                    data.etag &&
+                                    data.etag !== instance.data.etag()
+                                )
+                        )
                     ) {
                         instance.set(data, true, true);
                         m.redraw();
