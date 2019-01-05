@@ -1,8 +1,8 @@
 [{
-        "name": "TableSpec",
-        "plural": "TableSpecs",
+        "name": "Feather",
+        "plural": "Feather",
         "module": "Core",
-        "description": "Table definitions",
+        "description": "Object definitions",
         "authorization": false,
         "isReadOnly": true,
         "properties": {
@@ -68,16 +68,16 @@
         }
     },
     {
-        "name": "TableProperty",
-        "plural": "TableProperties",
+        "name": "FeatherProperty",
+        "plural": "FeatherProperties",
         "module": "Core",
-        "description": "Table properties",
+        "description": "Feather properties",
         "authorization": false,
         "properties": {
             "parent": {
-                "description": "Parent table",
+                "description": "Parent feather",
                 "type": {
-                    "relation": "TableSpec",
+                    "relation": "Feather",
                     "childOf": "properties"
                 }
             },
@@ -162,7 +162,7 @@
                 "isRequired": true
             },
             "inheritedFrom": {
-                "description": "Inherited source table",
+                "description": "Inherited source feather",
                 "type": "string",
                 "isRequired": false
             },
@@ -350,7 +350,7 @@
         "name": "FormAttrColumn",
         "plural": "FormAttrColumns",
         "module": "Core",
-        "description": "Form attribute column definitions for child tables",
+        "description": "Form attribute column definitions for child objects",
         "authorization": false,
         "properties": {
             "parent": {

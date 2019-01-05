@@ -8,7 +8,6 @@
         "defaultConfig": [{
                 "name": "Roles",
                 "feather": "Role",
-                "form": "dbflv6oz3d10",
                 "list": {
                     "columns": [{
                         "attr": "name"
@@ -24,9 +23,8 @@
                 }
             },
             {
-                "name": "Tables",
-                "feather": "TableSpec",
-                "form": "em4go8hrytdm",
+                "name": "Feathers",
+                "feather": "Feather",
                 "list": {
                     "columns": [{
                         "attr": "name"
@@ -54,7 +52,6 @@
             {
                 "name": "Forms",
                 "feather": "Form",
-                "form": "b7198t6p0a3h",
                 "list": {
                     "columns": [{
                         "attr": "name"
@@ -83,7 +80,6 @@
             {
                 "name": "Relations",
                 "feather": "RelationWidget",
-                "form": "qrupon4yc3t8",
                 "list": {
                     "columns": [{
                         "attr": "name"

@@ -185,8 +185,8 @@
         "CREATE TABLE \"$feather\" (" +
         "is_child boolean," +
         "parent_pk bigint," +
-        "CONSTRAINT feather_pkey PRIMARY KEY (_pk), " +
-        "CONSTRAINT feather_id_key UNIQUE (id)) INHERITS (object);" +
+        "CONSTRAINT feather_internal_pkey PRIMARY KEY (_pk), " +
+        "CONSTRAINT feather_internal_id_key UNIQUE (id)) INHERITS (object);" +
         "COMMENT ON TABLE \"$feather\" IS " +
         "'Internal table for storing class names';"
     );

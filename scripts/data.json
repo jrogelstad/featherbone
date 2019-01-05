@@ -43,9 +43,9 @@
     "method": "POST",
     "id": "em4go8hrytdm",
     "data": {
-        "name": "Table",
-        "description": "Table form",
-        "feather": "TableSpec",
+        "name": "Feather",
+        "description": "Feather form",
+        "feather": "Feather",
         "module": "Core",
         "tabs": [{
             "name": "Properties"

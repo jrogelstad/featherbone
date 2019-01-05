@@ -19,17 +19,16 @@
 /*global f*/
 
 /**
-  Table specification
+  Feather specification
 */
-function doUpsertTableSpec(obj) {
+function doUpsertFeather(obj) {
     "use strict";
 
     return new Promise(function (resolve, reject) {
         let payload;
-        let table = obj.newRec;
-        let feather = f.copy(table);
+        let feather = f.copy(obj.newRec);
 
-        // Save the table as a feather in the catalog
+        // Save the feather in the catalog
         let props = feather.properties;
         feather.properties = {};
         props.forEach(function (prop) {
@@ -52,15 +51,15 @@ function doUpsertTableSpec(obj) {
 
 f.datasource.registerFunction(
     "POST",
-    "TableSpec",
-    doUpsertTableSpec,
+    "Feather",
+    doUpsertFeather,
     f.datasource.TRIGGER_BEFORE
 );
 
 f.datasource.registerFunction(
     "PATCH",
-    "TableSpec",
-    doUpsertTableSpec,
+    "Feather",
+    doUpsertFeather,
     f.datasource.TRIGGER_BEFORE
 );
 
