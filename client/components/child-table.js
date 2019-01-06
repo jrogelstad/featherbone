@@ -80,7 +80,7 @@ childTable.viewModel = function (options) {
     vm.buttonRemove = stream();
     vm.buttonUndo = stream();
     vm.childForm = stream();
-    vm.childOpen = function () {
+    vm.doChildOpen = function () {
         let selection = vm.tableWidget().selection();
         instances[selection.id()] = selection;
 
@@ -90,6 +90,7 @@ childTable.viewModel = function (options) {
                 key: selection.id()
             }, {
                 state: {
+                    parentProperty: options.parentProperty,
                     form: options.config.form
                 }
             });
@@ -111,7 +112,6 @@ childTable.viewModel = function (options) {
         models: options.models,
         feather: options.feather,
         containerId: vm.parentViewModel().containerId()
-            //ondblclick: vm.formDialog().show
     }));
     vm.tableWidget().toggleEdit();
     vm.tableWidget().isQuery(false);
@@ -150,7 +150,7 @@ childTable.viewModel = function (options) {
     vm.buttonUndo().hide();
 
     vm.buttonOpen(button.viewModel({
-        onclick: vm.childOpen,
+        onclick: vm.doChildOpen,
         title: "Open",
         hotkey: "O",
         icon: "folder-open",
@@ -253,6 +253,7 @@ childTable.component = {
         if (!relations[parentProperty]) {
             relations[parentProperty] = childTable.viewModel({
                 parentViewModel: parentViewModel,
+                parentProperty: parentProperty,
                 models: models,
                 feather: feather,
                 config: config

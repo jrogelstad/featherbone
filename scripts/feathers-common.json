@@ -149,7 +149,8 @@
             },
             "attr": {
                 "description": "Attribute name",
-                "type": "string"
+                "type": "string",
+                "alias": "attribute"
             },
             "label": {
                 "description": "Alternate column label",
