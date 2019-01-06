@@ -27,26 +27,19 @@ const childFormPage = {};
 const m = window.m;
 
 childFormPage.viewModel = function (options) {
-    let model;
     let instances = catalog.store().instances();
+    let model = instances[options.key];
+    let ary = model.parent().data[options.parentProperty]();
     let sseState = catalog.store().global().sseState;
     let feather = options.feather.toCamelCase(true);
     let forms = catalog.store().forms();
     let formId = options.form || Object.keys(forms).find(function (id) {
         return forms[id].feather === feather;
     });
-    let idx = options.index;
     let form = forms[formId];
     let vm = {};
     let pageIdx = options.index || 1;
     let isNew = options.create && options.isNew !== false;
-
-    // Check if we've already got a model instantiated
-    if (options.key && instances[options.key]) {
-        model = instances[options.key];
-    } else {
-        model = options.feather.toCamelCase();
-    }
 
     // ..........................................................
     // PUBLIC
@@ -56,14 +49,34 @@ childFormPage.viewModel = function (options) {
     vm.buttonPrevious = stream();
     vm.buttonNext = stream();
     vm.buttonNew = stream();
+    vm.doChildOpen = function (n) {
+        let idx = ary.indexOf(model);
+        let target = ary[idx + n];
+
+        delete instances[model.id()];
+        instances[target.id()] = target;
+
+        m.route.set("/traverse/:feather/:key", {
+            feather: options.feather,
+            key: target.id()
+        }, {
+            state: {
+                parentProperty: options.parentProperty,
+                form: options.form,
+                index: pageIdx + 1
+            }
+        });
+    };
     vm.doDone = function () {
         // Once we consciously leave, purge memoize
         delete instances[vm.model().id()];
         window.history.go(pageIdx * -1);
     };
     vm.doPrevious = function () {
+        vm.doChildOpen(-1);
     };
     vm.doNext = function () {
+        vm.doChildOpen(1);
     };
     vm.doNew = function () {
         let opts = {
@@ -97,7 +110,7 @@ childFormPage.viewModel = function (options) {
     }));
     vm.sseErrorDialog().buttonCancel().hide();
     vm.title = function () {
-        return options.feather.toName();
+        return options.parentProperty.toName();
     };
 
     // Create form widget
@@ -136,6 +149,9 @@ childFormPage.viewModel = function (options) {
         icon: "arrow-up",
         class: "fb-toolbar-button"
     }));
+    if (ary.indexOf(model) === 0) {
+        vm.buttonPrevious().disable();
+    }
 
     vm.buttonNext(button.viewModel({
         onclick: vm.doNext,
@@ -143,6 +159,9 @@ childFormPage.viewModel = function (options) {
         icon: "arrow-down",
         class: "fb-toolbar-button"
     }));
+    if (ary.indexOf(model) === ary.length - 1) {
+        vm.buttonNext().disable();
+    }
 
     vm.buttonNew(button.viewModel({
         onclick: vm.doNew,

@@ -216,20 +216,53 @@
         "description": "Form attributes form",
         "feather": "FormAttr",
         "module": "Core",
+        "tabs": [{
+            "name": "Columns"
+        }],
         "attrs": [{
-            "attr": "attr"
+            "attr": "attr",
+            "grid": 0,
+            "unit": 0
         }, {
-            "attr": "grid"
+            "attr": "grid",
+            "grid": 0,
+            "unit": 0
         }, {
-            "attr": "unit"
+            "attr": "unit",
+            "grid": 0,
+            "unit": 0
         }, {
-            "attr": "showLabel"
+            "attr": "showLabel",
+            "grid": 0,
+            "unit": 1
         }, {
-            "attr": "label"
+            "attr": "label",
+            "grid": 0,
+            "unit": 1
         }, {
-            "attr": "dataList"
+            "attr": "dataList",
+            "grid": 0,
+            "unit": 1
         }, {
-            "attr": "disableCurrency"
+            "attr": "disableCurrency",
+            "grid": 0,
+            "unit": 1
+        }, {
+            "attr": "columns",
+            "grid": 1,
+            "unit": 0,
+            "showLabel": false,
+            "columns": [{
+                "attr": "attr"
+            }, {
+                "attr": "label"
+            }, {
+                "attr": "dataList"
+            }, {
+                "attr": "showCurrency"
+            }, {
+                "attr": "width"
+            }]
         }]
     }
 }, {
