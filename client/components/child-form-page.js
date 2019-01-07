@@ -16,6 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint this, browser*/
+import {f} from "../core.js";
 import {stream} from "../../common/stream.js";
 import {button} from "./button.js";
 import {catalog} from "../models/catalog.js";
@@ -26,8 +27,21 @@ const childFormPage = {};
 const m = window.m;
 
 childFormPage.viewModel = function (options) {
+    if (!catalog.store().instances) {
+        m.route.set("/home");
+        options.isInvalid = true;
+        return;
+    }
+
     let instances = catalog.store().instances();
     let model = instances[options.key];
+
+    if (!model) {
+        m.route.set("/home");
+        options.isInvalid = true;
+        return;
+    }
+
     let ary = model.parent().data[options.parentProperty]();
     let sseState = catalog.store().global().sseState;
     let feather = options.feather.toCamelCase(true);
@@ -115,26 +129,12 @@ childFormPage.viewModel = function (options) {
         outsideElementIds: ["toolbar"]
     }));
 
-    // Once model instantiated let history know already created so we know
-    // to fetch if navigating back here through history
-    if (isNew) {
-        options.isNew = false;
-        m.route.set(m.route.get(), null, {
-            replace: true,
-            state: options
-        });
-    }
-
-    // Memoize our model instance in case we leave and come back while
-    // zooming deeper into detail
-    instances[vm.model().id()] = vm.model();
-
     // Create button view models
     vm.buttonDone(button.viewModel({
         onclick: vm.doDone,
-        label: "&Done",
-        class: "fb-toolbar-button"
+        label: "&Done"
     }));
+    vm.buttonDone().isPrimary(true);
 
     vm.buttonPrevious(button.viewModel({
         onclick: vm.doPrevious,
@@ -144,6 +144,7 @@ childFormPage.viewModel = function (options) {
     }));
     if (ary.indexOf(model) === 0) {
         vm.buttonPrevious().disable();
+        vm.buttonPrevious().title("Current data is first record");
     }
 
     vm.buttonNext(button.viewModel({
@@ -154,6 +155,7 @@ childFormPage.viewModel = function (options) {
     }));
     if (ary.indexOf(model) === ary.length - 1) {
         vm.buttonNext().disable();
+        vm.buttonNext().title("Current data is last record");
     }
 
     vm.buttonNew(button.viewModel({
@@ -162,13 +164,9 @@ childFormPage.viewModel = function (options) {
         icon: "plus-circle",
         class: "fb-toolbar-button"
     }));
-    if (model.isReadOnly()) {
+    if (f.findRoot(model).state().current()[0] === "/Ready/Fetched/ReadOnly") {
         vm.buttonNew().disable();
-    }
-
-    if (catalog.getFeather(feather).isReadOnly) {
         vm.buttonNew().title("Data is read only");
-        vm.buttonNew().disable();
     }
 
     sseState.resolve("Error").enter(function () {
@@ -187,7 +185,11 @@ childFormPage.component = {
         );
     },
 
-    view: function () {
+    view: function (vnode) {
+        if (vnode.attrs.isInvalid) {
+            return;
+        }
+
         let lock;
         let title;
         let vm = this.viewModel;
