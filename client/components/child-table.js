@@ -58,7 +58,7 @@ childTable.viewModel = function (options) {
     let instances = catalog.store().instances();
 
     function toggleCanAdd() {
-        let currentState = root.state().current();
+        let currentState = root.state().current()[0];
 
         if (
             canAdd() &&
@@ -180,9 +180,11 @@ childTable.viewModel = function (options) {
             current !== "/Ready/Fetched/ReadOnly" &&
             current !== "/Locked"
         ) {
-            vm.buttonOpen().icon("folder-open");
             vm.buttonRemove().enable();
         }
+        
+         vm.buttonOpen().icon("folder-open");
+         vm.buttonOpen().enable();
     });
     tableState.resolve("/Selection/On/Clean").enter(function () {
         vm.buttonRemove().show();
