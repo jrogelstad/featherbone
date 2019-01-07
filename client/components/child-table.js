@@ -66,8 +66,10 @@ childTable.viewModel = function (options) {
             currentState !== "/Locked"
         ) {
             vm.buttonAdd().enable();
+            vm.buttonOpen().enable();
         } else {
             vm.buttonAdd().disable();
+            vm.buttonOpen().disable();
         }
     }
 
@@ -82,6 +84,12 @@ childTable.viewModel = function (options) {
     vm.childForm = stream();
     vm.doChildOpen = function () {
         let selection = vm.tableWidget().selection();
+
+        if (!selection) {
+            vm.tableWidget().modelNew();
+            selection = vm.tableWidget().selection();
+        }
+
         instances[selection.id()] = selection;
 
         if (selection) {
@@ -153,17 +161,15 @@ childTable.viewModel = function (options) {
         onclick: vm.doChildOpen,
         title: "Open",
         hotkey: "O",
-        icon: "folder-open",
+        icon: "folder-plus",
         style: {
             backgroundColor: "white"
         }
     }));
-    vm.buttonOpen().disable();
 
     // Bind buttons to table widget state change events
     tableState = vm.tableWidget().state();
     tableState.resolve("/Selection/Off").enter(function () {
-        vm.buttonOpen().disable();
         vm.buttonRemove().disable();
         vm.buttonRemove().show();
         vm.buttonUndo().hide();
@@ -174,7 +180,7 @@ childTable.viewModel = function (options) {
             current !== "/Ready/Fetched/ReadOnly" &&
             current !== "/Locked"
         ) {
-            vm.buttonOpen().enable();
+            vm.buttonOpen().icon("folder-open");
             vm.buttonRemove().enable();
         }
     });
@@ -200,9 +206,10 @@ childTable.viewModel = function (options) {
     });
     canAdd = vm.tableWidget().models().canAdd;
 
-    root.state().resolve("/Ready/Fetched/ReadOnly").enter(
-        vm.buttonAdd().disable
-    );
+    root.state().resolve("/Ready/Fetched/ReadOnly").enter(function () {
+        vm.buttonAdd().disable();
+        vm.buttonOpen().disable();
+    });
     root.state().resolve("/Ready/Fetched/ReadOnly").exit(toggleCanAdd);
     root.state().resolve("/Locked").enter(vm.buttonAdd().disable);
     root.state().resolve("/Locked").exit(toggleCanAdd);
