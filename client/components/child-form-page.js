@@ -16,7 +16,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint this, browser*/
-import {f} from "../core.js";
 import {stream} from "../../common/stream.js";
 import {button} from "./button.js";
 import {catalog} from "../models/catalog.js";
@@ -49,9 +48,8 @@ childFormPage.viewModel = function (options) {
     vm.buttonPrevious = stream();
     vm.buttonNext = stream();
     vm.buttonNew = stream();
-    vm.doChildOpen = function (n) {
-        let idx = ary.indexOf(model);
-        let target = ary[idx + n];
+    vm.doChildOpen = function (idx) {
+        let target = ary[idx];
 
         delete instances[model.id()];
         instances[target.id()] = target;
@@ -73,25 +71,20 @@ childFormPage.viewModel = function (options) {
         window.history.go(pageIdx * -1);
     };
     vm.doPrevious = function () {
-        vm.doChildOpen(-1);
+        let idx = ary.indexOf(model);
+
+        vm.doChildOpen(idx - 1);
     };
     vm.doNext = function () {
-        vm.doChildOpen(1);
+        let idx = ary.indexOf(model);
+
+        vm.doChildOpen(idx + 1);
     };
     vm.doNew = function () {
-        let opts = {
-            feather: options.feather,
-            key: f.createId()
-        };
-        let state = {
-            state: {
-                form: options.form,
-                index: pageIdx + 1,
-                create: true,
-                receiver: options.receiver
-            }
-        };
-        m.route.set("/edit/:feather/:key", opts, state);
+        let newInstance = catalog.store().models()[feather.toCamelCase()]();
+
+        ary.add(newInstance);
+        vm.doChildOpen(ary.length - 1);
     };
     vm.formWidget = stream();
     vm.model = function () {
@@ -169,6 +162,9 @@ childFormPage.viewModel = function (options) {
         icon: "plus-circle",
         class: "fb-toolbar-button"
     }));
+    if (model.isReadOnly()) {
+        vm.buttonNew().disable();
+    }
 
     if (catalog.getFeather(feather).isReadOnly) {
         vm.buttonNew().title("Data is read only");
