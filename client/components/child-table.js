@@ -16,6 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint this, browser*/
+import {f} from "../core.js";
 import {stream} from "../../common/stream.js";
 import {button} from "./button.js";
 import {catalog} from "../models/catalog.js";
@@ -23,24 +24,6 @@ import {tableWidget} from "./table-widget.js";
 
 const childTable = {};
 const m = window.m;
-
-function findRoot(model) {
-    let parent;
-    let d = model.data;
-    let keys = Object.keys(d);
-
-    parent = keys.find(function (key) {
-        if (d[key].isChild()) {
-            return true;
-        }
-    });
-
-    return (
-        parent
-        ? findRoot(d[parent]())
-        : model
-    );
-}
 
 /**
   View model for child table.
@@ -53,7 +36,7 @@ function findRoot(model) {
 childTable.viewModel = function (options) {
     let tableState;
     let canAdd;
-    let root = findRoot(options.parentViewModel.model());
+    let root = f.findRoot(options.parentViewModel.model());
     let vm = {};
     let instances = catalog.store().instances();
 
@@ -182,9 +165,9 @@ childTable.viewModel = function (options) {
         ) {
             vm.buttonRemove().enable();
         }
-        
-         vm.buttonOpen().icon("folder-open");
-         vm.buttonOpen().enable();
+
+        vm.buttonOpen().icon("folder-open");
+        vm.buttonOpen().enable();
     });
     tableState.resolve("/Selection/On/Clean").enter(function () {
         vm.buttonRemove().show();
