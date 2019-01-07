@@ -93,6 +93,15 @@ button.viewModel = function (options) {
     };
     vm.icon = stream(options.icon || "");
     vm.id = stream(f.createId());
+    vm.isPrimary = function (flag) {
+        if (Boolean(flag)) {
+            state.send("primaryOn");
+        } else {
+            state.send("primaryOff");
+        }
+
+        return state.current()[1] === "Primary/On";
+    };
     vm.label = function (...args) {
         let idx;
         let ary;
@@ -131,7 +140,7 @@ button.viewModel = function (options) {
             document.getElementById(id).click();
         }
     };
-    vm.primary = function () {
+    vm.primaryClass = function () {
         return primary().class();
     };
     vm.show = function () {
@@ -271,8 +280,8 @@ button.component = {
         if (vm.class()) {
             classes.push(vm.class());
         }
-        if (vm.primary()) {
-            classes.push(vm.primary());
+        if (vm.primaryClass()) {
+            classes.push(vm.primaryClass());
         }
         classes.push(vm.hidden());
         opts.class = classes.join(" ");

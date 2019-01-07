@@ -110,7 +110,7 @@ dialog.viewModel = function (options) {
         class: "fb-dialog-button"
     }));
     vm.buttonOk().id(vm.ids().buttonOk);
-    vm.buttonOk().state().send("primaryOn");
+    vm.buttonOk().isPrimary(true);
 
     vm.buttonCancel(button.viewModel({
         onclick: vm.cancel,
