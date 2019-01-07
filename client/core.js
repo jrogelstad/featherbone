@@ -109,19 +109,11 @@ f.inputMap = {
   @return {Object} Parent model
 */
 f.findRoot = function(model) {
-    let parent;
-    let d = model.data;
-    let keys = Object.keys(d);
-
-    parent = keys.find(function (key) {
-        if (d[key].isChild()) {
-            return true;
-        }
-    });
+    let parent = model.parent();
 
     return (
         parent
-        ? findRoot(d[parent]())
+        ? f.findRoot(parent)
         : model
     );
 };
