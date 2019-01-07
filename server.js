@@ -27,7 +27,7 @@
     const qs = require("qs");
     const SSE = require("sse-nodejs");
     const cors = require("cors");
-    
+
     f.datasource = datasource;
     f.jsonpatch = require("fast-json-patch");
 
@@ -36,14 +36,6 @@
     let routes = [];
     let sessions = {};
     let port = process.env.PORT || 10001;
-    let doRouter = new express.Router();
-    let dataRouter = new express.Router();
-    let featherRouter = new express.Router();
-    let moduleRouter = new express.Router();
-    let settingsRouter = new express.Router();
-    let settingsDefinitionRouter = new express.Router();
-    let workbookRouter = new express.Router();
-    let currencyRouter = new express.Router();
     let settings = datasource.settings();
 
     // Handle response
@@ -117,6 +109,9 @@
     }
 
     function resolveName(apiPath) {
+        apiPath = apiPath.slice(1);
+        apiPath = apiPath.slice(apiPath.indexOf("/"));
+
         let name;
         let keys;
         let found;
@@ -287,18 +282,17 @@
             name = key.toSpinalCase();
 
             if (catalog[key].isReadOnly) {
-                dataRouter.route("/" + name + "/:id").get(doRequest);
+                app.get("/data/" + name + "/:id", doRequest);
             } else {
-                dataRouter.route("/" + name).post(doRequest);
-
-                dataRouter.route("/" + name + "/:id").get(
-                    doRequest
-                ).patch(doRequest).delete(doRequest);
+                app.post("/data/" + name, doRequest);
+                app.get("/data/" + name + "/:id", doRequest);
+                app.patch("/data/" + name + "/:id", doRequest);
+                app.delete("/data/" + name + "/:id", doRequest);
             }
 
             if (catalog[key].plural && !catalog[key].isChild) {
                 name = catalog[key].plural.toSpinalCase();
-                dataRouter.route("/" + name).post(doQueryRequest);
+                app.post("/data/" + name, doQueryRequest);
             }
         });
     }
@@ -469,7 +463,8 @@
             extended: true
         }));
         app.use(bodyParser.json());
-        
+
+        // Relax CORS so API Doc (canary) can work
         app.use(cors());
 
         // static pages
@@ -478,37 +473,26 @@
         // Create routes for each catalog object
         registerDataRoutes();
 
-        currencyRouter.route("/base").get(doGetBaseCurrency);
-        currencyRouter.route("/convert").get(doConvertCurrency);
-        doRouter.route("/subscribe/:query").post(doSubscribe);
-        doRouter.route("/unsubscribe/:query").post(doUnsubscribe);
-        doRouter.route("/lock/:query").post(doLock);
-        doRouter.route("/unlock/:query").post(doUnlock);
-        featherRouter.route("/:name").get(doGetFeather);
-        featherRouter.route("/:name").put(doSaveFeather);
-        featherRouter.route("/:name").delete(doDeleteFeather);
-        moduleRouter.route("/").get(doGetModules);
-        settingsRouter.route("/:name").get(doGetSettingsRow);
-        settingsRouter.route("/:name").put(doSaveSettings);
-        settingsDefinitionRouter.route("/").get(doGetSettingsDefinition);
-        workbookRouter.route("/").get(doGetWorkbooks);
-        workbookRouter.route("/:name").get(doGetWorkbook);
-        workbookRouter.route("/:name").put(doSaveWorkbook);
-        workbookRouter.route("/:name").delete(doDeleteWorkbook);
-
         // REGISTER CORE ROUTES -------------------------------
         console.log("Registering core routes");
-        app.use("/currency", currencyRouter);
-        app.use("/do", doRouter);
-        app.use("/data", dataRouter);
-        app.use("/feather", featherRouter);
-        app.use("/module", moduleRouter);
-        app.use("/modules", moduleRouter);
-        app.use("/settings", settingsRouter);
-        app.use("/settings-definition", settingsDefinitionRouter);
-        app.use("/workbook", workbookRouter);
-        app.use("/workbooks", workbookRouter);
 
+        app.get("/currency/base", doGetBaseCurrency);
+        app.get("/currency/convert", doConvertCurrency);
+        app.post("/do/subscribe/:query", doSubscribe);
+        app.post("/do/unsubscribe/:query", doUnsubscribe);
+        app.post("/do/lock/:query", doLock);
+        app.post("/do/unlock/:query", doUnlock);
+        app.get("/feather/:name", doGetFeather);
+        app.put("/feather/:name", doSaveFeather);
+        app.delete("/feather/:name", doDeleteFeather);
+        app.get("/modules", doGetModules);
+        app.get("/settings/:name", doGetSettingsRow);
+        app.put("/settings/:name", doSaveSettings);
+        app.get("/settings-definition", doGetSettingsDefinition);
+        app.get("/workbooks", doGetWorkbooks);
+        app.get("/workbook/:name", doGetWorkbook);
+        app.put("/workbook/:name", doSaveWorkbook);
+        app.delete("/workbook/:name", doDeleteWorkbook);
 
         // HANDLE PUSH NOTIFICATION -------------------------------
         // Receiver callback for all events, sends only to applicable session.
