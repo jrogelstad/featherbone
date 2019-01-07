@@ -826,9 +826,9 @@ tableWidget.component = {
                 if (fidx !== false) {
                     order = sort[fidx].order || "ASC";
                     if (order.toUpperCase() === "ASC") {
-                        name = "fa fa-sort-asc";
+                        name = "fa fa-sort-up";
                     } else {
-                        name = "fa fa-sort-desc";
+                        name = "fa fa-sort-down";
                     }
 
                     icon.push(m("i", {
@@ -1361,7 +1361,7 @@ tableWidget.component = {
             } else if (currentState === "/Delete") {
                 thContent = m("i", {
                     onclick: onclick,
-                    class: "fa fa-remove",
+                    class: "fa fa-trash",
                     style: iconStyle
                 });
             } else if (currentState === "/Ready/New") {
@@ -1373,7 +1373,7 @@ tableWidget.component = {
             } else if (model.canUndo()) {
                 thContent = m("i", {
                     onclick: onclick,
-                    class: "fa fa-pencil",
+                    class: "fa fa-pencil-alt",
                     style: iconStyle
                 });
             } else {

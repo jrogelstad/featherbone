@@ -19,7 +19,6 @@
     "event-source-polyfill": "^1.0.5",
     "express": "^4.16.4",
     "fast-json-patch": "^2.0.7",
-    "font-awesome": "^4.7.0",
     "mithril": "^1.1.6",
     "pg": "^7.7.1",
     "pg-format": "^1.0.4",

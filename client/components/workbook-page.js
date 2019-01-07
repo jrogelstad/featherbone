@@ -375,7 +375,7 @@ workbookPage.viewModel = function (options) {
     };
     vm.sortDialog = stream();
     vm.sseErrorDialog = stream(dialog.viewModel({
-        icon: "close",
+        icon: "window-close",
         title: "Connection Error",
         message: (
             "You have lost connection to the server. " +
@@ -460,7 +460,7 @@ workbookPage.viewModel = function (options) {
         onclick: vm.tableWidget().toggleMode,
         title: "Edit mode",
         hotkey: "E",
-        icon: "pencil",
+        icon: "edit",
         class: "fb-toolbar-button"
     }));
     if (!vm.tableWidget().isEditModeEnabled()) {
@@ -470,7 +470,7 @@ workbookPage.viewModel = function (options) {
     vm.buttonSave(button.viewModel({
         onclick: vm.tableWidget().save,
         label: "&Save",
-        icon: "cloud-upload",
+        icon: "cloud-upload-alt",
         class: "fb-toolbar-button"
     }));
     vm.buttonSave().hide();
@@ -485,7 +485,7 @@ workbookPage.viewModel = function (options) {
     vm.buttonDelete(button.viewModel({
         onclick: vm.tableWidget().modelDelete,
         label: "&Delete",
-        icon: "remove",
+        icon: "trash",
         class: "fb-toolbar-button"
     }));
     vm.buttonDelete().disable();
@@ -507,7 +507,7 @@ workbookPage.viewModel = function (options) {
         onclick: vm.refresh,
         title: "Refresh",
         hotkey: "R",
-        icon: "refresh",
+        icon: "sync",
         class: "fb-toolbar-button"
     }));
 
@@ -795,7 +795,7 @@ workbookPage.component = {
                                 id: "nav-button",
                                 class: (
                                     "pure-button " +
-                                    "fa fa-gear " +
+                                    "fa fa-list " +
                                     "fb-menu-button"
                                 )
                             }),
@@ -861,7 +861,7 @@ workbookPage.component = {
                                     title: "Configure current worksheet",
                                     onclick: vm.configureSheet
                                 }, [m("i", {
-                                    class: "fa fa-gear  fb-menu-list-icon"
+                                    class: "fa fa-cogs  fb-menu-list-icon"
                                 })], "Configure"),
                                 m("li", {
                                     id: "nav-share",

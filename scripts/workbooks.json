@@ -3,7 +3,7 @@
         "module": "Core",
         "description": "Setup definitions",
         "launchConfig": {
-            "icon": "gear"
+            "icon": "cogs"
         },
         "defaultConfig": [{
                 "name": "Roles",
@@ -152,7 +152,7 @@
         "module": "Core",
         "description": "Currency definitions",
         "launchConfig": {
-            "icon": "money"
+            "icon": "money-bill"
         },
         "defaultConfig": [{
                 "name": "Conversions",
