@@ -298,7 +298,7 @@ tableDialog.viewModel = function (options) {
     buttonRemove = createButton({
         onclick: vm.remove,
         label: "Remove",
-        icon: "remove",
+        icon: "trash",
         style: {
             backgroundColor: "white"
         }

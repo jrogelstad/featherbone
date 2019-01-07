@@ -131,7 +131,7 @@ childTable.viewModel = function (options) {
         onclick: vm.tableWidget().modelDelete,
         title: "Delete",
         hotkey: "D",
-        icon: "remove",
+        icon: "trash",
         style: {
             backgroundColor: "white"
         }

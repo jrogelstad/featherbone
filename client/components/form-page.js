@@ -118,7 +118,7 @@ formPage.viewModel = function (options) {
         return vm.formWidget().model();
     };
     vm.sseErrorDialog = stream(dialog.viewModel({
-        icon: "close",
+        icon: "window-close",
         title: "Connection Error",
         message: (
             "You have lost connection to the server." +
@@ -183,7 +183,7 @@ formPage.viewModel = function (options) {
     vm.buttonSave(button.viewModel({
         onclick: vm.doSave,
         label: "&Save",
-        icon: "cloud-upload",
+        icon: "cloud-upload-alt",
         class: "fb-toolbar-button"
     }));
 
@@ -239,7 +239,7 @@ formPage.component = {
         let title;
         let vm = this.viewModel;
         let model = vm.model();
-        let icon = "file-text";
+        let icon = "file-alt";
 
         vm.toggleNew();
 
@@ -253,7 +253,7 @@ formPage.component = {
             );
             break;
         case "/Ready/Fetched/Dirty":
-            icon = "pencil";
+            icon = "pencil-alt";
             title = "Editing record";
             break;
         case "/Ready/New":
