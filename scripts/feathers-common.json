@@ -98,17 +98,20 @@
             "attr": {
                 "description": "Attribute name",
                 "type": "string",
-                "alias": "attribute"
+                "alias": "attribute",
+                "isRequired": true
             },
             "grid": {
                 "description": "Grid (pane) number",
                 "type": "integer",
-                "default": 0
+                "default": 0,
+                "isRequired": true
             },
             "unit": {
                 "description": "Unit (column) number",
                 "type": "integer",
-                "default": 0
+                "default": 0,
+                "isRequired": true
             },
             "showLabel": {
                 "description": "Flag to show or hide label",
@@ -130,7 +133,8 @@
             "disableCurrency": {
                 "description": "Flag to disable currency selector on currency widget",
                 "type": "boolean",
-                "default": false
+                "default": false,
+                "isRequired": true
             }
         }
     },
