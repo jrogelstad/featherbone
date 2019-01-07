@@ -67,10 +67,13 @@ childTable.viewModel = function (options) {
     vm.childForm = stream();
     vm.doChildOpen = function () {
         let selection = vm.tableWidget().selection();
+        let models = vm.tableWidget().models();
+        let feather;
 
         if (!selection) {
-            vm.tableWidget().modelNew();
-            selection = vm.tableWidget().selection();
+            feather = options.feather.name.toCamelCase();
+            selection = catalog.store().models()[feather]();
+            models.add(selection);
         }
 
         instances[selection.id()] = selection;
