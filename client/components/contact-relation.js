@@ -88,7 +88,7 @@ contactRelation.viewModel = function (options) {
                         }, [
                             m("i", {
                                 class: (
-                                    "fa fa-envelope-o " +
+                                    "fa fa-envelope " +
                                     "fb-contact-relation-icon"
                                 )
                             })
