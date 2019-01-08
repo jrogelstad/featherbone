@@ -54,6 +54,10 @@ childFormPage.viewModel = function (options) {
     let pageIdx = options.index || 1;
     let isNew = options.create && options.isNew !== false;
 
+    if (!form) {
+        form = f.buildForm(feather);
+    }
+
     // ..........................................................
     // PUBLIC
     //

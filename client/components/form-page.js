@@ -42,6 +42,10 @@ formPage.viewModel = function (options) {
     let vm = {};
     let pageIdx = options.index || 1;
     let isNew = options.create && options.isNew !== false;
+    
+    if (!form) {
+        form = f.buildForm(feather);
+    }
 
     // Helper function to pass back data to sending model
     function callReceiver() {

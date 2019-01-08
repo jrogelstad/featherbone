@@ -104,11 +104,11 @@ f.inputMap = {
 /**
   Find the top most parent model in a model heiarchy.
   For example from an order line find the parent order.
-  
+
   @param {Object} Model
   @return {Object} Parent model
 */
-f.findRoot = function(model) {
+f.findRoot = function (model) {
     let parent = model.parent();
 
     return (
@@ -254,6 +254,81 @@ f.money = function (amount, currency, effective, baseAmount) {
     };
 
     return ret;
+};
+
+/**
+  Auto-build a form definition based on feather properties.
+
+  @param {String | Object} Feather
+  @return {Object} Form definition
+*/
+f.buildForm = function (feather) {
+    let props;
+    let keys;
+    let found;
+    let attrs = [];
+    let exclusions = [
+        "id",
+        "isDeleted",
+        "lock",
+        "created",
+        "createdBy",
+        "updated",
+        "updatedBy",
+        "objectType",
+        "etag",
+        "owner"
+    ];
+
+    if (typeof feather === "string") {
+        feather = catalog.getFeather(feather);
+    }
+
+    props = f.copy(feather.properties);
+    keys = Object.keys(props);
+
+    // Make sure key attributes are first
+    found = keys.find((key) => props[key].isNaturalKey);
+    if (found) {
+        attrs.push({attr: found});
+        keys.splice(keys.indexOf(found), 1);
+    }
+
+    found = keys.find((key) => props[key].isLabelKey);
+    if (found) {
+        attrs.push({attr: found});
+        keys.splice(keys.indexOf(found), 1);
+    }
+
+    // Remove internal attributes
+    exclusions.forEach(function (item) {
+        let idx = keys.indexOf(item);
+
+        if (idx > -1) {
+            keys.splice(idx, 1);
+        }
+    });
+
+    // Build config with remaining keys
+    keys.forEach(function (key) {
+        if (
+            props[key].type === "object" &&
+            !props[key].format
+        ) {
+            return;
+        }
+
+        if (
+            typeof props[key].type === "object" &&
+            props[key].type.childOf
+        ) {
+            return;
+        }
+
+        attrs.push({attr: key});
+    });
+
+    return {attrs: attrs};
 };
 
 /**

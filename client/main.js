@@ -252,7 +252,11 @@ function initPromises() {
             // Loop through each record and build widget
             data.forEach(function (item) {
                 // Some transformation
-                item.form = item.form.id;
+                item.form = (
+                    item.form
+                    ? item.form.id
+                    : undefined
+                );
                 item.list = {
                     columns: item.searchColumns
                 };
