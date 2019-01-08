@@ -215,8 +215,7 @@
                         "name",
                         "description"
                     ]
-                },
-                "isRequired": true
+                }
             },
             "valueProperty": {
                 "description": "User key property",

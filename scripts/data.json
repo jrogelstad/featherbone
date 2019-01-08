@@ -486,36 +486,6 @@
 }, {
     "name": "Form",
     "method": "POST",
-    "id": "qbdniipw9yxx",
-    "data": {
-        "name": "Country",
-        "description": "Country form",
-        "feather": "Country",
-        "module": "Core",
-        "attrs": [{
-            "attr": "code"
-        }, {
-            "attr": "name"
-        }]
-    }
-}, {
-    "name": "Form",
-    "method": "POST",
-    "id": "7mfuzz4ntbf4",
-    "data": {
-        "name": "State",
-        "description": "State form",
-        "feather": "State",
-        "module": "Core",
-        "attrs": [{
-            "attr": "code"
-        }, {
-            "attr": "name"
-        }]
-    }
-}, {
-    "name": "Form",
-    "method": "POST",
     "id": "6kir5kogekam",
     "data": {
         "name": "Contact",
@@ -613,9 +583,6 @@
         "isActive": true,
         "feather": "Country",
         "valueProperty": "name",
-        "form": {
-            "id": "qbdniipw9yxx"
-        },
         "searchColumns": [{
             "attr": "code"
         }, {
@@ -632,9 +599,6 @@
         "isActive": true,
         "feather": "State",
         "valueProperty": "code",
-        "form": {
-            "id": "7mfuzz4ntbf4"
-        },
         "searchColumns": [{
             "attr": "code"
         }, {

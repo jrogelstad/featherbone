@@ -252,6 +252,40 @@
                     ]
                 }
             }
+        }, {
+            "name": "Countries",
+            "feather": "Country",
+            "list": {
+                "columns": [{
+                    "attr": "code"
+                }, {
+                    "attr": "name"
+                }],
+                "filter": {
+                    "sort": [{
+                            "property": "code",
+                            "order": "ASC"
+                        }
+                    ]
+                }
+            }
+        }, {
+            "name": "States",
+            "feather": "State",
+            "list": {
+                "columns": [{
+                    "attr": "code"
+                }, {
+                    "attr": "name"
+                }],
+                "filter": {
+                    "sort": [{
+                            "property": "code",
+                            "order": "ASC"
+                        }
+                    ]
+                }
+            }
         }]
     }
 ]
