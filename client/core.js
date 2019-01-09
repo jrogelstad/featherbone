@@ -300,17 +300,12 @@ f.buildForm = function (feather) {
         keys.splice(keys.indexOf(found), 1);
     }
 
-    // Remove internal attributes
-    exclusions.forEach(function (item) {
-        let idx = keys.indexOf(item);
-
-        if (idx > -1) {
-            keys.splice(idx, 1);
-        }
-    });
-
     // Build config with remaining keys
     keys.forEach(function (key) {
+        if (exclusions.indexOf(key) !== -1) {
+            return;
+        }
+
         if (
             props[key].type === "object" &&
             !props[key].format
@@ -319,8 +314,9 @@ f.buildForm = function (feather) {
         }
 
         if (
-            typeof props[key].type === "object" &&
-            props[key].type.childOf
+            typeof props[key].type === "object" && (
+                props[key].type.childOf || props[key].type.parentOf
+            )
         ) {
             return;
         }

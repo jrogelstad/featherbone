@@ -151,7 +151,9 @@ function resolveConfig(config) {
             sheet.id = f.createId();
         }
         if (typeof sheet.form === "string" && sheet.form.length) {
-            sheet.form = catalog.store().forms()[sheet.form];
+            sheet.form = catalog.store().data().forms().find(
+                (form) => sheet.form === form.id()
+            ).toJSON();
         }
     });
 }
@@ -255,7 +257,6 @@ function workbookChild(data) {
     that.onChanged("feather", function (property) {
         let id;
         let forms;
-        let keys;
         let invalid;
         let feather;
         let value = property.newValue();
@@ -276,16 +277,21 @@ function workbookChild(data) {
         if (value) {
             // When feather changes, automatically assign
             // the first available form.
-            forms = catalog.store().forms();
-            keys = Object.keys(forms).sort(function (a, b) {
-                if (forms[a].name < forms[b].name) {
+            forms = catalog.store().data().forms();
+            forms = forms.slice(forms.length - 1);
+            forms = forms.filter(
+                (form) => form.data.feather() === value
+            ).sort(function (a, b) {
+                if (a.data.name() < b.data.name()) {
                     return -1;
                 }
                 return 1;
             });
-            id = keys.find(function (key) {
-                return value === forms[key].feather;
-            });
+            id = (
+                forms.length
+                ? forms[0].id()
+                : undefined
+            );
 
             // Remove mismatched columns
             feather = catalog.getFeather(value);
