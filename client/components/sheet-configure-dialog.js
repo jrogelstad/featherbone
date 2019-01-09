@@ -202,11 +202,11 @@ sheetConfigureDialog.viewModel = function (options) {
         let prop = vm.model().data.form;
 
         if (args.length) {
-            forms = catalog.store().forms();
-            form = Object.keys(forms).find(function (key) {
-                return forms[key].name === name;
+            forms = catalog.store().data().forms();
+            form = forms.find(function (row) {
+                return row.data.name() === name;
             });
-            prop(forms[form]);
+            prop(form);
         }
         return (
             prop()
@@ -216,16 +216,17 @@ sheetConfigureDialog.viewModel = function (options) {
     };
     vm.forms = function () {
         let result;
-        let forms = catalog.store().forms();
+        let forms = catalog.store().data().forms();
         let feather = vm.model().data.feather();
 
         // Only forms that have matching feather
-        result = Object.keys(forms).filter(function (id) {
-            return forms[id].feather === feather;
+        forms = forms.slice(forms.length - 1);
+        result = forms.filter(function (form) {
+            return form.data.feather() === feather;
         });
         // Just return names
-        result = result.map(function (id) {
-            return forms[id].name;
+        result = result.map(function (form) {
+            return form.data.name();
         }).sort();
 
         return result;

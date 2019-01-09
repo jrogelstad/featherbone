@@ -135,9 +135,18 @@ contactRelation.viewModel = function (options) {
 contactRelation.component = {
     oninit: function (vnode) {
         let list;
+        let form;
         let options = vnode.attrs;
         let id = vnode.attrs.form || "6kir5kogekam";
         let relations = options.parentViewModel.relations();
+
+        form = catalog.store().data().forms().find(
+            (row) => id === row.id()
+        );
+
+        if (form) {
+            form = form.toJSON();
+        }
 
         list = {
             columns: [{
@@ -167,7 +176,7 @@ contactRelation.component = {
                 parentViewModel: options.parentViewModel,
                 parentProperty: options.parentProperty,
                 valueProperty: options.valueProperty || "fullName",
-                form: catalog.store().forms()[id],
+                form: form,
                 list: options.list || list,
                 filter: options.filter,
                 isCell: options.isCell,

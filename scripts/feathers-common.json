@@ -35,6 +35,7 @@
         "module": "Core",
         "inherits": "Document",
         "description": "Form definitions",
+        "isFetchOnStartup": true,
         "properties": {
             "name": {
                 "description": "Name",
@@ -185,6 +186,7 @@
         "module": "Core",
         "inherits": "Document",
         "description": "Relation widget definitions",
+        "isFetchOnStartup": true,
         "properties": {
             "name": {
                 "description": "Name",

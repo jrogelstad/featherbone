@@ -40,7 +40,6 @@ let loadModules;
 let moduleData;
 let workbookData;
 let sseState;
-let loadForms;
 let loadRelationWidgets;
 let loadWorkbooks;
 let evstart;
@@ -59,6 +58,13 @@ function buildRelationWidget(relopts) {
             let options = vnode.attrs;
             let id = vnode.attrs.form || relopts.form;
             let oninit = relationWidget.oninit.bind(this);
+            let form = catalog.store().data().forms().find(
+                (form) => id === form.id()
+            )
+            
+            if (form) {
+                form = form.toJSON();
+            }
 
             options.parentProperty = (
                 options.parentProperty || relopts.parentProperty
@@ -69,7 +75,7 @@ function buildRelationWidget(relopts) {
             options.labelProperty = (
                 options.labelProperty || relopts.labelProperty
             );
-            options.form = catalog.store().forms()[id];
+            options.form = form;
             options.list = options.list || relopts.list;
             options.style = options.style || relopts.style;
             options.isCell = (
@@ -219,24 +225,6 @@ function initPromises() {
                     module.dependencies = [];
                 }
             });
-            resolve();
-        });
-    });
-
-    // Load forms
-    loadForms = new Promise(function (resolve) {
-        let payload = {
-            method: "POST",
-            path: "/data/forms"
-        };
-        let forms = catalog.register("forms");
-
-        datasource.request(payload).then(function (data) {
-            // Loop through each form record and load into catalog
-            data.forEach(function (form) {
-                forms[form.id] = form;
-            });
-
             resolve();
         });
     });
@@ -587,7 +575,6 @@ evstart.onmessage = function (event) {
         initPromises();
         Promise.all([
             loadCatalog,
-            loadForms,
             loadModules,
             loadRelationWidgets,
             loadWorkbooks
