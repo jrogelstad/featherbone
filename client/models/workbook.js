@@ -274,11 +274,12 @@ function workbookChild(data) {
             : false
         );
 
+        // When feather changes, automatically assign
+        // the first available form.
         if (value) {
-            // When feather changes, automatically assign
-            // the first available form.
             forms = catalog.store().data().forms();
-            forms = forms.slice(forms.length - 1);
+            // Copy to new array that has regular filter method
+            forms = forms.slice(0, forms.length - 1);
             forms = forms.filter(
                 (form) => form.data.feather() === value
             ).sort(function (a, b) {
@@ -331,7 +332,7 @@ function workbookChild(data) {
             });
         }
 
-        that.data.form(forms[id]);
+        that.data.form(forms.find((row) => row.id() === id));
     });
 
     that.onValidate(function () {
