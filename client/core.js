@@ -29,6 +29,133 @@ const console = window.console;
 // PRIVATE
 //
 
+/** @private
+  Auto-build a form definition based on feather properties.
+
+  @param {String | Object} Feather
+  @return {Object} Form definition
+*/
+function buildForm(feather) {
+    let props;
+    let keys;
+    let found;
+    let attrs = [];
+    let exclusions = [
+        "id",
+        "isDeleted",
+        "lock",
+        "created",
+        "createdBy",
+        "updated",
+        "updatedBy",
+        "objectType",
+        "etag",
+        "owner"
+    ];
+
+    if (typeof feather === "string") {
+        feather = catalog.getFeather(feather);
+    }
+
+    props = f.copy(feather.properties);
+    keys = Object.keys(props);
+
+    // Make sure key attributes are first
+    found = keys.find((key) => props[key].isNaturalKey);
+    if (found) {
+        attrs.push({attr: found});
+        keys.splice(keys.indexOf(found), 1);
+    }
+
+    found = keys.find((key) => props[key].isLabelKey);
+    if (found) {
+        attrs.push({attr: found});
+        keys.splice(keys.indexOf(found), 1);
+    }
+
+    // Build config with remaining keys
+    keys.forEach(function (key) {
+        if (exclusions.indexOf(key) !== -1) {
+            return;
+        }
+
+        if (
+            props[key].type === "object" &&
+            !props[key].format
+        ) {
+            return;
+        }
+
+        if (
+            typeof props[key].type === "object" && (
+                props[key].type.childOf || props[key].type.parentOf
+            )
+        ) {
+            return;
+        }
+
+        attrs.push({attr: key});
+    });
+
+    return {attrs: attrs};
+}
+
+/** @private
+ Helper function for building relation widgets.
+*/
+/*
+function buildRelationWidget(obj) {
+    let widget;
+    let relationWidget = catalog.store().components().relationWidget;
+    let feather = catalog.getFeather(obj.feather);
+    let form = catalog.getForm(feather.name);
+
+    widget = {
+        oninit: function (vnode) {
+            let options = vnode.attrs;
+            let id = vnode.attrs.form || relopts.form;
+            let oninit = relationWidget.oninit.bind(this);
+            let form = catalog.store().data().forms().find(
+                (form) => id === form.id()
+            )
+
+            if (form) {
+                form = form.toJSON();
+            }
+
+            options.parentProperty = (
+                options.parentProperty || relopts.parentProperty
+            );
+            options.valueProperty = (
+                options.valueProperty || relopts.valueProperty
+            );
+            options.labelProperty = (
+                options.labelProperty || relopts.labelProperty
+            );
+            options.form = form;
+            options.list = options.list || relopts.list;
+            options.style = options.style || relopts.style;
+            options.isCell = (
+                options.isCell === undefined
+                ? relopts.isCell
+                : options.isCell
+            );
+            oninit(vnode);
+        },
+        view: relationWidget.view
+    };
+
+    widget.labelProperty = function () {
+        return relopts.labelProperty;
+    };
+    widget.valueProperty = function () {
+        return relopts.valueProperty;
+    };
+
+    return widget;
+}
+*/
+
 /** private */
 function isChild(p) {
     return p.type && typeof p.type === "object" && p.type.childOf;
@@ -80,6 +207,53 @@ f.getCurrency = function (code) {
             )
         );
     });
+};
+
+/**
+  Return a form based on a form id or a feather. If multiple forms exist,
+  the first one will be used. If none exist one will be built based
+  on feather definition.
+
+  The form returned is not a form model,  but simply a regular
+  javascript object.
+
+  @param {Object} Options
+  @param {String} [options.form] Form id
+  @param {String} [options.feather] Feather name
+  @return {Object} Form
+*/
+f.getForm = function (options) {
+    let form;
+    let forms = catalog.store().data().forms();
+
+    // Get the form that was specified
+    if (options.form) {
+        form = forms.find(
+            (row) => row.id() === options.form
+        );
+
+        if (form) {
+            form = form.toJSON();
+        }
+    }
+
+    // If none specified, find one with a matching feather
+    if (!form) {
+        form = forms.find(
+            (row) => row.data.feather() === options.feather
+        );
+
+        if (form) {
+            form = form.toJSON();
+        }
+    }
+
+    // If none found, make one up based on feather definition
+    if (!form) {
+        form = buildForm(options.feather);
+    }
+
+    return form;
 };
 
 /**
@@ -257,77 +431,6 @@ f.money = function (amount, currency, effective, baseAmount) {
 };
 
 /**
-  Auto-build a form definition based on feather properties.
-
-  @param {String | Object} Feather
-  @return {Object} Form definition
-*/
-f.buildForm = function (feather) {
-    let props;
-    let keys;
-    let found;
-    let attrs = [];
-    let exclusions = [
-        "id",
-        "isDeleted",
-        "lock",
-        "created",
-        "createdBy",
-        "updated",
-        "updatedBy",
-        "objectType",
-        "etag",
-        "owner"
-    ];
-
-    if (typeof feather === "string") {
-        feather = catalog.getFeather(feather);
-    }
-
-    props = f.copy(feather.properties);
-    keys = Object.keys(props);
-
-    // Make sure key attributes are first
-    found = keys.find((key) => props[key].isNaturalKey);
-    if (found) {
-        attrs.push({attr: found});
-        keys.splice(keys.indexOf(found), 1);
-    }
-
-    found = keys.find((key) => props[key].isLabelKey);
-    if (found) {
-        attrs.push({attr: found});
-        keys.splice(keys.indexOf(found), 1);
-    }
-
-    // Build config with remaining keys
-    keys.forEach(function (key) {
-        if (exclusions.indexOf(key) !== -1) {
-            return;
-        }
-
-        if (
-            props[key].type === "object" &&
-            !props[key].format
-        ) {
-            return;
-        }
-
-        if (
-            typeof props[key].type === "object" && (
-                props[key].type.childOf || props[key].type.parentOf
-            )
-        ) {
-            return;
-        }
-
-        attrs.push({attr: key});
-    });
-
-    return {attrs: attrs};
-};
-
-/**
   Helper function for building input elements
 
   Use of this function requires that "Checkbox" has been pre-registered,
@@ -486,7 +589,9 @@ f.buildInputComponent = function (obj) {
                 id: id,
                 disabled: prop.isReadOnly
             });
-        }
+        }/* else {
+            w = buildRelationWidget
+        }*/
     }
 
     if (prop.isToMany()) {
