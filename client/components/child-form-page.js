@@ -45,38 +45,13 @@ childFormPage.viewModel = function (options) {
     let ary = model.parent().data[options.parentProperty]();
     let sseState = catalog.store().global().sseState;
     let feather = options.feather.toCamelCase(true);
-    let forms = catalog.store().data().forms();
-    let form;
+    let form = f.getForm({
+        form: options.form,
+        feather: feather
+    });
     let vm = {};
     let pageIdx = options.index || 1;
     let isNew = options.create && options.isNew !== false;
-
-    // Get the form that was specified
-    if (options.form) {
-        form = forms.find(
-            (row) => row.id() === options.form
-        );
-
-        if (form) {
-            form = form.toJSON();
-        }
-    }
-
-    // If none specified, find one with a matching feather
-    if (!form) {
-        form = forms.find(
-            (row) => row.data.feather() === feather
-        );
-
-        if (form) {
-            form = form.toJSON();
-        }
-    }
-
-    // If none found, make one up based on feather definition
-    if (!form) {
-        form = f.buildForm(feather);
-    }
 
     // ..........................................................
     // PUBLIC
