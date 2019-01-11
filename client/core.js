@@ -108,7 +108,7 @@ function column(item) {
     return {attr: item};
 }
 
-function buildRelationWidget(type) {
+function buildRelationWidget(type, parentFeather) {
     let widget;
     let relationWidget = catalog.store().components().relationWidget;
     let feather = catalog.getFeather(type.relation);
@@ -116,6 +116,7 @@ function buildRelationWidget(type) {
     let naturalKey = keys.find((key) => feather.properties[key].isNaturalKey);
     let labelKey = keys.find((key) => feather.properties[key].isLabelKey);
     let properties = type.properties;
+    let name = parentFeather + "$" + type.relation + "Relation";
 
     if (!naturalKey) {
         console.error(
@@ -149,6 +150,8 @@ function buildRelationWidget(type) {
         },
         view: relationWidget.view
     };
+
+    catalog.register("components", name, widget);
 
     return widget;
 }
@@ -443,6 +446,8 @@ f.buildInputComponent = function (obj) {
     let rel;
     let w;
     let component;
+    let name;
+    let pFeather;
     let key = obj.key;
     let isPath = key.indexOf(".") !== -1;
     let prop = f.resolveProperty(obj.model, key);
@@ -572,11 +577,20 @@ f.buildInputComponent = function (obj) {
     // Handle relations
     if (prop.isToOne()) {
         rel = prop.type.relation.toCamelCase();
-        w = catalog.store().components()[rel + "Relation"];
+        pFeather = obj.viewModel.model().name.toCamelCase();
+        name = rel + "Relation";
 
-        // Build widget based on property if none in catalog
+        w = (
+            // Global (hard coded) widget definition for relation
+            components[name] ||
+
+            // Local widget built for the property on parent feather
+            components[pFeather + "$" + name.toCamelCase(true)]
+        );
+
+        // Build widget based on property if none in catalog yet
         if (!w) {
-            w = buildRelationWidget(prop.type);
+            w = buildRelationWidget(prop.type, pFeather);
         }
 
         if (w) {
