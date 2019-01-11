@@ -1323,6 +1323,12 @@ function model(data, feather) {
             prop.key = key; // Use of 'name' property is not allowed here
             prop.description = overload.description || p.description;
             prop.type = overload.type || p.type;
+            if (
+                overload.type && typeof overload.type === "object" &&
+                !overload.type.properties
+            ) {
+                prop.type.properties = p.type.properties;
+            }
             prop.format = overload.format || p.format;
             prop.default = defaultValue;
             prop.isRequired(

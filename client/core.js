@@ -24,6 +24,18 @@ import {State} from "../common/state.js";
 const m = window.m;
 const f = window.f;
 const console = window.console;
+const exclusions = [
+    "id",
+    "isDeleted",
+    "lock",
+    "created",
+    "createdBy",
+    "updated",
+    "updatedBy",
+    "objectType",
+    "etag",
+    "owner"
+];
 
 // ..........................................................
 // PRIVATE
@@ -40,18 +52,6 @@ function buildForm(feather) {
     let keys;
     let found;
     let attrs = [];
-    let exclusions = [
-        "id",
-        "isDeleted",
-        "lock",
-        "created",
-        "createdBy",
-        "updated",
-        "updatedBy",
-        "objectType",
-        "etag",
-        "owner"
-    ];
 
     if (typeof feather === "string") {
         feather = catalog.getFeather(feather);
@@ -103,58 +103,55 @@ function buildForm(feather) {
 /** @private
  Helper function for building relation widgets.
 */
-/*
-function buildRelationWidget(obj) {
+
+function column(item) {
+    return {attr: item};
+}
+
+function buildRelationWidget(type) {
     let widget;
     let relationWidget = catalog.store().components().relationWidget;
-    let feather = catalog.getFeather(obj.feather);
-    let form = catalog.getForm(feather.name);
+    let feather = catalog.getFeather(type.relation);
+    let keys = Object.keys(feather.properties);
+    let naturalKey = keys.find((key) => feather.properties[key].isNaturalKey);
+    let labelKey = keys.find((key) => feather.properties[key].isLabelKey);
+    let properties = type.properties;
+
+    if (!naturalKey) {
+        console.error(
+            "No natural key defined on '" + type.relation +
+            "' to create relation widget"
+        );
+        return;
+    }
+
+    // If no explicit properties, use all non-object properties on relation
+    if (!properties) {
+        properties = Object.keys(feather.properties).filter(
+            (key) => exclusions.indexOf(key) === -1
+        );
+    } else {
+        properties.shift(); // Get rid of id
+    }
 
     widget = {
         oninit: function (vnode) {
-            let options = vnode.attrs;
-            let id = vnode.attrs.form || relopts.form;
             let oninit = relationWidget.oninit.bind(this);
-            let form = catalog.store().data().forms().find(
-                (form) => id === form.id()
-            )
+            let form = f.getForm({feather: type.relation});
 
-            if (form) {
-                form = form.toJSON();
-            }
-
-            options.parentProperty = (
-                options.parentProperty || relopts.parentProperty
-            );
-            options.valueProperty = (
-                options.valueProperty || relopts.valueProperty
-            );
-            options.labelProperty = (
-                options.labelProperty || relopts.labelProperty
-            );
-            options.form = form;
-            options.list = options.list || relopts.list;
-            options.style = options.style || relopts.style;
-            options.isCell = (
-                options.isCell === undefined
-                ? relopts.isCell
-                : options.isCell
-            );
+            vnode.attrs.valueProperty = naturalKey;
+            vnode.attrs.labelProperty = labelKey;
+            vnode.attrs.form = form;
+            vnode.attrs.list = {
+                columns: properties.map(column)
+            };
             oninit(vnode);
         },
         view: relationWidget.view
     };
 
-    widget.labelProperty = function () {
-        return relopts.labelProperty;
-    };
-    widget.valueProperty = function () {
-        return relopts.valueProperty;
-    };
-
     return widget;
 }
-*/
 
 /** private */
 function isChild(p) {
@@ -577,6 +574,11 @@ f.buildInputComponent = function (obj) {
         rel = prop.type.relation.toCamelCase();
         w = catalog.store().components()[rel + "Relation"];
 
+        // Build widget based on property if none in catalog
+        if (!w) {
+            w = buildRelationWidget(prop.type);
+        }
+
         if (w) {
             return m(w, {
                 parentViewModel: obj.viewModel,
@@ -589,9 +591,7 @@ f.buildInputComponent = function (obj) {
                 id: id,
                 disabled: prop.isReadOnly
             });
-        }/* else {
-            w = buildRelationWidget
-        }*/
+        }
     }
 
     if (prop.isToMany()) {
@@ -604,7 +604,7 @@ f.buildInputComponent = function (obj) {
         }
     }
 
-    console.log("Widget for property '" + key + "' is unknown");
+    console.log("Widget for property '" + key + "' is undefined");
 };
 
 /*

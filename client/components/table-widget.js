@@ -1086,16 +1086,15 @@ tableWidget.component = {
                         break;
                     default:
                         if (typeof format === "object" && d[col]()) {
-                            // If relation, use relation widget to
-                            // find display
-                            rel = catalog.store().components()[(
-                                format.relation.toCamelCase()
-                                + "Relation"
-                            )];
+                            // If relation, use feather natural key to
+                            // find value to display
+                            rel = catalog.getFeather(format.relation);
+                            rel = Object.keys(rel.properties).find(
+                                (key) => rel.properties[key].isNaturalKey
+                            );
+
                             if (rel) {
-                                value = d[col]().data[
-                                    rel.valueProperty()
-                                ]();
+                                value = d[col]().data[rel]();
 
                                 url = (
                                     "http://" +

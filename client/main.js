@@ -40,62 +40,11 @@ let loadModules;
 let moduleData;
 let workbookData;
 let sseState;
-let loadRelationWidgets;
 let loadWorkbooks;
 let evstart;
 let evsubscr;
 let menu;
 let workbooks = catalog.register("workbooks");
-
-// Helper function for building relation widgets.
-function buildRelationWidget(relopts) {
-    let that;
-    let relationWidget = catalog.store().components().relationWidget;
-    let name = relopts.feather.toCamelCase() + "Relation";
-
-    that = {
-        oninit: function (vnode) {
-            let options = vnode.attrs;
-            let id = vnode.attrs.form || relopts.form;
-            let oninit = relationWidget.oninit.bind(this);
-            let form = catalog.store().data().forms().find(
-                (form) => id === form.id()
-            )
-            
-            if (form) {
-                form = form.toJSON();
-            }
-
-            options.parentProperty = (
-                options.parentProperty || relopts.parentProperty
-            );
-            options.valueProperty = (
-                options.valueProperty || relopts.valueProperty
-            );
-            options.labelProperty = (
-                options.labelProperty || relopts.labelProperty
-            );
-            options.form = form;
-            options.list = options.list || relopts.list;
-            options.style = options.style || relopts.style;
-            options.isCell = (
-                options.isCell === undefined
-                ? relopts.isCell
-                : options.isCell
-            );
-            oninit(vnode);
-        },
-        view: relationWidget.view
-    };
-
-    that.labelProperty = function () {
-        return relopts.labelProperty;
-    };
-    that.valueProperty = function () {
-        return relopts.valueProperty;
-    };
-    catalog.register("components", name, that);
-}
 
 // Load catalog and process models
 function initPromises() {
@@ -225,33 +174,6 @@ function initPromises() {
                     module.dependencies = [];
                 }
             });
-            resolve();
-        });
-    });
-
-    // Load relation widgets
-    loadRelationWidgets = new Promise(function (resolve) {
-        let payload = {
-            method: "POST",
-            path: "/data/relation-widgets"
-        };
-
-        return datasource.request(payload).then(function (data) {
-            // Loop through each record and build widget
-            data.forEach(function (item) {
-                // Some transformation
-                item.form = (
-                    item.form
-                    ? item.form.id
-                    : undefined
-                );
-                item.list = {
-                    columns: item.searchColumns
-                };
-                delete item.searchColumns;
-                buildRelationWidget(item);
-            });
-
             resolve();
         });
     });
@@ -576,7 +498,6 @@ evstart.onmessage = function (event) {
         Promise.all([
             loadCatalog,
             loadModules,
-            loadRelationWidgets,
             loadWorkbooks
         ]).then(function () {
             initApp();
