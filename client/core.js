@@ -229,7 +229,10 @@ f.getForm = function (options) {
     // Get the form that was specified
     if (options.form) {
         form = forms.find(
-            (row) => row.id() === options.form
+            (row) => (
+                row.id() === options.form &&
+                row.data.isActive()
+            )
         );
 
         if (form) {
@@ -240,7 +243,10 @@ f.getForm = function (options) {
     // If none specified, find one with a matching feather
     if (!form) {
         form = forms.find(
-            (row) => row.data.feather() === options.feather
+            (row) => (
+                row.data.feather() === options.feather &&
+                row.data.isActive()
+            )
         );
 
         if (form) {

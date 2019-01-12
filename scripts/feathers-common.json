@@ -30,12 +30,11 @@
         }
     },
     {
-        "name": "Form",
-        "plural": "Forms",
+        "name": "Layout",
+        "plural": "Layouts",
         "module": "Core",
         "inherits": "Document",
-        "description": "Form definitions",
-        "isFetchOnStartup": true,
+        "description": "Layout definitions",
         "properties": {
             "name": {
                 "description": "Name",
@@ -58,6 +57,22 @@
                 "type": "string",
                 "isRequired": true
             },
+            "isActive": {
+                "description": "Active status",
+                "type": "boolean",
+                "isRequired": true,
+                "default": true
+            }
+        }
+    },
+    {
+        "name": "Form",
+        "plural": "Forms",
+        "module": "Core",
+        "inherits": "Layout",
+        "description": "Form definitions",
+        "isFetchOnStartup": true,
+        "properties": {
             "focus": {
                 "description": "Attribute that receives first focus",
                 "type": "string"
@@ -136,6 +151,23 @@
                 "type": "boolean",
                 "default": false,
                 "isRequired": true
+            },
+            "relationWidget": {
+                "description": "Specific over-ride definition for relation widget",
+                "type": {
+                    "relation": "Layout",
+                    "properties": [
+                        "name",
+                        "description"
+                    ]
+                }
+            }
+        },
+        "overloads": {
+            "relationWidget": {
+                "type": {
+                    "relation": "RelationWidget"
+                }
             }
         }
     },
@@ -184,30 +216,10 @@
         "name": "RelationWidget",
         "plural": "RelationWidgets",
         "module": "Core",
-        "inherits": "Document",
+        "inherits": "Layout",
         "description": "Relation widget definitions",
+        "isFetchOnStartup": true,
         "properties": {
-            "name": {
-                "description": "Name",
-                "type": "string",
-                "isNaturalKey": true,
-                "isRequired": true
-            },
-            "description": {
-                "description": "Description",
-                "type": "string",
-                "isRequired": true,
-                "isLabelKey": true
-            },
-            "module": {
-                "description": "Module",
-                "type": "string"
-            },
-            "feather": {
-                "description": "Feather",
-                "type": "string",
-                "isRequired": true
-            },
             "form": {
                 "description": "Form relation",
                 "type": {
@@ -226,12 +238,6 @@
             "labelProperty": {
                 "description": "Description property",
                 "type": "string"
-            },
-            "isActive": {
-                "description": "Active status",
-                "type": "boolean",
-                "isRequired": true,
-                "default": true
             }
         }
     },
