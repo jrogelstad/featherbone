@@ -78,33 +78,6 @@
                 }
             },
             {
-                "name": "Relations",
-                "feather": "RelationWidget",
-                "list": {
-                    "columns": [{
-                        "attr": "name"
-                    }, {
-                        "attr": "description"
-                    }, {
-                        "attr": "feather"
-                    }, {
-                        "attr": "created"
-                    }, {
-                        "attr": "createdBy"
-                    }, {
-                        "attr": "updated"
-                    }, {
-                        "attr": "updatedBy"
-                    }],
-                    "filter": {
-                        "sort": [{
-                            "property": "name",
-                            "order": "ASC"
-                        }]
-                    }
-                }
-            },
-            {
                 "name": "Routes",
                 "feather": "Route",
                 "list": {
@@ -121,25 +94,6 @@
                             "order": "ASC"
                         }, {
                             "property": "path",
-                            "order": "ASC"
-                        }]
-                    }
-                }
-            },
-            {
-                "name": "Units",
-                "feather": "Unit",
-                "list": {
-                    "columns": [{
-                        "attr": "code"
-                    }, {
-                        "attr": "description"
-                    }, {
-                        "attr": "dimension"
-                    }],
-                    "filter": {
-                        "sort": [{
-                            "property": "code",
                             "order": "ASC"
                         }]
                     }
