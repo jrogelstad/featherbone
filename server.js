@@ -65,47 +65,49 @@
         this.status(err.statusCode).json(err.message);
     }
 
-    function init(callback) {
-        function getServices() {
-            return new Promise(function (resolve, reject) {
-                datasource.getServices().then(
-                    function (data) {
-                        services = data;
-                        resolve();
-                    }
-                ).catch(
-                    reject
-                );
-            });
-        }
+    function init() {
+        return new Promise(function (resolve, reject) {
+            function getServices() {
+                return new Promise(function (resolve, reject) {
+                    datasource.getServices().then(
+                        function (data) {
+                            services = data;
+                            resolve();
+                        }
+                    ).catch(
+                        reject
+                    );
+                });
+            }
 
-        function getRoutes() {
-            return new Promise(function (resolve, reject) {
-                datasource.getRoutes().then(
-                    function (data) {
-                        routes = data;
-                        resolve();
-                    }
-                ).catch(
-                    reject
-                );
-            });
-        }
+            function getRoutes() {
+                return new Promise(function (resolve, reject) {
+                    datasource.getRoutes().then(
+                        function (data) {
+                            routes = data;
+                            resolve();
+                        }
+                    ).catch(
+                        reject
+                    );
+                });
+            }
 
-        // Execute
-        Promise.resolve().then(
-            datasource.getCatalog
-        ).then(getServices).then(
-            getRoutes
-        ).then(
-            datasource.unsubscribe
-        ).then(
-            datasource.unlock
-        ).then(
-            callback
-        ).catch(
-            process.exit
-        );
+            // Execute
+            Promise.resolve().then(
+                datasource.getCatalog
+            ).then(getServices).then(
+                getRoutes
+            ).then(
+                datasource.unsubscribe
+            ).then(
+                datasource.unlock
+            ).then(
+                resolve
+            ).catch(
+                reject
+            );
+        });
     }
 
     function resolveName(apiPath) {
@@ -452,11 +454,7 @@
         );
     }
 
-    // ..........................................................
-    // ROUTES
-    //
-
-    init(function () {
+    function start() {
         // configure app to use bodyParser()
         // this will let us get the data from a POST
         app.use(bodyParser.urlencoded({
@@ -565,5 +563,11 @@
         // ====================================================================
         app.listen(port);
         console.log("Magic happens on port " + port);
-    });
+    }
+
+    // ..........................................................
+    // FIRE IT UP
+    //
+
+    init().then(start).catch(process.exit);
 }());
