@@ -87,6 +87,10 @@
             "grid": 0,
             "unit": 0
         }, {
+            "attr": "isActive",
+            "grid": 0,
+            "unit": 0
+        }, {
             "attr": "module",
             "dataList": "modules",
             "grid": 0,
@@ -121,6 +125,8 @@
                 "attr": "label"
             }, {
                 "attr": "dataList"
+            }, {
+                "attr": "relationWidget"
             }, {
                 "attr": "disableCurrency"
             }]
@@ -184,6 +190,10 @@
             "unit": 1
         }, {
             "attr": "dataList",
+            "grid": 0,
+            "unit": 1
+        }, {
+            "attr": "relationWidget",
             "grid": 0,
             "unit": 1
         }, {
