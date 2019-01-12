@@ -85,8 +85,6 @@
                 let req;
                 let reqRole;
                 let reqLog;
-                let reqForm;
-                let reqWidget;
                 let reqFeather;
                 let promises = [];
 
