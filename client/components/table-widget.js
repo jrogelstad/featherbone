@@ -141,6 +141,12 @@ tableWidget.viewModel = function (options) {
     }));
     vm.feather = stream(feather);
     vm.filter = f.prop();
+    vm.form = function () {
+        return f.getForm({
+            form: vm.config().form,
+            feather: feather.name
+        });
+    };
     vm.formatInputId = function (col) {
         return "input" + col.toCamelCase(true);
     };
@@ -1187,6 +1193,7 @@ tableWidget.component = {
                     let tdOpts;
                     let inputOpts;
                     let columnSpacerClass;
+                    let widget;
                     let prop = f.resolveProperty(model, col);
                     let id = vm.formatInputId(col);
                     let item = config.columns[idx];
@@ -1317,6 +1324,16 @@ tableWidget.component = {
                     columnSpacerClass = (
                         "fb-column-spacer " + tdOpts.class
                     );
+
+                    widget = vm.form().attrs.find(
+                        (item) => (
+                            item.attr === col && item.relationWidget
+                        )
+                    );
+                    if (widget) {
+                        widget = widget.relationWidget;
+                    }
+
                     cell = [
                         m("td", tdOpts, [
                             f.buildInputComponent({
@@ -1325,7 +1342,8 @@ tableWidget.component = {
                                 dataList: dataList,
                                 filter: cfilter,
                                 viewModel: vm,
-                                options: inputOpts
+                                options: inputOpts,
+                                widget: widget
                             })
                         ]),
                         m("td", {
