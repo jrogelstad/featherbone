@@ -119,7 +119,7 @@ function buildRelationWidgetFromFeather(type, featherName) {
     let keys = Object.keys(feather.properties);
     let naturalKey = keys.find((key) => feather.properties[key].isNaturalKey);
     let labelKey = keys.find((key) => feather.properties[key].isLabelKey);
-    let properties = type.properties;
+    let properties = f.copy(type.properties);
 
     if (!naturalKey) {
         console.error(
@@ -135,7 +135,7 @@ function buildRelationWidgetFromFeather(type, featherName) {
             (key) => exclusions.indexOf(key) === -1
         );
     } else {
-        properties.shift(); // Get rid of id
+        properties = properties.filter((key) => key !== "id");
     }
 
     widget = {
@@ -188,7 +188,7 @@ function buildRelationWidgetFromLayout(id) {
                 layout.data.valueProperty()
             );
             vnode.attrs.labelProperty = (
-                layout.data.valueProperty()
+                layout.data.labelProperty()
             );
             vnode.attrs.form = (
                 layout.data.form()
