@@ -57,6 +57,24 @@ widthWithScroll = inner.offsetWidth;
 outer.parentNode.removeChild(outer);
 scrWidth = widthNoScroll - widthWithScroll;
 
+// Helper function
+function resolveDescription(feather, attr) {
+    let prefix;
+    let suffix;
+    let idx = attr.indexOf(".");
+
+    if (idx > -1) {
+        prefix = attr.slice(0, idx);
+        suffix = attr.slice(idx + 1, attr.length);
+        feather = catalog.getFeather(
+            feather.properties[prefix].type.relation
+        );
+        return resolveDescription(feather, suffix);
+    }
+
+    return feather.properties[attr].description;
+}
+
 // Define workbook view model
 tableWidget.viewModel = function (options) {
     options = options || {};
@@ -754,6 +772,7 @@ tableWidget.component = {
         let sort = filter.sort || [];
         let idx = 0;
         let zoom = vm.zoom() + "%";
+        let feather = vm.feather();
 
         // Resize according to surroundings
         resize = function (vnode) {
@@ -882,7 +901,8 @@ tableWidget.component = {
                             minWidth: columnWidth,
                             maxWidth: columnWidth,
                             fontSize: zoom
-                        }
+                        },
+                        title: resolveDescription(feather, key)
                     }, icon, col.label || vm.alias(key)),
                     m("th", {
                         ondragover: vm.ondragover.bind(this, idx),

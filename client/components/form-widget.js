@@ -135,7 +135,8 @@ function buildFieldset(vm, attrs) {
         labelOpts = {
             for: key,
             class: "fb-form-label",
-            style: {}
+            style: {},
+            title: prop.description
         };
 
         // For relations we get buttons for label
