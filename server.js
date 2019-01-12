@@ -495,13 +495,37 @@
         // HANDLE PUSH NOTIFICATION -------------------------------
         // Receiver callback for all events, sends only to applicable session.
         function receiver(message) {
+            let payload;
             let sessionId = message.payload.subscription.sessionid;
+            let change = message.payload.subscription.change;
             let fn = sessions[sessionId];
 
-            //console.log("Received message for session " + sessionId);
-            if (fn) {
-                //console.log("Sending message for " + sessionId, message);
+            function callback(resp) {
+                if (resp) {
+                    message.payload.data = resp;
+                }
+
                 fn(message);
+            }
+
+            function err(e) {
+                console.error(e);
+            }
+
+            if (fn) {
+                // If record change, fetch new record
+                if (change === "create" || change === "update") {
+                    payload = {
+                        name: message.payload.data.table.toCamelCase(true),
+                        method: "GET",
+                        user: datasource.getCurrentUser(),
+                        id: message.payload.data.id
+                    };
+                    datasource.request(payload).then(callback).catch(err);
+                    return;
+                }
+
+                callback();
             }
         }
 

@@ -25,14 +25,11 @@
         "DECLARE " +
         "  node RECORD;" +
         "  sub RECORD; " +
-        "  rec RECORD; " +
         "  payload TEXT; " +
         "BEGIN" +
         "  FOR node IN " +
         "    SELECT DISTINCT nodeid FROM \"$subscription\"" +
         "    WHERE objectid = TG_TABLE_NAME LOOP " +
-        "    EXECUTE format('SELECT * FROM %I" +
-        "    WHERE id = $1', '_' || TG_TABLE_NAME) INTO rec USING NEW.id;" +
         "    FOR sub IN" +
         "      SELECT 'create' AS change,sessionid, subscriptionid " +
         "      FROM \"$subscription\"" +
@@ -42,8 +39,8 @@
         "        VALUES (node.nodeid, sub.sessionid, sub.subscriptionid, " +
         "        NEW.id);" +
         "        payload := '{\"subscription\": ' || " +
-        "        row_to_json(sub)::text || ',\"data\":' || " +
-        "        row_to_json(rec)::text || '}';" +
+        "        row_to_json(sub)::text || ',\"data\": {\"id\":\"' || " +
+        "        NEW.id || '\",\"table\": \"' || TG_TABLE_NAME || '\"}}';" +
         "        PERFORM pg_notify(node.nodeid, payload); " +
         "    END LOOP;" +
         "  END LOOP; " +
@@ -54,7 +51,6 @@
         "DECLARE " +
         "  node RECORD;" +
         "  sub RECORD; " +
-        "  rec RECORD; " +
         "  payload TEXT; " +
         "  change TEXT DEFAULT 'update';" +
         "  data TEXT; " +
@@ -73,9 +69,8 @@
         "      change := 'unlock'; " +
         "      data := '\"' || OLD.id || '\"'; " +
         "    ELSE" +
-        "      EXECUTE format('SELECT * FROM %I" +
-        "      WHERE id = $1', '_' || TG_TABLE_NAME) INTO rec USING NEW.id;" +
-        "      data := row_to_json(rec)::text; " +
+        "      data := '{\"id\":\"' || NEW.id || '\",\"table\": \"' || " +
+        "      TG_TABLE_NAME || '\"}'; " +
         "    END IF; " +
         "    FOR sub IN" +
         "      SELECT change AS change, sessionid, subscriptionid " +
