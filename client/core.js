@@ -100,23 +100,26 @@ function buildForm(feather) {
     return {attrs: attrs};
 }
 
-/** @private
- Helper function for building relation widgets.
-*/
-
+/** @private */
 function column(item) {
     return {attr: item};
 }
 
-function buildRelationWidget(type, parentFeather) {
-    let widget;
+/** @private */
+function buildRelationWidgetFromFeather(type, featherName) {
+    let name = featherName + "$" + type.relation + "Relation";
+    let widget = catalog.store().components()[name];
+
+    if (widget) {
+        return widget;
+    }
+
     let relationWidget = catalog.store().components().relationWidget;
     let feather = catalog.getFeather(type.relation);
     let keys = Object.keys(feather.properties);
     let naturalKey = keys.find((key) => feather.properties[key].isNaturalKey);
     let labelKey = keys.find((key) => feather.properties[key].isLabelKey);
     let properties = type.properties;
-    let name = parentFeather + "$" + type.relation + "Relation";
 
     if (!naturalKey) {
         console.error(
@@ -151,7 +154,57 @@ function buildRelationWidget(type, parentFeather) {
         view: relationWidget.view
     };
 
+    // Memoize
     catalog.register("components", name, widget);
+
+    return widget;
+}
+
+/** @private */
+function buildRelationWidgetFromLayout(id) {
+    let widget = catalog.store().components()[id];
+
+    if (widget) {
+        return widget;
+    }
+
+    let relationWidget = catalog.store().components().relationWidget;
+    let layout = catalog.store().data().relationWidgets().find(
+        (row) => row.id() === id
+    );
+
+    if (!layout) {
+        console.error(
+            "No layout found for relation widget '" + id + "'"
+        );
+        return;
+    }
+
+    widget = {
+        oninit: function (vnode) {
+            let oninit = relationWidget.oninit.bind(this);
+
+            vnode.attrs.valueProperty = (
+                layout.data.valueProperty()
+            );
+            vnode.attrs.labelProperty = (
+                layout.data.valueProperty()
+            );
+            vnode.attrs.form = (
+                layout.data.form()
+                ? f.getForm(layout.data.form().id())
+                : undefined
+            );
+            vnode.attrs.list = {
+                columns: layout.data.searchColumns().toJSON()
+            };
+            oninit(vnode);
+        },
+        view: relationWidget.view
+    };
+
+    // Memoize
+    catalog.register("components", id, widget);
 
     return widget;
 }
@@ -449,11 +502,10 @@ f.money = function (amount, currency, effective, baseAmount) {
   @param {Array} [options.dataList] Array for input lists
 */
 f.buildInputComponent = function (obj) {
-    let rel;
     let w;
     let component;
     let name;
-    let pFeather;
+    let featherName;
     let key = obj.key;
     let isPath = key.indexOf(".") !== -1;
     let prop = f.resolveProperty(obj.model, key);
@@ -582,21 +634,18 @@ f.buildInputComponent = function (obj) {
 
     // Handle relations
     if (prop.isToOne()) {
-        rel = prop.type.relation.toCamelCase();
-        pFeather = obj.viewModel.model().name.toCamelCase();
-        name = rel + "Relation";
+        featherName = obj.viewModel.model().name.toCamelCase();
+        name = prop.type.relation.toCamelCase() + "Relation";
 
-        w = (
-            // Global (hard coded) widget definition for relation
-            components[name] ||
-
-            // Local widget built for the property on parent feather
-            components[pFeather + "$" + name.toCamelCase(true)]
-        );
-
-        // Build widget based on property if none in catalog yet
-        if (!w) {
-            w = buildRelationWidget(prop.type, pFeather);
+        if (components[name]) {
+            // Hard-coded
+            w = components[name];
+        } else if (obj.widget) {
+            // Relation widget defined by form layout
+            w = buildRelationWidgetFromLayout(obj.widget.id);
+        } else {
+            // Nothing specific, deduce from feather definition
+            w = buildRelationWidgetFromFeather(prop.type, featherName);
         }
 
         if (w) {

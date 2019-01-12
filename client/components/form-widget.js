@@ -230,7 +230,8 @@ function buildFieldset(vm, attrs) {
                 dataList: dataList,
                 filter: item.filter,
                 viewModel: vm,
-                options: options
+                options: options,
+                widget: item.relationWidget
             })
         ]);
         return result;
