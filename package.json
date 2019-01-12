@@ -12,6 +12,7 @@
     "url": "http://github.com/jrogelstad/featherbone.git"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-free": "^5.6.3",
     "big.js": "^5.2.2",
     "body-parser": "^1.18.2",
     "cors": "^2.8.5",
