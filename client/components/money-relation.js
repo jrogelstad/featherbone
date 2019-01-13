@@ -17,7 +17,6 @@
 **/
 /*jslint this, browser*/
 import {f} from "../core.js";
-import {stream} from "../../common/stream.js";
 import {catalog} from "../models/catalog.js";
 
 const moneyRelation = {};
@@ -89,8 +88,8 @@ moneyRelation.viewModel = function (options) {
         }
     });
 
-    vm.id = stream(options.id);
-    vm.isCell = stream(Boolean(options.isCell));
+    vm.id = f.prop(options.id);
+    vm.isCell = f.prop(Boolean(options.isCell));
     vm.label = function () {
         return f.baseCurrency(vm.effective()).data.code();
     };
@@ -134,7 +133,7 @@ moneyRelation.viewModel = function (options) {
 
         return f.formats.money.fromType(money).amount;
     };
-    vm.conversion = stream();
+    vm.conversion = f.prop();
     vm.currency = function (...args) {
         let money;
 
@@ -146,7 +145,7 @@ moneyRelation.viewModel = function (options) {
 
         return prop().currency;
     };
-    vm.disableCurrency = stream(Boolean(options.disableCurrency));
+    vm.disableCurrency = f.prop(Boolean(options.disableCurrency));
     vm.currencies = function () {
         let ret;
         let curr = vm.currency();
@@ -275,7 +274,7 @@ moneyRelation.viewModel = function (options) {
 
         return selector;
     };
-    vm.showCurrency = stream(options.showCurrency !== false);
+    vm.showCurrency = f.prop(options.showCurrency !== false);
 
     return vm;
 };

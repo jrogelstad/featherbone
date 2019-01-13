@@ -17,7 +17,6 @@
 **/
 /*jslint this, browser*/
 import {f} from "../core.js";
-import {stream} from "../../common/stream.js";
 import {button} from "./button.js";
 import {catalog} from "../models/catalog.js";
 import {dialog} from "./dialog.js";
@@ -46,7 +45,7 @@ tableDialog.viewModel = function (options) {
     let buttonClear;
     let buttonDown;
     let buttonUp;
-    let selection = stream();
+    let selection = f.prop();
 
     // ..........................................................
     // PUBLIC
@@ -158,7 +157,7 @@ tableDialog.viewModel = function (options) {
     vm.hasAttr = function (item) {
         return item.property === this;
     };
-    vm.list = stream(options.list);
+    vm.list = f.prop(options.list);
     vm.moveDown = function () {
         let ary = vm.data();
         let idx = vm.selection();
@@ -244,15 +243,15 @@ tableDialog.viewModel = function (options) {
         }
         return "White";
     };
-    vm.title = stream(options.title);
-    vm.viewHeaderIds = stream();
+    vm.title = f.prop(options.title);
+    vm.viewHeaderIds = f.prop();
     vm.viewHeaders = function () {
         return;
     };
     vm.viewRows = function () {
         return;
     };
-    vm.scrollBottom = stream(false);
+    vm.scrollBottom = f.prop(false);
     vm.selection = function (...args) {
         let ary = vm.data();
         let index = args[0];

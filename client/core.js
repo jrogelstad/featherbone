@@ -18,7 +18,6 @@
 /*jslint this, browser*/
 import {catalog} from "./models/catalog.js";
 import {datasource} from "./datasource.js";
-import {stream} from "../common/stream.js";
 import {State} from "../common/state.js";
 
 const m = window.m;
@@ -937,7 +936,7 @@ f.resolveProperty = function (model, property) {
     let idx = property.indexOf(".");
 
     if (!model) {
-        return stream(null);
+        return f.prop(null);
     }
 
     if (idx > -1) {

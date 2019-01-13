@@ -17,7 +17,6 @@
 **/
 /*jslint this, browser*/
 import {f} from "../core.js";
-import {stream} from "../../common/stream.js";
 import {filterDialog} from "./filter-dialog.js";
 
 const sortDialog = {};
@@ -52,7 +51,7 @@ sortDialog.viewModel = function (options) {
             return true;
         }
     };
-    vm.viewHeaderIds = stream({
+    vm.viewHeaderIds = f.prop({
         column: f.createId(),
         order: f.createId()
     });

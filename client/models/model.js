@@ -17,7 +17,6 @@
 **/
 /*jslint this, browser*/
 import {f} from "../core.js";
-import {stream} from "../../common/stream.js";
 import {datasource} from "../datasource.js";
 import {catalog} from "./catalog.js";
 import {State} from "../../common/state.js";
@@ -317,16 +316,16 @@ function model(data, feather) {
         let fn = options.function;
 
         fn.isCalculated = true;
-        fn.isChild = stream(false);
-        fn.isParent = stream(false);
+        fn.isChild = f.prop(false);
+        fn.isParent = f.prop(false);
         fn.key = options.name;
         fn.description = options.description || "";
         fn.type = options.type || "string";
         fn.format = options.format;
-        fn.isRequired = stream(false);
-        fn.isReadOnly = stream(options.isReadOnly || false);
-        fn.isToMany = stream(false);
-        fn.isToOne = stream(false);
+        fn.isRequired = f.prop(false);
+        fn.isReadOnly = f.prop(options.isReadOnly || false);
+        fn.isToMany = f.prop(false);
+        fn.isToOne = f.prop(false);
         d[options.name] = fn;
 
         return this;
@@ -402,7 +401,7 @@ function model(data, feather) {
       @param {String}
       @returns {String}
     */
-    that.idProperty = stream("id");
+    that.idProperty = f.prop("id");
 
     /**
       Indicates if model is in  a frozen state.
@@ -423,7 +422,7 @@ function model(data, feather) {
 
       @returns {Boolean}
     */
-    that.isReadOnly = stream(feather.isReadOnly === true);
+    that.isReadOnly = f.prop(feather.isReadOnly === true);
 
     /**
       Returns whether the object is in a valid state to save.
@@ -1387,9 +1386,9 @@ function model(data, feather) {
                 this.event("delete", function () {
                     this.goto("/Deleted");
                 });
-                this.canDelete = stream(true);
+                this.canDelete = f.prop(true);
                 this.canSave = that.isValid;
-                this.canUndo = stream(false);
+                this.canUndo = f.prop(false);
             });
 
             this.state("Fetched", function () {
@@ -1420,16 +1419,16 @@ function model(data, feather) {
                             context: lock
                         });
                     });
-                    this.canDelete = stream(true);
-                    this.canSave = stream(false);
-                    this.canUndo = stream(false);
+                    this.canDelete = f.prop(true);
+                    this.canSave = f.prop(false);
+                    this.canUndo = f.prop(false);
                 });
                 this.state("ReadOnly", function () {
                     this.enter(doFreeze);
                     this.exit(doThaw);
-                    this.canDelete = stream(false);
-                    this.canSave = stream(false);
-                    this.canUndo = stream(false);
+                    this.canDelete = f.prop(false);
+                    this.canSave = f.prop(false);
+                    this.canUndo = f.prop(false);
                 });
 
                 this.state("Locking", function () {
@@ -1440,9 +1439,9 @@ function model(data, feather) {
                         }
                         this.goto("../Dirty");
                     });
-                    this.canDelete = stream(false);
-                    this.canSave = stream(false);
-                    this.canUndo = stream(true);
+                    this.canDelete = f.prop(false);
+                    this.canSave = f.prop(false);
+                    this.canUndo = f.prop(true);
                 });
 
                 this.state("Unlocking", function () {
@@ -1450,9 +1449,9 @@ function model(data, feather) {
                     this.event("unlocked", function () {
                         this.goto("../Clean");
                     });
-                    this.canDelete = stream(false);
-                    this.canSave = stream(false);
-                    this.canUndo = stream(false);
+                    this.canDelete = f.prop(false);
+                    this.canSave = f.prop(false);
+                    this.canUndo = f.prop(false);
                 });
 
                 this.state("Dirty", function () {
@@ -1465,9 +1464,9 @@ function model(data, feather) {
                             context: context
                         });
                     });
-                    this.canDelete = stream(false);
+                    this.canDelete = f.prop(false);
                     this.canSave = that.isValid;
-                    this.canUndo = stream(true);
+                    this.canUndo = f.prop(true);
                 });
             });
         });
@@ -1475,9 +1474,9 @@ function model(data, feather) {
         this.state("Busy", function () {
             this.state("Fetching", function () {
                 this.enter(doFetch);
-                this.canDelete = stream(false);
-                this.canSave = stream(false);
-                this.canUndo = stream(false);
+                this.canDelete = f.prop(false);
+                this.canSave = f.prop(false);
+                this.canUndo = f.prop(false);
                 this.event("fetched", function () {
                     this.goto("/Ready/Fetched");
                 });
@@ -1488,19 +1487,19 @@ function model(data, feather) {
                 });
                 this.state("Posting", function () {
                     this.enter(doPost);
-                    this.canDelete = stream(false);
-                    this.canSave = stream(false);
-                    this.canUndo = stream(false);
+                    this.canDelete = f.prop(false);
+                    this.canSave = f.prop(false);
+                    this.canUndo = f.prop(false);
                 });
                 this.state("Patching", function () {
                     this.enter(doPatch);
-                    this.canDelete = stream(false);
-                    this.canSave = stream(false);
-                    this.canUndo = stream(false);
+                    this.canDelete = f.prop(false);
+                    this.canSave = f.prop(false);
+                    this.canUndo = f.prop(false);
                 });
-                this.canDelete = stream(false);
-                this.canSave = stream(false);
-                this.canUndo = stream(false);
+                this.canDelete = f.prop(false);
+                this.canSave = f.prop(false);
+                this.canUndo = f.prop(false);
             });
             this.state("Deleting", function () {
                 this.enter(doDelete);
@@ -1508,9 +1507,9 @@ function model(data, feather) {
                 this.event("deleted", function () {
                     this.goto("/Deleted");
                 });
-                this.canDelete = stream(false);
-                this.canSave = stream(false);
-                this.canUndo = stream(false);
+                this.canDelete = f.prop(false);
+                this.canSave = f.prop(false);
+                this.canUndo = f.prop(false);
             });
             this.event("error", function () {
                 this.goto("/Ready", {
@@ -1535,9 +1534,9 @@ function model(data, feather) {
                 this.goto("/Ready");
             });
 
-            this.canDelete = stream(false);
-            this.canSave = stream(false);
-            this.canUndo = stream(false);
+            this.canDelete = f.prop(false);
+            this.canSave = f.prop(false);
+            this.canUndo = f.prop(false);
         });
 
         this.state("Delete", function () {
@@ -1557,18 +1556,18 @@ function model(data, feather) {
                 doThaw();
                 this.goto("/Ready");
             });
-            this.canDelete = stream(false);
-            this.canSave = stream(false);
-            this.canUndo = stream(true);
+            this.canDelete = f.prop(false);
+            this.canSave = f.prop(false);
+            this.canUndo = f.prop(true);
         });
 
         this.state("Deleted", function () {
             this.event("clear", function () {
                 this.goto("/Ready/New");
             });
-            this.canDelete = stream(false);
-            this.canSave = stream(false);
-            this.canUndo = stream(false);
+            this.canDelete = f.prop(false);
+            this.canSave = f.prop(false);
+            this.canUndo = f.prop(false);
         });
 
         this.state("Deleting", function () {
@@ -1577,9 +1576,9 @@ function model(data, feather) {
             this.event("deleted", function () {
                 this.goto("/Deleted");
             });
-            this.canDelete = stream(false);
-            this.canSave = stream(false);
-            this.canUndo = stream(false);
+            this.canDelete = f.prop(false);
+            this.canSave = f.prop(false);
+            this.canUndo = f.prop(false);
         });
     });
 

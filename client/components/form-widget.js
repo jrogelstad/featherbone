@@ -17,7 +17,6 @@
 **/
 /*jslint this, browser*/
 import {f} from "../core.js";
-import {stream} from "../../common/stream.js";
 import {catalog} from "../models/catalog.js";
 import {dialog} from "./dialog.js";
 
@@ -285,22 +284,22 @@ formWidget.viewModel = function (options) {
     let vm = {};
     let models = catalog.store().models();
 
-    vm.config = stream(options.config);
-    vm.containerId = stream(options.containerId);
-    vm.errorDialog = stream(dialog.viewModel({
+    vm.config = f.prop(options.config);
+    vm.containerId = f.prop(options.containerId);
+    vm.errorDialog = f.prop(dialog.viewModel({
         icon: "exclamation-circle",
         title: "Error"
     }));
     vm.errorDialog().buttonCancel().hide();
-    vm.focusAttr = stream(options.config.focus);
-    vm.menuButtons = stream({});
-    vm.selectedTab = stream(1);
-    vm.model = stream();
-    vm.outsideElementIds = stream(options.outsideElementIds || []);
+    vm.focusAttr = f.prop(options.config.focus);
+    vm.menuButtons = f.prop({});
+    vm.selectedTab = f.prop(1);
+    vm.model = f.prop();
+    vm.outsideElementIds = f.prop(options.outsideElementIds || []);
 
     // Places to hang selector content between redraws
-    vm.relations = stream({});
-    vm.selectComponents = stream({});
+    vm.relations = f.prop({});
+    vm.selectComponents = f.prop({});
 
     // ..........................................................
     // PRIVATE

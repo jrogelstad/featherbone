@@ -17,7 +17,6 @@
 **/
 /*jslint this, browser*/
 import {f} from "../core.js";
-import {stream} from "../../common/stream.js";
 import {button} from "./button.js";
 import {catalog} from "../models/catalog.js";
 import {dialog} from "./dialog.js";
@@ -98,15 +97,15 @@ workbookPage.viewModel = function (options) {
 
         return menu;
     };
-    vm.buttonClear = stream();
-    vm.buttonDelete = stream();
-    vm.buttonEdit = stream();
-    vm.buttonNew = stream();
-    vm.buttonRefresh = stream();
-    vm.buttonSave = stream();
-    vm.buttonUndo = stream();
-    vm.config = stream(config);
-    vm.confirmDialog = stream(dialog.viewModel({
+    vm.buttonClear = f.prop();
+    vm.buttonDelete = f.prop();
+    vm.buttonEdit = f.prop();
+    vm.buttonNew = f.prop();
+    vm.buttonRefresh = f.prop();
+    vm.buttonSave = f.prop();
+    vm.buttonUndo = f.prop();
+    vm.config = f.prop(config);
+    vm.confirmDialog = f.prop(dialog.viewModel({
         icon: "question-circle",
         title: "Confirmation"
     }));
@@ -116,7 +115,7 @@ workbookPage.viewModel = function (options) {
         dlg.sheetId(sheetId);
         dlg.show();
     };
-    vm.footerId = stream(f.createId());
+    vm.footerId = f.prop(f.createId());
     vm.deleteSheet = function (ev) {
         let doDelete;
         let idx = ev.dataTransfer.getData("text") - 0;
@@ -143,7 +142,7 @@ workbookPage.viewModel = function (options) {
         confirmDialog.show();
     };
     vm.filter = f.prop();
-    vm.filterDialog = stream();
+    vm.filterDialog = f.prop();
     vm.goHome = function () {
         m.route.set("/home");
     };
@@ -153,8 +152,8 @@ workbookPage.viewModel = function (options) {
         });
         vm.showMenu(false);
     };
-    vm.isDraggingTab = stream(false);
-    vm.hasSettings = stream(
+    vm.isDraggingTab = f.prop(false);
+    vm.hasSettings = f.prop(
         Boolean(workbook.data.launchConfig().settings)
     );
     vm.modelNew = function () {
@@ -190,7 +189,7 @@ workbookPage.viewModel = function (options) {
             });
         }
     };
-    vm.menu = stream(navigator.viewModel());
+    vm.menu = f.prop(navigator.viewModel());
     vm.newSheet = function () {
         let undo;
         let newSheet;
@@ -308,7 +307,7 @@ workbookPage.viewModel = function (options) {
             sheet: sheet.name.toSpinalCase()
         });
     };
-    vm.searchInput = stream();
+    vm.searchInput = f.prop();
     vm.share = function () {
         let doShare;
         let confirmDialog = vm.confirmDialog();
@@ -360,21 +359,21 @@ workbookPage.viewModel = function (options) {
             return sheet.name;
         });
     };
-    vm.sheetConfigureDialog = stream();
+    vm.sheetConfigureDialog = f.prop();
     vm.showFilterDialog = function () {
         if (vm.tableWidget().models().canFilter()) {
             vm.filterDialog().show();
         }
     };
-    vm.showActions = stream(false);
-    vm.showMenu = stream(false);
+    vm.showActions = f.prop(false);
+    vm.showMenu = f.prop(false);
     vm.showSortDialog = function () {
         if (vm.tableWidget().models().canFilter()) {
             vm.sortDialog().show();
         }
     };
-    vm.sortDialog = stream();
-    vm.sseErrorDialog = stream(dialog.viewModel({
+    vm.sortDialog = f.prop();
+    vm.sseErrorDialog = f.prop(dialog.viewModel({
         icon: "window-close",
         title: "Connection Error",
         message: (
@@ -392,7 +391,7 @@ workbookPage.viewModel = function (options) {
             sheet: sheet.toSpinalCase()
         });
     };
-    vm.tableWidget = stream();
+    vm.tableWidget = f.prop();
     vm.workbook = function () {
         return workbook;
     };

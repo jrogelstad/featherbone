@@ -16,7 +16,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint this, browser*/
-import {stream} from "../../common/stream.js";
 import {relationWidget} from "./relation-widget.js";
 import {catalog} from "../models/catalog.js";
 
@@ -188,8 +187,8 @@ contactRelation.component = {
         this.viewModel = relations[options.parentProperty];
     },
     view: relationWidget.component.view,
-    labelProperty: stream("phone"),
-    valueProperty: stream("fullName")
+    labelProperty: f.prop("phone"),
+    valueProperty: f.prop("fullName")
 };
 
 catalog.register(

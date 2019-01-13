@@ -16,7 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint browser*/
-import {stream} from "../../common/stream.js";
+import {f} from "../core.js";
 import {dialog} from "./dialog.js";
 import {formWidget} from "./form-widget.js";
 
@@ -49,8 +49,8 @@ formDialog.viewModel = function (options) {
     };
 
     vm = dialog.viewModel(options);
-    vm.formWidget = stream();
-    vm.modelId = stream(options.id);
+    vm.formWidget = f.prop();
+    vm.modelId = f.prop(options.id);
     vm.okDisabled = function () {
         let w = vm.formWidget();
         return (

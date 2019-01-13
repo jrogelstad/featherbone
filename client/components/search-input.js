@@ -17,7 +17,6 @@
 **/
 /*jslint this, browser*/
 import {f} from "../core.js";
-import {stream} from "../../common/stream.js";
 import {State} from "../../common/state.js";
 
 const searchInput = {};
@@ -46,7 +45,7 @@ searchInput.viewModel = function (options) {
     vm.end = function () {
         state.send("end");
     };
-    vm.id = stream(f.createId());
+    vm.id = f.prop(f.createId());
     vm.onkeydown = function (e) {
         let key = e.key || e.keyIdentifier;
         if (key === "Enter") {
@@ -67,7 +66,7 @@ searchInput.viewModel = function (options) {
     vm.style = function () {
         return state.resolve(state.current()[0]).style();
     };
-    vm.text = stream();
+    vm.text = f.prop();
     vm.value = function () {
         return state.resolve(state.current()[0]).value();
     };
