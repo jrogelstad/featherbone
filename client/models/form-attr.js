@@ -22,77 +22,83 @@ function formAttr(data, feather) {
     let that;
     let stateClean;
 
-    function handleDataList() {
+    function handleProp(...args) {
+        let name = args[0];
+        let validator = args[1];
+        let value = args[2];
         let attr = that.data.attr;
         let formFeather = that.parent().data.feather();
-        let dataList = that.data.dataList;
+        let prop = that.data[name];
         let fprop;
         let readOnly;
 
         if (!formFeather || !attr()) {
-            dataList.isReadOnly(true);
+            prop.isReadOnly(true);
             return;
         }
 
         formFeather = catalog.getFeather(formFeather);
         fprop = formFeather.properties[attr()];
 
-        readOnly = Boolean(
-            !fprop || typeof fprop.type === "object" ||
-            fprop.type === "boolean"
-        );
-        dataList.isReadOnly(readOnly);
-        if (readOnly) {
-            dataList("");
+        readOnly = validator(fprop);
+        prop.isReadOnly(readOnly);
+        if (readOnly && args.length === 3) {
+            prop(value);
         }
+
+        return readOnly;
+    }
+
+    function handleColumns() {
+        let columns = that.data.columns();
+
+        function validator(fprop) {
+            return Boolean(
+                !fprop || typeof fprop.type !== "object" ||
+                !fprop.type.parentOf
+            );
+        }
+
+        // Can't just pass a scalar value in, so handle reset after
+        if (handleProp("columns", validator)) {
+            columns.canAdd(false);
+            columns.forEach((model) => model.delete());
+        } else {
+            columns.canAdd(true);
+        }
+    }
+
+    function handleDataList() {
+        function validator(fprop) {
+            return Boolean(
+                !fprop || typeof fprop.type === "object" ||
+                fprop.type === "boolean"
+            );
+        }
+
+        handleProp("dataList", validator, "");
     }
 
     function handleDisableCurrency() {
-        let attr = that.data.attr;
-        let formFeather = that.parent().data.feather();
-        let disableCurrency = that.data.disableCurrency;
-        let fprop;
-        let readOnly;
-
-        if (!formFeather || !attr()) {
-            disableCurrency.isReadOnly(true);
-            return;
+        function validator(fprop) {
+            return Boolean(
+                !fprop || fprop.type !== "object" ||
+                fprop.format !== "money"
+            );
         }
 
-        formFeather = catalog.getFeather(formFeather);
-        fprop = formFeather.properties[attr()];
-
-        readOnly = Boolean(
-            !fprop || fprop.type !== "object" || fprop.format !== "money"
-        );
-        disableCurrency.isReadOnly(readOnly);
-        if (readOnly) {
-            disableCurrency(false);
-        }
+        handleProp("disableCurrency", validator, false);
     }
 
     function handleRelationWidget() {
-        let attr = that.data.attr;
-        let formFeather = that.parent().data.feather();
-        let relationWidget = that.data.relationWidget;
-        let fprop;
-        let readOnly;
-
-        if (!formFeather || !attr()) {
-            relationWidget.isReadOnly(true);
-            return;
+        function validator(fprop) {
+            return Boolean(
+                !fprop || typeof fprop.type !== "object" ||
+                fprop.type.parentOf
+            );
         }
 
-        formFeather = catalog.getFeather(formFeather);
-        fprop = formFeather.properties[attr()];
-
-        readOnly = Boolean(
-            !fprop || typeof fprop.type !== "object" || fprop.type.parentOf
-        );
-        relationWidget.isReadOnly(readOnly);
-        if (readOnly) {
-            relationWidget(undefined);
-        }
+        handleProp("relationWidget", validator, undefined);
     }
 
     function properties() {
@@ -122,14 +128,18 @@ function formAttr(data, feather) {
         function: properties
     });
 
+    that.onChanged("attr", handleColumns);
     that.onChanged("attr", handleDataList);
     that.onChanged("attr", handleDisableCurrency);
     that.onChanged("attr", handleRelationWidget);
     stateClean = that.state().resolve("/Ready/Fetched/Clean");
+    stateClean.enter(handleColumns);
     stateClean.enter(handleDataList);
     stateClean.enter(handleDisableCurrency);
     stateClean.enter(handleRelationWidget);
-    
+
+    that.data.columns().canAdd(false);
+
     that.onValidate(function () {
         let found = that.parent().data.properties().find(
             (p) => that.data.attr() === p.value
