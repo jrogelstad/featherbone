@@ -103,7 +103,8 @@
         }, {
             "attr": "focus",
             "grid": 0,
-            "unit": 1
+            "unit": 1,
+            "dataList": "properties"
         }, {
             "attr": "attrs",
             "grid": 1,
