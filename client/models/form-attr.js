@@ -20,6 +20,55 @@ import {model} from "./model.js";
 
 function formAttr(data, feather) {
     let that;
+    let stateClean;
+
+    function handleDisableCurrency() {
+        let attr = that.data.attr;
+        let formFeather = that.parent().data.feather();
+        let disableCurrency = that.data.disableCurrency;
+        let fprop;
+        let readOnly;
+
+        if (!formFeather || !attr()) {
+            disableCurrency.isReadOnly(true);
+            return;
+        }
+
+        formFeather = catalog.getFeather(formFeather);
+        fprop = formFeather.properties[attr()];
+
+        readOnly = Boolean(
+            !fprop || fprop.type !== "object" || fprop.format !== "money"
+        );
+        disableCurrency.isReadOnly(readOnly);
+        if (readOnly) {
+            disableCurrency(false);
+        }
+    }
+
+    function handleRelationWidget() {
+        let attr = that.data.attr;
+        let formFeather = that.parent().data.feather();
+        let relationWidget = that.data.relationWidget;
+        let fprop;
+        let readOnly;
+
+        if (!formFeather || !attr()) {
+            relationWidget.isReadOnly(true);
+            return;
+        }
+
+        formFeather = catalog.getFeather(formFeather);
+        fprop = formFeather.properties[attr()];
+
+        readOnly = Boolean(
+            !fprop || typeof fprop.type !== "object" || fprop.type.parentOf
+        );
+        relationWidget.isReadOnly(readOnly);
+        if (readOnly) {
+            relationWidget(undefined);
+        }
+    }
 
     function properties() {
         let keys;
@@ -30,7 +79,7 @@ function formAttr(data, feather) {
             return result;
         }
         formFeather = catalog.getFeather(formFeather);
-        keys = Object.keys(formFeather.properties || []);
+        keys = Object.keys(formFeather.properties || []).sort();
         return keys.map(function (key) {
             return {
                 value: key,
@@ -47,6 +96,12 @@ function formAttr(data, feather) {
         type: "array",
         function: properties
     });
+
+    that.onChanged("attr", handleDisableCurrency);
+    that.onChanged("attr", handleRelationWidget);
+    stateClean = that.state().resolve("/Ready/Fetched/Clean");
+    stateClean.enter(handleDisableCurrency);
+    stateClean.enter(handleRelationWidget);
 
     return that;
 }

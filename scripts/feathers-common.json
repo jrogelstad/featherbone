@@ -150,7 +150,8 @@
                 "description": "Flag to disable currency selector on currency widget",
                 "type": "boolean",
                 "default": false,
-                "isRequired": true
+                "isRequired": true,
+                "isReadOnly": true
             },
             "relationWidget": {
                 "description": "Specific over-ride definition for relation widget",
@@ -160,7 +161,8 @@
                         "name",
                         "description"
                     ]
-                }
+                },
+                "isReadOnly": true
             }
         },
         "overloads": {
