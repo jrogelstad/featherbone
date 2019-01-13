@@ -521,11 +521,13 @@ f.buildInputComponent = function (obj) {
             ? undefined
             : opts.value
         );
+        let values = obj.dataList.map((item) => item.value).join();
 
         if (selectComponents[id]) {
             if (
                 selectComponents[id].value === value &&
-                selectComponents[id].disabled === opts.disabled
+                selectComponents[id].disabled === opts.disabled &&
+                selectComponents[id].values === values
             ) {
                 return selectComponents[id].content;
             }
@@ -535,8 +537,10 @@ f.buildInputComponent = function (obj) {
 
         selectComponents[id].value = value;
         selectComponents[id].disabled = opts.disabled;
+        selectComponents[id].values = values;
         selectComponents[id].content = m("select", {
             id: id,
+            key: id,
             onchange: opts.onchange,
             value: value,
             disabled: opts.disabled,
@@ -544,7 +548,8 @@ f.buildInputComponent = function (obj) {
             style: opts.style
         }, obj.dataList.map(function (item) {
             return m("option", {
-                value: item.value
+                value: item.value,
+                key: id + "$" + item.value
             }, item.label);
         }));
 

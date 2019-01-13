@@ -15,6 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
+import {f} from "../core.js";
 import {catalog} from "./catalog.js";
 import {model} from "./model.js";
 
@@ -58,6 +59,29 @@ function form(data, feather) {
         });
     }
 
+    function properties() {
+        let keys;
+        let formFeather = that.data.feather();
+        let result = [];
+
+        if (!formFeather) {
+            return result;
+        }
+        formFeather = catalog.getFeather(formFeather);
+        keys = Object.keys(formFeather.properties || []).sort();
+        keys.unshift("");
+        return keys.map(function (key) {
+            return {
+                value: key,
+                label: key
+            };
+        });
+    }
+
+    function handleProperties() {
+        that.data.properties(properties());
+    }
+
     feather = feather || catalog.getFeather("Form");
     that = model(data, feather);
 
@@ -72,6 +96,15 @@ function form(data, feather) {
         type: "array",
         function: modules
     });
+
+    that.addCalculated({
+        name: "properties",
+        type: "array",
+        function: f.prop()
+    });
+
+    that.onChanged("feather", handleProperties);
+    that.state().resolve("/Ready/Fetched/Clean").enter(handleProperties);
 
     return that;
 }
