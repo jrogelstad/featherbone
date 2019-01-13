@@ -17,46 +17,11 @@
 **/
 import {catalog} from "./catalog.js";
 import {model} from "./model.js";
-import {list} from "./list.js";
 
-function form(data) {
+function form(data, feather) {
     let that;
-    let properties;
-    let modules;
-    let feathers;
-    let feather = catalog.getFeather("Form");
 
-    // ..........................................................
-    // PUBLIC
-    //
-
-    that = model(data, feather);
-
-    properties = function () {
-        let keys;
-        let formFeather = that.data.feather();
-        let result = [];
-
-        if (!formFeather) {
-            return result;
-        }
-        formFeather = catalog.getFeather(formFeather);
-        keys = Object.keys(formFeather.properties || []);
-        return keys.map(function (key) {
-            return {
-                value: key,
-                label: key
-            };
-        });
-    };
-
-    that.addCalculated({
-        name: "properties",
-        type: "array",
-        function: properties
-    });
-
-    feathers = function () {
+    function feathers() {
         let tables = catalog.store().feathers();
         let keys = Object.keys(tables);
 
@@ -70,15 +35,9 @@ function form(data) {
                 label: key
             };
         });
-    };
+    }
 
-    that.addCalculated({
-        name: "feathers",
-        type: "array",
-        function: feathers
-    });
-
-    modules = function () {
+    function modules() {
         let tables = catalog.store().feathers();
         let keys = Object.keys(tables);
         let ary = [];
@@ -97,7 +56,16 @@ function form(data) {
                 label: item
             };
         });
-    };
+    }
+
+    feather = feather || catalog.getFeather("Form");
+    that = model(data, feather);
+
+    that.addCalculated({
+        name: "feathers",
+        type: "array",
+        function: feathers
+    });
 
     that.addCalculated({
         name: "modules",
@@ -107,8 +75,6 @@ function form(data) {
 
     return that;
 }
-
-form.list = list("Form");
 
 catalog.register("models", "form", form);
 
