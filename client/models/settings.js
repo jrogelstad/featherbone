@@ -18,6 +18,7 @@
 /*jslint this, browser*/
 const store = {};
 
+import {f} from "../core.js";
 import {model} from "./model.js";
 import {datasource} from "../datasource.js";
 import {catalog} from "./catalog.js";
