@@ -540,7 +540,8 @@ f.buildInputComponent = function (obj) {
             onchange: opts.onchange,
             value: value,
             disabled: opts.disabled,
-            class: opts.class
+            class: opts.class,
+            style: opts.style
         }, obj.dataList.map(function (item) {
             return m("option", {
                 value: item.value
