@@ -17,7 +17,6 @@
 **/
 /*jslint this, browser*/
 import {f} from "../core.js";
-import {stream} from "../../common/stream.js";
 import {catalog} from "../models/catalog.js";
 import {model} from "../models/model.js";
 import {checkbox} from "./checkbox.js";
@@ -186,8 +185,8 @@ filterDialog.viewModel = function (options) {
         vm.data()[index].value = getDefault(value);
         vm.data()[index].operator = "=";
     };
-    vm.feather = stream(options.feather);
-    vm.filter = stream();
+    vm.feather = f.prop(options.feather);
+    vm.filter = f.prop();
     vm.model = function () {
         return store;
     };
@@ -245,8 +244,8 @@ filterDialog.viewModel = function (options) {
 
         return ops;
     };
-    vm.propertyName = stream(options.propertyName || "criteria");
-    vm.relations = stream({});
+    vm.propertyName = f.prop(options.propertyName || "criteria");
+    vm.relations = f.prop({});
     vm.reset = function () {
         let name = vm.propertyName();
         let filter = f.copy(options.filter());
@@ -258,7 +257,7 @@ filterDialog.viewModel = function (options) {
         }
         vm.selection(0);
     };
-    vm.viewHeaderIds = stream({
+    vm.viewHeaderIds = f.prop({
         column: f.createId(),
         operator: f.createId(),
         value: f.createId()

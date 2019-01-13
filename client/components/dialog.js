@@ -17,7 +17,6 @@
 **/
 /*jslint this, browser*/
 import {f} from "../core.js";
-import {stream} from "../../common/stream.js";
 import {State} from "../../common/state.js";
 import {button} from "./button.js";
 
@@ -44,14 +43,14 @@ dialog.viewModel = function (options) {
     //
 
     vm = {};
-    vm.buttonOk = stream();
-    vm.buttonCancel = stream();
-    vm.buttons = stream([
+    vm.buttonOk = f.prop();
+    vm.buttonCancel = f.prop();
+    vm.buttons = f.prop([
         vm.buttonOk,
         vm.buttonCancel
     ]);
-    vm.icon = stream(options.icon);
-    vm.ids = stream({
+    vm.icon = f.prop(options.icon);
+    vm.ids = f.prop({
         dialog: options.id || f.createId(),
         header: f.createId(),
         buttonOk: f.createId(),
@@ -77,9 +76,9 @@ dialog.viewModel = function (options) {
             : "none"
         );
     };
-    vm.message = stream(options.message || "Your message here");
-    vm.onCancel = stream(options.onCancel);
-    vm.onOk = stream(options.onOk);
+    vm.message = f.prop(options.message || "Your message here");
+    vm.onCancel = f.prop(options.onCancel);
+    vm.onOk = f.prop(options.onOk);
     vm.ok = function () {
         let doOk = vm.onOk();
         if (typeof doOk === "function") {
@@ -87,16 +86,16 @@ dialog.viewModel = function (options) {
         }
         state.send("close");
     };
-    vm.okDisabled = stream(false);
-    vm.okTitle = stream("");
+    vm.okDisabled = f.prop(false);
+    vm.okTitle = f.prop("");
     vm.show = function () {
         state.send("show");
     };
-    vm.title = stream(options.title || "");
+    vm.title = f.prop(options.title || "");
     vm.state = function () {
         return state;
     };
-    vm.style = stream({
+    vm.style = f.prop({
         width: "450px"
     });
 

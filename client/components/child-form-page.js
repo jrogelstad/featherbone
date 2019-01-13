@@ -17,7 +17,6 @@
 **/
 /*jslint this, browser*/
 import {f} from "../core.js";
-import {stream} from "../../common/stream.js";
 import {button} from "./button.js";
 import {catalog} from "../models/catalog.js";
 import {formWidget} from "./form-widget.js";
@@ -57,10 +56,10 @@ childFormPage.viewModel = function (options) {
     // PUBLIC
     //
 
-    vm.buttonDone = stream();
-    vm.buttonPrevious = stream();
-    vm.buttonNext = stream();
-    vm.buttonNew = stream();
+    vm.buttonDone = f.prop();
+    vm.buttonPrevious = f.prop();
+    vm.buttonNext = f.prop();
+    vm.buttonNew = f.prop();
     vm.doChildOpen = function (idx) {
         let target = ary[idx];
 
@@ -99,11 +98,11 @@ childFormPage.viewModel = function (options) {
         ary.add(newInstance);
         vm.doChildOpen(ary.length - 1);
     };
-    vm.formWidget = stream();
+    vm.formWidget = f.prop();
     vm.model = function () {
         return vm.formWidget().model();
     };
-    vm.sseErrorDialog = stream(dialog.viewModel({
+    vm.sseErrorDialog = f.prop(dialog.viewModel({
         icon: "close",
         title: "Connection Error",
         message: (

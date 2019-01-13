@@ -19,7 +19,6 @@
 const store = {};
 
 import {model} from "./model.js";
-import {stream} from "../../common/stream.js";
 import {datasource} from "../datasource.js";
 import {catalog} from "./catalog.js";
 import {State} from "../../common/state.js";
@@ -62,7 +61,7 @@ function settings(definition) {
         return name;
     };
 
-    that.etag = stream();
+    that.etag = f.prop();
 
     // ..........................................................
     // PRIVATE
@@ -124,7 +123,7 @@ function settings(definition) {
             });
 
             this.state("New", function () {
-                this.canSave = stream(false);
+                this.canSave = f.prop(false);
             });
 
             this.state("Fetched", function () {
@@ -132,7 +131,7 @@ function settings(definition) {
                     this.event("changed", function () {
                         this.goto("../Dirty");
                     });
-                    this.canSave = stream(false);
+                    this.canSave = f.prop(false);
                 });
 
                 this.state("Dirty", function () {
@@ -149,11 +148,11 @@ function settings(definition) {
         this.state("Busy", function () {
             this.state("Fetching", function () {
                 this.enter(doFetch);
-                this.canSave = stream(false);
+                this.canSave = f.prop(false);
             });
             this.state("Saving", function () {
                 this.enter(doPut);
-                this.canSave = stream(false);
+                this.canSave = f.prop(false);
             });
 
             this.event("fetched", function () {
@@ -169,7 +168,7 @@ function settings(definition) {
             this.canExit = function () {
                 return false;
             };
-            this.canSave = stream(false);
+            this.canSave = f.prop(false);
         });
     }));
 

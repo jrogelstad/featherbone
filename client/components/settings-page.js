@@ -16,7 +16,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint this, browser*/
-import {stream} from "../../common/stream.js";
 import {button} from "./button.js";
 import {catalog} from "../models/catalog.js";
 import {formWidget} from "./form-widget.js";
@@ -52,7 +51,7 @@ settingsPage.viewModel = function (options) {
     // ..........................................................
     // PUBLIC
     //
-    vm.buttonDone = stream();
+    vm.buttonDone = f.prop();
     vm.doDone = function () {
         if (model.canSave()) {
             vm.formWidget().model().save().then(function () {
@@ -64,14 +63,14 @@ settingsPage.viewModel = function (options) {
         window.history.back();
     };
 
-    vm.formWidget = stream(formWidget.viewModel({
+    vm.formWidget = f.prop(formWidget.viewModel({
         model: model,
         id: options.settings,
         config: form,
         outsideElementIds: ["toolbar"]
     }));
 
-    vm.model = stream(model);
+    vm.model = f.prop(model);
     vm.title = function () {
         return options.settings.toName();
     };

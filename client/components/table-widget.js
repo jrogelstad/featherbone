@@ -22,7 +22,6 @@ let widthNoScroll;
 let widthWithScroll;
 
 import {f} from "../core.js";
-import {stream} from "../../common/stream.js";
 import {catalog} from "../models/catalog.js";
 import {dialog} from "./dialog.js";
 import {State} from "../../common/state.js";
@@ -109,12 +108,12 @@ tableWidget.viewModel = function (options) {
             attr: "id"
         }];
     };
-    vm.canToggle = stream(true);
-    vm.isEditModeEnabled = stream(options.isEditModeEnabled !== false);
-    vm.isQuery = stream(true);
-    vm.config = stream(options.config);
-    vm.footerId = stream(options.footerId);
-    vm.confirmDialog = stream(dialog.viewModel({
+    vm.canToggle = f.prop(true);
+    vm.isEditModeEnabled = f.prop(options.isEditModeEnabled !== false);
+    vm.isQuery = f.prop(true);
+    vm.config = f.prop(options.config);
+    vm.footerId = f.prop(options.footerId);
+    vm.confirmDialog = f.prop(dialog.viewModel({
         icon: "question-circle",
         title: "Confirmation"
     }));
@@ -135,11 +134,11 @@ tableWidget.viewModel = function (options) {
             : undefined
         );
     };
-    vm.errorDialog = stream(dialog.viewModel({
+    vm.errorDialog = f.prop(dialog.viewModel({
         icon: "exclamation-triangle",
         title: "Error"
     }));
-    vm.feather = stream(feather);
+    vm.feather = f.prop(feather);
     vm.filter = f.prop();
     vm.form = function () {
         return f.getForm({
@@ -175,7 +174,7 @@ tableWidget.viewModel = function (options) {
             vm.select(list[idx]);
         }
     };
-    vm.ids = stream({
+    vm.ids = f.prop({
         header: f.createId(),
         rows: f.createId()
     });
@@ -207,7 +206,7 @@ tableWidget.viewModel = function (options) {
       @param {Object} Model selected
       @returns {Object} Last model selected
     */
-    vm.lastSelected = stream();
+    vm.lastSelected = f.prop();
     vm.mode = function () {
         let state = vm.state();
         return state.resolve(state.current()[0]);
@@ -221,8 +220,8 @@ tableWidget.viewModel = function (options) {
     vm.modelNew = function () {
         return vm.mode().modelNew();
     };
-    vm.models = stream(options.models);
-    vm.nextFocus = stream();
+    vm.models = f.prop(options.models);
+    vm.nextFocus = f.prop();
     vm.ondblclick = function (model) {
         vm.select(model);
         if (options.ondblclick) {
@@ -333,13 +332,13 @@ tableWidget.viewModel = function (options) {
     vm.refresh = function () {
         fetch(true);
     };
-    vm.relations = stream({});
-    vm.selectComponents = stream({});
+    vm.relations = f.prop({});
+    vm.selectComponents = f.prop({});
     vm.save = function () {
         vm.models().save();
     };
-    vm.scrollbarWidth = stream(scrWidth);
-    vm.search = options.search || stream("");
+    vm.scrollbarWidth = f.prop(scrWidth);
+    vm.search = options.search || f.prop("");
     vm.select = function (models) {
         let state;
         let selections = vm.selections();
@@ -389,11 +388,11 @@ tableWidget.viewModel = function (options) {
             return selection.id();
         });
     };
-    vm.selections = stream([]);
+    vm.selections = f.prop([]);
     vm.selectedColor = function () {
         return vm.mode().selectedColor();
     };
-    vm.state = stream();
+    vm.state = f.prop();
     vm.toggleEdit = function () {
         vm.state().send("edit");
     };
@@ -480,7 +479,7 @@ tableWidget.viewModel = function (options) {
 
         vm.state().send("unselected");
     };
-    vm.zoom = stream(100);
+    vm.zoom = f.prop(100);
 
     // ..........................................................
     // PRIVATE
@@ -610,7 +609,7 @@ tableWidget.viewModel = function (options) {
                     });
                     confirmDialog.show();
                 };
-                this.modelNew = stream(false); // Do nothing
+                this.modelNew = f.prop(false); // Do nothing
                 this.selectedColor = function () {
                     return "LightSkyBlue";
                 };

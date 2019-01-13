@@ -16,7 +16,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint this, browser*/
-import {stream} from "../../common/stream.js";
 import {button} from "./button.js";
 import {catalog} from "../models/catalog.js";
 import {filterDialog} from "./filter-dialog.js";
@@ -36,12 +35,12 @@ searchPage.viewModel = function (options) {
     // PUBLIC
     //
 
-    vm.buttonBack = stream();
-    vm.buttonSelect = stream();
-    vm.buttonClear = stream();
-    vm.buttonFilter = stream();
-    vm.buttonRefresh = stream();
-    vm.buttonSort = stream();
+    vm.buttonBack = f.prop();
+    vm.buttonSelect = f.prop();
+    vm.buttonClear = f.prop();
+    vm.buttonFilter = f.prop();
+    vm.buttonRefresh = f.prop();
+    vm.buttonSort = f.prop();
     vm.doBack = function () {
         window.history.back();
     };
@@ -59,10 +58,10 @@ searchPage.viewModel = function (options) {
         }
         vm.doBack();
     };
-    vm.filterDialog = stream();
-    vm.sortDialog = stream();
-    vm.searchInput = stream();
-    vm.tableWidget = stream();
+    vm.filterDialog = f.prop();
+    vm.sortDialog = f.prop();
+    vm.searchInput = f.prop();
+    vm.tableWidget = f.prop();
     vm.refresh = function () {
         vm.tableWidget().refresh();
     };

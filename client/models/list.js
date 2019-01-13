@@ -17,7 +17,6 @@
 **/
 /*jslint this, browser*/
 import {f} from "../core.js";
-import {stream} from "../../common/stream.js";
 import {catalog} from "./catalog.js";
 import {State} from "../../common/state.js";
 
@@ -107,7 +106,7 @@ function createList(feather) {
         }
     };
 
-    ary.canFilter = stream(true);
+    ary.canFilter = f.prop(true);
 
     /*
       Fetch data.
@@ -122,21 +121,21 @@ function createList(feather) {
         return doSend("fetch", merge);
     };
 
-    ary.filter = stream({});
+    ary.filter = f.prop({});
 
-    ary.defaultLimit = stream(LIMIT);
+    ary.defaultLimit = f.prop(LIMIT);
 
-    ary.index = stream({});
+    ary.index = f.prop({});
 
     ary.model = models[feather.toCamelCase() || "Model"];
 
-    ary.path = stream();
+    ary.path = f.prop();
 
     /*
       Array of properties to fetch if only a subset required.
       If undefined, then all properties returned.
     */
-    ary.properties = stream();
+    ary.properties = f.prop();
 
     // Remove a model from the list
     ary.remove = function (model) {
@@ -162,7 +161,7 @@ function createList(feather) {
         ary.index({});
     };
 
-    ary.showDeleted = stream(false);
+    ary.showDeleted = f.prop(false);
 
     ary.save = function () {
         return doSend("save");
@@ -433,7 +432,7 @@ function list(feather) {
         options = options || {};
         let plural;
         let ary = options.value || createList(feather);
-        let prop = stream(ary);
+        let prop = f.prop(ary);
 
         if (options.path) {
             ary.path(options.path);

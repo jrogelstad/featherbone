@@ -17,7 +17,6 @@
 **/
 /*jslint this, browser*/
 import {f} from "../core.js";
-import {stream} from "../../common/stream.js";
 import {State} from "../../common/state.js";
 
 const button = {};
@@ -91,8 +90,8 @@ button.viewModel = function (options) {
         }
         return hotkey;
     };
-    vm.icon = stream(options.icon || "");
-    vm.id = stream(f.createId());
+    vm.icon = f.prop(options.icon || "");
+    vm.id = f.prop(f.createId());
     vm.isPrimary = function (flag) {
         if (Boolean(flag)) {
             state.send("primaryOn");
@@ -130,7 +129,7 @@ button.viewModel = function (options) {
         }
         return label;
     };
-    vm.onclick = stream(options.onclick);
+    vm.onclick = f.prop(options.onclick);
     vm.onkeydown = function (e) {
         let id;
 
@@ -152,7 +151,7 @@ button.viewModel = function (options) {
     vm.style = function () {
         return options.style || {};
     };
-    vm.title = stream(options.title || "");
+    vm.title = f.prop(options.title || "");
 
     // ..........................................................
     // PRIVATE
@@ -175,8 +174,8 @@ button.viewModel = function (options) {
                 this.event("disable", function () {
                     this.goto("../Disabled");
                 });
-                this.class = stream("");
-                this.isDisabled = stream(false);
+                this.class = f.prop("");
+                this.isDisabled = f.prop(false);
             });
             this.state("Active", function () {
                 this.event("deactivate", function () {
@@ -188,7 +187,7 @@ button.viewModel = function (options) {
                 this.class = function () {
                     return "pure-button-active";
                 };
-                this.isDisabled = stream(false);
+                this.isDisabled = f.prop(false);
             });
             this.state("Disabled", function () {
                 this.event("enable", function () {
@@ -197,8 +196,8 @@ button.viewModel = function (options) {
                 this.event("activate", function () {
                     this.goto("../Active");
                 });
-                this.class = stream("");
-                this.isDisabled = stream(true);
+                this.class = f.prop("");
+                this.isDisabled = f.prop(true);
             });
         });
         this.state("Primary", function () {
@@ -206,13 +205,13 @@ button.viewModel = function (options) {
                 this.event("primaryOn", function () {
                     this.goto("../On");
                 });
-                this.class = stream("");
+                this.class = f.prop("");
             });
             this.state("On", function () {
                 this.event("primaryOff", function () {
                     this.goto("../Off");
                 });
-                this.class = stream("pure-button-primary");
+                this.class = f.prop("pure-button-primary");
             });
         });
         this.state("Display", function () {
@@ -220,13 +219,13 @@ button.viewModel = function (options) {
                 this.event("hide", function () {
                     this.goto("../Off");
                 });
-                this.hidden = stream("");
+                this.hidden = f.prop("");
             });
             this.state("Off", function () {
                 this.event("show", function () {
                     this.goto("../On");
                 });
-                this.hidden = stream("pure-button-hidden");
+                this.hidden = f.prop("pure-button-hidden");
             });
         });
     });

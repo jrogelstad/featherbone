@@ -17,7 +17,6 @@
 **/
 /*jslint this, browser*/
 import {f} from "../core.js";
-import {stream} from "../../common/stream.js";
 import {button} from "./button.js";
 import {catalog} from "../models/catalog.js";
 import {formWidget} from "./form-widget.js";
@@ -64,10 +63,10 @@ formPage.viewModel = function (options) {
     // PUBLIC
     //
 
-    vm.buttonApply = stream();
-    vm.buttonBack = stream();
-    vm.buttonSave = stream();
-    vm.buttonSaveAndNew = stream();
+    vm.buttonApply = f.prop();
+    vm.buttonBack = f.prop();
+    vm.buttonSave = f.prop();
+    vm.buttonSaveAndNew = f.prop();
     vm.doApply = function () {
         vm.model().save().then(function () {
             callReceiver(false);
@@ -112,11 +111,11 @@ formPage.viewModel = function (options) {
             vm.doNew();
         });
     };
-    vm.formWidget = stream();
+    vm.formWidget = f.prop();
     vm.model = function () {
         return vm.formWidget().model();
     };
-    vm.sseErrorDialog = stream(dialog.viewModel({
+    vm.sseErrorDialog = f.prop(dialog.viewModel({
         icon: "window-close",
         title: "Connection Error",
         message: (

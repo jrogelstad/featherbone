@@ -16,11 +16,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint this, browser*/
-import {stream} from "../../common/stream.js";
+import {f} from "../core.js";
 import {catalog} from "../models/catalog.js";
 import {State} from "../../common/state.js";
 
-const selected = stream();
+const selected = f.prop();
 const navigator = {};
 const m = window.m;
 
@@ -87,7 +87,7 @@ navigator.viewModel = function (options) {
     vm.itemTitle = function (value) {
         return state.resolve(state.current()[0]).title(value);
     };
-    vm.mouseoverKey = stream();
+    vm.mouseoverKey = f.prop();
     vm.mouseout = function () {
         vm.mouseoverKey(undefined);
     };
@@ -104,7 +104,7 @@ navigator.viewModel = function (options) {
         return state.resolve(state.current()[0]).classMenu;
     };
     vm.selected = selected;
-    vm.state = stream(state);
+    vm.state = f.prop(state);
 
     // ..........................................................
     // PRIVATE

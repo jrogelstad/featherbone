@@ -16,7 +16,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint this, browser*/
-import {stream} from "../../common/stream.js";
 import {f} from "../core.js";
 import {catalog} from "../models/catalog.js";
 
@@ -51,7 +50,7 @@ relationWidget.viewModel = function (options) {
         ? modelValue().data[valueProperty]()
         : null
     );
-    let inputValue = stream(current);
+    let inputValue = f.prop(current);
     let type = modelValue.type;
     let modelName = type.relation.toCamelCase();
     let criteria = (
@@ -91,7 +90,7 @@ relationWidget.viewModel = function (options) {
         updateValue.bind(null, parent.model().data[parentProperty])
     );
 
-    vm.listId = stream(f.createId());
+    vm.listId = f.prop(f.createId());
     vm.fetch = function () {
         list({
             value: modelList(),
@@ -99,10 +98,10 @@ relationWidget.viewModel = function (options) {
             merge: false
         });
     };
-    vm.formConfig = stream(options.form);
-    vm.id = stream(options.id);
-    vm.isCell = stream(Boolean(options.isCell));
-    vm.isDisabled = options.disabled || stream(false);
+    vm.formConfig = f.prop(options.form);
+    vm.id = f.prop(options.id);
+    vm.isCell = f.prop(Boolean(options.isCell));
+    vm.isDisabled = options.disabled || f.prop(false);
     vm.label = function () {
         let model = modelValue();
         return (
@@ -111,7 +110,7 @@ relationWidget.viewModel = function (options) {
             : ""
         );
     };
-    vm.labelProperty = stream(options.labelProperty);
+    vm.labelProperty = f.prop(options.labelProperty);
     vm.labels = function () {
         return [
             m("div", {
@@ -272,10 +271,10 @@ relationWidget.viewModel = function (options) {
     vm.onmouseoutmenu = function () {
         vm.showMenu(false);
     };
-    vm.parentProperty = stream(options.parentProperty);
-    vm.parantViewModel = stream(options.parentViewModel);
-    vm.showMenu = stream(false);
-    vm.style = stream({});
+    vm.parentProperty = f.prop(options.parentProperty);
+    vm.parantViewModel = f.prop(options.parentViewModel);
+    vm.showMenu = f.prop(false);
+    vm.style = f.prop({});
     vm.value = function (...args) {
         let result;
         let value = args[0];
@@ -295,7 +294,7 @@ relationWidget.viewModel = function (options) {
         }
         return result.data[valueProperty]();
     };
-    vm.valueProperty = stream(valueProperty);
+    vm.valueProperty = f.prop(valueProperty);
 
     // Helper function for registering callbacks
     registerReceiver = function () {

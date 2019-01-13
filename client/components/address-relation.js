@@ -17,7 +17,6 @@
 **/
 /*jslint this, browser*/
 import {f} from "../core.js";
-import {stream} from "../../common/stream.js";
 import {catalog} from "../models/catalog.js";
 import {button} from "./button.js";
 import {formDialog} from "./form-dialog.js";
@@ -29,8 +28,8 @@ addressRelation.viewModel = function (options) {
     let vm = {};
     let parent = options.parentViewModel;
 
-    vm.addressDialog = stream();
-    vm.buttonClear = stream();
+    vm.addressDialog = f.prop();
+    vm.buttonClear = f.prop();
     vm.content = function (isCell) {
         let d;
         let content;
@@ -90,8 +89,8 @@ addressRelation.viewModel = function (options) {
             dmodel.state().goto("/Ready/Fetched/Clean");
         }
     };
-    vm.id = stream(options.id || f.createId());
-    vm.isCell = stream(options.isCell);
+    vm.id = f.prop(options.id || f.createId());
+    vm.isCell = f.prop(options.isCell);
     vm.model = parent.model().data[options.parentProperty];
     vm.onkeydown = function (e) {
         if (e.key === "Enter") { // Enter key
@@ -108,7 +107,7 @@ addressRelation.viewModel = function (options) {
         states.unshift("");
         return states;
     };
-    vm.style = stream(options.style || {});
+    vm.style = f.prop(options.style || {});
 
     // ..........................................................
     // PRIVATE

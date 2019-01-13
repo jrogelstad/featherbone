@@ -17,13 +17,12 @@
 **/
 /*jslint this, browser*/
 import {f} from "../core.js";
-import {stream} from "../../common/stream.js";
 import {State} from "../../common/state.js";
 import {datasource} from "../datasource.js";
 
 const store = {};
 
-store.feathers = stream({});
+store.feathers = f.prop({});
 
 function settings() {
     let state;
@@ -191,7 +190,7 @@ const catalog = (function () {
         let value = args[2];
 
         if (!store[property]) {
-            store[property] = stream({});
+            store[property] = f.prop({});
         }
         if (args.length > 1) {
             store[property]()[name] = value;
@@ -211,7 +210,7 @@ const catalog = (function () {
       @param {String} Session Id
       @return {String}
     */
-    that.sessionId = stream();
+    that.sessionId = f.prop();
 
     // Expose global store data
     that.store = function () {

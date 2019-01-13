@@ -17,7 +17,6 @@
 **/
 /*jslint this, browser*/
 import {f} from "../core.js";
-import {stream} from "../../common/stream.js";
 import {button} from "./button.js";
 import {catalog} from "../models/catalog.js";
 import {tableWidget} from "./table-widget.js";
@@ -60,11 +59,11 @@ childTable.viewModel = function (options) {
     // PUBLIC
     //
 
-    vm.buttonAdd = stream();
-    vm.buttonOpen = stream();
-    vm.buttonRemove = stream();
-    vm.buttonUndo = stream();
-    vm.childForm = stream();
+    vm.buttonAdd = f.prop();
+    vm.buttonOpen = f.prop();
+    vm.buttonRemove = f.prop();
+    vm.buttonUndo = f.prop();
+    vm.childForm = f.prop();
     vm.doChildOpen = function () {
         let selection = vm.tableWidget().selection();
         let models = vm.tableWidget().models();
@@ -90,8 +89,8 @@ childTable.viewModel = function (options) {
             });
         }
     };
-    vm.tableWidget = stream();
-    vm.parentViewModel = stream(options.parentViewModel);
+    vm.tableWidget = f.prop();
+    vm.parentViewModel = f.prop(options.parentViewModel);
     vm.refresh = function () {
         vm.tableWidget().refresh();
     };

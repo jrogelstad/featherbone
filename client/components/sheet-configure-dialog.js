@@ -17,7 +17,6 @@
 **/
 /*jslint this, browser*/
 import {f} from "../core.js";
-import {stream} from "../../common/stream.js";
 import {catalog} from "../models/catalog.js";
 import {tableDialog} from "./table-dialog.js";
 
@@ -241,8 +240,8 @@ sheetConfigureDialog.viewModel = function (options) {
     vm.okTitle = function () {
         return vm.model().lastError();
     };
-    vm.sheetId = stream(options.sheetId);
-    vm.relations = stream({});
+    vm.sheetId = f.prop(options.sheetId);
+    vm.relations = f.prop({});
     vm.reset = function () {
         let model;
         let id = vm.sheetId();
@@ -313,7 +312,7 @@ sheetConfigureDialog.viewModel = function (options) {
         }
     };
     vm.workbook = options.parentViewModel.workbook;
-    vm.viewHeaderIds = stream({
+    vm.viewHeaderIds = f.prop({
         column: f.createId(),
         label: f.createId()
     });
