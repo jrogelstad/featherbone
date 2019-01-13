@@ -121,7 +121,7 @@ function buildFieldset(vm, attrs) {
         if (dataList) {
             // If reference a property, get the property
             if (typeof dataList === "string") {
-                dataList = f.resolveProperty(model, dataList)();
+                dataList = model.data[dataList]();
 
             // Must referencoe a simple array, transform
             } else if (typeof dataList[0] !== "object") {

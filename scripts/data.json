@@ -111,7 +111,8 @@
             "showLabel": false,
             "columns": [{
                 "attr": "attr",
-                "label": "Attribute"
+                "label": "Attribute",
+                "dataList": "properties"
             }, {
                 "attr": "grid",
                 "width": "50px"

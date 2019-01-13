@@ -18,17 +18,19 @@
 import {catalog} from "./catalog.js";
 import {model} from "./model.js";
 
-function form(data, feather) {
+function formAttr(data, feather) {
     let that;
 
-    function feathers() {
-        let tables = catalog.store().feathers();
-        let keys = Object.keys(tables);
+    function properties() {
+        let keys;
+        let formFeather = that.parent().data.feather();
+        let result = [];
 
-        keys = keys.filter(function (key) {
-            return !tables[key].isSystem;
-        }).sort();
-
+        if (!formFeather) {
+            return result;
+        }
+        formFeather = catalog.getFeather(formFeather);
+        keys = Object.keys(formFeather.properties || []);
         return keys.map(function (key) {
             return {
                 value: key,
@@ -37,45 +39,18 @@ function form(data, feather) {
         });
     }
 
-    function modules() {
-        let tables = catalog.store().feathers();
-        let keys = Object.keys(tables);
-        let ary = [];
-
-        keys.forEach(function (key) {
-            let mod = tables[key].module;
-
-            if (mod && ary.indexOf(mod) === -1) {
-                ary.push(mod);
-            }
-        });
-
-        return ary.map(function (item) {
-            return {
-                value: item,
-                label: item
-            };
-        });
-    }
-
-    feather = feather || catalog.getFeather("Form");
+    feather = feather || catalog.getFeather("FormAttr");
     that = model(data, feather);
 
     that.addCalculated({
-        name: "feathers",
+        name: "properties",
         type: "array",
-        function: feathers
-    });
-
-    that.addCalculated({
-        name: "modules",
-        type: "array",
-        function: modules
+        function: properties
     });
 
     return that;
 }
 
-catalog.register("models", "form", form);
+catalog.register("models", "formAttr", formAttr);
 
-export {form};
+export {formAttr};
