@@ -16,6 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint this, browser*/
+import {f} from "../core.js";
 import {button} from "./button.js";
 import {catalog} from "../models/catalog.js";
 import {formWidget} from "./form-widget.js";
