@@ -210,7 +210,7 @@
             },
             "width": {
                 "description": "Default column width",
-                "type": "string"
+                "type": "integer"
             }
         }
     },
