@@ -1375,7 +1375,7 @@ tableWidget.component = {
                 thContent = m("i", {
                     onclick: onclick,
                     title: model.lastError(),
-                    class: "fa fa-warning",
+                    class: "fa fa-exclamation-triangle",
                     style: iconStyle
                 });
             } else if (currentState === "/Locked") {
