@@ -129,6 +129,19 @@ function formAttr(data, feather) {
     stateClean.enter(handleDataList);
     stateClean.enter(handleDisableCurrency);
     stateClean.enter(handleRelationWidget);
+    
+    that.onValidate(function () {
+        let found = that.parent().data.properties().find(
+            (p) => that.data.attr() === p.value
+        );
+
+        if (!found) {
+            throw (
+                "Attribute '" + that.data.attr() + "' not in feather '" +
+                that.parent().data.feather() + "'"
+            );
+        }
+    });
 
     return that;
 }
