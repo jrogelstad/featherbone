@@ -325,7 +325,6 @@ moneyRelation.component = {
         };
 
         if (vm.isCell()) {
-            inputStyle.border = "none";
             displayStyle.float = "right";
             amountLabelStyle.display = "none";
         }

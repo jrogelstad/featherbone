@@ -397,8 +397,7 @@ relationWidget.component = {
         if (vm.isCell()) {
             inputStyle = {
                 minWidth: "100px",
-                maxWidth: "100%",
-                border: "none"
+                maxWidth: "100%"
             };
             buttonClass += " fb-relation-button-cell";
             menuStyle.top = "35px";

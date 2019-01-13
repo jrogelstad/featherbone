@@ -450,12 +450,6 @@
   border-style: ridge;
 }
 
-.fb-table-cell-edit-input {
-  box-shadow: none !important;
-  border: none !important;
-  padding: 0px !important;
-}
-
 .fb-table-body {
   display: inline-block;
   width: 100%;

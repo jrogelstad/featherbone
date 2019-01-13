@@ -1208,11 +1208,9 @@ tableWidget.component = {
                         id: id,
                         onclick: vm.toggleSelection.bind(this, model, id),
                         value: prop(),
-                        class: "fb-table-cell-edit-input",
                         style: {
                             minWidth: columnWidth,
                             maxWidth: columnWidth,
-                            backgroundColor: color,
                             fontSize: zoom
                         },
                         isCell: true,
@@ -1307,10 +1305,7 @@ tableWidget.component = {
                     if (dataList) {
                         // If reference a property, get the property
                         if (typeof dataList === "string") {
-                            dataList = f.resolveProperty(
-                                model,
-                                dataList
-                            )();
+                            dataList = model.data[dataList]();
 
                         // Must referencoe a simple array, transform
                         } else if (typeof dataList[0] !== "object") {
