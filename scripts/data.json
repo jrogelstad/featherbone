@@ -209,7 +209,8 @@
             "unit": 0,
             "showLabel": false,
             "columns": [{
-                "attr": "attr"
+                "attr": "attr",
+                "dataList": "properties"
             }, {
                 "attr": "label"
             }, {
