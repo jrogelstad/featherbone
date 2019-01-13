@@ -194,23 +194,28 @@ childFormPage.component = {
         let model = vm.model();
         let icon = "file-text";
 
-        switch (model.state().current()[0]) {
-        case "/Locked":
-            icon = "lock";
-            lock = model.data.lock() || {};
-            title = (
-                "User: " + lock.username + "\nSince: " +
-                new Date(lock.created).toLocaleTimeString()
-            );
-            break;
-        case "/Ready/Fetched/Dirty":
-            icon = "pencil";
-            title = "Editing record";
-            break;
-        case "/Ready/New":
-            icon = "plus";
-            title = "New record";
-            break;
+        if (model.isValid()) {
+            switch (model.state().current()[0]) {
+            case "/Locked":
+                icon = "lock";
+                lock = model.data.lock() || {};
+                title = (
+                    "User: " + lock.username + "\nSince: " +
+                    new Date(lock.created).toLocaleTimeString()
+                );
+                break;
+            case "/Ready/Fetched/Dirty":
+                icon = "pencil";
+                title = "Editing record";
+                break;
+            case "/Ready/New":
+                icon = "plus";
+                title = "New record";
+                break;
+            }
+        } else {
+            icon = "exclamation-triangle";
+            title = model.lastError();
         }
 
         // Build view
