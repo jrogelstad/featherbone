@@ -22,6 +22,31 @@ function formAttr(data, feather) {
     let that;
     let stateClean;
 
+    function handleDataList() {
+        let attr = that.data.attr;
+        let formFeather = that.parent().data.feather();
+        let dataList = that.data.dataList;
+        let fprop;
+        let readOnly;
+
+        if (!formFeather || !attr()) {
+            dataList.isReadOnly(true);
+            return;
+        }
+
+        formFeather = catalog.getFeather(formFeather);
+        fprop = formFeather.properties[attr()];
+
+        readOnly = Boolean(
+            !fprop || typeof fprop.type === "object" ||
+            fprop.type === "boolean"
+        );
+        dataList.isReadOnly(readOnly);
+        if (readOnly) {
+            dataList("");
+        }
+    }
+
     function handleDisableCurrency() {
         let attr = that.data.attr;
         let formFeather = that.parent().data.feather();
@@ -97,9 +122,11 @@ function formAttr(data, feather) {
         function: properties
     });
 
+    that.onChanged("attr", handleDataList);
     that.onChanged("attr", handleDisableCurrency);
     that.onChanged("attr", handleRelationWidget);
     stateClean = that.state().resolve("/Ready/Fetched/Clean");
+    stateClean.enter(handleDataList);
     stateClean.enter(handleDisableCurrency);
     stateClean.enter(handleRelationWidget);
 
