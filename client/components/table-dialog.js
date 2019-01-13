@@ -195,45 +195,7 @@ tableDialog.viewModel = function (options) {
         // Reset code here
         return;
     };
-    vm.resolveProperties = function (feather, properties, ary, prefix) {
-        prefix = prefix || "";
-        let result = ary || [];
-
-        properties.forEach(function (key) {
-            let rfeather;
-            let prop = feather.properties[key];
-            let isObject = typeof prop.type === "object";
-            let path = prefix + key;
-
-            if (isObject && prop.type.properties) {
-                rfeather = catalog.getFeather(prop.type.relation);
-                vm.resolveProperties(
-                    rfeather,
-                    prop.type.properties,
-                    result,
-                    path + "."
-                );
-            }
-
-            if (prop.format === "money") {
-                path += ".amount";
-            } else if (
-                prop.type === "object" || (
-                    isObject && (
-                        prop.type.childOf ||
-                        prop.type.parentOf ||
-                        prop.type.isChild
-                    )
-                )
-            ) {
-                return;
-            }
-
-            result.push(path);
-        });
-
-        return result;
-    };
+    vm.resolveProperties = f.resolveProperties;
     vm.rowColor = function (index) {
         if (vm.selection() === index) {
             if (vm.isSelected()) {

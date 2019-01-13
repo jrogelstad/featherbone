@@ -206,7 +206,7 @@
             "showCurrency": {
                 "description": "Show currency selector if money",
                 "type": "boolean",
-                "default": true
+                "default": false
             },
             "width": {
                 "description": "Default column width",
