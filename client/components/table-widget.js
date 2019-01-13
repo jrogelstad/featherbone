@@ -28,7 +28,7 @@ import {State} from "../../common/state.js";
 
 const tableWidget = {};
 const outer = document.createElement("div");
-const COL_WIDTH_DEFAULT = "150px";
+const COL_WIDTH_DEFAULT = "150";
 const LIMIT = 20;
 const ROW_COUNT = 2;
 const m = window.m;
@@ -268,9 +268,8 @@ tableWidget.viewModel = function (options) {
                 widthStart = dataTransfer.widthStart - 0;
                 column = vm.config().columns[fromWidthIdx];
                 oldWidth = column.width || COL_WIDTH_DEFAULT;
-                oldWidth = oldWidth.replace("px", "") - 0;
                 newWidth = oldWidth - (widthStart - ev.clientX);
-                column.width = newWidth + "px";
+                column.width = newWidth;
             }
             break;
         default:
@@ -844,7 +843,7 @@ tableWidget.component = {
                     config.columns[idx].width || COL_WIDTH_DEFAULT
                 );
 
-                columnWidth = (columnWidth.replace("px", "") - 6) + "px";
+                columnWidth -= 6;
 
                 // Add sort icons
                 if (fidx !== false) {
@@ -903,8 +902,8 @@ tableWidget.component = {
                         ),
                         class: "fb-column-header",
                         style: {
-                            minWidth: columnWidth,
-                            maxWidth: columnWidth,
+                            minWidth: columnWidth + "px",
+                            maxWidth: columnWidth + "px",
                             fontSize: zoom
                         },
                         title: resolveDescription(feather, key)
@@ -994,9 +993,7 @@ tableWidget.component = {
                     );
                     let du;
 
-                    columnWidth = (
-                        columnWidth.replace("px", "") - 6
-                    ) + "px";
+                    columnWidth -= 6;
 
                     tdOpts = {
                         onclick: function (ev) {
@@ -1014,8 +1011,8 @@ tableWidget.component = {
                         },
                         class: "fb-cell-view",
                         style: {
-                            minWidth: columnWidth,
-                            maxWidth: columnWidth,
+                            minWidth: columnWidth + "px",
+                            maxWidth: columnWidth + "px",
                             fontSize: zoom
                         }
                     };
@@ -1200,17 +1197,15 @@ tableWidget.component = {
                     let dataList = item.dataList || prop.dataList;
                     let cfilter = item.filter;
 
-                    columnWidth = (
-                        columnWidth.replace("px", "") - 6
-                    ) + "px";
+                    columnWidth -= 6;
 
                     inputOpts = {
                         id: id,
                         onclick: vm.toggleSelection.bind(this, model, id),
                         value: prop(),
                         style: {
-                            minWidth: columnWidth,
-                            maxWidth: columnWidth,
+                            minWidth: columnWidth + "px",
+                            maxWidth: columnWidth + "px",
                             fontSize: zoom
                         },
                         isCell: true,
@@ -1298,8 +1293,8 @@ tableWidget.component = {
                         };
                     }
 
-                    tdOpts.style.minWidth = columnWidth;
-                    tdOpts.style.maxWidth = columnWidth;
+                    tdOpts.style.minWidth = columnWidth + "px";
+                    tdOpts.style.maxWidth = columnWidth + "px";
                     tdOpts.style.fontSize = zoom;
 
                     if (dataList) {
