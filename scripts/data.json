@@ -116,13 +116,13 @@
                 "dataList": "properties"
             }, {
                 "attr": "grid",
-                "width": "50px"
+                "width": 50
             }, {
                 "attr": "unit",
-                "width": "50px"
+                "width": 50
             }, {
                 "attr": "showLabel",
-                "width": "100px"
+                "width": 100
             }, {
                 "attr": "label"
             }, {
@@ -173,7 +173,8 @@
         "attrs": [{
             "attr": "attr",
             "grid": 0,
-            "unit": 0
+            "unit": 0,
+            "dataList": "properties"
         }, {
             "attr": "grid",
             "grid": 0,
@@ -201,7 +202,7 @@
         }, {
             "attr": "disableCurrency",
             "grid": 0,
-            "unit": 1
+            "unit": 0
         }, {
             "attr": "columns",
             "grid": 1,
