@@ -192,7 +192,7 @@ childFormPage.component = {
         let title;
         let vm = this.viewModel;
         let model = vm.model();
-        let icon = "file-text";
+        let icon = "file-alt";
 
         if (model.isValid()) {
             switch (model.state().current()[0]) {
@@ -205,7 +205,7 @@ childFormPage.component = {
                 );
                 break;
             case "/Ready/Fetched/Dirty":
-                icon = "pencil";
+                icon = "pencil-alt";
                 title = "Editing record";
                 break;
             case "/Ready/New":
