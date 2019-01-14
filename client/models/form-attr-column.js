@@ -15,7 +15,6 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-import {f} from "../core.js";
 import {catalog} from "./catalog.js";
 import {model} from "./model.js";
 
@@ -23,17 +22,12 @@ function formAttrColumn(data, feather) {
     let that;
     let stateClean;
 
-    function handleProp(name, validator, value) {
-        let attr = that.data.attr;
+    function getChildFeather() {
         let formFeather = that.parent().parent().data.feather();
         let parentAttr = that.parent().data.attr();
-        let prop = that.data[name];
-        let fprop;
-        let readOnly;
         let childFeather;
 
-        if (!formFeather || !attr() || !parentAttr) {
-            prop.isReadOnly(true);
+        if (!formFeather || !parentAttr) {
             return;
         }
 
@@ -41,6 +35,58 @@ function formAttrColumn(data, feather) {
         childFeather = catalog.getFeather(
             formFeather.properties[parentAttr].type.relation
         );
+
+        return childFeather;
+    }
+
+    function resolveProperties(feather, properties, ary, prefix) {
+        prefix = prefix || "";
+        let result = ary || [];
+
+        properties.forEach(function (key) {
+            let rfeather;
+            let prop = feather.properties[key];
+            let isObject = typeof prop.type === "object";
+            let path = prefix + key;
+
+            if (isObject && prop.type.properties) {
+                rfeather = catalog.getFeather(prop.type.relation);
+                resolveProperties(
+                    rfeather,
+                    prop.type.properties,
+                    result,
+                    path + "."
+                );
+            }
+
+            if (
+                isObject && (
+                    prop.type.childOf ||
+                    prop.type.parentOf ||
+                    prop.type.isChild
+                )
+            ) {
+                return;
+            }
+
+            result.push(path);
+        });
+
+        return result;
+    }
+
+    function handleProp(name, validator, value) {
+        let attr = that.data.attr;
+        let prop = that.data[name];
+        let childFeather = getChildFeather();
+        let fprop;
+        let readOnly;
+
+        if (!attr() || !childFeather) {
+            prop.isReadOnly(true);
+            return;
+        }
+
         fprop = childFeather.properties[attr()];
 
         readOnly = validator(fprop);
@@ -76,20 +122,15 @@ function formAttrColumn(data, feather) {
 
     function properties() {
         let keys;
-        let formFeather = that.parent().parent().data.feather();
-        let parentAttr = that.parent().data.attr();
-        let childFeather;
+        let childFeather = getChildFeather();
         let result = [];
 
-        if (!formFeather || !parentAttr) {
+        if (!childFeather) {
             return result;
         }
-        formFeather = catalog.getFeather(formFeather);
-        childFeather = catalog.getFeather(
-            formFeather.properties[parentAttr].type.relation
-        );
+
         keys = Object.keys(childFeather.properties || []).sort();
-        keys = f.resolveProperties(childFeather, keys).sort();
+        keys = resolveProperties(childFeather, keys).sort();
         return keys.map(function (key) {
             return {
                 value: key,
@@ -112,20 +153,25 @@ function formAttrColumn(data, feather) {
     stateClean = that.state().resolve("/Ready/Fetched/Clean");
     stateClean.enter(handleDataList);
     stateClean.enter(handleShowCurrency);
-/*
-    that.onValidate(function () {
-        let found = that.parent().data.properties().find(
-            (p) => that.data.attr() === p.value
-        );
 
-        if (!found) {
-            throw (
-                "Attribute '" + that.data.attr() + "' not in feather '" +
-                that.parent().data.feather() + "'"
-            );
+    that.onValidate(function () {
+        let childFeather;
+
+        if (!that.data.properties().some(
+            (p) => that.data.attr() === p.value
+        )) {
+            childFeather = getChildFeather();
+            if (childFeather) {
+                throw (
+                    "Attribute '" + that.data.attr() + "' not in feather '" +
+                    getChildFeather().name + "'"
+                );
+            } else {
+                throw "Feather must be selected to set attributes";
+            }
         }
     });
-*/
+
     return that;
 }
 

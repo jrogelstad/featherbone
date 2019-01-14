@@ -175,7 +175,13 @@ filterDialog.viewModel = function (options) {
     vm.attrs = function () {
         let feather = vm.feather();
         let keys = Object.keys(feather.properties);
-        return vm.resolveProperties(feather, keys).sort();
+        return vm.resolveProperties(
+            feather,
+            keys,
+            undefined,
+            undefined,
+            true
+        ).sort();
     };
     vm.data = function () {
         return vm.filter()[vm.propertyName()];
