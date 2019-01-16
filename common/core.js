@@ -138,6 +138,9 @@
             textArea: {
                 default: ""
             },
+            script: {
+                default: ""
+            },
             money: {
                 default: function () {
                     return that.money();

@@ -1,6 +1,32 @@
 [{
     "name": "Form",
     "method": "POST",
+    "id": "o2p3nind8iuv",
+    "data": {
+        "name": "Module",
+        "description": "Module form",
+        "feather": "Module",
+        "module": "Core",
+        "tabs": [{
+            "name": "Script"
+        }],
+        "attrs": [{
+            "attr": "name"
+        }, {
+            "attr": "description"
+        }, {
+            "attr": "version",
+            "unit": 1
+        }, {
+            "attr": "isActive",
+            "unit": 1
+        }, {
+            "attr": "script"
+        }]
+    }
+}, {
+    "name": "Form",
+    "method": "POST",
     "id": "em4go8hrytdm",
     "data": {
         "name": "Feather",

@@ -192,6 +192,10 @@
                 type: "text",
                 default: ""
             },
+            script: {
+                type: "text",
+                default: ""
+            },
             color: {
                 type: "text",
                 default: "#000000"

@@ -23,6 +23,25 @@
                 }
             },
             {
+                "name": "Modules",
+                "feather": "Module",
+                "list": {
+                    "columns": [{
+                        "attr": "name"
+                    }, {
+                        "attr": "description"
+                    }, {
+                        "attr": "version"
+                    }],
+                    "filter": {
+                        "sort": [{
+                            "property": "name",
+                            "order": "ASC"
+                        }]
+                    }
+                }
+            },
+            {
                 "name": "Feathers",
                 "feather": "Feather",
                 "list": {

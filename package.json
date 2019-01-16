@@ -15,6 +15,7 @@
     "@fortawesome/fontawesome-free": "^5.6.3",
     "big.js": "^5.2.2",
     "body-parser": "^1.18.2",
+    "codemirror": "^5.42.2",
     "cors": "^2.8.5",
     "dialog-polyfill": "^0.4.9",
     "event-source-polyfill": "^1.0.5",
