@@ -30,6 +30,46 @@
         }
     },
     {
+        "name": "Module",
+        "plural": "Modules",
+        "module": "Document",
+        "description": "Functional application module",
+        "properties": {
+            "name": {
+                "description": "Name",
+                "type": "string",
+                "isNaturalKey": true,
+                "isRequired": true
+            },
+            "description": {
+                "description": "Description",
+                "type": "string",
+                "isRequired": true,
+                "isLabelKey": true
+            },
+            "script": {
+                "description": "Client JavaScript code for models and components",
+                "type": "string",
+                "format": "script"
+            },
+            "version": {
+                "description": "Software version",
+                "type": "string",
+                "isRequired": true
+            },
+            "dependencies": {
+                "description": "Dependencies on other modules",
+                "type": "object"
+            },
+            "isActive": {
+                "description": "Flag whether module is enabled in application",
+                "type": "boolean",
+                "isRequired": true,
+                "default": true
+            }
+        }
+    },
+    {
         "name": "Layout",
         "plural": "Layouts",
         "module": "Core",

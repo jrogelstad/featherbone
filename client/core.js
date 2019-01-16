@@ -23,6 +23,7 @@ import {State} from "../common/state.js";
 const m = window.m;
 const f = window.f;
 const console = window.console;
+const CodeMirror = window.CodeMirror;
 const exclusions = [
     "id",
     "isDeleted",
@@ -330,6 +331,7 @@ f.inputMap = {
     url: "url",
     color: "color",
     textArea: undefined,
+    script: undefined,
     money: "number"
 };
 
@@ -627,6 +629,19 @@ f.buildInputComponent = function (obj) {
 
                 if (prop.format === "textArea") {
                     opts.rows = opts.rows || 4;
+                    component = m("textarea", opts);
+                } else if (prop.format === "script") {
+                    opts.rows = opts.rows || 40;
+                    opts.style.width = "600px";
+                    opts.oncreate = function () {
+                        CodeMirror.fromTextArea(
+                            document.getElementById(id),
+                            {
+                                lineNumbers: true,
+                                mode: "javascript"
+                            }
+                        );
+                    };
                     component = m("textarea", opts);
                 } else {
                     component = m("input", opts);
