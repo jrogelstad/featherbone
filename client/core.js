@@ -631,18 +631,26 @@ f.buildInputComponent = function (obj) {
                     opts.rows = opts.rows || 4;
                     component = m("textarea", opts);
                 } else if (prop.format === "script") {
-                    opts.rows = opts.rows || 40;
-                    opts.style.width = "600px";
                     opts.oncreate = function () {
                         CodeMirror.fromTextArea(
                             document.getElementById(id),
                             {
                                 lineNumbers: true,
-                                mode: "javascript"
+                                mode: {
+                                    name: "javascript",
+                                    json: true
+                                },
+                                theme: "neat",
+                                indentUnit: 4
                             }
                         );
                     };
-                    component = m("textarea", opts);
+                    component = m("div", {style: {
+                        borderWidth: "thin",
+                        borderStyle: "ridge"
+                    }}, [
+                        m("textarea", opts)
+                    ]);
                 } else {
                     component = m("input", opts);
                 }
