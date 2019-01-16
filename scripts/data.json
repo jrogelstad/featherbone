@@ -16,12 +16,13 @@
             "attr": "description"
         }, {
             "attr": "version",
-            "unit": 1
+            "unit": 0
         }, {
             "attr": "isActive",
-            "unit": 1
+            "unit": 0
         }, {
-            "attr": "script"
+            "attr": "script",
+            "unit": 0
         }]
     }
 }, {
