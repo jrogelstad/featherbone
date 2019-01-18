@@ -75,7 +75,10 @@ function formAttrColumn(data, feather) {
         return result;
     }
 
-    function handleProp(name, validator, value) {
+    function handleProp(...args) {
+        let name = args[0];
+        let validator = args[1];
+        let value = args[2];
         let attr = that.data.attr;
         let prop = that.data[name];
         let childFeather = getChildFeather();
@@ -91,14 +94,14 @@ function formAttrColumn(data, feather) {
 
         readOnly = validator(fprop);
         prop.isReadOnly(readOnly);
-        if (readOnly) {
+        if (readOnly && args.length === 3) {
             prop(value);
         }
 
         return readOnly;
     }
 
-    function handleDataList() {
+    function handleDataList(setDefault) {
         function validator(fprop) {
             return Boolean(
                 !fprop || typeof fprop.type === "object" ||
@@ -106,10 +109,14 @@ function formAttrColumn(data, feather) {
             );
         }
 
-        handleProp("dataList", validator, "");
+        if (setDefault) {
+            handleProp("dataList", validator, "");
+        } else {
+            handleProp("dataList", validator)
+        };
     }
 
-    function handleShowCurrency() {
+    function handleShowCurrency(setDefault) {
         function validator(fprop) {
             return Boolean(
                 !fprop || fprop.type !== "object" ||
@@ -117,7 +124,11 @@ function formAttrColumn(data, feather) {
             );
         }
 
-        handleProp("showCurrency", validator, false);
+        if (setDefault) {
+            handleProp("showCurrency", validator, false);
+        } else {
+            handleProp("showCurrency", validator);
+        }
     }
 
     function properties() {
@@ -148,8 +159,8 @@ function formAttrColumn(data, feather) {
         function: properties
     });
 
-    that.onChanged("attr", handleDataList);
-    that.onChanged("attr", handleShowCurrency);
+    that.onChanged("attr", handleDataList.bind(null, true));
+    that.onChanged("attr", handleShowCurrency.bind(null, true));
     stateClean = that.state().resolve("/Ready/Fetched/Clean");
     stateClean.enter(handleDataList);
     stateClean.enter(handleShowCurrency);
