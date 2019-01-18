@@ -628,48 +628,48 @@ f.buildInputComponent = function (obj) {
                     opts.class += " fb-input-number";
                 }
 
-                if (prop.format === "textArea") {
-                    opts.rows = opts.rows || 4;
-                    component = m("textarea", opts);
-                } else if (prop.format === "script") {
-                    delete opts.onchange;
-                    opts.oncreate = function () {
-                        let cm;
-                        let state = obj.model.state();
-                        let e = document.getElementById(id);
-                        let config = {
-                            value: prop(),
-                            lineNumbers: true,
-                            mode: {
-                                name: "javascript",
-                                json: true
-                            },
-                            theme: "neat",
-                            indentUnit: 4,
-                            autoFocus: false
+                if (
+                    prop.format === "textArea" ||
+                    prop.format === "script"
+                ) {
+                    if (prop.format === "script") {
+                        delete opts.onchange;
+                        opts.oncreate = function () {
+                            let cm;
+                            let state = obj.model.state();
+                            let e = document.getElementById(id);
+                            let config = {
+                                value: prop(),
+                                lineNumbers: true,
+                                mode: {
+                                    name: "javascript",
+                                    json: true
+                                },
+                                theme: "neat",
+                                indentUnit: 4,
+                                autoFocus: false
+                            };
+
+                            cm = CodeMirror.fromTextArea(e, config);
+
+                            // Populate on fetch
+                            state.resolve("/Ready/Fetched/Clean").enter(
+                                function () {
+                                    cm.setValue(prop());
+                                }
+                            );
+
+                            // Send changed text back to model
+                            cm.on("blur", function () {
+                                cm.save();
+                                prop(e.value);
+                            });
                         };
+                    } else {
+                        opts.rows = opts.rows || 4;
+                    }
 
-                        cm = CodeMirror.fromTextArea(e, config);
-
-                        // Populate on fetch
-                        state.resolve("/Ready/Fetched/Clean").enter(
-                            function () {
-                                cm.setValue(prop());
-                            }
-                        );
-
-                        // Send changed text back to model
-                        cm.on("blur", function () {
-                            cm.save();
-                            prop(e.value);
-                        });
-                    };
-                    component = m("div", {style: {
-                        borderWidth: "thin",
-                        borderStyle: "ridge"
-                    }}, [
-                        m("textarea", opts)
-                    ]);
+                    component = m("textarea", opts);
                 } else {
                     component = m("input", opts);
                 }

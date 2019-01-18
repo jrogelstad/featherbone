@@ -7,25 +7,22 @@
         "description": "Module form",
         "feather": "Module",
         "module": "Core",
-        "tabs": [{
-            "name": "Client Script"
-        }],
         "attrs": [{
             "attr": "name"
         }, {
             "attr": "description"
         }, {
             "attr": "version",
-            "unit": 1
+            "unit": 0
         }, {
             "attr": "isActive",
-            "unit": 1
+            "unit": 0
         }, {
             "attr": "script",
-            "showLabel": false,
+            "showLabel": true,
             "label": "Client Script",
             "unit": 0,
-            "grid": 1
+            "grid": 0
         }]
     }
 }, {

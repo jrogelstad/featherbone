@@ -15,6 +15,11 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
+.CodeMirror {
+  border: 1px solid #eee;
+  height: auto !important;
+}
+
 .fb-input {
   width: 215px;
 }
