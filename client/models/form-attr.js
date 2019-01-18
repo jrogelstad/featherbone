@@ -49,7 +49,7 @@ function formAttr(data, feather) {
         return readOnly;
     }
 
-    function handleColumns() {
+    function handleColumns(setDefault) {
         let columns = that.data.columns();
 
         function validator(fprop) {
@@ -60,15 +60,17 @@ function formAttr(data, feather) {
         }
 
         // Can't just pass a scalar value in, so handle reset after
-        if (handleProp("columns", validator)) {
-            columns.canAdd(false);
-            columns.forEach((model) => model.delete());
-        } else {
-            columns.canAdd(true);
+        if (setDefault) {
+            if (handleProp("columns", validator)) {
+                columns.canAdd(false);
+                columns.forEach((model) => model.delete());
+            } else {
+                columns.canAdd(true);
+            }
         }
     }
 
-    function handleDataList() {
+    function handleDataList(setDefault) {
         function validator(fprop) {
             return Boolean(
                 !fprop || typeof fprop.type === "object" ||
@@ -76,10 +78,14 @@ function formAttr(data, feather) {
             );
         }
 
-        handleProp("dataList", validator, "");
+        if (setDefault) {
+            handleProp("dataList", validator, "");
+        } else {
+            handleProp("dataList", validator);
+        }
     }
 
-    function handleDisableCurrency() {
+    function handleDisableCurrency(setDefault) {
         function validator(fprop) {
             return Boolean(
                 !fprop || fprop.type !== "object" ||
@@ -87,10 +93,14 @@ function formAttr(data, feather) {
             );
         }
 
-        handleProp("disableCurrency", validator, false);
+        if (setDefault) {
+            handleProp("dataList", validator, "");
+        } else {
+            handleProp("disableCurrency", validator, false);
+        }
     }
 
-    function handleRelationWidget() {
+    function handleRelationWidget(setDefault) {
         function validator(fprop) {
             return Boolean(
                 !fprop || typeof fprop.type !== "object" ||
@@ -98,7 +108,11 @@ function formAttr(data, feather) {
             );
         }
 
-        handleProp("relationWidget", validator, undefined);
+        if (setDefault) {
+            handleProp("relationWidget", validator, undefined);
+        } else {
+            handleProp("relationWidget", validator);
+        }
     }
 
     function properties() {
@@ -128,15 +142,16 @@ function formAttr(data, feather) {
         function: properties
     });
 
-    that.onChanged("attr", handleColumns);
-    that.onChanged("attr", handleDataList);
-    that.onChanged("attr", handleDisableCurrency);
-    that.onChanged("attr", handleRelationWidget);
+    that.onChanged("attr", handleColumns.bind(null, true));
+    that.onChanged("attr", handleDataList.bind(null, true));
+    that.onChanged("attr", handleDisableCurrency.bind(null, true));
+    that.onChanged("attr", handleRelationWidget.bind(null, true));
     stateClean = that.state().resolve("/Ready/Fetched/Clean");
     stateClean.enter(handleColumns);
     stateClean.enter(handleDataList);
     stateClean.enter(handleDisableCurrency);
     stateClean.enter(handleRelationWidget);
+
 
     that.data.columns().canAdd(false);
 
