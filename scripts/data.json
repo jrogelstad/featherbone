@@ -8,7 +8,7 @@
         "feather": "Module",
         "module": "Core",
         "tabs": [{
-            "name": "Script"
+            "name": "Client Script"
         }],
         "attrs": [{
             "attr": "name"
@@ -16,13 +16,16 @@
             "attr": "description"
         }, {
             "attr": "version",
-            "unit": 0
+            "unit": 1
         }, {
             "attr": "isActive",
-            "unit": 0
+            "unit": 1
         }, {
             "attr": "script",
-            "unit": 0
+            "showLabel": false,
+            "label": "Client Script",
+            "unit": 0,
+            "grid": 1
         }]
     }
 }, {
