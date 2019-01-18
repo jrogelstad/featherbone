@@ -160,6 +160,50 @@ function buildRelationWidgetFromFeather(type, featherName) {
     return widget;
 }
 
+function buildSelector(obj, opts) {
+    let id = opts.id;
+    let vm = obj.viewModel;
+    let selectComponents = vm.selectComponents();
+    let value = (
+        opts.value === ""
+        ? undefined
+        : opts.value
+    );
+    let values = obj.dataList.map((item) => item.value).join();
+
+    if (selectComponents[id]) {
+        if (
+            selectComponents[id].value === value &&
+            selectComponents[id].disabled === opts.disabled &&
+            selectComponents[id].values === values
+        ) {
+            return selectComponents[id].content;
+        }
+    } else {
+        selectComponents[id] = {};
+    }
+
+    selectComponents[id].value = value;
+    selectComponents[id].disabled = opts.disabled;
+    selectComponents[id].values = values;
+    selectComponents[id].content = m("select", {
+        id: id,
+        key: id,
+        onchange: opts.onchange,
+        value: value,
+        disabled: opts.disabled,
+        class: opts.class,
+        style: opts.style
+    }, obj.dataList.map(function (item) {
+        return m("option", {
+            value: item.value,
+            key: id + "$" + item.value
+        }, item.label);
+    }));
+
+    return selectComponents[id].content;
+}
+
 /** @private */
 function buildRelationWidgetFromLayout(id) {
     let widget = catalog.store().components()[id];
@@ -515,49 +559,6 @@ f.buildInputComponent = function (obj) {
     let components = catalog.store().components();
     let id = opts.id || key;
 
-    function buildSelector() {
-        let vm = obj.viewModel;
-        let selectComponents = vm.selectComponents();
-        let value = (
-            opts.value === ""
-            ? undefined
-            : opts.value
-        );
-        let values = obj.dataList.map((item) => item.value).join();
-
-        if (selectComponents[id]) {
-            if (
-                selectComponents[id].value === value &&
-                selectComponents[id].disabled === opts.disabled &&
-                selectComponents[id].values === values
-            ) {
-                return selectComponents[id].content;
-            }
-        } else {
-            selectComponents[id] = {};
-        }
-
-        selectComponents[id].value = value;
-        selectComponents[id].disabled = opts.disabled;
-        selectComponents[id].values = values;
-        selectComponents[id].content = m("select", {
-            id: id,
-            key: id,
-            onchange: opts.onchange,
-            value: value,
-            disabled: opts.disabled,
-            class: opts.class,
-            style: opts.style
-        }, obj.dataList.map(function (item) {
-            return m("option", {
-                value: item.value,
-                key: id + "$" + item.value
-            }, item.label);
-        }));
-
-        return selectComponents[id].content;
-    }
-
     // Handle input types
     if (typeof prop.type === "string" || isPath) {
         opts.type = f.inputMap[format];
@@ -611,7 +612,7 @@ f.buildInputComponent = function (obj) {
 
             // If options were passed in, used a select element
             if (obj.dataList) {
-                component = buildSelector();
+                component = buildSelector(obj, opts);
 
             // Otherwise standard input
             } else {
@@ -631,19 +632,37 @@ f.buildInputComponent = function (obj) {
                     opts.rows = opts.rows || 4;
                     component = m("textarea", opts);
                 } else if (prop.format === "script") {
+                    delete opts.onchange;
                     opts.oncreate = function () {
-                        CodeMirror.fromTextArea(
-                            document.getElementById(id),
-                            {
-                                lineNumbers: true,
-                                mode: {
-                                    name: "javascript",
-                                    json: true
-                                },
-                                theme: "neat",
-                                indentUnit: 4
+                        let cm;
+                        let state = obj.model.state();
+                        let e = document.getElementById(id);
+                        let config = {
+                            value: prop(),
+                            lineNumbers: true,
+                            mode: {
+                                name: "javascript",
+                                json: true
+                            },
+                            theme: "neat",
+                            indentUnit: 4,
+                            autoFocus: false
+                        };
+
+                        cm = CodeMirror.fromTextArea(e, config);
+
+                        // Populate on fetch
+                        state.resolve("/Ready/Fetched/Clean").enter(
+                            function () {
+                                cm.setValue(prop());
                             }
                         );
+
+                        // Send changed text back to model
+                        cm.on("blur", function () {
+                            cm.save();
+                            prop(e.value);
+                        });
                     };
                     component = m("div", {style: {
                         borderWidth: "thin",
