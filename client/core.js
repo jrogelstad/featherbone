@@ -663,7 +663,7 @@ f.buildInputComponent = function (obj) {
                             // Populate on fetch
                             state.resolve("/Ready/Fetched/Clean").enter(
                                 function () {
-                                    editor.setValue(prop());
+                                    editor.setValue(prop() || "");
                                 }
                             );
 

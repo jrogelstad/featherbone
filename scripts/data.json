@@ -7,22 +7,32 @@
         "description": "Module form",
         "feather": "Module",
         "module": "Core",
+        "tabs": [{
+            "name": "Client Script"
+        }, {
+            "name": "Dependencies"
+        }],
         "attrs": [{
             "attr": "name"
         }, {
             "attr": "description"
         }, {
             "attr": "version",
-            "unit": 0
+            "unit": 1
         }, {
             "attr": "isActive",
-            "unit": 0
+            "unit": 1
         }, {
             "attr": "script",
-            "showLabel": true,
-            "label": "Client Script",
-            "unit": 0,
-            "grid": 0
+            "showLabel": false,
+            "grid": 1
+        }, {
+            "attr": "dependencies",
+            "showLabel": false,
+            "grid": 2,
+            "columns": [{
+                "attr": "module"
+            }]
         }]
     }
 }, {
