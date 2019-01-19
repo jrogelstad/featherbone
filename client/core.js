@@ -271,6 +271,24 @@ function isToMany(p) {
     return p.type && typeof p.type === "object" && p.type.parentOf;
 }
 
+// Resize according to surroundings
+function resizeEditor(editor) {
+    let containerHeight;
+    let bottomHeight;
+    let yPosition;
+    let e = editor.getWrapperElement();
+
+    yPosition = f.getElementPosition(e).y;
+    containerHeight = (
+        document.body.offsetHeight +
+        f.getElementPosition(document.body).y
+    );
+    bottomHeight = (
+        containerHeight - yPosition - e.offsetHeight
+    );
+    editor.setSize(null, window.innerHeight - yPosition - bottomHeight);
+}
+
 /**
   Return system catalog.
 
@@ -649,8 +667,8 @@ f.buildInputComponent = function (obj) {
                                 theme: "neat",
                                 indentUnit: 4,
                                 extraKeys: {
-                                    Tab: function (cm){
-                                        cm.replaceSelection("    " , "end");
+                                    Tab: function (cm) {
+                                        cm.replaceSelection("    ", "end");
                                     }
                                 },
                                 autoFocus: false,
@@ -659,6 +677,7 @@ f.buildInputComponent = function (obj) {
                             };
 
                             editor = CodeMirror.fromTextArea(e, config);
+                            resizeEditor(editor);
 
                             // Populate on fetch
                             state.resolve("/Ready/Fetched/Clean").enter(
@@ -672,6 +691,10 @@ f.buildInputComponent = function (obj) {
                                 editor.save();
                                 prop(e.value);
                             });
+                            this.editor = editor;
+                        };
+                        opts.onupdate = function () {
+                            resizeEditor(this.editor);
                         };
                     } else {
                         opts.rows = opts.rows || 4;
