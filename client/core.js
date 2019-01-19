@@ -632,10 +632,11 @@ f.buildInputComponent = function (obj) {
                     prop.format === "textArea" ||
                     prop.format === "script"
                 ) {
+                    // Script requires a javascript text editor
                     if (prop.format === "script") {
                         delete opts.onchange;
                         opts.oncreate = function () {
-                            let cm;
+                            let editor;
                             let state = obj.model.state();
                             let e = document.getElementById(id);
                             let config = {
@@ -647,21 +648,28 @@ f.buildInputComponent = function (obj) {
                                 },
                                 theme: "neat",
                                 indentUnit: 4,
-                                autoFocus: false
+                                extraKeys: {
+                                    Tab: function (cm){
+                                        cm.replaceSelection("    " , "end");
+                                    }
+                                },
+                                autoFocus: false,
+                                gutters: ["CodeMirror-lint-markers"],
+                                lint: true
                             };
 
-                            cm = CodeMirror.fromTextArea(e, config);
+                            editor = CodeMirror.fromTextArea(e, config);
 
                             // Populate on fetch
                             state.resolve("/Ready/Fetched/Clean").enter(
                                 function () {
-                                    cm.setValue(prop());
+                                    editor.setValue(prop());
                                 }
                             );
 
                             // Send changed text back to model
-                            cm.on("blur", function () {
-                                cm.save();
+                            editor.on("blur", function () {
+                                editor.save();
                                 prop(e.value);
                             });
                         };
