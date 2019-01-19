@@ -196,7 +196,7 @@ function handleDefault(prop, frmt) {
     let def;
 
     // Handle default
-    if (prop.default !== undefined) {
+    if (prop.default !== undefined && prop.default !== null) {
         def = prop.default;
     } else if (typeof frmt.default === "function") {
         def = frmt.default();
