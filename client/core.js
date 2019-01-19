@@ -677,6 +677,7 @@ f.buildInputComponent = function (obj) {
                             };
 
                             editor = CodeMirror.fromTextArea(e, config);
+                            editor.state.lint.options.globals = ["f"];
                             resizeEditor(editor);
 
                             // Populate on fetch
