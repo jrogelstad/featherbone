@@ -291,3 +291,130 @@ f.datasource.registerFunction(
     doCheckCurrencyConversion,
     f.datasource.TRIGGER_BEFORE
 );
+
+/**
+  Form
+*/
+function doHandleForm(obj) {
+    "use strict";
+
+    return new Promise(function (resolve, reject) {
+        let payload = {
+            method: "GET",
+            name: "getFeather",
+            data: {
+                name: obj.newRec.feather
+            },
+            client: obj.client
+        };
+
+        function callback(resp) {
+            let feather = resp;
+            let requests = [];
+
+            obj.newRec.attrs.forEach(function (attr) {
+                let prop = feather.properties[attr.attr];
+                let cpayload;
+
+                function handleColumns(resp) {
+                    return new Promise(function (resolve) {
+                        let cfeather = resp;
+
+                        attr.columns.forEach(function (col) {
+                            let cprop;
+                            let isRef = col.attr.indexOf(".") !== -1;
+
+                            if (!isRef) {
+                                cprop = cfeather.properties[col.attr];
+                            }
+
+                            if (!isRef && !cprop) {
+                                throw new Error(
+                                    "Invalid column '" + attr.attr + "'"
+                                );
+                            }
+
+                            if (
+                                isRef ||
+                                cprop.type !== "object" ||
+                                cprop.format !== "money"
+                            ) {
+                                col.showCurrency = false;
+                            }
+
+                            if (
+                                isRef ||
+                                cprop.type === "object" ||
+                                cprop.type === "boolean"
+                            ) {
+                                col.dataList = "";
+                            }
+                        });
+
+                        resolve();
+                    });
+                }
+
+                attr.columns = attr.columns || [];
+
+                if (!prop) {
+                    throw new Error("Invalid attribute '" + attr.attr + "'");
+                }
+
+                // Don't allow improper combinations
+                if (typeof prop.type !== "object" || prop.type.parentOf) {
+                    attr.relationWidget = null;
+                }
+
+                if (prop.type !== "object" || prop.format !== "money") {
+                    attr.disableCurrency = false;
+                }
+
+                if (typeof prop.type === "object" || prop.type === "boolean") {
+                    attr.dataList = "";
+                }
+
+                if (typeof prop.type !== "object" || !prop.type.parentOf) {
+                    attr.columns.length = 0;
+                }
+
+                if (attr.columns.length) {
+                    cpayload = {
+                        method: "GET",
+                        name: "getFeather",
+                        data: {
+                            name: feather.properties[attr.attr].type.relation
+                        },
+                        client: obj.client
+                    };
+
+                    requests.push(
+                        f.datasource.request(
+                            cpayload,
+                            true
+                        ).then(handleColumns).catch(reject)
+                    );
+                }
+            });
+
+            Promise.all(requests).then(resolve).catch(reject);
+        }
+
+        f.datasource.request(payload, true).then(callback).catch(reject);
+
+    });
+}
+
+f.datasource.registerFunction(
+    "POST",
+    "Form",
+    doHandleForm,
+    f.datasource.TRIGGER_BEFORE
+);
+
+f.datasource.registerFunction(
+    "PATCH",
+    "Form",
+    doHandleForm,
+    f.datasource.TRIGGER_BEFORE
+);
