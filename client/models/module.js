@@ -18,27 +18,34 @@
 import {f} from "../core.js";
 import {catalog} from "./catalog.js";
 import {model} from "./model.js";
-import jslint from "../jslint.js";
 
 function module(data, feather) {
     let that;
+    let annotation = "__annotation"; // Lint
 
     feather = feather || catalog.getFeather("Module");
     that = model(data, feather);
-    
+
+    that.addCalculated({
+        name: "marked",
+        description: "Lint markings",
+        type: "Array",
+        function: f.prop()
+    });
+
     that.onValidate(function () {
-        let data = jslint(that.data.script(), {}, ["f"]);
-        
-        if (data.warnings.length) {
+        let marked = that.data.marked();
+
+        if (marked && marked.length) {
             throw new Error(
-                "Script has " + data.warnings.length +
+                "Script has " + marked.length +
                 " lint violation" + (
-                    data.warnings.length > 1
+                    marked.length > 1
                     ? "s"
                     : ""
                 ) +
-                " starting on line " + (data.warnings[0].line + 1)
-             );
+                " starting on line " + (marked[0][annotation].from.line + 1)
+            );
         }
     });
 
