@@ -1,14 +1,10 @@
 {
     "module": "Core",
-    "version": "0.0.1",
+    "version": "0.1.0",
     "files": [
         {
             "type": "execute",
             "path": "scripts/tables.js"
-        },
-        {
-            "type": "module",
-            "path": "scripts/module.js"
         },
         {
             "type": "service",
@@ -27,6 +23,10 @@
         {
             "type": "feather",
             "path": "scripts/feathers-common.json"
+        },
+        {
+            "type": "module",
+            "path": "scripts/module.js"
         },
         {
             "type": "workbook",

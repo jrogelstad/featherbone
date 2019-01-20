@@ -418,3 +418,26 @@ f.datasource.registerFunction(
     doHandleForm,
     f.datasource.TRIGGER_BEFORE
 );
+
+/**
+  Module
+*/
+function doUpdateModule(obj) {
+    "use strict";
+
+    return new Promise(function (resolve) {
+        if (obj.newRec.name !== obj.oldRec.name) {
+            throw new Error("Module name cannot be changed.");
+        }
+
+        resolve();
+    });
+}
+
+f.datasource.registerFunction(
+    "PATCH",
+    "Module",
+    doUpdateModule,
+    f.datasource.TRIGGER_BEFORE
+);
+
