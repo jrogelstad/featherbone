@@ -1021,6 +1021,10 @@ f.resolveAlias = function (feather, attr) {
         return f.resolveAlias(feather, suffix);
     }
 
+    if (!feather.properties[attr]) {
+        return "Unknown attribute";
+    }
+
     ret = overload.alias || feather.properties[attr].alias || attr;
     return ret.toName();
 };
@@ -1041,6 +1045,10 @@ f.resolveProperty = function (model, property) {
         return f.resolveProperty(model.data[prefix](), suffix);
     }
 
+    if (!model.data[property]) {
+        return f.prop("Unknown attribute '" + property + "'");
+    }
+        
     return model.data[property];
 };
 
