@@ -70,6 +70,10 @@ function resolveDescription(feather, attr) {
         );
         return resolveDescription(feather, suffix);
     }
+    
+    if (!feather.properties[attr]) {
+        return "Unknown attribute '" + attr + "'";
+    }
 
     return feather.properties[attr].description;
 }
