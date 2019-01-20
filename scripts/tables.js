@@ -132,23 +132,6 @@
         "to_camel_case(tableoid::regclass::text) AS object_type FROM object;"
     );
 
-    const createModuleSql = (
-        "CREATE TABLE \"$module\" (" +
-        "name text PRIMARY KEY," +
-        "script text," +
-        "version text," +
-        "dependencies json," +
-        "is_active boolean DEFAULT true);" +
-        "COMMENT ON TABLE \"$module\" IS " +
-        "'Internal table for storing JavaScript';" +
-        "COMMENT ON COLUMN \"$module\".name IS 'Primary key';" +
-        "COMMENT ON COLUMN \"$module\".script IS 'JavaScript';" +
-        "COMMENT ON COLUMN \"$module\".version IS 'Version number';" +
-        "COMMENT ON COLUMN \"$module\".dependencies IS " +
-        "'Module dependencies';" +
-        "COMMENT ON COLUMN \"$module\".dependencies IS 'Active state';"
-    );
-
     const createAuthSql = (
         "CREATE TABLE \"$auth\" (" +
         "pk serial PRIMARY KEY," +
@@ -189,7 +172,7 @@
     const createServiceSql = (
         "CREATE TABLE \"$service\" (" +
         "name text PRIMARY KEY," +
-        "module text REFERENCES \"$module\" (name)," +
+        "module text," +
         "script text," +
         "version text);" +
         "COMMENT ON TABLE \"$service\" IS " +
@@ -200,20 +183,6 @@
         "COMMENT ON COLUMN \"$service\".version IS 'Version number';"
     );
 
-    const createRouteSql = (
-        "CREATE TABLE \"$route\" (" +
-        "name text PRIMARY KEY," +
-        "module text REFERENCES \"$module\" (name)," +
-        "script text," +
-        "version text);" +
-        "COMMENT ON TABLE \"$route\" IS " +
-        "'Internal table for storing JavaScript routes';" +
-        "COMMENT ON COLUMN \"$route\".name IS 'Primary key';" +
-        "COMMENT ON COLUMN \"$route\".module IS 'Module reference';" +
-        "COMMENT ON COLUMN \"$route\".script IS 'JavaScript';" +
-        "COMMENT ON COLUMN \"$route\".version IS 'Version number';"
-    );
-
     const createWorkbookSql = (
         "CREATE TABLE \"$workbook\" (" +
         "name text UNIQUE," +
@@ -221,7 +190,7 @@
         "launch_config json," +
         "default_config json," +
         "local_config json," +
-        "module text REFERENCES \"$module\" (name)," +
+        "module text," +
         "CONSTRAINT workbook_pkey PRIMARY KEY (_pk), " +
         "CONSTRAINT workbook_id_key UNIQUE (id)) INHERITS (object);" +
         "COMMENT ON TABLE \"$workbook\" IS " +
@@ -234,7 +203,7 @@
         "'Default configuration';" +
         "COMMENT ON COLUMN \"$workbook\".local_config IS " +
         "'Local configuration';" +
-        "COMMENT ON COLUMN \"$workbook\".module IS 'Foreign key to module';"
+        "COMMENT ON COLUMN \"$workbook\".module IS 'Module reference';"
     );
 
     const createUserSql = (
@@ -337,9 +306,7 @@
             let createObject;
             let createFeather;
             let createAuth;
-            let createModule;
             let createService;
-            let createRoute;
             let createWorkbook;
             let createSubscription;
             let createSettings;
@@ -495,23 +462,7 @@
                     }
 
                     if (!exists) {
-                        obj.client.query(createFeatherSql, createModule);
-                        return;
-                    }
-                    createModule();
-                });
-            };
-
-            // Create the module table
-            createModule = function () {
-                sqlCheck("$module", function (err, exists) {
-                    if (err) {
-                        reject(err);
-                        return;
-                    }
-
-                    if (!exists) {
-                        obj.client.query(createModuleSql, createService);
+                        obj.client.query(createFeatherSql, createService);
                         return;
                     }
                     createService();
@@ -527,23 +478,7 @@
                     }
 
                     if (!exists) {
-                        obj.client.query(createServiceSql, createRoute);
-                        return;
-                    }
-                    createRoute();
-                });
-            };
-
-            // Create the route table
-            createRoute = function () {
-                sqlCheck("$route", function (err, exists) {
-                    if (err) {
-                        reject(err);
-                        return;
-                    }
-
-                    if (!exists) {
-                        obj.client.query(createRouteSql, createWorkbook);
+                        obj.client.query(createServiceSql, createWorkbook);
                         return;
                     }
                     createWorkbook();
@@ -643,7 +578,6 @@
 
   DROP TABLE object CASCADE;
   DROP TABLE "$auth";
-  DROP TABLE "$module";
   DROP TABLE "$sheet";
   DROP TABLE "$user";
   DROP FUNCTION to_camel_case(text);

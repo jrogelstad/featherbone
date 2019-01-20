@@ -49,7 +49,6 @@
     let defineSettings;
     let saveModule;
     let saveService;
-    let saveRoute;
     let saveFeathers;
     let saveWorkbooks;
     let rollback;
@@ -181,9 +180,6 @@
             case "service":
                 saveService(file.name || name, module, content, version);
                 break;
-            case "route":
-                saveRoute(file.name || name, module, content, version);
-                break;
             case "feather":
                 saveFeathers(JSON.parse(content), file.isSystem);
                 break;
@@ -263,32 +259,29 @@
     };
 
     saveModule = function (name, script, version, dependencies) {
-        let sql = "SELECT * FROM \"$module\" WHERE name='" + name + "';";
-
-        client.query(sql, function (err, result) {
-            let params = [
-                name,
-                version,
-                {value: dependencies}
-            ];
-
-            if (err) {
-                rollback(err);
-                return;
+        dependencies = dependencies || [];
+        let payload = {
+            method: "POST",
+            name: "Module",
+            user: user,
+            client: client,
+            id: name,
+            data: {
+                id: name,
+                name: name,
+                version: version,
+                script: script,
+                dependencies: dependencies.map(function (dep) {
+                    return {
+                        module: {
+                            id: dep
+                        }
+                    };
+                })
             }
-            if (result.rows.length) {
-                sql = "UPDATE \"$module\" SET ";
-                sql += "script=$$" + script + "$$,";
-                sql += "version=$2,";
-                sql += "dependencies=$3 ";
-                sql += "WHERE name=$1;";
-            } else {
-                sql = "INSERT INTO \"$module\" ";
-                sql += "VALUES ($1, $$" + script + "$$, $2, $3);";
-            }
+        };
 
-            client.query(sql, params, processFile);
-        });
+        runBatch([payload]);
     };
 
     saveService = function (name, module, script, version) {
@@ -306,30 +299,6 @@
                 sql += "WHERE name='" + name + "';";
             } else {
                 sql = "INSERT INTO \"$service\" VALUES ('" + name;
-                sql += "','" + module + "',$$" + script + "$$, '";
-                sql += version + "');";
-            }
-
-            client.query(sql, processFile);
-        });
-    };
-
-
-    saveRoute = function (name, module, script, version) {
-        let sql = "SELECT * FROM \"$route\" WHERE name='" + name + "';";
-
-        client.query(sql, function (err, result) {
-            if (err) {
-                rollback(err);
-                return;
-            }
-            if (result.rows.length) {
-                sql = "UPDATE \"$route\" SET ";
-                sql += "script=$$" + script + "$$,";
-                sql += "version='" + version + "' ";
-                sql += "WHERE name='" + name + "';";
-            } else {
-                sql = "INSERT INTO \"$route\" VALUES ('" + name;
                 sql += "','" + module + "',$$" + script + "$$, '";
                 sql += version + "');";
             }

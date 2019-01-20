@@ -168,8 +168,12 @@ function initPromises() {
             moduleData = data;
             // Resolve dependencies back to array for easier handling
             moduleData.forEach(function (module) {
-                if (module.dependencies && module.dependencies.value) {
-                    module.dependencies = module.dependencies.value;
+                if (module.dependencies) {
+                    module.dependencies = module.dependencies.map(
+                        function (dep) {
+                            return dep.module.id;
+                        }
+                    );
                 } else {
                     module.dependencies = [];
                 }

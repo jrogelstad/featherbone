@@ -41,14 +41,18 @@
         */
         that.getModules = function (obj) {
             return new Promise(function (resolve, reject) {
-                let sql = "SELECT * FROM \"$module\";";
+                let sql = (
+                    "SELECT name, script, version, to_json(dependencies) " +
+                    "AS dependencies " +
+                    "FROM \"_module\";"
+                );
 
                 // Query routes
                 obj.client.query(sql, function (err, resp) {
                     if (err) {
                         reject(err);
                         return;
-                    }
+                     }
 
                     // Send back result
                     resolve(tools.sanitize(resp.rows));

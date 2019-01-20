@@ -48,6 +48,10 @@ function module(data, feather) {
             );
         }
     });
+    
+    that.state().resolve("/Ready/Fetched/Clean").enter(function () {
+        that.data.name.isReadOnly(true);
+    });
 
     return that;
 }

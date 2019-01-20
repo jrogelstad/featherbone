@@ -43,9 +43,7 @@
             },
             "description": {
                 "description": "Description",
-                "type": "string",
-                "isRequired": true,
-                "isLabelKey": true
+                "type": "string"
             },
             "script": {
                 "description": "Client JavaScript code for models and components",
