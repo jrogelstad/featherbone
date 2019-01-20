@@ -112,8 +112,8 @@ function formAttrColumn(data, feather) {
         if (setDefault) {
             handleProp("dataList", validator, "");
         } else {
-            handleProp("dataList", validator)
-        };
+            handleProp("dataList", validator);
+        }
     }
 
     function handleShowCurrency(setDefault) {
