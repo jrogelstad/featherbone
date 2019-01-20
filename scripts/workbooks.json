@@ -25,11 +25,10 @@
             {
                 "name": "Modules",
                 "feather": "Module",
+                "isEditModeEnabled": false,
                 "list": {
                     "columns": [{
                         "attr": "name"
-                    }, {
-                        "attr": "description"
                     }, {
                         "attr": "version"
                     }],
@@ -44,6 +43,7 @@
             {
                 "name": "Feathers",
                 "feather": "Feather",
+                "isEditModeEnabled": false,
                 "list": {
                     "columns": [{
                         "attr": "name"
@@ -90,6 +90,27 @@
                     }],
                     "filter": {
                         "sort": [{
+                            "property": "name",
+                            "order": "ASC"
+                        }]
+                    }
+                }
+            },
+            {
+                "name": "Services",
+                "feather": "DataService",
+                "isEditModeEnabled": false,
+                "list": {
+                    "columns": [{
+                        "attr": "name"
+                    }, {
+                        "attr": "module"
+                    }],
+                    "filter": {
+                        "sort": [{
+                            "property": "module.name",
+                            "order": "ASC"
+                        }, {
                             "property": "name",
                             "order": "ASC"
                         }]

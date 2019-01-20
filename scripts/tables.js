@@ -169,20 +169,6 @@
         "'Internal table for storing class names';"
     );
 
-    const createServiceSql = (
-        "CREATE TABLE \"$service\" (" +
-        "name text PRIMARY KEY," +
-        "module text," +
-        "script text," +
-        "version text);" +
-        "COMMENT ON TABLE \"$service\" IS " +
-        "'Internal table for storing JavaScript services';" +
-        "COMMENT ON COLUMN \"$service\".name IS 'Primary key';" +
-        "COMMENT ON COLUMN \"$service\".module IS 'Module reference';" +
-        "COMMENT ON COLUMN \"$service\".script IS 'JavaScript';" +
-        "COMMENT ON COLUMN \"$service\".version IS 'Version number';"
-    );
-
     const createWorkbookSql = (
         "CREATE TABLE \"$workbook\" (" +
         "name text UNIQUE," +
@@ -306,7 +292,6 @@
             let createObject;
             let createFeather;
             let createAuth;
-            let createService;
             let createWorkbook;
             let createSubscription;
             let createSettings;
@@ -462,23 +447,7 @@
                     }
 
                     if (!exists) {
-                        obj.client.query(createFeatherSql, createService);
-                        return;
-                    }
-                    createService();
-                });
-            };
-
-            // Create the service table
-            createService = function () {
-                sqlCheck("$service", function (err, exists) {
-                    if (err) {
-                        reject(err);
-                        return;
-                    }
-
-                    if (!exists) {
-                        obj.client.query(createServiceSql, createWorkbook);
+                        obj.client.query(createFeatherSql, createWorkbook);
                         return;
                     }
                     createWorkbook();

@@ -7,11 +7,6 @@
             "path": "scripts/tables.js"
         },
         {
-            "type": "service",
-            "name": "Table",
-            "path": "scripts/services.js"
-        },
-        {
             "type": "feather",
             "path": "scripts/feathers.json",
             "isSystem": true
@@ -21,12 +16,17 @@
             "path": "scripts/populate.js"
         },
         {
-            "type": "feather",
-            "path": "scripts/feathers-common.json"
-        },
-        {
             "type": "module",
             "path": "scripts/module.js"
+        },
+        {
+            "type": "service",
+            "name": "core-services",
+            "path": "scripts/services.js"
+        },
+        {
+            "type": "feather",
+            "path": "scripts/feathers-common.json"
         },
         {
             "type": "workbook",
