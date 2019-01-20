@@ -691,6 +691,7 @@ f.buildInputComponent = function (obj) {
                             editor.on("blur", function () {
                                 editor.save();
                                 prop(e.value);
+                                m.redraw();
                             });
                             this.editor = editor;
                         };

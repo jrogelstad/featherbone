@@ -18,21 +18,28 @@
 import {f} from "../core.js";
 import {catalog} from "./catalog.js";
 import {model} from "./model.js";
+import jslint from "../jslint.js";
 
 function module(data, feather) {
     let that;
 
-    function lint() {
-      return "Hello World";
-    }
-
     feather = feather || catalog.getFeather("Module");
     that = model(data, feather);
-
-    that.addCalculated({
-        name: "lintMessages",
-        type: "string",
-        function: lint
+    
+    that.onValidate(function () {
+        let data = jslint(that.data.script(), {}, ["f"]);
+        
+        if (data.warnings.length) {
+            throw new Error(
+                "Script has " + data.warnings.length +
+                " lint violation" + (
+                    data.warnings.length > 1
+                    ? "s"
+                    : ""
+                ) +
+                " starting on line " + (data.warnings[0].line + 1)
+             );
+        }
     });
 
     return that;
