@@ -238,5 +238,107 @@
                 "type": "object"
             }
         }
+    },
+    {
+        "name": "Document",
+        "module": "Core",
+        "plural": "Documents",
+        "description": "Base document class",
+        "authorization": false,
+        "properties": {
+            "owner": {
+                "description": "Owner of the document",
+                "type": "string",
+                "default": "getCurrentUser()"
+            },
+            "etag": {
+                "description": "Optimistic locking key",
+                "type": "string",
+                "default": "createId()"
+            }
+        }
+    },
+    {
+        "name": "Script",
+        "plural": "Scripts",
+        "inherits": "Document",
+        "description": "Script base class",
+        "authorization": false,
+        "properties": {
+            "name": {
+                "description": "Name",
+                "type": "string",
+                "isNaturalKey": true,
+                "isRequired": true
+            },
+            "script": {
+                "description": "Client JavaScript code for models and components",
+                "type": "string",
+                "format": "script"
+            }
+        }
+    },
+    {
+        "name": "Module",
+        "plural": "Modules",
+        "inherits": "Script",
+        "description": "Functional application module",
+        "authorization": false,
+        "properties": {
+            "version": {
+                "description": "Software version",
+                "type": "string",
+                "isRequired": true
+            },
+            "isActive": {
+                "description": "Flag whether module is enabled in application",
+                "type": "boolean",
+                "isRequired": true,
+                "default": true
+            }
+        }
+    },
+    {
+        "name": "ModuleDependency",
+        "description": "Reference to module required for parent to operate",
+        "authorization": false,
+        "properties": {
+            "parent": {
+                "description": "Parent object",
+                "type": {
+                    "relation": "Module",
+                    "childOf": "dependencies"
+                }
+            },
+            "module": {
+                "description": "Module parent is dependant on",
+                "type": {
+                    "relation": "Script",
+                    "properties": ["name"]
+                },
+                "isRequired": true
+            }
+        },
+        "overloads": {
+            "module": {
+                "relation": "Module"
+            }
+        }
+    },
+    {
+        "name": "DataService",
+        "plural": "DataServices",
+        "inherits": "Script",
+        "description": "Server business logic",
+        "authorization": false,
+        "properties": {
+            "module": {
+                "description": "Module script belongs to",
+                "type": {
+                    "relation": "Module",
+                    "properties": ["name", "version"]
+                }
+            }
+        }
     }
 ]

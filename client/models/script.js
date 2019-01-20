@@ -19,11 +19,11 @@ import {f} from "../core.js";
 import {catalog} from "./catalog.js";
 import {model} from "./model.js";
 
-function module(data, feather) {
+function script(data, feather) {
     let that;
     let annotation = "__annotation"; // Lint
 
-    feather = feather || catalog.getFeather("Module");
+    feather = feather || catalog.getFeather("Script");
     that = model(data, feather);
 
     that.addCalculated({
@@ -56,6 +56,6 @@ function module(data, feather) {
     return that;
 }
 
-catalog.register("models", "module", module);
+catalog.register("models", "script", script);
 
-export {module};
+export default script;

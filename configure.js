@@ -178,7 +178,7 @@
                 saveModule(module, content, version, dependencies);
                 break;
             case "service":
-                saveService(file.name || name, module, content, version);
+                saveService(file.name || name, module, content);
                 break;
             case "feather":
                 saveFeathers(JSON.parse(content), file.isSystem);
@@ -284,27 +284,24 @@
         runBatch([payload]);
     };
 
-    saveService = function (name, module, script, version) {
-        let sql = "SELECT * FROM \"$service\" WHERE name='" + name + "';";
-
-        client.query(sql, function (err, result) {
-            if (err) {
-                rollback(err);
-                return;
+    saveService = function (name, module, script) {
+        let payload = {
+            method: "POST",
+            name: "DataService",
+            user: user,
+            client: client,
+            id: name,
+            data: {
+                id: name,
+                name: name,
+                module: {
+                    id: module
+                },
+                script: script
             }
-            if (result.rows.length) {
-                sql = "UPDATE \"$service\" SET ";
-                sql += "script=$$" + script + "$$,";
-                sql += "version='" + version + "' ";
-                sql += "WHERE name='" + name + "';";
-            } else {
-                sql = "INSERT INTO \"$service\" VALUES ('" + name;
-                sql += "','" + module + "',$$" + script + "$$, '";
-                sql += version + "');";
-            }
+        };
 
-            client.query(sql, processFile);
-        });
+        runBatch([payload]);
     };
 
     saveFeathers = function (feathers, isSystem) {

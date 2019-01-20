@@ -15,10 +15,7 @@
         "attrs": [{
             "attr": "name"
         }, {
-            "attr": "description"
-        }, {
-            "attr": "version",
-            "unit": 1
+            "attr": "version"
         }, {
             "attr": "isActive",
             "unit": 1
@@ -33,6 +30,23 @@
             "columns": [{
                 "attr": "module"
             }]
+        }]
+    }
+}, {
+    "name": "Form",
+    "method": "POST",
+    "id": "1za6g8c6utiu",
+    "data": {
+        "name": "DataService",
+        "description": "Data service form",
+        "feather": "DataService",
+        "module": "Core",
+        "attrs": [{
+            "attr": "name"
+        }, {
+            "attr": "module"
+        }, {
+            "attr": "script"
         }]
     }
 }, {

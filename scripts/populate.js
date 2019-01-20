@@ -86,6 +86,8 @@
                 let reqRole;
                 let reqLog;
                 let reqFeather;
+                let reqModule;
+                let reqDataService;
                 let promises = [];
 
                 req = function () {
@@ -116,6 +118,12 @@
                 reqFeather = req();
                 reqFeather.data.id = "feather";
                 promises.push(datasource.request(reqFeather));
+                reqModule = req();
+                reqModule.data.id = "module";
+                promises.push(datasource.request(reqModule));
+                reqDataService = req();
+                reqDataService.data.id = "data_service";
+                promises.push(datasource.request(reqDataService));
 
                 Promise.all(promises).then(resolve).catch(reject);
             };

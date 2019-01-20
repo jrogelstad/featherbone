@@ -171,7 +171,7 @@ function initPromises() {
                 if (module.dependencies) {
                     module.dependencies = module.dependencies.map(
                         function (dep) {
-                            return dep.module.id;
+                            return dep.module.name;
                         }
                     );
                 } else {
