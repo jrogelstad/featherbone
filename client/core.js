@@ -655,6 +655,7 @@ f.buildInputComponent = function (obj) {
                         delete opts.onchange;
                         opts.oncreate = function () {
                             let editor;
+                            let lint;
                             let state = obj.model.state();
                             let e = document.getElementById(id);
                             let config = {
@@ -677,15 +678,28 @@ f.buildInputComponent = function (obj) {
                             };
 
                             editor = CodeMirror.fromTextArea(e, config);
-                            editor.state.lint.options.globals = ["f"];
+                            lint = editor.state.lint;
+                            lint.options.globals = ["f"];
                             resizeEditor(editor);
 
                             // Populate on fetch
                             state.resolve("/Ready/Fetched/Clean").enter(
                                 function () {
+                                    function notify() {
+                                        state.send("changed");
+                                        m.redraw();
+                                        editor.off("change", notify);
+                                    }
                                     editor.setValue(prop());
+                                    editor.on("change", notify);
                                 }
                             );
+
+                            editor.on("change", m.redraw);
+                            lint.options.onUpdateLinting = m.redraw;
+
+                            // Let model reference lint markings
+                            obj.model.data.marked(editor.state.lint.marked);
 
                             // Send changed text back to model
                             editor.on("blur", function () {
@@ -693,6 +707,7 @@ f.buildInputComponent = function (obj) {
                                 prop(e.value);
                                 m.redraw();
                             });
+
                             this.editor = editor;
                         };
                         opts.onupdate = function () {
