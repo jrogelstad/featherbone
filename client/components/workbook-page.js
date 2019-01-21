@@ -43,6 +43,13 @@ workbookPage.viewModel = function (options) {
     let workbook = catalog.store().workbooks()[
         options.workbook.toCamelCase()
     ];
+
+    if (!workbook) {
+        m.route.set("/home");
+        options.isInvalid = true;
+        return;
+    }
+
     let config = workbook.getConfig();
     let receiverKey = f.createId();
     let vm = {};
@@ -604,6 +611,11 @@ workbookPage.component = {
         }
 
         this.viewModel = workbookPage.viewModel(vnode.attrs);
+
+        if (vnode.attrs.isInvalid) {
+            return; // Nothing to see here folks...
+        }
+
         this.viewModel.menu().selected(workbook);
 
         // Memoize the model for total state persistence
@@ -618,7 +630,11 @@ workbookPage.component = {
         this.viewModel.menu().selected(vnode.attrs.workbook);
     },
 
-    view: function () {
+    view: function (vnode) {
+        if (vnode.attrs.isInvalid) {
+            return; // Nothing to see here folks...
+        }
+
         let filterMenuClass;
         let tabs;
         let vm = this.viewModel;
