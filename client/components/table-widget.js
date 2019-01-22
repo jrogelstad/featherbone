@@ -21,10 +21,10 @@ let inner;
 let widthNoScroll;
 let widthWithScroll;
 
-import {f} from "../core.js";
-import {catalog} from "../models/catalog.js";
-import {dialog} from "./dialog.js";
-import {State} from "../../common/state.js";
+import f from "../core.js";
+import catalog from "../models/catalog.js";
+import dialog from "./dialog.js";
+import State from "../../common/state.js";
 
 const tableWidget = {};
 const outer = document.createElement("div");
@@ -70,7 +70,7 @@ function resolveDescription(feather, attr) {
         );
         return resolveDescription(feather, suffix);
     }
-    
+
     if (!feather.properties[attr]) {
         return "Unknown attribute '" + attr + "'";
     }
@@ -1485,4 +1485,5 @@ tableWidget.component = {
 };
 
 catalog.register("components", "tableWidget", tableWidget.component);
-export {tableWidget};
+
+export default Object.freeze(tableWidget);

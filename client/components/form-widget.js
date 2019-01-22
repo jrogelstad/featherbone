@@ -16,9 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint this, browser*/
-import {f} from "../core.js";
-import {catalog} from "../models/catalog.js";
-import {dialog} from "./dialog.js";
+import f from "../core.js";
+import catalog from "../models/catalog.js";
+import dialog from "./dialog.js";
 
 const formWidget = {};
 const m = window.m;
@@ -389,4 +389,5 @@ formWidget.component = {
 };
 
 catalog.register("components", "formWidget", formWidget.component);
-export {formWidget};
+
+export default Object.freeze(formWidget);

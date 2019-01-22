@@ -16,11 +16,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint this, browser*/
-import {f} from "../core.js";
-import {button} from "./button.js";
-import {catalog} from "../models/catalog.js";
-import {dialog} from "./dialog.js";
-import {State} from "../../common/state.js";
+import f from "../core.js";
+import button from "./button.js";
+import catalog from "../models/catalog.js";
+import dialog from "./dialog.js";
+import State from "../../common/state.js";
 
 const tableDialog = {};
 const m = window.m;
@@ -369,4 +369,4 @@ tableDialog.viewModel = function (options) {
 */
 tableDialog.component = dialog.component;
 
-export {tableDialog};
+export default Object.freeze(tableDialog);

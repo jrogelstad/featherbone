@@ -16,10 +16,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint this, browser*/
-import {f} from "../core.js";
-import {datasource} from "../datasource.js";
-import {catalog} from "./catalog.js";
-import {State} from "../../common/state.js";
+import f from "../core.js";
+import datasource from "../datasource.js";
+import catalog from "./catalog.js";
+import State from "../../common/state.js";
 
 const jsonpatch = window.jsonpatch;
 const Qs = window.Qs;
@@ -1630,6 +1630,8 @@ function model(data, feather) {
 
 }
 
+model.static = f.prop({});
+
 catalog.register("factories", "model", model);
 
-export {model};
+export default Object.freeze(model);

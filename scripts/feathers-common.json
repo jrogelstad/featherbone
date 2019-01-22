@@ -81,7 +81,6 @@
     },
     {
         "name": "FormAttr",
-        "plural": "FormAttrs",
         "module": "Core",
         "description": "Form attribute definitions",
         "properties": {
@@ -156,7 +155,6 @@
     },
     {
         "name": "FormAttrColumn",
-        "plural": "FormAttrColumns",
         "module": "Core",
         "description": "Form attribute column definitions for child objects",
         "properties": {

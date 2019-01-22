@@ -15,9 +15,10 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-import {f} from "../core.js";
-import {catalog} from "./catalog.js";
-import {model} from "./model.js";
+import f from "../core.js";
+import catalog from "./catalog.js";
+import model from "./model.js";
+import list from "./list.js";
 
 function form(data, feather) {
     let that;
@@ -109,6 +110,9 @@ function form(data, feather) {
     return that;
 }
 
+form.list = list("Form");
+form.static = f.prop({});
+
 catalog.register("models", "form", form);
 
-export {form};
+export default Object.freeze(form);

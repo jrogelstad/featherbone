@@ -16,11 +16,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint this, browser*/
-import {f} from "../core.js";
-import {button} from "./button.js";
-import {catalog} from "../models/catalog.js";
-import {formWidget} from "./form-widget.js";
-import {dialog} from "./dialog.js";
+import f from "../core.js";
+import button from "./button.js";
+import catalog from "../models/catalog.js";
+import formWidget from "./form-widget.js";
+import dialog from "./dialog.js";
 
 const formPage = {};
 const m = window.m;
@@ -299,4 +299,5 @@ formPage.component = {
 };
 
 catalog.register("components", "formPage", formPage.component);
-export {formPage};
+
+export default Object.freeze(formPage);

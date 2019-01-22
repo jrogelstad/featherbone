@@ -16,9 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint this, browser*/
-import {f} from "../core.js";
-import {catalog} from "./catalog.js";
-import {State} from "../../common/state.js";
+import f from "../core.js";
+import catalog from "./catalog.js";
+import State from "../../common/state.js";
 
 const Qs = window.Qs;
 const m = window.m;
@@ -456,4 +456,4 @@ function list(feather) {
 
 catalog.register("factories", "list", list);
 
-export {list};
+export default Object.freeze(list);

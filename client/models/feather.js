@@ -15,8 +15,9 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-import {catalog} from "./catalog.js";
-import {model} from "./model.js";
+import catalog from "./catalog.js";
+import model from "./model.js";
+import list from "./list.js";
 
 function feather(data) {
     let that;
@@ -80,5 +81,9 @@ function feather(data) {
     return that;
 }
 
+feather.list = list("Feather");
+feather.static = f.prop({});
+
 catalog.register("models", "feather", feather);
-export {feather};
+
+export default Object.freeze(feather);

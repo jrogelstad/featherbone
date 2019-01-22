@@ -16,20 +16,20 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint this, browser, eval*/
-import {f} from "./core.js";
-import {datasource} from "./datasource.js";
-import {model} from "./models/model.js";
-import {settings} from "./models/settings.js";
-import {catalog} from "./models/catalog.js";
-import {list} from "./models/list.js";
-import {State} from "../common/state.js";
-import {navigator} from "./components/navigator-menu.js";
-import {dialog} from "./components/dialog.js";
-import {formPage} from "./components/form-page.js";
-import {childFormPage} from "./components/child-form-page.js";
-import {searchPage} from "./components/search-page.js";
-import {settingsPage} from "./components/settings-page.js";
-import {workbookPage} from "./components/workbook-page.js";
+import f from "./core.js";
+import datasource from "./datasource.js";
+import model from "./models/model.js";
+import settings from "./models/settings.js";
+import catalog from "./models/catalog.js";
+import list from "./models/list.js";
+import State from "../common/state.js";
+import navigator from "./components/navigator-menu.js";
+import dialog from "./components/dialog.js";
+import formPage from "./components/form-page.js";
+import childFormPage from "./components/child-form-page.js";
+import searchPage from "./components/search-page.js";
+import settingsPage from "./components/settings-page.js";
+import workbookPage from "./components/workbook-page.js";
 
 const m = window.m;
 const EventSource = window.EventSource;
@@ -76,11 +76,16 @@ function initPromises() {
                     models[name] = function (data, spec) {
                         return model(data, spec || f.copy(feather));
                     };
-                }
 
-                // List instance
-                if (feather.plural && !models[name].list) {
-                    models[name].list = list(feather.name);
+                    // List instance
+                    if (feather.plural && !models[name].list) {
+                        models[name].list = list(feather.name);
+                    }
+
+                    // Actions
+                    models[name].static = f.prop({});
+
+                    Object.freeze(models[name]);
                 }
             });
 
@@ -263,13 +268,13 @@ function initApp() {
 
     function subclass(name, parent) {
         let feather = feathers[name];
-        let funcs = Object.keys(parent);
+        let funcs = Object.keys(parent.static());
 
         Object.keys(feather.children).forEach(function (name) {
             let child = models[name.toCamelCase()];
 
             funcs.forEach(function (func) {
-                child[func] = child[func] || parent[func];
+                child.static()[func] = child.static()[func] || parent.static()[func];
             });
 
             subclass(name, child);

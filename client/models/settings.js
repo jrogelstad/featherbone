@@ -18,11 +18,11 @@
 /*jslint this, browser*/
 const store = {};
 
-import {f} from "../core.js";
-import {model} from "./model.js";
-import {datasource} from "../datasource.js";
-import {catalog} from "./catalog.js";
-import {State} from "../../common/state.js";
+import f from "../core.js";
+import model from "./model.js";
+import datasource from "../datasource.js";
+import catalog from "./catalog.js";
+import State from "../../common/state.js";
 
 const jsonpatch = window.jsonpatch;
 
@@ -180,4 +180,4 @@ function settings(definition) {
 
 catalog.register("factories", "model", model);
 
-export {settings};
+export default Object.freeze(settings);

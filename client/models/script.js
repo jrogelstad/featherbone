@@ -15,9 +15,10 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-import {f} from "../core.js";
-import {catalog} from "./catalog.js";
-import {model} from "./model.js";
+import f from "../core.js";
+import catalog from "./catalog.js";
+import model from "./model.js";
+import list from "./list.js";
 
 function script(data, feather) {
     let that;
@@ -48,7 +49,7 @@ function script(data, feather) {
             );
         }
     });
-    
+
     that.state().resolve("/Ready/Fetched/Clean").enter(function () {
         that.data.name.isReadOnly(true);
     });
@@ -56,6 +57,9 @@ function script(data, feather) {
     return that;
 }
 
+script.list = list("Script");
+script.static = f.prop({});
+
 catalog.register("models", "script", script);
 
-export default script;
+export default Object.freeze(script);

@@ -1079,4 +1079,4 @@ trace = function (message) {
     logger.info(message);
 };
 
-export {State};
+export default Object.freeze(State);

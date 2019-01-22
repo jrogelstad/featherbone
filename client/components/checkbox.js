@@ -17,8 +17,8 @@
 **/
 
 /*jslint this, browser*/
-import {f} from "../core.js";
-import {catalog} from "../models/catalog.js";
+import f from "../core.js";
+import catalog from "../models/catalog.js";
 
 const checkbox = {};
 const m = window.m;
@@ -61,4 +61,5 @@ checkbox.component = {
 };
 
 catalog.register("components", "checkbox", checkbox.component);
-export {checkbox};
+
+export default Object.freeze(checkbox);

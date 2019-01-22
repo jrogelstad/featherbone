@@ -16,16 +16,16 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint this, browser*/
-import {f} from "../core.js";
-import {button} from "./button.js";
-import {catalog} from "../models/catalog.js";
-import {dialog} from "./dialog.js";
-import {filterDialog} from "./filter-dialog.js";
-import {sortDialog} from "./sort-dialog.js";
-import {sheetConfigureDialog} from "./sheet-configure-dialog.js";
-import {searchInput} from "./search-input.js";
-import {tableWidget} from "./table-widget.js";
-import {navigator} from "./navigator-menu.js";
+import f from "../core.js";
+import button from "./button.js";
+import catalog from "../models/catalog.js";
+import dialog from "./dialog.js";
+import filterDialog from "./filter-dialog.js";
+import sortDialog from "./sort-dialog.js";
+import sheetConfigureDialog from "./sheet-configure-dialog.js";
+import searchInput from "./search-input.js";
+import tableWidget from "./table-widget.js";
+import navigator from "./navigator-menu.js";
 
 const workbookPage = {};
 const m = window.m;
@@ -70,7 +70,7 @@ workbookPage.viewModel = function (options) {
         menu = actions.map(function (action) {
             let opts;
             let actionIcon;
-            let method = staticModel[action.method];
+            let method = staticModel.static()[action.method];
 
             action.id = action.id || f.createId();
 
@@ -955,4 +955,5 @@ workbookPage.component = {
 };
 
 catalog.register("components", "workbookPage", workbookPage.component);
-export {workbookPage};
+
+export default Object.freeze(workbookPage);

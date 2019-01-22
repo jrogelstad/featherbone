@@ -16,9 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint this, browser*/
-import {f} from "../core.js";
-import {State} from "../../common/state.js";
-import {button} from "./button.js";
+import f from "../core.js";
+import State from "../../common/state.js";
+import button from "./button.js";
 
 const dialog = {};
 const m = window.m;
@@ -213,4 +213,4 @@ dialog.component = {
     }
 };
 
-export {dialog};
+export default Object.freeze(dialog);

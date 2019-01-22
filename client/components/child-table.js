@@ -16,10 +16,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint this, browser*/
-import {f} from "../core.js";
-import {button} from "./button.js";
-import {catalog} from "../models/catalog.js";
-import {tableWidget} from "./table-widget.js";
+import f from "../core.js";
+import button from "./button.js";
+import catalog from "../models/catalog.js";
+import tableWidget from "./table-widget.js";
 
 const childTable = {};
 const m = window.m;
@@ -281,4 +281,4 @@ childTable.component = {
 
 catalog.register("components", "childTable", childTable.component);
 
-export {childTable};
+export default Object.freeze(childTable);

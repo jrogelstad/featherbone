@@ -16,9 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint this, browser*/
-import {f} from "../core.js";
-import {catalog} from "../models/catalog.js";
-import {tableDialog} from "./table-dialog.js";
+import f from "../core.js";
+import catalog from "../models/catalog.js";
+import tableDialog from "./table-dialog.js";
 
 const sheetConfigureDialog = {};
 const m = window.m;
@@ -410,4 +410,4 @@ sheetConfigureDialog.viewModel = function (options) {
 */
 sheetConfigureDialog.component = tableDialog.component;
 
-export {sheetConfigureDialog};
+export default Object.freeze(sheetConfigureDialog);

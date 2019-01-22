@@ -16,8 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint this, browser*/
-import {f} from "../core.js";
-import {State} from "../../common/state.js";
+import f from "../core.js";
+import State from "../../common/state.js";
 
 const button = {};
 const m = window.m;
@@ -313,4 +313,4 @@ button.component = {
     }
 };
 
-export {button};
+export default Object.freeze(button);
