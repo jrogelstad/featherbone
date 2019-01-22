@@ -16,10 +16,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint this, browser*/
-import {f} from "../core.js";
-import {catalog} from "../models/catalog.js";
-import {button} from "./button.js";
-import {formDialog} from "./form-dialog.js";
+import f from "../core.js";
+import catalog from "../models/catalog.js";
+import button from "./button.js";
+import formDialog from "./form-dialog.js";
 
 const addressRelation = {};
 const m = window.m;
@@ -198,5 +198,5 @@ catalog.register(
     "addressRelation",
     addressRelation.component
 );
-export {addressRelation};
+export default Object.freeze(addressRelation);
 

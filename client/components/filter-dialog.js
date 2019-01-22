@@ -16,11 +16,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint this, browser*/
-import {f} from "../core.js";
-import {catalog} from "../models/catalog.js";
-import {model} from "../models/model.js";
-import {checkbox} from "./checkbox.js";
-import {tableDialog} from "./table-dialog.js";
+import f from "../core.js";
+import catalog from "../models/catalog.js";
+import model from "../models/model.js";
+import checkbox from "./checkbox.js";
+import tableDialog from "./table-dialog.js";
 
 const filterDialog = {};
 const m = window.m;
@@ -386,4 +386,4 @@ filterDialog.viewModel = function (options) {
 */
 filterDialog.component = tableDialog.component;
 
-export {filterDialog};
+export default Object.freeze(filterDialog);

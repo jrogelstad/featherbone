@@ -16,9 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint this, browser*/
-import {f} from "../core.js";
-import {State} from "../../common/state.js";
-import {datasource} from "../datasource.js";
+import f from "../core.js";
+import State from "../../common/state.js";
+import datasource from "../datasource.js";
 
 const store = {};
 
@@ -222,4 +222,4 @@ const catalog = (function () {
     return that;
 }());
 
-export {catalog};
+export default Object.freeze(catalog);

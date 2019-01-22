@@ -15,8 +15,8 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-import {catalog} from "./catalog.js";
-import {model} from "./model.js";
+import catalog from "./catalog.js";
+import model from "./model.js";
 
 function formAttr(data, feather) {
     let that;
@@ -149,6 +149,8 @@ function formAttr(data, feather) {
     return that;
 }
 
+formAttr.static = f.prop({});
+
 catalog.register("models", "formAttr", formAttr);
 
-export {formAttr};
+export default Object.freeze(formAttr);

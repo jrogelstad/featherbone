@@ -16,9 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint this, browser*/
-import {f} from "../core.js";
-import {relationWidget} from "./relation-widget.js";
-import {catalog} from "../models/catalog.js";
+import f from "../core.js";
+import relationWidget from "./relation-widget.js";
+import catalog from "../models/catalog.js";
 
 const contactRelation = {};
 const m = window.m;
@@ -197,4 +197,5 @@ catalog.register(
     "contactRelation",
     contactRelation.component
 );
-export {contactRelation};
+
+export default Object.freeze(contactRelation);

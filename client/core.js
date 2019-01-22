@@ -16,9 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint this, browser*/
-import {catalog} from "./models/catalog.js";
-import {datasource} from "./datasource.js";
-import {State} from "../common/state.js";
+import catalog from "./models/catalog.js";
+import datasource from "./datasource.js";
+import State from "../common/state.js";
 
 const m = window.m;
 const f = window.f;
@@ -1022,7 +1022,7 @@ f.resolveAlias = function (feather, attr) {
     }
 
     if (!feather.properties[attr]) {
-        return "Unknown attribute";
+        return attr.toName();
     }
 
     ret = overload.alias || feather.properties[attr].alias || attr;
@@ -1048,8 +1048,8 @@ f.resolveProperty = function (model, property) {
     if (!model.data[property]) {
         return f.prop("Unknown attribute '" + property + "'");
     }
-        
+
     return model.data[property];
 };
 
-export {f};
+export default Object.freeze(f);

@@ -16,8 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint this, browser*/
-import {f} from "../core.js";
-import {catalog} from "../models/catalog.js";
+import f from "../core.js";
+import catalog from "../models/catalog.js";
 
 const relationWidget = {};
 const m = window.m;
@@ -491,4 +491,5 @@ relationWidget.component = {
 };
 
 catalog.register("components", "relationWidget", relationWidget.component);
-export {relationWidget};
+
+export default Object.freeze(relationWidget);

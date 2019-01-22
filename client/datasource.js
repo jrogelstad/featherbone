@@ -16,7 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint browser*/
-/*global m*/
+const m = window.m;
 const datasource = {
     /**
     Returns the base url used to fetch and post data
@@ -39,5 +39,5 @@ const datasource = {
     }
 };
 
-export {datasource};
+export default Object.freeze(datasource);
 

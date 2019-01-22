@@ -16,9 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint this, browser*/
-import {f} from "../core.js";
-import {catalog} from "../models/catalog.js";
-import {State} from "../../common/state.js";
+import f from "../core.js";
+import catalog from "../models/catalog.js";
+import State from "../../common/state.js";
 
 const selected = f.prop();
 const navigator = {};
@@ -200,4 +200,4 @@ navigator.component = {
     }
 };
 
-export {navigator};
+export default Object.freeze(navigator);

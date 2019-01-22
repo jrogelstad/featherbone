@@ -16,9 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint browser*/
-import {f} from "../core.js";
-import {dialog} from "./dialog.js";
-import {formWidget} from "./form-widget.js";
+import f from "../core.js";
+import dialog from "./dialog.js";
+import formWidget from "./form-widget.js";
 
 const formDialog = {};
 const m = window.m;
@@ -124,4 +124,5 @@ formDialog.viewModel = function (options) {
   @params {Object} View model
 */
 formDialog.component = dialog.component;
-export {formDialog};
+
+export default Object.freeze(formDialog);

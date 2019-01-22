@@ -16,8 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint this, browser*/
-import {f} from "../core.js";
-import {State} from "../../common/state.js";
+import f from "../core.js";
+import State from "../../common/state.js";
 
 const searchInput = {};
 const m = window.m;
@@ -148,4 +148,4 @@ searchInput.component = {
     }
 };
 
-export {searchInput};
+export default Object.freeze(searchInput);

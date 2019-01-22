@@ -16,8 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint this, browser*/
-import {f} from "../core.js";
-import {filterDialog} from "./filter-dialog.js";
+import f from "../core.js";
+import filterDialog from "./filter-dialog.js";
 
 const sortDialog = {};
 const m = window.m;
@@ -148,4 +148,5 @@ sortDialog.viewModel = function (options) {
 };
 
 sortDialog.component = filterDialog.component;
-export {sortDialog};
+
+export default Object.freeze(sortDialog);
