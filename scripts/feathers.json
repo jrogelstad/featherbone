@@ -289,12 +289,6 @@
                 "description": "Software version",
                 "type": "string",
                 "isRequired": true
-            },
-            "isActive": {
-                "description": "Flag whether module is enabled in application",
-                "type": "boolean",
-                "isRequired": true,
-                "default": true
             }
         }
     },
