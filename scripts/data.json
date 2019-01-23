@@ -15,9 +15,7 @@
         "attrs": [{
             "attr": "name"
         }, {
-            "attr": "version"
-        }, {
-            "attr": "isActive",
+            "attr": "version",
             "unit": 1
         }, {
             "attr": "script",
