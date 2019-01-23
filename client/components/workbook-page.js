@@ -82,7 +82,7 @@ workbookPage.viewModel = function (options) {
 
             if (
                 action.validator &&
-                !staticModel[action.validator](selections)
+                !staticModel.static()[action.validator](selections)
             ) {
                 opts.class = "pure-menu-link pure-menu-disabled";
             } else {
