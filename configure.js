@@ -44,17 +44,12 @@
     let manifest;
     let file;
     let content;
-    let execute;
     let name;
     let defineSettings;
     let saveModule;
     let saveService;
     let saveFeathers;
     let saveWorkbooks;
-    let rollback;
-    let connect;
-    let commit;
-    let begin;
     let processFile;
     let client;
     let user;
@@ -69,8 +64,12 @@
     });
     let exit = process.exit;
     let i = 0;
+    
+    function btoa(str) {
+        return Buffer.from(str.toString(), 'binary').toString("base64");
+    }
 
-    connect = function (callback) {
+    function connect(callback) {
         config.read().then(function (config) {
             user = config.postgres.user;
             client = new Client(config.postgres);
@@ -85,12 +84,12 @@
         });
     };
 
-    begin = function () {
+    function begin() {
         //console.log("BEGIN");
         client.query("BEGIN;", processFile);
     };
 
-    commit = function () {
+    function commit() {
         return new Promise(function (resolve) {
             client.query("COMMIT;", function () {
                 //console.log("COMMIT");
@@ -100,7 +99,7 @@
         });
     };
 
-    rollback = function (err) {
+    function rollback(err) {
         client.query("ROLLBACK;", function () {
             console.error(err);
             //console.log("ROLLBACK");
@@ -110,7 +109,7 @@
         });
     };
 
-    execute = function (filename) {
+    function execute(filename) {
         let dep = path.resolve(filename);
         let exp = require(dep);
 
@@ -260,21 +259,21 @@
 
     saveModule = function (name, script, version, dependencies) {
         dependencies = dependencies || [];
+        let id = btoa(name);
         let payload = {
             method: "POST",
             name: "Module",
             user: user,
             client: client,
-            id: name,
+            id: id,
             data: {
-                id: name,
                 name: name,
                 version: version,
                 script: script,
                 dependencies: dependencies.map(function (dep) {
                     return {
                         module: {
-                            id: dep
+                            id: btoa(dep)
                         }
                     };
                 })
@@ -285,17 +284,17 @@
     };
 
     saveService = function (name, module, script) {
+        let id = btoa("ds" + name);
         let payload = {
             method: "POST",
             name: "DataService",
             user: user,
             client: client,
-            id: name,
+            id: id,
             data: {
-                id: name,
                 name: name,
                 module: {
-                    id: module
+                    id: btoa(module)
                 },
                 script: script
             }
