@@ -1029,7 +1029,17 @@ f.resolveAlias = function (feather, attr) {
     return ret.toName();
 };
 
-/** @private  Helper function to resolve property dot notation */
+/**
+    Helper function to resolve property dot notation. Traverses
+    model relations to return child property if dot notation present.
+
+        prop = f.resolveProperty(contact, "address.city");
+        console.log(prop()); // "Philadephia"
+
+    @param {Object} Model
+    @param {String} Property name
+    @return {Function} Property function
+*/
 f.resolveProperty = function (model, property) {
     let prefix;
     let suffix;
