@@ -19,7 +19,6 @@
 import f from "../core.js";
 import State from "../../common/state.js";
 import datasource from "../datasource.js";
-
 const store = {};
 
 store.feathers = f.prop({});
@@ -184,6 +183,14 @@ const catalog = (function () {
         return result;
     };
 
+    /**
+        Store global data.
+
+        @param {String} Data type
+        @param {String} Name of instance
+        @param {Any} Value to store
+        @return {Object} Instances of the data type
+    */
     that.register = function (...args) {
         let property = args[0];
         let name = args[1];
@@ -196,6 +203,31 @@ const catalog = (function () {
             store[property]()[name] = value;
         }
         return store[property]();
+    };
+
+    /**
+        Helper function for model creation. Does the following:
+            * Adds a function "static" to the model factory which returns an
+            object for holding static functions.
+            * Adds a list function to the model factory if `createList` is true.
+            * Registers the model in the catalog
+            * Freezes the model
+
+        @param {String} Feather name
+        @param {Function} Model factory
+        @param {Boolean} Flag whether to append list function to model
+        @return {Function} model
+    */
+    that.registerModel = function (name, model, createList) {
+        model.static = f.prop({});
+
+        if (createList) {
+            model.list = that.store().factories().list(name);
+        }
+
+        that.register("models", name, Object.freeze(model));
+
+        return model;
     };
 
     that.unregister = function (property, name) {
