@@ -18,7 +18,7 @@
 /*jslint this, browser*/
 import catalog from "./models/catalog.js";
 import datasource from "./datasource.js";
-import State from "../common/state.js";
+import State from "./state.js";
 
 const m = window.m;
 const f = window.f;

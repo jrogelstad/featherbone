@@ -17,7 +17,7 @@
 **/
 /*jslint this, browser*/
 import f from "../core.js";
-import State from "../../common/state.js";
+import State from "../state.js";
 
 const searchInput = {};
 const m = window.m;

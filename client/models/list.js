@@ -18,7 +18,7 @@
 /*jslint this, browser*/
 import f from "../core.js";
 import catalog from "./catalog.js";
-import State from "../../common/state.js";
+import State from "../state.js";
 
 const Qs = window.Qs;
 const m = window.m;

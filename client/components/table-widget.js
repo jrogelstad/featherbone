@@ -24,7 +24,7 @@ let widthWithScroll;
 import f from "../core.js";
 import catalog from "../models/catalog.js";
 import dialog from "./dialog.js";
-import State from "../../common/state.js";
+import State from "../state.js";
 
 const tableWidget = {};
 const outer = document.createElement("div");
