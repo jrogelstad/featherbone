@@ -22,7 +22,7 @@ import model from "./models/model.js";
 import settings from "./models/settings.js";
 import catalog from "./models/catalog.js";
 import list from "./models/list.js";
-import State from "../common/state.js";
+import State from "./state.js";
 import navigator from "./components/navigator-menu.js";
 import dialog from "./components/dialog.js";
 import formPage from "./components/form-page.js";

@@ -20,7 +20,7 @@ import f from "../core.js";
 import button from "./button.js";
 import catalog from "../models/catalog.js";
 import dialog from "./dialog.js";
-import State from "../../common/state.js";
+import State from "../state.js";
 
 const tableDialog = {};
 const m = window.m;
