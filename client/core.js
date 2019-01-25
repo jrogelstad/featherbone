@@ -345,28 +345,20 @@ f.getForm = function (options) {
     if (options.form) {
         form = forms.find(
             (row) => (
-                row.id() === options.form &&
-                row.data.isActive()
+                row.id === options.form &&
+                row.isActive
             )
         );
-
-        if (form) {
-            form = form.toJSON();
-        }
     }
 
     // If none specified, find one with a matching feather
     if (!form) {
         form = forms.find(
             (row) => (
-                row.data.feather() === options.feather &&
-                row.data.isActive()
+                row.feather === options.feather &&
+                row.isActive
             )
         );
-
-        if (form) {
-            form = form.toJSON();
-        }
     }
 
     // If none found, make one up based on feather definition

@@ -141,7 +141,7 @@ contactRelation.component = {
         let relations = options.parentViewModel.relations();
 
         form = catalog.store().data().forms().find(
-            (row) => id === row.id()
+            (row) => id === row.id
         );
 
         if (form) {

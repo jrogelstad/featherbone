@@ -52,7 +52,6 @@
         "module": "Core",
         "inherits": "Layout",
         "description": "Form definitions",
-        "isFetchOnStartup": true,
         "properties": {
             "focus": {
                 "description": "Attribute that receives first focus",

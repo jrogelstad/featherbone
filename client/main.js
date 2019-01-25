@@ -35,6 +35,7 @@ const m = window.m;
 const EventSource = window.EventSource;
 
 let feathers;
+let loadForms;
 let loadCatalog;
 let loadModules;
 let moduleData;
@@ -161,6 +162,19 @@ function initPromises() {
     });
     sseState.goto(); // Initialze
     catalog.register("global", "sseState", sseState);
+
+    // Load forms
+    loadForms = new Promise(function (resolve) {
+        let payload = {
+            method: "POST",
+            path: "/data/forms"
+        };
+
+        datasource.request(payload).then(function (data) {
+            catalog.register("data", "forms", f.prop(data));
+            resolve();
+        });
+    });
 
     // Load modules
     loadModules = new Promise(function (resolve) {
@@ -507,10 +521,9 @@ evstart.onmessage = function (event) {
         Promise.all([
             loadCatalog,
             loadModules,
+            loadForms,
             loadWorkbooks
-        ]).then(function () {
-            initApp();
-        });
+        ]).then(initApp);
     }
 };
 
