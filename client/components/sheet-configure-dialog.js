@@ -198,14 +198,15 @@ sheetConfigureDialog.viewModel = function (options) {
         let forms;
         let form;
         let name = args[0];
+        let store = catalog.store();
         let prop = vm.model().data.form;
 
         if (args.length) {
-            forms = catalog.store().data().forms();
+            forms = store.data().forms();
             form = forms.find(function (row) {
-                return row.data.name() === name;
+                return row.name === name;
             });
-            prop(form);
+            prop(store.models().form(form));
         }
         return (
             prop()
@@ -218,17 +219,14 @@ sheetConfigureDialog.viewModel = function (options) {
         let forms = catalog.store().data().forms();
         let feather = vm.model().data.feather();
 
-        // Copy to new array that has regular filter method
-        forms = forms.slice(0, forms.length - 1);
-
         // Only forms that have matching feather
         result = forms.filter(function (form) {
-            return form.data.feather() === feather;
+            return form.feather === feather;
         });
 
         // Just return names
         result = result.map(function (form) {
-            return form.data.name();
+            return form.name;
         }).sort();
 
         return result;

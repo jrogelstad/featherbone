@@ -152,8 +152,8 @@ function resolveConfig(config) {
         }
         if (typeof sheet.form === "string" && sheet.form.length) {
             sheet.form = catalog.store().data().forms().find(
-                (form) => sheet.form === form.id()
-            ).toJSON();
+                (form) => sheet.form === form.id
+            );
         }
     });
 }
