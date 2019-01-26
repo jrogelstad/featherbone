@@ -81,6 +81,12 @@ formPage.viewModel = function (options) {
 
         // Once we consciously leave, purge memoize
         delete instances[vm.model().id()];
+
+        if (window.history.state === null) {
+            window.close();
+            return;
+        }
+
         window.history.go(pageIdx * -1);
     };
     vm.doNew = function () {
@@ -230,6 +236,16 @@ formPage.component = {
         this.viewModel = (
             vnode.attrs.viewModel || formPage.viewModel(vnode.attrs)
         );
+    },
+
+    onupdate: function (vnode) {
+        let key = this.viewModel.model().naturalKey();
+        let title = this.viewModel.title() + (
+            key
+            ? ": " + key
+            : ""
+        );
+        document.getElementById("fb-title").text = title;
     },
 
     view: function () {

@@ -38,6 +38,8 @@ function contact(data, feather) {
 
     that.onChanged("firstName", handleName);
     that.onChanged("lastName", handleName);
+    
+    that.naturalKey = that.data.fullName;
 
     return that;
 }
