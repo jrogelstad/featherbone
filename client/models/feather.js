@@ -19,10 +19,10 @@ import catalog from "./catalog.js";
 import model from "./model.js";
 import list from "./list.js";
 
-function feather(data) {
+function feather(data, spec) {
+    spec = spec || catalog.getFeather("Feather");
     let that;
     let modules;
-    let spec = catalog.getFeather("Feather");
 
     // ..........................................................
     // PUBLIC

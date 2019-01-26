@@ -207,6 +207,10 @@
             lock: {
                 type: "lock",
                 default: null
+            },
+            dataType: {
+                type: "object",
+                default: {}
             }
         };
 

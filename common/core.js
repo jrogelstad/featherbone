@@ -149,7 +149,8 @@
             enum: {
                 default: ""
             },
-            lock: {}
+            lock: {},
+            dataType: {}
         },
 
         /*
