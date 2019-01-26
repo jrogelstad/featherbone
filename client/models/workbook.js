@@ -104,6 +104,11 @@ const workbookDefaultConifg = {
             type: "boolean",
             default: true
         },
+        openInNewWindow: {
+            description: "Open record in a new tab window",
+            type: "boolean",
+            default: false
+        },
         actions: {
             description: "Menu actions that can be performed on rows",
             type: "object",

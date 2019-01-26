@@ -368,6 +368,9 @@ function initApp() {
 
             menu.selected("home");
         },
+        oncreate: function () {
+            document.getElementById("fb-title").text = "Featherbone";
+        },
         onupdate: function () {
             menu.selected("home");
         },

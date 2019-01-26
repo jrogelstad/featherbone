@@ -26,6 +26,7 @@
                 "name": "Modules",
                 "feather": "Module",
                 "isEditModeEnabled": false,
+                "openInNewWindow": true,
                 "list": {
                     "columns": [{
                         "attr": "name"
@@ -44,6 +45,7 @@
                 "name": "Feathers",
                 "feather": "Feather",
                 "isEditModeEnabled": false,
+                "openInNewWindow": true,
                 "list": {
                     "columns": [{
                         "attr": "name"
@@ -71,6 +73,7 @@
             {
                 "name": "Forms",
                 "feather": "Form",
+                "openInNewWindow": true,
                 "list": {
                     "columns": [{
                         "attr": "name"
@@ -100,6 +103,7 @@
                 "name": "Services",
                 "feather": "DataService",
                 "isEditModeEnabled": false,
+                "openInNewWindow": true,
                 "list": {
                     "columns": [{
                         "attr": "name"

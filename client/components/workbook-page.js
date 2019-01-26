@@ -184,6 +184,17 @@ workbookPage.viewModel = function (options) {
         let form = sheet.form || {};
         let type = vm.tableWidget().model().data.objectType();
 
+        if (vm.sheet().openInNewWindow) {
+            let url = (
+                "http://" + window.location.hostname + ":" +
+                window.location.port + "#!/edit/" + type + "/" +
+                selection.id()
+            )
+                
+            window.open(url);
+            return;
+        }
+
         if (selection) {
             m.route.set("/edit/:feather/:key", {
                 feather: type,
@@ -713,7 +724,11 @@ workbookPage.component = {
         }
 
         return m("div", {
-            class: "pure-form"
+            class: "pure-form",
+            oncreate: function () {
+                let title = vm.sheet().name.toName();
+                document.getElementById("fb-title").text = title;
+            }
         }, [
             m(sortDialog.component, {
                 viewModel: vm.sortDialog()

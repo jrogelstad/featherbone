@@ -279,6 +279,7 @@ function model(data, feather) {
     let onChange = {};
     let onChanged = {};
     let isFrozen = false;
+    let naturalKey;
 
     that = {
         data: {}
@@ -464,6 +465,26 @@ function model(data, feather) {
       Feather name of model.
     */
     that.name = feather.name || "Object";
+    
+    that.naturalKey = function () {
+        if (naturalKey === undefined) {
+            naturalKey = Object.keys(feather.properties).find(
+                function (key) {
+                    if (feather.properties[key].isNaturalKey) {
+                        return true;
+                    }
+                }
+            );
+            if (!naturalKey) {
+                naturalKey = false;
+                return "";
+            }
+        } else if (naturalKey === false) {
+            return "";
+        }
+        
+        return that.data[naturalKey]();
+    };
 
     /**
       Add a function that returns a boolean to execute when the
