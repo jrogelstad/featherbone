@@ -114,6 +114,56 @@
 }, {
     "name": "Form",
     "method": "POST",
+    "id": "ec4zd7axdsal",
+    "data": {
+        "name": "FeatherProperty",
+        "description": "Feather property form",
+        "feather": "FeatherProperty",
+        "module": "Core",
+        "attrs": [{
+            "attr": "name"
+        }, {
+            "attr": "description"
+        }, {
+            "attr": "alias"
+        }, {
+            "attr": "type"
+        }, {
+            "attr": "format",
+            "dataList": "formats"
+        }, {
+            "attr": "isRequired"
+        }, {
+            "attr": "isReadOnly"
+        }, {
+            "attr": "isNaturalKey"
+        }, {
+            "attr": "isLabelKey"
+        }, {
+            "attr": "isIndexed"
+        }, {
+            "attr": "inheritedFrom",
+            "unit": 1
+        }, {
+            "attr": "dataList",
+            "unit": 1
+        }, {
+            "attr": "scale",
+            "unit": 1
+        }, {
+            "attr": "precision",
+            "unit": 1
+        }, {
+            "attr": "min",
+            "unit": 1
+        }, {
+            "attr": "max",
+            "unit": 1
+        }]
+    }
+}, {
+    "name": "Form",
+    "method": "POST",
     "id": "b7198t6p0a3h",
     "data": {
         "name": "Form",

@@ -1,10 +1,10 @@
 [{
         "name": "Feather",
-        "plural": "Feather",
+        "plural": "Feathers",
         "module": "Core",
         "description": "Object definitions",
         "authorization": false,
-        "isReadOnly": true,
+        "isReadOnly": false,
         "properties": {
             "name": {
                 "description": "Name",
@@ -98,6 +98,7 @@
             "type": {
                 "description": "Type",
                 "type": "object",
+                "format": "dataType",
                 "isRequired": true
             },
             "format": {
@@ -164,7 +165,8 @@
             "inheritedFrom": {
                 "description": "Inherited source feather",
                 "type": "string",
-                "isRequired": false
+                "isRequired": false,
+                "isReadOnly": true
             },
             "dataList": {
                 "description": "Array of input values",
