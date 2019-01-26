@@ -129,6 +129,7 @@ formPage.viewModel = function (options) {
         });
     };
     vm.formWidget = f.prop();
+    vm.isNew = f.prop(isNew);
     vm.model = function () {
         return vm.formWidget().model();
     };
@@ -250,7 +251,11 @@ formPage.component = {
     },
 
     onupdate: function () {
-        let key = this.viewModel.model().naturalKey();
+        let key = (
+            this.viewModel.isNew()
+            ? "(New)"
+            : this.viewModel.model().naturalKey()
+        );
         let title = this.viewModel.title() + (
             key
             ? ": " + key
