@@ -165,6 +165,31 @@ workbookPage.viewModel = function (options) {
     );
     vm.modelNew = function () {
         let form = vm.sheet().form || {};
+        let url;
+        let win;
+
+        if (vm.sheet().openInNewWindow) {
+            url = (
+                window.location.protocol + "//" +
+                window.location.hostname + ":" +
+                window.location.port + "#!/edit/" +
+                feather.name.toSpinalCase() + "/" +
+                f.createId()
+            );
+
+            win = window.open(url);
+            win.options = {
+                form: form.id,
+                create: true,
+                isNewWindow: true
+            };
+            win.receiver = function (model) {
+                vm.tableWidget().models().add(model);
+                m.redraw();
+            };
+            return;
+        }
+
         if (!vm.tableWidget().modelNew()) {
             m.route.set("/edit/:feather/:key", {
                 feather: feather.name.toSpinalCase(),
@@ -183,15 +208,22 @@ workbookPage.viewModel = function (options) {
         let sheet = vm.sheet() || {};
         let form = sheet.form || {};
         let type = vm.tableWidget().model().data.objectType();
+        let url;
+        let win;
 
         if (vm.sheet().openInNewWindow) {
-            let url = (
-                "http://" + window.location.hostname + ":" +
+            url = (
+                window.location.protocol + "//" +
+                window.location.hostname + ":" +
                 window.location.port + "#!/edit/" + type + "/" +
                 selection.id()
-            )
-                
-            window.open(url);
+            );
+
+            win = window.open(url);
+            win.options = {
+                form: form.id,
+                isNewWindow: true
+            };
             return;
         }
 

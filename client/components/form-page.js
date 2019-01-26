@@ -26,6 +26,13 @@ const formPage = {};
 const m = window.m;
 
 formPage.viewModel = function (options) {
+    // Handle options where opened as a new window
+    if (window.options) {
+        Object.keys(window.options).forEach(function (key) {
+            options[key] = window.options[key];
+        });
+    }
+
     let isDisabled;
     let applyTitle;
     let saveTitle;
@@ -49,6 +56,10 @@ formPage.viewModel = function (options) {
             if (receivers[options.receiver]) {
                 receivers[options.receiver].callback(vm.model());
             }
+        }
+
+        if (window.receiver) {
+            window.receiver(vm.model());
         }
     }
 
@@ -82,7 +93,7 @@ formPage.viewModel = function (options) {
         // Once we consciously leave, purge memoize
         delete instances[vm.model().id()];
 
-        if (window.history.state === null) {
+        if (options.isNewWindow) {
             window.close();
             return;
         }
@@ -238,7 +249,7 @@ formPage.component = {
         );
     },
 
-    onupdate: function (vnode) {
+    onupdate: function () {
         let key = this.viewModel.model().naturalKey();
         let title = this.viewModel.title() + (
             key
