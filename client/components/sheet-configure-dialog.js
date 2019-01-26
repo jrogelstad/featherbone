@@ -19,6 +19,7 @@
 import f from "../core.js";
 import catalog from "../models/catalog.js";
 import tableDialog from "./table-dialog.js";
+import checkbox from "./checkbox.js";
 
 const sheetConfigureDialog = {};
 const m = window.m;
@@ -98,6 +99,7 @@ sheetConfigureDialog.viewModel = function (options) {
         let ids = vm.ids();
         let nameId = ids.name;
         let featherId = ids.feather;
+        let openInNewWindowId = ids.openInNewWindow;
         let formId = ids.form;
 
         feathers = vm.feathers().map(function (feather) {
@@ -142,6 +144,7 @@ sheetConfigureDialog.viewModel = function (options) {
                             for: nameId
                         }, "Name:"),
                         m("input", {
+                            id: nameId,
                             value: d.name(),
                             required: true,
                             oninput: (e) => d.name(e.target.value)
@@ -154,6 +157,7 @@ sheetConfigureDialog.viewModel = function (options) {
                             for: featherId
                         }, "Feather:"),
                         m("select", {
+                            id: featherId,
                             value: d.feather(),
                             required: true,
                             oninput: (e) => d.feather(e.target.value)
@@ -163,12 +167,29 @@ sheetConfigureDialog.viewModel = function (options) {
                         class: "pure-control-group"
                     }, [
                         m("label", {
+                            for: openInNewWindowId
+                        }, "Open in New Tab:"),
+                        m(checkbox.component, {
+                            id: openInNewWindowId,
+                            value: d.openInNewWindow(),
+                            onclick: d.openInNewWindow
+                        })
+                    ]),
+                    m("div", {
+                        class: "pure-control-group"
+                    }, [
+                        m("label", {
                             for: formId
                         }, "Form:"),
                         m("select", {
+                            id: formId,
                             value: vm.form(),
                             required: true,
-                            oninput: (e) => vm.form(e.target.value)
+                            oninput: (e) => vm.form(e.target.value),
+                            disabled: forms.length === 0,
+                            style: {
+                                minWidth: "215px"
+                            }
                         }, forms)
                     ])
                 ]),
@@ -394,6 +415,7 @@ sheetConfigureDialog.viewModel = function (options) {
 
     vm.ids().name = f.createId();
     vm.ids().feather = f.createId();
+    vm.ids().openInNewWindow = f.createId();
     vm.ids().form = f.createId();
     vm.style().width = "510px";
     vm.reset();
