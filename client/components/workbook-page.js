@@ -38,7 +38,6 @@ workbookPage.viewModel = function (options) {
     let currentSheet;
     let feather;
     let staticModel;
-    let sheetId;
     let sseState = catalog.store().global().sseState;
     let workbook = catalog.store().workbooks()[
         options.workbook.toCamelCase()
@@ -51,12 +50,19 @@ workbookPage.viewModel = function (options) {
     }
 
     let config = workbook.getConfig();
+    let sheet = config.find(function (sheet) {
+        return sheet.name.toSpinalCase() === options.key;
+    });
+
+    if (!sheet) {
+        m.route.set("/home");
+        options.isInvalid = true;
+        return;
+    }
+
+    let sheetId = sheet.id;
     let receiverKey = f.createId();
     let vm = {};
-
-    sheetId = config.find(function (sheet) {
-        return sheet.name.toSpinalCase() === options.key;
-    }).id;
 
     // ..........................................................
     // PUBLIC
