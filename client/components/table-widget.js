@@ -1123,7 +1123,7 @@ tableWidget.component = {
                                 value = d[col]().data[rel]();
 
                                 url = (
-                                    "http://" +
+                                    window.location.protocol + "//" +
                                     window.location.hostname + ":" +
                                     window.location.port + "#!/edit/" +
                                     prop.type.relation.toSnakeCase() +
