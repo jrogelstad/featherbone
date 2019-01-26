@@ -288,7 +288,8 @@ function initApp() {
             let child = models[name.toCamelCase()];
 
             funcs.forEach(function (func) {
-                child.static()[func] = child.static()[func] || parent.static()[func];
+                child.static()[func] = child.static()[func] ||
+                parent.static()[func];
             });
 
             subclass(name, child);
