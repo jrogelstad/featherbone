@@ -592,23 +592,33 @@ f.buildInputComponent = function (obj) {
                 disabled: opts.disabled,
                 style: opts.style
             });
-        } else if (
-            prop.type === "object" &&
-            prop.format === "money"
-        ) {
-            component = m(components.moneyRelation, {
-                parentViewModel: obj.viewModel,
-                parentProperty: key,
-                filter: obj.filter,
-                isCell: opts.isCell,
-                style: opts.style,
-                onCreate: opts.oncreate,
-                onRemove: opts.onremove,
-                showCurrency: opts.showCurrency,
-                disableCurrency: opts.disableCurrency,
-                id: id,
-                disabled: prop.isReadOnly()
-            });
+        } else if (prop.type === "object") {
+            if (prop.format === "money") {
+                component = m(components.moneyRelation, {
+                    parentViewModel: obj.viewModel,
+                    parentProperty: key,
+                    filter: obj.filter,
+                    isCell: opts.isCell,
+                    style: opts.style,
+                    onCreate: opts.oncreate,
+                    onRemove: opts.onremove,
+                    showCurrency: opts.showCurrency,
+                    disableCurrency: opts.disableCurrency,
+                    id: id,
+                    disabled: prop.isReadOnly()
+                });
+            } else if (prop.format === "dataType") {
+                component = m(components.dataType, {
+                    parentViewModel: obj.viewModel,
+                    parentProperty: key,
+                    isCell: opts.isCell,
+                    //style: opts.style,
+                    //onCreate: opts.oncreate,
+                    //onRemove: opts.onremove,
+                    id: id,
+                    disabled: prop.isReadOnly()
+                });
+            }
         } else {
             opts.id = id;
             opts.onchange = (e) => prop(e.target.value);
