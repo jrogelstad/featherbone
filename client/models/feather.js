@@ -17,7 +17,6 @@
 **/
 import catalog from "./catalog.js";
 import model from "./model.js";
-import list from "./list.js";
 
 function feather(data, spec) {
     spec = spec || catalog.getFeather("Feather");
@@ -81,9 +80,6 @@ function feather(data, spec) {
     return that;
 }
 
-feather.list = list("Feather");
-feather.static = f.prop({});
-
-catalog.register("models", "feather", feather);
+catalog.registerModel("Feather", feather, true);
 
 
