@@ -461,7 +461,7 @@
 
             // Cache original request that may get changed by triggers
             if (obj.data) {
-                obj.cache = f.copy(obj.data);
+                obj.cache = Object.freeze(f.copy(obj.data));
             }
 
             function close(resp) {
