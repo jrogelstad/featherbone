@@ -225,7 +225,7 @@ const catalog = (function () {
             model.list = that.store().factories().list(name);
         }
 
-        that.register("models", name, Object.freeze(model));
+        that.register("models", name.toCamelCase(), Object.freeze(model));
 
         return model;
     };
