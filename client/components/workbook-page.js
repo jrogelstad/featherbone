@@ -50,17 +50,17 @@ workbookPage.viewModel = function (options) {
     }
 
     let config = workbook.getConfig();
-    let sheet = config.find(function (sheet) {
+    let the_sheet = config.find(function (sheet) {
         return sheet.name.toSpinalCase() === options.key;
     });
 
-    if (!sheet) {
+    if (!the_sheet) {
         m.route.set("/home");
         options.isInvalid = true;
         return;
     }
 
-    let sheetId = sheet.id;
+    let sheetId = the_sheet.id;
     let receiverKey = f.createId();
     let vm = {};
 
