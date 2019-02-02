@@ -469,7 +469,7 @@ f.formats.money.toType = function (value) {
         currency = curr.data.code();
     }
 
-    return {
+    value = {
         amount: amount,
         currency: currency,
         effective: (
@@ -483,6 +483,8 @@ f.formats.money.toType = function (value) {
             : f.types.number.toType(value.baseAmount)
         )
     };
+    
+    return Object.freeze(value);
 };
 
 function byEffective(a, b) {
