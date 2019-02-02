@@ -18,26 +18,9 @@
 import f from "../core.js";
 import catalog from "./catalog.js";
 import model from "./model.js";
-import list from "./list.js";
 
 function form(data, feather) {
     let that;
-
-    function feathers() {
-        let tables = catalog.store().feathers();
-        let keys = Object.keys(tables);
-
-        keys = keys.filter(function (key) {
-            return !tables[key].isSystem;
-        }).sort();
-
-        return keys.map(function (key) {
-            return {
-                value: key,
-                label: key
-            };
-        });
-    }
 
     function modules() {
         let tables = catalog.store().feathers();
@@ -89,7 +72,7 @@ function form(data, feather) {
     that.addCalculated({
         name: "feathers",
         type: "array",
-        function: feathers
+        function: f.feathers
     });
 
     that.addCalculated({
@@ -110,9 +93,4 @@ function form(data, feather) {
     return that;
 }
 
-form.list = list("Form");
-form.static = f.prop({});
-
-catalog.register("models", "form", form);
-
-export default Object.freeze(form);
+catalog.registerModel("Form", form, true);

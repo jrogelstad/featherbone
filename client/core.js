@@ -390,6 +390,29 @@ f.inputMap = {
 };
 
 /**
+  Return an array of feathers organized as options.
+  Useful for models that need to offer a selection
+  of feathers.
+
+  @return {Array}
+*/
+f.feathers = function () {
+    let tables = catalog.store().feathers();
+    let keys = Object.keys(tables).sort();
+/*
+    keys = keys.filter(function (key) {
+        return !tables[key].isSystem;
+    }).sort();
+*/
+    return keys.map(function (key) {
+        return {
+            value: key,
+            label: key
+        };
+    });
+};
+
+/**
   Find the top most parent model in a model heiarchy.
   For example from an order line find the parent order.
 
@@ -483,7 +506,7 @@ f.formats.money.toType = function (value) {
             : f.types.number.toType(value.baseAmount)
         )
     };
-    
+
     return Object.freeze(value);
 };
 

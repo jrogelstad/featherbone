@@ -130,8 +130,4 @@ function featherProperty(data, spec) {
     return that;
 }
 
-featherProperty.static = f.prop({});
-
-catalog.register("models", "featherProperty", featherProperty);
-
-export default Object.freeze(featherProperty);
+catalog.registerModel("FeatherProperty", featherProperty);
