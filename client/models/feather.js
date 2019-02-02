@@ -15,8 +15,12 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
+/*jslint browser*/
 import catalog from "./catalog.js";
 import model from "./model.js";
+import list from "./list.js";
+
+const f = window.f;
 
 function feather(data, spec) {
     spec = spec || catalog.getFeather("Feather");
@@ -80,6 +84,9 @@ function feather(data, spec) {
     return that;
 }
 
-catalog.registerModel("Feather", feather, true);
+feather.list = list("Feather");
+feather.static = f.prop({});
+
+catalog.register("models", "feather", feather);
 
 
