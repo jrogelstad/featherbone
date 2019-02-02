@@ -18,7 +18,6 @@
 import f from "../core.js";
 import catalog from "./catalog.js";
 import model from "./model.js";
-import list from "./list.js";
 
 function script(data, feather) {
     let that;
@@ -57,9 +56,4 @@ function script(data, feather) {
     return that;
 }
 
-script.list = list("Script");
-script.static = f.prop({});
-
-catalog.register("models", "script", script);
-
-export default Object.freeze(script);
+catalog.registerModel("Script", script);

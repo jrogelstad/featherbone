@@ -86,4 +86,4 @@ feather.static = f.prop({});
 
 catalog.register("models", "feather", feather);
 
-export default Object.freeze(feather);
+
