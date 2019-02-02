@@ -63,6 +63,7 @@ dataType.viewModel = function (options) {
     vm.model = parent.model().data[options.parentProperty];
     vm.onchange = function (e) {
         if (e.target.value === "relation") {
+            vm.prop({});
             vm.dataTypeDialog().show();
         } else {
             vm.prop(e.target.value);
@@ -89,7 +90,15 @@ dataType.viewModel = function (options) {
         });
     };
     vm.propertiesSelected = f.prop([]);
-    vm.relation = f.prop();
+    vm.relation = function () {
+        let type = vm.prop();
+
+        if (typeof type === "object") {
+            return type.relation;
+        }
+
+        return "";
+    };
     vm.style = f.prop(options.style || {});
     vm.prop = options.parentViewModel.model().data[options.parentProperty];
     vm.type = function () {
@@ -143,20 +152,32 @@ dataType.viewModel = function (options) {
 
     vm.dataTypeDialog().content = function () {
         let id = vm.id();
-        let v = m("select", {
-            id: id,
-            key: id,
-            onchange: vm.onchange,
-            value: vm.type()
-        }, vm.types().map(function (item) {
-            return m("option", {
-                value: item,
-                label: item,
-                key: id + "$" + item
-            });
-        }));
 
-        return v;
+        return m("div", [
+            m("select", {
+                id: id,
+                key: id,
+                value: vm.type()
+            }, vm.types().map(function (item) {
+                return m("option", {
+                    value: item,
+                    label: item,
+                    key: id + "$" + item
+                });
+            })),
+            m("select", {
+                id: id + "$relation",
+                key: id + "$relation",
+                value: vm.relation(),
+                disabled: vm.type() !== "relation"
+            }, f.feathers().map(function (item) {
+                return m("option", {
+                    value: item.value,
+                    label: item.label,
+                    key: id + "$feather$" + item.value
+                });
+            })),
+        ]);
     };
 
     return vm;
@@ -197,6 +218,9 @@ dataType.component = {
                 id: id,
                 key: id,
                 onchange: vm.onchange,
+                oncreate: vnode.attrs.onCreate,
+                onremove: vnode.attrs.onRemove,
+                style: vnode.attrs.style,
                 value: vm.type(),
                 disabled: disabled
             }, vm.types().map(function (item) {
