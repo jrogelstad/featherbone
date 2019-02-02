@@ -612,9 +612,9 @@ f.buildInputComponent = function (obj) {
                     parentViewModel: obj.viewModel,
                     parentProperty: key,
                     isCell: opts.isCell,
-                    //style: opts.style,
-                    //onCreate: opts.oncreate,
-                    //onRemove: opts.onremove,
+                    style: opts.style,
+                    onCreate: opts.oncreate,
+                    onRemove: opts.onremove,
                     id: id,
                     disabled: prop.isReadOnly()
                 });
