@@ -149,8 +149,4 @@ function formAttr(data, feather) {
     return that;
 }
 
-formAttr.static = f.prop({});
-
-catalog.register("models", "formAttr", formAttr);
-
-export default Object.freeze(formAttr);
+catalog.registerModel("FormAttr", formAttr);

@@ -465,7 +465,7 @@ function model(data, feather) {
       Feather name of model.
     */
     that.name = feather.name || "Object";
-    
+
     that.naturalKey = function () {
         if (naturalKey === undefined) {
             naturalKey = Object.keys(feather.properties).find(
@@ -482,7 +482,7 @@ function model(data, feather) {
         } else if (naturalKey === false) {
             return "";
         }
-        
+
         return that.data[naturalKey]();
     };
 

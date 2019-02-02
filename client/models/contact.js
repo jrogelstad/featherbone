@@ -18,7 +18,6 @@
 /*jslint browser*/
 import catalog from "./catalog.js";
 import model from "./model.js";
-import list from "./list.js";
 
 /*
   Contact Model
@@ -38,15 +37,10 @@ function contact(data, feather) {
 
     that.onChanged("firstName", handleName);
     that.onChanged("lastName", handleName);
-    
+
     that.naturalKey = that.data.fullName;
 
     return that;
 }
 
-contact.list = list("Contact");
-contact.static = f.prop({});
-
-catalog.register("models", "contact", contact);
-
-export default Object.freeze(contact);
+catalog.registerModel("Contact", contact, true);

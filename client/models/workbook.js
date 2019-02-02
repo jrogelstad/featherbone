@@ -357,7 +357,6 @@ workbookModel.static = f.prop({});
 
 models = catalog.store().models();
 models.workbook = workbookModel;
-models.workbookLocalConfig = workbookChild;   
-Object.freeze(models.workbookLocalConfig)
+models.workbookLocalConfig = workbookChild;
+Object.freeze(models.workbookLocalConfig);
 
-export default Object.freeze(workbookModel);

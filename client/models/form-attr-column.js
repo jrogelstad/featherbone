@@ -170,8 +170,4 @@ function formAttrColumn(data, feather) {
     return that;
 }
 
-formAttrColumn.static = f.prop({});
-
-catalog.register("models", "formAttrColumn", formAttrColumn);
-
-export default Object.freeze(formAttrColumn);
+catalog.registerModel("FormAttrColumn", formAttrColumn);

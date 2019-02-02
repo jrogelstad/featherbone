@@ -17,7 +17,6 @@
 **/
 import catalog from "./catalog.js";
 import model from "./model.js";
-import list from "./list.js";
 
 /*
   Currency Conversion model
@@ -39,9 +38,4 @@ function currencyConversion(data, feather) {
     return that;
 }
 
-currencyConversion.list = list("CurrencyConversion");
-currencyConversion.static = f.prop({});
-
-catalog.register("models", "currencyConversion", currencyConversion);
-
-export default Object.freeze(currencyConversion);
+catalog.registerModel("CurrencyConversion", currencyConversion, true);
