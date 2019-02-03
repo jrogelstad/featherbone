@@ -29,7 +29,18 @@ listWidget.viewModel = function (options) {
     let vm = {};
 
     vm.name = f.prop(options.name);
-    vm.items = f.prop(["code", "description", "value"]);
+    vm.items = f.prop([]);
+    vm.onclick = function (e) {
+        let selected = vm.selected();
+        let idx = selected.indexOf(e.target.textContent);
+
+        if (idx === -1) {
+            selected.push(e.target.textContent);
+        } else {
+            selected.splice(idx, 1);
+        }
+    };
+    vm.selected = f.prop([]);
 
     return vm;
 };
@@ -40,8 +51,10 @@ listWidget.component = {
     },
 
     view: function (vnode) {
-        let name = this.viewModel.name();
-        let items = this.viewModel.items();
+        let vm = this.viewModel;
+        let name = vm.name();
+        let items = vm.items();
+        let selected = vm.selected();
 
         return m("table", {
             class: "pure-table",
@@ -53,8 +66,22 @@ listWidget.component = {
                     m("th", name)
                 ])
             ]),
-            m("tbody", items.map(function (i) {
-                return m("tr", [
+            m("tbody", {
+                class: "fb-table-body",
+                style: {
+                    height: "100px"
+                }
+            }, items.map(function (i) {
+                return m("tr", {
+                    onclick: vm.onclick,
+                    style: {
+                        backgroundColor: (
+                            selected.indexOf(i) === -1
+                            ? "White"
+                            : "LightSkyBlue"
+                        )
+                    }
+                }, [
                     m("td", i)
                 ]);
             }))
@@ -110,10 +137,12 @@ dataType.viewModel = function (options) {
     vm.id = f.prop(options.id || f.createId());
     vm.isCell = f.prop(options.isCell);
     vm.model = parent.model().data[options.parentProperty];
-    vm.onchange = function (e) {
+    vm.onchange = function (e, showDialog) {
         if (e.target.value === "relation") {
             vm.prop({});
-            vm.dataTypeDialog().show();
+            if (showDialog !== false) {
+                vm.dataTypeDialog().show();
+            }
             vm.buttonAdd().enable();
             vm.buttonRemove().enable();
             if (
@@ -128,7 +157,9 @@ dataType.viewModel = function (options) {
         } else {
             vm.prop(e.target.value);
         }
-        
+
+        vm.propsAvailableWidget().items([]);
+        vm.propsSelectedWidget().items([]);
         vm.buttonAdd().disable();
         vm.buttonRemove().disable();
     };
@@ -149,13 +180,7 @@ dataType.viewModel = function (options) {
         }
     };
     vm.onchangeDialogType = function (e) {
-        if (e.target.value === "relation") {
-            vm.prop({});
-        } else {
-            vm.prop(e.target.value);
-            vm.buttonAdd().disable();
-            vm.buttonRemove().disable();
-        }
+        vm.onchange(e, false);
     };
     vm.onchangeDialogRelation = function (e) {
         let type = f.copy(vm.prop());
@@ -167,6 +192,8 @@ dataType.viewModel = function (options) {
             if (e.target.value && !vm.childOf()) {
                 vm.buttonAdd().enable();
                 vm.buttonRemove().enable();
+                vm.propsAvailableWidget().items(vm.properties());
+                vm.propsSelectedWidget().items([]);
             } else {
                 vm.buttonAdd().disable();
                 vm.buttonRemove().disable();
@@ -186,7 +213,7 @@ dataType.viewModel = function (options) {
 
         if (relation) {
             feather = catalog.getFeather(relation);
-            props = Object.keys(feather.properties);
+            props = Object.keys(feather.properties).sort();
         }
 
         return props;
@@ -292,7 +319,7 @@ dataType.viewModel = function (options) {
             }, [
                 m("label", {
                     for: id
-                }, "Type"),
+                }, "Type:"),
                 m("select", {
                     id: id,
                     key: id,
@@ -311,7 +338,7 @@ dataType.viewModel = function (options) {
             }, [
                 m("label", {
                     for: "dlgRelation"
-                }, "Feather"),
+                }, "Feather:"),
                 m("select", {
                     id: "dlgRelation",
                     key: "dlgRelation",
@@ -332,7 +359,7 @@ dataType.viewModel = function (options) {
             }, [
                 m("label", {
                     for: "dlgChildOf"
-                }, "Child Of"),
+                }, "Child Of:"),
                 m("input", {
                     id: "dlgChildOf",
                     value: vm.childOf(),
@@ -345,7 +372,7 @@ dataType.viewModel = function (options) {
             }, [
                 m("label", {
                     for: "dlgSelectors"
-                }, "Properties"),
+                }, "Properties:"),
                 m("div", {
                     id: "dlgSelectors",
                     style: {
@@ -356,7 +383,8 @@ dataType.viewModel = function (options) {
                     m(listWidget.component, {
                         viewModel: vm.propsAvailableWidget(),
                         style: {
-                            display: "inline-block"
+                            display: "inline-block",
+                            width: "120px"
                         },
                         disabled: isNotFeather
                     }),
@@ -379,7 +407,8 @@ dataType.viewModel = function (options) {
                         style: {
                             position: "absolute",
                             left: "275px",
-                            display: "inline-block"
+                            display: "inline-block",
+                            width: "120px"
                         },
                         disabled: isNotFeather
                     })
