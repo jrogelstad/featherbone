@@ -63,7 +63,11 @@ listWidget.component = {
         }, [
             m("thead", [
                 m("tr", [
-                    m("th", name)
+                    m("th", {
+                        style: {
+                            width: "100px"
+                        }
+                    }, name)
                 ])
             ]),
             m("tbody", {
@@ -171,9 +175,13 @@ dataType.viewModel = function (options) {
             vm.prop(type);
             
             if (e.target.value) {
+                vm.propsAvailableWidget().items([]);
+                vm.propsSelectedWidget().items([]);
                 vm.buttonAdd().disable();
                 vm.buttonRemove().disable();
+
             } else {
+                vm.propsAvailableWidget().items(vm.properties());
                 vm.buttonAdd().enable();
                 vm.buttonRemove().enable();
             }
@@ -406,7 +414,7 @@ dataType.viewModel = function (options) {
                         viewModel: vm.propsSelectedWidget(),
                         style: {
                             position: "absolute",
-                            left: "275px",
+                            left: "285px",
                             display: "inline-block",
                             width: "120px"
                         },
