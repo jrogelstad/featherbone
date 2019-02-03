@@ -17,6 +17,7 @@
 **/
 /*jslint this, browser*/
 import f from "../core.js";
+import button from "./button.js";
 import catalog from "../models/catalog.js";
 import dialog from "./dialog.js";
 
@@ -24,12 +25,11 @@ const dataType = {};
 const listWidget = {};
 const m = window.m;
 
-listWidget.viewModel = function () {
+listWidget.viewModel = function (options) {
     let vm = {};
 
-    vm.items = function () {
-        return ["code", "description", "value"];
-    };
+    vm.name = f.prop(options.name);
+    vm.items = f.prop(["code", "description", "value"]);
 
     return vm;
 };
@@ -39,12 +39,13 @@ listWidget.component = {
         this.viewModel = vnode.attrs.viewModel;
     },
 
-    view: function () {
-        let name = "Properties";
+    view: function (vnode) {
+        let name = this.viewModel.name();
         let items = this.viewModel.items();
 
         return m("table", {
-            class: "pure-table"
+            class: "pure-table",
+            style: vnode.attrs.style
         }, [
             m("thead", [
                 m("tr", [
@@ -64,6 +65,8 @@ dataType.viewModel = function (options) {
     let vm = {};
     let parent = options.parentViewModel;
 
+    vm.buttonAdd = f.prop();
+    vm.buttonRemove = f.prop();
     vm.dataTypeDialog = f.prop();
     vm.childOf = f.prop("");
     vm.feathers = function () {
@@ -119,6 +122,12 @@ dataType.viewModel = function (options) {
         if (typeof type === "object") {
             type.relation = e.target.value;
         }
+    };
+    vm.propertyAdd = function () {
+        return;
+    };
+    vm.propertyRemove = function () {
+        return;
     };
     vm.properties = function () {
         let props = [];
@@ -198,6 +207,25 @@ dataType.viewModel = function (options) {
     // PRIVATE
     //
 
+    vm.buttonAdd(button.viewModel({
+        onclick: vm.propertyAdd,
+        title: "Add",
+        icon: "arrow-alt-circle-right",
+        style: {
+            display: "block",
+            backgroundColor: "white"
+        }
+    }));
+
+    vm.buttonRemove(button.viewModel({
+        onclick: vm.propertyRemove,
+        title: "Remove",
+        icon: "arrow-alt-circle-left",
+        style: {
+            backgroundColor: "white"
+        }
+    }));
+
     vm.dataTypeDialog(dialog.viewModel({
         icon: "edit",
         title: "Data type"
@@ -246,20 +274,61 @@ dataType.viewModel = function (options) {
                     });
                 }))
             ]),
-            m(listWidget.component, {
-                viewModel: vm.propsAvailableWidget()
-            }),
-            m(listWidget.component, {
-                viewModel: vm.propsSelectedWidget()
-            })
+            m("div", {
+                class: "pure-control-group"
+            }, [
+                m("label", {
+                    for: "dlgSelectors"
+                }, "Properties"),
+                m("div", {
+                    id: "dlgSelectors",
+                    style: {
+                        marginLeft: "100px",
+                        marginTop: "10px"
+                    }
+                }, [
+                    m(listWidget.component, {
+                        viewModel: vm.propsAvailableWidget(),
+                        style: {
+                            display: "inline-block"
+                        }
+                    }),
+                    m("div", {
+                        style: {
+                            display: "inline-block",
+                            position: "absolute",
+                            marginTop: "36px"
+                        }
+                    }, [
+                        m(button.component, {
+                            viewModel: vm.buttonAdd()
+                        }),
+                        m(button.component, {
+                            viewModel: vm.buttonRemove()
+                        })
+                    ]),
+                    m(listWidget.component, {
+                        viewModel: vm.propsSelectedWidget(),
+                        style: {
+                            position: "absolute",
+                            left: "275px",
+                            display: "inline-block"
+                        }
+                    })
+                ])
+            ])
         ]);
     };
 
-    vm.dataTypeDialog().style().width = "600px";
-    vm.dataTypeDialog().style().height = "350px";
+    vm.dataTypeDialog().style().width = "450px";
+    vm.dataTypeDialog().style().height = "450px";
 
-    vm.propsAvailableWidget(listWidget.viewModel());
-    vm.propsSelectedWidget(listWidget.viewModel());
+    vm.propsAvailableWidget(listWidget.viewModel({
+        name: "Available"
+    }));
+    vm.propsSelectedWidget(listWidget.viewModel({
+        name: "Selected"
+    }));
 
     return vm;
 };
