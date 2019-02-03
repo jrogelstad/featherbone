@@ -45,7 +45,8 @@ listWidget.component = {
 
         return m("table", {
             class: "pure-table",
-            style: vnode.attrs.style
+            style: vnode.attrs.style,
+            disabled: vnode.attrs.disabled
         }, [
             m("thead", [
                 m("tr", [
@@ -68,7 +69,15 @@ dataType.viewModel = function (options) {
     vm.buttonAdd = f.prop();
     vm.buttonRemove = f.prop();
     vm.dataTypeDialog = f.prop();
-    vm.childOf = f.prop("");
+    vm.childOf = function () {
+        let type = vm.prop();
+
+        if (typeof type === "object") {
+            return type.childOf || "";
+        }
+
+        return "";
+    };
     vm.feathers = function () {
         let countries = catalog.store().data().countries().map(
             function (model) {
@@ -105,8 +114,38 @@ dataType.viewModel = function (options) {
         if (e.target.value === "relation") {
             vm.prop({});
             vm.dataTypeDialog().show();
+            vm.buttonAdd().enable();
+            vm.buttonRemove().enable();
+            if (
+                e.target.value &&
+                vm.relation() &&
+                !vm.childOf()
+            ) {
+                vm.buttonAdd().enable();
+                vm.buttonRemove().enable();
+                return;
+            }
         } else {
             vm.prop(e.target.value);
+        }
+        
+        vm.buttonAdd().disable();
+        vm.buttonRemove().disable();
+    };
+    vm.onchangeDialogChildOf = function (e) {
+        let type = f.copy(vm.prop());
+
+        if (typeof type === "object") {
+            type.childOf = e.target.value;
+            vm.prop(type);
+            
+            if (e.target.value) {
+                vm.buttonAdd().disable();
+                vm.buttonRemove().disable();
+            } else {
+                vm.buttonAdd().enable();
+                vm.buttonRemove().enable();
+            }
         }
     };
     vm.onchangeDialogType = function (e) {
@@ -114,13 +153,24 @@ dataType.viewModel = function (options) {
             vm.prop({});
         } else {
             vm.prop(e.target.value);
+            vm.buttonAdd().disable();
+            vm.buttonRemove().disable();
         }
     };
-    vm.onchangeDialogType = function (e) {
+    vm.onchangeDialogRelation = function (e) {
         let type = f.copy(vm.prop());
 
         if (typeof type === "object") {
             type.relation = e.target.value;
+            vm.prop(type);
+
+            if (e.target.value && !vm.childOf()) {
+                vm.buttonAdd().enable();
+                vm.buttonRemove().enable();
+            } else {
+                vm.buttonAdd().disable();
+                vm.buttonRemove().disable();
+            }
         }
     };
     vm.propertyAdd = function () {
@@ -233,6 +283,8 @@ dataType.viewModel = function (options) {
 
     vm.dataTypeDialog().content = function () {
         let id = vm.id();
+        let isNotRelation = vm.type() !== "relation";
+        let isNotFeather = !vm.relation();
 
         return m("div", [
             m("div", {
@@ -258,14 +310,15 @@ dataType.viewModel = function (options) {
                 class: "pure-control-group"
             }, [
                 m("label", {
-                    for: id + "$relation"
+                    for: "dlgRelation"
                 }, "Feather"),
                 m("select", {
-                    id: id + "$relation",
-                    key: id + "$relation",
+                    id: "dlgRelation",
+                    key: "dlgRelation",
                     value: vm.relation(),
                     onchange: vm.onchangeDialogRelation,
-                    disabled: vm.type() !== "relation"
+                    disabled: isNotRelation,
+                    class: "fb-input"
                 }, f.feathers().map(function (item) {
                     return m("option", {
                         value: item.value,
@@ -273,6 +326,19 @@ dataType.viewModel = function (options) {
                         key: id + "$feather$" + item.value
                     });
                 }))
+            ]),
+            m("div", {
+                class: "pure-control-group"
+            }, [
+                m("label", {
+                    for: "dlgChildOf"
+                }, "Child Of"),
+                m("input", {
+                    id: "dlgChildOf",
+                    value: vm.childOf(),
+                    onchange: vm.onchangeDialogChildOf,
+                    disabled: isNotFeather
+                })
             ]),
             m("div", {
                 class: "pure-control-group"
@@ -291,7 +357,8 @@ dataType.viewModel = function (options) {
                         viewModel: vm.propsAvailableWidget(),
                         style: {
                             display: "inline-block"
-                        }
+                        },
+                        disabled: isNotFeather
                     }),
                     m("div", {
                         style: {
@@ -313,7 +380,8 @@ dataType.viewModel = function (options) {
                             position: "absolute",
                             left: "275px",
                             display: "inline-block"
-                        }
+                        },
+                        disabled: isNotFeather
                     })
                 ])
             ])
