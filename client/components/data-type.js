@@ -21,7 +21,44 @@ import catalog from "../models/catalog.js";
 import dialog from "./dialog.js";
 
 const dataType = {};
+const listWidget = {};
 const m = window.m;
+
+listWidget.viewModel = function () {
+    let vm = {};
+
+    vm.items = function () {
+        return ["code", "description", "value"];
+    };
+
+    return vm;
+};
+
+listWidget.component = {
+    oninit: function (vnode) {
+        this.viewModel = vnode.attrs.viewModel;
+    },
+
+    view: function () {
+        let name = "Properties";
+        let items = this.viewModel.items();
+
+        return m("table", {
+            class: "pure-table"
+        }, [
+            m("thead", [
+                m("tr", [
+                    m("th", name)
+                ])
+            ]),
+            m("tbody", items.map(function (i) {
+                return m("tr", [
+                    m("td", i)
+                ]);
+            }))
+        ]);
+    }
+};
 
 dataType.viewModel = function (options) {
     let vm = {};
@@ -69,6 +106,20 @@ dataType.viewModel = function (options) {
             vm.prop(e.target.value);
         }
     };
+    vm.onchangeDialogType = function (e) {
+        if (e.target.value === "relation") {
+            vm.prop({});
+        } else {
+            vm.prop(e.target.value);
+        }
+    };
+    vm.onchangeDialogType = function (e) {
+        let type = f.copy(vm.prop());
+
+        if (typeof type === "object") {
+            type.relation = e.target.value;
+        }
+    };
     vm.properties = function () {
         let props = [];
         let feather;
@@ -101,6 +152,8 @@ dataType.viewModel = function (options) {
     };
     vm.style = f.prop(options.style || {});
     vm.prop = options.parentViewModel.model().data[options.parentProperty];
+    vm.propsAvailableWidget = f.prop();
+    vm.propsSelectedWidget = f.prop();
     vm.type = function () {
         let type = vm.prop();
 
@@ -154,31 +207,59 @@ dataType.viewModel = function (options) {
         let id = vm.id();
 
         return m("div", [
-            m("select", {
-                id: id,
-                key: id,
-                value: vm.type()
-            }, vm.types().map(function (item) {
-                return m("option", {
-                    value: item,
-                    label: item,
-                    key: id + "$" + item
-                });
-            })),
-            m("select", {
-                id: id + "$relation",
-                key: id + "$relation",
-                value: vm.relation(),
-                disabled: vm.type() !== "relation"
-            }, f.feathers().map(function (item) {
-                return m("option", {
-                    value: item.value,
-                    label: item.label,
-                    key: id + "$feather$" + item.value
-                });
-            })),
+            m("div", {
+                class: "pure-control-group"
+            }, [
+                m("label", {
+                    for: id
+                }, "Type"),
+                m("select", {
+                    id: id,
+                    key: id,
+                    value: vm.type(),
+                    onchange: vm.onchangeDialogType
+                }, vm.types().map(function (item) {
+                    return m("option", {
+                        value: item,
+                        label: item,
+                        key: id + "$" + item
+                    });
+                }))
+            ]),
+            m("div", {
+                class: "pure-control-group"
+            }, [
+                m("label", {
+                    for: id + "$relation"
+                }, "Feather"),
+                m("select", {
+                    id: id + "$relation",
+                    key: id + "$relation",
+                    value: vm.relation(),
+                    onchange: vm.onchangeDialogRelation,
+                    disabled: vm.type() !== "relation"
+                }, f.feathers().map(function (item) {
+                    return m("option", {
+                        value: item.value,
+                        label: item.label,
+                        key: id + "$feather$" + item.value
+                    });
+                }))
+            ]),
+            m(listWidget.component, {
+                viewModel: vm.propsAvailableWidget()
+            }),
+            m(listWidget.component, {
+                viewModel: vm.propsSelectedWidget()
+            })
         ]);
     };
+
+    vm.dataTypeDialog().style().width = "600px";
+    vm.dataTypeDialog().style().height = "350px";
+
+    vm.propsAvailableWidget(listWidget.viewModel());
+    vm.propsSelectedWidget(listWidget.viewModel());
 
     return vm;
 };
