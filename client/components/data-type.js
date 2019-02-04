@@ -120,24 +120,6 @@ dataType.viewModel = function (options) {
 
         return countries;
     };
-    vm.doEdit = function () {
-        let value;
-        let dmodel;
-        let addressDialog = vm.addressDialog();
-
-        function applyEdit() {
-            vm.model(dmodel.toJSON());
-        }
-
-        addressDialog.onOk(applyEdit);
-        addressDialog.show();
-        dmodel = vm.addressDialog().formWidget().model();
-        if (vm.model()) {
-            value = vm.model().toJSON();
-            dmodel.set(value);
-            dmodel.state().goto("/Ready/Fetched/Clean");
-        }
-    };
     vm.id = f.prop(options.id || f.createId());
     vm.isCell = f.prop(options.isCell);
     vm.model = parent.model().data[options.parentProperty];
@@ -173,7 +155,7 @@ dataType.viewModel = function (options) {
         if (typeof type === "object") {
             type.childOf = e.target.value;
             vm.prop(type);
-            
+
             if (e.target.value) {
                 vm.propsAvailableWidget().items([]);
                 vm.propsSelectedWidget().items([]);
@@ -315,6 +297,8 @@ dataType.viewModel = function (options) {
         icon: "edit",
         title: "Data type"
     }));
+    
+    vm.dataTypeDialog().buttons().pop();
 
     vm.dataTypeDialog().content = function () {
         let id = vm.id();
