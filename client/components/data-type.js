@@ -190,6 +190,11 @@ dataType.viewModel = function (options) {
             }
         }
     };
+    vm.onfocus = function () {
+        if (vm.type() === "relation") {
+            vm.dataTypeDialog().show();
+        }
+    };
     vm.propertyAdd = function () {
         let selected = vm.propsAvailableWidget().selected();
 
@@ -471,6 +476,7 @@ dataType.component = {
                 key: id,
                 onchange: vm.onchange,
                 oncreate: vnode.attrs.onCreate,
+                onfocus: vm.onfocus,
                 onremove: vnode.attrs.onRemove,
                 style: vnode.attrs.style,
                 value: vm.type(),
