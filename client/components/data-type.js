@@ -98,6 +98,7 @@ dataType.viewModel = function (options) {
     let parent = options.parentViewModel;
 
     vm.buttonAdd = f.prop();
+    vm.buttonEdit = f.prop();
     vm.buttonRemove = f.prop();
     vm.dataTypeDialog = f.prop();
     vm.childOf = function () {
@@ -188,11 +189,6 @@ dataType.viewModel = function (options) {
                 vm.buttonAdd().disable();
                 vm.buttonRemove().disable();
             }
-        }
-    };
-    vm.onfocus = function () {
-        if (vm.type() === "relation") {
-            vm.dataTypeDialog().show();
         }
     };
     vm.propertyAdd = function () {
@@ -430,6 +426,20 @@ dataType.viewModel = function (options) {
     vm.dataTypeDialog().style().width = "450px";
     vm.dataTypeDialog().style().height = "450px";
 
+    vm.buttonEdit(button.viewModel({
+        onclick: vm.dataTypeDialog().show,
+        title: "Edit relation details",
+        icon: "edit",
+        style: {
+            marginLeft: "5px",
+            maxHeight: "35px",
+            maxWidth: "52px",
+            borderWidth: "1px",
+            borderStyle: "solid",
+            borderColor: "lightgray",
+        }
+    }));
+
     vm.propsAvailableWidget(listWidget.viewModel({
         name: "Available"
     }));
@@ -476,7 +486,6 @@ dataType.component = {
                 key: id,
                 onchange: vm.onchange,
                 oncreate: vnode.attrs.onCreate,
-                onfocus: vm.onfocus,
                 onremove: vnode.attrs.onRemove,
                 style: vnode.attrs.style,
                 value: vm.type(),
@@ -491,7 +500,10 @@ dataType.component = {
                     opts.selected = true;
                 }
                 return m("option", opts);
-            }))
+            })),
+            m(button.component, {
+                viewModel: vm.buttonEdit()
+            })
         ]);
 
         return ret;
