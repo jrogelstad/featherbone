@@ -153,20 +153,20 @@ dataType.viewModel = function (options) {
         let type = f.copy(vm.prop());
 
         if (typeof type === "object") {
-            type.childOf = e.target.value;
-            vm.prop(type);
-
             if (e.target.value) {
+                type.childOf = e.target.value;
                 vm.propsAvailableWidget().items([]);
                 vm.propsSelectedWidget().items([]);
                 vm.buttonAdd().disable();
                 vm.buttonRemove().disable();
-
             } else {
+                delete type.childOf;
                 vm.propsAvailableWidget().items(vm.properties());
                 vm.buttonAdd().enable();
                 vm.buttonRemove().enable();
             }
+
+            vm.prop(type);
         }
     };
     vm.onchangeDialogType = function (e) {
@@ -191,10 +191,23 @@ dataType.viewModel = function (options) {
         }
     };
     vm.propertyAdd = function () {
-        return;
+        let selected = vm.propsAvailableWidget().selected();
+
+        selected.forEach((item) => vm.propertiesSelected().push(item));
+        selected.length = 0;
+        vm.propsAvailableWidget().items(vm.propertiesAvailable());
+        vm.propsSelectedWidget().items(vm.propertiesSelected());
     };
     vm.propertyRemove = function () {
-        return;
+        let wSelected = vm.propsSelectedWidget().selected();
+        let selected = vm.propertiesSelected();
+
+        wSelected.forEach(function (item) {
+            selected.splice(selected.indexOf(item), 1);
+        });
+        wSelected.length = 0;
+        vm.propsAvailableWidget().items(vm.propertiesAvailable());
+        vm.propsSelectedWidget().items(vm.propertiesSelected());
     };
     vm.properties = function () {
         let props = [];
@@ -213,7 +226,7 @@ dataType.viewModel = function (options) {
         let selected = vm.propertiesSelected();
 
         return props.filter(function (p) {
-            return selected.indexOf(p) !== -1;
+            return selected.indexOf(p) === -1;
         });
     };
     vm.propertiesSelected = f.prop([]);
@@ -297,7 +310,7 @@ dataType.viewModel = function (options) {
         icon: "edit",
         title: "Data type"
     }));
-    
+
     vm.dataTypeDialog().buttons().pop();
 
     vm.dataTypeDialog().content = function () {
@@ -356,7 +369,7 @@ dataType.viewModel = function (options) {
                     id: "dlgChildOf",
                     value: vm.childOf(),
                     onchange: vm.onchangeDialogChildOf,
-                    disabled: isNotFeather
+                    disabled: isNotFeather || vm.propertiesSelected().length
                 })
             ]),
             m("div", {
