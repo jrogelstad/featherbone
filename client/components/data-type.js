@@ -64,27 +64,20 @@ listWidget.component = {
             m("thead", [
                 m("tr", [
                     m("th", {
-                        style: {
-                            width: "100px"
-                        }
+                        class: "fb-data-type-dialog-list"
                     }, name)
                 ])
             ]),
             m("tbody", {
-                class: "fb-table-body",
-                style: {
-                    height: "100px"
-                }
+                class: "fb-table-body fb-data-type-dialog-list"
             }, items.map(function (i) {
                 return m("tr", {
                     onclick: vm.onclick,
-                    style: {
-                        backgroundColor: (
-                            selected.indexOf(i) === -1
-                            ? "White"
-                            : "LightSkyBlue"
-                        )
-                    }
+                    class: (
+                        selected.indexOf(i) === -1
+                        ? ""
+                        : "fb-data-type-dialog-list-selected"
+                    )
                 }, [
                     m("td", i)
                 ]);
@@ -430,14 +423,7 @@ dataType.viewModel = function (options) {
         onclick: vm.dataTypeDialog().show,
         title: "Edit relation details",
         icon: "edit",
-        style: {
-            marginLeft: "5px",
-            maxHeight: "35px",
-            maxWidth: "52px",
-            borderWidth: "1px",
-            borderStyle: "solid",
-            borderColor: "lightgray",
-        }
+        class: "fb-data-type-edit-button"
     }));
 
     vm.propsAvailableWidget(listWidget.viewModel({
