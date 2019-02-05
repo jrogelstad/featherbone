@@ -110,6 +110,23 @@
   text-align: center;
 }
 
+.fb-data-type-edit-button {
+    margin-left: 5px;
+    max-height: 35px;
+    max-width: 52px;
+    border-width: 1px;
+    border-style: solid;
+    border-color: lightgray;
+}
+
+.fb-data-type-dialog-list {
+    height: 100px;
+}
+
+.fb-data-type-dialog-list-selected {
+    background-color: lightskyblue;
+}
+
 .fb-dialog {
   border-radius: 10px;
   padding: 0px;
