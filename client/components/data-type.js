@@ -186,22 +186,23 @@ dataType.viewModel = function (options) {
     };
     vm.propertyAdd = function () {
         let selected = vm.propsAvailableWidget().selected();
+        let items = vm.propertiesSelected().slice();
 
-        selected.forEach((item) => vm.propertiesSelected().push(item));
+        selected.forEach((item) => items.push(item));
         selected.length = 0;
         vm.propsAvailableWidget().items(vm.propertiesAvailable());
-        vm.propsSelectedWidget().items(vm.propertiesSelected());
+        vm.propsSelectedWidget().items(items);
     };
     vm.propertyRemove = function () {
         let wSelected = vm.propsSelectedWidget().selected();
-        let selected = vm.propertiesSelected();
+        let selected = vm.propertiesSelected().slice();
 
         wSelected.forEach(function (item) {
             selected.splice(selected.indexOf(item), 1);
         });
         wSelected.length = 0;
         vm.propsAvailableWidget().items(vm.propertiesAvailable());
-        vm.propsSelectedWidget().items(vm.propertiesSelected());
+        vm.propsSelectedWidget().items(selected);
     };
     vm.properties = function () {
         let props = [];
@@ -223,7 +224,19 @@ dataType.viewModel = function (options) {
             return selected.indexOf(p) === -1;
         });
     };
-    vm.propertiesSelected = f.prop([]);
+    vm.propertiesSelected = function (...args) {
+        let type = f.copy(vm.prop());
+
+        if (typeof type === "object") {
+            if (args.length) {
+                type.properties = args[0];
+                vm.prop(type);
+            }
+            return type.properties;
+        }
+
+        return [];
+    };
     vm.relation = function () {
         let type = vm.prop();
 
@@ -429,9 +442,12 @@ dataType.viewModel = function (options) {
     vm.propsAvailableWidget(listWidget.viewModel({
         name: "Available"
     }));
+    vm.propsAvailableWidget().items = vm.propertiesAvailable;
+
     vm.propsSelectedWidget(listWidget.viewModel({
         name: "Selected"
     }));
+    vm.propsSelectedWidget().items = vm.propertiesSelected;
 
     return vm;
 };
