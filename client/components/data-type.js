@@ -64,12 +64,12 @@ listWidget.component = {
             m("thead", [
                 m("tr", [
                     m("th", {
-                        class: "fb-data-type-dialog-list"
+                        class: "fb-data-type-dialog-list-header"
                     }, name)
                 ])
             ]),
             m("tbody", {
-                class: "fb-table-body fb-data-type-dialog-list"
+                class: "fb-table-body fb-data-type-dialog-list-body"
             }, items.map(function (i) {
                 return m("tr", {
                     onclick: vm.onclick,
