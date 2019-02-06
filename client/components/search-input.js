@@ -139,6 +139,7 @@ searchInput.component = {
         return m("input", {
             id: vm.id(),
             value: vm.text(),
+            class: "fb-search-input",
             style: vm.style(),
             onfocus: vm.start,
             onblur: vm.end,

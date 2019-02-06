@@ -614,7 +614,7 @@ tableWidget.viewModel = function (options) {
                 };
                 this.modelNew = f.prop(false); // Do nothing
                 this.selectedColor = function () {
-                    return "LightSkyBlue";
+                    return "#e7e9f3";
                 };
                 this.toggleSelection = function (model, id, optKey) {
                     let startIdx;

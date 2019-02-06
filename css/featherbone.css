@@ -15,6 +15,21 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
+.pure-button-primary,
+.pure-button-selected,
+a.pure-button-primary,
+a.pure-button-selected {
+    background-color: #3F51B5;
+    color: #fbfcfe;
+}
+
+.pure-table thead {
+    background-color: #dedede;
+    color: #2e2e2e;
+    text-align: left;
+    vertical-align: bottom;
+}
+
 .CodeMirror {
   border: 1px solid #eee;
 }
@@ -32,7 +47,8 @@
 }
 
 .fb-toolbar-button {
-  background-color: Snow;
+  background-color: #3F51B5;
+  color: white
 }
 
 .fb-button-disabled {
@@ -106,7 +122,7 @@
   margin-top: 6px;
   margin-right: 8px;
   min-width: 18px;
-  color: blue;
+  color: #baa582;
   text-align: center;
 }
 
@@ -124,7 +140,7 @@
 }
 
 .fb-data-type-dialog-list-selected {
-    background-color: lightskyblue;
+    background-color: #e7e9f3;
 }
 
 .fb-dialog {
@@ -280,7 +296,7 @@
 }
 
 .fb-sheet-configure-group-box {
-  border: thin #0078e7 solid;
+  border: thin #3F51B5 solid;
   border-radius: 6px;
   padding: 6px;
   padding-top: 20px;
@@ -290,8 +306,8 @@
 
 .fb-sheet-group-tab {
   background-color: White;
-  color: #0078e7;
-  border-color: #0078e7;
+  color: #3F51B5;
+  border-color: #3F51B5;
   border-style: solid;
   border-width: thin;
 }
@@ -303,7 +319,7 @@
 }
 
 .fb-sheet-group-tab-active {
-  background-color: #0078e7 !important;
+  background-color: #3F51B5 !important;
   color: #fff !important;
 }
 
@@ -363,7 +379,8 @@
 }
 
 .fb-header {
-  background-color: Snow;
+  background-color: #3F51B5;
+  color: white;
   border-bottom-color: LightGrey;
   border-bottom-style: solid;
   border-bottom-width: thin;
@@ -377,7 +394,7 @@
 }
 
 .fb-title {
-  background-color: #e0e0e0;
+  background-color: #dedede;
   font-weight: bold;
   border-top: 1px solid #cbcbcb;
   border-bottom: 1px solid #cbcbcb;
@@ -392,7 +409,8 @@
 }
 
 .fb-menu-button {
-  background-color: Snow;
+  background-color: #3F51B5;
+  color: white;
   margin: 2px;
   min-height: 34px;
 }
@@ -447,6 +465,12 @@
   border: 1px solid lightgrey;
 }
 
+.fb-search-input {
+  border-radius: 25px !important;
+  height: 28px;
+  margin-top: 7px !important;
+}
+
 .fb-table {
   table-layout: fixed;
   width: 100%;
@@ -484,7 +508,7 @@
 }
 
 .fb-toolbar {
-  background-color: Snow;
+  background-color: #3F51B5;
 }
 
 .fb-workbook-tab {
