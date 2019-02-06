@@ -22,14 +22,14 @@ a.pure-button-selected {
     background-color: #3F51B5;
     color: #fbfcfe;
 }
-
+/*
 .pure-table thead {
     background-color: #dedede;
     color: #2e2e2e;
     text-align: left;
     vertical-align: bottom;
 }
-
+*/
 .CodeMirror {
   border: 1px solid #eee;
 }
@@ -135,8 +135,12 @@ a.pure-button-selected {
     border-color: lightgray;
 }
 
-.fb-data-type-dialog-list {
+.fb-data-type-dialog-list-body {
     height: 100px;
+}
+
+.fb-data-type-dialog-list-header {
+    width: 100px;
 }
 
 .fb-data-type-dialog-list-selected {
@@ -364,7 +368,7 @@ a.pure-button-selected {
 }
 
 .fb-tabbed-panes {
-  border: solid thin blue;
+  border: solid thin #3F51B5;
   border-radius: 4px;
 }
 
@@ -379,8 +383,7 @@ a.pure-button-selected {
 }
 
 .fb-header {
-  background-color: #3F51B5;
-  color: white;
+  background-color: Snow;
   border-bottom-color: LightGrey;
   border-bottom-style: solid;
   border-bottom-width: thin;
