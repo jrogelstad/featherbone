@@ -190,7 +190,7 @@ workbookPage.viewModel = function (options) {
                 isNewWindow: true
             };
             win.receiver = function (model) {
-                vm.tableWidget().models().add(model);
+                vm.tableWidget().models().add(model, true);
                 m.redraw();
             };
             return;
