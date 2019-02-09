@@ -196,7 +196,11 @@ function handleDefault(prop, frmt) {
     let def;
 
     // Handle default
-    if (prop.default !== undefined && prop.default !== null) {
+    if (prop.default !== undefined && (
+        prop.default !== null ||
+        prop.format === "date" ||
+        prop.format === "dateTime"
+    )) {
         def = prop.default;
     } else if (typeof frmt.default === "function") {
         def = frmt.default();
