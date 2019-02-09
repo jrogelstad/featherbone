@@ -127,6 +127,28 @@ function featherProperty(data, spec) {
 
     that.state().resolve("/Ready/Fetched/Clean").enter(handleReadOnly);
 
+    that.onValidate(function () {
+        let type = that.data.type();
+
+        if (typeof type !== "string") {
+            if (!type.relation) {
+                throw new Error(
+                    "Feather name required on relation type \"" +
+                    that.data.name() + "\""
+                );
+            }
+
+            if (!type.childOf && (
+                !type.properties || !type.properties.length
+            )) {
+                throw new Error(
+                    "One or more properties required on relation type \"" +
+                    that.data.name() + "\""
+                );
+            }
+        }
+    });
+
     return that;
 }
 
