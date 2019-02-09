@@ -209,8 +209,8 @@
                 default: null
             },
             dataType: {
-                type: "object",
-                default: {}
+                type: "json",
+                default: null
             }
         };
 
