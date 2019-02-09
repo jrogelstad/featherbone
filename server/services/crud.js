@@ -657,7 +657,7 @@
                         /* Handle non-relational composites */
                         if (
                             prop.type === "object" &&
-                            prop.format
+                            prop.format === "money"
                         ) {
                             Object.keys(value || {}).forEach(function (attr) {
                                 args.push(col);
@@ -1421,7 +1421,7 @@
                         } else if (
                             updRec[key] !== oldRec[key] &&
                             props[key].type === "object" &&
-                            props[key].format
+                            props[key].format === "money"
                         ) {
 
                             Object.keys(updRec[key]).forEach(
