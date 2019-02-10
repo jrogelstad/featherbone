@@ -386,7 +386,8 @@ f.inputMap = {
     color: "color",
     textArea: undefined,
     script: undefined,
-    money: "number"
+    money: "number",
+    icon: "text"
 };
 
 /**
@@ -399,11 +400,7 @@ f.inputMap = {
 f.feathers = function () {
     let tables = catalog.store().feathers();
     let keys = Object.keys(tables).sort();
-/*
-    keys = keys.filter(function (key) {
-        return !tables[key].isSystem;
-    }).sort();
-*/
+
     return keys.map(function (key) {
         return {
             value: key,

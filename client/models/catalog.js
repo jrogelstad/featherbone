@@ -111,13 +111,19 @@ const catalog = (function () {
     let that = settings();
 
     /**
-      Return a model specification (feather) including inherited properties.
+      Return a model specification (feather) including inherited and
+      calculated properties.
 
       @param {String} Feather
-      @param {Boolean} Include inherited or not. Defult = true.
+      @param {Boolean} Include inherited or not. Default = true.
+      @param {Boolean} Include calculated or not. Default = true.
       @return {String}
     */
-    that.getFeather = function (feather, includeInherited) {
+    that.getFeather = function (
+        feather,
+        includeInherited,
+        includeCalculated
+    ) {
         let resultProps;
         let modelProps;
         let appendParent;
@@ -183,7 +189,7 @@ const catalog = (function () {
         });
 
         // Add calculated
-        if (includeInherited !== false) {
+        if (includeCalculated !== false) {
             fmodel = store.models()[feather.toCamelCase()];
 
             if (fmodel && fmodel.calculated) {
@@ -235,8 +241,8 @@ const catalog = (function () {
         @return {Function} model
     */
     that.registerModel = function (name, model, createList) {
-        model.static = f.prop({});
-        model.calculated = f.prop({});
+        model.static = model.static || f.prop({});
+        model.calculated = model.calculated || f.prop({});
 
         if (createList) {
             model.list = that.store().factories().list(name);
