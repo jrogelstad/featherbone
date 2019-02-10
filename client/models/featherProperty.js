@@ -138,7 +138,8 @@ function featherProperty(data, spec) {
                 );
             }
 
-            if (!type.childOf && (
+            if (!type.childOf &&
+                !type.parentOf && (
                 !type.properties || !type.properties.length
             )) {
                 throw new Error(
