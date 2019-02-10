@@ -1458,6 +1458,11 @@ function model(data, feather) {
 
                 this.state("Locking", function () {
                     this.enter(doLock);
+                    this.event("save", function (context) {
+                        this.goto("/Busy/Saving/Patching", {
+                            context: context
+                        });
+                    });
                     this.event("locked", function (context) {
                         if (context && context.lock) {
                             d.lock(context.lock);

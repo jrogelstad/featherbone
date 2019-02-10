@@ -191,7 +191,11 @@ filterDialog.viewModel = function (options) {
         vm.data()[index].value = getDefault(value);
         vm.data()[index].operator = "=";
     };
-    vm.feather = f.prop(options.feather);
+    vm.feather = f.prop(catalog.getFeather(
+        options.feather.name,
+        true,
+        false
+    ));
     vm.filter = f.prop();
     vm.model = function () {
         return store;

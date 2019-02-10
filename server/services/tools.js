@@ -211,6 +211,10 @@
             dataType: {
                 type: "json",
                 default: null
+            },
+            icon: {
+                type: "string",
+                default: ""
             }
         };
 

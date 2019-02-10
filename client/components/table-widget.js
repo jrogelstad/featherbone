@@ -1117,6 +1117,13 @@ tableWidget.component = {
                             content = value;
                         }
                         break;
+                    case "icon":
+                        if (value) {
+                            content = m("i", {
+                                class: "fa fa-" + value
+                            });
+                        }
+                        break;
                     default:
                         if (typeof format === "object" && d[col]()) {
                             // If relation, use feather natural key to

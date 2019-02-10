@@ -150,7 +150,10 @@
                 default: ""
             },
             lock: {},
-            dataType: {}
+            dataType: {},
+            icon: {
+                default: ""
+            }
         },
 
         /*
