@@ -121,6 +121,8 @@ const catalog = (function () {
         let resultProps;
         let modelProps;
         let appendParent;
+        let fmodel;
+        let calculated;
         let feathers = that.feathers();
         let result = {
             name: feather,
@@ -160,7 +162,7 @@ const catalog = (function () {
             return false;
         }
 
-        // Add other attributes after nam
+        // Add other attributes after name
         Object.keys(feathers[feather]).forEach(function (key) {
             result[key] = feathers[feather][key];
         });
@@ -179,6 +181,18 @@ const catalog = (function () {
         Object.keys(modelProps).forEach(function (key) {
             resultProps[key] = modelProps[key];
         });
+
+        // Add calculated
+        if (includeInherited !== false) {
+            fmodel = store.models()[feather.toCamelCase()];
+
+            if (fmodel && fmodel.calculated) {
+                calculated = fmodel.calculated();
+                Object.keys(calculated).forEach(function (key) {
+                    resultProps[key] = calculated[key];
+                });
+            }
+        }
 
         return result;
     };
@@ -207,8 +221,10 @@ const catalog = (function () {
 
     /**
         Helper function for model creation. Does the following:
-            * Adds a function "static" to the model factory which returns an
+            * Adds a property "static" to the model factory which returns an
             object for holding static functions.
+            * Adds a property "calculated" to the model factory which returns an
+            object for storing calculated property definitions.
             * Adds a list function to the model factory if `createList` is true.
             * Registers the model in the catalog
             * Freezes the model
@@ -220,6 +236,7 @@ const catalog = (function () {
     */
     that.registerModel = function (name, model, createList) {
         model.static = f.prop({});
+        model.calculated = f.prop({});
 
         if (createList) {
             model.list = that.store().factories().list(name);

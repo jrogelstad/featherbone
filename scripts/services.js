@@ -358,7 +358,8 @@ function doHandleForm(obj) {
                 attr.columns = attr.columns || [];
 
                 if (!prop) {
-                    throw new Error("Invalid attribute '" + attr.attr + "'");
+                    // Must be a calculated property
+                    return;
                 }
 
                 // Don't allow improper combinations
