@@ -115,7 +115,6 @@ dataType.viewModel = function (options) {
         return countries;
     };
     vm.id = f.prop(options.id || f.createId());
-    vm.isCell = f.prop(options.isCell);
     vm.model = parent.model().data[options.parentProperty];
     vm.onchange = function (e, showDialog) {
         if (e.target.value === "relation") {
@@ -461,8 +460,6 @@ dataType.component = {
             parentViewModel: options.parentViewModel,
             parentProperty: options.parentProperty,
             id: options.id,
-            isCell: options.isCell,
-            style: options.style,
             disabled: options.disabled
         });
     },
@@ -489,7 +486,6 @@ dataType.component = {
                 onchange: vm.onchange,
                 oncreate: vnode.attrs.onCreate,
                 onremove: vnode.attrs.onRemove,
-                style: vnode.attrs.style,
                 value: vm.type(),
                 disabled: disabled
             }, vm.types().map(function (item) {
