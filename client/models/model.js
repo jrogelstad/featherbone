@@ -329,8 +329,8 @@ function model(data, feather) {
         fn.format = options.format;
         fn.isRequired = f.prop(false);
         fn.isReadOnly = f.prop(options.isReadOnly || false);
-        fn.isToMany = f.prop(false);
-        fn.isToOne = f.prop(false);
+        fn.isToMany = isToMany.bind(null, fn);
+        fn.isToOne = isToOne.bind(null, fn);
         d[options.name] = fn;
 
         return this;
