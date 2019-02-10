@@ -636,8 +636,6 @@ f.buildInputComponent = function (obj) {
                 component = m(components.dataType, {
                     parentViewModel: obj.viewModel,
                     parentProperty: key,
-                    isCell: opts.isCell,
-                    style: opts.style,
                     onCreate: opts.oncreate,
                     onRemove: opts.onremove,
                     id: id,
