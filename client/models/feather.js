@@ -26,6 +26,9 @@ function feather(data, spec) {
     spec = spec || catalog.getFeather("Feather");
     let that;
     let modules;
+    let inheritedProperties = f.prop([]);
+
+    inheritedProperties().canAdd = f.prop(false);
 
     // ..........................................................
     // PUBLIC
@@ -49,10 +52,46 @@ function feather(data, spec) {
         });
     }
 
+    function calculateInherited() {
+        let parent = that.data.inherits();
+        let featherProperty;
+        let props = inheritedProperties();
+
+        if (parent) {
+            parent = catalog.getFeather(parent);
+            featherProperty = catalog.store().models().featherProperty;
+            props.length = 0;
+
+            Object.keys(parent.properties).forEach(function (key) {
+                let prop = parent.properties[key];
+                let instance;
+
+                if (prop.default === undefined) {
+                    prop.default = "";
+                }
+                prop.name = key;
+                instance = featherProperty(prop);
+                instance.state().goto("/Ready/Fetched/ReadOnly");
+                instance.parent(that);
+                props.push(instance);
+            });
+        }
+    }
+
     that.addCalculated({
         name: "feathers",
         type: "array",
         function: featherList
+    });
+
+    that.addCalculated({
+        name: "inheritedProperties",
+        type: {
+            relation: "FeatherProperty",
+            parentOf: "inheritedProperties"
+        },
+        isReadOnly: true,
+        function: inheritedProperties
     });
 
     modules = function () {
@@ -81,11 +120,24 @@ function feather(data, spec) {
         function: modules
     });
 
+    that.onChanged("inherits", calculateInherited);
+    that.state().resolve("/Ready/Fetched/Clean").enter(calculateInherited);
+
     return that;
 }
 
 feather.list = list("Feather");
 feather.static = f.prop({});
+feather.calculated = f.prop({
+    inheritedProperties: {
+        description: "Properties inherited from parent feather",
+        type: {
+            relation: "FeatherProperty",
+            parentOf: "inheritedProperties"
+        },
+        isReadOnly: true
+    }
+});
 
 catalog.register("models", "feather", feather);
 

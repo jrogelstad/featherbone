@@ -1110,6 +1110,13 @@ tableWidget.component = {
                             }).label;
                         }
                         break;
+                    case "dataType":
+                        if (typeof value === "object") {
+                            content = "relation: " + value.relation;
+                        } else {
+                            content = value;
+                        }
+                        break;
                     default:
                         if (typeof format === "object" && d[col]()) {
                             // If relation, use feather natural key to

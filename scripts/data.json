@@ -59,7 +59,9 @@
         "tabs": [{
             "name": "Properties"
         }, {
-            "name": "Other"
+            "name": "Inherited"
+        }, {
+            "name": "Advanced"
         }],
         "attrs": [{
             "attr": "name",
@@ -85,11 +87,11 @@
             "unit": 1
         }, {
             "attr": "isSystem",
-            "grid": 2,
+            "grid": 3,
             "unit": 0
         }, {
             "attr": "isChild",
-            "grid": 2,
+            "grid": 3,
             "unit": 0
         }, {
             "attr": "properties",
@@ -101,11 +103,43 @@
             }, {
                 "attr": "description"
             }, {
+                "attr": "type",
+                "width": 160
+            }, {
                 "attr": "default"
             }, {
-                "attr": "isRequired"
+                "attr": "isRequired",
+                "label": "Required",
+                "width": 100
+                
             }, {
-                "attr": "isReadOnly"
+                "attr": "isReadOnly",
+                "label": "Read Only",
+                "width": 100
+            }]
+        }, {
+            "attr": "inheritedProperties",
+            "grid": 2,
+            "unit": 0,
+            "showLabel": false,
+            "columns": [{
+                "attr": "name"
+            }, {
+                "attr": "description"
+            }, {
+                "attr": "type",
+                "width": 160
+            }, {
+                "attr": "default"
+            }, {
+                "attr": "isRequired",
+                "label": "Required",
+                "width": 100
+                
+            }, {
+                "attr": "isReadOnly",
+                "label": "Read Only",
+                "width": 100
             }, {
                 "attr": "inheritedFrom"
             }]
