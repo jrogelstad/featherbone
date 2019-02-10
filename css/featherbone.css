@@ -22,14 +22,7 @@ a.pure-button-selected {
     background-color: #3F51B5;
     color: #fbfcfe;
 }
-/*
-.pure-table thead {
-    background-color: #dedede;
-    color: #2e2e2e;
-    text-align: left;
-    vertical-align: bottom;
-}
-*/
+
 .CodeMirror {
   border: 1px solid #eee;
 }
@@ -208,7 +201,7 @@ a.pure-button-selected {
 }
 
 .fb-navigator-menu {
-  font-family: Helvetica;
+  font-family: Raleway;
   background-color: #191818;
   color: white;
   font-size: 16px;
@@ -400,7 +393,7 @@ a.pure-button-selected {
 
 .fb-title {
   background-color: #dedede;
-  font-weight: bold;
+  font-family: Raleway;
   border-top: 1px solid #cbcbcb;
   border-bottom: 1px solid #cbcbcb;
   margin: 2px;
