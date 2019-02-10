@@ -83,6 +83,9 @@ function initPromises() {
                         models[name].list = list(feather.name);
                     }
 
+                    // Calculated properties
+                    models[name].calculated = f.prop({});
+
                     // Actions
                     models[name].static = f.prop({});
 
@@ -283,13 +286,21 @@ function initApp() {
     function subclass(name, parent) {
         let feather = feathers[name];
         let funcs = Object.keys(parent.static());
+        let calculated = Object.keys(parent.calculated());
 
         Object.keys(feather.children).forEach(function (name) {
             let child = models[name.toCamelCase()];
 
+            // Inherit static functions
             funcs.forEach(function (func) {
                 child.static()[func] = child.static()[func] ||
                 parent.static()[func];
+            });
+
+            // Inherit calculated properties
+            calculated.forEach(function (prop) {
+                child.calculated()[prop] = child.calculated()[prop] ||
+                parent.calculated()[prop];
             });
 
             subclass(name, child);

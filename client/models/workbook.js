@@ -351,9 +351,11 @@ function workbookChild(data) {
     return that;
 }
 workbookChild.static = f.prop({});
+workbookChild.calculated = f.prop({});
 
 workbookModel.list = ("Workbook");
 workbookModel.static = f.prop({});
+workbookModel.calculated = f.prop({});
 
 models = catalog.store().models();
 models.workbook = workbookModel;
