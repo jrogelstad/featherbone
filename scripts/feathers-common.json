@@ -274,36 +274,47 @@
         "plural": "Styles",
         "module": "Core",
         "inherits": "Document",
-        "description": "Presentation style definition",
+        "description": "Custom presentation style definition",
         "isFetchOnStartup": true,
         "properties": {
             "name": {
-                "description": "Name",
+                "description": "Style name",
                 "type": "string",
                 "isNaturalKey": true,
                 "isRequired": true
             },
             "description": {
-                "description": "Description",
+                "description": "Style description",
                 "type": "string",
                 "isRequired": true,
                 "isLabelKey": true
             },
-            "fontColor": {
-                "description": "Module",
+            "hasColor": {
+                "description": "Turn on font color over-ride",
+                "type": "boolean",
+                "default": false
+            },
+            "color": {
+                "description": "Font color",
                 "type": "string",
                 "format": "color",
                 "default": "#000000"
             },
+            "hasBackgroundColor": {
+                "description": "Turn on background color over-ride",
+                "type": "boolean",
+                "default": false
+            },
             "backgroundColor": {
-                "description": "Module",
+                "description": "Background color",
                 "type": "string",
                 "format": "color",
                 "default": "#FFFFFF"
             },
             "fontWeight": {
-                "description": "Feather",
+                "description": "Font weight",
                 "type": "string",
+                "format": "enum",
                 "isRequired": true,
                 "default": "normal",
                 "dataList": [
@@ -313,17 +324,19 @@
                     "normal"
                 ]
             },
-            "italic": {
-                "description": "Set font italic",
-                "type": "boolean",
-                "isRequired": true,
-                "default": false
-            },
             "underline": {
-                "description": "Underline text",
-                "type": "boolean",
+                "description": "Feather",
+                "type": "string",
+                "format": "enum",
                 "isRequired": true,
-                "default": false
+                "default": "none",
+                "dataList": [
+                    "none",
+                    "solid",
+                    "dashed",
+                    "dotted",
+                    "wavy"
+                ]
             }
         }
     },

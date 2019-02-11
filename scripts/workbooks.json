@@ -131,21 +131,23 @@
                 "feather": "Style",
                 "list": {
                     "columns": [{
-                        "attr": "name",
-                        "width": 100
+                        "attr": "name"
                     }, {
                         "attr": "description"
                     }, {
-                        "attr": "fontColor",
+                        "attr": "hasColor",
+                        "width": 100
+                    }, {
+                        "attr": "color",
                         "width": 100
                     }, {
                         "attr": "fontWeight",
                         "width": 100
                     }, {
-                        "attr": "backgroundColor"
+                        "attr": "hasBackgroundColor",
+                        "label": "Has Background"
                     }, {
-                        "attr": "italic",
-                        "width": 100
+                        "attr": "backgroundColor"
                     }, {
                         "attr": "underline",
                         "width": 100

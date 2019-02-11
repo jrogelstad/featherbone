@@ -315,6 +315,7 @@ function model(data, feather) {
       @param {String} [options.type] Return type (default "string")
       @param {String} [options.format] Return format
       @param {Boolean} [options.isReadOnly] Read only (default true)
+      @param {String} [options.style] Style name
       @returns Receiver
     */
     that.addCalculated = function (options) {
@@ -331,6 +332,7 @@ function model(data, feather) {
         fn.isReadOnly = f.prop(options.isReadOnly || false);
         fn.isToMany = isToMany.bind(null, fn);
         fn.isToOne = isToOne.bind(null, fn);
+        fn.style = f.prop(options.style || "");
         d[options.name] = fn;
 
         return this;
@@ -783,6 +785,15 @@ function model(data, feather) {
 
         return state;
     };
+
+    /**
+      The style of the model when displayed in rows. Should be the
+      name of a style.
+
+      @param {String} Style name
+      @returns {String}
+    */
+    that.style = f.prop("");
 
     /**
       Subscribe or unsubscribe model to external events. If no flag
@@ -1370,6 +1381,7 @@ function model(data, feather) {
             prop.dataList = overload.dataList || p.dataList;
             prop.min = min;
             prop.max = max;
+            prop.style = f.prop("");
 
             // Add state to map for event helper functions
             stateMap[key] = prop.state();
