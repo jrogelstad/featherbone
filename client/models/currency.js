@@ -37,6 +37,10 @@ function currency(data, feather) {
         }
     });
 
+    that.state().resolve("/Ready/Fetched/Clean").enter(function () {
+        that.data.code.isReadOnly(true);
+    });
+
     that.onValidate(function () {
         let id;
         let displayUnit = that.data.displayUnit();
