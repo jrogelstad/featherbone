@@ -996,6 +996,7 @@ tableWidget.component = {
                         config.columns[idx].width || COL_WIDTH_DEFAULT
                     );
                     let du;
+                    let style = prop.style();
 
                     columnWidth -= 6;
 
@@ -1020,6 +1021,14 @@ tableWidget.component = {
                             fontSize: zoom
                         }
                     };
+
+                    if (style) {
+                        style = f.getStyle(style);
+                        tdOpts.style.color = style.color;
+                        tdOpts.style.backgroundColor = style.backgroundColor;
+                        tdOpts.style.fontWeight = style.fontWeight;
+                        tdOpts.style.textDecoration = style.textDecoration;
+                    }
 
                     // Build cell
                     switch (format) {
@@ -1108,6 +1117,8 @@ tableWidget.component = {
                             content = prop.dataList.find(function (item) {
                                 return item.value === value;
                             }).label;
+                        } else {
+                            content = value;
                         }
                         break;
                     case "dataType":

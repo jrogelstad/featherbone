@@ -37,6 +37,8 @@ const exclusions = [
     "owner"
 ];
 
+let styles;
+
 // ..........................................................
 // PRIVATE
 //
@@ -821,6 +823,39 @@ f.getElementPosition = function (element) {
         x: xPosition,
         y: yPosition
     };
+};
+
+/**
+    Get a style by name. Returns an object with style elements.
+
+    @param {String} Name
+    @return {Object}
+*/
+f.getStyle = function (name) {
+    // Reformat and memoize for fast lookup
+    if (!styles) {
+        styles = {};
+        catalog.store().data().styles().forEach(function (style) {
+            let d = style.data;
+
+            styles[style.data.name()] = {
+                color: (
+                    d.hasColor()
+                    ? d.color()
+                    : "inherit"
+                ),
+                backgroundColor: (
+                    d.hasBackgroundColor()
+                    ? d.backgroundColor()
+                    : "inherit"
+                ),
+                fontWeight: d.fontWeight(),
+                textDecoration: "underline " + d.underline()
+            };
+        });
+    }
+
+    return styles[name];
 };
 
 /**

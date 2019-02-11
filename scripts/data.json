@@ -457,6 +457,56 @@
         }]
     }
 }, {
+    "name": "Style",
+    "method": "POST",
+    "id": "v3v4pvouv03d",
+    "data": {
+        "name": "HIGH",
+        "description": "High priority",
+        "hasColor": true,
+        "color": "#FF0000"
+    }
+}, {
+    "name": "Style",
+    "method": "POST",
+    "id": "bnwzxo32wquw",
+    "data": {
+        "name": "ERROR",
+        "description": "Critical error",
+        "hasColor": true,
+        "color": "#FF0000"
+    }
+}, {
+    "name": "Style",
+    "method": "POST",
+    "id": "g8ogbhrguiws",
+    "data": {
+        "name": "WARN",
+        "description": "Warning",
+        "hasColor": true,
+        "color": "#FFA500"
+    }
+}, {
+    "name": "Style",
+    "method": "POST",
+    "id": "21fl151peol9",
+    "data": {
+        "name": "HIGHLIGHT",
+        "description": "Highlight",
+        "hasColor": true,
+        "color": "#0000FF"
+    }
+}, {
+    "name": "Style",
+    "method": "POST",
+    "id": "x0qpwww6vmox",
+    "data": {
+        "name": "ALT-HIGHLIGHT",
+        "description": "Alternate highlight",
+        "hasColor": true,
+        "color": "#008000"
+    }
+}, {
     "name": "Unit",
     "method": "POST",
     "id": "each",
