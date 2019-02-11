@@ -270,6 +270,64 @@
         }
     },
     {
+        "name": "Style",
+        "plural": "Styles",
+        "module": "Core",
+        "inherits": "Document",
+        "description": "Presentation style definition",
+        "isFetchOnStartup": true,
+        "properties": {
+            "name": {
+                "description": "Name",
+                "type": "string",
+                "isNaturalKey": true,
+                "isRequired": true
+            },
+            "description": {
+                "description": "Description",
+                "type": "string",
+                "isRequired": true,
+                "isLabelKey": true
+            },
+            "fontColor": {
+                "description": "Module",
+                "type": "string",
+                "format": "color",
+                "default": "#000000"
+            },
+            "backgroundColor": {
+                "description": "Module",
+                "type": "string",
+                "format": "color",
+                "default": "#FFFFFF"
+            },
+            "fontWeight": {
+                "description": "Feather",
+                "type": "string",
+                "isRequired": true,
+                "default": "normal",
+                "dataList": [
+                    "bold",
+                    "bolder",
+                    "lighter",
+                    "normal"
+                ]
+            },
+            "italic": {
+                "description": "Set font italic",
+                "type": "boolean",
+                "isRequired": true,
+                "default": false
+            },
+            "underline": {
+                "description": "Underline text",
+                "type": "boolean",
+                "isRequired": true,
+                "default": false
+            }
+        }
+    },
+    {
         "name": "Kind",
         "plural": "Kinds",
         "module": "Core",

@@ -125,6 +125,38 @@
                         }]
                     }
                 }
+            },
+            {
+                "name": "Styles",
+                "feather": "Style",
+                "list": {
+                    "columns": [{
+                        "attr": "name",
+                        "width": 100
+                    }, {
+                        "attr": "description"
+                    }, {
+                        "attr": "fontColor",
+                        "width": 100
+                    }, {
+                        "attr": "fontWeight",
+                        "width": 100
+                    }, {
+                        "attr": "backgroundColor"
+                    }, {
+                        "attr": "italic",
+                        "width": 100
+                    }, {
+                        "attr": "underline",
+                        "width": 100
+                    }],
+                    "filter": {
+                        "sort": [{
+                            "property": "name",
+                            "order": "ASC"
+                        }]
+                    }
+                }
             }
         ]
     },
