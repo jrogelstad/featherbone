@@ -1124,6 +1124,16 @@ tableWidget.component = {
                             });
                         }
                         break;
+                    case "color":
+                        if (value) {
+                            content = m("i", {
+                                style: {
+                                    color: value
+                                },
+                                class: "fa fa-square"
+                            });
+                        }
+                        break;
                     default:
                         if (typeof format === "object" && d[col]()) {
                             // If relation, use feather natural key to
