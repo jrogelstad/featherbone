@@ -182,6 +182,8 @@ tableWidget.viewModel = function (options) {
         header: f.createId(),
         rows: f.createId()
     });
+    vm.isDragging = f.prop(false);
+    vm.isScrolling = f.prop(false);
     vm.isSelected = function (model) {
         return vm.selectionIds().indexOf(model.id()) > -1;
     };
@@ -232,17 +234,12 @@ tableWidget.viewModel = function (options) {
             options.ondblclick();
         }
     };
-    vm.ondragover = function (toIdx, ev) {
-        if (!Number.isNaN(toIdx)) {
-            if (fromWidthIdx > toIdx) {
-                return;
-            }
-        } else {
-            ev = toIdx;
-        }
+    vm.ondragover = function (ev) {
         ev.preventDefault();
     };
     vm.ondragstart = function (idx, type, ev) {
+        vm.isDragging(true);
+
         dataTransfer = {}; // Because ms edge only allows one value
         dataTransfer.typeStart = type;
 
@@ -263,6 +260,8 @@ tableWidget.viewModel = function (options) {
         let newWidth;
         let widthStart;
         let typeStart = dataTransfer.typeStart;
+
+        vm.isDragging(false);
 
         ev.preventDefault();
 
@@ -326,11 +325,15 @@ tableWidget.viewModel = function (options) {
             ) {
                 offset = offset + LIMIT;
                 fetch();
+                return;
             }
         }
 
         // Sync header position with table body position
         header.scrollLeft = rows.scrollLeft;
+
+        // No need to redraw
+        vm.isScrolling(true);
     };
     vm.refresh = function () {
         fetch(true);
@@ -767,6 +770,21 @@ tableWidget.component = {
         vnode.attrs.viewModel.canToggle(true);
     },
 
+    // Block redrawing where unneccessary to improve performance
+    onbeforeupdate: function (vnode) {
+        let vm = vnode.attrs.viewModel;
+        let isDragging = vm.isDragging();
+        let isScrolling = vm.isScrolling();
+
+        if (isScrolling) {
+            vm.isScrolling(false); // Reset
+        }
+
+        if (isDragging || isScrolling) {
+            return false; // Don't redraw
+        }
+    },
+
     view: function (vnode) {
         let findFilterIndex;
         let header;
@@ -891,15 +909,15 @@ tableWidget.component = {
 
                 hview = [
                     m("th", {
-                        ondragover: vm.ondragover.bind(this, idx),
+                        ondragover: vm.ondragover,
                         draggable: true,
                         ondragstart: vm.ondragstart.bind(
-                            this,
+                            null,
                             idx,
                             "column"
                         ),
                         ondrop: vm.ondrop.bind(
-                            this,
+                            null,
                             idx,
                             "column",
                             config.columns
@@ -913,10 +931,10 @@ tableWidget.component = {
                         title: resolveDescription(feather, key)
                     }, icon, col.label || vm.alias(key)),
                     m("th", {
-                        ondragover: vm.ondragover.bind(this, idx),
+                        ondragover: vm.ondragover,
                         draggable: true,
                         ondragstart: vm.ondragstart.bind(
-                            this,
+                            null,
                             idx,
                             "width"
                         ),
