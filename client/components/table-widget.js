@@ -970,7 +970,9 @@ tableWidget.component = {
             let isSelected = vm.isSelected(model);
             let currentState = model.state().current()[0];
             let d = model.data;
-            let rowOpts = {};
+            let rowOpts = {
+                key: model.id()
+            };
             let cellOpts = {};
 
             // Build row
@@ -996,7 +998,11 @@ tableWidget.component = {
                         config.columns[idx].width || COL_WIDTH_DEFAULT
                     );
                     let du;
-                    let style = prop.style();
+                    let style = (
+                        prop.style
+                        ? prop.style()
+                        : ""
+                    );
 
                     columnWidth -= 6;
 
