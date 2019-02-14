@@ -371,7 +371,7 @@ sheetConfigureDialog.viewModel = function (options) {
                         maxWidth: "165px"
                     }
                 }, m("select", {
-                    id: f.createId(),
+                    id: "scdSelect" + item.index,
                     value: item.attr,
                     style: {
                         maxWidth: "165px"
