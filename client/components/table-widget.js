@@ -596,6 +596,203 @@ function createTableHeader(options, col) {
     return hview;
 }
 
+function createTableRow(options, model) {
+    let config = options.config;
+    let vm = options.vm;
+    let zoom = options.zoom;
+    let tds;
+    let row;
+    let thContent;
+    let onclick;
+    let lock;
+    let iconStyle;
+    let lastFocusId;
+    let ontab;
+    let onshifttab;
+    let defaultFocusId = vm.defaultFocus(model);
+    let currentMode = vm.mode().current()[0];
+    let color = "White";
+    let isSelected = vm.isSelected(model);
+    let currentState = model.state().current()[0];
+    let d = model.data;
+    let rowOpts = {
+        key: model.id()
+    };
+    let cellOpts = {};
+
+    // Build row
+    if (isSelected) {
+        color = vm.selectedColor();
+    }
+
+    // Build view row
+    if (currentMode === "/Mode/View" || !isSelected) {
+        // Build cells
+        tds = vm.attrs().map(createTableDataView.bind(null, {
+            config: config,
+            d: d,
+            idx: 0,
+            model: model,
+            onclick: onclick,
+            vm: vm,
+            zoom: zoom
+        }));
+
+        rowOpts = {
+            ondblclick: vm.ondblclick.bind(null, model)
+        };
+
+        // Build editable row
+    } else {
+        cellOpts = {
+            class: "fb-table-cell-edit"
+        };
+
+        lastFocusId = vm.lastFocus(model);
+        ontab = function (e) {
+            let key = e.key || e.keyIdentifier;
+            if (key === "Tab" && !e.shiftKey) {
+                e.preventDefault();
+                document.getElementById(defaultFocusId).focus();
+            }
+        };
+
+        onshifttab = function (e) {
+            let key = e.key || e.keyIdentifier;
+            if (key === "Tab" && e.shiftKey) {
+                e.preventDefault();
+                document.getElementById(lastFocusId).focus();
+            }
+        };
+
+        // Build cells
+        tds = vm.attrs().map(createTableDataEditor.bind(null, {
+            config: config,
+            defaultFocusId: defaultFocusId,
+            idx: 0,
+            lastFocusId: lastFocusId,
+            model: model,
+            onshifttab: onshifttab,
+            ontab: ontab,
+            vm: vm,
+            zoom: zoom
+        }));
+    }
+
+    // Front cap header navigation
+    onclick = vm.toggleSelection.bind(
+        this,
+        model,
+        defaultFocusId
+    );
+    iconStyle = {
+        fontSize: zoom,
+        minWidth: "25px"
+    };
+
+    if (currentMode !== "/Mode/Edit" && isSelected) {
+        thContent = m("i", {
+            onclick: vm.ondblclick.bind(null, model),
+            class: "fa fa-folder-open",
+            style: iconStyle
+        });
+    } else if (!model.isValid()) {
+        thContent = m("i", {
+            onclick: onclick,
+            title: model.lastError(),
+            class: "fa fa-exclamation-triangle",
+            style: iconStyle
+        });
+    } else if (currentState === "/Locked") {
+        lock = d.lock() || {};
+        thContent = m("i", {
+            onclick: onclick,
+            title: (
+                "User: " + lock.username + "\nSince: " +
+                new Date(lock.created).toLocaleTimeString()
+            ),
+            class: "fa fa-lock",
+            style: iconStyle
+        });
+    } else if (currentState === "/Delete") {
+        thContent = m("i", {
+            onclick: onclick,
+            class: "fa fa-trash",
+            style: iconStyle
+        });
+    } else if (currentState === "/Ready/New") {
+        thContent = m("i", {
+            onclick: onclick,
+            class: "fa fa-plus",
+            style: iconStyle
+        });
+    } else if (model.canUndo()) {
+        thContent = m("i", {
+            onclick: onclick,
+            class: "fa fa-pencil-alt",
+            style: iconStyle
+        });
+    } else {
+        cellOpts = {
+            onclick: onclick,
+            style: iconStyle
+        };
+        if (currentMode === "/Mode/Edit" && isSelected) {
+            cellOpts.class = (
+                "fb-table-cell-edit fb-table-cell-edit-header"
+            );
+        }
+    }
+    tds.unshift(m("th", cellOpts, thContent));
+
+    // Build row
+    rowOpts.style = {
+        backgroundColor: color
+    };
+    rowOpts.key = model.id();
+
+    if (d.isDeleted()) {
+        row = m("del", m("tr", rowOpts, tds));
+    } else {
+        row = m("tr", rowOpts, tds);
+    }
+
+    options.idx += 1;
+
+    return row;
+}
+
+// Resize according to surroundings
+function resize(vm, vnode) {
+    let footer;
+    let containerHeight;
+    let bottomHeight;
+    let yPosition;
+    let e = document.getElementById(vnode.dom.id);
+    let id = vm.footerId();
+
+    if (id) {
+        footer = document.getElementById(id);
+        e.style.height = (
+            window.innerHeight -
+            f.getElementPosition(e.parentElement).y -
+            e.offsetTop - footer.offsetHeight - 1 + "px"
+        );
+    } else {
+        yPosition = f.getElementPosition(e).y;
+        containerHeight = (
+            document.body.offsetHeight +
+            f.getElementPosition(document.body).y
+        );
+        bottomHeight = (
+            containerHeight - yPosition - e.offsetHeight
+        );
+        e.style.height = (
+            window.innerHeight - yPosition - bottomHeight + "px"
+        );
+    }
+}
+
 // Define workbook view model
 tableWidget.viewModel = function (options) {
     options = options || {};
@@ -1306,46 +1503,13 @@ tableWidget.component = {
     view: function (vnode) {
         let header;
         let rows;
-        let resize;
         let vm = vnode.attrs.viewModel;
         let ids = vm.ids();
         let config = vm.config();
         let filter = vm.filter();
         let sort = filter.sort || [];
-        let idx = 0;
         let zoom = vm.zoom() + "%";
         let feather = vm.feather();
-
-        // Resize according to surroundings
-        resize = function (vnode) {
-            let footer;
-            let containerHeight;
-            let bottomHeight;
-            let yPosition;
-            let e = document.getElementById(vnode.dom.id);
-            let id = vm.footerId();
-
-            if (id) {
-                footer = document.getElementById(id);
-                e.style.height = (
-                    window.innerHeight -
-                    f.getElementPosition(e.parentElement).y -
-                    e.offsetTop - footer.offsetHeight - 1 + "px"
-                );
-            } else {
-                yPosition = f.getElementPosition(e).y;
-                containerHeight = (
-                    document.body.offsetHeight +
-                    f.getElementPosition(document.body).y
-                );
-                bottomHeight = (
-                    containerHeight - yPosition - e.offsetHeight
-                );
-                e.style.height = (
-                    window.innerHeight - yPosition - bottomHeight + "px"
-                );
-            }
-        };
 
         // Build header
         header = (function () {
@@ -1379,170 +1543,12 @@ tableWidget.component = {
         }());
 
         // Build rows
-        idx = 0;
-        rows = vm.models().map(function (model) {
-            let tds;
-            let row;
-            let thContent;
-            let onclick;
-            let lock;
-            let iconStyle;
-            let lastFocusId;
-            let ontab;
-            let onshifttab;
-            let defaultFocusId = vm.defaultFocus(model);
-            let currentMode = vm.mode().current()[0];
-            let color = "White";
-            let isSelected = vm.isSelected(model);
-            let currentState = model.state().current()[0];
-            let d = model.data;
-            let rowOpts = {
-                key: model.id()
-            };
-            let cellOpts = {};
-
-            // Build row
-            if (isSelected) {
-                color = vm.selectedColor();
-            }
-
-            // Build view row
-            if (currentMode === "/Mode/View" || !isSelected) {
-                // Build cells
-                idx = 0;
-                tds = vm.attrs().map(createTableDataView.bind(null, {
-                    config: config,
-                    d: d,
-                    idx: 0,
-                    model: model,
-                    onclick: onclick,
-                    vm: vm,
-                    zoom: zoom
-                }));
-
-                rowOpts = {
-                    ondblclick: vm.ondblclick.bind(null, model)
-                };
-
-                // Build editable row
-            } else {
-                cellOpts = {
-                    class: "fb-table-cell-edit"
-                };
-
-                lastFocusId = vm.lastFocus(model);
-                ontab = function (e) {
-                    let key = e.key || e.keyIdentifier;
-                    if (key === "Tab" && !e.shiftKey) {
-                        e.preventDefault();
-                        document.getElementById(defaultFocusId).focus();
-                    }
-                };
-
-                onshifttab = function (e) {
-                    let key = e.key || e.keyIdentifier;
-                    if (key === "Tab" && e.shiftKey) {
-                        e.preventDefault();
-                        document.getElementById(lastFocusId).focus();
-                    }
-                };
-
-                // Build cells
-                tds = vm.attrs().map(createTableDataEditor.bind(null, {
-                    config: config,
-                    defaultFocusId: defaultFocusId,
-                    idx: 0,
-                    lastFocusId: lastFocusId,
-                    model: model,
-                    onshifttab: onshifttab,
-                    ontab: ontab,
-                    vm: vm,
-                    zoom: zoom
-                }));
-            }
-
-            // Front cap header navigation
-            onclick = vm.toggleSelection.bind(
-                this,
-                model,
-                defaultFocusId
-            );
-            iconStyle = {
-                fontSize: zoom,
-                minWidth: "25px"
-            };
-
-            if (currentMode !== "/Mode/Edit" && isSelected) {
-                thContent = m("i", {
-                    onclick: vm.ondblclick.bind(null, model),
-                    class: "fa fa-folder-open",
-                    style: iconStyle
-                });
-            } else if (!model.isValid()) {
-                thContent = m("i", {
-                    onclick: onclick,
-                    title: model.lastError(),
-                    class: "fa fa-exclamation-triangle",
-                    style: iconStyle
-                });
-            } else if (currentState === "/Locked") {
-                lock = d.lock() || {};
-                thContent = m("i", {
-                    onclick: onclick,
-                    title: (
-                        "User: " + lock.username + "\nSince: " +
-                        new Date(lock.created).toLocaleTimeString()
-                    ),
-                    class: "fa fa-lock",
-                    style: iconStyle
-                });
-            } else if (currentState === "/Delete") {
-                thContent = m("i", {
-                    onclick: onclick,
-                    class: "fa fa-trash",
-                    style: iconStyle
-                });
-            } else if (currentState === "/Ready/New") {
-                thContent = m("i", {
-                    onclick: onclick,
-                    class: "fa fa-plus",
-                    style: iconStyle
-                });
-            } else if (model.canUndo()) {
-                thContent = m("i", {
-                    onclick: onclick,
-                    class: "fa fa-pencil-alt",
-                    style: iconStyle
-                });
-            } else {
-                cellOpts = {
-                    onclick: onclick,
-                    style: iconStyle
-                };
-                if (currentMode === "/Mode/Edit" && isSelected) {
-                    cellOpts.class = (
-                        "fb-table-cell-edit fb-table-cell-edit-header"
-                    );
-                }
-            }
-            tds.unshift(m("th", cellOpts, thContent));
-
-            // Build row
-            rowOpts.style = {
-                backgroundColor: color
-            };
-            rowOpts.key = model.id();
-
-            if (d.isDeleted()) {
-                row = m("del", m("tr", rowOpts, tds));
-            } else {
-                row = m("tr", rowOpts, tds);
-            }
-
-            idx += 1;
-
-            return row;
-        });
+        rows = vm.models().map(createTableRow.bind(null, {
+            config: config,
+            idx: 0,
+            vm: vm,
+            zoom: zoom
+        }));
 
         // Put a dummy row in to manage spacing correctly if
         // none otherwise.
@@ -1578,9 +1584,9 @@ tableWidget.component = {
                         // Key down handler for up down movement
                         let e = document.getElementById(vnode.dom.id);
                         e.addEventListener("keydown", vm.onkeydown);
-                        resize(vnode);
+                        resize(vm, vnode);
                     },
-                    onupdate: resize,
+                    onupdate: resize.bind(null, vm),
                     onremove: function (vnode) {
                         // Key down handler for up down movement
                         let e = document.getElementById(vnode.dom.id);
