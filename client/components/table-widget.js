@@ -56,6 +56,401 @@ widthWithScroll = inner.offsetWidth;
 outer.parentNode.removeChild(outer);
 scrWidth = widthNoScroll - widthWithScroll;
 
+function createTableDataEditor(options, col) {
+    let config = options.config;
+    let defaultFocusId = options.defaultFocusId;
+    let model = options.model;
+    let onshifttab = options.onshifttab;
+    let ontab = options.ontab;
+    let vm = options.vm;
+    let zoom = options.zoom;
+    let cell;
+    let tdOpts;
+    let inputOpts;
+    let columnSpacerClass;
+    let widget;
+    let prop = f.resolveProperty(model, col);
+    let id = vm.formatInputId(col);
+    let item = config.columns[options.idx];
+    let columnWidth = item.width || COL_WIDTH_DEFAULT;
+    let dataList = item.dataList || prop.dataList;
+    let cfilter = item.filter;
+
+    columnWidth -= 6;
+
+    inputOpts = {
+        id: id,
+        onclick: vm.toggleSelection.bind(this, model, id),
+        value: prop(),
+        style: {
+            minWidth: columnWidth + "px",
+            maxWidth: columnWidth + "px",
+            fontSize: zoom
+        },
+        isCell: true,
+        showCurrency: item.showCurrency
+    };
+
+    // Set up self focus
+    if (vm.nextFocus() === id && id === defaultFocusId) {
+        inputOpts.oncreate = function (vnode) {
+            let e = document.getElementById(vnode.dom.id);
+
+            e.addEventListener("keydown", onshifttab);
+            e.focus();
+        };
+        inputOpts.onremove = function (vnode) {
+            // Key down handler for up down movement
+            document.getElementById(
+                vnode.dom.id
+            ).removeEventListener("keydown", onshifttab);
+        };
+        vm.nextFocus(undefined);
+
+    } else if (
+        vm.nextFocus() === id &&
+        id !== defaultFocusId
+    ) {
+        inputOpts.oncreate = function (vnode) {
+            document.getElementById(vnode.dom.id).focus();
+        };
+        vm.nextFocus(undefined);
+    } else if (id === defaultFocusId) {
+        inputOpts.oncreate = function (vnode) {
+            // Key down handler for up down movement
+            document.getElementById(
+                vnode.dom.id
+            ).addEventListener("keydown", onshifttab);
+        };
+
+        inputOpts.onremove = function (vnode) {
+            // Key down handler for up down movement
+            document.getElementById(
+                vnode.dom.id
+            ).removeEventListener("keydown", onshifttab);
+        };
+    }
+
+    // We want tab out of last cell to loop back to
+    // the first
+    if (options.lastFocusId === id) {
+        inputOpts.oncreate = function (vnode) {
+            // Key down handler for up down movement
+            document.getElementById(
+                vnode.dom.id
+            ).addEventListener("keydown", ontab);
+        };
+
+        inputOpts.onremove = function (vnode) {
+            // Key down handler for up down movement
+            document.getElementById(
+                vnode.dom.id
+            ).removeEventListener("keydown", ontab);
+        };
+    }
+
+    if (
+        prop.isRequired && prop.isRequired() && (
+            prop() === null || prop() === undefined
+        )
+    ) {
+        tdOpts = {
+            class: (
+                "fb-table-cell-edit " +
+                "fb-table-cell-edit-cell " +
+                "fb-table-cell-edit-required"
+            ),
+            style: {}
+        };
+    } else {
+        tdOpts = {
+            class: (
+                "fb-table-cell-edit " +
+                "fb-table-cell-edit-cell"
+            ),
+            style: {}
+        };
+    }
+
+    tdOpts.style.minWidth = columnWidth + "px";
+    tdOpts.style.maxWidth = columnWidth + "px";
+    tdOpts.style.fontSize = zoom;
+
+    if (dataList) {
+        // If reference a property, get the property
+        if (typeof dataList === "string") {
+            dataList = model.data[dataList]();
+
+        // Must referencoe a simple array, transform
+        } else if (typeof dataList[0] !== "object") {
+            dataList = dataList.map(function (item) {
+                return {value: item, label: item};
+            });
+        }
+    }
+
+    columnSpacerClass = (
+        "fb-column-spacer " + tdOpts.class
+    );
+
+    widget = vm.form().attrs.find(
+        (item) => (
+            item.attr === col && item.relationWidget
+        )
+    );
+    if (widget) {
+        widget = widget.relationWidget;
+    }
+
+    cell = [
+        m("td", tdOpts, [
+            f.buildInputComponent({
+                model: model,
+                key: col,
+                dataList: dataList,
+                filter: cfilter,
+                viewModel: vm,
+                options: inputOpts,
+                widget: widget
+            })
+        ]),
+        m("td", {
+            style: {
+                fontSize: zoom
+            },
+            class: columnSpacerClass
+        })
+    ];
+
+    options.idx += 1;
+
+    return cell;
+}
+
+function createTableDataView(options, col) {
+    let vm = options.vm;
+    let model = options.model;
+    let config = options.config;
+    let zoom = options.zoom;
+    let onclick = options.onclick;
+    let d = options.d;
+    let url;
+    let rel;
+    let cell;
+    let content;
+    let curr;
+    let tdOpts;
+    let symbol = "";
+    let minorUnit = 2;
+    let prop = f.resolveProperty(options.model, col);
+    let value = prop();
+    let format = prop.format || prop.type;
+    let columnWidth = (
+        config.columns[options.idx].width || COL_WIDTH_DEFAULT
+    );
+    let du;
+    let style = (
+        prop.style
+        ? prop.style()
+        : ""
+    );
+
+    columnWidth -= 6;
+
+    tdOpts = {
+        onclick: function (ev) {
+            let optKey;
+            if (ev.shiftKey) {
+                optKey = "shiftKey";
+            } else if (ev.ctrlKey) {
+                optKey = "ctrlKey";
+            }
+            vm.toggleSelection(
+                model,
+                vm.formatInputId(col),
+                optKey
+            );
+        },
+        class: "fb-cell-view",
+        style: {
+            minWidth: columnWidth + "px",
+            maxWidth: columnWidth + "px",
+            fontSize: zoom
+        }
+    };
+
+    if (style) {
+        style = f.getStyle(style);
+        tdOpts.style.color = style.color;
+        tdOpts.style.backgroundColor = style.backgroundColor;
+        tdOpts.style.fontWeight = style.fontWeight;
+        tdOpts.style.textDecoration = style.textDecoration;
+    }
+
+    // Build cell
+    switch (format) {
+    case "number":
+    case "integer":
+        content = value.toLocaleString();
+        tdOpts.style.textAlign = "right";
+        break;
+    case "boolean":
+        if (value) {
+            content = m("i", {
+                onclick: onclick,
+                class: "fa fa-check"
+            });
+        }
+        break;
+    case "date":
+        if (value) {
+            // Turn into date adjusting time for
+            // current timezone
+            value = new Date(value + f.now().slice(10));
+            content = value.toLocaleDateString();
+        }
+        break;
+    case "dateTime":
+        value = (
+            value
+            ? new Date(value)
+            : ""
+        );
+        content = (
+            value
+            ? value.toLocaleString()
+            : ""
+        );
+        break;
+    case "url":
+        url = (
+            value.slice(0, 4) === "http"
+            ? value
+            : "http://" + value
+        );
+        content = m("a", {
+            href: url,
+            target: "_blank",
+            onclick: function () {
+                vm.canToggle(false);
+            }
+        }, value);
+        break;
+    case "string":
+        content = value;
+        break;
+    case "money":
+        curr = f.getCurrency(value.currency);
+        if (curr) {
+            if (curr.data.hasDisplayUnit()) {
+                du = curr.data.displayUnit();
+                symbol = du.data.symbol();
+                minorUnit = du.data.minorUnit();
+            } else {
+                symbol = curr.data.symbol();
+                minorUnit = curr.data.minorUnit();
+            }
+        }
+
+        content = value.amount.toLocaleString(
+            undefined,
+            {
+                minimumFractionDigits: minorUnit,
+                maximumFractionDigits: minorUnit
+            }
+        );
+
+        if (value.amount < 0) {
+            content = "(" + Math.abs(content) + ")";
+        }
+
+        content = symbol + content;
+
+        tdOpts.style.textAlign = "right";
+
+        break;
+    case "enum":
+        if (typeof prop.dataList[0] === "object") {
+            content = prop.dataList.find(function (item) {
+                return item.value === value;
+            }).label;
+        } else {
+            content = value;
+        }
+        break;
+    case "dataType":
+        if (typeof value === "object") {
+            content = "relation: " + value.relation;
+        } else {
+            content = value;
+        }
+        break;
+    case "icon":
+        if (value) {
+            content = m("i", {
+                class: "fa fa-" + value
+            });
+        }
+        break;
+    case "color":
+        if (value) {
+            content = m("i", {
+                style: {
+                    color: value
+                },
+                class: "fa fa-square"
+            });
+        }
+        break;
+    default:
+        if (typeof format === "object" && d[col]()) {
+            // If relation, use feather natural key to
+            // find value to display
+            rel = catalog.getFeather(format.relation);
+            rel = Object.keys(rel.properties).find(
+                (key) => rel.properties[key].isNaturalKey
+            );
+
+            if (rel) {
+                value = d[col]().data[rel]();
+
+                url = (
+                    window.location.protocol + "//" +
+                    window.location.hostname + ":" +
+                    window.location.port + "#!/edit/" +
+                    prop.type.relation.toSnakeCase() +
+                    "/" + d[col]().id()
+                );
+
+                content = m("a", {
+                    href: url,
+                    onclick: function () {
+                        vm.canToggle(false);
+                    }
+                }, value);
+            }
+        } else {
+            content = value;
+        }
+    }
+
+    cell = [
+        m("td", tdOpts, content),
+        // This exists to force exact alignment
+        // with header on all browsers
+        m("td", {
+            class: "fb-column-spacer",
+            style: {
+                fontSize: zoom
+            }
+        })
+    ];
+
+    options.idx += 1;
+
+    return cell;
+}
+
 // Helper function
 function resolveDescription(feather, attr) {
     let prefix;
@@ -76,6 +471,129 @@ function resolveDescription(feather, attr) {
     }
 
     return feather.properties[attr].description;
+}
+
+function createTableHeader(options, col) {
+    let config = options.config;
+    let filter = options.filter;
+    let vm = options.vm;
+    let sort = options.sort;
+    let zoom = options.zoom;
+    let hview;
+    let order;
+    let name;
+    let key = col.attr;
+    let icon = [];
+    let fidx;
+    let operators = f.operators;
+    let columnWidth = (
+        config.columns[options.idx].width || COL_WIDTH_DEFAULT
+    );
+
+    function findFilterIndex(col, name) {
+        name = name || "criteria";
+        let hasCol;
+        let ary = filter[name] || [];
+        let i = 0;
+
+        hasCol = function (item) {
+            if (item.property === col) {
+                return true;
+            }
+            i += 1;
+        };
+
+        if (ary.some(hasCol)) {
+            return i;
+        }
+        return false;
+    }
+
+    fidx = findFilterIndex(key, "sort");
+
+    columnWidth -= 6;
+
+    // Add sort icons
+    if (fidx !== false) {
+        order = sort[fidx].order || "ASC";
+        if (order.toUpperCase() === "ASC") {
+            name = "fa fa-sort-up";
+        } else {
+            name = "fa fa-sort-down";
+        }
+
+        icon.push(m("i", {
+            class: name + " fb-column-sort-icon",
+            style: {
+                fontSize: zoom
+            }
+        }));
+
+        if (sort.length > 1) {
+            icon.push(m("span", {
+                class: "fb-column-sort-number",
+                style: {
+                    fontSize: vm.zoom() * 0.6 + "%"
+                }
+            }, fidx + 1));
+        }
+    }
+
+    // Add filter icons
+    fidx = findFilterIndex(key);
+    if (fidx !== false) {
+        icon.push(m("i", {
+            class: "fa fa-filter fb-column-filter-icon",
+            title: operators[
+                (filter.criteria[fidx].operator || "=")
+            ] + " " + filter.criteria[fidx].value,
+            style: {
+                fontSize: vm.zoom() * 0.80 + "%"
+            }
+        }));
+    }
+
+    hview = [
+        m("th", {
+            ondragover: vm.ondragover,
+            draggable: true,
+            ondragstart: vm.ondragstart.bind(
+                null,
+                options.idx,
+                "column"
+            ),
+            ondrop: vm.ondrop.bind(
+                null,
+                options.idx,
+                "column",
+                config.columns
+            ),
+            class: "fb-column-header",
+            style: {
+                minWidth: columnWidth + "px",
+                maxWidth: columnWidth + "px",
+                fontSize: zoom
+            },
+            title: resolveDescription(options.feather, key)
+        }, icon, col.label || vm.alias(key)),
+        m("th", {
+            ondragover: vm.ondragover,
+            draggable: true,
+            ondragstart: vm.ondragstart.bind(
+                null,
+                options.idx,
+                "width"
+            ),
+            class: "fb-column-spacer fb-column-header-grabber",
+            style: {
+                fontSize: zoom
+            }
+        })
+    ];
+
+    options.idx += 1;
+
+    return hview;
 }
 
 // Define workbook view model
@@ -786,10 +1304,8 @@ tableWidget.component = {
     },
 
     view: function (vnode) {
-        let findFilterIndex;
         let header;
         let rows;
-        let rel;
         let resize;
         let vm = vnode.attrs.viewModel;
         let ids = vm.ids();
@@ -831,124 +1347,17 @@ tableWidget.component = {
             }
         };
 
-        findFilterIndex = function (col, name) {
-            name = name || "criteria";
-            let hasCol;
-            let ary = filter[name] || [];
-            let i = 0;
-
-            hasCol = function (item) {
-                if (item.property === col) {
-                    return true;
-                }
-                i += 1;
-            };
-
-            if (ary.some(hasCol)) {
-                return i;
-            }
-            return false;
-        };
-
         // Build header
-        idx = 0;
         header = (function () {
-            let ths = config.columns.map(function (col) {
-                let hview;
-                let order;
-                let name;
-                let key = col.attr;
-                let icon = [];
-                let fidx = findFilterIndex(key, "sort");
-                let operators = f.operators;
-                let columnWidth = (
-                    config.columns[idx].width || COL_WIDTH_DEFAULT
-                );
-
-                columnWidth -= 6;
-
-                // Add sort icons
-                if (fidx !== false) {
-                    order = sort[fidx].order || "ASC";
-                    if (order.toUpperCase() === "ASC") {
-                        name = "fa fa-sort-up";
-                    } else {
-                        name = "fa fa-sort-down";
-                    }
-
-                    icon.push(m("i", {
-                        class: name + " fb-column-sort-icon",
-                        style: {
-                            fontSize: zoom
-                        }
-                    }));
-
-                    if (sort.length > 1) {
-                        icon.push(m("span", {
-                            class: "fb-column-sort-number",
-                            style: {
-                                fontSize: vm.zoom() * 0.6 + "%"
-                            }
-                        }, fidx + 1));
-                    }
-                }
-
-                // Add filter icons
-                fidx = findFilterIndex(key);
-                if (fidx !== false) {
-                    icon.push(m("i", {
-                        class: "fa fa-filter fb-column-filter-icon",
-                        title: operators[
-                            (filter.criteria[fidx].operator || "=")
-                        ] + " " + filter.criteria[fidx].value,
-                        style: {
-                            fontSize: vm.zoom() * 0.80 + "%"
-                        }
-                    }));
-                }
-
-                hview = [
-                    m("th", {
-                        ondragover: vm.ondragover,
-                        draggable: true,
-                        ondragstart: vm.ondragstart.bind(
-                            null,
-                            idx,
-                            "column"
-                        ),
-                        ondrop: vm.ondrop.bind(
-                            null,
-                            idx,
-                            "column",
-                            config.columns
-                        ),
-                        class: "fb-column-header",
-                        style: {
-                            minWidth: columnWidth + "px",
-                            maxWidth: columnWidth + "px",
-                            fontSize: zoom
-                        },
-                        title: resolveDescription(feather, key)
-                    }, icon, col.label || vm.alias(key)),
-                    m("th", {
-                        ondragover: vm.ondragover,
-                        draggable: true,
-                        ondragstart: vm.ondragstart.bind(
-                            null,
-                            idx,
-                            "width"
-                        ),
-                        class: "fb-column-spacer fb-column-header-grabber",
-                        style: {
-                            fontSize: zoom
-                        }
-                    })
-                ];
-
-                idx += 1;
-
-                return hview;
-            });
+            let ths = config.columns.map(createTableHeader.bind(null, {
+                config: config,
+                feather: feather,
+                filter: filter,
+                idx: 0,
+                sort: sort,
+                vm: vm,
+                zoom: zoom
+            }));
 
             // Front cap header navigation
             ths.unshift(m("th", {
@@ -981,7 +1390,6 @@ tableWidget.component = {
             let lastFocusId;
             let ontab;
             let onshifttab;
-            let url;
             let defaultFocusId = vm.defaultFocus(model);
             let currentMode = vm.mode().current()[0];
             let color = "White";
@@ -1002,221 +1410,15 @@ tableWidget.component = {
             if (currentMode === "/Mode/View" || !isSelected) {
                 // Build cells
                 idx = 0;
-                tds = vm.attrs().map(function (col) {
-                    let cell;
-                    let content;
-                    let curr;
-                    let tdOpts;
-                    let symbol = "";
-                    let minorUnit = 2;
-                    let prop = f.resolveProperty(model, col);
-                    let value = prop();
-                    let format = prop.format || prop.type;
-                    let columnWidth = (
-                        config.columns[idx].width || COL_WIDTH_DEFAULT
-                    );
-                    let du;
-                    let style = (
-                        prop.style
-                        ? prop.style()
-                        : ""
-                    );
-
-                    columnWidth -= 6;
-
-                    tdOpts = {
-                        onclick: function (ev) {
-                            let optKey;
-                            if (ev.shiftKey) {
-                                optKey = "shiftKey";
-                            } else if (ev.ctrlKey) {
-                                optKey = "ctrlKey";
-                            }
-                            vm.toggleSelection(
-                                model,
-                                vm.formatInputId(col),
-                                optKey
-                            );
-                        },
-                        class: "fb-cell-view",
-                        style: {
-                            minWidth: columnWidth + "px",
-                            maxWidth: columnWidth + "px",
-                            fontSize: zoom
-                        }
-                    };
-
-                    if (style) {
-                        style = f.getStyle(style);
-                        tdOpts.style.color = style.color;
-                        tdOpts.style.backgroundColor = style.backgroundColor;
-                        tdOpts.style.fontWeight = style.fontWeight;
-                        tdOpts.style.textDecoration = style.textDecoration;
-                    }
-
-                    // Build cell
-                    switch (format) {
-                    case "number":
-                    case "integer":
-                        content = value.toLocaleString();
-                        tdOpts.style.textAlign = "right";
-                        break;
-                    case "boolean":
-                        if (value) {
-                            content = m("i", {
-                                onclick: onclick,
-                                class: "fa fa-check"
-                            });
-                        }
-                        break;
-                    case "date":
-                        if (value) {
-                            // Turn into date adjusting time for
-                            // current timezone
-                            value = new Date(value + f.now().slice(10));
-                            content = value.toLocaleDateString();
-                        }
-                        break;
-                    case "dateTime":
-                        value = (
-                            value
-                            ? new Date(value)
-                            : ""
-                        );
-                        content = (
-                            value
-                            ? value.toLocaleString()
-                            : ""
-                        );
-                        break;
-                    case "url":
-                        url = (
-                            value.slice(0, 4) === "http"
-                            ? value
-                            : "http://" + value
-                        );
-                        content = m("a", {
-                            href: url,
-                            target: "_blank",
-                            onclick: function () {
-                                vm.canToggle(false);
-                            }
-                        }, value);
-                        break;
-                    case "string":
-                        content = value;
-                        break;
-                    case "money":
-                        curr = f.getCurrency(value.currency);
-                        if (curr) {
-                            if (curr.data.hasDisplayUnit()) {
-                                du = curr.data.displayUnit();
-                                symbol = du.data.symbol();
-                                minorUnit = du.data.minorUnit();
-                            } else {
-                                symbol = curr.data.symbol();
-                                minorUnit = curr.data.minorUnit();
-                            }
-                        }
-
-                        content = value.amount.toLocaleString(
-                            undefined,
-                            {
-                                minimumFractionDigits: minorUnit,
-                                maximumFractionDigits: minorUnit
-                            }
-                        );
-
-                        if (value.amount < 0) {
-                            content = "(" + Math.abs(content) + ")";
-                        }
-
-                        content = symbol + content;
-
-                        tdOpts.style.textAlign = "right";
-
-                        break;
-                    case "enum":
-                        if (typeof prop.dataList[0] === "object") {
-                            content = prop.dataList.find(function (item) {
-                                return item.value === value;
-                            }).label;
-                        } else {
-                            content = value;
-                        }
-                        break;
-                    case "dataType":
-                        if (typeof value === "object") {
-                            content = "relation: " + value.relation;
-                        } else {
-                            content = value;
-                        }
-                        break;
-                    case "icon":
-                        if (value) {
-                            content = m("i", {
-                                class: "fa fa-" + value
-                            });
-                        }
-                        break;
-                    case "color":
-                        if (value) {
-                            content = m("i", {
-                                style: {
-                                    color: value
-                                },
-                                class: "fa fa-square"
-                            });
-                        }
-                        break;
-                    default:
-                        if (typeof format === "object" && d[col]()) {
-                            // If relation, use feather natural key to
-                            // find value to display
-                            rel = catalog.getFeather(format.relation);
-                            rel = Object.keys(rel.properties).find(
-                                (key) => rel.properties[key].isNaturalKey
-                            );
-
-                            if (rel) {
-                                value = d[col]().data[rel]();
-
-                                url = (
-                                    window.location.protocol + "//" +
-                                    window.location.hostname + ":" +
-                                    window.location.port + "#!/edit/" +
-                                    prop.type.relation.toSnakeCase() +
-                                    "/" + d[col]().id()
-                                );
-
-                                content = m("a", {
-                                    href: url,
-                                    onclick: function () {
-                                        vm.canToggle(false);
-                                    }
-                                }, value);
-                            }
-                        } else {
-                            content = value;
-                        }
-                    }
-
-                    cell = [
-                        m("td", tdOpts, content),
-                        // This exists to force exact alignment
-                        // with header on all browsers
-                        m("td", {
-                            class: "fb-column-spacer",
-                            style: {
-                                fontSize: zoom
-                            }
-                        })
-                    ];
-
-                    idx += 1;
-
-                    return cell;
-                });
+                tds = vm.attrs().map(createTableDataView.bind(null, {
+                    config: config,
+                    d: d,
+                    idx: 0,
+                    model: model,
+                    onclick: onclick,
+                    vm: vm,
+                    zoom: zoom
+                }));
 
                 rowOpts = {
                     ondblclick: vm.ondblclick.bind(null, model)
@@ -1246,170 +1448,17 @@ tableWidget.component = {
                 };
 
                 // Build cells
-                idx = 0;
-                tds = vm.attrs().map(function (col) {
-                    let cell;
-                    let tdOpts;
-                    let inputOpts;
-                    let columnSpacerClass;
-                    let widget;
-                    let prop = f.resolveProperty(model, col);
-                    let id = vm.formatInputId(col);
-                    let item = config.columns[idx];
-                    let columnWidth = item.width || COL_WIDTH_DEFAULT;
-                    let dataList = item.dataList || prop.dataList;
-                    let cfilter = item.filter;
-
-                    columnWidth -= 6;
-
-                    inputOpts = {
-                        id: id,
-                        onclick: vm.toggleSelection.bind(this, model, id),
-                        value: prop(),
-                        style: {
-                            minWidth: columnWidth + "px",
-                            maxWidth: columnWidth + "px",
-                            fontSize: zoom
-                        },
-                        isCell: true,
-                        showCurrency: item.showCurrency
-                    };
-
-                    // Set up self focus
-                    if (vm.nextFocus() === id && id === defaultFocusId) {
-                        inputOpts.oncreate = function (vnode) {
-                            let e = document.getElementById(vnode.dom.id);
-
-                            e.addEventListener("keydown", onshifttab);
-                            e.focus();
-                        };
-                        inputOpts.onremove = function (vnode) {
-                            // Key down handler for up down movement
-                            document.getElementById(
-                                vnode.dom.id
-                            ).removeEventListener("keydown", onshifttab);
-                        };
-                        vm.nextFocus(undefined);
-
-                    } else if (
-                        vm.nextFocus() === id &&
-                        id !== defaultFocusId
-                    ) {
-                        inputOpts.oncreate = function (vnode) {
-                            document.getElementById(vnode.dom.id).focus();
-                        };
-                        vm.nextFocus(undefined);
-                    } else if (id === defaultFocusId) {
-                        inputOpts.oncreate = function (vnode) {
-                            // Key down handler for up down movement
-                            document.getElementById(
-                                vnode.dom.id
-                            ).addEventListener("keydown", onshifttab);
-                        };
-
-                        inputOpts.onremove = function (vnode) {
-                            // Key down handler for up down movement
-                            document.getElementById(
-                                vnode.dom.id
-                            ).removeEventListener("keydown", onshifttab);
-                        };
-                    }
-
-                    // We want tab out of last cell to loop back to
-                    // the first
-                    if (lastFocusId === id) {
-                        inputOpts.oncreate = function (vnode) {
-                            // Key down handler for up down movement
-                            document.getElementById(
-                                vnode.dom.id
-                            ).addEventListener("keydown", ontab);
-                        };
-
-                        inputOpts.onremove = function (vnode) {
-                            // Key down handler for up down movement
-                            document.getElementById(
-                                vnode.dom.id
-                            ).removeEventListener("keydown", ontab);
-                        };
-                    }
-
-                    if (
-                        prop.isRequired && prop.isRequired() && (
-                            prop() === null || prop() === undefined
-                        )
-                    ) {
-                        tdOpts = {
-                            class: (
-                                "fb-table-cell-edit " +
-                                "fb-table-cell-edit-cell " +
-                                "fb-table-cell-edit-required"
-                            ),
-                            style: {}
-                        };
-                    } else {
-                        tdOpts = {
-                            class: (
-                                "fb-table-cell-edit " +
-                                "fb-table-cell-edit-cell"
-                            ),
-                            style: {}
-                        };
-                    }
-
-                    tdOpts.style.minWidth = columnWidth + "px";
-                    tdOpts.style.maxWidth = columnWidth + "px";
-                    tdOpts.style.fontSize = zoom;
-
-                    if (dataList) {
-                        // If reference a property, get the property
-                        if (typeof dataList === "string") {
-                            dataList = model.data[dataList]();
-
-                        // Must referencoe a simple array, transform
-                        } else if (typeof dataList[0] !== "object") {
-                            dataList = dataList.map(function (item) {
-                                return {value: item, label: item};
-                            });
-                        }
-                    }
-
-                    columnSpacerClass = (
-                        "fb-column-spacer " + tdOpts.class
-                    );
-
-                    widget = vm.form().attrs.find(
-                        (item) => (
-                            item.attr === col && item.relationWidget
-                        )
-                    );
-                    if (widget) {
-                        widget = widget.relationWidget;
-                    }
-
-                    cell = [
-                        m("td", tdOpts, [
-                            f.buildInputComponent({
-                                model: model,
-                                key: col,
-                                dataList: dataList,
-                                filter: cfilter,
-                                viewModel: vm,
-                                options: inputOpts,
-                                widget: widget
-                            })
-                        ]),
-                        m("td", {
-                            style: {
-                                fontSize: zoom
-                            },
-                            class: columnSpacerClass
-                        })
-                    ];
-
-                    idx += 1;
-
-                    return cell;
-                });
+                tds = vm.attrs().map(createTableDataEditor.bind(null, {
+                    config: config,
+                    defaultFocusId: defaultFocusId,
+                    idx: 0,
+                    lastFocusId: lastFocusId,
+                    model: model,
+                    onshifttab: onshifttab,
+                    ontab: ontab,
+                    vm: vm,
+                    zoom: zoom
+                }));
             }
 
             // Front cap header navigation
