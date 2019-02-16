@@ -126,10 +126,8 @@ searchPage.viewModel = function (options) {
         onclick: vm.refresh,
         title: "Refresh",
         hotkey: "R",
-        icon: "refresh",
-        style: {
-            backgroundColor: "white"
-        }
+        icon: "sync",
+        class: "fb-toolbar-button"
     }));
 
     vm.buttonClear(button.viewModel({
@@ -137,9 +135,7 @@ searchPage.viewModel = function (options) {
         title: "Clear search",
         hotkey: "C",
         icon: "eraser",
-        style: {
-            backgroundColor: "white"
-        }
+        class: "fb-toolbar-button"
     }));
     vm.buttonClear().isDisabled = function () {
         return !vm.searchInput().value();
@@ -150,9 +146,7 @@ searchPage.viewModel = function (options) {
         title: "Filter",
         hotkey: "F",
         icon: "filter",
-        style: {
-            backgroundColor: "white"
-        }
+        class: "fb-toolbar-button"
     }));
 
     vm.buttonSort(button.viewModel({
@@ -160,19 +154,7 @@ searchPage.viewModel = function (options) {
         title: "Sort",
         hotkey: "O",
         icon: "sort",
-        style: {
-            backgroundColor: "white"
-        }
-    }));
-
-    vm.buttonRefresh(button.viewModel({
-        onclick: vm.refresh,
-        title: "Refresh",
-        hotkey: "R",
-        icon: "refresh",
-        style: {
-            backgroundColor: "white"
-        }
+        class: "fb-toolbar-button"
     }));
 
     vm.buttonClear(button.viewModel({
@@ -180,9 +162,7 @@ searchPage.viewModel = function (options) {
         title: "Clear search",
         hotkey: "C",
         icon: "eraser",
-        style: {
-            backgroundColor: "white"
-        }
+        class: "fb-toolbar-button"
     }));
 
     return vm;
@@ -206,27 +186,31 @@ searchPage.component = {
         return m("div", {
             class: "pure-form"
         }, [
-            m(button.component, {
-                viewModel: vm.buttonBack()
-            }),
-            m(button.component, {
-                viewModel: vm.buttonSelect()
-            }),
-            m(searchInput.component, {
-                viewModel: vm.searchInput()
-            }),
-            m(button.component, {
-                viewModel: vm.buttonRefresh()
-            }),
-            m(button.component, {
-                viewModel: vm.buttonClear()
-            }),
-            m(button.component, {
-                viewModel: vm.buttonSort()
-            }),
-            m(button.component, {
-                viewModel: vm.buttonFilter()
-            }),
+            m("div", {
+                class: "fb-toolbar"
+            }, [
+                m(button.component, {
+                    viewModel: vm.buttonBack()
+                }),
+                m(button.component, {
+                    viewModel: vm.buttonSelect()
+                }),
+                m(searchInput.component, {
+                    viewModel: vm.searchInput()
+                }),
+                m(button.component, {
+                    viewModel: vm.buttonRefresh()
+                }),
+                m(button.component, {
+                    viewModel: vm.buttonClear()
+                }),
+                m(button.component, {
+                    viewModel: vm.buttonSort()
+                }),
+                m(button.component, {
+                    viewModel: vm.buttonFilter()
+                })
+            ]),
             m(sortDialog.component, {
                 viewModel: vm.sortDialog()
             }),
