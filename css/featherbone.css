@@ -476,7 +476,8 @@ a.pure-button-selected {
 .fb-search-input {
   border-radius: 25px !important;
   height: 28px;
-  margin-top: 7px !important;
+  margin-top: 4px !important;
+  margin-bottom: 6px !important;
 }
 
 .fb-table {
@@ -517,6 +518,8 @@ a.pure-button-selected {
 
 .fb-toolbar {
   background-color: #3F51B5;
+  height: 38px;
+  padding-top: 3px;
 }
 
 .fb-workbook-tab {
