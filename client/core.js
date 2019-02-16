@@ -166,12 +166,20 @@ function buildSelector(obj, opts) {
     let id = opts.id;
     let vm = obj.viewModel;
     let selectComponents = vm.selectComponents();
-    let value = (
+    let value = opts.prop();
+    let values = obj.dataList.map((item) => item.value).join();
+
+    value = (
         opts.value === ""
         ? undefined
         : opts.value
     );
-    let values = obj.dataList.map((item) => item.value).join();
+
+    if (opts.class) {
+        opts.class = "fb-input " + opts.class;
+    } else {
+        opts.class = "fb-input";
+    }
 
     if (selectComponents[id]) {
         if (
@@ -191,7 +199,7 @@ function buildSelector(obj, opts) {
     selectComponents[id].content = m("select", {
         id: id,
         key: id,
-        onchange: opts.onchange,
+        onchange: (e) => opts.prop(e.target.value),
         value: value,
         disabled: opts.disabled,
         class: opts.class,
@@ -568,6 +576,159 @@ f.money = function (amount, currency, effective, baseAmount) {
     return ret;
 };
 
+function input(type, options) {
+    let prop = options.prop;
+
+    options.type = type;
+    options.onchange = (e) => prop(e.target.value);
+    options.value = prop();
+
+    if (options.class) {
+        options.class = "fb-input " + options.class;
+    } else {
+        options.class = "fb-input";
+    }
+
+    return m("input", options);
+}
+
+f.formats.color.editor = input.bind(null, "color");
+f.formats.date.editor = input.bind(null, "date");
+f.formats.dateTime.editor = input.bind(null, "datetime-local");
+
+f.formats.dataType.editor = function (options) {
+    return m(catalog.store().components().dataType, options);
+};
+
+f.formats.money.editor = function (options) {
+    return m(catalog.store().components().moneyRelation, options);
+};
+
+f.formats.password.editor = input.bind(null, "password");
+f.formats.tel.editor = input.bind(null, "tel");
+
+f.formats.textArea.editor = function (options) {
+    let prop = options.prop;
+
+    options.onchange = (e) => prop(e.target.value);
+    options.value = prop();
+    options.rows = options.rows || 4;
+
+    return m("textarea", options);
+};
+
+f.formats.script.editor = function (options) {
+    let prop = options.prop;
+    let model = options.model;
+
+    options.oncreate = function () {
+        let editor;
+        let lint;
+        let state = model.state();
+        let e = document.getElementById(options.id);
+        let config = {
+            value: prop(),
+            lineNumbers: true,
+            mode: {
+                name: "javascript",
+                json: true
+            },
+            theme: "neat",
+            indentUnit: 4,
+            extraKeys: {
+                Tab: function (cm) {
+                    cm.replaceSelection("    ", "end");
+                }
+            },
+            autoFocus: false,
+            gutters: ["CodeMirror-lint-markers"],
+            lint: true
+        };
+
+        editor = CodeMirror.fromTextArea(e, config);
+        lint = editor.state.lint;
+        lint.options.globals = ["f"];
+        resizeEditor(editor);
+
+        // Populate on fetch
+        state.resolve("/Ready/Fetched/Clean").enter(
+            function () {
+                function notify() {
+                    state.send("changed");
+                    m.redraw();
+                    editor.off("change", notify);
+                }
+                editor.setValue(prop());
+                editor.on("change", notify);
+            }
+        );
+
+        editor.on("change", m.redraw);
+        lint.options.onUpdateLinting = m.redraw;
+
+        // Let model reference lint markings
+        model.data.marked(editor.state.lint.marked);
+
+        // Send changed text back to model
+        editor.on("blur", function () {
+            editor.save();
+            prop(e.value);
+            m.redraw();
+        });
+
+        this.editor = editor;
+    };
+
+    options.onupdate = function () {
+        resizeEditor(this.editor);
+    };
+
+    return m("textarea", options);
+};
+
+f.formats.url.editor = input.bind(null, "url");
+
+f.types.boolean.editor = function (options) {
+    let prop = options.prop;
+
+    options.onclick = prop;
+    options.value = prop();
+
+    return m(catalog.store().components().checkbox, options);
+};
+
+f.types.number.editor = function (options) {
+    let prop = options.prop;
+
+    options.onchange = (e) => prop(e.target.value);
+    options.value = prop();
+
+    if (prop.min !== undefined) {
+        options.min = prop.min;
+    }
+    if (prop.max !== undefined) {
+        options.max = prop.max;
+    }
+
+    if (options.class) {
+        options.class = "fb-input " + options.class;
+    } else {
+        options.class = "fb-input";
+    }
+
+    options.class += " fb-input-number";
+
+    return m("input", options);
+};
+
+f.types.integer.editor = function (options) {
+    options.type = "number";
+
+    return f.types.number.editor(options);
+};
+
+f.types.string.editor = input.bind(null, "text");
+
 /**
   Helper function for building input elements
 
@@ -582,173 +743,60 @@ f.money = function (amount, currency, effective, baseAmount) {
 */
 f.buildInputComponent = function (obj) {
     let w;
-    let component;
     let name;
     let featherName;
     let key = obj.key;
     let isPath = key.indexOf(".") !== -1;
     let prop = f.resolveProperty(obj.model, key);
-    let format = prop.format || prop.type;
-    let opts = obj.options || {};
     let components = catalog.store().components();
-    let id = opts.id || key;
+    let editor;
+
+    obj.options.id = obj.options.id || key;
 
     // Handle input types
     if (typeof prop.type === "string" || isPath) {
-        opts.type = f.inputMap[format];
 
         if (isPath || prop.isReadOnly()) {
-            opts.disabled = true;
+            obj.options.disabled = true;
         } else {
-            opts.disabled = false;
+            obj.options.disabled = false;
         }
 
-        if (isPath || prop.isRequired()) {
-            opts.required = true;
+        if (prop.isRequired()) {
+            obj.options.required = true;
+        }
+        
+        obj.options.prop = prop;
+
+        if (obj.dataList) {
+            return buildSelector(obj, obj.options);
         }
 
-        if (prop.type === "boolean") {
-            component = m(components.checkbox, {
-                id: id,
-                value: prop(),
-                onclick: prop,
-                required: opts.required,
-                disabled: opts.disabled,
-                style: opts.style
-            });
-        } else if (prop.type === "object") {
-            if (prop.format === "money") {
-                component = m(components.moneyRelation, {
-                    parentViewModel: obj.viewModel,
-                    parentProperty: key,
-                    filter: obj.filter,
-                    isCell: opts.isCell,
-                    style: opts.style,
-                    onCreate: opts.oncreate,
-                    onRemove: opts.onremove,
-                    showCurrency: opts.showCurrency,
-                    disableCurrency: opts.disableCurrency,
-                    id: id,
-                    disabled: prop.isReadOnly()
-                });
-            } else if (prop.format === "dataType") {
-                component = m(components.dataType, {
-                    parentViewModel: obj.viewModel,
-                    parentProperty: key,
-                    onCreate: opts.oncreate,
-                    onRemove: opts.onremove,
-                    id: id,
-                    disabled: prop.isReadOnly()
-                });
-            }
+        if (prop.format && f.formats[prop.format].editor) {
+            editor = f.formats[prop.format].editor;
+        } else if (f.types[prop.type]) {
+            editor = f.types[prop.type].editor;
         } else {
-            opts.id = id;
-            opts.onchange = (e) => prop(e.target.value);
-            opts.value = prop();
-
-            if (opts.class) {
-                opts.class = "fb-input " + opts.class;
-            } else {
-                opts.class = "fb-input";
-            }
-
-            // If options were passed in, used a select element
-            if (obj.dataList) {
-                component = buildSelector(obj, opts);
-
-            // Otherwise standard input
-            } else {
-                opts.style = opts.style || {};
-
-                if (prop.type === "number" || prop.type === "integer") {
-                    if (prop.min !== undefined) {
-                        opts.min = prop.min;
-                    }
-                    if (prop.max !== undefined) {
-                        opts.max = prop.max;
-                    }
-                    opts.class += " fb-input-number";
-                }
-
-                if (
-                    prop.format === "textArea" ||
-                    prop.format === "script"
-                ) {
-                    // Script requires a javascript text editor
-                    if (prop.format === "script") {
-                        delete opts.onchange;
-                        opts.oncreate = function () {
-                            let editor;
-                            let lint;
-                            let state = obj.model.state();
-                            let e = document.getElementById(id);
-                            let config = {
-                                value: prop(),
-                                lineNumbers: true,
-                                mode: {
-                                    name: "javascript",
-                                    json: true
-                                },
-                                theme: "neat",
-                                indentUnit: 4,
-                                extraKeys: {
-                                    Tab: function (cm) {
-                                        cm.replaceSelection("    ", "end");
-                                    }
-                                },
-                                autoFocus: false,
-                                gutters: ["CodeMirror-lint-markers"],
-                                lint: true
-                            };
-
-                            editor = CodeMirror.fromTextArea(e, config);
-                            lint = editor.state.lint;
-                            lint.options.globals = ["f"];
-                            resizeEditor(editor);
-
-                            // Populate on fetch
-                            state.resolve("/Ready/Fetched/Clean").enter(
-                                function () {
-                                    function notify() {
-                                        state.send("changed");
-                                        m.redraw();
-                                        editor.off("change", notify);
-                                    }
-                                    editor.setValue(prop());
-                                    editor.on("change", notify);
-                                }
-                            );
-
-                            editor.on("change", m.redraw);
-                            lint.options.onUpdateLinting = m.redraw;
-
-                            // Let model reference lint markings
-                            obj.model.data.marked(editor.state.lint.marked);
-
-                            // Send changed text back to model
-                            editor.on("blur", function () {
-                                editor.save();
-                                prop(e.value);
-                                m.redraw();
-                            });
-
-                            this.editor = editor;
-                        };
-                        opts.onupdate = function () {
-                            resizeEditor(this.editor);
-                        };
-                    } else {
-                        opts.rows = opts.rows || 4;
-                    }
-
-                    component = m("textarea", opts);
-                } else {
-                    component = m("input", opts);
-                }
-            }
+            editor = f.types.string.editor;
         }
 
-        return component;
+        return editor({
+            class: obj.options.class,
+            disabled: obj.options.disabled,
+            disableCurrency: obj.options.disableCurrency,
+            filter: obj.options.filter,
+            id: obj.options.id,
+            isCell: obj.options.isCell,
+            onCreate: obj.options.oncreate, // Money, datatype
+            onRemove: obj.options.onremove, // Money, datatype
+            model: obj.model, // script
+            parentProperty: key, // Money, datatype
+            parentViewModel: obj.viewModel, // Money, datatype
+            prop: prop,
+            required: obj.options.required,
+            style: obj.options.style || {},
+            showCurrency: obj.options.showCurrency
+        });
     }
 
     // Handle relations
@@ -772,11 +820,11 @@ f.buildInputComponent = function (obj) {
                 parentViewModel: obj.viewModel,
                 parentProperty: key,
                 filter: obj.filter,
-                isCell: opts.isCell,
-                style: opts.style,
-                onCreate: opts.oncreate,
-                onRemove: opts.onremove,
-                id: id,
+                isCell: obj.options.isCell,
+                style: obj.options.style,
+                onCreate: obj.options.oncreate,
+                onRemove: obj.options.onremove,
+                id: obj.options.id,
                 disabled: prop.isReadOnly
             });
         }
@@ -996,8 +1044,6 @@ f.prop = function (store, formatter) {
     p.state = function () {
         return state;
     };
-
-    p.ignore = 0;
 
     p.toJSON = function () {
         if (
