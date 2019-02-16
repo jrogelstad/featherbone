@@ -107,8 +107,8 @@ function buildFieldset(vm, attrs) {
             let ret = "pure-menu-link fb-form-label-menu-item";
 
             if (
-                relation && relation.isDisabled &&
-                relation.isDisabled()
+                relation && relation.isReadOnly &&
+                relation.isReadOnly()
             ) {
                 ret += " pure-menu-disabled";
             }

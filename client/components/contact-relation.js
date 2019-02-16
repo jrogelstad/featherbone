@@ -181,7 +181,7 @@ contactRelation.component = {
                 filter: options.filter,
                 isCell: options.isCell,
                 id: options.id,
-                disabled: options.disabled,
+                isReadOnly: options.isReadOnly,
                 style: options.style || {}
             });
         }

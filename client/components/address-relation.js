@@ -158,7 +158,7 @@ addressRelation.component = {
             id: options.id,
             isCell: options.isCell,
             style: options.style,
-            disabled: options.disabled
+            readonly: options.readonly
         });
     },
 
@@ -166,7 +166,20 @@ addressRelation.component = {
         let ret;
         let vm = this.viewModel;
         let style = vm.style();
-        let disabled = vnode.attrs.disabled === true;
+        let readonly = vnode.attrs.isReadOnly() === true;
+        let options = {
+            id: vm.id(),
+            class: "fb-input",
+            value: vm.content(vm.isCell()),
+            readonly: readonly,
+            rows: 4
+        }
+
+        if (!readonly) {
+            options.title = "Click or Enter key to edit";
+            options.onkeydown = vm.onkeydown;
+            options.onclick = vm.doEdit;
+        }
 
         style.display = style.display || "inline-block";
 
@@ -177,16 +190,7 @@ addressRelation.component = {
             m(formDialog.component, {
                 viewModel: vm.addressDialog()
             }),
-            m("textarea", {
-                id: vm.id(),
-                title: "Click or Enter key to edit",
-                class: "fb-input",
-                onkeydown: vm.onkeydown,
-                onclick: vm.doEdit,
-                value: vm.content(vm.isCell()),
-                disabled: disabled,
-                rows: 4
-            })
+            m("textarea", options)
         ]);
 
         return ret;
