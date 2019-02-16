@@ -557,6 +557,7 @@ workbookPage.viewModel = function (options) {
         icon: "undo",
         class: "fb-toolbar-button"
     }));
+    vm.buttonUndo().hide();
 
     vm.buttonRefresh(button.viewModel({
         onclick: vm.refresh,
