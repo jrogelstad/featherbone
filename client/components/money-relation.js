@@ -34,7 +34,7 @@ function selections(item) {
 
 moneyRelation.viewModel = function (options) {
     let selector;
-    let wasDisabled;
+    let wasReadOnly;
     let wasCurrency;
     let vm = {};
     let parent = options.parentViewModel;
@@ -241,14 +241,14 @@ moneyRelation.viewModel = function (options) {
     // that otherwise interferes with the relation widget autocompleter
     vm.selector = function (vnode) {
         let selectorStyle;
-        let disabled = (
-            vnode.attrs.disabled === true ||
+        let readonly = (
+            vnode.attrs.readonly === true ||
             vm.disableCurrency() || vm.effective()
         );
         let currency = vm.currency();
 
         if (
-            selector && disabled === wasDisabled &&
+            selector && readonly === wasReadOnly &&
             currency === wasCurrency
         ) {
             return selector;
@@ -262,13 +262,13 @@ moneyRelation.viewModel = function (options) {
             selectorStyle.display = "none";
         }
 
-        wasDisabled = disabled;
+        wasReadOnly = readonly;
         wasCurrency = currency;
         selector = m("select", {
             id: "C" + vm.id(),
             onchange: (e) => vm.currency(e.target.value),
             value: currency,
-            disabled: disabled,
+            readonly: readonly,
             style: selectorStyle
         }, vm.currencies().map(selections));
 
@@ -289,7 +289,7 @@ moneyRelation.component = {
             parentProperty: options.parentProperty,
             id: options.id,
             isCell: options.isCell,
-            disabled: options.disabled,
+            readonly: options.readonly,
             showCurrency: options.showCurrency,
             disableCurrency: options.disableCurrency
         });
@@ -301,7 +301,7 @@ moneyRelation.component = {
         let amountLabelStyle;
         let displayStyle;
         let vm = this.viewModel;
-        let disabled = vnode.attrs.disabled === true || vm.effective();
+        let readonly = vnode.attrs.readonly === true || vm.effective();
 
         displayStyle = {
             display: "inline-block"
@@ -345,7 +345,7 @@ moneyRelation.component = {
                 id: "A" + vm.id(),
                 onchange: (e) => vm.amount(e.target.value),
                 value: vm.amount(),
-                disabled: disabled,
+                readonly: readonly,
                 oncreate: vnode.attrs.onCreate,
                 onremove: vnode.attrs.onRemove
             }),

@@ -184,7 +184,7 @@ function buildSelector(obj, opts) {
     if (selectComponents[id]) {
         if (
             selectComponents[id].value === value &&
-            selectComponents[id].disabled === opts.disabled &&
+            selectComponents[id].readonly === opts.readonly &&
             selectComponents[id].values === values
         ) {
             return selectComponents[id].content;
@@ -194,14 +194,15 @@ function buildSelector(obj, opts) {
     }
 
     selectComponents[id].value = value;
-    selectComponents[id].disabled = opts.disabled;
+    selectComponents[id].readonly = opts.readonly;
     selectComponents[id].values = values;
     selectComponents[id].content = m("select", {
         id: id,
         key: id,
         onchange: (e) => opts.prop(e.target.value),
         value: value,
-        disabled: opts.disabled,
+        readonly: opts.readonly,
+        disabled: opts.readonly,
         class: opts.class,
         style: opts.style
     }, obj.dataList.map(function (item) {
@@ -757,9 +758,9 @@ f.buildInputComponent = function (obj) {
     if (typeof prop.type === "string" || isPath) {
 
         if (isPath || prop.isReadOnly()) {
-            obj.options.disabled = true;
+            obj.options.readonly = true;
         } else {
-            obj.options.disabled = false;
+            obj.options.readonly = false;
         }
 
         if (prop.isRequired()) {
@@ -774,7 +775,7 @@ f.buildInputComponent = function (obj) {
 
         if (prop.format && f.formats[prop.format].editor) {
             editor = f.formats[prop.format].editor;
-        } else if (f.types[prop.type]) {
+        } else if (f.types[prop.type] && f.types[prop.type].editor) {
             editor = f.types[prop.type].editor;
         } else {
             editor = f.types.string.editor;
@@ -782,16 +783,16 @@ f.buildInputComponent = function (obj) {
 
         return editor({
             class: obj.options.class,
-            disabled: obj.options.disabled,
-            disableCurrency: obj.options.disableCurrency,
+            readonly: obj.options.readonly,
+            disableCurrency: obj.options.fCurrency,
             filter: obj.options.filter,
             id: obj.options.id,
             isCell: obj.options.isCell,
-            onCreate: obj.options.oncreate, // Money, datatype
-            onRemove: obj.options.onremove, // Money, datatype
-            model: obj.model, // script
-            parentProperty: key, // Money, datatype
-            parentViewModel: obj.viewModel, // Money, datatype
+            onCreate: obj.options.oncreate,
+            onRemove: obj.options.onremove,
+            model: obj.model,
+            parentProperty: key,
+            parentViewModel: obj.viewModel,
             prop: prop,
             required: obj.options.required,
             style: obj.options.style || {},
@@ -825,7 +826,7 @@ f.buildInputComponent = function (obj) {
                 onCreate: obj.options.oncreate,
                 onRemove: obj.options.onremove,
                 id: obj.options.id,
-                disabled: prop.isReadOnly
+                isReadOnly: prop.isReadOnly
             });
         }
     }

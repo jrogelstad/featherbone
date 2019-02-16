@@ -59,7 +59,7 @@ listWidget.component = {
         return m("table", {
             class: "pure-table",
             style: vnode.attrs.style,
-            disabled: vnode.attrs.disabled
+            readonly: vnode.attrs.readonly
         }, [
             m("thead", [
                 m("tr", [
@@ -355,7 +355,7 @@ dataType.viewModel = function (options) {
                     key: "dlgRelation",
                     value: vm.relation(),
                     onchange: vm.onchangeDialogRelation,
-                    disabled: isNotRelation,
+                    readonly: isNotRelation,
                     class: "fb-input"
                 }, f.feathers().map(function (item) {
                     return m("option", {
@@ -375,7 +375,7 @@ dataType.viewModel = function (options) {
                     id: "dlgChildOf",
                     value: vm.childOf(),
                     onchange: vm.onchangeDialogChildOf,
-                    disabled: isNotFeather || vm.propertiesSelected().length
+                    readonly: isNotFeather || vm.propertiesSelected().length
                 })
             ]),
             m("div", {
@@ -397,7 +397,7 @@ dataType.viewModel = function (options) {
                             display: "inline-block",
                             width: "120px"
                         },
-                        disabled: isNotFeather
+                        readonly: isNotFeather
                     }),
                     m("div", {
                         style: {
@@ -421,7 +421,7 @@ dataType.viewModel = function (options) {
                             display: "inline-block",
                             width: "120px"
                         },
-                        disabled: isNotFeather
+                        readonly: isNotFeather
                     })
                 ])
             ])
@@ -460,7 +460,7 @@ dataType.component = {
             parentViewModel: options.parentViewModel,
             parentProperty: options.parentProperty,
             id: options.id,
-            disabled: options.disabled
+            readonly: options.readonly
         });
     },
 
@@ -469,7 +469,7 @@ dataType.component = {
         let vm = this.viewModel;
         let id = vm.id();
         let style = vm.style();
-        let disabled = vnode.attrs.disabled === true;
+        let readonly = vnode.attrs.readonly === true;
 
         style.display = style.display || "inline-block";
 
@@ -487,7 +487,7 @@ dataType.component = {
                 oncreate: vnode.attrs.onCreate,
                 onremove: vnode.attrs.onRemove,
                 value: vm.type(),
-                disabled: disabled
+                readonly: readonly
             }, vm.types().map(function (item) {
                 let opts = {
                     value: item,

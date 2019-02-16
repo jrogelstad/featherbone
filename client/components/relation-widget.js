@@ -101,7 +101,7 @@ relationWidget.viewModel = function (options) {
     vm.formConfig = f.prop(options.form);
     vm.id = f.prop(options.id);
     vm.isCell = f.prop(Boolean(options.isCell));
-    vm.isDisabled = options.disabled || f.prop(false);
+    vm.isReadOnly = options.isReadOnly || f.prop(false);
     vm.label = function () {
         let model = modelValue();
         return (
@@ -343,7 +343,7 @@ relationWidget.component = {
                 filter: options.filter,
                 isCell: options.isCell,
                 id: options.id,
-                disabled: options.disabled,
+                isReadOnly: options.isReadOnly,
                 style: options.style
             });
         }
@@ -358,7 +358,7 @@ relationWidget.component = {
         let maxWidth;
         let menu;
         let vm = this.viewModel;
-        let disabled = vm.isDisabled();
+        let readonly = vm.isReadOnly();
         let style = vm.style();
         let openMenuClass = "pure-menu-link";
         let editMenuClass = "pure-menu-link";
@@ -390,7 +390,7 @@ relationWidget.component = {
             openMenuClass += " pure-menu-disabled";
         }
 
-        if (vm.isDisabled()) {
+        if (readonly) {
             editMenuClass += " pure-menu-disabled";
         }
 
@@ -477,7 +477,7 @@ relationWidget.component = {
                 value: vm.value(),
                 oncreate: vnode.attrs.onCreate,
                 onremove: vnode.attrs.onRemove,
-                disabled: disabled
+                readonly: readonly
             }),
             menu,
             m("div", {
