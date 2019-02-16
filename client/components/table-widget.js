@@ -650,10 +650,10 @@ function createTableRow(options, model) {
             style = f.getStyle(style);
 
             rowOpts.style = {
-              color: style.color,
-              fontWeight: style.fontWeight,
-              textDecoration: style.textDecoration
-            }
+                color: style.color,
+                fontWeight: style.fontWeight,
+                textDecoration: style.textDecoration
+            };
 
             if (!isSelected) {
                 rowOpts.style.backgroundColor = style.backgroundColor;
