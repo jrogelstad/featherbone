@@ -611,7 +611,6 @@ function createTableRow(options, model) {
     let onshifttab;
     let defaultFocusId = vm.defaultFocus(model);
     let currentMode = vm.mode().current()[0];
-    let color = "White";
     let isSelected = vm.isSelected(model);
     let currentState = model.state().current()[0];
     let d = model.data;
@@ -619,10 +618,12 @@ function createTableRow(options, model) {
         key: model.id()
     };
     let cellOpts = {};
+    let rowClass;
+    let style;
 
     // Build row
     if (isSelected) {
-        color = vm.selectedColor();
+        rowClass = vm.selectedClass();
     }
 
     // Build view row
@@ -641,6 +642,23 @@ function createTableRow(options, model) {
         rowOpts = {
             ondblclick: vm.ondblclick.bind(null, model)
         };
+
+        // Apply any style business logic
+        style = model.style();
+
+        if (style) {
+            style = f.getStyle(style);
+
+            rowOpts.style = {
+              color: style.color,
+              fontWeight: style.fontWeight,
+              textDecoration: style.textDecoration
+            }
+
+            if (!isSelected) {
+                rowOpts.style.backgroundColor = style.backgroundColor;
+            }
+        }
 
         // Build editable row
     } else {
@@ -746,9 +764,7 @@ function createTableRow(options, model) {
     tds.unshift(m("th", cellOpts, thContent));
 
     // Build row
-    rowOpts.style = {
-        backgroundColor: color
-    };
+    rowOpts.class = rowClass;
     rowOpts.key = model.id();
 
     if (d.isDeleted()) {
@@ -1110,8 +1126,8 @@ tableWidget.viewModel = function (options) {
         });
     };
     vm.selections = f.prop([]);
-    vm.selectedColor = function () {
-        return vm.mode().selectedColor();
+    vm.selectedClass = function () {
+        return vm.mode().selectedClass();
     };
     vm.state = f.prop();
     vm.toggleEdit = function () {
@@ -1331,8 +1347,8 @@ tableWidget.viewModel = function (options) {
                     confirmDialog.show();
                 };
                 this.modelNew = f.prop(false); // Do nothing
-                this.selectedColor = function () {
-                    return "#e7e9f3";
+                this.selectedClass = function () {
+                    return "fb-table-row-selected";
                 };
                 this.toggleSelection = function (model, id, optKey) {
                     let startIdx;
@@ -1429,8 +1445,8 @@ tableWidget.viewModel = function (options) {
                     vm.select(model);
                     return true;
                 };
-                this.selectedColor = function () {
-                    return "Azure";
+                this.selectedClass = function () {
+                    return "fb-table-row-editor";
                 };
                 this.toggleSelection = function (model, id) {
                     vm.select(model);

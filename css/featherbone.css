@@ -357,6 +357,14 @@ a.pure-button-selected {
   left: 225px;
 }
 
+.fb-table-row-selected {
+  background-color: #e7e9f3;
+}
+
+.fb-table-row-editor {
+  background-color: azure;
+}
+
 .fb-top-pane {
   margin: 10px;
 }
