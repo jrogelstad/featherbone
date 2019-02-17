@@ -786,6 +786,7 @@ function resize(vm, vnode) {
     let yPosition;
     let e = document.getElementById(vnode.dom.id);
     let id = vm.footerId();
+    let height;
 
     if (id) {
         footer = document.getElementById(id);
@@ -803,9 +804,13 @@ function resize(vm, vnode) {
         bottomHeight = (
             containerHeight - yPosition - e.offsetHeight
         );
-        e.style.height = (
-            window.innerHeight - yPosition - bottomHeight + "px"
-        );
+        height = window.innerHeight - yPosition - 32;
+
+        if (height < 150) {
+            height = 150;
+        }
+
+        e.style.height = height + "px";
     }
 }
 

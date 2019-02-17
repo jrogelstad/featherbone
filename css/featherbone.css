@@ -265,6 +265,9 @@ a.pure-button-selected {
 
 .fb-form-content {
   overflow: auto;
+  position: absolute;
+  height: 100%;
+  width: 100%;
 }
 
 .fb-form-label {
