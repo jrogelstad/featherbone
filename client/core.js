@@ -579,18 +579,24 @@ f.money = function (amount, currency, effective, baseAmount) {
 
 function input(type, options) {
     let prop = options.prop;
+    let opts = {
+        class: options.class,
+        readonly: options.readonly,
+        id: options.id,
+        required: options.required,
+        style: options.style,
+        type: type,
+        onchange: (e) => prop(e.target.value),
+        value: prop()
+    };
 
-    options.type = type;
-    options.onchange = (e) => prop(e.target.value);
-    options.value = prop();
-
-    if (options.class) {
-        options.class = "fb-input " + options.class;
+    if (opts.class) {
+        opts.class = "fb-input " + opts.class;
     } else {
-        options.class = "fb-input";
+        opts.class = "fb-input";
     }
 
-    return m("input", options);
+    return m("input", opts);
 }
 
 f.formats.color.editor = input.bind(null, "color");
@@ -610,19 +616,31 @@ f.formats.tel.editor = input.bind(null, "tel");
 
 f.formats.textArea.editor = function (options) {
     let prop = options.prop;
+    let opts = {
+        readonly: options.readonly,
+        id: options.id,
+        required: options.required,
+        style: options.style,
+        onchange: (e) => prop(e.target.value),
+        value: prop(),
+        rows: options.rows || 4
+    };
 
-    options.onchange = (e) => prop(e.target.value);
-    options.value = prop();
-    options.rows = options.rows || 4;
-
-    return m("textarea", options);
+    return m("textarea", opts);
 };
 
 f.formats.script.editor = function (options) {
     let prop = options.prop;
     let model = options.model;
+    let opts = {
+        readonly: options.readonly,
+        id: options.id,
+        required: options.required,
+        onchange: (e) => prop(e.target.value),
+        value: prop()
+    };
 
-    options.oncreate = function () {
+    opts.oncreate = function () {
         let editor;
         let lint;
         let state = model.state();
@@ -680,52 +698,72 @@ f.formats.script.editor = function (options) {
         this.editor = editor;
     };
 
-    options.onupdate = function () {
+    opts.onupdate = function () {
         resizeEditor(this.editor);
     };
 
-    return m("textarea", options);
+    return m("textarea", opts);
 };
 
 f.formats.url.editor = input.bind(null, "url");
 
 f.types.boolean.editor = function (options) {
     let prop = options.prop;
+    let opts = {
+        id: options.id,
+        required: options.required,
+        readonly: options.readonly,
+        style: options.style,
+        onclick: prop,
+        value: prop()
+    };
 
-    options.onclick = prop;
-    options.value = prop();
-
-    return m(catalog.store().components().checkbox, options);
+    return m(catalog.store().components().checkbox, opts);
 };
 
 f.types.number.editor = function (options) {
     let prop = options.prop;
-
-    options.onchange = (e) => prop(e.target.value);
-    options.value = prop();
+    let opts = {
+        class: options.class,
+        readonly: options.readonly,
+        id: options.id,
+        required: options.required,
+        style: options.style,
+        type: options.type || "text",
+        onchange: (e) => prop(e.target.value),
+        value: prop()
+    };
 
     if (prop.min !== undefined) {
-        options.min = prop.min;
+        opts.min = prop.min;
     }
     if (prop.max !== undefined) {
-        options.max = prop.max;
+        opts.max = prop.max;
     }
 
-    if (options.class) {
-        options.class = "fb-input " + options.class;
+    if (opts.class) {
+        opts.class = "fb-input " + opts.class;
     } else {
-        options.class = "fb-input";
+        opts.class = "fb-input";
     }
 
-    options.class += " fb-input-number";
+    opts.class += " fb-input-number";
 
-    return m("input", options);
+    return m("input", opts);
 };
 
 f.types.integer.editor = function (options) {
-    options.type = "number";
+    let opts = {
+        class: options.class,
+        readonly: options.readonly,
+        id: options.id,
+        required: options.required,
+        style: options.style,
+        type: "number",
+        prop: options.prop
+    };
 
-    return f.types.number.editor(options);
+    return f.types.number.editor(opts);
 };
 
 f.types.string.editor = input.bind(null, "text");
@@ -766,7 +804,7 @@ f.buildInputComponent = function (obj) {
         if (prop.isRequired()) {
             obj.options.required = true;
         }
-        
+
         obj.options.prop = prop;
 
         if (obj.dataList) {
