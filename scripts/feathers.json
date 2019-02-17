@@ -49,10 +49,6 @@
                 "default": false,
                 "isRequired": true
             },
-            "overloads": {
-                "description": "Property overloads",
-                "type": "object"
-            },
             "isFetchOnStartup": {
                 "description": "Load all records of this type into the catalog",
                 "type": "boolean",
@@ -69,9 +65,8 @@
     },
     {
         "name": "FeatherProperty",
-        "plural": "FeatherProperties",
         "module": "Core",
-        "description": "Feather properties",
+        "description": "Feather property",
         "authorization": false,
         "properties": {
             "parent": {
@@ -177,6 +172,72 @@
                 "description": "Flag whether to index property",
                 "type": "boolean",
                 "default": false
+            }
+        }
+    },
+    {
+        "name": "FeatherOverload",
+        "module": "Core",
+        "description": "Override behvaior of inherited properties on client",
+        "authorization": false,
+        "properties": {
+            "parent": {
+                "description": "Parent feather",
+                "type": {
+                    "relation": "Feather",
+                    "childOf": "overloads"
+                }
+            },
+            "name": {
+                "description": "Name",
+                "type": "string",
+                "isRequired": true
+            },
+            "overloadDescription": {
+                "description": "Flag whether to overload description",
+                "type": "boolean",
+                "default": false
+            },
+            "description": {
+                "description": "Specific description of property use for this feather",
+                "type": "string"
+            },
+            "overloadAlias": {
+                "description": "Flag whether to overload alias",
+                "type": "boolean",
+                "default": false
+            },
+            "alias": {
+                "description": "Label name to use for this property on the client side",
+                "type": "string"
+            },
+            "overloadType": {
+                "description": "Flag whether to overload type",
+                "type": "boolean",
+                "default": false
+            },
+            "type": {
+                "description": "Specify an alternate relation feather to use on the client side for easier searching",
+                "type": "object",
+                "format": "dataType"
+            },
+            "overloadDefault": {
+                "description": "Flag whether to overload default",
+                "type": "boolean",
+                "default": false
+            },
+            "default": {
+                "description": "Overloaded default",
+                "type": "object"
+            },
+            "overloadDataList": {
+                "description": "Flag whether to overload data list",
+                "type": "boolean",
+                "default": false
+            },
+            "dataList": {
+                "description": "Over loaded list of available valuse for this feather",
+                "type": "string"
             }
         }
     },

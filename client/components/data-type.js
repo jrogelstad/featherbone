@@ -53,7 +53,7 @@ listWidget.component = {
     view: function (vnode) {
         let vm = this.viewModel;
         let name = vm.name();
-        let items = vm.items();
+        let items = vm.items() || [];
         let selected = vm.selected();
 
         return m("table", {
@@ -217,7 +217,7 @@ dataType.viewModel = function (options) {
     };
     vm.propertiesAvailable = function () {
         let props = vm.properties().slice();
-        let selected = vm.propertiesSelected();
+        let selected = vm.propertiesSelected() || [];
 
         return props.filter(function (p) {
             return selected.indexOf(p) === -1;
@@ -323,6 +323,7 @@ dataType.viewModel = function (options) {
         let id = vm.id();
         let isNotRelation = vm.type() !== "relation";
         let isNotFeather = !vm.relation();
+        let propertiesSelected = vm.propertiesSelected() || [];
 
         return m("div", [
             m("div", {
@@ -375,7 +376,7 @@ dataType.viewModel = function (options) {
                     id: "dlgChildOf",
                     value: vm.childOf(),
                     onchange: vm.onchangeDialogChildOf,
-                    readonly: isNotFeather || vm.propertiesSelected().length
+                    readonly: isNotFeather || propertiesSelected.length
                 })
             ]),
             m("div", {
