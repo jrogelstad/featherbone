@@ -173,7 +173,7 @@ addressRelation.component = {
             value: vm.content(vm.isCell()),
             readonly: readonly,
             rows: 4
-        }
+        };
 
         if (!readonly) {
             options.title = "Click or Enter key to edit";
