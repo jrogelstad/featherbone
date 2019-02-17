@@ -237,6 +237,19 @@ function buildFieldset(vm, attrs) {
     });
 }
 
+function resize(vm, vnode) {
+    let e = document.getElementById(vnode.dom.id);
+    let bodyHeight = window.innerHeight;
+    let eids = vm.outsideElementIds();
+
+    eids.forEach(function (id) {
+        let h = document.getElementById(id).clientHeight;
+        bodyHeight = bodyHeight.minus(h);
+    });
+
+    e.style.maxHeight = bodyHeight - 5 + "px";
+}
+
 function buildUnit(vm, attrs, n) {
     let fieldset = buildFieldset(vm, attrs);
 
@@ -372,18 +385,8 @@ formWidget.component = {
         return m("div", {
             id: model.id(),
             class: "fb-form-content",
-            oncreate: function (vnode) {
-                let e = document.getElementById(vnode.dom.id);
-                let bodyHeight = window.innerHeight;
-                let eids = vm.outsideElementIds();
-
-                eids.forEach(function (id) {
-                    let h = document.getElementById(id).clientHeight;
-                    bodyHeight = bodyHeight.minus(h);
-                });
-
-                e.style.maxHeight = bodyHeight + "px";
-            }
+            oncreate: resize.bind(null, vm),
+            onupdate: resize.bind(null, vm)
         }, grids);
     }
 };

@@ -165,7 +165,7 @@ formPage.viewModel = function (options) {
         model: model,
         id: options.key,
         config: form,
-        outsideElementIds: ["toolbar"]
+        outsideElementIds: ["toolbar", "title"]
     }));
 
     // Once model instantiated let history know already created so we know
@@ -312,7 +312,8 @@ formPage.component = {
                 })
             ]),
             m("div", {
-                class: "fb-title"
+                class: "fb-title",
+                id: "title"
             }, [
                 m("i", {
                     class: "fa fa-" + icon + " fb-title-icon",
