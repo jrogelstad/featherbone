@@ -781,8 +781,6 @@ function createTableRow(options, model) {
 // Resize according to surroundings
 function resize(vm, vnode) {
     let footer;
-    let containerHeight;
-    let bottomHeight;
     let yPosition;
     let e = document.getElementById(vnode.dom.id);
     let id = vm.footerId();
@@ -797,13 +795,6 @@ function resize(vm, vnode) {
         );
     } else {
         yPosition = f.getElementPosition(e).y;
-        containerHeight = (
-            document.body.offsetHeight +
-            f.getElementPosition(document.body).y
-        );
-        bottomHeight = (
-            containerHeight - yPosition - e.offsetHeight
-        );
         height = window.innerHeight - yPosition - 32;
 
         if (height < 150) {
