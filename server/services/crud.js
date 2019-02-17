@@ -540,6 +540,8 @@
                                 value.slice(0, 1) !== "["
                             ) {
                                 value = "\"" + value + "\"";
+                            } else if (prop.type === "array") {
+                                value = JSON.stringify(value);
                             }
 
                             // Handle autonumber
@@ -1447,6 +1449,8 @@
                                 updRec[key].slice(0, 1) !== "["
                             ) {
                                 updRec[key] = "\"" + value + "\"";
+                            } else if (props[key].type === "array") {
+                                updRec[key] = JSON.stringify(updRec[key]);
                             }
 
                             tokens.push(key.toSnakeCase());
