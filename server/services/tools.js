@@ -168,31 +168,7 @@
                 type: "timestamp with time zone",
                 default: "now()"
             },
-            tel: {
-                type: "text",
-                default: ""
-            },
-            email: {
-                type: "text",
-                default: ""
-            },
-            password: {
-                type: "text",
-                default: ""
-            },
-            url: {
-                type: "text",
-                default: ""
-            },
             enum: {
-                type: "text",
-                default: ""
-            },
-            textArea: {
-                type: "text",
-                default: ""
-            },
-            script: {
                 type: "text",
                 default: ""
             },
@@ -208,13 +184,13 @@
                 type: "lock",
                 default: null
             },
-            dataType: {
+            object: {
                 type: "json",
                 default: null
             },
-            icon: {
-                type: "string",
-                default: ""
+            array: {
+                type: "json[]",
+                default: null
             }
         };
 

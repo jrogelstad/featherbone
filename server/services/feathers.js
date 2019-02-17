@@ -1312,6 +1312,8 @@
                                     if (prop.format) {
                                         if (formats[prop.format]) {
                                             sql += formats[prop.format].type;
+                                        } else if (formats[prop.type]) {
+                                            sql += formats[prop.type].type;
                                         } else {
                                             err = "Invalid format \"";
                                             err += prop.format;

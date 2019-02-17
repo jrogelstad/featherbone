@@ -381,7 +381,7 @@
                     row.dataList = overload.default;
                 } else {
                     row.overloadDataList = false;
-                    row.dataList = "";
+                    row.dataList = null;
                 }
 
                 return row;

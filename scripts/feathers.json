@@ -165,7 +165,7 @@
             },
             "dataList": {
                 "description": "Array of input values",
-                "type": "string",
+                "type": "array",
                 "isRequired": false
             },
             "isIndexed": {
@@ -236,8 +236,8 @@
                 "default": false
             },
             "dataList": {
-                "description": "Over loaded list of available valuse for this feather",
-                "type": "string"
+                "description": "Over loaded list of available values for this feather",
+                "type": "array"
             }
         }
     },
