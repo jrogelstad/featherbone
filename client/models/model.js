@@ -1182,8 +1182,8 @@ function model(data, feather) {
             let overload = overloads[key] || {};
             let alias = overload.alias || props[key].alias || key;
             let p = props[key];
-            let min = overload.min || p.min;
-            let max = overload.max || p.max;
+            let min = p.min;
+            let max = p.max;
             let type = p.type;
             let value = initData[key];
             let formatter = {};
@@ -1358,24 +1358,10 @@ function model(data, feather) {
             prop.key = key; // Use of 'name' property is not allowed here
             prop.description = overload.description || p.description;
             prop.type = overload.type || p.type;
-            if (
-                overload.type && typeof overload.type === "object" &&
-                !overload.type.properties
-            ) {
-                prop.type.properties = p.type.properties;
-            }
-            prop.format = overload.format || p.format;
+            prop.format = p.format;
             prop.default = defaultValue;
-            prop.isRequired(
-                overload.isRequired !== undefined
-                ? overload.isRequired
-                : p.isRequired
-            );
-            prop.isReadOnly(
-                overload.isReadOnly !== undefined
-                ? overload.isReadOnly
-                : p.isReadOnly
-            );
+            prop.isRequired(p.isRequired);
+            prop.isReadOnly(p.isReadOnly);
             prop.isCalculated = false;
             prop.alias(alias);
             prop.dataList = overload.dataList || p.dataList;

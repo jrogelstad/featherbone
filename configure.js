@@ -64,9 +64,9 @@
     });
     let exit = process.exit;
     let i = 0;
-    
+
     function btoa(str) {
-        return Buffer.from(str.toString(), 'binary').toString("base64");
+        return Buffer.from(str.toString(), "binary").toString("base64");
     }
 
     function connect(callback) {
@@ -82,12 +82,12 @@
                 callback();
             });
         });
-    };
+    }
 
     function begin() {
         //console.log("BEGIN");
         client.query("BEGIN;", processFile);
-    };
+    }
 
     function commit() {
         return new Promise(function (resolve) {
@@ -97,7 +97,7 @@
                 resolve();
             });
         });
-    };
+    }
 
     function rollback(err) {
         client.query("ROLLBACK;", function () {
@@ -107,7 +107,7 @@
             client.end();
             process.exit();
         });
-    };
+    }
 
     function execute(filename) {
         let dep = path.resolve(filename);
@@ -117,7 +117,7 @@
             user: user,
             client: client
         }).then(processFile).catch(rollback);
-    };
+    }
 
     processFile = function () {
         let filepath;
@@ -327,11 +327,64 @@
         feathers.forEach(function (feather) {
             let keys = Object.keys(feather.properties || {});
             let props = feather.properties;
+            let overloads = feather.overloads || {};
 
             feather.properties = keys.map(function (key) {
                 let prop = props[key];
+
                 prop.name = key;
+
                 return prop;
+            });
+
+            keys = Object.keys(feather.overloads || {});
+            feather.overloads = keys.map(function (key) {
+                let overload = overloads[key] || {};
+                let row = {};
+
+                row.name = key;
+
+                if (overload.description !== undefined) {
+                    row.overloadDescription = true;
+                    row.description = overload.description;
+                } else {
+                    row.overloadDescription = false;
+                    row.description = "";
+                }
+
+                if (overload.alias !== undefined) {
+                    row.overloadAlias = true;
+                    row.alias = overload.alias;
+                } else {
+                    row.overloadAlias = false;
+                    row.alias = "";
+                }
+
+                if (overload.type !== undefined) {
+                    row.overloadType = true;
+                    row.type = overload.type;
+                } else {
+                    row.overloadType = false;
+                    row.type = null;
+                }
+
+                if (overload.default !== undefined) {
+                    row.overloadDefault = true;
+                    row.default = overload.default;
+                } else {
+                    row.overloadDefault = false;
+                    row.default = null;
+                }
+
+                if (overload.dataList !== undefined) {
+                    row.overloadDataList = true;
+                    row.dataList = overload.default;
+                } else {
+                    row.overloadDataList = false;
+                    row.dataList = "";
+                }
+
+                return row;
             });
 
             data.push({

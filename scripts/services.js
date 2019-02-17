@@ -27,13 +27,40 @@ function doUpsertFeather(obj) {
     return new Promise(function (resolve, reject) {
         let payload;
         let feather = f.copy(obj.newRec);
+        let props = feather.properties;
+        let overloads = feather.overloads || [];
 
         // Save the feather in the catalog
-        let props = feather.properties;
         feather.properties = {};
         props.forEach(function (prop) {
             feather.properties[prop.name] = prop;
             delete prop.name;
+        });
+        feather.overloads = {};
+        overloads.forEach(function (o) {
+            let overload = {};
+
+            if (o.overloadDescription) {
+                overload.description = o.description;
+            }
+
+            if (o.overloadAlias) {
+                overload.alias = o.alias;
+            }
+
+            if (o.overloadType) {
+                overload.type = o.type;
+            }
+
+            if (o.overloadDefault) {
+                overload.default = o.default;
+            }
+
+            if (o.overloadDataList) {
+                overload.dataList = o.dataList;
+            }
+
+            feather.overloads[o.name] = overload;
         });
 
         payload = {
