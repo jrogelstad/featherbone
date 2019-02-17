@@ -379,7 +379,7 @@ function createTableDataView(options, col) {
         }
         break;
     case "dataType":
-        if (typeof value === "object") {
+        if (typeof value === "object" && value !== null) {
             content = "relation: " + value.relation;
         } else {
             content = value;
