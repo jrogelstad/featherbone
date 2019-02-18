@@ -315,6 +315,8 @@ relationWidget.viewModel = function (options) {
     return vm;
 };
 
+catalog.register("viewModels", "relationWidget", relationWidget.viewModel);
+
 /**
   @param {Object} Options
   @param {Object} [options.viewModel] Parent view-model. Must have

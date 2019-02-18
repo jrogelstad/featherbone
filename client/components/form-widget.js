@@ -346,6 +346,8 @@ formWidget.viewModel = function (options) {
     return vm;
 };
 
+catalog.register("viewModels", "formWidget", formWidget.viewModel);
+
 formWidget.component = {
     oninit: function (vnode) {
         this.viewModel = vnode.attrs.viewModel;
