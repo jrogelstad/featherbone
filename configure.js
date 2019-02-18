@@ -378,7 +378,7 @@
 
                 if (overload.dataList !== undefined) {
                     row.overloadDataList = true;
-                    row.dataList = overload.default;
+                    row.dataList = overload.dataList;
                 } else {
                     row.overloadDataList = false;
                     row.dataList = null;
