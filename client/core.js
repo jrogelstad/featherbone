@@ -200,6 +200,8 @@ function buildSelector(obj, opts) {
         id: id,
         key: id,
         onchange: (e) => opts.prop(e.target.value),
+        oncreate: opts.oncreate,
+        onremove: opts.onremove,
         value: value,
         readonly: opts.readonly,
         disabled: opts.readonly,
@@ -587,6 +589,8 @@ function input(type, options) {
         style: options.style,
         type: type,
         onchange: (e) => prop(e.target.value),
+        oncreate: options.onCreate,
+        onremove: options.onRemove,
         value: prop()
     };
 
@@ -734,6 +738,8 @@ f.formats.textArea.editor = function (options) {
         required: options.required,
         style: options.style,
         onchange: (e) => prop(e.target.value),
+        oncreate: options.onCreate,
+        onremove: options.onRemove,
         value: prop(),
         rows: options.rows || 4
     };
@@ -856,6 +862,8 @@ f.types.boolean.editor = function (options) {
     let prop = options.prop;
     let opts = {
         id: options.id,
+        oncreate: options.onCreate,
+        onremove: options.onRemove,
         required: options.required,
         readonly: options.readonly,
         style: options.style,
@@ -884,6 +892,8 @@ f.types.number.editor = function (options) {
         required: options.required,
         style: options.style,
         type: options.type || "text",
+        oncreate: options.onCreate,
+        onremove: options.onRemove,
         onchange: (e) => prop(e.target.value),
         value: prop()
     };
