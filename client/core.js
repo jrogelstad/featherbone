@@ -644,11 +644,23 @@ f.formats.dataType.editor = function (options) {
 };
 
 f.formats.dataType.tableData = function (obj) {
-    if (typeof obj.value === "object" && obj.value !== null) {
-        return "relation: " + obj.value.relation;
+    let value = obj.value;
+    let content = value;
+    let title = value;
+
+    if (typeof value === "object" && value !== null) {
+        content = "relation: " + obj.value.relation;
+        title = content + "\n";
+        if (value.childOf) {
+            title += "child of: " + value.childOf;
+        } else {
+            title += "properties: " + value.properties.toString();
+        }
     }
 
-    return obj.value;
+    obj.options.title = title;
+
+    return content;
 };
 
 f.formats.enum.tableData = function (obj) {
@@ -823,6 +835,23 @@ f.formats.url.tableData = function (obj) {
     }, obj.value);
 };
 
+f.types.array.tableData = function (obj) {
+    let value = obj.value;
+    let content;
+
+    if (value && value.length) {
+        if (typeof value[0] === "object") {
+            content = value.map((item) => item.label).toString();
+        } else {
+            content = value.toString();
+        }
+
+        obj.options.title = content;
+    }
+
+    return content;
+};
+
 f.types.boolean.editor = function (options) {
     let prop = options.prop;
     let opts = {
@@ -894,6 +923,8 @@ f.types.integer.tableData = f.types.number.tableData;
 f.types.string.editor = input.bind(null, "text");
 
 f.types.string.tableData = function (obj) {
+    obj.options.title = obj.value;
+
     return obj.value;
 };
 
