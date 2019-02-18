@@ -1357,7 +1357,10 @@ function model(data, feather) {
             // Carry other property definitions forward
             prop.key = key; // Use of 'name' property is not allowed here
             prop.description = overload.description || p.description;
-            prop.type = overload.type || p.type;
+            prop.type = p.type;
+            if (overload.type) {
+                prop.type.relation = overload.type.relation;
+            }
             prop.format = p.format;
             prop.default = defaultValue;
             prop.isRequired(p.isRequired);
