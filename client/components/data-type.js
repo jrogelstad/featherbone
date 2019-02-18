@@ -466,7 +466,6 @@ dataType.component = {
     },
 
     view: function (vnode) {
-        let ret;
         let vm = this.viewModel;
         let id = vm.id();
         let style = vm.style();
@@ -475,7 +474,7 @@ dataType.component = {
         style.display = style.display || "inline-block";
 
         // Build the view
-        ret = m("div", {
+        return m("div", {
             style: style
         }, [
             m(dialog.component, {
@@ -504,8 +503,6 @@ dataType.component = {
                 viewModel: vm.buttonEdit()
             })
         ]);
-
-        return ret;
     }
 };
 
