@@ -31,7 +31,7 @@ checkbox.component = {
 
     view: function (vnode) {
         let labelClass = "fb-checkbox-label";
-        
+
         if (vnode.attrs.readonly) {
             labelClass += " fb-checkbox-readonly";
         }
