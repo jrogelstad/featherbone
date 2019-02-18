@@ -235,20 +235,16 @@ function createTableDataView(options, col) {
     let onclick = options.onclick;
     let d = options.d;
     let url;
-    let rel;
     let cell;
     let content;
-    let curr;
     let tdOpts;
-    let symbol = "";
-    let minorUnit = 2;
+    let tableData;
     let prop = f.resolveProperty(options.model, col);
     let value = prop();
     let format = prop.format || prop.type;
     let columnWidth = (
         config.columns[options.idx].width || COL_WIDTH_DEFAULT
     );
-    let du;
     let style = (
         prop.style
         ? prop.style()
@@ -288,122 +284,10 @@ function createTableDataView(options, col) {
     }
 
     // Build cell
-    switch (format) {
-    case "number":
-    case "integer":
-        content = value.toLocaleString();
-        tdOpts.style.textAlign = "right";
-        break;
-    case "boolean":
-        if (value) {
-            content = m("i", {
-                onclick: onclick,
-                class: "fa fa-check"
-            });
-        }
-        break;
-    case "date":
-        if (value) {
-            // Turn into date adjusting time for
-            // current timezone
-            value = new Date(value + f.now().slice(10));
-            content = value.toLocaleDateString();
-        }
-        break;
-    case "dateTime":
-        value = (
-            value
-            ? new Date(value)
-            : ""
-        );
-        content = (
-            value
-            ? value.toLocaleString()
-            : ""
-        );
-        break;
-    case "url":
-        url = (
-            value.slice(0, 4) === "http"
-            ? value
-            : "http://" + value
-        );
-        content = m("a", {
-            href: url,
-            target: "_blank",
-            onclick: function () {
-                vm.canToggle(false);
-            }
-        }, value);
-        break;
-    case "string":
-        content = value;
-        break;
-    case "money":
-        curr = f.getCurrency(value.currency);
-        if (curr) {
-            if (curr.data.hasDisplayUnit()) {
-                du = curr.data.displayUnit();
-                symbol = du.data.symbol();
-                minorUnit = du.data.minorUnit();
-            } else {
-                symbol = curr.data.symbol();
-                minorUnit = curr.data.minorUnit();
-            }
-        }
+    if (typeof format === "object" && d[col]()) {
+        tableData = function () {
+            let rel;
 
-        content = value.amount.toLocaleString(
-            undefined,
-            {
-                minimumFractionDigits: minorUnit,
-                maximumFractionDigits: minorUnit
-            }
-        );
-
-        if (value.amount < 0) {
-            content = "(" + Math.abs(content) + ")";
-        }
-
-        content = symbol + content;
-
-        tdOpts.style.textAlign = "right";
-
-        break;
-    case "enum":
-        if (typeof prop.dataList[0] === "object") {
-            content = prop.dataList.find(function (item) {
-                return item.value === value;
-            }).label;
-        } else {
-            content = value;
-        }
-        break;
-    case "dataType":
-        if (typeof value === "object" && value !== null) {
-            content = "relation: " + value.relation;
-        } else {
-            content = value;
-        }
-        break;
-    case "icon":
-        if (value) {
-            content = m("i", {
-                class: "fa fa-" + value
-            });
-        }
-        break;
-    case "color":
-        if (value) {
-            content = m("i", {
-                style: {
-                    color: value
-                },
-                class: "fa fa-square"
-            });
-        }
-        break;
-    default:
-        if (typeof format === "object" && d[col]()) {
             // If relation, use feather natural key to
             // find value to display
             rel = catalog.getFeather(format.relation);
@@ -422,17 +306,29 @@ function createTableDataView(options, col) {
                     "/" + d[col]().id()
                 );
 
-                content = m("a", {
+                return m("a", {
                     href: url,
                     onclick: function () {
                         vm.canToggle(false);
                     }
                 }, value);
             }
-        } else {
-            content = value;
-        }
+        };
+    } else if (prop.format && f.formats[prop.format].tableData) {
+        tableData = f.formats[prop.format].tableData;
+    } else if (f.types[prop.type] && f.types[prop.type].tableData) {
+        tableData = f.types[prop.type].tableData;
+    } else {
+        tableData = (obj) => obj.value;
     }
+
+    content = tableData({
+        value: value,
+        options: tdOpts,
+        viewModel: vm,
+        prop: prop,
+        onclick: onclick
+    });
 
     cell = [
         m("td", tdOpts, content),
