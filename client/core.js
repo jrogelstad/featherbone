@@ -170,9 +170,9 @@ function buildSelector(obj, opts) {
     let values = obj.dataList.map((item) => item.value).join();
 
     value = (
-        opts.value === ""
+        value === ""
         ? undefined
-        : opts.value
+        : value
     );
 
     if (opts.class) {
