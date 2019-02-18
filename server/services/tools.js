@@ -187,10 +187,6 @@
             object: {
                 type: "json",
                 default: null
-            },
-            array: {
-                type: "json[]",
-                default: null
             }
         };
 
@@ -632,7 +628,7 @@
             },
             array: {
                 type: "json",
-                default: []
+                default: null
             },
             string: {
                 type: "text",
