@@ -600,18 +600,118 @@ function input(type, options) {
 }
 
 f.formats.color.editor = input.bind(null, "color");
+
+f.formats.color.tableData = function (obj) {
+    if (obj.value) {
+        return m("i", {
+            style: {
+                color: obj.value
+            },
+            class: "fa fa-square"
+        });
+    }
+};
+
 f.formats.date.editor = input.bind(null, "date");
+
+f.formats.date.tableData = function (obj) {
+    if (obj.value) {
+        // Turn into date adjusting time for
+        // current timezone
+        obj.value = new Date(obj.value + f.now().slice(10));
+        return obj.value.toLocaleDateString();
+    }
+};
+
 f.formats.dateTime.editor = input.bind(null, "datetime-local");
+
+f.formats.dateTime.tableData = function (obj) {
+    obj.value = (
+        obj.value
+        ? new Date(obj.value)
+        : ""
+    );
+
+    return (
+        obj.value
+        ? obj.value.toLocaleString()
+        : ""
+    );
+};
 
 f.formats.dataType.editor = function (options) {
     return m(catalog.store().components().dataType, options);
+};
+
+f.formats.dataType.tableData = function (obj) {
+    if (typeof obj.value === "object" && obj.value !== null) {
+        return "relation: " + obj.value.relation;
+    }
+
+    return obj.value;
+};
+
+f.formats.enum.tableData = function (obj) {
+    if (typeof obj.prop.dataList[0] === "object") {
+        return obj.prop.dataList.find(function (item) {
+            return item.value === obj.value;
+        }).label;
+    }
+
+    return obj.value;
+};
+
+f.formats.icon.tableData = function (obj) {
+    if (obj.value) {
+        return m("i", {
+            class: "fa fa-" + obj.value
+        });
+    }
 };
 
 f.formats.money.editor = function (options) {
     return m(catalog.store().components().moneyRelation, options);
 };
 
+f.formats.money.tableData = function (obj) {
+    let value = obj.value;
+    let options = obj.options;
+    let curr = f.getCurrency(value.currency);
+    let du;
+    let symbol;
+    let minorUnit = 2;
+    let content;
+
+    if (curr) {
+        if (curr.data.hasDisplayUnit()) {
+            du = curr.data.displayUnit();
+            symbol = du.data.symbol();
+            minorUnit = du.data.minorUnit();
+        } else {
+            symbol = curr.data.symbol();
+            minorUnit = curr.data.minorUnit();
+        }
+    }
+
+    content = value.amount.toLocaleString(
+        undefined,
+        {
+            minimumFractionDigits: minorUnit,
+            maximumFractionDigits: minorUnit
+        }
+    );
+
+    if (value.amount < 0) {
+        content = "(" + Math.abs(content) + ")";
+    }
+
+    options.style.textAlign = "right";
+
+    return symbol + content;
+};
+
 f.formats.password.editor = input.bind(null, "password");
+
 f.formats.tel.editor = input.bind(null, "tel");
 
 f.formats.textArea.editor = function (options) {
@@ -707,6 +807,22 @@ f.formats.script.editor = function (options) {
 
 f.formats.url.editor = input.bind(null, "url");
 
+f.formats.url.tableData = function (obj) {
+    let url = (
+        obj.value.slice(0, 4) === "http"
+        ? obj.value
+        : "http://" + obj.value
+    );
+
+    return m("a", {
+        href: url,
+        target: "_blank",
+        onclick: function () {
+            obj.viewModel.canToggle(false);
+        }
+    }, obj.value);
+};
+
 f.types.boolean.editor = function (options) {
     let prop = options.prop;
     let opts = {
@@ -719,6 +835,15 @@ f.types.boolean.editor = function (options) {
     };
 
     return m(catalog.store().components().checkbox, opts);
+};
+
+f.types.boolean.tableData = function (obj) {
+    if (obj.value) {
+        return m("i", {
+            onclick: obj.onclick,
+            class: "fa fa-check"
+        });
+    }
 };
 
 f.types.number.editor = function (options) {
@@ -752,21 +877,25 @@ f.types.number.editor = function (options) {
     return m("input", opts);
 };
 
-f.types.integer.editor = function (options) {
-    let opts = {
-        class: options.class,
-        readonly: options.readonly,
-        id: options.id,
-        required: options.required,
-        style: options.style,
-        type: "number",
-        prop: options.prop
-    };
+f.types.number.tableData = function (obj) {
+    obj.options.style.textAlign = "right";
 
-    return f.types.number.editor(opts);
+    return obj.value.toLocaleString();
 };
 
+f.types.integer.editor = function (options) {
+    options.type = "number";
+
+    return f.types.number.editor(options);
+};
+
+f.types.integer.tableData = f.types.number.tableData;
+
 f.types.string.editor = input.bind(null, "text");
+
+f.types.string.tableData = function (obj) {
+    return obj.value;
+};
 
 /**
   Helper function for building input elements
