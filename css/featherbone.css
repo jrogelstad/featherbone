@@ -27,6 +27,10 @@ a.pure-button-selected {
   border: 1px solid #eee;
 }
 
+.fb-checkbox-readonly {
+  background: #eee !important;
+}
+
 .fb-input {
   width: 215px;
 }

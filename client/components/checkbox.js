@@ -30,6 +30,12 @@ checkbox.component = {
     },
 
     view: function (vnode) {
+        let labelClass = "fb-checkbox-label";
+        
+        if (vnode.attrs.readonly) {
+            labelClass += " fb-checkbox-readonly";
+        }
+
         return m("div", {
             class: "fb-checkbox"
         }, [
@@ -40,12 +46,12 @@ checkbox.component = {
                 onclick: (e) => vnode.attrs.onclick(e.target.checked),
                 checked: vnode.attrs.value,
                 style: vnode.attrs.style || {},
-                required: Boolean(vnode.attrs.required),
-                disabled: Boolean(vnode.attrs.disabled)
+                disabled: vnode.attrs.readonly,
+                required: Boolean(vnode.attrs.required)
             }),
             m("label", {
                 for: this.id,
-                class: "fb-checkbox-label"
+                class: labelClass
             }, m("i", {
                 class: "fa fa-check",
                 style: {
