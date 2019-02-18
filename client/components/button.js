@@ -17,6 +17,7 @@
 **/
 /*jslint this, browser*/
 import f from "../core.js";
+import catalog from "../models/catalog.js";
 import State from "../state.js";
 
 const button = {};
@@ -246,6 +247,8 @@ button.viewModel = function (options) {
     return vm;
 };
 
+catalog.register("viewModels", "button", button.viewModel);
+
 // Define button component
 button.component = {
     oninit: function (vnode) {
@@ -312,5 +315,7 @@ button.component = {
         return view;
     }
 };
+
+catalog.register("components", "button", button.component);
 
 export default Object.freeze(button);

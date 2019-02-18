@@ -1386,6 +1386,8 @@ tableWidget.viewModel = function (options) {
     return vm;
 };
 
+catalog.register("viewModels", "tableWidget", tableWidget.viewModel);
+
 // Define table widget component
 tableWidget.component = {
 

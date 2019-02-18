@@ -17,6 +17,7 @@
 **/
 /*jslint this, browser*/
 import f from "../core.js";
+import catalog from "../models/catalog.js";
 import State from "../state.js";
 import button from "./button.js";
 
@@ -155,6 +156,8 @@ dialog.viewModel = function (options) {
     return vm;
 };
 
+catalog.register("viewModels", "dialog", dialog.viewModel);
+
 /**
   Dialog component
 
@@ -212,5 +215,7 @@ dialog.component = {
         ]);
     }
 };
+
+catalog.register("components", "dialog", dialog.component);
 
 export default Object.freeze(dialog);
