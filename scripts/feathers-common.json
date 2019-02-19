@@ -317,12 +317,19 @@
                 "format": "enum",
                 "isRequired": true,
                 "default": "normal",
-                "dataList": [
-                    "bold",
-                    "bolder",
-                    "lighter",
-                    "normal"
-                ]
+                "dataList": [{
+                    "value": "bold",
+                    "label": "bold"
+                }, {,
+                    "value": "bolder",
+                    "label": "bolder"
+                }, {
+                    "value": "lighter",
+                    "label": "lighter"
+                }, {
+                    "value": "normal",
+                    "label": "normal"
+                }]
             },
             "underline": {
                 "description": "Feather",
@@ -330,13 +337,22 @@
                 "format": "enum",
                 "isRequired": true,
                 "default": "none",
-                "dataList": [
-                    "none",
-                    "solid",
-                    "dashed",
-                    "dotted",
-                    "wavy red"
-                ]
+                "dataList": [{
+                    "value": "none",
+                    "label": "none"
+                }, {,
+                    "value": "solid",
+                    "label": "solid"
+                }, {
+                    "value": "dashed",
+                    "label": "dashed"
+                }, {
+                    "value": "dotted",
+                    "label": "dotted"
+                }, {
+                    "value": "wavy red",
+                    "label": "wavy red"
+                }]
             }
         }
     },
