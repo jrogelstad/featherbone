@@ -657,7 +657,9 @@ f.formats.dataType.tableData = function (obj) {
         title = content + "\n";
         if (value.childOf) {
             title += "child of: " + value.childOf;
-        } else {
+        } else if (value.parentOf) {
+            title += "parent of: " + value.parentOf;
+        }else {
             title += "properties: " + value.properties.toString();
         }
     }
@@ -841,6 +843,10 @@ f.formats.url.tableData = function (obj) {
     }, obj.value);
 };
 
+f.types.array.editor = function (options) {
+    return m(catalog.store().components().dataList, options);
+};
+
 f.types.array.tableData = function (obj) {
     let value = obj.value;
     let content;
@@ -862,8 +868,8 @@ f.types.boolean.editor = function (options) {
     let prop = options.prop;
     let opts = {
         id: options.id,
-        oncreate: options.onCreate,
-        onremove: options.onRemove,
+        onCreate: options.onCreate,
+        onRemove: options.onRemove,
         required: options.required,
         readonly: options.readonly,
         style: options.style,
