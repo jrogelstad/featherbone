@@ -174,7 +174,7 @@ dataList.viewModel = function (options) {
         let model = catalog.store().models().dataListOption;
 
         function applyEdit() {
-            vm.prop(vm.models.map((i) => i.toJSON()));
+            vm.prop(vm.models().map((i) => i.toJSON()));
         }
 
         models.reset();
@@ -184,7 +184,9 @@ dataList.viewModel = function (options) {
             instance.state().goto("/Ready/Fetched/Clean");
             models.add(instance);
         });
+        models.state().goto("/Fetched/Clean");
         dataListDialog.onOk(applyEdit);
+        dataListDialog.okDisabled(true);
         dataListDialog.show();
     };
     vm.id = f.prop(options.id || f.createId());
@@ -196,8 +198,6 @@ dataList.viewModel = function (options) {
     // ..........................................................
     // PRIVATE
     //
-
-    vm.models().canAdd = f.prop(true);
 
     vm.dataListDialog(dialog.viewModel({
         icon: "edit",
@@ -212,6 +212,11 @@ dataList.viewModel = function (options) {
     };
     dlg.style().width = "480px";
     dlg.style().height = "450px";
+
+    vm.models().canAdd = f.prop(true);
+    vm.models().state().resolve("/Fetched/Dirty").enter(
+        () => dlg.okDisabled(false)
+    );
 
     vm.table(table.viewModel({
         models: vm.models(),
