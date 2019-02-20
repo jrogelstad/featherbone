@@ -123,6 +123,10 @@ a.pure-button-selected {
   text-align: center;
 }
 
+.fb-data-list-input {
+    width: 158px;
+}
+
 .fb-data-type-edit-button {
     background-color: #dedede;
     margin-left: 5px;
