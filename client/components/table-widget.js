@@ -680,7 +680,12 @@ function resize(vm, vnode) {
     let yPosition;
     let e = document.getElementById(vnode.dom.id);
     let id = vm.footerId();
-    let height;
+    let height = vm.height();
+
+    if (height) {
+        e.style.height = height;
+        return;
+    }
 
     if (id) {
         footer = document.getElementById(id);
@@ -701,7 +706,16 @@ function resize(vm, vnode) {
     }
 }
 
-// Define workbook view model
+/**
+    @param {Object} Options
+    @param {Object|String} [options.feather] Feather
+    @param {Object} [options.config] Configuration
+    @param {Array} [options.models] Array of models
+    @param {String} [options.height] Fixed height. If none automatic
+    @param {String} [options.containerId] Container id for automatic resize
+    @param {String} [options.footerId] Footer id for automatic resize
+    @return {Object}
+*/
 tableWidget.viewModel = function (options) {
     options = options || {};
     let fromWidthIdx;
@@ -776,6 +790,7 @@ tableWidget.viewModel = function (options) {
     vm.formatInputId = function (col) {
         return "input" + col.toCamelCase(true);
     };
+    vm.height = f.prop(options.height);
     vm.goNextRow = function () {
         let list = vm.models();
         let ids = list.map(function (model) {
