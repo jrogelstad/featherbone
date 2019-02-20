@@ -301,7 +301,9 @@ moneyRelation.component = {
         let amountLabelStyle;
         let displayStyle;
         let vm = this.viewModel;
-        let readonly = vnode.attrs.readonly === true || vm.effective();
+        let readonly = Boolean(
+            vnode.attrs.readonly === true || vm.effective()
+        );
 
         displayStyle = {
             display: "inline-block"
