@@ -56,12 +56,10 @@ function dataListOptionModel(data) {
     that = model(data, catalog.getFeather("DataListOption"));
     that.idProperty("value");
 
-    // This model can not save
-    state = that.state();
-    substate = state.resolve("/Busy/Saving");
-    delete substate.substateMap.Posting;
-    delete substate.substateMap.Patching;
-    substate.substates.length = 0;
+    that.state().resolve("/Ready/Fetched/Clean").event(
+        "changed",
+        () => that.state().goto("/Ready/Fetched/Dirty")
+    );
 
     return that;
 }
