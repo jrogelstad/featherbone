@@ -101,6 +101,9 @@ table.viewModel = function (options) {
         vm.buttonRemove().show();
         vm.buttonUndo().hide();
     });
+    tableState.resolve("/Selection/On").enter(function () {
+        vm.buttonRemove().enable();
+    });
     tableState.resolve("/Selection/On/Clean").enter(function () {
         vm.buttonRemove().show();
         vm.buttonUndo().hide();
@@ -109,20 +112,6 @@ table.viewModel = function (options) {
         vm.buttonRemove().hide();
         vm.buttonUndo().show();
     });
-    /*
-    root.state().resolve("/Ready/Fetched/Clean").enter(function () {
-        let selection = vm.tableWidget().selection();
-
-        function found(model) {
-            return selection.id() === model.id();
-        }
-
-        // Unselect potentially deleted model
-        if (selection && !vm.tableWidget().models().some(found)) {
-            vm.tableWidget().select(undefined);
-        }
-    });
-    */
 
     return vm;
 };
@@ -174,7 +163,10 @@ dataList.viewModel = function (options) {
         let model = catalog.store().models().dataListOption;
 
         function applyEdit() {
-            vm.prop(vm.models().map((i) => i.toJSON()));
+            let models = vm.models().slice();
+            
+            models = models.filter((i) => i.state().current()[0] !== "/Delete");
+            vm.prop(models.map((i) => i.toJSON()));
         }
 
         models.reset();
