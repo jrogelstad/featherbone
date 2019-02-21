@@ -54,7 +54,6 @@ function dataListOptionModel(data) {
 
     data = data || {};
     that = model(data, catalog.getFeather("DataListOption"));
-    that.idProperty("value");
 
     that.state().resolve("/Ready/Fetched/Clean").event(
         "changed",

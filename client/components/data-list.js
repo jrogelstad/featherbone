@@ -166,7 +166,12 @@ dataList.viewModel = function (options) {
             let models = vm.models().slice();
             
             models = models.filter((i) => i.state().current()[0] !== "/Delete");
-            vm.prop(models.map((i) => i.toJSON()));
+            vm.prop(models.map(function (i) {
+                return {
+                    value: i.data.value(),
+                    label: i.data.label()
+                };
+            }));
         }
 
         models.reset();
