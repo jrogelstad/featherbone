@@ -370,6 +370,9 @@ a.pure-button-selected {
 
 .fb-table-row-selected {
   background-color: #e7e9f3;
+  border-top: thin solid;
+  border-bottom: thin solid;
+  border-color: lightsteelblue;
 }
 
 .fb-table-row-editor {
@@ -531,6 +534,9 @@ a.pure-button-selected {
   background-color: #3F51B5;
   height: 38px;
   padding-top: 3px;
+  border-top: solid thin;
+  border-bottom: solid thin;
+  border-color: darkslateblue;
 }
 
 .fb-workbook-tab {
