@@ -28,8 +28,8 @@ function buildButtons(vm) {
     let className;
     let lonelyTabClass = [
         "pure-button",
-        "fb-sheet-group-tab",
-        "fb-sheet-group-tab-form"
+        "fb-group-tab",
+        "fb-group-tab-form"
     ];
     let midTabClass = f.copy(lonelyTabClass);
     let leftTabClass = f.copy(lonelyTabClass);
@@ -40,9 +40,9 @@ function buildButtons(vm) {
     tabs = tabs.map((tab) => tab.name);
 
     if (tabs.length > 1) {
-        midTabClass.push("fb-sheet-group-tab-middle");
-        leftTabClass.push("fb-sheet-group-tab-left");
-        rightTabClass.push("fb-sheet-group-tab-right");
+        midTabClass.push("fb-group-tab-middle");
+        leftTabClass.push("fb-group-tab-left");
+        rightTabClass.push("fb-group-tab-right");
 
         ret = tabs.map(function (name, idx) {
             switch (idx) {
@@ -57,7 +57,7 @@ function buildButtons(vm) {
             }
 
             if (idx + 1 === vm.selectedTab()) {
-                className.push("fb-sheet-group-tab-active");
+                className.push("fb-group-tab-active");
             }
 
             return m("button", {
@@ -67,8 +67,8 @@ function buildButtons(vm) {
         });
         // One button only gets all four corners rounded
     } else {
-        lonelyTabClass.push("fb-sheet-group-tab-lonely");
-        lonelyTabClass.push("fb-sheet-group-tab-active");
+        lonelyTabClass.push("fb-group-tab-lonely");
+        lonelyTabClass.push("fb-group-tab-active");
 
         return m("button", {
             class: lonelyTabClass.join(" "),
