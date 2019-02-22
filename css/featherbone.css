@@ -314,7 +314,13 @@ a.pure-button-selected {
   top: 20px;
 }
 
-.fb-sheet-group-tab {
+.fb-sheet-configure-tabs {
+  position: absolute;
+  z-index: 1;
+  left: 225px;
+}
+
+.fb-group-tab {
   background-color: #fff;
   color: #a6a6a6;
   border-color: #3F51B5;
@@ -322,13 +328,13 @@ a.pure-button-selected {
   border-width: thin;
 }
 
-.fb-sheet-group-tab-form {
+.fb-group-tab-form {
   position: relative;
   top: -18px;
   border-radius: 0px;
 }
 
-.fb-sheet-group-tab-active {
+.fb-group-tab-active {
   color: #474747;
   background-color: White;
   border-bottom-color: #3F51B5;
@@ -336,11 +342,11 @@ a.pure-button-selected {
   height: 36px;
 }
 
-.fb-sheet-group-tab-middle {
+.fb-group-tab-middle {
   border-right-style: none;
 }
 
-.fb-sheet-group-tab-left {
+.fb-group-tab-left {
   border-top-right-radius: 0px;
   border-bottom-right-radius: 0px;
   border-top-left-radius: 2px;
@@ -348,24 +354,18 @@ a.pure-button-selected {
   border-right-style: none;
 }
 
-.fb-sheet-group-tab-right {
+.fb-group-tab-right {
   border-top-left-radius: 0px;
   border-bottom-left-radius: 0px;
   border-top-right-radius: 2px;
   border-bottom-right-radius: 2px;
 }
 
-.fb-sheet-group-tab-lonely {
+.fb-group-tab-lonely {
   border-top-left-radius: 2px;
   border-bottom-left-radius: 2px;
   border-top-right-radius: 2px;
   border-bottom-right-radius: 2px;
-}
-
-.fb-sheet-configure-tabs {
-  position: absolute;
-  z-index: 1;
-  left: 225px;
 }
 
 .fb-table-row-selected {
