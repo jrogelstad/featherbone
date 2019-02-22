@@ -320,7 +320,7 @@
                 "dataList": [{
                     "value": "bold",
                     "label": "bold"
-                }, {,
+                }, {
                     "value": "bolder",
                     "label": "bolder"
                 }, {
@@ -340,7 +340,7 @@
                 "dataList": [{
                     "value": "none",
                     "label": "none"
-                }, {,
+                }, {
                     "value": "solid",
                     "label": "solid"
                 }, {
