@@ -9,6 +9,14 @@
                 "name": "Modules",
                 "feather": "Module",
                 "isEditModeEnabled": false,
+                "actions": [{
+                  "name": "Package",
+                  "title": "Package and download module",
+                  "icon": "gift",
+                  "method": "package",
+                  "authorization": "PackageModules",
+                  "validator": "packageCheck"
+                }],
                 "openInNewWindow": true,
                 "list": {
                     "columns": [{
