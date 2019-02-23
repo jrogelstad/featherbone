@@ -304,6 +304,9 @@ filterDialog.viewModel = function (options) {
             }, [
                 m("td", m("select", {
                     class: "fb-filter-dialog-property",
+                    style: {
+                        minWidth: "175px"
+                    },
                     value: item.property,
                     onchange: (e) =>
                     vm.itemPropertyChanged.bind(
