@@ -463,7 +463,7 @@ a.pure-button-selected {
 }
 
 .fb-relation-label {
-  display: inline;
+  width: 215px;
 }
 
 .fb-relation-label-cell {
