@@ -115,6 +115,7 @@ childTable.viewModel = function (options) {
         title: "Insert",
         hotkey: "I",
         icon: "plus-circle",
+        class: "fb-icon-button",
         style: {
             backgroundColor: "white"
         }
@@ -125,6 +126,7 @@ childTable.viewModel = function (options) {
         title: "Delete",
         hotkey: "D",
         icon: "trash",
+        class: "fb-icon-button",
         style: {
             backgroundColor: "white"
         }
@@ -136,6 +138,7 @@ childTable.viewModel = function (options) {
         title: "Undo",
         hotkey: "U",
         icon: "undo",
+        class: "fb-icon-button",
         style: {
             backgroundColor: "white"
         }
@@ -147,6 +150,7 @@ childTable.viewModel = function (options) {
         title: "Open",
         hotkey: "O",
         icon: "folder-plus",
+        class: "fb-icon-button",
         style: {
             backgroundColor: "white"
         }

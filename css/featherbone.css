@@ -114,7 +114,6 @@ a.pure-button-selected {
   margin-top: 6px;
   margin-right: 8px;
   min-width: 18px;
-  color: #baa582;
   text-align: center;
 }
 
@@ -189,6 +188,10 @@ a.pure-button-selected {
 
 .fb-filter-dialog-table-header-value {
   min-width: 225px;
+}
+
+.fb-icon-button {
+  color: MediumBlue;
 }
 
 .fb-main-button {
