@@ -43,11 +43,6 @@ a.pure-button-selected {
   margin-right: 10px;
 }
 
-.fb-toolbar-button {
-  background-color: #3F51B5;
-  color: white
-}
-
 .fb-button-disabled {
     pointer-events: auto !important;
 }
@@ -422,6 +417,14 @@ a.pure-button-selected {
   top: 2px;
 }
 
+.fb-menu-setup {
+  float: right;
+}
+
+.fb-menu-list-setup {
+  right: 8px;
+}
+
 .fb-menu-button {
   background-color: #3F51B5;
   color: white;
@@ -529,6 +532,16 @@ a.pure-button-selected {
   border-top: solid thin;
   border-bottom: solid thin;
   border-color: darkslateblue;
+}
+
+.fb-toolbar-button {
+  background-color: #3F51B5;
+  color: white;
+}
+
+.fb-toolbar-spacer {
+  width: 20px;
+  display: inline-block;
 }
 
 .fb-workbook-tab {
