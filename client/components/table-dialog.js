@@ -319,6 +319,7 @@ tableDialog.viewModel = function (options) {
         onclick: vm.moveUp,
         icon: "chevron-up",
         title: "Move up",
+        class: "fb-icon-button",
         style: {
             backgroundColor: "white",
             float: "right"
@@ -329,6 +330,7 @@ tableDialog.viewModel = function (options) {
         onclick: vm.moveDown,
         icon: "chevron-down",
         title: "Move down",
+        class: "fb-icon-button",
         style: {
             backgroundColor: "white",
             float: "right"
