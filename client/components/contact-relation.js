@@ -67,7 +67,8 @@ contactRelation.viewModel = function (options) {
                         }, [
                             m("i", {
                                 class: (
-                                    "fa fa-phone fb-contact-relation-icon"
+                                    "fa fa-phone fb-contact-relation-icon " +
+                                    "fb-icon-button"
                                 )
                             })
                         ])
@@ -89,7 +90,8 @@ contactRelation.viewModel = function (options) {
                             m("i", {
                                 class: (
                                     "fa fa-envelope " +
-                                    "fb-contact-relation-icon"
+                                    "fb-contact-relation-icon " +
+                                    "fb-icon-button"
                                 )
                             })
                         ])
@@ -115,7 +117,8 @@ contactRelation.viewModel = function (options) {
                             m("i", {
                                 class: (
                                     "fa fa-map-marker " +
-                                    "fb-contact-relation-icon"
+                                    "fb-contact-relation-icon " +
+                                    "fb-icon-button"
                                 )
                             })
                         ])

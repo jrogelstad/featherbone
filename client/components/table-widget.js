@@ -607,7 +607,7 @@ function createTableRow(options, model) {
     if (currentMode !== "/Mode/Edit" && isSelected) {
         thContent = m("i", {
             onclick: vm.ondblclick.bind(null, model),
-            class: "fa fa-folder-open",
+            class: "fa fa-folder-open fb-icon-button",
             style: iconStyle
         });
     } else if (!model.isValid()) {

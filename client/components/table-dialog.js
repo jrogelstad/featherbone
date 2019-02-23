@@ -289,6 +289,7 @@ tableDialog.viewModel = function (options) {
         onclick: vm.add,
         label: "Add",
         icon: "plus-circle",
+        class: "fb-icon-button",
         style: {
             backgroundColor: "white"
         }
@@ -298,6 +299,7 @@ tableDialog.viewModel = function (options) {
         onclick: vm.remove,
         label: "Remove",
         icon: "trash",
+        class: "fb-icon-button",
         style: {
             backgroundColor: "white"
         }
@@ -307,6 +309,7 @@ tableDialog.viewModel = function (options) {
         onclick: vm.clear,
         title: "Clear",
         icon: "eraser",
+        class: "fb-icon-button",
         style: {
             backgroundColor: "white"
         }
