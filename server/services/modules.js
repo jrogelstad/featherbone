@@ -52,7 +52,7 @@
                     if (err) {
                         reject(err);
                         return;
-                     }
+                    }
 
                     // Send back result
                     resolve(tools.sanitize(resp.rows));
