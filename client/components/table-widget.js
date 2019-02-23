@@ -995,6 +995,7 @@ tableWidget.viewModel = function (options) {
                 selections[0].id() !== models.id()
             ) {
                 vm.unselect(selections);
+                ids = [];
             }
             models = (
                 models === undefined
