@@ -49,8 +49,6 @@ feathers.DataListOption = dataListOption;
 */
 function dataListOptionModel(data) {
     let that;
-    let state;
-    let substate;
 
     data = data || {};
     that = model(data, catalog.getFeather("DataListOption"));
