@@ -42,6 +42,9 @@
         Modules
     } = require("./services/modules");
     const {
+        Packager
+    } = require("./services/packager");
+    const {
         Routes
     } = require("./services/routes");
     const {
@@ -62,6 +65,7 @@
     const currency = new Currency();
     const feathers = new Feathers();
     const modules = new Modules();
+    const packager = new Packager();
     const routes = new Routes();
     const services = new Services();
     const settings = new Settings();
@@ -342,6 +346,48 @@
                 db.connect
             ).then(
                 doUnlock
+            ).then(
+                resolve
+            ).catch(
+                reject
+            );
+        });
+    };
+
+    /**
+      Lock.
+
+      @param {String} Object id.
+      @param {String} User name.
+      @param {String} Session id.
+      @returns {Object} Promise
+    */
+    that.package = function (name, username) {
+        return new Promise(function (resolve, reject) {
+            // Do the work
+            function doPackage(resp) {
+                return new Promise(function (resolve, reject) {
+                    function callback(ok) {
+                        resp.done();
+                        resolve(ok);
+                    }
+
+                    packager.package(
+                        resp.client,
+                        name,
+                        username
+                    ).then(
+                        callback
+                    ).catch(
+                        reject
+                    );
+                });
+            }
+
+            Promise.resolve().then(
+                db.connect
+            ).then(
+                doPackage
             ).then(
                 resolve
             ).catch(

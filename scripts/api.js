@@ -149,6 +149,8 @@
                     });
 
                     keys.forEach(function (key) {
+                        name = key.toProperCase();
+
                         let schema;
                         let feather = catalog[key];
                         let properties = {};
@@ -351,8 +353,6 @@
                                 }
                             }
                         };
-
-                        name = key.toProperCase();
 
                         // Append singluar path
                         if (!feather.isChild) {

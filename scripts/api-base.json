@@ -354,7 +354,7 @@
                 }
             }
         },
-        "/module/": {
+        "/modules/": {
             "get": {
                 "summary": "Get javascript modules",
                 "operationId": "getModules",
@@ -371,6 +371,46 @@
                                     "items": {
                                         "$ref": "#/components/schemas/Module"
                                     }
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "description": "Unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/module/package/{name}": {
+            "post": {
+                "summary": "Package and download a module",
+                "operationId": "postPackageModule",
+                "tags": [
+                    "module"
+                ],
+                "parameters": [{
+                    "name": "name",
+                    "in": "path",
+                    "description": "The name of the module to package",
+                    "required": true,
+                    "schema": {
+                        "type": "string"
+                    }
+                }],
+                "responses": {
+                    "200": {
+                        "description": "Response of 'true' indicates successful request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "boolean"
                                 }
                             }
                         }
