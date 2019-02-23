@@ -454,6 +454,21 @@
         );
     }
 
+    function doPackageModule(req, res) {
+        let name = req.params.name;
+        let username = datasource.getCurrentUser();
+
+        console.log("Package", name);
+        datasource.package(
+            name,
+            username
+        ).then(
+            respond.bind(res)
+        ).catch(
+            error.bind(res)
+        );
+    }
+
     function start() {
         // configure app to use bodyParser()
         // this will let us get the data from a POST
@@ -483,6 +498,7 @@
         app.get("/feather/:name", doGetFeather);
         app.put("/feather/:name", doSaveFeather);
         app.delete("/feather/:name", doDeleteFeather);
+        app.post("/module/package/:name", doPackageModule);
         app.get("/modules", doGetModules);
         app.get("/settings/:name", doGetSettingsRow);
         app.put("/settings/:name", doSaveSettings);

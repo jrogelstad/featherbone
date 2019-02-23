@@ -15,8 +15,11 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
+/*jslint browser*/
+import f from "../core.js";
 import catalog from "./catalog.js";
 import model from "./model.js";
+import datasource from "../datasource.js";
 
 /*
   Module Model
@@ -34,22 +37,39 @@ function module(data, feather) {
 
 module.static = f.prop({
     package: function (viewModel) {
-        "use strict";
+        let dialog = viewModel.confirmDialog();
+        let selection = viewModel.tableWidget().selections()[0];
+        let name = selection.data.name();
+        let payload = {
+            method: "POST",
+            path: "/module/package/" + name
+        };
 
-        let element = document.createElement('a');
-        element.setAttribute("href", "/uploads/test.zip");
-        element.setAttribute("download", "mytest");
+        function download() {
+            let element = document.createElement("a");
 
-        element.style.display = "none";
-        document.body.appendChild(element);
+            element.setAttribute("href", "/uploads/" + name + ".zip");
+            element.setAttribute("download", name + ".zip");
+            element.style.display = "none";
 
-        element.click();
+            document.body.appendChild(element);
 
-        document.body.removeChild(element);
+            element.click();
+
+            document.body.removeChild(element);
+        }
+
+        function error(err) {
+            dialog.message(err.message);
+            dialog.title("Error");
+            dialog.icon("exclamation-triangle");
+            dialog.onOk(undefined);
+            dialog.show();
+        }
+
+        datasource.request(payload).then(download).catch(error);
     },
     packageCheck: function (selections) {
-        "use strict";
-
         return selections.length === 1;
     }
 });
