@@ -96,7 +96,8 @@ formDialog.viewModel = function (options) {
                 vm.ids().header,
                 vm.ids().buttonOk
             ],
-            containerId: vm.ids().dialog
+            containerId: vm.ids().dialog,
+            isScrollable: false
         }));
         delete vm.style().display;
     });
