@@ -113,9 +113,11 @@ workbookPage.viewModel = function (options) {
     vm.buttonClear = f.prop();
     vm.buttonDelete = f.prop();
     vm.buttonEdit = f.prop();
+    vm.buttonFilter = f.prop();
     vm.buttonNew = f.prop();
     vm.buttonRefresh = f.prop();
     vm.buttonSave = f.prop();
+    vm.buttonSort = f.prop();
     vm.buttonUndo = f.prop();
     vm.config = f.prop(config);
     vm.confirmDialog = f.prop(dialog.viewModel({
@@ -576,6 +578,22 @@ workbookPage.viewModel = function (options) {
     }));
     vm.buttonClear().disable();
 
+    vm.buttonSort(button.viewModel({
+        onclick: vm.showSortDialog,
+        icon: "sort",
+        hotkey: "T",
+        title: "Sort results",
+        class: "fb-toolbar-button"
+    }));
+
+    vm.buttonFilter(button.viewModel({
+        onclick: vm.showFilterDialog,
+        icon: "filter",
+        hotkey: "F",
+        title: "Filter results",
+        class: "fb-toolbar-button"
+    }));
+
     // Bind button states to list statechart events
     listState = vm.tableWidget().models().state();
     listState.resolve("/Fetched").enter(function () {
@@ -800,6 +818,18 @@ workbookPage.component = {
                         m(button.component, {
                             viewModel: vm.buttonEdit()
                         }),
+                        m(button.component, {
+                            viewModel: vm.buttonSave()
+                        }),
+                        m(button.component, {
+                            viewModel: vm.buttonNew()
+                        }),
+                        m(button.component, {
+                            viewModel: vm.buttonDelete()
+                        }),
+                        m(button.component, {
+                            viewModel: vm.buttonUndo()
+                        }),
                         m("div", {
                             id: "nav-div",
                             class: (
@@ -808,7 +838,12 @@ workbookPage.component = {
                                 "fb-menu"
                             ),
                             onmouseover: vm.onmouseoveractions,
-                            onmouseout: vm.onmouseoutactions
+                            onmouseout: vm.onmouseoutactions,
+                            title: (
+                                actionsDisabled
+                                ? "No actions available"
+                                : ""
+                            )
                         }, [
                             m("span", {
                                 id: "nav-button",
@@ -830,33 +865,30 @@ workbookPage.component = {
                                 )
                             }, vm.actions())
                         ]),
-                        m(button.component, {
-                            viewModel: vm.buttonSave()
+                        m("div", {
+                            class: "fb-toolbar-spacer"
                         }),
                         m(button.component, {
-                            viewModel: vm.buttonNew()
-                        }),
-                        m(button.component, {
-                            viewModel: vm.buttonDelete()
-                        }),
-                        m(button.component, {
-                            viewModel: vm.buttonUndo()
+                            viewModel: vm.buttonRefresh()
                         }),
                         m(searchInput.component, {
                             viewModel: vm.searchInput()
                         }),
                         m(button.component, {
-                            viewModel: vm.buttonRefresh()
+                            viewModel: vm.buttonClear()
                         }),
                         m(button.component, {
-                            viewModel: vm.buttonClear()
+                            viewModel: vm.buttonSort()
+                        }),
+                        m(button.component, {
+                            viewModel: vm.buttonFilter()
                         }),
                         m("div", {
                             id: "nav-div",
                             class: (
                                 "pure-menu " +
                                 "custom-restricted-width " +
-                                "fb-menu"
+                                "fb-menu fb-menu-setup"
                             ),
                             onmouseover: vm.onmouseovermenu,
                             onmouseout: vm.onmouseoutmenu
@@ -872,7 +904,8 @@ workbookPage.component = {
                             m("ul", {
                                 id: "nav-menu-list",
                                 class: (
-                                    "pure-menu-list fb-menu-list" + (
+                                    "pure-menu-list fb-menu-list " +
+                                    "fb-menu-list-setup" + (
                                         vm.showMenu()
                                         ? " fb-menu-list-show"
                                         : ""
@@ -880,54 +913,8 @@ workbookPage.component = {
                                 )
                             }, [
                                 m("li", {
-                                    id: "nav-sort",
-                                    class: filterMenuClass,
-                                    title: "Change sheet sort",
-                                    onclick: vm.showSortDialog
-                                }, [m("i", {
-                                    class: "fa fa-sort fb-menu-list-icon"
-                                })], "Sort"),
-                                m("li", {
-                                    id: "nav-filter",
-                                    class: filterMenuClass,
-                                    title: "Change sheet filter",
-                                    onclick: vm.showFilterDialog
-                                }, [m("i", {
-                                    class: "fa fa-filter fb-menu-list-icon"
-                                })], "Filter"),
-                                /*
-                                m("li", {
-                                  id: "nav-format",
-                                  class: (
-                                        "pure-menu-link " +
-                                        "pure-menu-disabled"
-                                  ),
-                                  title: "Format sheet"
-                                  //onclick: vm.showFormatDialog
-                                }, [m("i", {class: (
-                                    "fa fa-paint-brush " +
-                                    "fb-menu-list-icon"
-                                ),
-                                })], "Format"),
-                                m("li", {
-                                  id: "nav-subtotal",
-                                  class: (
-                                        "pure-menu-link " +
-                                        "pure-menu-disabled"
-                                  ),
-                                  title: "Edit subtotals"
-                                }, [m("div", {style: {
-                                  display: "inline",
-                                  fontWeight: "bold",
-                                  fontStyle: "Italic"
-                                }}, "∑")], " Totals"),
-                                */
-                                m("li", {
                                     id: "nav-configure",
-                                    class: (
-                                        "pure-menu-link " +
-                                        "fb-menu-list-separator"
-                                    ),
+                                    class: "pure-menu-link",
                                     title: "Configure current worksheet",
                                     onclick: vm.configureSheet
                                 }, [m("i", {
