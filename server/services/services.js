@@ -35,7 +35,10 @@
         */
         that.getServices = function (obj) {
             return new Promise(function (resolve, reject) {
-                let sql = "SELECT name, to_json(module), script FROM \"_data_service\";";
+                let sql = (
+                    "SELECT name, to_json(module), script " +
+                    "FROM \"_data_service\";"
+                );
 
                 // Query routes
                 obj.client.query(sql, function (err, resp) {
