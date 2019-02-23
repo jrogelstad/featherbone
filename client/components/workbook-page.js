@@ -574,6 +574,7 @@ workbookPage.viewModel = function (options) {
         icon: "eraser",
         class: "fb-toolbar-button"
     }));
+    vm.buttonClear().disable();
 
     // Bind button states to list statechart events
     listState = vm.tableWidget().models().state();
