@@ -48,7 +48,7 @@ module.static = f.prop({
         function download() {
             let element = document.createElement("a");
 
-            element.setAttribute("href", "/uploads/" + name + ".zip");
+            element.setAttribute("href", "/packages/" + name + ".zip");
             element.setAttribute("download", name + ".zip");
             element.style.display = "none";
 
