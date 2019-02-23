@@ -160,12 +160,12 @@ dataList.viewModel = function (options) {
         let models = vm.models();
         let dataListDialog = vm.dataListDialog();
         let value = vm.prop() || [];
-        let model = catalog.store().models().dataListOption;
+        let dataListOption = catalog.store().models().dataListOption;
 
         function applyEdit() {
-            let models = vm.models().slice();
-            
+            models = models.slice();
             models = models.filter((i) => i.state().current()[0] !== "/Delete");
+
             vm.prop(models.map(function (i) {
                 return {
                     value: i.data.value(),
@@ -176,7 +176,7 @@ dataList.viewModel = function (options) {
 
         models.reset();
         value.forEach(function (i) {
-            let instance = model(i);
+            let instance = dataListOption(i);
 
             instance.state().goto("/Ready/Fetched/Clean");
             models.add(instance);

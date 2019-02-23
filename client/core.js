@@ -659,7 +659,7 @@ f.formats.dataType.tableData = function (obj) {
             title += "child of: " + value.childOf;
         } else if (value.parentOf) {
             title += "parent of: " + value.parentOf;
-        }else {
+        } else {
             title += "properties: " + value.properties.toString();
         }
     }
