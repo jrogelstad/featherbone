@@ -323,49 +323,38 @@ a.pure-button-selected {
 .fb-group-tab {
   background-color: #fff;
   color: #a6a6a6;
-  border-color: #3F51B5;
-  border-style: solid;
   border-width: thin;
 }
 
 .fb-group-tab-form {
   position: relative;
-  top: -18px;
-  border-radius: 0px;
+  top: -37px;
 }
 
 .fb-group-tab-active {
+  border-top-right-radius: 2px;
+  border-top-left-radius: 2px;
   color: #474747;
-  background-color: White;
-  border-bottom-color: #3F51B5;
-  border-bottom-width: 5px;
-  height: 36px;
+  border-top-color: #3F51B5;
+  border-left-color: #b0bcdd;
+  border-right-color: #b0bcdd;
+  border-top-width: 1.5px;
+  border-style: solid;
+  border-bottom-color: white;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
 }
 
 .fb-group-tab-middle {
-  border-right-style: none;
 }
 
 .fb-group-tab-left {
-  border-top-right-radius: 0px;
-  border-bottom-right-radius: 0px;
-  border-top-left-radius: 2px;
-  border-bottom-left-radius: 2px;
-  border-right-style: none;
 }
 
 .fb-group-tab-right {
-  border-top-left-radius: 0px;
-  border-bottom-left-radius: 0px;
-  border-top-right-radius: 2px;
-  border-bottom-right-radius: 2px;
 }
 
 .fb-group-tab-lonely {
-  border-top-left-radius: 2px;
-  border-bottom-left-radius: 2px;
-  border-top-right-radius: 2px;
-  border-bottom-right-radius: 2px;
 }
 
 .fb-table-row-selected {
@@ -385,16 +374,19 @@ a.pure-button-selected {
 
 .fb-tabbed-pane {
   text-align: left;
+  position: relative;
+  top: -25px;
 }
 
 .fb-tabbed-panes {
-  border-top: solid thin #3F51B5;
+  border-top: solid thin #b0bcdd;
 }
 
 .fb-tabbed-panes-form {
-  text-align: center;
   width: 98%;
-  margin: 10px;
+  margin: 20px;
+  margin-top: 35px;
+  margin-bottom: -35px;
 }
 
 .fb-tabbed-panes-hidden {
