@@ -304,6 +304,7 @@ formWidget.viewModel = function (options) {
         title: "Error"
     }));
     vm.errorDialog().buttonCancel().hide();
+    vm.isScrollable = f.prop(options.isScrollable !== false);
     vm.focusAttr = f.prop(options.config.focus);
     vm.menuButtons = f.prop({});
     vm.selectedTab = f.prop(1);
@@ -386,7 +387,11 @@ formWidget.component = {
 
         return m("div", {
             id: model.id(),
-            class: "fb-form-content",
+            class: (
+                vm.isScrollable()
+                ? "fb-form-content"
+                : ""
+            ),
             oncreate: resize.bind(null, vm),
             onupdate: resize.bind(null, vm)
         }, grids);
