@@ -19,7 +19,7 @@
 (function (exports) {
     "use strict";
 
-    const fs = require('fs');
+    const fs = require("fs");
     const AdmZip = require("adm-zip");
     const path = require("path");
     const {
@@ -512,9 +512,9 @@
                 let params = [name];
                 let requests = [];
                 let manifest = {};
-                let dir = './packages';
+                let dir = "./packages";
 
-                if (!fs.existsSync(dir)){
+                if (!fs.existsSync(dir)) {
                     fs.mkdirSync(dir);
                 }
 
