@@ -42,9 +42,28 @@
         "attrs": [{
             "attr": "name"
         }, {
-            "attr": "module"
+            "attr": "module",
+            "dataList": "modules"
         }, {
             "attr": "script"
+        }]
+    }
+}, {
+    "name": "Form",
+    "method": "POST",
+    "id": "165t64hj3yfx",
+    "data": {
+        "name": "Route",
+        "description": "Route form",
+        "feather": "Route",
+        "module": "Core",
+        "attrs": [{
+            "attr": "module",
+            "dataList": "modules"
+        }, {
+            "attr": "path"
+        }, {
+            "attr": "function"
         }]
     }
 }, {

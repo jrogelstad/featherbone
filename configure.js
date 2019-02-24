@@ -293,9 +293,7 @@
             id: id,
             data: {
                 name: name,
-                module: {
-                    id: btoa(module)
-                },
+                module: module,
                 script: script
             }
         };

@@ -391,10 +391,7 @@
         "properties": {
             "module": {
                 "description": "Module script belongs to",
-                "type": {
-                    "relation": "Module",
-                    "properties": ["name", "version"]
-                }
+                "type": "string"
             }
         }
     }
