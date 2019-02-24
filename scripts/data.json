@@ -69,6 +69,36 @@
 }, {
     "name": "Form",
     "method": "POST",
+    "id": "imz621ql4noy",
+    "data": {
+        "name": "Style",
+        "description": "Style form",
+        "feather": "Style",
+        "module": "Core",
+        "attrs": [{
+            "attr": "name"
+        }, {
+            "attr": "description"
+        }, {
+            "attr": "module",
+            "dataList": "modules"
+        }, {
+            "attr": "hasColor"
+        }, {
+            "attr": "color"
+        }, {
+            "attr": "fontWeight"
+        }, {
+            "attr": "hasBackgroundColor"
+        }, {
+            "attr": "backgroundColor"
+        }, {
+            "attr": "underline"
+        }]
+    }
+}, {
+    "name": "Form",
+    "method": "POST",
     "id": "em4go8hrytdm",
     "data": {
         "name": "Feather",
@@ -538,6 +568,7 @@
     "data": {
         "name": "HIGH",
         "description": "High priority",
+        "module": "Core",
         "hasColor": true,
         "color": "#FF0000"
     }
@@ -548,6 +579,7 @@
     "data": {
         "name": "ERROR",
         "description": "Critical error",
+        "module": "Core",
         "hasColor": true,
         "color": "#FF0000"
     }
@@ -558,6 +590,7 @@
     "data": {
         "name": "WARN",
         "description": "Warning",
+        "module": "Core",
         "hasColor": true,
         "color": "#FFA500"
     }
@@ -568,6 +601,7 @@
     "data": {
         "name": "HIGHLIGHT",
         "description": "Highlight",
+        "module": "Core",
         "hasColor": true,
         "color": "#0000FF"
     }
@@ -578,6 +612,7 @@
     "data": {
         "name": "ALT-HIGHLIGHT",
         "description": "Alternate highlight",
+        "module": "Core",
         "hasColor": true,
         "color": "#008000"
     }

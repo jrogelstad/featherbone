@@ -77,7 +77,7 @@
         manifest.module = content.name;
         manifest.version = content.version;
         manifest.dependencies = content.dependencies.map(
-            (dep) => dep.name
+            (dep) => dep.module.name
         );
         manifest.files = [{
             type: "module",
@@ -348,7 +348,7 @@
             let data = row.form;
             let ret = {
                 name: "Form",
-                method: "Post",
+                method: "POST",
                 module: data.module,
                 id: data.id,
                 data: data
@@ -412,18 +412,21 @@
 
             return ret;
         });
-        content = JSON.stringify(content, null, 4);
 
-        manifest.files.push({
-            type: "batch",
-            path: "forms.json"
-        });
+        if (content.length) {
+            content = JSON.stringify(content, null, 4);
 
-        zip.addFile(
-            "forms.json",
-            Buffer.alloc(content.length, content),
-            "Form definitions"
-        );
+            manifest.files.push({
+                type: "batch",
+                path: "forms.json"
+            });
+
+            zip.addFile(
+                "forms.json",
+                Buffer.alloc(content.length, content),
+                "Form definitions"
+            );
+        }
     }
 
     function addServices(manifest, zip, resp) {
@@ -445,6 +448,44 @@
                     "Data service script"
                 );
             });
+        }
+    }
+
+    function addBatch(type, manifest, zip, resp) {
+        let content = [];
+        let rows = tools.sanitize(resp.rows);
+        let filename = type.toCamelCase() + "s.json";
+
+        content = rows.map(function (data) {
+            let ret = {
+                name: type,
+                method: "POST",
+                module: data.module,
+                id: data.id,
+                data: data
+            };
+
+            if (!data.focus) {
+                delete data.focus;
+            }
+            removeExclusions(data);
+
+            return ret;
+        });
+
+        if (content.length) {
+            content = JSON.stringify(content, null, 4);
+
+            manifest.files.push({
+                type: "batch",
+                path: filename
+            });
+
+            zip.addFile(
+                filename,
+                Buffer.alloc(content.length, content),
+                type + " definitions"
+            );
         }
     }
 
@@ -471,6 +512,7 @@
                 let requests = [];
                 let manifest = {};
 
+                // Module
                 sql = (
                     "SELECT name, version, script, " +
                     "to_json(dependencies) AS dependencies " +
@@ -478,6 +520,7 @@
                 );
                 requests.push(client.query(sql, params));
 
+                // Feathers
                 sql = (
                     "SELECT name, description, plural, \"module\", " +
                     "\"authorization\", \"inherits\", is_system, is_child, " +
@@ -488,13 +531,23 @@
                 );
                 requests.push(client.query(sql, params));
 
+                // Forms
                 sql = (
                     "SELECT to_json(_form) AS form " +
                     "FROM _form WHERE module = $1"
                 );
                 requests.push(client.query(sql, params));
 
+                // Services
                 sql = "SELECT name, script FROM data_service WHERE module = $1";
+                requests.push(client.query(sql, params));
+
+                // Routes
+                sql = "SELECT * FROM route WHERE module = $1";
+                requests.push(client.query(sql, params));
+
+                // Styles
+                sql = "SELECT * FROM style WHERE module = $1";
                 requests.push(client.query(sql, params));
 
                 Promise.all(requests).then(function (resp) {
@@ -507,6 +560,8 @@
                     addFeathers(manifest, zip, resp[1]);
                     addForms(manifest, zip, resp[2]);
                     addServices(manifest, zip, resp[3]);
+                    addBatch("Route", manifest, zip, resp[4]);
+                    addBatch("Style", manifest, zip, resp[5]);
 
                     manifest = JSON.stringify(manifest, null, 4);
 

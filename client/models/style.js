@@ -43,6 +43,12 @@ function style(data, feather) {
         handleReadOnly();
     });
 
+    that.addCalculated({
+        name: "modules",
+        type: "array",
+        function: catalog.store().data().modules
+    });
+
     return that;
 }
 
