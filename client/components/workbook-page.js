@@ -124,6 +124,28 @@ workbookPage.viewModel = function (options) {
         icon: "question-circle",
         title: "Confirmation"
     }));
+    // Dialog gets modified by actions, so reset after any useage
+    function resetDialog() {
+        let dlg = vm.confirmDialog();
+
+        dlg.icon("question-circle");
+        dlg.title("Confirmation");
+        dlg.buttonOk().show();
+        dlg.buttonCancel().show();
+        dlg.buttonCancel().isPrimary(false);
+        dlg.onOk(undefined);
+        dlg.onCancel(undefined);
+        dlg.content = function () {
+            return m("div", {
+                id: dlg.ids().content
+            }, dlg.message());
+        };
+        dlg.buttons([
+            dlg.buttonOk,
+            dlg.buttonCancel
+        ]);
+    }
+    vm.confirmDialog().state().resolve("/Display/Closed").enter(resetDialog);
     vm.configureSheet = function () {
         let dlg = vm.sheetConfigureDialog();
         dlg.onCancel(undefined);
