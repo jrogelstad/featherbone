@@ -200,6 +200,20 @@ function initPromises() {
                     module.dependencies = [];
                 }
             });
+
+            catalog.register(
+                "data",
+                "modules",
+                f.prop(
+                    moduleData.map(function (mod) {
+                        return {
+                            value: mod.name,
+                            label: mod.name
+                        };
+                    })
+                )
+            );
+
             resolve();
         });
     });

@@ -22,27 +22,6 @@ import model from "./model.js";
 function form(data, feather) {
     let that;
 
-    function modules() {
-        let tables = catalog.store().feathers();
-        let keys = Object.keys(tables);
-        let ary = [];
-
-        keys.forEach(function (key) {
-            let mod = tables[key].module;
-
-            if (mod && ary.indexOf(mod) === -1) {
-                ary.push(mod);
-            }
-        });
-
-        return ary.map(function (item) {
-            return {
-                value: item,
-                label: item
-            };
-        });
-    }
-
     function properties() {
         let keys;
         let formFeather = that.data.feather();
@@ -78,7 +57,7 @@ function form(data, feather) {
     that.addCalculated({
         name: "modules",
         type: "array",
-        function: modules
+        function: catalog.store().data().modules
     });
 
     that.addCalculated({
