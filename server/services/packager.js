@@ -46,12 +46,18 @@
     const tools = new Tools();
 
     function addModule(zip, resp) {
-        let content = resp.rows[0].script;
+        let content;
+
+        if (!resp.rows.length) {
+            throw "Module not found";
+        }
+
+        content = resp.rows[0].script;
 
         zip.addFile(
             "module.js",
             Buffer.alloc(content.length, content),
-            "Client code"
+            "Client script"
         );
     }
 
@@ -290,11 +296,27 @@
         });
         content = JSON.stringify(content, null, 2);
 
-        zip.addFile(
-            "feathers.js",
-            Buffer.alloc(content.length, content),
-            "Feather definitions"
-        );
+        if (content.length) {
+            zip.addFile(
+                "feathers.js",
+                Buffer.alloc(content.length, content),
+                "Feather definitions"
+            );
+        }
+    }
+
+    function addServices(zip, resp) {
+        let content = resp.rows;
+
+        if (content.length) {
+            content.forEach(function (service) {
+                zip.addFile(
+                    service.name.toSpinalCase() + ".js",
+                    Buffer.alloc(service.script.length, service.script),
+                    "Data service script"
+                );
+            });
+        }
     }
 
     exports.Packager = function () {
@@ -332,6 +354,9 @@
                 );
                 requests.push(client.query(sql, params));
 
+                sql = "SELECT name, script FROM data_service WHERE module = $1";
+                requests.push(client.query(sql, params));
+
                 Promise.all(requests).then(function (resp) {
                     let filename = path.format({
                         root: "./",
@@ -340,6 +365,7 @@
 
                     addModule(zip, resp[0]);
                     addFeathers(zip, resp[1]);
+                    addServices(zip, resp[2]);
 
                     zip.writeZip(
                         filename,
