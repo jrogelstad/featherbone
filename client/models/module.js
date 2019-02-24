@@ -45,11 +45,11 @@ module.static = f.prop({
             path: "/module/package/" + name
         };
 
-        function download() {
+        function download(filename) {
             let element = document.createElement("a");
 
-            element.setAttribute("href", "/packages/" + name + ".zip");
-            element.setAttribute("download", name + ".zip");
+            element.setAttribute("href", "/packages/" + filename);
+            element.setAttribute("download", filename);
             element.style.display = "none";
 
             document.body.appendChild(element);

@@ -406,11 +406,11 @@
                 }],
                 "responses": {
                     "200": {
-                        "description": "Response of 'true' indicates successful request",
+                        "description": "Successful request returns the name of the package created",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "boolean"
+                                    "type": "string"
                                 }
                             }
                         }

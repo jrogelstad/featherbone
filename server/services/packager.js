@@ -19,6 +19,7 @@
 (function (exports) {
     "use strict";
 
+    const fs = require('fs');
     const AdmZip = require("adm-zip");
     const path = require("path");
     const {
@@ -511,6 +512,11 @@
                 let params = [name];
                 let requests = [];
                 let manifest = {};
+                let dir = './packages';
+
+                if (!fs.existsSync(dir)){
+                    fs.mkdirSync(dir);
+                }
 
                 // Module
                 sql = (
@@ -551,9 +557,10 @@
                 requests.push(client.query(sql, params));
 
                 Promise.all(requests).then(function (resp) {
-                    let filename = path.format({
+                    let filename = name;
+                    let pathname = path.format({
                         root: "./",
-                        base: "/packages/" + name + ".zip"
+                        base: "/packages/"
                     });
 
                     addModule(manifest, zip, resp[0]);
@@ -562,6 +569,12 @@
                     addServices(manifest, zip, resp[3]);
                     addBatch("Route", manifest, zip, resp[4]);
                     addBatch("Style", manifest, zip, resp[5]);
+
+                    if (manifest.version) {
+                        filename += "-v" + manifest.version;
+                    }
+
+                    filename += ".zip";
 
                     manifest = JSON.stringify(manifest, null, 4);
 
@@ -572,8 +585,8 @@
                     );
 
                     zip.writeZip(
-                        filename,
-                        resolve.bind(null, true)
+                        pathname + filename,
+                        resolve.bind(null, filename)
                     );
                 }).catch(reject);
             });
