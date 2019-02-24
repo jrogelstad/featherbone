@@ -33,7 +33,7 @@
         let that = {};
 
         /**
-          Return routes.
+          Return modules.
 
           @param {Object} Request payload
           @param {Object} [payload.client] Database client
