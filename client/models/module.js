@@ -36,9 +36,18 @@ function module(data, feather) {
 }
 
 module.static = f.prop({
-    install: function() {
+    install: function(viewModel) {
         let input = document.createElement("input");
-        
+        let dialog = viewModel.confirmDialog();
+
+        function error(err) {
+            dialog.message(err.message);
+            dialog.title("Error");
+            dialog.icon("exclamation-triangle");
+            dialog.buttonCancel().hide();
+            dialog.show();
+        }
+
         function processFile() {
             let file = input.files[0];
             let formData = new FormData();
@@ -51,11 +60,7 @@ module.static = f.prop({
                 data: formData
             };
 
-            datasource.request(payload).then(function () {
-                dialog.close();
-            }).catch(function (err) {
-                console.log("Oops!", err);
-            });
+            datasource.request(payload).catch(error);
         }
 
         input.setAttribute("type", "file");
@@ -90,7 +95,7 @@ module.static = f.prop({
             dialog.message(err.message);
             dialog.title("Error");
             dialog.icon("exclamation-triangle");
-            dialog.onOk(undefined);
+            dialog.buttonCancel().hide();
             dialog.show();
         }
 
