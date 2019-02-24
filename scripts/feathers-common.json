@@ -289,6 +289,10 @@
                 "isRequired": true,
                 "isLabelKey": true
             },
+            "module": {
+                "description": "Module style belongs to",
+                "type": "string"
+            },
             "hasColor": {
                 "description": "Turn on font color over-ride",
                 "type": "boolean",
