@@ -10,6 +10,12 @@
                 "feather": "Module",
                 "isEditModeEnabled": false,
                 "actions": [{
+                  "name": "Install",
+                  "title": "Install a package",
+                  "icon": "download",
+                  "method": "install",
+                  "authorization": "InstallModules"
+                }, {
                   "name": "Package",
                   "title": "Package and download module",
                   "icon": "gift",
