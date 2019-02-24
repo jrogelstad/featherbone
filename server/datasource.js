@@ -367,9 +367,9 @@
             // Do the work
             function doPackage(resp) {
                 return new Promise(function (resolve, reject) {
-                    function callback(ok) {
+                    function callback(filename) {
                         resp.done();
-                        resolve(ok);
+                        resolve(filename);
                     }
 
                     packager.package(
