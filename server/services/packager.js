@@ -24,6 +24,16 @@
     const {
         Tools
     } = require("./tools");
+    const propExclusions = [
+        "id",
+        "lock",
+        "isDeleted",
+        "created",
+        "createdBy",
+        "updated",
+        "updatedBy",
+        "objectType"
+    ];
     const propTypes = [
         "description",
         "alias",
@@ -45,23 +55,43 @@
 
     const tools = new Tools();
 
-    function addModule(zip, resp) {
+    function removeExclusions(row) {
+        Object.keys(row).forEach(function (key) {
+            if (propExclusions.indexOf(key) !== -1) {
+                delete row[key];
+            } else if (Array.isArray(row[key])) {
+                row[key].forEach(removeExclusions);
+            }
+        });
+    }
+
+    function addModule(manifest, zip, resp) {
         let content;
 
         if (!resp.rows.length) {
             throw "Module not found";
         }
 
-        content = resp.rows[0].script;
+        content = resp.rows[0];
+
+        manifest.module = content.name;
+        manifest.version = content.version;
+        manifest.dependencies = content.dependencies.map(
+            (dep) => dep.name
+        );
+        manifest.files = [{
+            type: "module",
+            path: "module.js"
+        }];
 
         zip.addFile(
             "module.js",
-            Buffer.alloc(content.length, content),
+            Buffer.alloc(content.script.length, content.script),
             "Client script"
         );
     }
 
-    function addFeathers(zip, resp) {
+    function addFeathers(manifest, zip, resp) {
         let content;
 
         content = tools.sanitize(resp.rows);
@@ -294,9 +324,14 @@
         content.forEach(function (feather) {
             delete feather.dependencies;
         });
-        content = JSON.stringify(content, null, 2);
+        content = JSON.stringify(content, null, 4);
 
         if (content.length) {
+            manifest.files.push({
+                type: "feather",
+                path: "feathers.json"
+            });
+
             zip.addFile(
                 "feathers.js",
                 Buffer.alloc(content.length, content),
@@ -305,13 +340,107 @@
         }
     }
 
-    function addServices(zip, resp) {
+    function addForms(manifest, zip, resp) {
+        let content = [];
+        let rows = tools.sanitize(resp.rows);
+
+        content = rows.map(function (row) {
+            let data = row.form;
+            let ret = {
+                name: "Form",
+                method: "Post",
+                module: data.module,
+                id: data.id,
+                data: data
+            };
+
+            if (!data.focus) {
+                delete data.focus;
+            }
+            removeExclusions(data);
+            data.attrs.forEach(function (attr) {
+                if (!attr.label) {
+                    delete attr.label;
+                }
+
+                if (!attr.columns.length) {
+                    delete attr.columns;
+                } else {
+                    attr.columns.forEach(function (col) {
+                        if (!col.filter) {
+                            delete col.filter;
+                        }
+
+                        if (!col.showCurrency) {
+                            delete col.showCurrency;
+                        }
+
+                        if (!col.width) {
+                            delete col.width;
+                        }
+
+                        if (!col.dataList) {
+                            delete col.dataList;
+                        }
+
+                        if (!col.label) {
+                            delete col.label;
+                        }
+                    });
+                }
+
+                if (!attr.dataList) {
+                    delete attr.dataList;
+                }
+
+                if (!attr.disableCurrency) {
+                    delete attr.disableCurrency;
+                }
+
+                if (!attr.relationWidget) {
+                    delete attr.relationWidget;
+                }
+
+                if (!attr.filter) {
+                    delete attr.filter;
+                }
+
+                if (attr.showLabel) {
+                    delete attr.showLabel;
+                }
+            });
+
+            return ret;
+        });
+        content = JSON.stringify(content, null, 4);
+
+        manifest.files.push({
+            type: "batch",
+            path: "forms.json"
+        });
+
+        zip.addFile(
+            "forms.json",
+            Buffer.alloc(content.length, content),
+            "Form definitions"
+        );
+    }
+
+    function addServices(manifest, zip, resp) {
         let content = resp.rows;
 
         if (content.length) {
             content.forEach(function (service) {
+                let filename = service.name.toSpinalCase() + ".js";
+
+                manifest.files.push({
+                    type: "service",
+                    name: service.name,
+                    path: filename
+                });
+
                 zip.addFile(
-                    service.name.toSpinalCase() + ".js",
+                    filename,
                     Buffer.alloc(service.script.length, service.script),
                     "Data service script"
                 );
@@ -340,8 +469,13 @@
                 let sql;
                 let params = [name];
                 let requests = [];
+                let manifest = {};
 
-                sql = "SELECT script FROM module WHERE name = $1";
+                sql = (
+                    "SELECT name, version, script, " +
+                    "to_json(dependencies) AS dependencies " +
+                    "FROM _module WHERE name = $1"
+                );
                 requests.push(client.query(sql, params));
 
                 sql = (
@@ -354,6 +488,12 @@
                 );
                 requests.push(client.query(sql, params));
 
+                sql = (
+                    "SELECT to_json(_form) AS form " +
+                    "FROM _form WHERE module = $1"
+                );
+                requests.push(client.query(sql, params));
+
                 sql = "SELECT name, script FROM data_service WHERE module = $1";
                 requests.push(client.query(sql, params));
 
@@ -363,9 +503,18 @@
                         base: "/packages/" + name + ".zip"
                     });
 
-                    addModule(zip, resp[0]);
-                    addFeathers(zip, resp[1]);
-                    addServices(zip, resp[2]);
+                    addModule(manifest, zip, resp[0]);
+                    addFeathers(manifest, zip, resp[1]);
+                    addForms(manifest, zip, resp[2]);
+                    addServices(manifest, zip, resp[3]);
+
+                    manifest = JSON.stringify(manifest, null, 4);
+
+                    zip.addFile(
+                        "manifest.json",
+                        Buffer.alloc(manifest.length, manifest),
+                        "Describes files to be loaded for configuration"
+                    );
 
                     zip.writeZip(
                         filename,
