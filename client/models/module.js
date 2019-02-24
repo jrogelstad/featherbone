@@ -36,6 +36,33 @@ function module(data, feather) {
 }
 
 module.static = f.prop({
+    install: function() {
+        let input = document.createElement("input");
+        
+        function processFile() {
+            let file = input.files[0];
+            let formData = new FormData();
+            let payload;
+
+            formData.append('package', file);
+            payload = {
+                method: "POST",
+                path: "/module/install",
+                data: formData
+            };
+
+            datasource.request(payload).then(function () {
+                dialog.close();
+            }).catch(function (err) {
+                console.log("Oops!", err);
+            });
+        }
+
+        input.setAttribute("type", "file");
+        input.setAttribute("accept", ".zip");
+        input.onchange = processFile;
+        input.click();
+    },
     package: function (viewModel) {
         let dialog = viewModel.confirmDialog();
         let selection = viewModel.tableWidget().selections()[0];
@@ -48,7 +75,7 @@ module.static = f.prop({
         function download(filename) {
             let element = document.createElement("a");
 
-            element.setAttribute("href", "/packages/" + filename);
+            element.setAttribute("href", "files/packages/" + filename);
             element.setAttribute("download", filename);
             element.style.display = "none";
 
