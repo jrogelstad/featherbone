@@ -22,6 +22,8 @@
 
     const datasource = require("./server/datasource");
     const express = require("express");
+    const expressFileUpload = require("express-fileupload");
+    const fs = require("fs");
     const bodyParser = require("body-parser");
     const f = require("./common/core");
     const qs = require("qs");
@@ -37,6 +39,22 @@
     let sessions = {};
     let port = process.env.PORT || 10001;
     let settings = datasource.settings();
+    let dir = "./files";
+
+    // Make sure file directories exist
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir);
+    }
+
+    dir = "./files/packages";
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir);
+    }
+
+    dir = "./files/install";
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir);
+    }
 
     // Handle response
     function respond(resp) {
@@ -469,6 +487,26 @@
         );
     }
 
+    function doInstallModule(req, res) {
+        if (Object.keys(req.files).length == 0) {
+            return res.status(400).send('No files were uploaded.');
+        }
+
+        console.log("Install");
+
+        // The name of the input field (i.e. "file") is used to retrieve the uploaded file
+        let file = req.files.package;
+
+        // Use the mv() method to place the file somewhere on your server
+        file.mv("./files/install/temp.zip", function(err) {
+            if (err) {
+                return res.status(500).send(err);
+            }
+
+            res.json(true);
+        });
+    }
+
     function start() {
         // configure app to use bodyParser()
         // this will let us get the data from a POST
@@ -482,6 +520,9 @@
 
         // static pages
         app.use(express.static(__dirname));
+
+        // File upload
+        app.use(expressFileUpload());
 
         // Create routes for each catalog object
         registerDataRoutes();
@@ -499,6 +540,7 @@
         app.put("/feather/:name", doSaveFeather);
         app.delete("/feather/:name", doDeleteFeather);
         app.post("/module/package/:name", doPackageModule);
+        app.post("/module/install", doInstallModule);
         app.get("/modules", doGetModules);
         app.get("/settings/:name", doGetSettingsRow);
         app.put("/settings/:name", doSaveSettings);
