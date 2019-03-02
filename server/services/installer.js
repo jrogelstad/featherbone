@@ -21,22 +21,20 @@
 
     const MANIFEST = "manifest.json";
 
-    const {API} = require("../../scripts/api");
+    const {API} = require("./api");
     const fs = require("fs");
     const path = require("path");
     const f = require("../../common/core");
-    const datasource = require("../server/datasource");
 
-    f.datasource = datasource;
     f.jsonpatch = require("fast-json-patch");
 
-    const api = new API();
+    //const api = new API();
 
     function btoa(str) {
         return Buffer.from(str.toString(), "binary").toString("base64");
     }
 
-    exports.Installer = function () {
+    exports.Installer = function () { 
         // ..........................................................
         // PUBLIC
         //
@@ -51,7 +49,7 @@
           @param {String} User name
           @return Promise
         */
-        that.install = function (client, dir, user) {
+        that.install = function (datasource, client, dir, user) {
             return new Promise(function (resolve, reject) {
                 let manifest;
                 let processFile;
@@ -63,12 +61,13 @@
                     base: MANIFEST
                 });
 
+                f.datasource = datasource;
+
                 function rollback(err) {
                     client.query("ROLLBACK;", function () {
                         console.error(err);
                         //console.log("ROLLBACK");
                         console.error("Installation failed.");
-                        client.end();
                         resolve();
                     });
                 }
@@ -376,7 +375,6 @@
                     function commit(client) {
                         client.query("COMMIT;", function () {
                             //console.log("COMMIT");
-                            client.end();
                             console.log("Installation completed!");
                             resolve();
                         });
@@ -388,7 +386,7 @@
                     // If we've processed all the files, wrap this up
                     if (!file) {
                         commit(client).then(
-                            api.build
+                            api.build.bind(datasource)
                         ).catch(reject);
 
                         return;

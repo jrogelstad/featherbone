@@ -20,8 +20,7 @@
     "use strict";
 
     const fs = require("fs");
-    const f = require("../common/core");
-    const datasource = require("../server/datasource");
+    const f = require("../../common/core");
 
     function processProperties(feather, properties) {
         let keys = Object.keys(feather.properties);
@@ -120,10 +119,10 @@
         /**
           Build open api specification.
 
-          @param {Object} client Database client
+          @param {Object} Datasource
           @return {Object} Promise
         */
-        that.build = function () {
+        that.build = function (datasource) {
             return new Promise(function (resolve, reject) {
                 let api;
                 let catalog;
@@ -504,7 +503,7 @@
                 console.log("Building Open API specification");
 
                 // Load the baseline api file
-                fs.readFile("./scripts/api-base.json", "utf8", function (
+                fs.readFile("../api-base.json", "utf8", function (
                     err,
                     data
                 ) {
