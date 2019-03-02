@@ -355,11 +355,51 @@
     };
 
     /**
-      Lock.
+      Install a module from a specified manifest file name.
 
-      @param {String} Object id.
+      @param {String} Manifest filename.
       @param {String} User name.
-      @param {String} Session id.
+      @returns {Object} Promise
+    */
+    that.install = function (filename, username) {
+        return new Promise(function (resolve, reject) {
+            // Do the work
+            function doInstall(resp) {
+                return new Promise(function (resolve, reject) {
+                    function callback(filename) {
+                        resp.done();
+                        resolve(filename);
+                    }
+
+                    packager.package(
+                        resp.client,
+                        filename,
+                        username
+                    ).then(
+                        callback
+                    ).catch(
+                        reject
+                    );
+                });
+            }
+
+            Promise.resolve().then(
+                db.connect
+            ).then(
+                doInstall
+            ).then(
+                resolve
+            ).catch(
+                reject
+            );
+        });
+    };
+
+    /**
+      Package a module.
+
+      @param {String} Module name.
+      @param {String} User name.
       @returns {Object} Promise
     */
     that.package = function (name, username) {
