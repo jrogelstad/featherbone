@@ -14,7 +14,7 @@ Clone this repository and from the cloned location:
 
 ```text
 $ npm install
-$ node configure
+$ node install
 $ node server
 ```
 
