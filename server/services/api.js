@@ -503,7 +503,7 @@
                 console.log("Building Open API specification");
 
                 // Load the baseline api file
-                fs.readFile("../api-base.json", "utf8", function (
+                fs.readFile("./server/api-base.json", "utf8", function (
                     err,
                     data
                 ) {

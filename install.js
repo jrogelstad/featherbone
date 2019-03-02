@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*jslint node, eval */
+/*jslint node, eval*/
 (function () {
     "use strict";
 
@@ -61,12 +61,37 @@
                 "SELECT datname FROM pg_database " +
                 "WHERE datistemplate = false AND datname = $1"
             );
-            
+
+            // Deal with database inquiry
+            function handleDb(resp) {
+                let msg;
+
+                // If database exists, initialize datasource
+                if (resp.rows.length === 1) {
+                    datasource.getCatalog().then(resolve);
+
+                // Otherwise create database first
+                } else {
+                    msg = "Creating database \"";
+                    msg += config.postgres.database + "\"";
+                    console.log(msg);
+
+                    sql = "CREATE DATABASE %I;";
+                    sql = format(
+                        sql,
+                        config.postgres.database,
+                        config.postgres.user
+                    );
+
+                    client.query(sql).then(resolve);
+                }
+            }
+
             function callback() {
                 client.query(
                     sql,
                     [config.postgres.database]
-                ).then(resolve).catch(reject);
+                ).then(handleDb).catch(reject);
             }
 
             conn = "postgres://";
@@ -83,31 +108,6 @@
         });
     }
 
-    // Deal with database inquiry
-    function handleDb(resp) {
-        let msg;
-        let sql;
-
-        // If database exists, initialize datasource
-        if (resp.rows.length === 1) {
-            return datasource.getCatalog();
-
-        // Otherwise create database first
-        } else {
-            msg = "Creating database \"";
-            msg += config.postgres.database + "\"";
-            console.log(msg);
-
-            sql = "CREATE DATABASE %I;";
-            sql = format(
-                sql,
-                config.postgres.database,
-                config.postgres.user
-            );
-            return client.query(sql);
-        }
-    }
-
     function install() {
         return installer.install(datasource, client, dir, user);
     }
@@ -120,8 +120,6 @@
     // Real work starts here
     config.read().then(
         start
-    ).then(
-        handleDb
     ).then(
         connect // This time to database
     ).then(

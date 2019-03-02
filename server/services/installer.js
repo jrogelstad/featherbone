@@ -28,13 +28,13 @@
 
     f.jsonpatch = require("fast-json-patch");
 
-    //const api = new API();
+    const api = new API();
 
     function btoa(str) {
         return Buffer.from(str.toString(), "binary").toString("base64");
     }
 
-    exports.Installer = function () { 
+    exports.Installer = function () {
         // ..........................................................
         // PUBLIC
         //
@@ -372,12 +372,9 @@
                     let content;
                     let name;
 
-                    function commit(client) {
-                        client.query("COMMIT;", function () {
-                            //console.log("COMMIT");
-                            console.log("Installation completed!");
-                            resolve();
-                        });
+                    function complete() {
+                        console.log("Installation completed!");
+                        resolve();
                     }
 
                     file = manifest.files[i];
@@ -385,9 +382,10 @@
 
                     // If we've processed all the files, wrap this up
                     if (!file) {
-                        commit(client).then(
-                            api.build.bind(datasource)
-                        ).catch(reject);
+                        //console.log("COMMIT");
+                        client.query("COMMIT;").then(
+                            api.build.bind(null, datasource)
+                        ).then(complete).catch(reject);
 
                         return;
                     }
