@@ -29,6 +29,7 @@
     const qs = require("qs");
     const SSE = require("sse-nodejs");
     const cors = require("cors");
+    const AdmZip = require("adm-zip");
 
     f.datasource = datasource;
     f.jsonpatch = require("fast-json-patch");
@@ -488,20 +489,31 @@
     }
 
     function doInstallModule(req, res) {
-        if (Object.keys(req.files).length == 0) {
-            return res.status(400).send('No files were uploaded.');
+        const DIR = "./files/install/";
+        const TEMPFILE = DIR + "temp.zip";
+
+        if (Object.keys(req.files).length === 0) {
+            return res.status(400).send("No files were uploaded.");
         }
 
         console.log("Install");
 
-        // The name of the input field (i.e. "file") is used to retrieve the uploaded file
+        // The name of the input field
         let file = req.files.package;
 
-        // Use the mv() method to place the file somewhere on your server
-        file.mv("./files/install/temp.zip", function(err) {
+        // Move the file to a install folder
+        file.mv(TEMPFILE, function (err) {
             if (err) {
                 return res.status(500).send(err);
             }
+
+            let zip = new AdmZip(TEMPFILE);
+
+            zip.extractAllTo(DIR, true);
+            datasource.install(
+                DIR,
+                datasource.getCurrentUser()
+            );
 
             res.json(true);
         });
