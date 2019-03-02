@@ -23,39 +23,18 @@
     require("../common/number");
     require("../common/date");
 
-    const {
-        Database
-    } = require("./database");
-    const {
-        Events
-    } = require("./services/events");
-    const {
-        CRUD
-    } = require("./services/crud");
-    const {
-        Currency
-    } = require("./services/currency");
-    const {
-        Feathers
-    } = require("./services/feathers");
-    const {
-        Modules
-    } = require("./services/modules");
-    const {
-        Packager
-    } = require("./services/packager");
-    const {
-        Routes
-    } = require("./services/routes");
-    const {
-        Services
-    } = require("./services/services");
-    const {
-        Settings
-    } = require("./services/settings");
-    const {
-        Workbooks
-    } = require("./services/workbooks");
+    const {Database} = require("./database");
+    const {Events} = require("./services/events");
+    const {CRUD} = require("./services/crud");
+    const {Currency} = require("./services/currency");
+    const {Feathers} = require("./services/feathers");
+    const {Installer} = require("./services/installer");
+    const {Modules} = require("./services/modules");
+    const {Packager} = require("./services/packager");
+    const {Routes} = require("./services/routes");
+    const {Services} = require("./services/services");
+    const {Settings} = require("./services/settings");
+    const {Workbooks} = require("./services/workbooks");
 
     const f = require("../common/core");
     const jsonpatch = require("fast-json-patch");
@@ -64,6 +43,7 @@
     const crud = new CRUD();
     const currency = new Currency();
     const feathers = new Feathers();
+    const installer = new Installer();
     const modules = new Modules();
     const packager = new Packager();
     const routes = new Routes();
@@ -367,11 +347,12 @@
             function doInstall(resp) {
                 return new Promise(function (resolve, reject) {
                     function callback(filename) {
-                        resp.done();
+                        resp.end();
                         resolve(filename);
                     }
 
-                    packager.package(
+                    installer.install(
+                        that,
                         resp.client,
                         filename,
                         username

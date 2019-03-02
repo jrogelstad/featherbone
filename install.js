@@ -24,7 +24,7 @@
     const {Client} = require("pg");
     const {Config} = require("./server/config");
     const {Installer} = require("./server/services/installer");
-    const datasource = require("../server/datasource");
+    const datasource = require("./server/datasource");
     const format = require("pg-format");
     const path = require("path");
 
@@ -55,29 +55,32 @@
 
     // Connect to postgres so we can inquire on db status
     function start(config) {
-        let conn;
+        return new Promise(function (resolve, reject) {
+            let conn;
+            let sql = (
+                "SELECT datname FROM pg_database " +
+                "WHERE datistemplate = false AND datname = $1"
+            );
+            
+            function callback() {
+                client.query(
+                    sql,
+                    [config.postgres.database]
+                ).then(resolve).catch(reject);
+            }
 
-        conn = "postgres://";
-        conn += config.postgres.user + ":";
-        conn += config.postgres.password + "@";
-        conn += config.postgres.host + ":";
-        conn += config.postgres.port + "/" + "postgres";
+            conn = "postgres://";
+            conn += config.postgres.user + ":";
+            conn += config.postgres.password + "@";
+            conn += config.postgres.host + ":";
+            conn += config.postgres.port + "/" + "postgres";
 
-        client = new Client({
-            connectionString: conn
+            client = new Client({
+                connectionString: conn
+            });
+
+            client.connect().then(callback).catch(reject);
         });
-
-        return client.connect();
-    }
-
-    // Inquire on existence of database
-    function queryDb() {
-        let sql = (
-            "SELECT datname FROM pg_database " +
-            "WHERE datistemplate = false AND datname = $1"
-        );
-
-        return client.query(sql, [config.postgres.database]);
     }
 
     // Deal with database inquiry
@@ -106,19 +109,17 @@
     }
 
     function install() {
-        return installer.install(client, dir, user);
+        return installer.install(datasource, client, dir, user);
     }
 
     function done() {
-        client.done();
+        client.end();
         process.exit();
     }
 
     // Real work starts here
     config.read().then(
         start
-    ).then(
-        queryDb
     ).then(
         handleDb
     ).then(
