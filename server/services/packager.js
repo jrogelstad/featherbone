@@ -67,19 +67,19 @@
             function callback(resp) {
                 let modules = resp.rows;
 
-                function resolveDependencies(module, dependencies) {
-                    dependencies = dependencies || module.dependencies;
+                function resolveDependencies(module, tree) {
+                    tree = tree || module.tree;
 
-                    module.dependencies.forEach(function (dependency) {
+                    module.tree.forEach(function (dependency) {
                         let parent = modules.find(
                             (module) => module.name === dependency
                         );
 
-                        parent.dependencies.forEach(
-                            (pDepencency) => dependencies.push(pDepencency)
+                        parent.tree.forEach(
+                            (pDepencency) => tree.push(pDepencency)
                         );
 
-                        resolveDependencies(parent, dependencies);
+                        resolveDependencies(parent, tree);
                     });
                 }
 
@@ -88,6 +88,7 @@
                     module.dependencies = module.dependencies.map(
                         (dep) => dep.module.name
                     );
+                    module.tree = module.dependencies.slice();
                 });
 
                 // Process modules, start by resolving,
@@ -100,7 +101,7 @@
                 modules = modules.filter(function (module) {
                     return (
                         module.name === name ||
-                        theOne.dependencies.indexOf(module.name) !== -1
+                        theOne.tree.indexOf(module.name) !== -1
                     );
                 });
 
@@ -111,7 +112,7 @@
                     let ret = [];
 
                     function top(mod) {
-                        return mod.dependencies.every(
+                        return mod.tree.every(
                             (dep) => ret.some((added) => added.name === dep)
                         );
                     }
@@ -155,6 +156,7 @@
 
         manifest.module = content.name;
         manifest.version = content.version;
+        manifest.dependencies = content.dependencies;
         manifest.files.push({
             type: "module",
             path: filename
