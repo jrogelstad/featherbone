@@ -44,10 +44,11 @@
         /**
           Install a package in a specified directory.
 
+          @param {Object} Initialized datasource (catalog loaded)
           @param {Object} Client
           @param {String} Directory of manifest
           @param {String} User name
-          @return Promise
+          @return {Object} Promise
         */
         that.install = function (datasource, client, dir, user) {
             return new Promise(function (resolve, reject) {

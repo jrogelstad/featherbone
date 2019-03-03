@@ -102,7 +102,10 @@ module.static = f.prop({
         datasource.request(payload).then(download).catch(error);
     },
     packageCheck: function (selections) {
-        return selections.length === 1;
+        return (
+            selections.length === 1 &&
+            !selections.some((sel) => sel.naturalKey() === "Core")
+        );
     }
 });
 
