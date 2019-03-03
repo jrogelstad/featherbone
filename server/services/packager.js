@@ -671,20 +671,31 @@
                 // Forms
                 sql = (
                     "SELECT to_json(_form) AS form " +
-                    "FROM _form WHERE module = $1"
+                    "FROM _form WHERE module = $1 " +
+                    "ORDER BY name"
                 );
                 requests.push(client.query(sql, params));
 
                 // Services
-                sql = "SELECT name, script FROM data_service WHERE module = $1";
+                sql = (
+                    "SELECT name, script " +
+                    "FROM data_service WHERE module = $1 " +
+                    "ORDER BY name;"
+                );
                 requests.push(client.query(sql, params));
 
                 // Routes
-                sql = "SELECT * FROM route WHERE module = $1";
+                sql = (
+                    "SELECT * FROM route WHERE module = $1 " +
+                    "ORDER BY path;"
+                );
                 requests.push(client.query(sql, params));
 
                 // Styles
-                sql = "SELECT * FROM style WHERE module = $1";
+                sql = (
+                    "SELECT * FROM style WHERE module = $1 " +
+                    "ORDER BY name;"
+                );
                 requests.push(client.query(sql, params));
 
                 Promise.all(requests).then(function (resp) {
