@@ -57,6 +57,7 @@
 
     function getSortedModules(client, name) {
         return new Promise(function (resolve, reject) {
+            let theOne;
             let sql = (
                 "SELECT name, version, script, " +
                 "to_json(dependencies) AS dependencies " +
@@ -65,12 +66,6 @@
 
             function callback(resp) {
                 let modules = resp.rows;
-
-                modules.forEach(function (module) {
-                    module.dependencies = module.dependencies.map(
-                        (dep) => dep.module.name
-                    );
-                });
 
                 function resolveDependencies(module, dependencies) {
                     dependencies = dependencies || module.dependencies;
@@ -88,9 +83,28 @@
                     });
                 }
 
+                // Simplify dependencies
+                modules.forEach(function (module) {
+                    module.dependencies = module.dependencies.map(
+                        (dep) => dep.module.name
+                    );
+                });
+
                 // Process modules, start by resolving,
                 // then sorting on dependencies
                 modules.forEach((module) => resolveDependencies(module));
+
+                // Filter to only modules related to the one being packaged
+                theOne = modules.find((module) => module.name === name);
+
+                modules = modules.filter(function (module) {
+                    return (
+                        module.name === name ||
+                        theOne.dependencies.indexOf(module.name) !== -1
+                    );
+                });
+
+                // Sort
                 modules = (function () {
                     let module;
                     let idx;
@@ -113,11 +127,6 @@
                     return ret;
                 }());
 
-                // Only upstream modules
-                modules = modules.slice(0, modules.map(
-                    (mod) => mod.name
-                ).indexOf(name) + 1);
-                
                 // Remove Core module from top
                 modules.shift();
 
@@ -569,7 +578,7 @@
                     throw "Module not found";
                 }
 
-                content = resp.slice(0, resp.length -1);
+                content = resp.slice(0, resp.length - 1);
 
                 content.forEach(function (module) {
                     let name = module.name;
@@ -694,6 +703,10 @@
                             addModule(manifest, zip, resp[0], folder);
                         }
 
+                        if (manifest.version) {
+                            filename += "-v" + manifest.version;
+                        }
+
                         manifest = JSON.stringify(manifest, null, 4);
 
                         zip.addFile(
@@ -705,10 +718,6 @@
                         if (folder) {
                             resolve();
                         } else {
-                            if (manifest.version) {
-                                filename += "-v" + manifest.version;
-                            }
-
                             filename += ".zip";
                             zip.writeZip(
                                 pathname + filename,
