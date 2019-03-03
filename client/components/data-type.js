@@ -97,7 +97,7 @@ dataType.viewModel = function (options) {
     vm.childOf = function () {
         let type = vm.prop();
 
-        if (typeof type === "object") {
+        if (typeof type === "object" && type !== null) {
             return type.childOf || "";
         }
 
@@ -115,6 +115,7 @@ dataType.viewModel = function (options) {
         return countries;
     };
     vm.id = f.prop(options.id || f.createId());
+    vm.isOverload = f.prop(Boolean(options.isOverload));
     vm.model = parent.model().data[options.parentProperty];
     vm.onchange = function (e, showDialog) {
         if (e.target.value === "relation") {
@@ -143,9 +144,10 @@ dataType.viewModel = function (options) {
         vm.buttonRemove().disable();
     };
     vm.onchangeDialogChildOf = function (e) {
-        let type = f.copy(vm.prop());
+        let type = vm.prop();
 
         if (typeof type === "object") {
+            type = f.copy(type);
             if (e.target.value) {
                 type.childOf = e.target.value;
                 vm.propsAvailableWidget().items([]);
@@ -208,7 +210,7 @@ dataType.viewModel = function (options) {
         let feather;
         let relation = vm.relation();
 
-        if (relation) {
+        if (relation && !vm.isOverload()) {
             feather = catalog.getFeather(relation);
             props = Object.keys(feather.properties).sort();
         }
@@ -224,9 +226,10 @@ dataType.viewModel = function (options) {
         });
     };
     vm.propertiesSelected = function (...args) {
-        let type = f.copy(vm.prop());
+        let type = vm.prop();
 
-        if (typeof type === "object") {
+        if (typeof type === "object" && type !== null) {
+            type = f.copy(type);
             if (args.length) {
                 type.properties = args[0];
                 vm.prop(type);
@@ -239,7 +242,7 @@ dataType.viewModel = function (options) {
     vm.relation = function () {
         let type = vm.prop();
 
-        if (typeof type === "object") {
+        if (typeof type === "object" && type !== null) {
             return type.relation;
         }
 
@@ -252,7 +255,7 @@ dataType.viewModel = function (options) {
     vm.type = function () {
         let type = vm.prop();
 
-        if (typeof type === "object") {
+        if (typeof type === "object" && type !== null) {
             return "relation";
         }
 
@@ -314,7 +317,11 @@ dataType.viewModel = function (options) {
 
     vm.dataTypeDialog(dialog.viewModel({
         icon: "edit",
-        title: "Data type"
+        title: (
+            vm.isOverload()
+            ? "Overload type"
+            : "Data type"
+        )
     }));
 
     vm.dataTypeDialog().buttons().pop();
@@ -324,6 +331,7 @@ dataType.viewModel = function (options) {
         let isNotRelation = vm.type() !== "relation";
         let isNotFeather = !vm.relation();
         let propertiesSelected = vm.propertiesSelected() || [];
+        let isOverload = vm.isOverload();
 
         return m("div", [
             m("div", {
@@ -336,7 +344,9 @@ dataType.viewModel = function (options) {
                     id: id,
                     key: id,
                     value: vm.type(),
-                    onchange: vm.onchangeDialogType
+                    onchange: vm.onchangeDialogType,
+                    readonly: isOverload,
+                    disabled: isOverload
                 }, vm.types().map(function (item) {
                     return m("option", {
                         value: item,
@@ -376,7 +386,11 @@ dataType.viewModel = function (options) {
                     id: "dlgChildOf",
                     value: vm.childOf(),
                     onchange: vm.onchangeDialogChildOf,
-                    readonly: isNotFeather || propertiesSelected.length
+                    readonly: (
+                        isNotFeather ||
+                        propertiesSelected.length ||
+                        isOverload
+                    )
                 })
             ]),
             m("div", {
@@ -398,7 +412,7 @@ dataType.viewModel = function (options) {
                             display: "inline-block",
                             width: "120px"
                         },
-                        readonly: isNotFeather
+                        readonly: isNotFeather || isOverload
                     }),
                     m("div", {
                         style: {
@@ -422,7 +436,7 @@ dataType.viewModel = function (options) {
                             display: "inline-block",
                             width: "120px"
                         },
-                        readonly: isNotFeather
+                        readonly: isNotFeather || isOverload
                     })
                 ])
             ])
@@ -461,7 +475,8 @@ dataType.component = {
             parentViewModel: options.parentViewModel,
             parentProperty: options.parentProperty,
             id: options.id,
-            readonly: options.readonly
+            readonly: options.readonly,
+            isOverload: options.isOverload
         });
     },
 
@@ -469,9 +484,18 @@ dataType.component = {
         let vm = this.viewModel;
         let id = vm.id();
         let style = vm.style();
-        let readonly = vnode.attrs.readonly === true;
+        let readonly = (
+            vnode.attrs.readonly === true ||
+            vm.isOverload()
+        );
 
         style.display = style.display || "inline-block";
+
+        if (vnode.attrs.readonly) {
+            vm.buttonEdit().disable();
+        } else {
+            vm.buttonEdit().enable();
+        }
 
         // Build the view
         return m("div", {
@@ -487,7 +511,8 @@ dataType.component = {
                 oncreate: vnode.attrs.onCreate,
                 onremove: vnode.attrs.onRemove,
                 value: vm.type(),
-                readonly: readonly
+                readonly: readonly,
+                disabled: readonly
             }, vm.types().map(function (item) {
                 let opts = {
                     value: item,

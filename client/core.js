@@ -728,6 +728,29 @@ f.formats.money.tableData = function (obj) {
     return symbol + content;
 };
 
+f.formats.overloadType = {};
+
+f.formats.overloadType.editor = function (options) {
+    options.isOverload = true;
+
+    return m(catalog.store().components().dataType, options);
+};
+
+f.formats.overloadType.tableData = function (obj) {
+    let value = obj.value;
+    let content = value;
+    let title = value;
+
+    if (typeof value === "object" && value !== null) {
+        content = "relation: " + obj.value.relation;
+        title = content;
+    }
+
+    obj.options.title = title;
+
+    return content;
+};
+
 f.formats.password.editor = input.bind(null, "password");
 
 f.formats.tel.editor = input.bind(null, "tel");
