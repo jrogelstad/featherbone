@@ -91,18 +91,6 @@
                         feather.name
                     );
                 }
-
-                if (property.format) {
-                    if (formats.indexOf(property.format) !== -1) {
-                        newProperty.format = property.format.toSpinalCase();
-                    } else {
-                        throw new Error(
-                            "Property format " + property.format +
-                            " not supported on " + key + " for feather " +
-                            feather.name
-                        );
-                    }
-                }
             }
 
             properties[key] = newProperty;

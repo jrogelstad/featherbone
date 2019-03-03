@@ -72,6 +72,10 @@ function featherOverload(data, spec) {
     that.onChanged("overloadType", function () {
         if (!d.overloadType()) {
             d.type("");
+        } else {
+            d.type({
+                type: "relation"
+            });
         }
     });
     that.onChanged("overloadDefault", handleReadOnly);
@@ -97,6 +101,15 @@ function featherOverload(data, spec) {
                 "Property \"" + d.name() +
                 "\" referenced in overload does not exist on this feather."
             );
+        }
+
+        if (d.overloadType()) {
+            if (!d.type().relation) {
+                throw new Error(
+                    "Feather name required on relation type \"" +
+                    d.name() + "\""
+                );
+            }
         }
 
         if (d.overloadDescription() && !d.description()) {
