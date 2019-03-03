@@ -55,6 +55,79 @@
 
     const tools = new Tools();
 
+    function getSortedModules(client, name) {
+        return new Promise(function (resolve, reject) {
+            let sql = (
+                "SELECT name, version, script, " +
+                "to_json(dependencies) AS dependencies " +
+                "FROM _module;"
+            );
+
+            function callback(resp) {
+                let modules = resp.rows;
+
+                modules.forEach(function (module) {
+                    module.dependencies = module.dependencies.map(
+                        (dep) => dep.module.name
+                    );
+                });
+
+                function resolveDependencies(module, dependencies) {
+                    dependencies = dependencies || module.dependencies;
+
+                    module.dependencies.forEach(function (dependency) {
+                        let parent = modules.find(
+                            (module) => module.name === dependency
+                        );
+
+                        parent.dependencies.forEach(
+                            (pDepencency) => dependencies.push(pDepencency)
+                        );
+
+                        resolveDependencies(parent, dependencies);
+                    });
+                }
+
+                // Process modules, start by resolving,
+                // then sorting on dependencies
+                modules.forEach((module) => resolveDependencies(module));
+                modules = (function () {
+                    let module;
+                    let idx;
+                    let ret = [];
+
+                    function top(mod) {
+                        return mod.dependencies.every(
+                            (dep) => ret.some((added) => added.name === dep)
+                        );
+                    }
+
+                    while (modules.length) {
+                        module = modules.find(top);
+
+                        ret.push(module);
+                        idx = modules.indexOf(module);
+                        modules.splice(idx, 1);
+                    }
+
+                    return ret;
+                }());
+
+                // Only upstream modules
+                modules = modules.slice(0, modules.map(
+                    (mod) => mod.name
+                ).indexOf(name) + 1);
+                
+                // Remove Core module from top
+                modules.shift();
+
+                resolve(modules);
+            }
+
+            client.query(sql).then(callback).catch(reject);
+        });
+    }
+
     function removeExclusions(row) {
         Object.keys(row).forEach(function (key) {
             if (propExclusions.indexOf(key) !== -1) {
@@ -65,34 +138,28 @@
         });
     }
 
-    function addModule(manifest, zip, resp) {
+    function addModule(manifest, zip, resp, folder) {
         let content;
+        let filename = folder + "module.js";
 
-        if (!resp.rows.length) {
-            throw "Module not found";
-        }
-
-        content = resp.rows[0];
+        content = resp.pop();
 
         manifest.module = content.name;
         manifest.version = content.version;
-        manifest.dependencies = content.dependencies.map(
-            (dep) => dep.module.name
-        );
-        manifest.files = [{
+        manifest.files.push({
             type: "module",
-            path: "module.js"
-        }];
+            path: filename
+        });
 
         zip.addFile(
-            "module.js",
-            Buffer.alloc(content.script.length, content.script),
-            "Client script"
+            filename,
+            Buffer.alloc(content.script.length, content.script)
         );
     }
 
-    function addFeathers(manifest, zip, resp) {
+    function addFeathers(manifest, zip, resp, folder) {
         let content;
+        let filename = folder + "feathers.json";
 
         content = tools.sanitize(resp.rows);
         content.forEach(function (feather) {
@@ -329,20 +396,20 @@
         if (content.length) {
             manifest.files.push({
                 type: "feather",
-                path: "feathers.json"
+                path: filename
             });
 
             zip.addFile(
-                "feathers.js",
-                Buffer.alloc(content.length, content),
-                "Feather definitions"
+                filename,
+                Buffer.alloc(content.length, content)
             );
         }
     }
 
-    function addForms(manifest, zip, resp) {
+    function addForms(manifest, zip, resp, folder) {
         let content = [];
         let rows = tools.sanitize(resp.rows);
+        let filename = folder + "forms.json";
 
         content = rows.map(function (row) {
             let data = row.form;
@@ -418,23 +485,22 @@
 
             manifest.files.push({
                 type: "batch",
-                path: "forms.json"
+                path: filename
             });
 
             zip.addFile(
-                "forms.json",
-                Buffer.alloc(content.length, content),
-                "Form definitions"
+                filename,
+                Buffer.alloc(content.length, content)
             );
         }
     }
 
-    function addServices(manifest, zip, resp) {
+    function addServices(manifest, zip, resp, folder) {
         let content = resp.rows;
 
         if (content.length) {
             content.forEach(function (service) {
-                let filename = service.name.toSpinalCase() + ".js";
+                let filename = folder + service.name.toSpinalCase() + ".js";
 
                 manifest.files.push({
                     type: "service",
@@ -444,17 +510,16 @@
 
                 zip.addFile(
                     filename,
-                    Buffer.alloc(service.script.length, service.script),
-                    "Data service script"
+                    Buffer.alloc(service.script.length, service.script)
                 );
             });
         }
     }
 
-    function addBatch(type, manifest, zip, resp) {
+    function addBatch(type, manifest, zip, resp, folder) {
         let content = [];
         let rows = tools.sanitize(resp.rows);
-        let filename = type.toCamelCase() + "s.json";
+        let filename = folder + type.toCamelCase() + "s.json";
 
         content = rows.map(function (data) {
             let ret = {
@@ -483,8 +548,7 @@
 
             zip.addFile(
                 filename,
-                Buffer.alloc(content.length, content),
-                type + " definitions"
+                Buffer.alloc(content.length, content)
             );
         }
     }
@@ -496,29 +560,93 @@
 
         let that = {};
 
+        function addDependencies(client, manifest, zip, resp, user, folder) {
+            return new Promise(function (resolve, reject) {
+                let content;
+                let requests = [];
+
+                if (!resp.length) {
+                    throw "Module not found";
+                }
+
+                resp.pop();
+                content = resp;
+
+                manifest.dependencies = [];
+
+                content.forEach(function (module) {
+                    let name = module.name;
+                    let addPackage;
+
+                    addPackage = new Promise(function (resolve, reject) {
+                        function callback() {
+                            manifest.dependencies.push(name);
+                            manifest.files.push({
+                                type: "install",
+                                path: name.toSpinalCase() + "/manifest.json"
+                            });
+
+                            resolve();
+                        }
+
+                        that.package(
+                            client,
+                            name,
+                            user,
+                            {
+                                zip: zip,
+                                folder: folder + name.toSpinalCase() + "/",
+                                module: module
+                            }
+                        ).then(callback).catch(reject);
+                    });
+
+                    requests.push(addPackage);
+                });
+
+                Promise.all(requests).then(resolve).catch(reject);
+            });
+        }
+
         /**
           Package a module.
 
           @param {Object} Database client
           @param {String} Module
           @param {String} Username
+          @param {Object} Sub module
+          @param {Object} [sub.zip] Zip file to append
+          @param {String} [sub.folder] New folder for submodule
+          @param {Object} [sub.module] Module
           @return {Object}
         */
-        that.package = function (client, name, ignore) {
+        that.package = function (client, name, user, sub) {
+            sub = sub || {};
+
             return new Promise(function (resolve, reject) {
-                let zip = new AdmZip();
                 let sql;
                 let params = [name];
                 let requests = [];
-                let manifest = {};
+                let manifest = {
+                    module: "",
+                    version: "",
+                    dependencies: [],
+                    files: []
+                };
+                let zip = sub.zip || new AdmZip();
+                let folder = sub.folder || "";
+
+                if (folder) {
+                    // Create folder for sub module
+                    zip.addFile(folder, Buffer.alloc(0, null));
+                }
 
                 // Module
-                sql = (
-                    "SELECT name, version, script, " +
-                    "to_json(dependencies) AS dependencies " +
-                    "FROM _module WHERE name = $1"
-                );
-                requests.push(client.query(sql, params));
+                if (!sub.module) {
+                    requests.push(getSortedModules(client, name));
+                } else {
+                    requests.push(Promise.resolve);
+                }
 
                 // Feathers
                 sql = (
@@ -554,34 +682,56 @@
                     let filename = name;
                     let pathname = path.format({
                         root: "./",
-                        base: "/packages/"
+                        base: "files/packages/"
                     });
 
-                    addModule(manifest, zip, resp[0]);
-                    addFeathers(manifest, zip, resp[1]);
-                    addForms(manifest, zip, resp[2]);
-                    addServices(manifest, zip, resp[3]);
-                    addBatch("Route", manifest, zip, resp[4]);
-                    addBatch("Style", manifest, zip, resp[5]);
+                    function finishPackage() {
+                        addFeathers(manifest, zip, resp[1], folder);
+                        addForms(manifest, zip, resp[2], folder);
+                        addServices(manifest, zip, resp[3], folder);
+                        addBatch("Route", manifest, zip, resp[4], folder);
+                        addBatch("Style", manifest, zip, resp[5], folder);
+                        if (sub.module) {
+                            addModule(manifest, zip, [sub.module], folder);
+                        } else {
+                            addModule(manifest, zip, resp[0], folder);
+                        }
 
-                    if (manifest.version) {
-                        filename += "-v" + manifest.version;
+                        manifest = JSON.stringify(manifest, null, 4);
+
+                        zip.addFile(
+                            folder + "manifest.json",
+                            Buffer.alloc(manifest.length, manifest)
+                        );
+
+                        // Only write zip out the top level
+                        if (folder) {
+                            resolve();
+                        } else {
+                            if (manifest.version) {
+                                filename += "-v" + manifest.version;
+                            }
+
+                            filename += ".zip";
+                            zip.writeZip(
+                                pathname + filename,
+                                resolve.bind(null, filename)
+                            );
+                        }
                     }
 
-                    filename += ".zip";
-
-                    manifest = JSON.stringify(manifest, null, 4);
-
-                    zip.addFile(
-                        "manifest.json",
-                        Buffer.alloc(manifest.length, manifest),
-                        "Describes files to be loaded for configuration"
-                    );
-
-                    zip.writeZip(
-                        pathname + filename,
-                        resolve.bind(null, filename)
-                    );
+                    if (sub.module) {
+                        finishPackage();
+                    } else {
+                        addDependencies(
+                            client,
+                            manifest,
+                            zip,
+                            resp[0],
+                            user,
+                            folder
+                        ).then(finishPackage).catch(reject);
+                    }
                 }).catch(reject);
             });
         };
