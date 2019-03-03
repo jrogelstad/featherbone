@@ -402,9 +402,10 @@
         content.forEach(function (feather) {
             delete feather.dependencies;
         });
-        content = JSON.stringify(content, null, 4);
 
         if (content.length) {
+            content = JSON.stringify(content, null, 4);
+
             manifest.files.push({
                 type: "feather",
                 path: filename
