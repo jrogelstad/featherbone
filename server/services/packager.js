@@ -142,7 +142,7 @@
         let content;
         let filename = folder + "module.js";
 
-        content = resp.pop();
+        content = resp.slice().pop();
 
         manifest.module = content.name;
         manifest.version = content.version;
@@ -569,10 +569,7 @@
                     throw "Module not found";
                 }
 
-                resp.pop();
-                content = resp;
-
-                manifest.dependencies = [];
+                content = resp.slice(0, resp.length -1);
 
                 content.forEach(function (module) {
                     let name = module.name;
