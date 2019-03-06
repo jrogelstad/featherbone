@@ -86,14 +86,25 @@ function featherProperty(data, spec) {
 
     function handleReadOnly() {
         let isNotNumber = that.data.type() !== "number";
+        let parentHasNaturalKey = that.parent().data.properties().some(
+            function(prop) {
+                return prop !== that && prop.data.isNaturalKey();
+            }
+        );
+        let parentHasLabelKey = that.parent().data.properties().some(
+            function(prop) {
+                return prop !== that && prop.data.isLabelKey();
+            }
+        );
 
         d.scale.isReadOnly(isNotNumber);
         d.precision.isReadOnly(isNotNumber);
         d.min.isReadOnly(isNotNumber);
         d.max.isReadOnly(isNotNumber);
-        d.isNaturalKey.isReadOnly(d.isLabelKey());
+        d.isNaturalKey.isReadOnly(d.isLabelKey() || parentHasNaturalKey);
         d.isIndexed.isReadOnly(d.isNaturalKey());
-        d.isLabelKey.isReadOnly(d.isNaturalKey());
+        d.isLabelKey.isReadOnly(d.isNaturalKey() || parentHasLabelKey);
+        d.autonumber.isReadOnly(!d.isNaturalKey());
     }
 
     that.addCalculated({
@@ -151,6 +162,8 @@ function featherProperty(data, spec) {
             }
         }
     });
+
+    that.handleReadOnly = handleReadOnly;
 
     return that;
 }
