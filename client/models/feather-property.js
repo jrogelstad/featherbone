@@ -21,6 +21,9 @@ import model from "./model.js";
 
 function featherProperty(data, spec) {
     spec = spec || catalog.getFeather("FeatherProperty");
+    spec.properties.type.default = "string";
+    spec.properties.default.default = "";
+
     let that;
     let d;
     let types = {
