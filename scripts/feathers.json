@@ -94,8 +94,7 @@
                 "description": "Type",
                 "type": "object",
                 "format": "dataType",
-                "isRequired": true,
-                "default": "string"
+                "isRequired": true
             },
             "format": {
                 "description": "Data format",
@@ -127,8 +126,7 @@
             "default": {
                 "description": "Default",
                 "type": "object",
-                "isRequired": false,
-                "default": ""
+                "isRequired": false
             },
             "autonumber": {
                 "description": "Type",
@@ -221,8 +219,7 @@
             "type": {
                 "description": "Specify an alternate relation feather to use on the client side for easier searching",
                 "type": "object",
-                "format": "overloadType",
-                "default": ""
+                "format": "overloadType"
             },
             "overloadDefault": {
                 "description": "Flag whether to overload default",
