@@ -131,6 +131,7 @@
             "autonumber": {
                 "description": "Type",
                 "type": "object",
+                "format": "autonumber",
                 "isRequired": false
             },
             "isReadOnly": {
