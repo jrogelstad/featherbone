@@ -20,6 +20,9 @@ import model from "./model.js";
 
 function featherOverload(data, spec) {
     spec = spec || catalog.getFeather("FeatherOverload");
+    spec.properties.type.default = "";
+    spec.properties.default.default = "";
+
     let that;
     let d;
 
@@ -40,6 +43,10 @@ function featherOverload(data, spec) {
                 value: name,
                 label: name
             };
+        });
+        names.unshift({
+            value: "",
+            label: ""
         });
 
         return names;
