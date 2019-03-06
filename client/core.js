@@ -603,6 +603,27 @@ function input(type, options) {
     return m("input", opts);
 }
 
+f.formats.autonumber = {};
+
+f.formats.autonumber.editor = function (options) {
+    return m(catalog.store().components().autonumber, options);
+};
+
+f.formats.autonumber.tableData = function (obj) {
+    let value = obj.value;
+    let content = value;
+    let title = value;
+
+    if (typeof value === "object" && value !== null) {
+        content = "relation: " + obj.value.relation;
+        title = content;
+    }
+
+    obj.options.title = title;
+
+    return content;
+};
+
 f.formats.color.editor = input.bind(null, "color");
 
 f.formats.color.tableData = function (obj) {

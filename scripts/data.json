@@ -247,7 +247,7 @@
         }, {
             "attr": "isIndexed"
         }, {
-            "attr": "inheritedFrom",
+            "attr": "autonumber",
             "unit": 1
         }, {
             "attr": "dataList",
