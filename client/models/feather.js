@@ -78,6 +78,10 @@ function feather(data, spec) {
         }
     }
 
+    function handleReadOnly() {
+        that.data.properties().forEach((prop) => prop.handleReadOnly());
+    }
+
     that.addCalculated({
         name: "feathers",
         type: "array",
@@ -120,6 +124,9 @@ function feather(data, spec) {
         function: modules
     });
 
+
+    that.onChanged("properties.isNaturalKey", handleReadOnly);
+    that.onChanged("properties.isLabelKey", handleReadOnly);
     that.onChanged("inherits", calculateInherited);
     that.state().resolve("/Ready/Fetched/Clean").enter(calculateInherited);
 
