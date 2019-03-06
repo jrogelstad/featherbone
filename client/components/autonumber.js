@@ -69,7 +69,12 @@ function autonumberModel() {
             prop.newValue("");
         }
     });
-    
+
+    that.state().resolve("/Ready/Fetched/Locking").enters.shift();
+    that.state().resolve("/Ready/Fetched/Locking").enter(function () {
+        this.goto("../Dirty");
+    });
+
     return that;
 }
 
@@ -78,20 +83,24 @@ autonumber.viewModel = function (options) {
     let parent = options.parentViewModel;
 
     vm.autonumberDialog = f.prop();
+    vm.buttonClear = f.prop();
     vm.buttonEdit = f.prop();
     vm.content = function () {
-        let d;
-        let content;
+        let d = vm.model();
+        let content = "";
         let n = 0;
 
-        if (!vm.model()) {
+        if (!d) {
             return content;
         }
-        d = vm.model();
 
         content = d.prefix + n.pad(d.length) + d.suffix;
 
         return content;
+    };
+    vm.doClear = function () {
+        vm.autonumberDialog().cancel();
+        vm.model(null);
     };
     vm.doEdit = function () {
         let value;
@@ -111,6 +120,8 @@ autonumber.viewModel = function (options) {
             value = vm.model();
             dmodel.set(value);
             dmodel.state().goto("/Ready/Fetched/Clean");
+        } else {
+            dmodel.clear();
         }
     };
     vm.id = f.prop(options.id || f.createId());
@@ -137,12 +148,19 @@ autonumber.viewModel = function (options) {
         }
     }));
 
+    vm.buttonClear(button.viewModel({
+        onclick: vm.doClear,
+        label: "C&lear"
+    }));
+
     vm.buttonEdit(button.viewModel({
         onclick: vm.doEdit,
         title: "Edit autonumber details",
         icon: "edit",
         class: "fb-data-type-edit-button"
     }));
+
+    vm.autonumberDialog().buttons().push(vm.buttonClear);
 
     return vm;
 };
