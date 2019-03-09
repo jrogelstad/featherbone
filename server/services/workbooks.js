@@ -99,6 +99,7 @@
 
                 sql = "SELECT name, description, module, ";
                 sql += "launch_config AS \"launchConfig\", ";
+                sql += "icon, ";
                 sql += "default_config AS \"defaultConfig\", ";
                 sql += "local_config AS \"localConfig\" ";
                 sql += "FROM \"$workbook\"";
@@ -174,6 +175,7 @@
                             findSql,
                             [wb.name],
                             function (err, resp) {
+                                let icon;
                                 let launchConfig;
                                 let localConfig;
                                 let defaultConfig;
@@ -190,11 +192,15 @@
                                     sql += "updated_by=$2, updated=now(), ";
                                     sql += "description=$3, launch_config=$4,";
                                     sql += "default_config=$5,";
-                                    sql += "local_config=$6, module=$7 ";
+                                    sql += "local_config=$6, module=$7, ";
+                                    sql += "icon=$7 "
                                     sql += "WHERE name=$1;";
                                     id = row.id;
                                     launchConfig = (
                                         wb.launchConfig || row.launch_config
+                                    );
+                                    icon = (
+                                        wb.icon || row.icon
                                     );
                                     defaultConfig = (
                                         wb.defaultConfig || row.default_config
@@ -209,7 +215,8 @@
                                         JSON.stringify(launchConfig),
                                         JSON.stringify(defaultConfig),
                                         JSON.stringify(localConfig),
-                                        wb.module
+                                        wb.module,
+                                        icon
                                     ];
                                 } else {
                                     // Insert new workbook
@@ -217,19 +224,20 @@
                                     sql += "(_pk, id, name, description, ";
                                     sql += "module, ";
                                     sql += "launch_config, default_config, ";
-                                    sql += "local_config, ";
+                                    sql += "local_config, icon, ";
                                     sql += "created_by, updated_by, created, ";
                                     sql += "updated, is_deleted) ";
                                     sql += "VALUES (";
                                     sql += "nextval('object__pk_seq'),";
                                     sql += "$1, $2, $3, $4, $5, $6, $7, $8,";
-                                    sql += "$8, ";
+                                    sql += "$8, $9, ";
                                     sql += "now(), now(), false) ";
                                     sql += "RETURNING _pk;";
                                     id = f.createId();
                                     launchConfig = wb.launchConfig || {};
                                     localConfig = wb.localConfig || [];
                                     defaultConfig = wb.defaultConfig || [];
+                                    icon = wb.icon || "folder";
                                     params = [
                                         id,
                                         wb.name,
@@ -238,6 +246,7 @@
                                         launchConfig,
                                         JSON.stringify(defaultConfig),
                                         JSON.stringify(localConfig),
+                                        icon,
                                         obj.client.currentUser
                                     ];
                                 }

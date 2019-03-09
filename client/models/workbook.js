@@ -42,6 +42,11 @@ const workbook = {
             description: "Module",
             type: "string"
         },
+        icon: {
+            description: "Menu icon",
+            type: "string",
+            default: "folder"
+        },
         launchConfig: {
             description: "Launch configuration",
             type: "object"
