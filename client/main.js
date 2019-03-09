@@ -402,27 +402,33 @@ function initApp() {
         },
         view: function () {
             return m("div", {
-                style: {
-                    position: "absolute",
-                    height: "100%"
-                }
+                class: "fb-navigator-menu-container"
             }, [
-                m("div", {
-                    class: "fb-navigator-menu-container"
-                }, [
-                    m(navigator.component, {
-                        viewModel: menu
-                    }), [
-                        m(dialog.component, {
-                            viewModel: sseErrorDialog
-                        }),
-                        m("div", [
-                            m("h2", {
-                                class: "fb-header fb-header-home"
-                            }, "Home")
+                m(navigator.component, {
+                    viewModel: menu
+                }), [
+                    m(dialog.component, {
+                        viewModel: sseErrorDialog
+                    }),
+                    m("span", {
+                        class: "fb-toolbar fb-toolbar-home"
+                    }, [
+                        m("div", {
+                            class: "fb-header-home"
+                        }, "Home"),
+                        m("button", {
+                            class: "fb-toolbar-button fb-toolbar-button-home",
+                            title: "Add workbook",
+                            onclick: function () {
+                                console.log("click!");
+                            }
+                        }, [
+                            m("i", {
+                                class: "fa fa-plus fb-button-icon"
+                            })
                         ])
-                    ]
-                ])
+                    ])
+                ]
             ]);
         }
     };

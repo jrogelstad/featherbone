@@ -299,10 +299,7 @@ button.component = {
 
         if (icon) {
             iconView = [m("i", {
-                class: "fa fa-" + icon,
-                style: {
-                    marginRight: "4px"
-                }
+                class: "fa fa-" + icon + " fb-button-icon",
             })];
         }
 
