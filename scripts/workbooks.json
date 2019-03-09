@@ -2,9 +2,7 @@
         "name": "Model",
         "module": "Core",
         "description": "Setup definitions",
-        "launchConfig": {
-            "icon": "cogs"
-        },
+        "icon": "cogs",
         "defaultConfig": [{
                 "name": "Modules",
                 "feather": "Module",
@@ -180,9 +178,7 @@
         "name": "Admin",
         "module": "Core",
         "description": "Application administration",
-        "launchConfig": {
-            "icon": "tools"
-        },
+        "icon": "tools",
         "defaultConfig": [{
                 "name": "Roles",
                 "feather": "Role",
@@ -239,9 +235,7 @@
         "name": "Currency",
         "module": "Core",
         "description": "Currency definitions",
-        "launchConfig": {
-            "icon": "money-bill"
-        },
+        "icon": "money-bill",
         "defaultConfig": [{
                 "name": "Conversions",
                 "feather": "CurrencyConversion",
@@ -301,9 +295,7 @@
         "name": "Contact",
         "module": "Core",
         "description": "Contacts",
-        "launchConfig": {
-            "icon": "phone"
-        },
+        "icon": "phone",
         "defaultConfig": [{
             "name": "Contacts",
             "feather": "Contact",

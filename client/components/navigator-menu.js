@@ -147,7 +147,7 @@ navigator.component = {
                 m("i", {
                     class: (
                         "fa fa-" +
-                        workbooks[key].data.launchConfig().icon +
+                        workbooks[key].data.icon() +
                         " fb-navigator-item-icon"
                     )
                 })

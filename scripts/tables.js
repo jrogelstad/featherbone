@@ -173,6 +173,7 @@
         "CREATE TABLE \"$workbook\" (" +
         "name text UNIQUE," +
         "description text," +
+        "icon text," +
         "launch_config json," +
         "default_config json," +
         "local_config json," +
@@ -183,6 +184,7 @@
         "'Internal table for storing workbook';" +
         "COMMENT ON COLUMN \"$workbook\".name IS 'Primary key';" +
         "COMMENT ON COLUMN \"$workbook\".description IS 'Description';" +
+        "COMMENT ON COLUMN \"$workbook\".icon IS 'Menu icon';" +
         "COMMENT ON COLUMN \"$workbook\".launch_config IS " +
         "'Launcher configuration';" +
         "COMMENT ON COLUMN \"$workbook\".default_config IS " +
