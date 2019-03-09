@@ -47,6 +47,10 @@ a.pure-button-selected {
     pointer-events: auto !important;
 }
 
+.fb-button-icon {
+    margin-right: 4px;
+}
+
 .fb-checkbox {
   display: inline-block;
 }
@@ -204,6 +208,7 @@ a.pure-button-selected {
   display: inline-flex;
   position: absolute;
   height: 100%;
+  width: 100%;
 }
 
 .fb-navigator-menu {
@@ -401,8 +406,12 @@ a.pure-button-selected {
 }
 
 .fb-header-home {
-  position: fixed;
-  width: 100%
+    font-size: 1.5em;
+    font-weight: bold;
+    color: white;
+    padding-left: 10px;
+    display: inline-block;
+    margin-top: 3px;
 }
 
 .fb-title {
@@ -537,9 +546,22 @@ a.pure-button-selected {
   border-color: darkslateblue;
 }
 
+.fb-toolbar-home {
+    display: inline;
+    position: relative;
+    width: 100%;
+}
+
 .fb-toolbar-button {
   background-color: #3F51B5;
   color: white;
+}
+
+.fb-toolbar-button-home {
+    float: right;
+    margin: 4px;
+    border: none;
+    font-size: x-large;
 }
 
 .fb-toolbar-spacer {
