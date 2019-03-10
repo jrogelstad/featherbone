@@ -124,11 +124,11 @@ function addWorkbookModel() {
 
     theFeathers = f.prop(Object.keys(feathers).filter(function (name) {
         return (!feathers[name].isChild && !feathers[name].isSystem);
-    }).sort().map(function(key) {
+    }).sort().map(function (key) {
         return {
             value: key,
             label: key
-        }
+        };
     }));
 
     function addWorkbook(promise) {
