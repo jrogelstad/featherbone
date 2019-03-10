@@ -653,6 +653,9 @@
                     "value": "W",
                     "label": "Work"
                 }, {
+                    "value": "M",
+                    "label": "Mailing"
+                }, {
                     "value": "O",
                     "label": "Other"
                 }]
