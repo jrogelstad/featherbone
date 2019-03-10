@@ -43,6 +43,11 @@ sheetConfigureDialog.viewModel = function (options) {
     let listButtonClass;
     let sheetTabClass;
     let listTabClass;
+    let buttonClass = (
+        "pure-button " +
+        "fb-group-tab "
+    );
+    let activeClass = buttonClass + " fb-group-tab-active";
 
     options.onOk = function () {
         let id = vm.sheetId();
@@ -56,7 +61,7 @@ sheetConfigureDialog.viewModel = function (options) {
         }
         vm.state().send("close");
     };
-    options.icon = "gear";
+    options.icon = "table";
     options.title = "Configure worksheet";
 
     // ..........................................................
@@ -119,17 +124,13 @@ sheetConfigureDialog.viewModel = function (options) {
                 class: "fb-sheet-configure-tabs"
             }, [
                 m("button", {
+                    id: "sheetButton",
                     class: sheetButtonClass,
-                    style: {
-                        borderRadius: "4px 0px 0px 4px"
-                    },
                     onclick: vm.toggleTab
                 }, "Sheet"),
                 m("button", {
+                    id: "listButton",
                     class: listButtonClass,
-                    style: {
-                        borderRadius: "0px 4px 4px 0px"
-                    },
                     onclick: vm.toggleTab
                 }, "Columns")
             ]),
@@ -149,7 +150,8 @@ sheetConfigureDialog.viewModel = function (options) {
                             id: nameId,
                             value: d.name(),
                             required: true,
-                            oninput: (e) => d.name(e.target.value)
+                            oninput: (e) => d.name(e.target.value),
+                            autofocus: true
                         })
                     ]),
                     m("div", {
@@ -278,8 +280,8 @@ sheetConfigureDialog.viewModel = function (options) {
         vm.selection(0);
 
         // Set button orientation
-        sheetButtonClass = "pure-button pure-button-primary";
-        listButtonClass = "pure-button";
+        sheetButtonClass = activeClass;
+        listButtonClass = buttonClass;
         sheetTabClass = "";
         listTabClass = "fb-tabbed-panes-hidden";
     };
@@ -321,16 +323,20 @@ sheetConfigureDialog.viewModel = function (options) {
     vm.sheet = options.parentViewModel.sheet;
     vm.toggleTab = function () {
         if (sheetTabClass) {
-            sheetButtonClass = "pure-button pure-button-primary";
-            listButtonClass = "pure-button";
+            sheetButtonClass = activeClass;
+            listButtonClass = buttonClass;
             sheetTabClass = "";
             listTabClass = "fb-tabbed-panes-hidden";
+            document
         } else {
-            sheetButtonClass = "pure-button";
-            listButtonClass = "pure-button pure-button-primary";
+            sheetButtonClass = buttonClass;
+            listButtonClass = activeClass;
             sheetTabClass = "fb-tabbed-panes-hidden";
             listTabClass = "";
         }
+
+        document.getElementById("sheetButton").blur();
+        document.getElementById("listButton").blur();
     };
     vm.workbook = options.parentViewModel.workbook;
     vm.viewHeaderIds = f.prop({
@@ -1337,8 +1343,8 @@ workbookPage.component = {
                                     title: "Configure current worksheet",
                                     onclick: vm.configureSheet
                                 }, [m("i", {
-                                    class: "fa fa-cogs  fb-menu-list-icon"
-                                })], "Configure"),
+                                    class: "fa fa-table  fb-menu-list-icon"
+                                })], "Sheet"),
                                 m("li", {
                                     id: "nav-share",
                                     class: "pure-menu-link",
