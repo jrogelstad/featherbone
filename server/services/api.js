@@ -31,7 +31,6 @@
             let property = feather.properties[key];
             let newProperty;
             let primitives = Object.keys(f.types);
-            let formats = Object.keys(f.formats);
 
             function props() {
                 let obj = {};
