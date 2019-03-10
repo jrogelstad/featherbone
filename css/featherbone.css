@@ -305,22 +305,17 @@ a.pure-button-selected {
 }
 
 .fb-sheet-configure-content {
-  height: 290px;
+  height: 300px;
 }
 
 .fb-sheet-configure-group-box {
-  border: thin #3F51B5 solid;
-  border-radius: 6px;
-  padding: 6px;
+  border-top: thin #3F51B5 solid;
   padding-top: 20px;
-  position: relative;
-  top: 20px;
 }
 
 .fb-sheet-configure-tabs {
-  position: absolute;
-  z-index: 1;
-  left: 225px;
+  position: relative;
+  top: 1px;
 }
 
 .fb-group-tab {
