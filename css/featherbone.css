@@ -47,6 +47,12 @@ a.pure-button-selected {
     pointer-events: auto !important;
 }
 
+.fb-button-delete {
+    background: red;
+    color: white;
+    float: right;
+}
+
 .fb-button-icon {
     margin-right: 4px;
 }
