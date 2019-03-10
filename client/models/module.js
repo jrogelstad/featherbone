@@ -36,7 +36,7 @@ function module(data, feather) {
 }
 
 module.static = f.prop({
-    install: function(viewModel) {
+    install: function (viewModel) {
         let input = document.createElement("input");
         let dialog = viewModel.confirmDialog();
 
@@ -53,7 +53,7 @@ module.static = f.prop({
             let formData = new FormData();
             let payload;
 
-            formData.append('package', file);
+            formData.append("package", file);
             payload = {
                 method: "POST",
                 path: "/module/install",
