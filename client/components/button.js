@@ -299,7 +299,7 @@ button.component = {
 
         if (icon) {
             iconView = [m("i", {
-                class: "fa fa-" + icon + " fb-button-icon",
+                class: "fa fa-" + icon + " fb-button-icon"
             })];
         }
 
