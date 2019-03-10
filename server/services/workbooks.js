@@ -188,13 +188,15 @@
                                 row = resp.rows[0];
                                 if (row) {
                                     // Update workbook
-                                    sql = "UPDATE \"$workbook\" SET ";
-                                    sql += "updated_by=$2, updated=now(), ";
-                                    sql += "description=$3, launch_config=$4,";
-                                    sql += "default_config=$5,";
-                                    sql += "local_config=$6, module=$7, ";
-                                    sql += "icon=$7 "
-                                    sql += "WHERE name=$1;";
+                                    sql = (
+                                        "UPDATE \"$workbook\" SET " +
+                                        "updated_by=$2, updated=now(), " +
+                                        "description=$3, launch_config=$4," +
+                                        "default_config=$5," +
+                                        "local_config=$6, module=$7, " +
+                                        "icon=$8 " +
+                                        "WHERE name=$1;"
+                                    );
                                     id = row.id;
                                     launchConfig = (
                                         wb.launchConfig || row.launch_config

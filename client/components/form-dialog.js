@@ -111,10 +111,7 @@ formDialog.viewModel = function (options) {
         vm.style().display = "none";
     });
 
-    delete vm.style().width;
-    vm.style().margin = "25px";
-    vm.style().top = "0px";
-    vm.style().display = "none";
+    vm.style().top = "50px";
 
     return vm;
 };

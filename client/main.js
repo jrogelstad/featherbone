@@ -109,6 +109,7 @@ const addWorkbookConfig = {
 function registerWorkbook(workbook) {
     let name = workbook.name.toSpinalCase().toCamelCase();
     let wmodel = workbookModel(workbook);
+    wmodel.state().goto("/Ready/Fetched/Clean");
     workbooks[name] = wmodel;
     catalog.register("workbooks", name, wmodel);
 }
