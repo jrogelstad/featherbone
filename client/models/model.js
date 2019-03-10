@@ -907,13 +907,15 @@ function model(data, feather) {
         }
 
         keys.forEach(function (key) {
-            let value = that.data[key].default;
+            if (!that.data[key].isCalculated) {
+                let value = that.data[key].default;
 
-            values[key] = (
-                typeof value === "function"
-                ? value()
-                : value
-            );
+                values[key] = (
+                    typeof value === "function"
+                    ? value()
+                    : value
+                );
+            };
         });
 
         that.set(values, true); // Uses silent option
