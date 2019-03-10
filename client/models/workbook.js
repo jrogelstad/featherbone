@@ -15,6 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
+/*jslint this*/
 import f from "../core.js";
 import model from "./model.js";
 import datasource from "../datasource.js";
@@ -178,6 +179,7 @@ function workbookModel(data) {
     let state;
     let substate;
     let doPut;
+    let modules = f.prop(catalog.store().data().modules().slice());
 
     function save(promise) {
         this.goto("/Busy/Saving", {
@@ -220,6 +222,17 @@ function workbookModel(data) {
         return config;
     };
 
+    modules().unshift({
+        value: "",
+        label: ""
+    });
+
+    that.addCalculated({
+        name: "modules",
+        type: "array",
+        function: modules
+    });
+
     // ..........................................................
     // PRIVATE
     //
@@ -232,7 +245,7 @@ function workbookModel(data) {
             data: cache
         };
 
-        function callback(result) {
+        function callback() {
             state.send("fetched");
             context.promise.resolve(that.data);
         }
@@ -251,8 +264,12 @@ function workbookModel(data) {
     substate.enter(doPut);
     substate = state.resolve("/Ready/New");
     substate.event("save", save.bind(substate));
-    substate = state.resolve("/Ready/Fetched/Dirty")
+    substate = state.resolve("/Ready/Fetched/Dirty");
     substate.event("save", save.bind(substate));
+
+    that.state().resolve("/Ready/Fetched/Clean").enter(function () {
+        that.data.name.isReadOnly(true);
+    });
 
     return that;
 }

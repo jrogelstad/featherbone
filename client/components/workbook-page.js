@@ -21,16 +21,31 @@ import button from "./button.js";
 import catalog from "../models/catalog.js";
 import dialog from "./dialog.js";
 import filterDialog from "./filter-dialog.js";
+import formDialog from "./form-dialog.js";
 import sortDialog from "./sort-dialog.js";
 import searchInput from "./search-input.js";
 import tableWidget from "./table-widget.js";
 import navigator from "./navigator-menu.js";
 import tableDialog from "./table-dialog.js";
 import checkbox from "./checkbox.js";
+import icons from "../icons.js";
 
 const workbookPage = {};
 const sheetConfigureDialog = {};
 const m = window.m;
+const editWorkbookConfig = {
+    attrs: [{
+        attr: "name"
+    }, {
+        attr: "description"
+    }, {
+        attr: "icon",
+        dataList: icons
+    }, {
+        attr: "module",
+        dataList: "modules"
+    }]
+};
 
 // View model for worksheet configuration.
 sheetConfigureDialog.viewModel = function (options) {
@@ -52,12 +67,12 @@ sheetConfigureDialog.viewModel = function (options) {
     options.onOk = function () {
         let id = vm.sheetId();
         let sheet = vm.model().toJSON();
-        let tableWidget = options.parentViewModel.tableWidget();
+        let tw = options.parentViewModel.tableWidget();
 
         vm.sheet(id, sheet);
         // If we updated current sheet (not new), update list
         if (vm.sheet().id === id) {
-            tableWidget.config(sheet.list);
+            tw.config(sheet.list);
         }
         vm.state().send("close");
     };
@@ -327,7 +342,6 @@ sheetConfigureDialog.viewModel = function (options) {
             listButtonClass = buttonClass;
             sheetTabClass = "";
             listTabClass = "fb-tabbed-panes-hidden";
-            document
         } else {
             sheetButtonClass = buttonClass;
             listButtonClass = activeClass;
@@ -581,6 +595,7 @@ workbookPage.viewModel = function (options) {
         confirmDialog.onOk(doDelete);
         confirmDialog.show();
     };
+    vm.editWorkbookDialog = f.prop();
     vm.filter = f.prop();
     vm.filterDialog = f.prop();
     vm.goHome = function () {
@@ -926,6 +941,13 @@ workbookPage.viewModel = function (options) {
         feather: feather
     }));
 
+    vm.editWorkbookDialog(formDialog.viewModel({
+        icon: "cogs",
+        title: "Edit workbook",
+        model: workbook,
+        config: editWorkbookConfig
+    }));
+
     vm.sheetConfigureDialog(sheetConfigureDialog.viewModel({
         parentViewModel: vm,
         sheetId: sheetId
@@ -1219,6 +1241,9 @@ workbookPage.component = {
             m(sortDialog.component, {
                 viewModel: vm.filterDialog()
             }),
+            m(formDialog.component, {
+                viewModel: vm.editWorkbookDialog()
+            }),
             m(sheetConfigureDialog.component, {
                 viewModel: vm.sheetConfigureDialog()
             }),
@@ -1345,6 +1370,14 @@ workbookPage.component = {
                                 }, [m("i", {
                                     class: "fa fa-table  fb-menu-list-icon"
                                 })], "Sheet"),
+                                m("li", {
+                                    id: "nav-configure",
+                                    class: "pure-menu-link",
+                                    title: "Configure current workbook",
+                                    onclick: vm.editWorkbookDialog().show
+                                }, [m("i", {
+                                    class: "fa fa-cogs  fb-menu-list-icon"
+                                })], "Workbook"),
                                 m("li", {
                                     id: "nav-share",
                                     class: "pure-menu-link",
