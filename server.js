@@ -371,15 +371,17 @@
     }
 
     function doDeleteMethod(fn, req, res) {
-        let name = req.params.name.toCamelCase(true);
         let payload = {
             method: "DELETE",
             name: fn,
             user: datasource.getCurrentUser(),
             data: {
-                name: name
+                name: req.params.name
             }
         };
+        if (req.isCamelCase) {
+            payload.data.name = payload.data.name.toCamelCase(true);
+        }
 
         datasource.request(
             payload
@@ -391,6 +393,7 @@
     }
 
     function doDeleteFeather(req, res) {
+        req.isCamelCase = true;
         doDeleteMethod("deleteFeather", req, res);
     }
 

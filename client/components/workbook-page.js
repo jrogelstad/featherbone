@@ -948,6 +948,32 @@ workbookPage.viewModel = function (options) {
         config: editWorkbookConfig
     }));
 
+    vm.editWorkbookDialog().buttons().push(
+        f.prop(button.viewModel({
+            label: "Delete",
+            onclick: function () {
+                let dlg = vm.confirmDialog();
+                dlg.message(
+                    "This will permanently delete this workbook. Are you sure?"
+                );
+                dlg.icon("exclamation-triangle");
+                dlg.onOk(function () {
+                    let name = workbook.data.name().toSpinalCase().toCamelCase();
+
+                    function callback() {
+                        catalog.unregister("workbooks", name);
+                        vm.editWorkbookDialog().cancel();
+                        m.route.set("/home");
+                    }
+
+                    workbook.delete(true).then(callback);
+                });
+                dlg.show();
+            },
+            class: "fb-button-delete"
+        }))
+    );
+
     vm.sheetConfigureDialog(sheetConfigureDialog.viewModel({
         parentViewModel: vm,
         sheetId: sheetId

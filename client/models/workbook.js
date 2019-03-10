@@ -266,7 +266,13 @@ function workbookModel(data) {
     substate.event("save", save.bind(substate));
     substate = state.resolve("/Ready/Fetched/Dirty");
     substate.event("save", save.bind(substate));
-
+    substate = state.resolve("/Ready/Fetched/Clean");
+    substate.event("change", function () {
+        substate.goto("./Dirty");
+    });
+    substate = state.resolve("/Delete");
+    substate.enters.shift();
+ 
     that.state().resolve("/Ready/Fetched/Clean").enter(function () {
         that.data.name.isReadOnly(true);
     });
