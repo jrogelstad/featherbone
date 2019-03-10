@@ -25,11 +25,13 @@ import list from "./models/list.js";
 import State from "./state.js";
 import navigator from "./components/navigator-menu.js";
 import dialog from "./components/dialog.js";
+import formDialog from "./components/form-dialog.js";
 import formPage from "./components/form-page.js";
 import childFormPage from "./components/child-form-page.js";
 import searchPage from "./components/search-page.js";
 import settingsPage from "./components/settings-page.js";
 import workbookPage from "./components/workbook-page.js";
+import icons from "./icons.js";
 
 const m = window.m;
 const EventSource = window.EventSource;
@@ -46,6 +48,88 @@ let evstart;
 let evsubscr;
 let menu;
 let workbooks = catalog.register("workbooks");
+let addWorkbookViewModel;
+let sseErrorDialogViewModel;
+
+const workbookSpec = {
+    name: "Workbook",
+    description: "System workbook definition",
+    properties: {
+        id: {
+            description: "Id",
+            type: "string",
+            default: "createId()"
+        },
+        name: {
+            description: "Workbook name",
+            type: "string",
+            isRequired: true
+        },
+        description: {
+            description: "Description",
+            type: "string"
+        },
+        module: {
+            description: "Module",
+            type: "string"
+        },
+        icon: {
+            description: "Menu icon",
+            type: "string",
+            default: "folder",
+            dataList: icons,
+            isRequired: true
+        },
+        feather: {
+            description: "Feather",
+            type: "string",
+            isRequired: true
+        }
+    }
+};
+
+const newWorkbookConfig = {
+    attrs: [{
+        attr: "name"
+    }, {
+        attr: "description"
+    }, {
+        attr: "icon"
+    }, {
+        attr: "feather",
+        dataList: "feathers"
+    }, {
+        attr: "module",
+        dataList: "modules"
+    }]
+};
+
+function newWorkbookModel() {
+    let that = model(undefined, workbookSpec);
+    let modules = f.prop(catalog.store().data().modules().slice());
+    let theFeathers = f.prop(f.feathers().slice());
+    let blank = ({
+        value: "",
+        label: ""
+    });
+
+    modules().unshift(blank);
+    theFeathers().unshift(blank);
+
+    that.addCalculated({
+        name: "feathers",
+        type: "array",
+        function: theFeathers
+    });
+
+    that.addCalculated({
+        name: "modules",
+        type: "array",
+        function: modules
+    });
+
+    return that;
+}
 
 // Load catalog and process models
 function initPromises() {
@@ -210,6 +294,12 @@ function initPromises() {
                             value: mod.name,
                             label: mod.name
                         };
+                    }).sort(function (a, b) {
+                        if (a.value > b.value) {
+                            return 1;
+                        }
+
+                        return -1;
                     })
                 )
             );
@@ -234,11 +324,9 @@ function initPromises() {
 
 function initApp() {
     let home;
-    let sseErrorDialog;
     let models = catalog.store().models();
     let workbookModel = models.workbook;
     let keys = Object.keys(feathers);
-    let msg;
 
     function resolveDependencies(module, dependencies) {
         dependencies = dependencies || module.dependencies;
@@ -361,21 +449,28 @@ function initApp() {
     // Menu
     menu = navigator.viewModel();
 
-    // Handle connection errors
-    msg = "You have lost connection to the server.";
-    msg += "Click \"Ok\" to attempt to reconnect.";
-    sseErrorDialog = dialog.viewModel({
+    // View model for adding workbooks.
+    addWorkbookViewModel = formDialog.viewModel({
+        icon: "plus",
+        title: "Add workbook",
+        model: newWorkbookModel(),
+        config: newWorkbookConfig
+    });
+
+    // View model for sse error trapping
+    sseErrorDialogViewModel = dialog.viewModel({
         icon: "close",
         title: "Connection Error",
-        message: msg,
+        message: (
+            "You have lost connection to the server." +
+            "Click \"Ok\" to attempt to reconnect."
+        ),
         onOk: function () {
             document.location.reload();
         }
     });
-    sseErrorDialog.buttonCancel().hide();
-    sseState.resolve("Error").enter(function () {
-        sseErrorDialog.show();
-    });
+    sseState.resolve("Error").enter(sseErrorDialogViewModel.show);
+    sseErrorDialogViewModel.buttonCancel().hide();
 
     // Build home navigation page
     home = {
@@ -408,7 +503,10 @@ function initApp() {
                     viewModel: menu
                 }), [
                     m(dialog.component, {
-                        viewModel: sseErrorDialog
+                        viewModel: sseErrorDialogViewModel
+                    }),
+                    m(dialog.component, {
+                        viewModel: addWorkbookViewModel
                     }),
                     m("span", {
                         class: "fb-toolbar fb-toolbar-home"
@@ -419,9 +517,7 @@ function initApp() {
                         m("button", {
                             class: "fb-toolbar-button fb-toolbar-button-home",
                             title: "Add workbook",
-                            onclick: function () {
-                                console.log("click!");
-                            }
+                            onclick: addWorkbookViewModel.show
                         }, [
                             m("i", {
                                 class: "fa fa-plus fb-button-icon"
