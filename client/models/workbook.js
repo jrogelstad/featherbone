@@ -179,6 +179,14 @@ function workbookModel(data) {
     let substate;
     let doPut;
 
+    function save(promise) {
+        this.goto("/Busy/Saving", {
+            context: {
+                promise: promise
+            }
+        });
+    }
+
     // ..........................................................
     // PUBLIC
     //
@@ -225,14 +233,12 @@ function workbookModel(data) {
         };
 
         function callback(result) {
-            if (result) {
-                state.send("fetched");
-                context.promise.resolve(that.data);
-            }
+            state.send("fetched");
+            context.promise.resolve(that.data);
         }
 
         if (that.isValid()) {
-            datasource.request(payload).then(callback);
+            datasource.request(payload).then(callback).catch(that.error);
         }
     };
 
@@ -243,14 +249,10 @@ function workbookModel(data) {
     delete substate.substateMap.Patching;
     substate.substates.length = 0;
     substate.enter(doPut);
-    substate = state.resolve("/Ready/Fetched/Dirty");
-    substate.event("save", function (promise) {
-        substate.goto("/Busy/Saving", {
-            context: {
-                promise: promise
-            }
-        });
-    });
+    substate = state.resolve("/Ready/New");
+    substate.event("save", save.bind(substate));
+    substate = state.resolve("/Ready/Fetched/Dirty")
+    substate.event("save", save.bind(substate));
 
     return that;
 }

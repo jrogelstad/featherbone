@@ -154,8 +154,11 @@ function addWorkbookModel() {
         let dlist = data.defaultConfig[0].list;
 
         function callback() {
-            console.log("Ok!");
             registerWorkbook(data);
+            m.route.set("/workbook/:workbook/:key", {
+                workbook: d.name().toSpinalCase(),
+                key: d.feather().toSpinalCase()
+            });
             that.clear();
             promise.resolve();
         }
