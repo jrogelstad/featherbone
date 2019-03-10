@@ -90,12 +90,12 @@ function featherProperty(data, spec) {
     function handleReadOnly() {
         let isNotNumber = that.data.type() !== "number";
         let parentHasNaturalKey = that.parent().data.properties().some(
-            function(prop) {
+            function (prop) {
                 return prop !== that && prop.data.isNaturalKey();
             }
         );
         let parentHasLabelKey = that.parent().data.properties().some(
-            function(prop) {
+            function (prop) {
                 return prop !== that && prop.data.isLabelKey();
             }
         );

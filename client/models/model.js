@@ -915,7 +915,7 @@ function model(data, feather) {
                     ? value()
                     : value
                 );
-            };
+            }
         });
 
         that.set(values, true); // Uses silent option
