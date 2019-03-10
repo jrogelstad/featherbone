@@ -50,6 +50,8 @@ let menu;
 let workbooks = catalog.register("workbooks");
 let addWorkbookViewModel;
 let sseErrorDialogViewModel;
+let models = catalog.store().models();
+let workbookModel = models.workbook;
 
 const workbookSpec = {
     name: "Workbook",
@@ -88,7 +90,7 @@ const workbookSpec = {
     }
 };
 
-const newWorkbookConfig = {
+const addWorkbookConfig = {
     attrs: [{
         attr: "name"
     }, {
@@ -104,14 +106,94 @@ const newWorkbookConfig = {
     }]
 };
 
-function newWorkbookModel() {
+function registerWorkbook(workbook) {
+    let name = workbook.name.toSpinalCase().toCamelCase();
+    let wmodel = workbookModel(workbook);
+    workbooks[name] = wmodel;
+    catalog.register("workbooks", name, wmodel);
+}
+
+function addWorkbookModel() {
     let that = model(undefined, workbookSpec);
     let modules = f.prop(catalog.store().data().modules().slice());
-    let theFeathers = f.prop(f.feathers().slice());
+    let theFeathers = catalog.store().feathers();
     let blank = ({
         value: "",
         label: ""
     });
+
+    theFeathers = f.prop(Object.keys(feathers).filter(function (name) {
+        return (!feathers[name].isChild && !feathers[name].isSystem);
+    }).sort().map(function(key) {
+        return {
+            value: key,
+            label: key
+        }
+    }));
+
+    function addWorkbook(promise) {
+        let d = that.data;
+        let workbook = models.workbook();
+        let feather = catalog.getFeather(d.feather());
+        let naturalKey;
+        let labelKey;
+        let data = {
+            name: d.name(),
+            description: d.description(),
+            icon: d.icon(),
+            module: d.module(),
+            defaultConfig: [{
+                name: d.feather(),
+                feather: d.feather(),
+                list: {
+                    columns: []
+                }
+            }],
+            localConfig: []
+        };
+        let dlist = data.defaultConfig[0].list;
+
+        function callback() {
+            console.log("Ok!");
+            registerWorkbook(data);
+            that.clear();
+            promise.resolve();
+        }
+
+        // Find some default columns to show
+        Object.keys(feather.properties).find(function (key) {
+            if (feather.properties[key].isNaturalKey) {
+                naturalKey = key;
+                return true;
+            }
+        });
+
+        if (naturalKey) {
+            dlist.columns.push({
+                attr: naturalKey
+            });
+        } else {
+            dlist.columns.push({
+                attr: "id"
+            });
+        }
+
+        Object.keys(feather.properties).find(function (key) {
+            if (feather.properties[key].isLabelKey) {
+                labelKey = key;
+                return true;
+            }
+        });
+
+        if (labelKey) {
+            dlist.columns.push({
+                attr: labelKey
+            });
+        }
+
+        workbook.set(data);
+        workbook.save().then(callback);
+    }
 
     modules().unshift(blank);
     theFeathers().unshift(blank);
@@ -128,6 +210,8 @@ function newWorkbookModel() {
         function: modules
     });
 
+    that.state().resolve("/Ready/New").event("save", addWorkbook);
+
     return that;
 }
 
@@ -136,7 +220,6 @@ function initPromises() {
     loadCatalog = new Promise(function (resolve) {
 
         catalog.fetch(true).then(function (data) {
-            let models = catalog.register("models");
             let payload = {
                 method: "GET",
                 path: "/settings-definition"
@@ -324,8 +407,6 @@ function initPromises() {
 
 function initApp() {
     let home;
-    let models = catalog.store().models();
-    let workbookModel = models.workbook;
     let keys = Object.keys(feathers);
 
     function resolveDependencies(module, dependencies) {
@@ -416,6 +497,7 @@ function initApp() {
     // Only to help build filters, displays etc.
     catalog.register("feathers", "Money", {
         name: "Money",
+        isSystem: true,
         description: "Money definition",
         properties: {
             amount: {
@@ -439,12 +521,7 @@ function initApp() {
     });
 
     // Process workbooks
-    workbookData.forEach(function (workbook) {
-        let name = workbook.name.toSpinalCase().toCamelCase();
-        let wmodel = workbookModel(workbook);
-        workbooks[name] = wmodel;
-        catalog.register("workbooks", name, wmodel);
-    });
+    workbookData.forEach(registerWorkbook);
 
     // Menu
     menu = navigator.viewModel();
@@ -453,8 +530,8 @@ function initApp() {
     addWorkbookViewModel = formDialog.viewModel({
         icon: "plus",
         title: "Add workbook",
-        model: newWorkbookModel(),
-        config: newWorkbookConfig
+        model: addWorkbookModel(),
+        config: addWorkbookConfig
     });
 
     // View model for sse error trapping
