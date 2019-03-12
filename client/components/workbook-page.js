@@ -459,6 +459,8 @@ workbookPage.viewModel = function (options) {
     let workbook = catalog.store().workbooks()[
         options.workbook.toCamelCase()
     ];
+    let dlgSelectId = f.createId();
+    let dlgVisibleId = f.createId();
 
     if (!workbook) {
         m.route.set("/home");
@@ -481,6 +483,88 @@ workbookPage.viewModel = function (options) {
     let receiverKey = f.createId();
     let vm = {};
 
+    function importData() {
+        let input = document.createElement("input");
+        let dlg = vm.confirmDialog();
+
+        function error(err) {
+            dlg.message(err.message);
+            dlg.title("Error");
+            dlg.icon("exclamation-triangle");
+            dlg.buttonCancel().hide();
+            dlg.show();
+        }
+
+        function processFile() {
+            let file = input.files[0];
+            let formData = new FormData();
+            let payload;
+
+            formData.append("import", file);
+            payload = {
+                method: "POST",
+                path: "/do/import",
+                data: formData
+            };
+
+            //datasource.request(payload).catch(error);
+        }
+
+        input.setAttribute("type", "file");
+        input.setAttribute("accept", ".csv,.json,.xlsx");
+        input.onchange = processFile;
+        input.click();
+    }
+
+    function exportData() {
+        let dlg = vm.confirmDialog();
+        let isOnlyVisible = f.prop(true);
+
+        dlg.content = function () {
+            return m("div", {
+                class: "pure-form pure-form-aligned"
+            }, [
+                m("div", {
+                    class: "pure-control-group"
+                }, [
+                    m("label", {
+                        for: dlgSelectId
+                    }, "Format:"),
+                    m("select", {
+                        id: dlgSelectId
+                    }, [
+                        m("option", {
+                            value: "json"
+                        }, "json"),
+                        m("option", {
+                            value: "csv"
+                        }, "csv"),
+                        m("option", {
+                            value: "excel"
+                        }, "excel")
+                    ])
+                ]),
+                m("div", {
+                    class: "pure-control-group"
+                }, [
+                    m("label", {
+                        for: dlgVisibleId
+                    }, "Only visible columns:"),
+                    m(checkbox.component, {
+                        onclick: function(value) {
+                            isOnlyVisible(value);
+                        },
+                        value: isOnlyVisible()
+                    })
+                ])
+            ]);
+        };
+
+        dlg.title("Export data");
+        dlg.icon("file-export");
+        dlg.show();
+    }
+
     // ..........................................................
     // PUBLIC
     //
@@ -489,6 +573,7 @@ workbookPage.viewModel = function (options) {
         let menu;
         let actions = vm.sheet().actions || [];
         let selections = vm.tableWidget().selections();
+        let o;
 
         menu = actions.map(function (action) {
             let opts;
@@ -524,6 +609,34 @@ workbookPage.viewModel = function (options) {
 
             return m("li", opts, actionIcon, action.name);
         });
+
+        o = {
+            id: f.createId(),
+            class: "pure-menu-link",
+            title: "Import data",
+            onclick: importData
+        };
+
+        if (menu.length) {
+            o.class += " fb-menu-list-separator";
+        }
+
+        menu.push(
+            m("li", o, [m("i", {
+                class: "fa fa-file-import fb-menu-list-icon"
+            })], "Import")
+        );
+
+        menu.push(
+            m("li", {
+                id: f.createId(),
+                class: "pure-menu-link",
+                title: "Export data",
+                onclick: exportData
+            }, [m("i", {
+                class: "fa fa-file-export fb-menu-list-icon"
+            })], "Export")
+        );
 
         return menu;
     };
@@ -958,7 +1071,8 @@ workbookPage.viewModel = function (options) {
                 );
                 dlg.icon("exclamation-triangle");
                 dlg.onOk(function () {
-                    let name = workbook.data.name().toSpinalCase().toCamelCase();
+                    let name = workbook.data.name();
+                    name = name.toSpinalCase().toCamelCase();
 
                     function callback() {
                         catalog.unregister("workbooks", name);
@@ -1185,10 +1299,6 @@ workbookPage.component = {
         let activeSheet = vm.sheet();
         let config = vm.config();
         let idx = 0;
-        let actionsDisabled = (
-            !Array.isArray(activeSheet.actions) ||
-            !activeSheet.actions.length
-        );
 
         // Build tabs
         tabs = vm.sheets().map(function (sheet) {
@@ -1314,12 +1424,7 @@ workbookPage.component = {
                                 "fb-menu"
                             ),
                             onmouseover: vm.onmouseoveractions,
-                            onmouseout: vm.onmouseoutactions,
-                            title: (
-                                actionsDisabled
-                                ? "No actions available"
-                                : ""
-                            )
+                            onmouseout: vm.onmouseoutactions
                         }, [
                             m("span", {
                                 id: "nav-button",
@@ -1327,8 +1432,7 @@ workbookPage.component = {
                                     "pure-button " +
                                     "fa fa-bolt " +
                                     "fb-menu-button"
-                                ),
-                                disabled: actionsDisabled
+                                )
                             }),
                             m("ul", {
                                 id: "nav-menu-list",
