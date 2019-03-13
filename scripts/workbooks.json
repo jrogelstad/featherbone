@@ -1,8 +1,8 @@
 [{
-        "name": "Model",
+        "name": "Develop",
         "module": "Core",
         "description": "Setup definitions",
-        "icon": "cogs",
+        "icon": "drafting-compass",
         "defaultConfig": [{
                 "name": "Modules",
                 "feather": "Module",
