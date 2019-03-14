@@ -20,6 +20,10 @@
             "description": "Data class specifications"
         },
         {
+            "name": "io",
+            "description": "Import and export"
+        },
+        {
             "name": "lock",
             "description": "Lock and unlock methods"
         },
@@ -236,6 +240,187 @@
                 "responses": {
                     "200": {
                         "description": "Expected response to a valid request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "boolean"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "description": "Unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/do/export/{feather}/{format}": {
+            "post": {
+                "summary": "Export data of a particular type to a file",
+                "operationId": "doExport",
+                "tags": [
+                    "lock"
+                ],
+                "parameters": [{
+                    "name": "feather",
+                    "in": "path",
+                    "description": "Data type",
+                    "required": true,
+                    "schema": {
+                        "type": "string"
+                    }
+                }, {
+                    "name": "format",
+                    "in": "path",
+                    "description": "File format: csv, json or xlsx",
+                    "required": true,
+                    "schema": {
+                        "type": "string"
+                    }
+                }],
+                "requestBody": {
+                    "Query": {
+                        "description": "Complex parameters",
+                        "required": false,
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "filter": {
+                                            "description": "Define which objects and how to present",
+                                            "type": "object",
+                                            "properties": {
+                                                "criteria": {
+                                                    "description": "filter criteria",
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "required": [
+                                                            "property",
+                                                            "value"
+                                                        ],
+                                                        "properties": {
+                                                            "property": {
+                                                                "description": "Property to filter on. Dot notation for relations supported",
+                                                                "type": "string"
+                                                            },
+                                                            "operator": {
+                                                                "description": "Operator",
+                                                                "type": "string",
+                                                                "enum": [
+                                                                    "=",
+                                                                    "!=",
+                                                                    "~",
+                                                                    "!~",
+                                                                    "<",
+                                                                    ">",
+                                                                    "<=",
+                                                                    ">=",
+                                                                    "IN"
+                                                                ],
+                                                                "default": "="
+                                                            },
+                                                            "value": {
+                                                                "description": "Value to filter for",
+                                                                "type": "object"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "sort": {
+                                                    "description": "Sort order",
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "required": [
+                                                            "property"
+                                                        ],
+                                                        "properties": {
+                                                            "property": {
+                                                                "description": "Property to sort on",
+                                                                "type": "string"
+                                                            },
+                                                            "order": {
+                                                                "description": "Direction to sort on",
+                                                                "type": "string",
+                                                                "enum": [
+                                                                    "ASC",
+                                                                    "DESC"
+                                                                ],
+                                                                "default": "ASC"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "File id to download",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "description": "Unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/do/import/{format}": {
+            "post": {
+                "summary": "Import data from a file",
+                "operationId": "doImport",
+                "tags": [
+                    "io"
+                ],
+                "parameters": [{
+                    "name": "format",
+                    "in": "path",
+                    "description": "File format: csv, json or xlsx",
+                    "required": true,
+                    "schema": {
+                        "type": "string"
+                    }
+                }]
+                "requestBody": {
+                    "content": {
+                        "application/octet-stream": {
+                            schema: {
+                                type: "string",
+                                format: "binary"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Response of 'true' indicates successful lock",
                         "content": {
                             "application/json": {
                                 "schema": {

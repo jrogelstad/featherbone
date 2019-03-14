@@ -28,6 +28,7 @@
     const {CRUD} = require("./services/crud");
     const {Currency} = require("./services/currency");
     const {Feathers} = require("./services/feathers");
+    const {Importer, Exporter} = require("./services/io");
     const {Installer} = require("./services/installer");
     const {Modules} = require("./services/modules");
     const {Packager} = require("./services/packager");
@@ -42,7 +43,9 @@
     const events = new Events();
     const crud = new CRUD();
     const currency = new Currency();
+    const exporter = new Exporter();
     const feathers = new Feathers();
+    const importer = new Importer();
     const installer = new Installer();
     const modules = new Modules();
     const packager = new Packager();
@@ -409,6 +412,90 @@
                 db.connect
             ).then(
                 doPackage
+            ).then(
+                resolve
+            ).catch(
+                reject
+            );
+        });
+    };
+
+    /**
+      Export data.
+
+      @param {String} Format
+      @param {String} Filename
+      @param {String} Username
+      @returns {Object} Promise
+    */
+    that.export = function (feather, format, filter, username) {
+        return new Promise(function (resolve, reject) {
+            // Do the work
+            function doImport(resp) {
+                return new Promise(function (resolve, reject) {
+                    function callback(ok) {
+                        resp.done();
+                        resolve(ok);
+                    }
+
+                    exporter[format](
+                        resp.client,
+                        filename,
+                        username
+                    ).then(
+                        callback
+                    ).catch(
+                        reject
+                    );
+                });
+            }
+
+            Promise.resolve().then(
+                db.connect
+            ).then(
+                doImport
+            ).then(
+                resolve
+            ).catch(
+                reject
+            );
+        });
+    };
+
+    /**
+      Import data.
+
+      @param {String} Format
+      @param {String} Filename
+      @param {String} Username
+      @returns {Object} Promise
+    */
+    that.import = function (format, filename, username) {
+        return new Promise(function (resolve, reject) {
+            // Do the work
+            function doImport(resp) {
+                return new Promise(function (resolve, reject) {
+                    function callback(ok) {
+                        resp.done();
+                        resolve(ok);
+                    }
+
+                    importer[format](
+                        resp.client,
+                        filename,
+                        username
+                    ).then(
+                        callback
+                    ).catch(
+                        reject
+                    );
+                });
+            }
+
+            Promise.resolve().then(
+                db.connect
+            ).then(
+                doImport
             ).then(
                 resolve
             ).catch(
