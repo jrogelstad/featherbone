@@ -25,6 +25,8 @@ import f from "../core.js";
 import catalog from "../models/catalog.js";
 import dialog from "./dialog.js";
 import State from "../state.js";
+import checkbox from "./checkbox.js";
+import datasource from "../datasource.js";
 
 const tableWidget = {};
 const outer = document.createElement("div");
@@ -708,6 +710,7 @@ function resize(vm, vnode) {
 
 /**
     @param {Object} Options
+    @param {Array} [options.actions] Actions
     @param {Object|String} [options.feather] Feather
     @param {Object} [options.config] Configuration
     @param {Array} [options.models] Array of models
@@ -729,13 +732,184 @@ tableWidget.viewModel = function (options) {
         : catalog.getFeather(options.feather)
     );
     let modelName = feather.name.toCamelCase();
+    let staticModel = catalog.store().models()[modelName];
     let offset = 0;
+    let dlgSelectId = f.createId();
+    let dlgSelectedId = f.createId();
+    let dlgVisibleId = f.createId();
     let vm = {};
+
+    function importData() {
+        let input = document.createElement("input");
+        let dlg = vm.confirmDialog();
+
+        function error(err) {
+            dlg.message(err.message);
+            dlg.title("Error");
+            dlg.icon("exclamation-triangle");
+            dlg.buttonCancel().hide();
+            dlg.show();
+        }
+
+        function processFile() {
+            let file = input.files[0];
+            let formData = new FormData();
+            let payload;
+
+            formData.append("import", file);
+            payload = {
+                method: "POST",
+                path: "/do/import",
+                data: formData
+            };
+
+            datasource.request(payload).then(vm.refresh).catch(error);
+        }
+
+        input.setAttribute("type", "file");
+        input.setAttribute("accept", ".csv,.json,.xlsx");
+        input.onchange = processFile;
+        input.click();
+    }
+
+    function exportData() {
+        let dlg = vm.confirmDialog();
+        let isOnlyVisible = f.prop(true);
+        let isOnlySelected = f.prop(true);
+
+        dlg.content = function () {
+            return m("div", {
+                class: "pure-form pure-form-aligned"
+            }, [
+                m("div", {
+                    class: "pure-control-group"
+                }, [
+                    m("label", {
+                        for: dlgSelectId
+                    }, "Format:"),
+                    m("select", {
+                        id: dlgSelectId
+                    }, [
+                        m("option", {
+                            value: "json"
+                        }, "json"),
+                        m("option", {
+                            value: "excel"
+                        }, "excel"),
+                        m("option", {
+                            value: "csv"
+                        }, "csv")
+                    ])
+                ]),
+                m("div", {
+                    class: "pure-control-group"
+                }, [
+                    m("label", {
+                        for: dlgSelectedId
+                    }, "Only selected rows:"),
+                    m(checkbox.component, {
+                        onclick: function (value) {
+                            isOnlySelected(value);
+                        },
+                        value: isOnlySelected()
+                    })
+                ]),
+                m("div", {
+                    class: "pure-control-group"
+                }, [
+                    m("label", {
+                        for: dlgVisibleId
+                    }, "Only visible columns:"),
+                    m(checkbox.component, {
+                        onclick: function (value) {
+                            isOnlyVisible(value);
+                        },
+                        value: isOnlyVisible()
+                    })
+                ])
+            ]);
+        };
+
+        dlg.title("Export data");
+        dlg.icon("file-export");
+        dlg.show();
+    }
 
     // ..........................................................
     // PUBLIC
     //
 
+    vm.actions = function () {
+        let menu;
+        let actions = options.actions || [];
+        let selections = vm.selections();
+        let o;
+
+        menu = actions.map(function (action) {
+            let opts;
+            let actionIcon;
+            let method = staticModel.static()[action.method];
+
+            action.id = action.id || f.createId();
+
+            opts = {
+                id: action.id,
+                class: "pure-menu-link",
+                title: action.title
+            };
+
+            if (
+                action.validator &&
+                !staticModel.static()[action.validator](selections)
+            ) {
+                opts.class = "pure-menu-link pure-menu-disabled";
+            } else {
+                opts.onclick = method.bind(null, vm);
+            }
+
+            if (action.hasSeparator) {
+                opts.class += " fb-menu-list-separator";
+            }
+
+            if (action.icon) {
+                actionIcon = [m("i", {
+                    class: "fa fa-" + action.icon + " fb-menu-list-icon"
+                })];
+            }
+
+            return m("li", opts, actionIcon, action.name);
+        });
+
+        o = {
+            id: f.createId(),
+            class: "pure-menu-link",
+            title: "Import data",
+            onclick: importData
+        };
+
+        if (menu.length) {
+            o.class += " fb-menu-list-separator";
+        }
+
+        menu.push(
+            m("li", o, [m("i", {
+                class: "fa fa-file-import fb-menu-list-icon"
+            })], "Import")
+        );
+
+        menu.push(
+            m("li", {
+                id: f.createId(),
+                class: "pure-menu-link",
+                title: "Export data",
+                onclick: exportData
+            }, [m("i", {
+                class: "fa fa-file-export fb-menu-list-icon"
+            })], "Export")
+        );
+
+        return menu;
+    };
     vm.alias = function (attr) {
         return f.resolveAlias(vm.feather(), attr);
     };
@@ -758,6 +932,28 @@ tableWidget.viewModel = function (options) {
         icon: "question-circle",
         title: "Confirmation"
     }));
+    // Dialog gets modified by actions, so reset after any useage
+    function resetDialog() {
+        let dlg = vm.confirmDialog();
+
+        dlg.icon("question-circle");
+        dlg.title("Confirmation");
+        dlg.buttonOk().show();
+        dlg.buttonCancel().show();
+        dlg.buttonCancel().isPrimary(false);
+        dlg.onOk(undefined);
+        dlg.onCancel(undefined);
+        dlg.content = function () {
+            return m("div", {
+                id: dlg.ids().content
+            }, dlg.message());
+        };
+        dlg.buttons([
+            dlg.buttonOk,
+            dlg.buttonCancel
+        ]);
+    }
+    vm.confirmDialog().state().resolve("/Display/Closed").enter(resetDialog);
     /*
       Return the id of the input element which can recive focus
 
