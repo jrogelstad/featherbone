@@ -723,9 +723,6 @@ tableWidget.viewModel = function (options) {
     options = options || {};
     let fromWidthIdx;
     let dataTransfer;
-    let selectionChanged;
-    let selectionFetched;
-    let fetch;
     let feather = (
         typeof options.feather === "object"
         ? options.feather
@@ -739,7 +736,7 @@ tableWidget.viewModel = function (options) {
     let dlgVisibleId = f.createId();
     let vm = {};
 
-    function importData() {
+    function doImport() {
         let input = document.createElement("input");
         let dlg = vm.confirmDialog();
 
@@ -772,10 +769,50 @@ tableWidget.viewModel = function (options) {
         input.click();
     }
 
-    function exportData() {
+    function doExport() {
         let dlg = vm.confirmDialog();
         let isOnlyVisible = f.prop(true);
         let isOnlySelected = f.prop(true);
+        let format = f.prop("json");
+        
+        function onOk() {
+            let url;
+            let payload;
+            let body = {};
+            let name = vm.feather().name;
+
+            function download(filename) {
+                let element = document.createElement("a");
+
+                element.setAttribute("href", "files/downloads/" + filename);
+                element.setAttribute("download", name + "." + format());
+                element.style.display = "none";
+
+                document.body.appendChild(element);
+
+                element.click();
+
+                document.body.removeChild(element);
+            }
+
+            if (isOnlyVisible()) {
+                //body.properties = 
+            }
+
+            if (!isOnlySelected()) {
+                body.filter = getFilter();
+                body.filter.limit = 0;
+            }
+
+            url = "/do/export/" + format() + "/" + name;
+            payload = {
+                method: "POST",
+                url: url,
+                data: body
+            };
+
+            return m.request(payload).then(callback).catch(console.error);
+        }
 
         dlg.content = function () {
             return m("div", {
@@ -788,17 +825,19 @@ tableWidget.viewModel = function (options) {
                         for: dlgSelectId
                     }, "Format:"),
                     m("select", {
-                        id: dlgSelectId
+                        id: dlgSelectId,
+                        onchange: (e) => format(e.target.value),
+                        value: format()
                     }, [
                         m("option", {
-                            value: "json"
-                        }, "json"),
+                            value: "csv"
+                        }, "csv"),
                         m("option", {
-                            value: "excel"
+                            value: "xlsx"
                         }, "excel"),
                         m("option", {
-                            value: "csv"
-                        }, "csv")
+                            value: "json"
+                        }, "json")
                     ])
                 ]),
                 m("div", {
@@ -832,7 +871,93 @@ tableWidget.viewModel = function (options) {
 
         dlg.title("Export data");
         dlg.icon("file-export");
+        dlg.onOk(onOk);
         dlg.show();
+    }
+
+    function getFilter(p) {
+        let fattrs;
+        let criterion;
+        let value = vm.search();
+        let filter = f.copy(vm.filter());
+
+        filter.offset = p || 0;
+
+        // Recursively resolve type
+        function formatOf(feather, property) {
+            let prefix;
+            let suffix;
+            let rel;
+            let prop;
+            let idx = property.indexOf(".");
+
+            if (idx > -1) {
+                prefix = property.slice(0, idx);
+                suffix = property.slice(idx + 1, property.length);
+                rel = feather.properties[prefix].type.relation;
+                return formatOf(catalog.getFeather(rel), suffix);
+            }
+
+            prop = feather.properties[property];
+            return prop.format || prop.type;
+        }
+
+        // Only search on text attributes
+        if (value) {
+            fattrs = vm.attrs().filter(function (attr) {
+                return formatOf(vm.feather(), attr) === "string";
+            });
+
+            if (fattrs.length) {
+                criterion = {
+                    property: fattrs,
+                    operator: "~*",
+                    value: value
+                };
+                filter.criteria = filter.criteria || [];
+                filter.criteria.push(criterion);
+            }
+        }
+
+        return filter;
+    }
+
+    function doFetch(refresh) {
+        if (refresh) {
+            offset = 0;
+        }
+
+        vm.models().fetch(getFilter(offset), refresh !== true);
+    }
+
+    // Dialog gets modified by actions, so reset after any useage
+    function doResetDialog() {
+        let dlg = vm.confirmDialog();
+
+        dlg.icon("question-circle");
+        dlg.title("Confirmation");
+        dlg.buttonOk().show();
+        dlg.buttonCancel().show();
+        dlg.buttonCancel().isPrimary(false);
+        dlg.onOk(undefined);
+        dlg.onCancel(undefined);
+        dlg.content = function () {
+            return m("div", {
+                id: dlg.ids().content
+            }, dlg.message());
+        };
+        dlg.buttons([
+            dlg.buttonOk,
+            dlg.buttonCancel
+        ]);
+    }
+
+    function selectionChanged() {
+        vm.state().send("changed");
+    }
+
+    function selectionFetched() {
+        vm.state().send("fetched");
     }
 
     // ..........................................................
@@ -884,7 +1009,7 @@ tableWidget.viewModel = function (options) {
             id: f.createId(),
             class: "pure-menu-link",
             title: "Import data",
-            onclick: importData
+            onclick: doImport
         };
 
         if (menu.length) {
@@ -902,7 +1027,7 @@ tableWidget.viewModel = function (options) {
                 id: f.createId(),
                 class: "pure-menu-link",
                 title: "Export data",
-                onclick: exportData
+                onclick: doExport
             }, [m("i", {
                 class: "fa fa-file-export fb-menu-list-icon"
             })], "Export")
@@ -932,28 +1057,7 @@ tableWidget.viewModel = function (options) {
         icon: "question-circle",
         title: "Confirmation"
     }));
-    // Dialog gets modified by actions, so reset after any useage
-    function resetDialog() {
-        let dlg = vm.confirmDialog();
-
-        dlg.icon("question-circle");
-        dlg.title("Confirmation");
-        dlg.buttonOk().show();
-        dlg.buttonCancel().show();
-        dlg.buttonCancel().isPrimary(false);
-        dlg.onOk(undefined);
-        dlg.onCancel(undefined);
-        dlg.content = function () {
-            return m("div", {
-                id: dlg.ids().content
-            }, dlg.message());
-        };
-        dlg.buttons([
-            dlg.buttonOk,
-            dlg.buttonCancel
-        ]);
-    }
-    vm.confirmDialog().state().resolve("/Display/Closed").enter(resetDialog);
+    vm.confirmDialog().state().resolve("/Display/Closed").enter(doResetDialog);
     /*
       Return the id of the input element which can recive focus
 
@@ -1158,7 +1262,7 @@ tableWidget.viewModel = function (options) {
                 ROW_COUNT && vm.models().length >= offset
             ) {
                 offset = offset + LIMIT;
-                fetch();
+                doFetch();
                 return;
             }
         }
@@ -1170,7 +1274,7 @@ tableWidget.viewModel = function (options) {
         vm.isScrolling(true);
     };
     vm.refresh = function () {
-        fetch(true);
+        doFetch(true);
     };
     vm.relations = f.prop({});
     vm.selectComponents = f.prop({});
@@ -1323,7 +1427,7 @@ tableWidget.viewModel = function (options) {
     vm.zoom = f.prop(100);
 
     // ..........................................................
-    // PRIVATE
+    // INIT
     //
 
     vm.filter(f.copy(options.config.filter || {}));
@@ -1334,66 +1438,6 @@ tableWidget.viewModel = function (options) {
             filter: vm.filter()
         });
     }
-
-    fetch = function (refresh) {
-        let fattrs;
-        let formatOf;
-        let criterion;
-        let value = vm.search();
-        let filter = f.copy(vm.filter());
-
-        if (refresh) {
-            offset = 0;
-        }
-
-        filter.offset = offset;
-
-        // Recursively resolve type
-        formatOf = function (feather, property) {
-            let prefix;
-            let suffix;
-            let rel;
-            let prop;
-            let idx = property.indexOf(".");
-
-            if (idx > -1) {
-                prefix = property.slice(0, idx);
-                suffix = property.slice(idx + 1, property.length);
-                rel = feather.properties[prefix].type.relation;
-                return formatOf(catalog.getFeather(rel), suffix);
-            }
-
-            prop = feather.properties[property];
-            return prop.format || prop.type;
-        };
-
-        // Only search on text attributes
-        if (value) {
-            fattrs = vm.attrs().filter(function (attr) {
-                return formatOf(vm.feather(), attr) === "string";
-            });
-
-            if (fattrs.length) {
-                criterion = {
-                    property: fattrs,
-                    operator: "~*",
-                    value: value
-                };
-                filter.criteria = filter.criteria || [];
-                filter.criteria.push(criterion);
-            }
-        }
-
-        vm.models().fetch(filter, refresh !== true);
-    };
-
-    selectionChanged = function () {
-        vm.state().send("changed");
-    };
-
-    selectionFetched = function () {
-        vm.state().send("fetched");
-    };
 
     // Bind refresh to filter change event
     vm.filter.state().resolve("/Ready").enter(function () {

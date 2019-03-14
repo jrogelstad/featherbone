@@ -57,6 +57,16 @@
         fs.mkdirSync(dir);
     }
 
+    dir = "./files/import";
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir);
+    }
+
+    dir = "./files/downloads";
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir);
+    }
+
     // Handle response
     function respond(resp) {
         if (resp === undefined) {
@@ -522,6 +532,52 @@
         });
     }
 
+    function doExport(req, res) {
+        let feather = req.params.feather;
+        let format = req.params.format;
+        let username = datasource.getCurrentUser();
+
+        console.log("Export", feather, format);
+        datasource.export(
+            feather,
+            format,
+            req.body.filter || {},
+            username
+        ).then(
+            respond.bind(res)
+        ).catch(
+            error.bind(res)
+        );
+    }
+
+    function doImport(req, res) {
+        let id = f.createId();
+        let format = req.params.format;
+        let username = datasource.getCurrentUser();
+        const DIR = "./files/import/";
+        const TEMPFILE = DIR + id + "." + format;
+
+        console.log("Import", format);
+
+        // The name of the input field
+        let file = req.files.data;
+
+        // Move the file to a install folder
+        file.mv(TEMPFILE, function (err) {
+            if (err) {
+                return res.status(500).send(err);
+            }
+
+            datasource.import(
+                format,
+                TEMPFILE,
+                datasource.getCurrentUser()
+            );
+
+            res.json(true);
+        });
+    }
+
     function start() {
         // configure app to use bodyParser()
         // this will let us get the data from a POST
@@ -547,6 +603,8 @@
 
         app.get("/currency/base", doGetBaseCurrency);
         app.get("/currency/convert", doConvertCurrency);
+        app.post("/do/export/:feather/:format", doExport);
+        app.post("/do/import/:format", doImport);
         app.post("/do/subscribe/:query", doSubscribe);
         app.post("/do/unsubscribe/:query", doUnsubscribe);
         app.post("/do/lock/:query", doLock);
