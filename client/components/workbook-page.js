@@ -454,13 +454,10 @@ workbookPage.viewModel = function (options) {
     let searchState;
     let currentSheet;
     let feather;
-    let staticModel;
     let sseState = catalog.store().global().sseState;
     let workbook = catalog.store().workbooks()[
         options.workbook.toCamelCase()
     ];
-    let dlgSelectId = f.createId();
-    let dlgVisibleId = f.createId();
 
     if (!workbook) {
         m.route.set("/home");
@@ -483,163 +480,10 @@ workbookPage.viewModel = function (options) {
     let receiverKey = f.createId();
     let vm = {};
 
-    function importData() {
-        let input = document.createElement("input");
-        let dlg = vm.confirmDialog();
-
-        function error(err) {
-            dlg.message(err.message);
-            dlg.title("Error");
-            dlg.icon("exclamation-triangle");
-            dlg.buttonCancel().hide();
-            dlg.show();
-        }
-
-        function processFile() {
-            let file = input.files[0];
-            let formData = new FormData();
-            let payload;
-
-            formData.append("import", file);
-            payload = {
-                method: "POST",
-                path: "/do/import",
-                data: formData
-            };
-
-            //datasource.request(payload).catch(error);
-        }
-
-        input.setAttribute("type", "file");
-        input.setAttribute("accept", ".csv,.json,.xlsx");
-        input.onchange = processFile;
-        input.click();
-    }
-
-    function exportData() {
-        let dlg = vm.confirmDialog();
-        let isOnlyVisible = f.prop(true);
-
-        dlg.content = function () {
-            return m("div", {
-                class: "pure-form pure-form-aligned"
-            }, [
-                m("div", {
-                    class: "pure-control-group"
-                }, [
-                    m("label", {
-                        for: dlgSelectId
-                    }, "Format:"),
-                    m("select", {
-                        id: dlgSelectId
-                    }, [
-                        m("option", {
-                            value: "json"
-                        }, "json"),
-                        m("option", {
-                            value: "csv"
-                        }, "csv"),
-                        m("option", {
-                            value: "excel"
-                        }, "excel")
-                    ])
-                ]),
-                m("div", {
-                    class: "pure-control-group"
-                }, [
-                    m("label", {
-                        for: dlgVisibleId
-                    }, "Only visible columns:"),
-                    m(checkbox.component, {
-                        onclick: function(value) {
-                            isOnlyVisible(value);
-                        },
-                        value: isOnlyVisible()
-                    })
-                ])
-            ]);
-        };
-
-        dlg.title("Export data");
-        dlg.icon("file-export");
-        dlg.show();
-    }
-
     // ..........................................................
     // PUBLIC
     //
 
-    vm.actions = function () {
-        let menu;
-        let actions = vm.sheet().actions || [];
-        let selections = vm.tableWidget().selections();
-        let o;
-
-        menu = actions.map(function (action) {
-            let opts;
-            let actionIcon;
-            let method = staticModel.static()[action.method];
-
-            action.id = action.id || f.createId();
-
-            opts = {
-                id: action.id,
-                class: "pure-menu-link",
-                title: action.title
-            };
-
-            if (
-                action.validator &&
-                !staticModel.static()[action.validator](selections)
-            ) {
-                opts.class = "pure-menu-link pure-menu-disabled";
-            } else {
-                opts.onclick = method.bind(null, vm);
-            }
-
-            if (action.hasSeparator) {
-                opts.class += " fb-menu-list-separator";
-            }
-
-            if (action.icon) {
-                actionIcon = [m("i", {
-                    class: "fa fa-" + action.icon + " fb-menu-list-icon"
-                })];
-            }
-
-            return m("li", opts, actionIcon, action.name);
-        });
-
-        o = {
-            id: f.createId(),
-            class: "pure-menu-link",
-            title: "Import data",
-            onclick: importData
-        };
-
-        if (menu.length) {
-            o.class += " fb-menu-list-separator";
-        }
-
-        menu.push(
-            m("li", o, [m("i", {
-                class: "fa fa-file-import fb-menu-list-icon"
-            })], "Import")
-        );
-
-        menu.push(
-            m("li", {
-                id: f.createId(),
-                class: "pure-menu-link",
-                title: "Export data",
-                onclick: exportData
-            }, [m("i", {
-                class: "fa fa-file-export fb-menu-list-icon"
-            })], "Export")
-        );
-
-        return menu;
-    };
     vm.buttonClear = f.prop();
     vm.buttonDelete = f.prop();
     vm.buttonEdit = f.prop();
@@ -654,28 +498,6 @@ workbookPage.viewModel = function (options) {
         icon: "question-circle",
         title: "Confirmation"
     }));
-    // Dialog gets modified by actions, so reset after any useage
-    function resetDialog() {
-        let dlg = vm.confirmDialog();
-
-        dlg.icon("question-circle");
-        dlg.title("Confirmation");
-        dlg.buttonOk().show();
-        dlg.buttonCancel().show();
-        dlg.buttonCancel().isPrimary(false);
-        dlg.onOk(undefined);
-        dlg.onCancel(undefined);
-        dlg.content = function () {
-            return m("div", {
-                id: dlg.ids().content
-            }, dlg.message());
-        };
-        dlg.buttons([
-            dlg.buttonOk,
-            dlg.buttonCancel
-        ]);
-    }
-    vm.confirmDialog().state().resolve("/Display/Closed").enter(resetDialog);
     vm.configureSheet = function () {
         let dlg = vm.sheetConfigureDialog();
         dlg.onCancel(undefined);
@@ -1018,7 +840,6 @@ workbookPage.viewModel = function (options) {
     // PRIVATE
     //
     feather = catalog.getFeather(vm.sheet().feather);
-    staticModel = catalog.store().models()[feather.name.toCamelCase()];
 
     // Register callback
     catalog.register("receivers", receiverKey, {
@@ -1038,6 +859,7 @@ workbookPage.viewModel = function (options) {
 
     // Create table widget view model
     vm.tableWidget(tableWidget.viewModel({
+        actions: vm.sheet().actions,
         config: vm.sheet().list,
         isEditModeEnabled: vm.sheet().isEditModeEnabled,
         feather: vm.sheet().feather,
@@ -1443,7 +1265,7 @@ workbookPage.component = {
                                         : ""
                                     )
                                 )
-                            }, vm.actions())
+                            }, vm.tableWidget().actions())
                         ]),
                         m("div", {
                             class: "fb-toolbar-spacer"
