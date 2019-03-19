@@ -20,6 +20,8 @@
     "use strict";
 
     const {CRUD} = require("./crud");
+    const f = require("../../common/core.js");
+    const fs = require("fs");
     const crud = new CRUD();
 
     exports.Exporter = function () {
@@ -28,33 +30,55 @@
         //
 
         let that = {};
-        
-        function read(obj) {
-            return new Promise(function (resolve, reject) {
-                crud.doSelect(obj, false, true).then(resolve).catch(reject);
+
+        function removeType(obj) {
+            delete obj.objectType;
+
+            Object.keys(obj).forEach(function (key) {
+                if (Array.isArray(obj[key])) {
+                    obj[key].forEach(removeType);
+                }
+            });
         }
 
         /**
           Export as json.
 
-          @param {Object} Request payload
-          @param {Object} [payload.client] Database client
-          @return {Object}
+          @param {Object} Database client
+          @param {String} Feather name
+          @param {Object} Filter
+          @param {String} Target file directory
+          @param {String} User name
+          @return {String} Filename
         */
-        that.json = function (feather, filter, username) {
+        that.json = function (client, feather, filter, dir) {
             return new Promise(function (resolve, reject) {
-                let sql = "SELECT module, path, function FROM \"_route\" ";
+                let payload = {
+                    client: client,
+                    name: feather,
+                    filter: filter
+                };
 
-                // Query routes
-                obj.client.query(sql, function (err, resp) {
-                    if (err) {
-                        reject(err);
-                        return;
-                    }
+                function writefile(resp) {
+                    let id = f.createId();
+                    let filename = dir + id + ".json";
 
-                    // Send back result
-                    resolve(resp.rows);
-                });
+                    resp.forEach(removeType);
+
+                    fs.open(
+                        filename,
+                        JSON.stringify(resp, null, 4),
+                        resolve.bind(null, filename)
+                    );
+
+                    resolve(filename);
+                }
+
+                crud.doSelect(
+                    payload,
+                    false,
+                    true
+                ).then(writefile).catch(reject);
             });
         };
 

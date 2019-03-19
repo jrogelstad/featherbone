@@ -533,16 +533,14 @@
     }
 
     function doExport(req, res) {
-        let feather = req.params.feather;
-        let format = req.params.format;
-        let username = datasource.getCurrentUser();
+        console.log("Export", req.params.feather, req.params.format);
 
-        console.log("Export", feather, format);
         datasource.export(
-            feather,
-            format,
+            req.params.feather,
+            "./files/downloads/",
+            req.params.format,
             req.body.filter || {},
-            username
+            datasource.getCurrentUser()
         ).then(
             respond.bind(res)
         ).catch(
@@ -553,7 +551,6 @@
     function doImport(req, res) {
         let id = f.createId();
         let format = req.params.format;
-        let username = datasource.getCurrentUser();
         const DIR = "./files/import/";
         const TEMPFILE = DIR + id + "." + format;
 

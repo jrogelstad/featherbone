@@ -800,7 +800,6 @@
           @param {Object} [payload.name] Name of feather
           @param {Object} [payload.filter] Filter criteria of records to select
           @param {Object} [payload.client] Database client
-          @param {Function} [payload.callback] callback
           @param {Boolean} [payload.showDeleted] include deleted records
           @param {Object} [payload.subscription] subscribe to events on results
           @param {Boolean} [payload.sanitize] sanitize result. Default true

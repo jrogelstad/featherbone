@@ -785,7 +785,7 @@ tableWidget.viewModel = function (options) {
                 let element = document.createElement("a");
 
                 element.setAttribute("href", "files/downloads/" + filename);
-                element.setAttribute("download", name + "." + format());
+                element.setAttribute("download", filename);
                 element.style.display = "none";
 
                 document.body.appendChild(element);
