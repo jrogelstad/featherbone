@@ -428,8 +428,14 @@
       @param {String} Username
       @returns {Object} Promise
     */
-    that.export = function (feather, format, filter, username) {
+    that.export = function (feather, dir, format, filter, username) {
         return new Promise(function (resolve, reject) {
+            let formats = ["json", "csv", "xlxs"];
+
+            if (formats.indexOf(format) === -1) {
+                throw new Error("Unsupported format " + format);
+            }
+
             // Do the work
             function doImport(resp) {
                 return new Promise(function (resolve, reject) {
@@ -438,10 +444,13 @@
                         resolve(ok);
                     }
 
+                    resp.client.currentUser = username;
+
                     exporter[format](
                         resp.client,
-                        filename,
-                        username
+                        feather,
+                        filter,
+                        dir
                     ).then(
                         callback
                     ).catch(
