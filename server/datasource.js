@@ -428,7 +428,7 @@
       @param {String} Username
       @returns {Object} Promise
     */
-    that.export = function (feather, dir, format, filter, username) {
+    that.export = function (feather, filter, dir, format, username) {
         return new Promise(function (resolve, reject) {
             let formats = ["json", "csv", "xlxs"];
 
@@ -437,7 +437,7 @@
             }
 
             // Do the work
-            function doImport(resp) {
+            function doExport(resp) {
                 return new Promise(function (resolve, reject) {
                     function callback(ok) {
                         resp.done();
@@ -462,7 +462,7 @@
             Promise.resolve().then(
                 db.connect
             ).then(
-                doImport
+                doExport
             ).then(
                 resolve
             ).catch(
