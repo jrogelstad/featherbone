@@ -537,9 +537,9 @@
 
         datasource.export(
             req.params.feather,
+            req.body.filter || {},
             "./files/downloads/",
             req.params.format,
-            req.body.filter || {},
             datasource.getCurrentUser()
         ).then(
             respond.bind(res)
@@ -600,7 +600,7 @@
 
         app.get("/currency/base", doGetBaseCurrency);
         app.get("/currency/convert", doConvertCurrency);
-        app.post("/do/export/:feather/:format", doExport);
+        app.post("/do/export/:format/:feather", doExport);
         app.post("/do/import/:format", doImport);
         app.post("/do/subscribe/:query", doSubscribe);
         app.post("/do/unsubscribe/:query", doUnsubscribe);

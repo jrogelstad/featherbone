@@ -31,12 +31,14 @@
 
         let that = {};
 
-        function removeType(obj) {
+        function tidy(obj) {
             delete obj.objectType;
+            delete obj.isDeleted;
+            delete obj.lock;
 
             Object.keys(obj).forEach(function (key) {
                 if (Array.isArray(obj[key])) {
-                    obj[key].forEach(removeType);
+                    obj[key].forEach(tidy);
                 }
             });
         }
@@ -53,25 +55,31 @@
         */
         that.json = function (client, feather, filter, dir) {
             return new Promise(function (resolve, reject) {
+                let id = f.createId();
+                let filename = dir + id + ".json";
                 let payload = {
                     client: client,
                     name: feather,
                     filter: filter
                 };
 
-                function writefile(resp) {
-                    let id = f.createId();
-                    let filename = dir + id + ".json";
-
-                    resp.forEach(removeType);
-
-                    fs.open(
-                        filename,
-                        JSON.stringify(resp, null, 4),
-                        resolve.bind(null, filename)
-                    );
+                function done(err) {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
 
                     resolve(filename);
+                }
+
+                function writefile(resp) {
+                    resp.forEach(tidy);
+
+                    fs.appendFile(
+                        filename,
+                        JSON.stringify(resp, null, 4),
+                        done
+                    );
                 }
 
                 crud.doSelect(

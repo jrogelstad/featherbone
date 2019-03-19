@@ -769,23 +769,79 @@ tableWidget.viewModel = function (options) {
         input.click();
     }
 
+    function getFilter(p) {
+        let fattrs;
+        let criterion;
+        let value = vm.search();
+        let filter = f.copy(vm.filter());
+
+        filter.offset = p || 0;
+
+        // Recursively resolve type
+        function formatOf(feather, property) {
+            let prefix;
+            let suffix;
+            let rel;
+            let prop;
+            let idx = property.indexOf(".");
+
+            if (idx > -1) {
+                prefix = property.slice(0, idx);
+                suffix = property.slice(idx + 1, property.length);
+                rel = feather.properties[prefix].type.relation;
+                return formatOf(catalog.getFeather(rel), suffix);
+            }
+
+            prop = feather.properties[property];
+            return prop.format || prop.type;
+        }
+
+        // Only search on text attributes
+        if (value) {
+            fattrs = vm.attrs().filter(function (attr) {
+                return formatOf(vm.feather(), attr) === "string";
+            });
+
+            if (fattrs.length) {
+                criterion = {
+                    property: fattrs,
+                    operator: "~*",
+                    value: value
+                };
+                filter.criteria = filter.criteria || [];
+                filter.criteria.push(criterion);
+            }
+        }
+
+        return filter;
+    }
+
     function doExport() {
         let dlg = vm.confirmDialog();
-        let isOnlyVisible = f.prop(true);
-        let isOnlySelected = f.prop(true);
+        let isOnlyVisible = f.prop(false);
+        let isOnlySelected = f.prop(false);
         let format = f.prop("json");
-        
+
+        function error(err) {
+            dlg.message(err.message);
+            dlg.title("Error");
+            dlg.icon("exclamation-triangle");
+            dlg.buttonCancel().hide();
+            dlg.show();
+        }
+
         function onOk() {
             let url;
             let payload;
             let body = {};
             let name = vm.feather().name;
+            let plural = vm.feather().plural || vm.feather().name;
 
             function download(filename) {
                 let element = document.createElement("a");
 
-                element.setAttribute("href", "files/downloads/" + filename);
-                element.setAttribute("download", filename);
+                element.setAttribute("href", filename);
+                element.setAttribute("download", plural + "." + format());
                 element.style.display = "none";
 
                 document.body.appendChild(element);
@@ -811,7 +867,7 @@ tableWidget.viewModel = function (options) {
                 data: body
             };
 
-            return m.request(payload).then(callback).catch(console.error);
+            return m.request(payload).then(download).catch(error);
         }
 
         dlg.content = function () {
@@ -873,53 +929,6 @@ tableWidget.viewModel = function (options) {
         dlg.icon("file-export");
         dlg.onOk(onOk);
         dlg.show();
-    }
-
-    function getFilter(p) {
-        let fattrs;
-        let criterion;
-        let value = vm.search();
-        let filter = f.copy(vm.filter());
-
-        filter.offset = p || 0;
-
-        // Recursively resolve type
-        function formatOf(feather, property) {
-            let prefix;
-            let suffix;
-            let rel;
-            let prop;
-            let idx = property.indexOf(".");
-
-            if (idx > -1) {
-                prefix = property.slice(0, idx);
-                suffix = property.slice(idx + 1, property.length);
-                rel = feather.properties[prefix].type.relation;
-                return formatOf(catalog.getFeather(rel), suffix);
-            }
-
-            prop = feather.properties[property];
-            return prop.format || prop.type;
-        }
-
-        // Only search on text attributes
-        if (value) {
-            fattrs = vm.attrs().filter(function (attr) {
-                return formatOf(vm.feather(), attr) === "string";
-            });
-
-            if (fattrs.length) {
-                criterion = {
-                    property: fattrs,
-                    operator: "~*",
-                    value: value
-                };
-                filter.criteria = filter.criteria || [];
-                filter.criteria.push(criterion);
-            }
-        }
-
-        return filter;
     }
 
     function doFetch(refresh) {
