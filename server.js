@@ -537,6 +537,7 @@
 
         datasource.export(
             req.params.feather,
+            req.body.properties,
             req.body.filter || {},
             "./files/downloads/",
             req.params.format,
