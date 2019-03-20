@@ -53,6 +53,7 @@ checkbox.component = {
             }),
             m("label", {
                 for: this.id,
+                title: vnode.attrs.title,
                 class: labelClass
             }, m("i", {
                 class: "fa fa-check",
