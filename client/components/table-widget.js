@@ -860,9 +860,9 @@ tableWidget.viewModel = function (options) {
 
             if (isOnlySelected()) {
                 body.filter.criteria = [{
-                  property: "id",
-                  operator: "IN",
-                  value: vm.selections().map((item) => item.id())
+                    property: "id",
+                    operator: "IN",
+                    value: vm.selections().map((item) => item.id())
                 }];
             }
 
@@ -877,6 +877,10 @@ tableWidget.viewModel = function (options) {
         }
 
         dlg.content = function () {
+            let dots = vm.config().columns.some(
+                (col) => col.attr.indexOf(".") > -1
+            );
+
             return m("div", {
                 class: "pure-form pure-form-aligned"
             }, [
@@ -913,7 +917,12 @@ tableWidget.viewModel = function (options) {
                             isOnlySelected(value);
                         },
                         value: isOnlySelected(),
-                        readonly: vm.selections().length === 0
+                        readonly: vm.selections().length === 0,
+                        title: (
+                            vm.selections().length === 0
+                            ? "No selections to export"
+                            : ""
+                        )
                     })
                 ]),
                 m("div", {
@@ -926,7 +935,16 @@ tableWidget.viewModel = function (options) {
                         onclick: function (value) {
                             isOnlyVisible(value);
                         },
-                        value: isOnlyVisible()
+                        value: isOnlyVisible(),
+                        readonly: dots,
+                        title: (
+                            dots
+                            ? (
+                                "Cannot export configured columns " +
+                                "referencing relations"
+                            )
+                            : ""
+                        )
                     })
                 ])
             ]);
