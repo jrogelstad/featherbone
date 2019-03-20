@@ -48,19 +48,21 @@
 
           @param {Object} Database client
           @param {String} Feather name
+          @param {Array} Properties
           @param {Object} Filter
           @param {String} Target file directory
           @param {String} User name
           @return {String} Filename
         */
-        that.json = function (client, feather, filter, dir) {
+        that.json = function (client, feather, properties, filter, dir) {
             return new Promise(function (resolve, reject) {
                 let id = f.createId();
                 let filename = dir + id + ".json";
                 let payload = {
                     client: client,
                     name: feather,
-                    filter: filter
+                    filter: filter,
+                    properties: properties
                 };
 
                 function done(err) {

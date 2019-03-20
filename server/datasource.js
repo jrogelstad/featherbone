@@ -423,12 +423,22 @@
     /**
       Export data.
 
+      @param {String} Feather
+      @param {Array} Properties (Optional)
+      @param {String} Filter
+      @param {String} Diretory
       @param {String} Format
-      @param {String} Filename
       @param {String} Username
       @returns {Object} Promise
     */
-    that.export = function (feather, filter, dir, format, username) {
+    that.export = function (
+        feather,
+        properties,
+        filter,
+        dir,
+        format,
+        username
+    ) {
         return new Promise(function (resolve, reject) {
             let formats = ["json", "csv", "xlxs"];
 
@@ -449,6 +459,7 @@
                     exporter[format](
                         resp.client,
                         feather,
+                        properties,
                         filter,
                         dir
                     ).then(

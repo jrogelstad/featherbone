@@ -852,7 +852,7 @@ tableWidget.viewModel = function (options) {
             }
 
             if (isOnlyVisible()) {
-                //body.properties = 
+                body.properties = vm.config().columns.map((col) => col.attr);
             }
 
             body.filter = getFilter();
