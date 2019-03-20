@@ -855,9 +855,15 @@ tableWidget.viewModel = function (options) {
                 //body.properties = 
             }
 
-            if (!isOnlySelected()) {
-                body.filter = getFilter();
-                body.filter.limit = 0;
+            body.filter = getFilter();
+            delete body.filter.limit;
+
+            if (isOnlySelected()) {
+                body.filter.criteria = [{
+                  property: "id",
+                  operator: "IN",
+                  value: vm.selections().map((item) => item.id())
+                }];
             }
 
             url = "/do/export/" + format() + "/" + name;
@@ -906,7 +912,8 @@ tableWidget.viewModel = function (options) {
                         onclick: function (value) {
                             isOnlySelected(value);
                         },
-                        value: isOnlySelected()
+                        value: isOnlySelected(),
+                        readonly: vm.selections().length === 0
                     })
                 ]),
                 m("div", {
