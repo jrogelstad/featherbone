@@ -774,31 +774,26 @@
             "id": "mBTC"
         },
         "conversions": [{
-            "id": "nhxj86qlrkta",
             "toUnit": {
                 "id": "BTC"
             },
             "ratio": 1
         }, {
-            "id": "om15klk6xeoa",
             "toUnit": {
                 "id": "cBTC"
             },
             "ratio": 0.01
         }, {
-            "id": "3thfca9ejk1f",
             "toUnit": {
                 "id": "mBTC"
             },
             "ratio": 0.001
         }, {
-            "id": "r0c8hrgwllhu",
             "toUnit": {
                 "id": "μBTC"
             },
             "ratio": 0.000001
         }, {
-            "id": "o81m1d215ro2",
             "toUnit": {
                 "id": "sat"
             },
