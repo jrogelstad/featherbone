@@ -954,22 +954,65 @@
             // Determine with POST with id is insert or update
             function doUpsert() {
                 return new Promise(function (resolve, reject) {
+                    let n;
                     let payload = {
                         id: obj.id,
                         name: obj.name,
                         client: obj.client
                     };
 
+                    // Apply properties of a new record over the top of an
+                    // existing record assuming not all feather properties
+                    // may be present. This is so jsonpatch doesn't remove
+                    // properties not specified
+                    function overlay(newRec, oldRec) {
+                        oldRec = f.copy(oldRec);
+
+                        Object.keys(oldRec).forEach(function (key) {
+                            if (Array.isArray(oldRec[key])) {
+                                if (
+                                    newRec[key] === undefined ||
+                                    newRec[key] === null
+                                ) {
+                                    newRec[key] = oldRec[key];
+                                    return;
+                                }
+
+                                if (!Array.isArray(newRec[key])) {
+                                    throw new Error(
+                                        "Array expected for property \"" + key +
+                                        "\" on " + oldRec.objectType +
+                                        " record with id " +
+                                        oldRec.id
+                                    );
+                                }
+
+                                // We want old array rows deleted if they
+                                // no longer exist in the new record
+                                if (oldRec.length > newRec.length) {
+                                    oldRec.length = newRec.length;
+                                }
+
+                                // Update children in array
+                                n = 0;
+                                oldRec[key].forEach(function (oldChild) {
+                                    let newChild = newRec[key][n];
+
+                                    n += 1;
+                                });
+                            } else if (newRec[key] === undefined) {
+                                newRec[key] = oldRec[key];
+                            }
+                        });
+                    }
+
                     function callback(resp) {
                         if (resp) {
+                            overlay(obj.data, resp);
                             obj.method = "PATCH";
                             obj.data = jsonpatch.compare(
                                 resp,
                                 obj.data
-                            ).filter(
-                                function (item) {
-                                    return item.op !== "remove";
-                                }
                             );
                         } else {
                             obj.data.id = obj.id;
