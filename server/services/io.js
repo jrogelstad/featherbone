@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*jslint node*/
+/*jslint node, this*/
 (function (exports) {
     "use strict";
 
@@ -38,7 +38,10 @@
 
             Object.keys(obj).forEach(function (key) {
                 if (Array.isArray(obj[key])) {
-                    obj[key].forEach(tidy);
+                    obj[key].forEach(function (row) {
+                        delete row.id;
+                        tidy(row);
+                    });
                 }
             });
         }
@@ -51,7 +54,6 @@
           @param {Array} Properties
           @param {Object} Filter
           @param {String} Target file directory
-          @param {String} User name
           @return {String} Filename
         */
         that.json = function (client, feather, properties, filter, dir) {
@@ -103,26 +105,58 @@
         let that = {};
 
         /**
-          Return routes.
+          Import JSON file.
 
-          @param {Object} Request payload
-          @param {Object} [payload.client] Database client
-          @return {Object}
+          @param {Object} Datasource
+          @param {Object} Database client
+          @param {String} Feather name
+          @param {String} Source file
+          @param {String} User name
+          @return {Array} Error log
         */
-        that.getRoutes = function (obj) {
+        that.json = function (datasource, client, feather, filename) {
             return new Promise(function (resolve, reject) {
-                let sql = "SELECT module, path, function FROM \"_route\" ";
+                let requests = [];
+                let log = [];
 
-                // Query routes
-                obj.client.query(sql, function (err, resp) {
+                function error(err) {
+                    log.push({
+                        feather: this.name,
+                        id: this.id,
+                        error: err
+                    });
+                }
+
+                function callback(err, data) {
                     if (err) {
-                        reject(err);
-                        return;
+                        console.error(err);
+                        return reject(err);
                     }
 
-                    // Send back result
-                    resolve(resp.rows);
-                });
+                    data = JSON.parse(data);
+
+                    data.forEach(function (item) {
+                        let payload = {
+                            method: "POST",
+                            client: client,
+                            name: feather,
+                            id: item.id,
+                            data: item
+                        };
+                        console.log("Trying this one: ", item.id);
+                        requests.push(
+                            datasource.request(payload).catch(
+                                error.bind(payload)
+                            )
+                        );
+                    });
+
+                    Promise.all(requests).then(
+                        resolve.bind(null, log)
+                    ).catch(reject);
+                }
+
+                fs.readFile(filename, "utf8", callback);
             });
         };
 
