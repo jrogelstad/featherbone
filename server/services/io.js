@@ -21,6 +21,7 @@
 
     const {CRUD} = require("./crud");
     const f = require("../../common/core.js");
+    const XLSX = require("xlsx");
     const fs = require("fs");
     const crud = new CRUD();
 
@@ -46,6 +47,38 @@
             });
         }
 
+        function doExport(
+            client,
+            feather,
+            properties,
+            filter,
+            dir,
+            format,
+            writeFile
+        ) {
+            return new Promise(function (resolve, reject) {
+                let id = f.createId();
+                let filename = dir + id + format;
+                let payload = {
+                    client: client,
+                    name: feather,
+                    filter: filter,
+                    properties: properties
+                };
+
+                function callback(resp) {
+                    resp.forEach(tidy);
+                    writeFile(filename, resp).then(() => resolve(filename));
+                }
+
+                crud.doSelect(
+                    payload,
+                    false,
+                    true
+                ).then(callback).catch(reject);
+            });
+        }
+
         /**
           Export as json.
 
@@ -58,39 +91,67 @@
         */
         that.json = function (client, feather, properties, filter, dir) {
             return new Promise(function (resolve, reject) {
-                let id = f.createId();
-                let filename = dir + id + ".json";
-                let payload = {
-                    client: client,
-                    name: feather,
-                    filter: filter,
-                    properties: properties
-                };
+                function writeFile(filename, data) {
+                    return new Promise(function (resolve) {
+                        fs.appendFile(
+                            filename,
+                            JSON.stringify(data, null, 4),
+                            function (err) {
+                                if (err) {
+                                    reject(err);
+                                    return;
+                                }
 
-                function done(err) {
-                    if (err) {
-                        reject(err);
-                        return;
-                    }
-
-                    resolve(filename);
+                                resolve();
+                            }
+                        );
+                    });
                 }
 
-                function writefile(resp) {
-                    resp.forEach(tidy);
+                doExport(
+                    client,
+                    feather,
+                    properties,
+                    filter,
+                    dir,
+                    "json",
+                    writeFile
+                ).then(resolve).catch(reject);
+            });
+        };
 
-                    fs.appendFile(
-                        filename,
-                        JSON.stringify(resp, null, 4),
-                        done
-                    );
+        /**
+          Export as Excel spreadsheet.
+
+          @param {Object} Database client
+          @param {String} Feather name
+          @param {Array} Properties
+          @param {Object} Filter
+          @param {String} Target file directory
+          @return {String} Filename
+        */
+        that.xlsx = function (client, feather, properties, filter, dir) {
+            return new Promise(function (resolve, reject) {
+                function writeFile(filename, data) {
+                    return new Promise(function (resolve) {
+                        let wb = XLSX.utils.book_new();
+                        let ws = XLSX.utils.json_to_sheet(data);
+
+                        XLSX.utils.book_append_sheet(wb, ws, feather);
+                        XLSX.writeFile(wb, filename);
+                        resolve();
+                    });
                 }
 
-                crud.doSelect(
-                    payload,
-                    false,
-                    true
-                ).then(writefile).catch(reject);
+                doExport(
+                    client,
+                    feather,
+                    properties,
+                    filter,
+                    dir,
+                    "xlxs",
+                    writeFile
+                ).then(resolve).catch(reject);
             });
         };
 
