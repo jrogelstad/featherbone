@@ -751,12 +751,34 @@ tableWidget.viewModel = function (options) {
         function processFile() {
             let file = input.files[0];
             let formData = new FormData();
+            let format = file.name.slice(
+                file.name.indexOf(".") + 1,
+                file.name.length
+            );
+            let name = file.name.slice(0, file.name.indexOf("."));
+            let feathers = catalog.feathers();
             let payload;
+
+            if (format !== "csv" && format !== "json" && format !== "xlsx") {
+                error(new Error(
+                    "Unrecognized file format \"" + format + "\""
+                ));
+                return;
+            }
+
+            if (!Object.keys(feathers).some(
+                (key) => feathers[key].plural === name
+            )) {
+                error(new Error(
+                    "Unrecognized data type name \"" + feather + "\""
+                ));
+                return;
+            }
 
             formData.append("import", file);
             payload = {
                 method: "POST",
-                path: "/do/import",
+                path: "/do/import/" + format + "/" + name,
                 data: formData
             };
 
@@ -866,7 +888,7 @@ tableWidget.viewModel = function (options) {
                 }];
             }
 
-            url = "/do/export/" + format() + "/" + name;
+            url = "/do/export/" + format() + "/" + plural;
             payload = {
                 method: "POST",
                 url: url,

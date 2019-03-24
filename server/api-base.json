@@ -261,25 +261,25 @@
                 }
             }
         },
-        "/do/export/{feather}/{format}": {
+        "/do/export/{format}/{feather}": {
             "post": {
                 "summary": "Export data of a particular type to a file",
                 "operationId": "doExport",
                 "tags": [
-                    "lock"
+                    "io"
                 ],
                 "parameters": [{
-                    "name": "feather",
+                    "name": "format",
                     "in": "path",
-                    "description": "Data type",
+                    "description": "File format: csv, json or xlsx",
                     "required": true,
                     "schema": {
                         "type": "string"
                     }
                 }, {
-                    "name": "format",
+                    "name": "feather",
                     "in": "path",
-                    "description": "File format: csv, json or xlsx",
+                    "description": "Data type",
                     "required": true,
                     "schema": {
                         "type": "string"
@@ -294,8 +294,18 @@
                                 "schema": {
                                     "type": "object",
                                     "properties": {
+                                        "properties": {
+                                            "description": "Specify which properties to export",
+                                            "type": "array",
+                                            "required": false,
+                                            "items": {
+                                                "schema": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        },
                                         "filter": {
-                                            "description": "Define which objects and how to present",
+                                            "description": "Define which objects to export and how sort",
                                             "type": "object",
                                             "properties": {
                                                 "criteria": {
@@ -392,7 +402,7 @@
                 }
             }
         },
-        "/do/import/{format}": {
+        "/do/import/{format}/{feather}": {
             "post": {
                 "summary": "Import data from a file",
                 "operationId": "doImport",
@@ -403,6 +413,14 @@
                     "name": "format",
                     "in": "path",
                     "description": "File format: csv, json or xlsx",
+                    "required": true,
+                    "schema": {
+                        "type": "string"
+                    }
+                }, {
+                    "name": "feather",
+                    "in": "path",
+                    "description": "Data type",
                     "required": true,
                     "schema": {
                         "type": "string"

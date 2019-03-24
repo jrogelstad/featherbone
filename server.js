@@ -501,7 +501,7 @@
         );
     }
 
-    function doInstallModule(req, res) {
+    function doInstall(req, res) {
         const DIR = "./files/install/";
         const TEMPFILE = DIR + "temp.zip";
 
@@ -533,10 +533,12 @@
     }
 
     function doExport(req, res) {
-        console.log("Export", req.params.feather, req.params.format);
+        let apiPath = req.url.slice(10);
+        let feather = resolveName(apiPath);
+        console.log("Export", feather, req.params.format);
 
         datasource.export(
-            req.params.feather,
+            feather,
             req.body.properties,
             req.body.filter || {},
             "./files/downloads/",
@@ -552,13 +554,19 @@
     function doImport(req, res) {
         let id = f.createId();
         let format = req.params.format;
+        let apiPath = req.url.slice(10);
+        let feather = resolveName(apiPath);
         const DIR = "./files/import/";
         const TEMPFILE = DIR + id + "." + format;
 
-        console.log("Import", format);
+        if (Object.keys(req.files).length === 0) {
+            return res.status(400).send("No files were uploaded.");
+        }
+
+        console.log("Import", format, feather);
 
         // The name of the input field
-        let file = req.files.data;
+        let file = req.files.import;
 
         // Move the file to a install folder
         file.mv(TEMPFILE, function (err) {
@@ -567,6 +575,7 @@
             }
 
             datasource.import(
+                feather,
                 format,
                 TEMPFILE,
                 datasource.getCurrentUser()
@@ -602,7 +611,7 @@
         app.get("/currency/base", doGetBaseCurrency);
         app.get("/currency/convert", doConvertCurrency);
         app.post("/do/export/:format/:feather", doExport);
-        app.post("/do/import/:format", doImport);
+        app.post("/do/import/:format/:feather", doImport);
         app.post("/do/subscribe/:query", doSubscribe);
         app.post("/do/unsubscribe/:query", doUnsubscribe);
         app.post("/do/lock/:query", doLock);
@@ -611,7 +620,7 @@
         app.put("/feather/:name", doSaveFeather);
         app.delete("/feather/:name", doDeleteFeather);
         app.post("/module/package/:name", doPackageModule);
-        app.post("/module/install", doInstallModule);
+        app.post("/module/install", doInstall);
         app.get("/modules", doGetModules);
         app.get("/settings/:name", doGetSettingsRow);
         app.put("/settings/:name", doSaveSettings);

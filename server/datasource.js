@@ -485,12 +485,13 @@
     /**
       Import data.
 
+      @param {String} Feather
       @param {String} Format
       @param {String} Filename
       @param {String} Username
       @returns {Object} Promise
     */
-    that.import = function (format, filename, username) {
+    that.import = function (feather, format, filename, username) {
         return new Promise(function (resolve, reject) {
             // Do the work
             function doImport(resp) {
@@ -500,8 +501,12 @@
                         resolve(ok);
                     }
 
+                    resp.client.currentUser = username;
+
                     importer[format](
+                        that,
                         resp.client,
+                        feather,
                         filename,
                         username
                     ).then(
@@ -954,7 +959,6 @@
             // Determine with POST with id is insert or update
             function doUpsert() {
                 return new Promise(function (resolve, reject) {
-                    let n;
                     let payload = {
                         id: obj.id,
                         name: obj.name,
@@ -966,6 +970,8 @@
                     // may be present. This is so jsonpatch doesn't remove
                     // properties not specified
                     function overlay(newRec, oldRec) {
+                        let n;
+
                         oldRec = f.copy(oldRec);
 
                         Object.keys(oldRec).forEach(function (key) {
@@ -996,8 +1002,7 @@
                                 // Update children in array
                                 n = 0;
                                 oldRec[key].forEach(function (oldChild) {
-                                    let newChild = newRec[key][n];
-
+                                    overlay(newRec[key][n], oldChild);
                                     n += 1;
                                 });
                             } else if (newRec[key] === undefined) {
