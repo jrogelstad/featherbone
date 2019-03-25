@@ -67,7 +67,6 @@
                 };
 
                 function callback(resp) {
-                    resp.forEach(tidy);
                     writeFile(filename, resp).then(() => resolve(filename));
                 }
 
@@ -93,6 +92,8 @@
             return new Promise(function (resolve, reject) {
                 function writeFile(filename, data) {
                     return new Promise(function (resolve) {
+                        data.forEach(tidy);
+
                         fs.appendFile(
                             filename,
                             JSON.stringify(data, null, 4),
@@ -135,9 +136,73 @@
                 function writeFile(filename, data) {
                     return new Promise(function (resolve) {
                         let wb = XLSX.utils.book_new();
-                        let ws = XLSX.utils.json_to_sheet(data);
+                        let sheets = {};
+                        let keys;
+                        let key;
+                        let ws;
 
-                        XLSX.utils.book_append_sheet(wb, ws, feather);
+                        function toSheets(d) {
+                            let type;
+
+                            if (d.length) {
+                                d.forEach(function (row) {
+                                    let pkey = row.objectType + "Id";
+                                    let pval = row.id;
+
+                                    Object.keys(row).forEach(function (key) {
+                                        let tmp;
+                                        let n;
+
+                                        if (
+                                            Array.isArray(row[key]) &&
+                                            row[key].length &&
+                                            row[key][0].id
+                                        ) {
+                                            // Delete id, add parent key in
+                                            n = 0;
+                                            row[key].forEach(function (r) {
+                                                tmp = {};
+                                                tmp[pkey] = pval;
+                                                Object.keys(r).forEach(
+                                                    function (k) {
+                                                        tmp[k] = r[k];
+                                                    }
+                                                );
+                                                row[key][n] = tmp;
+                                                n += 1;
+                                            });
+                                            toSheets(row[key]);
+                                            delete row[key];
+                                        } else if (
+                                            row[key] !== null &&
+                                            typeof row[key] === "object" &&
+                                            row[key].id
+                                        ) {
+                                            row[key] = row[key].id;
+                                        }
+                                    });
+                                });
+
+                                type = d[0].objectType;
+                                if (!sheets[type]) {
+                                    sheets[type] = d;
+                                } else {
+                                    sheets[type] = sheets[type].concat(d);
+                                }
+                            }
+                        }
+
+                        toSheets(data);
+
+                        // Add worksheets in reverse order
+                        keys = Object.keys(sheets);
+                        while (keys.length) {
+                            key = keys.pop();
+                            sheets[key].forEach(tidy);
+                            ws = XLSX.utils.json_to_sheet(sheets[key]);
+                            XLSX.utils.book_append_sheet(wb, ws, key);
+                        }
+
                         XLSX.writeFile(wb, filename);
                         resolve();
                     });
