@@ -71,7 +71,7 @@
                 }
 
                 function callback(resp) {
-                    writeFile(filename, resp).then(() => resolve(filename));
+                    writeFile(filename, resp, format).then(() => resolve(filename));
                 }
 
                 crud.doSelect(
@@ -79,6 +79,101 @@
                     false,
                     true
                 ).then(callback).catch(reject);
+            });
+        }
+
+        function writeWorkbook(filename, data, format) {
+            return new Promise(function (resolve) {
+                let wb = XLSX.utils.book_new();
+                let sheets = {};
+                let keys;
+                let key;
+                let ws;
+
+                function toSheets(d, rename) {
+                    let type;
+                    let tmp;
+                    let c = 0;
+
+                    function doRename(data, key) {
+                        if (
+                            key === "objectType" ||
+                            key === "isDeleted" ||
+                            key === "lock"
+                        ) {
+                            tmp[key] = data[key];
+                        } else {
+                            tmp[key.toName()] = data[key];
+                        }
+                    }
+
+                    if (d.length) {
+                        d.forEach(function (row) {
+                            let pkey = row.objectType.toName() + " Id";
+                            let pval = row.id;
+
+                            Object.keys(row).forEach(function (key) {
+                                let n;
+
+                                if (
+                                    Array.isArray(row[key]) &&
+                                    row[key].length &&
+                                    row[key][0].objectType
+                                ) {
+                                    // Add parent key in
+                                    n = 0;
+                                    row[key].forEach(function (r) {
+                                        tmp = {};
+                                        tmp[pkey] = pval;
+                                        Object.keys(r).forEach(
+                                            doRename.bind(null, r)
+                                        );
+                                        row[key][n] = tmp;
+                                        n += 1;
+                                    });
+                                    toSheets(row[key], false);
+                                    delete row[key];
+                                } else if (
+                                    row[key] !== null &&
+                                    typeof row[key] === "object" &&
+                                    row[key].id
+                                ) {
+                                    row[key] = row[key].id;
+                                }
+                            });
+
+                            if (rename !== false) {
+                                tmp = {};
+                                Object.keys(row).forEach(
+                                    doRename.bind(null, row)
+                                );
+                                d[c] = tmp;
+                                c += 1;
+                            }
+                        });
+
+                        type = d[0].objectType;
+                        if (!sheets[type]) {
+                            sheets[type] = d;
+                        } else {
+                            sheets[type] = sheets[type].concat(d);
+                        }
+                    }
+                }
+
+                toSheets(data);
+
+                // Add worksheets in reverse order
+                keys = Object.keys(sheets);
+                while (keys.length) {
+                    key = keys.pop();
+                    sheets[key].forEach(tidy);
+                    ws = XLSX.utils.json_to_sheet(sheets[key]);
+                    XLSX.utils.book_append_sheet(wb, ws, key);
+                }
+
+                XLSX.writeFile(wb, filename, {bookType: format});
+                resolve();
             });
         }
 
@@ -126,6 +221,30 @@
         };
 
         /**
+          Export as Open Document spreadsheet.
+
+          @param {Object} Database client
+          @param {String} Feather name
+          @param {Array} Properties
+          @param {Object} Filter
+          @param {String} Target file directory
+          @return {String} Filename
+        */
+        that.ods = function (client, feather, properties, filter, dir) {
+            return new Promise(function (resolve, reject) {
+                doExport(
+                    client,
+                    feather,
+                    properties,
+                    filter,
+                    dir,
+                    "ods",
+                    writeWorkbook
+                ).then(resolve).catch(reject);
+            });
+        };
+
+        /**
           Export as Excel spreadsheet.
 
           @param {Object} Database client
@@ -137,109 +256,14 @@
         */
         that.xlsx = function (client, feather, properties, filter, dir) {
             return new Promise(function (resolve, reject) {
-                function writeFile(filename, data) {
-                    return new Promise(function (resolve) {
-                        let wb = XLSX.utils.book_new();
-                        let sheets = {};
-                        let keys;
-                        let key;
-                        let ws;
-
-                        function toSheets(d, rename) {
-                            let type;
-                            let tmp;
-                            let c = 0;
-
-                            function doRename(data, key) {
-                                if (
-                                    key === "objectType" ||
-                                    key === "isDeleted" ||
-                                    key === "lock"
-                                ) {
-                                    tmp[key] = data[key];
-                                } else {
-                                    tmp[key.toName()] = data[key];
-                                }
-                            }
-
-                            if (d.length) {
-                                d.forEach(function (row) {
-                                    let pkey = row.objectType.toName() + " Id";
-                                    let pval = row.id;
-
-                                    Object.keys(row).forEach(function (key) {
-                                        let n;
-
-                                        if (
-                                            Array.isArray(row[key]) &&
-                                            row[key].length &&
-                                            row[key][0].objectType
-                                        ) {
-                                            // Add parent key in
-                                            n = 0;
-                                            row[key].forEach(function (r) {
-                                                tmp = {};
-                                                tmp[pkey] = pval;
-                                                Object.keys(r).forEach(
-                                                    doRename.bind(null, r)
-                                                );
-                                                row[key][n] = tmp;
-                                                n += 1;
-                                            });
-                                            toSheets(row[key], false);
-                                            delete row[key];
-                                        } else if (
-                                            row[key] !== null &&
-                                            typeof row[key] === "object" &&
-                                            row[key].id
-                                        ) {
-                                            row[key] = row[key].id;
-                                        }
-                                    });
-
-                                    if (rename !== false) {
-                                        tmp = {};
-                                        Object.keys(row).forEach(
-                                            doRename.bind(null, row)
-                                        );
-                                        d[c] = tmp;
-                                        c += 1;
-                                    }
-                                });
-
-                                type = d[0].objectType;
-                                if (!sheets[type]) {
-                                    sheets[type] = d;
-                                } else {
-                                    sheets[type] = sheets[type].concat(d);
-                                }
-                            }
-                        }
-
-                        toSheets(data);
-
-                        // Add worksheets in reverse order
-                        keys = Object.keys(sheets);
-                        while (keys.length) {
-                            key = keys.pop();
-                            sheets[key].forEach(tidy);
-                            ws = XLSX.utils.json_to_sheet(sheets[key]);
-                            XLSX.utils.book_append_sheet(wb, ws, key);
-                        }
-
-                        XLSX.writeFile(wb, filename);
-                        resolve();
-                    });
-                }
-
                 doExport(
                     client,
                     feather,
                     properties,
                     filter,
                     dir,
-                    "xlxs",
-                    writeFile
+                    "xlsx",
+                    writeWorkbook
                 ).then(resolve).catch(reject);
             });
         };
