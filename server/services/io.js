@@ -65,6 +65,10 @@
                     filter: filter,
                     properties: properties
                 };
+                
+                if (properties && properties.indexOf("objectType") === -1) {
+                    properties.push("objectType");
+                }
 
                 function callback(resp) {
                     writeFile(filename, resp).then(() => resolve(filename));
@@ -146,19 +150,15 @@
 
                             if (d.length) {
                                 d.forEach(function (row) {
-                                    let pkey = row.objectType + "Id";
+                                    let pkey = row.objectType.toCamelCase() + "Id";
                                     let pval = row.id;
 
                                     Object.keys(row).forEach(function (key) {
                                         let tmp;
                                         let n;
 
-                                        if (
-                                            Array.isArray(row[key]) &&
-                                            row[key].length &&
-                                            row[key][0].id
-                                        ) {
-                                            // Delete id, add parent key in
+                                        if (Array.isArray(row[key])) {
+                                            // Add parent key in
                                             n = 0;
                                             row[key].forEach(function (r) {
                                                 tmp = {};

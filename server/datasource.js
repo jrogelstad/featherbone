@@ -440,7 +440,7 @@
         username
     ) {
         return new Promise(function (resolve, reject) {
-            let formats = ["json", "csv", "xlsx"];
+            let formats = ["json", "ods", "xlsx"];
 
             if (formats.indexOf(format) === -1) {
                 throw new Error("Unsupported format " + format);

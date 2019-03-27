@@ -759,7 +759,7 @@ tableWidget.viewModel = function (options) {
             let feathers = catalog.feathers();
             let payload;
 
-            if (format !== "csv" && format !== "json" && format !== "xlsx") {
+            if (format !== "ods" && format !== "json" && format !== "xlsx") {
                 error(new Error(
                     "Unrecognized file format \"" + format + "\""
                 ));
@@ -786,7 +786,7 @@ tableWidget.viewModel = function (options) {
         }
 
         input.setAttribute("type", "file");
-        input.setAttribute("accept", ".csv,.json,.xlsx");
+        input.setAttribute("accept", ".json,.ods,.xlsx");
         input.onchange = processFile;
         input.click();
     }
@@ -918,14 +918,14 @@ tableWidget.viewModel = function (options) {
                         value: format()
                     }, [
                         m("option", {
-                            value: "csv"
-                        }, "csv"),
+                            value: "json"
+                        }, "json"),
+                        m("option", {
+                            value: "ods"
+                        }, "ods"),
                         m("option", {
                             value: "xlsx"
-                        }, "excel"),
-                        m("option", {
-                            value: "json"
-                        }, "json")
+                        }, "xlsx")
                     ])
                 ]),
                 m("div", {
