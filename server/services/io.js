@@ -65,7 +65,7 @@
                     filter: filter,
                     properties: properties
                 };
-                
+
                 if (properties && properties.indexOf("objectType") === -1) {
                     properties.push("objectType");
                 }
@@ -145,33 +145,48 @@
                         let key;
                         let ws;
 
-                        function toSheets(d) {
+                        function toSheets(d, rename) {
                             let type;
+                            let tmp;
+                            let c = 0;
+
+                            function doRename(data, key) {
+                                if (
+                                    key === "objectType" ||
+                                    key === "isDeleted" ||
+                                    key === "lock"
+                                ) {
+                                    tmp[key] = data[key];
+                                } else {
+                                    tmp[key.toName()] = data[key];
+                                }
+                            }
 
                             if (d.length) {
                                 d.forEach(function (row) {
-                                    let pkey = row.objectType.toCamelCase() + "Id";
+                                    let pkey = row.objectType.toName() + " Id";
                                     let pval = row.id;
 
                                     Object.keys(row).forEach(function (key) {
-                                        let tmp;
                                         let n;
 
-                                        if (Array.isArray(row[key])) {
+                                        if (
+                                            Array.isArray(row[key]) &&
+                                            row[key].length &&
+                                            row[key][0].objectType
+                                        ) {
                                             // Add parent key in
                                             n = 0;
                                             row[key].forEach(function (r) {
                                                 tmp = {};
                                                 tmp[pkey] = pval;
                                                 Object.keys(r).forEach(
-                                                    function (k) {
-                                                        tmp[k] = r[k];
-                                                    }
+                                                    doRename.bind(null, r)
                                                 );
                                                 row[key][n] = tmp;
                                                 n += 1;
                                             });
-                                            toSheets(row[key]);
+                                            toSheets(row[key], false);
                                             delete row[key];
                                         } else if (
                                             row[key] !== null &&
@@ -181,6 +196,15 @@
                                             row[key] = row[key].id;
                                         }
                                     });
+
+                                    if (rename !== false) {
+                                        tmp = {};
+                                        Object.keys(row).forEach(
+                                            doRename.bind(null, row)
+                                        );
+                                        d[c] = tmp;
+                                        c += 1;
+                                    }
                                 });
 
                                 type = d[0].objectType;

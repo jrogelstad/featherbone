@@ -919,13 +919,13 @@ tableWidget.viewModel = function (options) {
                     }, [
                         m("option", {
                             value: "json"
-                        }, "json"),
+                        }, "JavaScript Object Notation (json)"),
                         m("option", {
                             value: "ods"
-                        }, "ods"),
+                        }, "Open Document Spreadsheet (ods)"),
                         m("option", {
                             value: "xlsx"
-                        }, "xlsx")
+                        }, "Excel 2007+ XML Format (xlsx)")
                     ])
                 ]),
                 m("div", {
@@ -975,6 +975,9 @@ tableWidget.viewModel = function (options) {
         dlg.title("Export data");
         dlg.icon("file-export");
         dlg.onOk(onOk);
+        dlg.style({
+            width: "550px"
+        });
         dlg.show();
     }
 
