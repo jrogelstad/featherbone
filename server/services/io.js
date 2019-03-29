@@ -455,9 +455,21 @@
                             let value = row[key.toName()];
                             let pkey = feather.toName() + " Id";
                             let rel;
+                            let attrs;
 
                             if (typeof props[key].type === "object") {
-                                if (props[key].type.isParent) {
+                                if (props[key].format === "money") {
+                                    attrs = value.split(" ");
+                                    value = {
+                                        currency: attrs[0],
+                                        amount: attrs[1],
+                                        effective: attrs[2],
+                                        baseAmount: attrs[3]
+                                    };
+                                } else if (
+                                    props[key].type.parentOf &&
+                                    sheets[rel]
+                                ) {
                                     rel = props[key].type.relation;
                                     ary = sheets[rel].filter(
                                         (r) => r[pkey] === id
