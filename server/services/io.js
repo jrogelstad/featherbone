@@ -20,10 +20,12 @@
     "use strict";
 
     const {CRUD} = require("./crud");
-    const f = require("../../common/core.js");
+    const {Feathers} = require("./feathers");
+    const f = require("../../common/core");
     const XLSX = require("xlsx");
     const fs = require("fs");
     const crud = new CRUD();
+    const feathers = new Feathers();
 
     exports.Exporter = function () {
         // ..........................................................
@@ -71,7 +73,9 @@
                 }
 
                 function callback(resp) {
-                    writeFile(filename, resp, format).then(() => resolve(filename));
+                    writeFile(filename, resp, format).then(
+                        () => resolve(filename)
+                    );
                 }
 
                 crud.doSelect(
@@ -285,7 +289,6 @@
           @param {Object} Database client
           @param {String} Feather name
           @param {String} Source file
-          @param {String} User name
           @return {Array} Error log
         */
         that.json = function (datasource, client, feather, filename) {
@@ -307,23 +310,28 @@
                         return reject(err);
                     }
 
-                    data = JSON.parse(data);
+                    try {
+                        data = JSON.parse(data);
 
-                    data.forEach(function (item) {
-                        let payload = {
-                            method: "POST",
-                            client: client,
-                            name: feather,
-                            id: item.id,
-                            data: item
-                        };
-                        console.log("Trying this one: ", item.id);
-                        requests.push(
-                            datasource.request(payload).catch(
-                                error.bind(payload)
-                            )
-                        );
-                    });
+                        data.forEach(function (item) {
+                            let payload = {
+                                method: "POST",
+                                client: client,
+                                name: feather,
+                                id: item.id,
+                                data: item
+                            };
+
+                            requests.push(
+                                datasource.request(payload).catch(
+                                    error.bind(payload)
+                                )
+                            );
+                        });
+                    } catch (e) {
+                        reject(e);
+                        return;
+                    }
 
                     Promise.all(requests).then(
                         resolve.bind(null, log)
@@ -333,6 +341,161 @@
                 fs.readFile(filename, "utf8", callback);
             });
         };
+
+        /**
+          Import Excel file.
+
+          @param {Object} Datasource
+          @param {Object} Database client
+          @param {String} Feather name
+          @param {String} Source file
+          @return {Array} Error log
+        */
+        that.xlsx = function (datasource, client, feather, filename) {
+            return new Promise(function (resolve, reject) {
+                let requests = [];
+                let log = [];
+                let wb = XLSX.readFile(filename);
+                let sheets = {};
+                let localFeathers = {};
+
+                wb.SheetNames.forEach(function (name) {
+                    sheets[name] = XLSX.utils.sheet_to_json(
+                        wb.Sheets[name]
+                    );
+                });
+
+                function error(err) {
+                    log.push({
+                        feather: this.name,
+                        id: this.id,
+                        error: err
+                    });
+                }
+
+                function getFeather(name) {
+                    return new Promise(function (resolve, reject) {
+                        function getChildFeathers(resp) {
+                            let frequests = [];
+                            let props = resp.properties;
+
+                            try {
+                                localFeathers[name] = resp;
+
+                                // Recursively get feathers for all children
+                                Object.keys(props).forEach(function (key) {
+                                    let type = props[key].type;
+
+                                    if (
+                                        typeof type === "object" &&
+                                        type.parentOf
+                                    ) {
+                                        frequests.push(
+                                            getFeather(
+                                                type.relation
+                                            )
+                                        );
+                                    }
+                                });
+                            } catch (e) {
+                                reject(e);
+                                return;
+                            }
+
+                            Promise.all(
+                                frequests
+                            ).then(resolve).catch(reject);
+                        }
+
+                        feathers.getFeather({
+                            client,
+                            data: {
+                                name: name
+                            }
+                        }).then(getChildFeathers).catch(reject);
+                    });
+                }
+
+                function buildRow(feather, row) {
+                    let ret = {};
+                    let props = localFeathers[feather].properties;
+                    let ary;
+                    let id = row.Id;
+
+                    if (!id) {
+                        throw new Error(
+                            "Id is required for \"" + feather + "\""
+                        );
+                    }
+
+                    try {
+                        Object.keys(props).forEach(function (key) {
+                            let value = row[key.toName()];
+                            let pkey = feather.toName() + " Id";
+                            let rel;
+
+                            if (typeof props[key].type === "object") {
+                                if (props[key].type.isParent) {
+                                    rel = props[key].type.relation;
+                                    ary = sheets[rel].filter(
+                                        (r) => r[pkey] === id
+                                    );
+                                    ret[key] = ary.forEach(
+                                        buildRow.bind(null, localFeathers[rel])
+                                    );
+                                } else if (value) {
+                                    ret[key] = {id: value};
+                                }
+                            } else if (value !== undefined) {
+                                ret[key] = value;
+                            }
+                        });
+                    } catch (e) {
+                        reject(e);
+                        return;
+                    }
+
+                    return ret;
+                }
+
+                function doRequest(row) {
+                    let payload = {
+                        client: client,
+                        method: "POST",
+                        name: feather,
+                        id: row.Id,
+                        data: buildRow(feather, row)
+                    };
+
+                    requests.push(
+                        datasource.request(payload).catch(
+                            error.bind(payload)
+                        )
+                    );
+                }
+
+                function callback() {
+                    sheets[feather].forEach(doRequest);
+
+                    Promise.all(requests).then(
+                        resolve.bind(null, log)
+                    ).catch(reject);
+                }
+
+                getFeather(feather).then(callback).catch(reject);
+            });
+        };
+
+        /**
+          Import Open Document Spreadsheet file.
+
+          @param {Object} Datasource
+          @param {Object} Database client
+          @param {String} Feather name
+          @param {String} Source file
+          @return {Array} Error log
+        */
+        that.ods = that.xlsx;
 
         return that;
     };

@@ -507,8 +507,7 @@
                         that,
                         resp.client,
                         feather,
-                        filename,
-                        username
+                        filename
                     ).then(
                         callback
                     ).catch(

@@ -579,9 +579,11 @@
                 format,
                 TEMPFILE,
                 datasource.getCurrentUser()
-            );
-
-            res.json(true);
+            ).then(
+                respond.bind(res)
+            ).catch(
+                error.bind(res)
+            )
         });
     }
 
