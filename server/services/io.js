@@ -139,10 +139,32 @@
                                     delete row[key];
                                 } else if (
                                     row[key] !== null &&
-                                    typeof row[key] === "object" &&
-                                    row[key].id
+                                    typeof row[key] === "object"
                                 ) {
-                                    row[key] = row[key].id;
+                                    if (row[key].id) {
+                                        row[key] = row[key].id;
+                                    } else if (row[key].currency) {
+                                        if (row[key].effective) {
+                                            row[key] = (
+                                                row[key].amount + " " +
+                                                row[key].currency + " " +
+                                                row[key].effective + " " +
+                                                row[key].baseAmount
+                                            );
+                                        } else {
+                                            row[key] = (
+                                                row[key].amount + " " +
+                                                row[key].currency
+                                            );
+                                        }
+
+                                        if (row[key].effective) {
+                                            row[key] += (
+                                                " " + row[key].effective +
+                                                " " + row[key].baseAmount
+                                            );
+                                        }
+                                    }
                                 }
                             });
 
