@@ -461,15 +461,7 @@
                             let attrs;
 
                             if (typeof props[key].type === "object") {
-                                if (props[key].format === "money") {
-                                    attrs = value.split(" ");
-                                    value = {
-                                        currency: attrs[0],
-                                        amount: attrs[1],
-                                        effective: attrs[2],
-                                        baseAmount: attrs[3]
-                                    };
-                                } else if (
+                                if (
                                     props[key].type.parentOf &&
                                     sheets[props[key].type.relation]
                                 ) {
@@ -477,12 +469,20 @@
                                     ary = sheets[rel].filter(
                                         (r) => r[pkey] === id
                                     );
-                                    ret[key] = ary.forEach(
+                                    ret[key] = ary.map(
                                         buildRow.bind(null, rel)
                                     );
                                 } else if (value) {
                                     ret[key] = {id: value};
                                 }
+                            } else if (props[key].format === "money") {
+                                attrs = value.split(" ");
+                                ret[key] = {
+                                    amount: Number(attrs[0]),
+                                    currency: attrs[1],
+                                    effective: attrs[2],
+                                    baseAmount: Number(attrs[3])
+                                };
                             } else if (value !== undefined) {
                                 ret[key] = value;
                             }
