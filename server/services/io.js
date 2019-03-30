@@ -171,7 +171,7 @@
 
                                 cfeather = localFeathers[feather];
                                 prop = cfeather.properties[
-                                    key.toCamelCase()
+                                    key.replace(" ", "").toCamelCase()
                                 ];
 
                                 if (
@@ -231,7 +231,7 @@
                                                 row[key].currency
                                             );
                                         }
-                                    } else if (row.key && row[key].id) {
+                                    } else if (row[key] && row[key].id) {
                                         row[key] = row[key].id;
                                     }
                                 }
@@ -510,11 +510,13 @@
 
                                 // Handle child object
                                 } else if (props[key].type.isChild) {
-                                    rel = props[key].type.relation;
-                                    ret[key] = sheets[rel].find(
-                                        (r) => r.Id === row[key.toName()]
-                                    );
-                                    ret[key] = buildRow(rel, ret[key]);
+                                    if (sheets[rel]) {
+                                        rel = props[key].type.relation;
+                                        ret[key] = sheets[rel].find(
+                                            (r) => r.Id === row[key.toName()]
+                                        );
+                                        ret[key] = buildRow(rel, ret[key]);
+                                    }
 
                                 // Regular relation
                                 } else if (value) {
