@@ -42,7 +42,7 @@
 
                         if (
                             typeof type === "object" && (
-                                type.parentOf ||type.isChild
+                                type.parentOf || type.isChild
                             )
                         ) {
                             frequests.push(
@@ -141,7 +141,7 @@
                 let key;
                 let ws;
 
-                function toSheets(d, rename) {
+                function toSheets(d, rename, feather) {
                     let type;
                     let tmp;
                     let c = 0;
@@ -160,7 +160,7 @@
 
                     if (d.length) {
                         d.forEach(function (row) {
-                            let pkey = row.objectType.toName() + " Id";
+                            let pkey = feather + " Id";
                             let pval = row.id;
                             let rel;
                             let prop;
@@ -169,13 +169,20 @@
                             Object.keys(row).forEach(function (key) {
                                 let n;
 
+                                cfeather = localFeathers[feather];
+                                prop = cfeather.properties[
+                                    key.toCamelCase()
+                                ];
+
                                 if (
-                                    Array.isArray(row[key]) &&
-                                    row[key].length &&
-                                    row[key][0].objectType
+                                    prop &&
+                                    typeof prop.type === "object" &&
+                                    prop.type.parentOf
                                 ) {
                                     // Add parent key in
+                                    rel = prop.type.relation.toCamelCase(true);
                                     n = 0;
+                                    row[key] = row[key] || [];
                                     row[key].forEach(function (r) {
                                         tmp = {};
                                         tmp[pkey] = pval;
@@ -185,26 +192,29 @@
                                         row[key][n] = tmp;
                                         n += 1;
                                     });
-                                    toSheets(row[key], false);
+                                    toSheets(row[key], false, rel);
                                     delete row[key];
                                 } else if (
-                                    row[key] !== null &&
-                                    typeof row[key] === "object"
+                                    prop && (
+                                        typeof prop.type === "object" ||
+                                        prop.type === "object"
+                                    )
                                 ) {
-                                    cfeather = localFeathers[row.objectType];
-                                    prop = cfeather.properties[
-                                        key.toCamelCase()
-                                    ];
-                                    rel = prop.type.relation.toCamelCase(true);
-
                                     if (prop.type.isChild) {
-                                        if (row[key] !== null) {
+                                        rel = prop.type.relation.toCamelCase(
+                                            true
+                                        );
+
+                                        if (
+                                            row[key] !== null &&
+                                            row[key] !== undefined
+                                        ) {
                                             tmp = {};
                                             tmp.objectType = rel;
                                             Object.keys(row[key]).forEach(
                                                 doRename.bind(null, row[key])
                                             );
-                                            toSheets([tmp], false);
+                                            toSheets([tmp], false, rel);
                                             row[key] = row[key].id;
                                         }
                                     } else if (prop.format === "money") {
@@ -221,7 +231,7 @@
                                                 row[key].currency
                                             );
                                         }
-                                    } else if (row[key].id) {
+                                    } else if (row.key && row[key].id) {
                                         row[key] = row[key].id;
                                     }
                                 }
@@ -247,7 +257,7 @@
                 }
 
                 function callback() {
-                    toSheets(data);
+                    toSheets(data, true, feather);
 
                     // Add worksheets in reverse order
                     keys = Object.keys(sheets);
