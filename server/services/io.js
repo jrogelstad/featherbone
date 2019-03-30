@@ -41,8 +41,9 @@
                         let type = props[key].type;
 
                         if (
-                            typeof type === "object" &&
-                            type.parentOf
+                            typeof type === "object" && (
+                                type.parentOf ||type.isChild
+                            )
                         ) {
                             frequests.push(
                                 getFeather(
@@ -161,6 +162,7 @@
                         d.forEach(function (row) {
                             let pkey = row.objectType.toName() + " Id";
                             let pval = row.id;
+                            let rel;
                             let prop;
                             let cfeather;
 
@@ -190,12 +192,15 @@
                                     typeof row[key] === "object"
                                 ) {
                                     cfeather = localFeathers[row.objectType];
-                                    prop = cfeather.properties[key.toCamelCase()];
+                                    prop = cfeather.properties[
+                                        key.toCamelCase()
+                                    ];
+                                    rel = prop.type.relation.toCamelCase(true);
 
                                     if (prop.type.isChild) {
                                         if (row[key] !== null) {
                                             tmp = {};
-                                            tmp.objectType = prop.type.relation.toCamelCase(true);
+                                            tmp.objectType = rel;
                                             Object.keys(row[key]).forEach(
                                                 doRename.bind(null, row[key])
                                             );
@@ -480,6 +485,7 @@
                             let attrs;
 
                             if (typeof props[key].type === "object") {
+                                // Handle child array
                                 if (
                                     props[key].type.parentOf &&
                                     sheets[props[key].type.relation]
@@ -491,6 +497,16 @@
                                     ret[key] = ary.map(
                                         buildRow.bind(null, rel)
                                     );
+
+                                // Handle child object
+                                } else if (props[key].type.isChild) {
+                                    rel = props[key].type.relation;
+                                    ret[key] = sheets[rel].find(
+                                        (r) => r.Id === row[key.toName()]
+                                    );
+                                    ret[key] = buildRow(rel, ret[key]);
+
+                                // Regular relation
                                 } else if (value) {
                                     ret[key] = {id: value};
                                 }
