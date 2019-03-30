@@ -736,14 +736,44 @@ tableWidget.viewModel = function (options) {
     let dlgVisibleId = f.createId();
     let vm = {};
 
+    function doDownload(target, source) {
+        let element = document.createElement("a");
+
+        element.setAttribute("href", source);
+        element.setAttribute("download", target);
+        element.style.display = "none";
+
+        document.body.appendChild(element);
+
+        element.click();
+
+        document.body.removeChild(element);
+    }
+
     function doImport() {
         let input = document.createElement("input");
         let dlg = vm.confirmDialog();
 
+        function callback(resp) {
+            let target = "error_log_" + f.now() + ".json";
+
+            if (resp) {
+                dlg.message(
+                    "One or more errors were encountered during import. " +
+                    "Would you like to download the log?"
+                );
+                dlg.title("Error");
+                dlg.icon("exclamation-triangle");
+                dlg.onOk(doDownload.bind(null, target, resp));
+                dlg.show();
+            }
+            vm.refresh();
+        }
+
         function error(err) {
             dlg.message(err.message);
             dlg.title("Error");
-            dlg.icon("exclamation-triangle");
+            dlg.icon("times");
             dlg.buttonCancel().hide();
             dlg.show();
         }
@@ -758,6 +788,10 @@ tableWidget.viewModel = function (options) {
             let name = file.name.slice(0, file.name.indexOf("."));
             let feathers = catalog.feathers();
             let payload;
+
+            if (name.indexOf(" ") !== -1) {
+                name = name.slice(0, name.indexOf(" "));
+            }
 
             if (format !== "ods" && format !== "json" && format !== "xlsx") {
                 error(new Error(
@@ -782,7 +816,7 @@ tableWidget.viewModel = function (options) {
                 data: formData
             };
 
-            datasource.request(payload).then(vm.refresh).catch(error);
+            datasource.request(payload).then(callback).catch(error);
         }
 
         input.setAttribute("type", "file");
@@ -856,22 +890,7 @@ tableWidget.viewModel = function (options) {
             let url;
             let payload;
             let body = {};
-            let name = vm.feather().name;
             let plural = vm.feather().plural || vm.feather().name;
-
-            function download(filename) {
-                let element = document.createElement("a");
-
-                element.setAttribute("href", filename);
-                element.setAttribute("download", plural + "." + format());
-                element.style.display = "none";
-
-                document.body.appendChild(element);
-
-                element.click();
-
-                document.body.removeChild(element);
-            }
 
             if (isOnlyVisible()) {
                 body.properties = vm.config().columns.map((col) => col.attr);
@@ -895,7 +914,9 @@ tableWidget.viewModel = function (options) {
                 data: body
             };
 
-            return m.request(payload).then(download).catch(error);
+            return m.request(payload).then(
+                doDownload.bind(null, plural + "." + format())
+            ).catch(error);
         }
 
         dlg.content = function () {

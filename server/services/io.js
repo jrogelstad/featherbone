@@ -391,7 +391,10 @@
                     log.push({
                         feather: this.name,
                         id: this.id,
-                        error: err
+                        error: {
+                            message: err.message,
+                            statusCode: err.statusCode
+                        }
                     });
                 }
 
@@ -468,14 +471,14 @@
                                     };
                                 } else if (
                                     props[key].type.parentOf &&
-                                    sheets[rel]
+                                    sheets[props[key].type.relation]
                                 ) {
                                     rel = props[key].type.relation;
                                     ary = sheets[rel].filter(
                                         (r) => r[pkey] === id
                                     );
                                     ret[key] = ary.forEach(
-                                        buildRow.bind(null, localFeathers[rel])
+                                        buildRow.bind(null, rel)
                                     );
                                 } else if (value) {
                                     ret[key] = {id: value};
@@ -508,12 +511,33 @@
                     );
                 }
 
+                function writeLog() {
+                    let logname;
+
+                    if (log.length) {
+                        logname = "./files/downloads/" + f.createId() + ".json";
+                        fs.appendFile(
+                            logname,
+                            JSON.stringify(log, null, 4),
+                            function (err) {
+                                if (err) {
+                                    reject(err);
+                                    return;
+                                }
+
+                                resolve(logname);
+                            }
+                        );
+                        return;
+                    }
+
+                    resolve();
+                }
+
                 function callback() {
                     sheets[feather].forEach(doRequest);
 
-                    Promise.all(requests).then(
-                        resolve.bind(null, log)
-                    ).catch(reject);
+                    Promise.all(requests).then(writeLog).catch(reject);
                 }
 
                 getFeather(feather).then(callback).catch(reject);
