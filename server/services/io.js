@@ -27,6 +27,51 @@
     const crud = new CRUD();
     const feathers = new Feathers();
 
+    function getFeather(client, name, localFeathers) {
+        return new Promise(function (resolve, reject) {
+            function getChildFeathers(resp) {
+                let frequests = [];
+                let props = resp.properties;
+
+                try {
+                    localFeathers[name] = resp;
+
+                    // Recursively get feathers for all children
+                    Object.keys(props).forEach(function (key) {
+                        let type = props[key].type;
+
+                        if (
+                            typeof type === "object" &&
+                            type.parentOf
+                        ) {
+                            frequests.push(
+                                getFeather(
+                                    client,
+                                    type.relation,
+                                    localFeathers
+                                )
+                            );
+                        }
+                    });
+                } catch (e) {
+                    reject(e);
+                    return;
+                }
+
+                Promise.all(
+                    frequests
+                ).then(resolve).catch(reject);
+            }
+
+            feathers.getFeather({
+                client,
+                data: {
+                    name: name
+                }
+            }).then(getChildFeathers).catch(reject);
+        });
+    }
+
     exports.Exporter = function () {
         // ..........................................................
         // PUBLIC
@@ -73,7 +118,7 @@
                 }
 
                 function callback(resp) {
-                    writeFile(filename, resp, format).then(
+                    writeFile(filename, resp, format, client, feather).then(
                         () => resolve(filename)
                     );
                 }
@@ -86,10 +131,11 @@
             });
         }
 
-        function writeWorkbook(filename, data, format) {
-            return new Promise(function (resolve) {
+        function writeWorkbook(filename, data, format, client, feather) {
+            return new Promise(function (resolve, reject) {
                 let wb = XLSX.utils.book_new();
                 let sheets = {};
+                let localFeathers = {};
                 let keys;
                 let key;
                 let ws;
@@ -115,6 +161,8 @@
                         d.forEach(function (row) {
                             let pkey = row.objectType.toName() + " Id";
                             let pval = row.id;
+                            let prop;
+                            let cfeather;
 
                             Object.keys(row).forEach(function (key) {
                                 let n;
@@ -141,9 +189,20 @@
                                     row[key] !== null &&
                                     typeof row[key] === "object"
                                 ) {
-                                    if (row[key].id) {
-                                        row[key] = row[key].id;
-                                    } else if (row[key].currency) {
+                                    cfeather = localFeathers[row.objectType];
+                                    prop = cfeather.properties[key.toCamelCase()];
+
+                                    if (prop.type.isChild) {
+                                        if (row[key] !== null) {
+                                            tmp = {};
+                                            tmp.objectType = prop.type.relation.toCamelCase(true);
+                                            Object.keys(row[key]).forEach(
+                                                doRename.bind(null, row[key])
+                                            );
+                                            toSheets([tmp], false);
+                                            row[key] = row[key].id;
+                                        }
+                                    } else if (prop.format === "money") {
                                         if (row[key].effective) {
                                             row[key] = (
                                                 row[key].amount + " " +
@@ -157,13 +216,8 @@
                                                 row[key].currency
                                             );
                                         }
-
-                                        if (row[key].effective) {
-                                            row[key] += (
-                                                " " + row[key].effective +
-                                                " " + row[key].baseAmount
-                                            );
-                                        }
+                                    } else if (row[key].id) {
+                                        row[key] = row[key].id;
                                     }
                                 }
                             });
@@ -187,19 +241,27 @@
                     }
                 }
 
-                toSheets(data);
+                function callback() {
+                    toSheets(data);
 
-                // Add worksheets in reverse order
-                keys = Object.keys(sheets);
-                while (keys.length) {
-                    key = keys.pop();
-                    sheets[key].forEach(tidy);
-                    ws = XLSX.utils.json_to_sheet(sheets[key]);
-                    XLSX.utils.book_append_sheet(wb, ws, key);
+                    // Add worksheets in reverse order
+                    keys = Object.keys(sheets);
+                    while (keys.length) {
+                        key = keys.pop();
+                        sheets[key].forEach(tidy);
+                        ws = XLSX.utils.json_to_sheet(sheets[key]);
+                        XLSX.utils.book_append_sheet(wb, ws, key);
+                    }
+
+                    XLSX.writeFile(wb, filename, {bookType: format});
+                    resolve();
                 }
 
-                XLSX.writeFile(wb, filename, {bookType: format});
-                resolve();
+                getFeather(
+                    client,
+                    feather,
+                    localFeathers
+                ).then(callback).catch(reject);
             });
         }
 
@@ -398,49 +460,6 @@
                     });
                 }
 
-                function getFeather(name) {
-                    return new Promise(function (resolve, reject) {
-                        function getChildFeathers(resp) {
-                            let frequests = [];
-                            let props = resp.properties;
-
-                            try {
-                                localFeathers[name] = resp;
-
-                                // Recursively get feathers for all children
-                                Object.keys(props).forEach(function (key) {
-                                    let type = props[key].type;
-
-                                    if (
-                                        typeof type === "object" &&
-                                        type.parentOf
-                                    ) {
-                                        frequests.push(
-                                            getFeather(
-                                                type.relation
-                                            )
-                                        );
-                                    }
-                                });
-                            } catch (e) {
-                                reject(e);
-                                return;
-                            }
-
-                            Promise.all(
-                                frequests
-                            ).then(resolve).catch(reject);
-                        }
-
-                        feathers.getFeather({
-                            client,
-                            data: {
-                                name: name
-                            }
-                        }).then(getChildFeathers).catch(reject);
-                    });
-                }
-
                 function buildRow(feather, row) {
                     let ret = {};
                     let props = localFeathers[feather].properties;
@@ -540,7 +559,11 @@
                     Promise.all(requests).then(writeLog).catch(reject);
                 }
 
-                getFeather(feather).then(callback).catch(reject);
+                getFeather(
+                    client,
+                    feather,
+                    localFeathers
+                ).then(callback).catch(reject);
             });
         };
 
