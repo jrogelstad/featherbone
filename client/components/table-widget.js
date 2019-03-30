@@ -763,7 +763,7 @@ tableWidget.viewModel = function (options) {
                     "Would you like to download the log?"
                 );
                 dlg.title("Error");
-                dlg.icon("exclamation-triangle");
+                dlg.icon("window-close");
                 dlg.onOk(doDownload.bind(null, target, resp));
                 dlg.show();
             }
@@ -773,7 +773,7 @@ tableWidget.viewModel = function (options) {
         function error(err) {
             dlg.message(err.message);
             dlg.title("Error");
-            dlg.icon("times");
+            dlg.icon("window-close");
             dlg.buttonCancel().hide();
             dlg.show();
         }
@@ -881,7 +881,7 @@ tableWidget.viewModel = function (options) {
         function error(err) {
             dlg.message(err.message);
             dlg.title("Error");
-            dlg.icon("exclamation-triangle");
+            dlg.icon("window-close");
             dlg.buttonCancel().hide();
             dlg.show();
         }
