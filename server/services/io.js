@@ -403,10 +403,36 @@
                     });
                 }
 
+                function writeLog() {
+                    let logname;
+
+                    if (log.length) {
+                        logname = "./files/downloads/" + f.createId() + ".json";
+                        fs.appendFile(
+                            logname,
+                            JSON.stringify(log, null, 4),
+                            function (err) {
+                                if (err) {
+                                    reject(err);
+                                    return;
+                                }
+
+                                fs.unlink(filename, function () {
+                                    resolve(logname);
+                                });
+                            }
+                        );
+                        return;
+                    }
+
+                    fs.unlink(filename, resolve);
+                }
+
                 function callback(err, data) {
                     if (err) {
                         console.error(err);
-                        return reject(err);
+                        fs.unlink(filename, reject.bind(null, err));
+                        return;
                     }
 
                     try {
@@ -428,13 +454,13 @@
                             );
                         });
                     } catch (e) {
-                        reject(e);
+                        fs.unlink(filename, reject.bind(null, e));
                         return;
                     }
 
-                    Promise.all(requests).then(
-                        resolve.bind(null, log)
-                    ).catch(reject);
+                    Promise.all(requests).then(writeLog).catch(function (err) {
+                        fs.unlink(filename, reject.bind(null, err));
+                    });
                 }
 
                 fs.readFile(filename, "utf8", callback);
@@ -572,13 +598,15 @@
                                     return;
                                 }
 
-                                resolve(logname);
+                                fs.unlink(filename, function () {
+                                    resolve(logname);
+                                });
                             }
                         );
                         return;
                     }
 
-                    resolve();
+                    fs.unlink(filename, resolve);
                 }
 
                 function callback() {
@@ -591,7 +619,11 @@
                     client,
                     feather,
                     localFeathers
-                ).then(callback).catch(reject);
+                ).then(callback).catch(function (err) {
+                    fs.unlink.bind(filename, function () {
+                        reject(err);
+                    });
+                });
             });
         };
 
