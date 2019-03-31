@@ -106,7 +106,7 @@
         ) {
             return new Promise(function (resolve, reject) {
                 let id = f.createId();
-                let filename = dir + id + format;
+                let filename = dir + id + "." + format;
                 let payload = {
                     client: client,
                     name: feather,

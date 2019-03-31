@@ -583,8 +583,26 @@
                 respond.bind(res)
             ).catch(
                 error.bind(res)
-            )
+            );
         });
+    }
+
+    function getDownload(req, res) {
+        let filePath = "./files/downloads/" + req.params.sourcename;
+
+        res.download(
+            filePath,
+            req.params.targetname,
+            function (err) {
+                if (err) {
+                    console.error(err);
+                    return;
+                }
+                fs.unlink(filePath, function () {
+                    return; //console.log("deleted " + filePath);
+                });
+            }
+        );
     }
 
     function start() {
@@ -599,6 +617,7 @@
         app.use(cors());
 
         // static pages
+        app.get("/files/downloads/:sourcename/:targetname", getDownload);
         app.use(express.static(__dirname));
 
         // File upload
