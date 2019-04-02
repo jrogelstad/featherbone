@@ -159,7 +159,7 @@
         manifest.dependencies = content.dependencies;
         manifest.files.push({
             type: "module",
-            path: filename
+            path: "module.js"
         });
 
         zip.addFile(
@@ -408,7 +408,7 @@
 
             manifest.files.push({
                 type: "feather",
-                path: filename
+                path: "feathers.json"
             });
 
             zip.addFile(
@@ -497,7 +497,7 @@
 
             manifest.files.push({
                 type: "batch",
-                path: filename
+                path: "forms.json"
             });
 
             zip.addFile(
@@ -512,12 +512,13 @@
 
         if (content.length) {
             content.forEach(function (service) {
-                let filename = folder + service.name.toSpinalCase() + ".js";
+                let name = service.name.toSpinalCase() + ".js";
+                let filename = folder + name;
 
                 manifest.files.push({
                     type: "service",
                     name: service.name,
-                    path: filename
+                    path: name
                 });
 
                 zip.addFile(
@@ -531,7 +532,8 @@
     function addBatch(type, manifest, zip, resp, folder) {
         let content = [];
         let rows = tools.sanitize(resp.rows);
-        let filename = folder + type.toCamelCase() + "s.json";
+        let name = type.toCamelCase() + "s.json";
+        let filename = folder + name;
 
         content = rows.map(function (data) {
             let ret = {
@@ -555,7 +557,7 @@
 
             manifest.files.push({
                 type: "batch",
-                path: filename
+                path: name
             });
 
             zip.addFile(
