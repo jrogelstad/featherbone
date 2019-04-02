@@ -702,7 +702,7 @@
                     let filename = name;
                     let pathname = path.format({
                         root: "./",
-                        base: "files/packages/"
+                        base: "files/downloads/"
                     });
 
                     function finishPackage() {

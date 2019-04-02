@@ -47,11 +47,6 @@
         fs.mkdirSync(dir);
     }
 
-    dir = "./files/packages";
-    if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir);
-    }
-
     dir = "./files/install";
     if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir);
@@ -592,7 +587,7 @@
 
         res.download(
             filePath,
-            req.params.targetname,
+            req.params.targetname || req.params.sourcename,
             function (err) {
                 if (err) {
                     console.error(err);
@@ -617,6 +612,7 @@
         app.use(cors());
 
         // static pages
+        app.get("/files/downloads/:sourcename", getDownload);
         app.get("/files/downloads/:sourcename/:targetname", getDownload);
         app.use(express.static(__dirname));
 
