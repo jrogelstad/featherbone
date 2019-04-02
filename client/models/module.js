@@ -70,7 +70,7 @@ module.static = f.prop({
     },
     package: function (viewModel) {
         let dialog = viewModel.confirmDialog();
-        let selection = viewModel.tableWidget().selections()[0];
+        let selection = viewModel.selections()[0];
         let name = selection.data.name();
         let payload = {
             method: "POST",
@@ -80,7 +80,7 @@ module.static = f.prop({
         function download(filename) {
             let element = document.createElement("a");
 
-            element.setAttribute("href", "files/packages/" + filename);
+            element.setAttribute("href", "files/downloads/" + filename);
             element.setAttribute("download", filename);
             element.style.display = "none";
 

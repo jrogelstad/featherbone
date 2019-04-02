@@ -740,6 +740,7 @@ tableWidget.viewModel = function (options) {
         let element = document.createElement("a");
 
         element.setAttribute("href", source + "/" + target);
+        element.setAttribute("download", source);
         element.style.display = "none";
 
         document.body.appendChild(element);
