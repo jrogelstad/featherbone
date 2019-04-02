@@ -350,7 +350,7 @@
             function doInstall(resp) {
                 return new Promise(function (resolve, reject) {
                     function callback(filename) {
-                        resp.end();
+                        resp.done();
                         resolve(filename);
                     }
 

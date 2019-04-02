@@ -30,6 +30,7 @@
     const SSE = require("sse-nodejs");
     const cors = require("cors");
     const AdmZip = require("adm-zip");
+    const path = require("path");
 
     f.datasource = datasource;
     f.jsonpatch = require("fast-json-patch");
@@ -47,11 +48,6 @@
         fs.mkdirSync(dir);
     }
 
-    dir = "./files/install";
-    if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir);
-    }
-
     dir = "./files/import";
     if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir);
@@ -60,6 +56,26 @@
     dir = "./files/downloads";
     if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir);
+    }
+
+    /**
+     * Remove directory recursively
+     * @param {string} dir_path
+     * @see https://stackoverflow.com/a/42505874/3027390
+     */
+    function rimraf(dir_path) {
+        if (fs.existsSync(dir_path)) {
+            fs.readdirSync(dir_path).forEach(function (entry) {
+                let entry_path = path.join(dir_path, entry);
+
+                if (fs.lstatSync(entry_path).isDirectory()) {
+                    rimraf(entry_path);
+                } else {
+                    fs.unlinkSync(entry_path);
+                }
+            });
+            fs.rmdirSync(dir_path);
+        }
     }
 
     // Handle response
@@ -497,8 +513,15 @@
     }
 
     function doInstall(req, res) {
-        const DIR = "./files/install/";
-        const TEMPFILE = DIR + "temp.zip";
+        const DIR = "./files/" + "tmp_" + f.createId();
+        const TEMPFILE = DIR + ".zip";
+
+        function cleanup() {
+            rimraf(DIR); // Remove temp dir
+            fs.unlink(TEMPFILE, () => res.json(true)); // Remove zip
+        }
+
+        fs.mkdirSync(DIR); // Create temp dir
 
         if (Object.keys(req.files).length === 0) {
             return res.status(400).send("No files were uploaded.");
@@ -521,9 +544,7 @@
             datasource.install(
                 DIR,
                 datasource.getCurrentUser()
-            );
-
-            res.json(true);
+            ).then(cleanup);
         });
     }
 
