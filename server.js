@@ -603,7 +603,7 @@
         });
     }
 
-    function getDownload(req, res) {
+    function doGetDownload(req, res) {
         let filePath = "./files/downloads/" + req.params.sourcename;
 
         res.download(
@@ -621,7 +621,99 @@
         );
     }
 
+    function doGetFile(req, res) {
+        let url = "." + req.url;
+        let file = req.params.file || "";
+        let suffix = (
+            file
+            ? file.slice(file.indexOf("."), file.length)
+            : url.slice(url.lastIndexOf("."), url.length)
+        );
+        let mimetype;
+
+        switch (suffix) {
+        case ".mjs":
+        case ".js":
+            mimetype = {"Content-Type": "application/javascript"};
+            break;
+        case ".css":
+            mimetype = {"Content-Type": "text/css"};
+            break;
+        case ".json":
+            mimetype = {"Content-Type": "application/json"};
+            break;
+        case ".png":
+            mimetype = {"Content-Type": "image/png"};
+            break;
+        case ".ttf":
+            mimetype = {"Content-Type": "application/x-font-ttf"};
+            break;
+        case ".woff":
+            mimetype = {"Content-Type": "font/woff"};
+            break;
+        case ".woff2":
+            mimetype = {"Content-Type": "font/woff2"};
+            break;
+        default:
+            throw new Error("Unknown file type " + suffix);
+        }
+
+        fs.readFile(url + file, function (err, resp) {
+            if (err) {
+                error.bind(res)(new Error(err));
+                return;
+            }
+            res.writeHeader(200, mimetype);
+            res.write(resp);
+            res.end();
+        });
+    }
+
+    function doGetIndexFile(ignore, res) {
+        fs.readFile("./index.html", function (err, resp) {
+            if (err) {
+                error.bind(res)(new Error(err));
+                return;
+            }
+            res.writeHeader(200, {"Content-Type": "text/html"});
+            res.write(resp);
+            res.end();
+        });
+    }
+
     function start() {
+        // Define exactly which directories and files are to be served
+        let dirs = [
+            "/client",
+            "/client/components",
+            "/client/models",
+            "/common",
+            "/node_modules/@fortawesome/fontawesome-free/webfonts",
+            "/node_modules/codemirror/addon/lint",
+            "/node_modules/codemirror/lib",
+            "/node_modules/codemirror/mode/javascript",
+            "/node_modules/codemirror/mode/css",
+            "/node_modules/typeface-raleway/files"
+        ];
+        let files = [
+            "/api.json",
+            "/index.html",
+            "/featherbone.png",
+            "/css/featherbone.css",
+            "/node_modules/big.js/big.mjs",
+            "/node_modules/event-source-polyfill/src/eventsource.js",
+            "/node_modules/fast-json-patch/dist/fast-json-patch.js",
+            "/node_modules/dialog-polyfill/dialog-polyfill.js",
+            "/node_modules/mithril/mithril.js",
+            "/node_modules/qs/dist/qs.js",
+            "/node_modules/purecss/build/pure-min.css",
+            "/node_modules/purecss/build/grids-responsive-min.css",
+            "/node_modules/@fortawesome/fontawesome-free/css/all.css",
+            "/node_modules/dialog-polyfill/dialog-polyfill.css",
+            "/node_modules/codemirror/theme/neat.css",
+            "/node_modules/typeface-raleway/index.css"
+        ];
+
         // configure app to use bodyParser()
         // this will let us get the data from a POST
         app.use(bodyParser.urlencoded({
@@ -633,9 +725,11 @@
         app.use(cors());
 
         // static pages
-        app.get("/files/downloads/:sourcename", getDownload);
-        app.get("/files/downloads/:sourcename/:targetname", getDownload);
-        app.use(express.static(__dirname));
+        app.get("/files/downloads/:sourcename", doGetDownload);
+        app.get("/files/downloads/:sourcename/:targetname", doGetDownload);
+        app.get("/", doGetIndexFile);
+        dirs.forEach((dirname) => app.get(dirname + "/:filename", doGetFile));
+        files.forEach((filename) => app.get(filename, doGetFile));
 
         // File upload
         app.use(expressFileUpload());
