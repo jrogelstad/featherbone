@@ -1,0 +1,337 @@
+[{
+        "name": "Develop",
+        "module": "Core",
+        "description": "Setup definitions",
+        "icon": "drafting-compass",
+        "defaultConfig": [{
+                "name": "Modules",
+                "feather": "Module",
+                "isEditModeEnabled": false,
+                "actions": [{
+                  "name": "Install",
+                  "title": "Install a package",
+                  "icon": "download",
+                  "method": "install",
+                  "authorization": "InstallModules"
+                }, {
+                  "name": "Package",
+                  "title": "Package and download module",
+                  "icon": "gift",
+                  "method": "package",
+                  "authorization": "PackageModules",
+                  "validator": "packageCheck"
+                }],
+                "openInNewWindow": true,
+                "list": {
+                    "columns": [{
+                        "attr": "name"
+                    }, {
+                        "attr": "version"
+                    }],
+                    "filter": {
+                        "sort": [{
+                            "property": "name",
+                            "order": "ASC"
+                        }]
+                    }
+                }
+            },
+            {
+                "name": "Feathers",
+                "feather": "Feather",
+                "isEditModeEnabled": false,
+                "openInNewWindow": true,
+                "list": {
+                    "columns": [{
+                        "attr": "name"
+                    }, {
+                        "attr": "description"
+                    }, {
+                        "attr": "plural"
+                    }, {
+                        "attr": "module"
+                    }, {
+                        "attr": "inherits"
+                    }, {
+                        "attr": "isSystem"
+                    }, {
+                        "attr": "isChild"
+                    }],
+                    "filter": {
+                        "sort": [{
+                            "property": "name",
+                            "order": "ASC"
+                        }]
+                    }
+                }
+            },
+            {
+                "name": "Forms",
+                "feather": "Form",
+                "openInNewWindow": true,
+                "list": {
+                    "columns": [{
+                        "attr": "name"
+                    }, {
+                        "attr": "description"
+                    }, {
+                        "attr": "feather",
+                        "label": "Table"
+                    }, {
+                        "attr": "created"
+                    }, {
+                        "attr": "createdBy"
+                    }, {
+                        "attr": "updated"
+                    }, {
+                        "attr": "updatedBy"
+                    }],
+                    "filter": {
+                        "sort": [{
+                            "property": "name",
+                            "order": "ASC"
+                        }]
+                    }
+                }
+            },
+            {
+                "name": "Services",
+                "feather": "DataService",
+                "isEditModeEnabled": false,
+                "openInNewWindow": true,
+                "list": {
+                    "columns": [{
+                        "attr": "name"
+                    }, {
+                        "attr": "module"
+                    }],
+                    "filter": {
+                        "sort": [{
+                            "property": "module.name",
+                            "order": "ASC"
+                        }, {
+                            "property": "name",
+                            "order": "ASC"
+                        }]
+                    }
+                }
+            },
+            {
+                "name": "Routes",
+                "feather": "Route",
+                "list": {
+                    "columns": [{
+                        "attr": "module"
+                    }, {
+                        "attr": "path"
+                    }, {
+                        "attr": "function"
+                    }],
+                    "filter": {
+                        "sort": [{
+                            "property": "module",
+                            "order": "ASC"
+                        }, {
+                            "property": "path",
+                            "order": "ASC"
+                        }]
+                    }
+                }
+            },
+            {
+                "name": "Styles",
+                "feather": "Style",
+                "list": {
+                    "columns": [{
+                        "attr": "name"
+                    }, {
+                        "attr": "description"
+                    }, {
+                        "attr": "hasColor",
+                        "width": 100
+                    }, {
+                        "attr": "color",
+                        "width": 100
+                    }, {
+                        "attr": "fontWeight",
+                        "width": 100
+                    }, {
+                        "attr": "hasBackgroundColor",
+                        "label": "Has Background"
+                    }, {
+                        "attr": "backgroundColor"
+                    }, {
+                        "attr": "underline",
+                        "width": 100
+                    }],
+                    "filter": {
+                        "sort": [{
+                            "property": "name",
+                            "order": "ASC"
+                        }]
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "name": "Admin",
+        "module": "Core",
+        "description": "Application administration",
+        "icon": "tools",
+        "defaultConfig": [{
+                "name": "Roles",
+                "feather": "Role",
+                "list": {
+                    "columns": [{
+                        "attr": "name"
+                    }, {
+                        "attr": "description"
+                    }, {
+                        "attr": "createdBy"
+                    }, {
+                        "attr": "updated"
+                    }, {
+                        "attr": "updatedBy"
+                    }]
+                }
+            }, {
+            "name": "Countries",
+            "feather": "Country",
+            "list": {
+                "columns": [{
+                    "attr": "code"
+                }, {
+                    "attr": "name"
+                }],
+                "filter": {
+                    "sort": [{
+                            "property": "code",
+                            "order": "ASC"
+                        }
+                    ]
+                }
+            }
+        }, {
+            "name": "States",
+            "feather": "State",
+            "list": {
+                "columns": [{
+                    "attr": "code"
+                }, {
+                    "attr": "name"
+                }],
+                "filter": {
+                    "sort": [{
+                            "property": "code",
+                            "order": "ASC"
+                        }
+                    ]
+                }
+            }
+        }]
+    },
+    {
+        "name": "Currency",
+        "module": "Core",
+        "description": "Currency definitions",
+        "icon": "money-bill",
+        "defaultConfig": [{
+                "name": "Conversions",
+                "feather": "CurrencyConversion",
+                "list": {
+                    "columns": [{
+                        "attr": "fromCurrency",
+                        "label": "From"
+                    }, {
+                        "attr": "toCurrency",
+                        "label": "To"
+                    }, {
+                        "attr": "ratio"
+                    }, {
+                        "attr": "effective"
+                    }, {
+                        "attr": "updatedBy"
+                    }]
+                }
+            },
+            {
+                "name": "Currencies",
+                "feather": "Currency",
+                "list": {
+                    "columns": [{
+                        "attr": "code"
+                    }, {
+                        "attr": "description"
+                    }, {
+                        "attr": "symbol"
+                    }, {
+                        "attr": "isBase"
+                    }],
+                    "filter": {
+                        "sort": [{
+                            "property": "code",
+                            "order": "ASC"
+                        }]
+                    }
+                }
+            },
+            {
+                "name": "CurrencyUnits",
+                "feather": "CurrencyUnit",
+                "list": {
+                    "columns": [{
+                        "attr": "code"
+                    }, {
+                        "attr": "description"
+                    }, {
+                        "attr": "symbol"
+                    }]
+                }
+            }
+        ]
+    },
+    {
+        "name": "Contact",
+        "module": "Core",
+        "description": "Contacts",
+        "icon": "phone",
+        "defaultConfig": [{
+            "name": "Contacts",
+            "feather": "Contact",
+            "list": {
+                "columns": [{
+                    "attr": "lastName",
+                    "label": "Last"
+                }, {
+                    "attr": "firstName",
+                    "label": "First"
+                }, {
+                    "attr": "phone"
+                }, {
+                    "attr": "email"
+                }, {
+                    "attr": "address.city",
+                    "label": "City"
+                }, {
+                    "attr": "address.state",
+                    "label": "State"
+                }, {
+                    "attr": "address.country",
+                    "label": "Country"
+                }],
+                "filter": {
+                    "sort": [{
+                            "property": "lastName",
+                            "order": "ASC"
+                        },
+                        {
+                            "property": "firstName",
+                            "order": "ASC"
+                        }
+                    ]
+                }
+            }
+        }]
+    }
+]

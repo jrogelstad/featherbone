@@ -1,25 +1,35 @@
 {
-  "name": "featherbone-client",
-  "version": "0.3.0",
+  "name": "featherbone",
+  "version": "0.2.0",
   "private": true,
-  "description": "Framework for building object relational database client apps",
+  "description": "Framework for building object relational database apps",
   "keywords": [],
   "author": "John Rogelstad",
   "license": "GPL v3",
+  "main": "server.js",
   "repository": {
     "type": "git",
-    "url": "http://github.com/jrogelstad/featherbone-client.git"
+    "url": "http://github.com/jrogelstad/featherbone.git"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^5.6.3",
+    "adm-zip": "^0.4.13",
     "big.js": "^5.2.2",
+    "body-parser": "^1.18.2",
     "codemirror": "^5.42.2",
+    "cors": "^2.8.5",
     "dialog-polyfill": "^0.4.9",
     "event-source-polyfill": "^1.0.5",
+    "express": "^4.16.4",
+    "express-fileupload": "^1.0.0",
     "fast-json-patch": "^2.0.7",
     "mithril": "^1.1.6",
+    "pg": "^7.7.1",
+    "pg-format": "^1.0.4",
     "purecss": "^1.0.0",
     "qs": "^6.6.0",
-    "typeface-raleway": "0.0.54"
+    "sse-nodejs": "^0.1.0",
+    "typeface-raleway": "0.0.54",
+    "xlsx": "^0.14.1"
   }
 }
