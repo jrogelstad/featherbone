@@ -1,0 +1,967 @@
+[{
+        "name": "Comment",
+        "module": "Core",
+        "description": "Note",
+        "properties": {
+            "text": {
+                "description": "Note text",
+                "type": "string",
+                "format": "textArea"
+            }
+        }
+    },
+    {
+        "name": "Layout",
+        "plural": "Layouts",
+        "module": "Core",
+        "inherits": "Document",
+        "description": "Layout definitions",
+        "properties": {
+            "name": {
+                "description": "Name",
+                "type": "string",
+                "isNaturalKey": true,
+                "isRequired": true
+            },
+            "description": {
+                "description": "Description",
+                "type": "string",
+                "isRequired": true,
+                "isLabelKey": true
+            },
+            "module": {
+                "description": "Module",
+                "type": "string"
+            },
+            "feather": {
+                "description": "Feather",
+                "type": "string",
+                "isRequired": true
+            },
+            "isActive": {
+                "description": "Active status",
+                "type": "boolean",
+                "isRequired": true,
+                "default": true
+            }
+        }
+    },
+    {
+        "name": "Form",
+        "plural": "Forms",
+        "module": "Core",
+        "inherits": "Layout",
+        "description": "Form definitions",
+        "properties": {
+            "focus": {
+                "description": "Attribute that receives first focus",
+                "type": "string"
+            }
+        }
+    },
+    {
+        "name": "FormTab",
+        "plural": "FormTabs",
+        "module": "Core",
+        "description": "Form tab definitions",
+        "properties": {
+            "parent": {
+                "description": "Parent form",
+                "type": {
+                    "relation": "Form",
+                    "childOf": "tabs"
+                }
+            },
+            "name": {
+                "description": "Tab name",
+                "type": "string"
+            }
+        }
+    },
+    {
+        "name": "FormAttr",
+        "module": "Core",
+        "description": "Form attribute definitions",
+        "properties": {
+            "parent": {
+                "description": "Parent form",
+                "type": {
+                    "relation": "Form",
+                    "childOf": "attrs"
+                }
+            },
+            "attr": {
+                "description": "Attribute name",
+                "type": "string",
+                "alias": "attribute",
+                "isRequired": true
+            },
+            "grid": {
+                "description": "Grid (pane) number",
+                "type": "integer",
+                "default": 0,
+                "isRequired": true
+            },
+            "unit": {
+                "description": "Unit (column) number",
+                "type": "integer",
+                "default": 0,
+                "isRequired": true
+            },
+            "showLabel": {
+                "description": "Flag to show or hide label",
+                "type": "boolean",
+                "default": true
+            },
+            "label": {
+                "description": "Alternate attribute label",
+                "type": "string"
+            },
+            "dataList": {
+                "description": "Property that returns an array of options",
+                "type": "string"
+            },
+            "filter": {
+                "description": "Filter definition for relation widget",
+                "type": "object"
+            },
+            "disableCurrency": {
+                "description": "Flag to disable currency selector on currency widget",
+                "type": "boolean",
+                "default": false,
+                "isRequired": true,
+                "isReadOnly": true
+            },
+            "relationWidget": {
+                "description": "Specific over-ride definition for relation widget",
+                "type": {
+                    "relation": "Layout",
+                    "properties": [
+                        "name",
+                        "description"
+                    ]
+                },
+                "isReadOnly": true
+            }
+        },
+        "overloads": {
+            "relationWidget": {
+                "type": {
+                    "relation": "RelationWidget"
+                }
+            }
+        }
+    },
+    {
+        "name": "FormAttrColumn",
+        "module": "Core",
+        "description": "Form attribute column definitions for child objects",
+        "properties": {
+            "parent": {
+                "description": "Parent form attribute",
+                "type": {
+                    "relation": "FormAttr",
+                    "childOf": "columns"
+                }
+            },
+            "attr": {
+                "description": "Attribute name",
+                "type": "string",
+                "alias": "attribute"
+            },
+            "label": {
+                "description": "Alternate column label",
+                "type": "string"
+            },
+            "dataList": {
+                "description": "Property that returns an array of options",
+                "type": "string"
+            },
+            "filter": {
+                "description": "Filter for relation search criteria",
+                "type": "object"
+            },
+            "showCurrency": {
+                "description": "Show currency selector if money",
+                "type": "boolean",
+                "default": false
+            },
+            "width": {
+                "description": "Default column width",
+                "type": "integer"
+            }
+        }
+    },
+    {
+        "name": "RelationWidget",
+        "plural": "RelationWidgets",
+        "module": "Core",
+        "inherits": "Layout",
+        "description": "Relation widget definitions",
+        "isFetchOnStartup": true,
+        "properties": {
+            "form": {
+                "description": "Form relation",
+                "type": {
+                    "relation": "Form",
+                    "properties": [
+                        "name",
+                        "description"
+                    ]
+                }
+            },
+            "valueProperty": {
+                "description": "User key property",
+                "type": "string",
+                "isRequired": true
+            },
+            "labelProperty": {
+                "description": "Description property",
+                "type": "string"
+            }
+        }
+    },
+    {
+        "name": "RelationSearchColumn",
+        "plural": "RelationSearchColumns",
+        "module": "Core",
+        "description": "Columns shown on relation widget search",
+        "properties": {
+            "parent": {
+                "description": "Parent relation widget",
+                "type": {
+                    "relation": "RelationWidget",
+                    "childOf": "searchColumns"
+                }
+            },
+            "attr": {
+                "description": "Attribute name",
+                "type": "string",
+                "isRequired": true
+            },
+            "label": {
+                "description": "Alternate column label",
+                "type": "string"
+            }
+        }
+    },
+    {
+        "name": "Route",
+        "plural": "Routes",
+        "module": "Core",
+        "inherits": "Document",
+        "description": "Route to expose post service to REST API",
+        "properties": {
+            "module": {
+                "description": "Module route belongs to",
+                "type": "string",
+                "isRequired": true
+            },
+            "path": {
+                "description": "Route path",
+                "type": "string",
+                "isRequired": true
+            },
+            "function": {
+                "description": "Registered function on datasource to execute",
+                "type": "string",
+                "isRequired": true
+            }
+        }
+    },
+    {
+        "name": "Style",
+        "plural": "Styles",
+        "module": "Core",
+        "inherits": "Document",
+        "description": "Custom presentation style definition",
+        "isFetchOnStartup": true,
+        "properties": {
+            "name": {
+                "description": "Style name",
+                "type": "string",
+                "isNaturalKey": true,
+                "isRequired": true
+            },
+            "description": {
+                "description": "Style description",
+                "type": "string",
+                "isRequired": true,
+                "isLabelKey": true
+            },
+            "module": {
+                "description": "Module style belongs to",
+                "type": "string"
+            },
+            "hasColor": {
+                "description": "Turn on font color over-ride",
+                "type": "boolean",
+                "default": false
+            },
+            "color": {
+                "description": "Font color",
+                "type": "string",
+                "format": "color",
+                "default": "#000000"
+            },
+            "hasBackgroundColor": {
+                "description": "Turn on background color over-ride",
+                "type": "boolean",
+                "default": false
+            },
+            "backgroundColor": {
+                "description": "Background color",
+                "type": "string",
+                "format": "color",
+                "default": "#FFFFFF"
+            },
+            "fontWeight": {
+                "description": "Font weight",
+                "type": "string",
+                "format": "enum",
+                "isRequired": true,
+                "default": "normal",
+                "dataList": [{
+                    "value": "bold",
+                    "label": "bold"
+                }, {
+                    "value": "bolder",
+                    "label": "bolder"
+                }, {
+                    "value": "lighter",
+                    "label": "lighter"
+                }, {
+                    "value": "normal",
+                    "label": "normal"
+                }]
+            },
+            "underline": {
+                "description": "Feather",
+                "type": "string",
+                "format": "enum",
+                "isRequired": true,
+                "default": "none",
+                "dataList": [{
+                    "value": "none",
+                    "label": "none"
+                }, {
+                    "value": "solid",
+                    "label": "solid"
+                }, {
+                    "value": "dashed",
+                    "label": "dashed"
+                }, {
+                    "value": "dotted",
+                    "label": "dotted"
+                }, {
+                    "value": "wavy red",
+                    "label": "wavy red"
+                }]
+            }
+        }
+    },
+    {
+        "name": "Kind",
+        "plural": "Kinds",
+        "module": "Core",
+        "description": "Base class for physical types",
+        "inherits": "Document",
+        "properties": {
+            "code": {
+                "description": "Natural key",
+                "type": "string",
+                "isNaturalKey": true,
+                "isRequired": true
+            },
+            "description": {
+                "description": "Description",
+                "type": "string",
+                "isLabelKey": true
+            },
+            "note": {
+                "description": "Note",
+                "type": "string"
+            }
+        }
+    },
+    {
+        "name": "Unit",
+        "plural": "Units",
+        "module": "Core",
+        "description": "Unit of measure",
+        "properties": {
+            "code": {
+                "description": "Natural key",
+                "type": "string",
+                "isNaturalKey": true,
+                "isRequired": true
+            },
+            "description": {
+                "description": "Description",
+                "type": "string",
+                "isLabelKey": true
+            },
+            "dimension": {
+                "description": "Dimension",
+                "type": "string",
+                "default": "Q",
+                "format": "enum",
+                "dataList": [{
+                    "value": "Q",
+                    "label": "Quantity"
+                }, {
+                    "value": "W",
+                    "label": "Weight"
+                }, {
+                    "value": "L",
+                    "label": "Length"
+                }, {
+                    "value": "A",
+                    "label": "Area"
+                }, {
+                    "value": "V",
+                    "label": "Volume"
+                }, {
+                    "value": "T",
+                    "label": "Time"
+                }]
+            }
+        }
+    },
+    {
+        "name": "CurrencyUnit",
+        "plural": "CurrencyUnits",
+        "module": "Core",
+        "description": "Currency Unit of measure",
+        "inherits": "Unit",
+        "properties": {
+            "symbol": {
+                "type": "string",
+                "description": "Currency unit symbol"
+            },
+            "minorUnit": {
+                "description": "Precision",
+                "type": "integer",
+                "default": 2,
+                "isRequired": true
+            }
+        }
+    },
+    {
+        "name": "Currency",
+        "plural": "Currencies",
+        "module": "Core",
+        "description": "Currency",
+        "inherits": "Kind",
+        "isFetchOnStartup": true,
+        "properties": {
+            "symbol": {
+                "description": "Symbol",
+                "type": "string"
+            },
+            "minorUnit": {
+                "description": "Precision",
+                "type": "integer",
+                "default": 2
+            },
+            "isBase": {
+                "description": "System base currency flag",
+                "type": "boolean"
+            },
+            "hasDisplayUnit": {
+                "description": "Use alternate unit of mesaure in display",
+                "type": "boolean",
+                "isRequired": true,
+                "default": false
+            },
+            "displayUnit": {
+                "type": {
+                    "relation": "CurrencyUnit",
+                    "properties": [
+                        "code",
+                        "description",
+                        "minorUnit",
+                        "symbol"
+                    ]
+                },
+                "description": "Display unit of mesaure"
+            }
+        }
+    },
+    {
+        "name": "CurrencyUnitConversion",
+        "plural": "CurrencyUnitConversions",
+        "module": "Core",
+        "description": "Currency Unit Conversion",
+        "properties": {
+            "parent": {
+                "description": "Parent",
+                "type": {
+                    "relation": "Currency",
+                    "childOf": "conversions"
+                }
+            },
+            "toUnit": {
+                "description": "To unit of measure",
+                "type": {
+                    "relation": "Unit",
+                    "properties": ["code", "description"]
+                },
+                "isRequired": true
+            },
+            "ratio": {
+                "description": "conversion ratio",
+                "type": "number",
+                "default": 1,
+                "isRequired": true
+            }
+        }
+    },
+    {
+        "name": "CurrencyConversion",
+        "plural": "CurrencyConversions",
+        "module": "Core",
+        "description": "Currency Conversion rates",
+        "properties": {
+            "fromCurrency": {
+                "description": "Currency converting from",
+                "type": {
+                    "relation": "Currency",
+                    "properties": [
+                        "code",
+                        "description",
+                        "symbol",
+                        "minorUnit"
+                    ]
+                },
+                "default": "baseCurrency()",
+                "isRequired": true
+            },
+            "toCurrency": {
+                "description": "Currency converting to",
+                "type": {
+                    "relation": "Currency",
+                    "properties": [
+                        "code",
+                        "description",
+                        "symbol",
+                        "minorUnit"
+                    ]
+                },
+                "isRequired": true
+            },
+            "ratio": {
+                "description": "conversion ratio",
+                "type": "number",
+                "default": 1,
+                "isRequired": true
+            },
+            "effective": {
+                "description": "effective date",
+                "type": "string",
+                "format": "dateTime",
+                "default": "now()",
+                "isRequired": true
+            }
+        }
+    },
+    {
+        "name": "BaseCurrency",
+        "plural": "BaseCurrencies",
+        "module": "Core",
+        "description": "Base currency effectivity",
+        "isFetchOnStartup": true,
+        "properties": {
+            "currency": {
+                "description": "Base currency",
+                "type": {
+                    "relation": "Currency",
+                    "properties": [
+                        "code",
+                        "description",
+                        "symbol",
+                        "minorUnit"
+                    ]
+                },
+                "isRequired": true
+            },
+            "effective": {
+                "description": "Effective time",
+                "type": "string",
+                "format": "dateTime",
+                "isRequired": true
+            }
+        }
+    },
+    {
+        "name": "Country",
+        "plural": "Countries",
+        "module": "Core",
+        "description": "Country",
+        "isFetchOnStartup": true,
+        "properties": {
+            "code": {
+                "description": "Country code",
+                "type": "string",
+                "isRequired": true,
+                "isNaturalKey": true
+            },
+            "name": {
+                "description": "Name",
+                "type": "string",
+                "isRequired": true,
+                "isLabelKey": true
+            }
+        }
+    },
+    {
+        "name": "State",
+        "plural": "States",
+        "module": "Core",
+        "description": "State",
+        "isFetchOnStartup": true,
+        "properties": {
+            "code": {
+                "description": "State code",
+                "type": "string",
+                "isRequired": true,
+                "isNaturalKey": true
+            },
+            "name": {
+                "description": "Name",
+                "type": "string",
+                "isRequired": true
+            }
+        }
+    },
+    {
+        "name": "Address",
+        "module": "Core",
+        "description": "Physical location",
+        "isChild": true,
+        "properties": {
+            "type": {
+                "description": "Home, work, other",
+                "type": "string",
+                "format": "enum",
+                "default": "H",
+                "isRequired": true,
+                "dataList": [{
+                    "value": "H",
+                    "label": "Home"
+                }, {
+                    "value": "W",
+                    "label": "Work"
+                }, {
+                    "value": "M",
+                    "label": "Mailing"
+                }, {
+                    "value": "O",
+                    "label": "Other"
+                }]
+            },
+            "street": {
+                "description": "Street",
+                "type": "string",
+                "isRequired": true
+            },
+            "unit": {
+                "description": "Unit",
+                "type": "string"
+            },
+            "city": {
+                "description": "City",
+                "type": "string",
+                "isRequired": true
+            },
+            "state": {
+                "description": "State",
+                "type": "string",
+                "isRequired": true
+            },
+            "postalCode": {
+                "description": "Postal code",
+                "type": "string",
+                "isRequired": true
+            },
+            "country": {
+                "description": "Country",
+                "type": "string",
+                "isRequired": true
+            }
+        }
+    },
+    {
+        "name": "SocialNetwork",
+        "plural": "SocialNetworks",
+        "module": "Core",
+        "description": "Social media networks",
+        "properties": {
+            "name": {
+                "description": "Network name",
+                "type": "string",
+                "isNaturalKey": true
+            },
+            "description": {
+                "description": "description",
+                "type": "string",
+                "isLabelKey": true
+            },
+            "url": {
+                "description": "Url",
+                "type": "string",
+                "format": "url"
+            }
+        }
+    },
+    {
+        "name": "Honorific",
+        "plural": "Honorifics",
+        "module": "Core",
+        "description": "Honorific",
+        "properties": {
+            "title": {
+                "description": "Title",
+                "type": "string",
+                "isNaturalKey": true
+            }
+        }
+    },
+    {
+        "name": "Contact",
+        "plural": "Contacts",
+        "module": "Core",
+        "description": "Information about a person",
+        "inherits": "Document",
+        "properties": {
+            "honorific": {
+                "description": "Honorific",
+                "type": {
+                    "relation": "Honorific",
+                    "properties": [
+                        "title"
+                    ]
+                }
+            },
+            "firstName": {
+                "description": "First name",
+                "type": "string"
+            },
+            "lastName": {
+                "description": "Last name",
+                "type": "string",
+                "isRequired": true
+            },
+            "fullName": {
+                "description": "Name",
+                "type": "string",
+                "isReadOnly": true,
+                "isIndexed": true
+            },
+            "phone": {
+                "description": "Primary phone number",
+                "type": "string",
+                "format": "tel",
+                "alias": "Phone"
+            },
+            "phoneType": {
+                "description": "Home, work, other",
+                "type": "string",
+                "default": "M",
+                "format": "enum",
+                "isRequired": true,
+                "dataList": [{
+                    "value": "M",
+                    "label": "Mobile"
+                }, {
+                    "value": "H",
+                    "label": "Home"
+                }, {
+                    "value": "W",
+                    "label": "Work"
+                }, {
+                    "value": "O",
+                    "label": "Other"
+                }]
+            },
+            "email": {
+                "description": "Primary phone number",
+                "type": "string",
+                "format": "email"
+            },
+            "emailType": {
+                "description": "Personal, work, other",
+                "type": "string",
+                "default": "P",
+                "format": "enum",
+                "isRequired": true,
+                "dataList": [{
+                    "value": "P",
+                    "label": "Personal"
+                }, {
+                    "value": "W",
+                    "label": "Work"
+                }, {
+                    "value": "O",
+                    "label": "Other"
+                }]
+            },
+            "address": {
+                "description": "Primary Address",
+                "type": {
+                    "relation": "Address",
+                    "properties": ["type", "street", "unit",
+                        "city", "state", "postalCode", "country"
+                    ]
+                }
+            },
+            "webSite": {
+                "description": "Personal web page",
+                "type": "string",
+                "format": "url"
+            }
+        }
+    },
+    {
+        "name": "ContactPhone",
+        "plural": "ContactPhones",
+        "module": "Core",
+        "description": "Contact phone numbers",
+        "properties": {
+            "parent": {
+                "description": "Parent",
+                "type": {
+                    "relation": "Contact",
+                    "childOf": "phones"
+                }
+            },
+            "type": {
+                "description": "Home, work, other",
+                "type": "string",
+                "default": "M",
+                "format": "enum",
+                "isRequired": true,
+                "dataList": [{
+                    "value": "M",
+                    "label": "Mobile"
+                }, {
+                    "value": "H",
+                    "label": "Home"
+                }, {
+                    "value": "W",
+                    "label": "Work"
+                }, {
+                    "value": "O",
+                    "label": "Other"
+                }]
+            },
+            "phone": {
+                "description": "Phone number",
+                "type": "string",
+                "format": "tel"
+            },
+            "isPrimary": {
+                "description": "Primary phone flag",
+                "type": "boolean"
+            }
+        }
+    },
+    {
+        "name": "ContactEmail",
+        "plural": "ContactEmailAddresses",
+        "module": "Core",
+        "description": "Contact email addresses",
+        "properties": {
+            "parent": {
+                "description": "Parent",
+                "type": {
+                    "relation": "Contact",
+                    "childOf": "emails"
+                }
+            },
+            "type": {
+                "description": "Personal, work, other",
+                "type": "string",
+                "default": "M",
+                "format": "enum",
+                "isRequired": true,
+                "dataList": [{
+                    "value": "P",
+                    "label": "Personal"
+                }, {
+                    "value": "W",
+                    "label": "Work"
+                }, {
+                    "value": "O",
+                    "label": "Other"
+                }]
+            },
+            "email": {
+                "description": "Email address",
+                "type": "string",
+                "format": "email"
+            },
+            "isPrimary": {
+                "description": "Primary email flag",
+                "type": "boolean"
+            }
+        }
+    },
+    {
+        "name": "ContactAddress",
+        "module": "Core",
+        "description": "Contact address",
+        "properties": {
+            "parent": {
+                "description": "Parent",
+                "type": {
+                    "relation": "Contact",
+                    "childOf": "addresses"
+                }
+            },
+            "address": {
+                "description": "Address",
+                "type": {
+                    "relation": "Address",
+                    "properties": ["type", "street", "unit", "city",
+                        "state", "postalCode", "country"
+                    ]
+                }
+            },
+            "isPrimary": {
+                "description": "Primary address flag",
+                "type": "boolean"
+            }
+        }
+    },
+    {
+        "name": "ContactSocialAccount",
+        "plural": "ContactSocialAccounts",
+        "module": "Core",
+        "description": "Contact social media accounts",
+        "properties": {
+            "parent": {
+                "description": "Parent",
+                "type": {
+                    "relation": "Contact",
+                    "childOf": "social"
+                }
+            },
+            "network": {
+                "description": "Social network",
+                "type": {
+                    "relation": "SocialNetwork",
+                    "properties": [
+                        "name",
+                        "description",
+                        "url"
+                    ]
+                }
+            },
+            "userName": {
+                "description": "User name",
+                "type": "string"
+            }
+        }
+    }
+]

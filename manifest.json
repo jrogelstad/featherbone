@@ -1,0 +1,41 @@
+{
+    "module": "Core",
+    "version": "0.1.0",
+    "files": [
+        {
+            "type": "execute",
+            "path": "scripts/tables.js"
+        },
+        {
+            "type": "feather",
+            "path": "scripts/feathers.json",
+            "isSystem": true
+        },
+        {
+            "type": "execute",
+            "path": "scripts/populate.js"
+        },
+        {
+            "type": "module",
+            "path": "scripts/module.js"
+        },
+        {
+            "type": "service",
+            "name": "core-services",
+            "path": "scripts/services.js"
+        },
+        {
+            "type": "feather",
+            "path": "scripts/feathers-common.json"
+        },
+        {
+            "type": "workbook",
+            "path": "scripts/workbooks.json"
+        },
+        {
+            "type": "batch",
+            "path": "scripts/data.json"
+        }
+    ]
+}
+
