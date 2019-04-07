@@ -194,17 +194,6 @@
         "COMMENT ON COLUMN \"$workbook\".module IS 'Module reference';"
     );
 
-    const createUserSql = (
-        "CREATE TABLE \"$user\" (" +
-        "username text PRIMARY KEY," +
-        "is_super boolean);" +
-        "COMMENT ON TABLE \"$user\" IS " +
-        "'Internal table for storing supplimental user information';" +
-        "COMMENT ON COLUMN \"$user\".username IS 'System user';" +
-        "COMMENT ON COLUMN \"$user\".is_super IS " +
-        "'Indicates whether user is super user';"
-    );
-
     const createSettingsSql = (
         "CREATE TABLE \"$settings\" (" +
         "name text," +
@@ -298,7 +287,6 @@
             let createSubscription;
             let createSettings;
             let createEventTrigger;
-            let createUser;
             let createLock;
             let sqlCheck;
             let done;
@@ -465,34 +453,7 @@
                     }
 
                     if (!exists) {
-                        obj.client.query(createWorkbookSql, createUser);
-                        return;
-                    }
-                    createUser();
-                });
-            };
-
-            // Create the user table
-            createUser = function () {
-                sqlCheck("$user", function (err, exists) {
-                    if (err) {
-                        reject(err);
-                        return;
-                    }
-
-                    if (!exists) {
-                        obj.client.query(createUserSql, function (err) {
-                            if (err) {
-                                reject(err);
-                                return;
-                            }
-
-                            obj.client.query(
-                                "INSERT INTO \"$user\" VALUES ($1, true)",
-                                [obj.user],
-                                createSettings
-                            );
-                        });
+                        obj.client.query(createWorkbookSql, createSettings);
                         return;
                     }
                     createSettings();

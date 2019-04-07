@@ -31,6 +31,7 @@
     const cors = require("cors");
     const AdmZip = require("adm-zip");
     const path = require("path");
+    const passport = require("passport");
 
     f.datasource = datasource;
     f.jsonpatch = require("fast-json-patch");
@@ -713,6 +714,52 @@
             "/node_modules/codemirror/theme/neat.css",
             "/node_modules/typeface-raleway/index.css"
         ];
+/*
+        passport.use(new LocalStrategy({
+            usernameField: 'email',
+            passwordField: 'pass'
+        },
+        (username, password, done) => {
+        log.debug("Login process:", username);
+        return db.one(
+            "SELECT user_id, user_name, user_email, user_role " +
+            "FROM users " +
+            "WHERE user_email=$1 AND user_pass=$2", [username, password]
+        )
+          .then((result)=> {
+            return done(null, result);
+          })
+          .catch((err) => {
+            log.error("/login: " + err);
+            return done(null, false, {message:'Wrong user name or password'});
+          });
+        }));
+
+        passport.serializeUser((user, done)=>{
+            log.debug("serialize ", user);
+            done(null, user.user_id);
+          });
+
+        passport.deserializeUser(function (id, done) {
+            log.debug("deserualize ", id);
+            db.one("SELECT user_id, user_name, user_email, user_role FROM users " +
+                "WHERE user_id = $1", [id])
+            .then((user)=>{
+              //log.debug("deserializeUser ", user);
+              done(null, user);
+            })
+            .catch((err)=>{
+              done(new Error(`User with the id ${id} does not exist`));
+            })
+        });
+*/
+        app.post(
+            "/connect",
+            passport.authenticate('local'), function (req, resp) {
+                log.debug(req.user);
+                resp.send(req.user);
+            }
+        );
 
         // configure app to use bodyParser()
         // this will let us get the data from a POST
