@@ -35,7 +35,15 @@
                 }
 
                 user = resp.rows[0].current_user;
-                getEveryone();
+                obj.client.query((
+                        "INSERT INTO \"user\" VALUES " +
+                        "(nextval('object__pk_seq'), $1, now(), $1, now(), " +
+                        "$1, false, null, $1, '', TRUE) " +
+                        "ON CONFLICT DO NOTHING;"
+                    ),
+                    [user],
+                    getEveryone
+                );
             };
 
             // Create Everyone role

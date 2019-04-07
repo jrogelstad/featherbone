@@ -180,6 +180,20 @@
         "description": "Application administration",
         "icon": "tools",
         "defaultConfig": [{
+                "name": "Users",
+                "feather": "User",
+                "list": {
+                    "columns": [{
+                        "attr": "username"
+                    }, {
+                        "attr": "contact.fullName"
+                    }, {
+                        "attr": "contact.email"
+                    }, {
+                        "attr": "contact.phone"
+                    }]
+                }
+            }, {
                 "name": "Roles",
                 "feather": "Role",
                 "list": {
@@ -290,48 +304,5 @@
                 }
             }
         ]
-    },
-    {
-        "name": "Contact",
-        "module": "Core",
-        "description": "Contacts",
-        "icon": "phone",
-        "defaultConfig": [{
-            "name": "Contacts",
-            "feather": "Contact",
-            "list": {
-                "columns": [{
-                    "attr": "lastName",
-                    "label": "Last"
-                }, {
-                    "attr": "firstName",
-                    "label": "First"
-                }, {
-                    "attr": "phone"
-                }, {
-                    "attr": "email"
-                }, {
-                    "attr": "address.city",
-                    "label": "City"
-                }, {
-                    "attr": "address.state",
-                    "label": "State"
-                }, {
-                    "attr": "address.country",
-                    "label": "Country"
-                }],
-                "filter": {
-                    "sort": [{
-                            "property": "lastName",
-                            "order": "ASC"
-                        },
-                        {
-                            "property": "firstName",
-                            "order": "ASC"
-                        }
-                    ]
-                }
-            }
-        }]
     }
 ]
