@@ -502,6 +502,21 @@ a.pure-button-selected {
   margin-bottom: 6px !important;
 }
 
+.fb-sign-in {
+    text-align: center;
+}
+
+.fb-sign-in-header {
+    font-family: raleway;
+    font-size: x-large;
+    margin-bottom: 20px;
+    margin-top: 50px;
+}
+
+.fb-sign-in-label {
+    width: 5em !important;
+}
+
 .fb-table {
   table-layout: fixed;
   width: 100%;
