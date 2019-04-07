@@ -180,8 +180,8 @@
         "description": "Application administration",
         "icon": "tools",
         "defaultConfig": [{
-                "name": "Users",
-                "feather": "User",
+                "name": "UserAccounts",
+                "feather": "UserAccount",
                 "list": {
                     "columns": [{
                         "attr": "username"

@@ -1,6 +1,6 @@
 [{
-        "name": "User",
-        "plural": "Users",
+        "name": "UserAccount",
+        "plural": "UserAccounts",
         "module": "Core",
         "description": "System users",
         "authorization": false,
