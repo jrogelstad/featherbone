@@ -577,7 +577,7 @@ a.pure-button-selected {
     float: right;
     margin: 4px;
     border: none;
-    font-size: x-large;
+    padding-top: 5px;
 }
 
 .fb-toolbar-spacer {

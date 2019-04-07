@@ -668,6 +668,17 @@ function initApp() {
                         }, "Home"),
                         m("button", {
                             class: "fb-toolbar-button fb-toolbar-button-home",
+                            title: "Sign out",
+                            onclick: function () {
+                                f.state().send("signOut");
+                            }
+                        }, [
+                            m("i", {
+                                class: "fa fa-sign-out-alt fb-button-icon"
+                            })
+                        ]),
+                        m("button", {
+                            class: "fb-toolbar-button fb-toolbar-button-home",
                             title: "Add workbook",
                             onclick: addWorkbookViewModel.show
                         }, [
