@@ -43,6 +43,33 @@ let styles;
 // PRIVATE
 //
 
+// Define application state
+const state = State.define(function () {
+    this.state("SignedOut", function () {
+        this.event("authenticate", function () {
+            this.goto("../Authenticating");
+        });
+        this.enter(() => m.route.set("/sign-in"));
+    });
+    this.state("SignedIn", function () {
+        this.event("signOut", function () {
+            this.goto("../SignedOut");
+        });
+        this.enter(() => m.route.set("/home"));
+    });
+    this.state("Authenticating", function () {
+        this.event("success", function () {
+            this.goto("../SignedIn");
+        });
+        this.event("failed", function () {
+            this.goto("../SignedOut");
+        });
+        this.enter(function () {
+            f.state().send("success"); // temporary
+        });
+    });
+});
+
 /** @private
   Auto-build a form definition based on feather properties.
 
@@ -1422,6 +1449,16 @@ f.resolveProperty = function (model, property) {
     }
 
     return model.data[property];
+};
+
+/**
+    Application statechart. States are `SignedIn`, `SignedOut`
+    and `Authenticating.`
+
+    @return {Object} statechart
+*/
+f.state = function () {
+    return state;
 };
 
 export default Object.freeze(f);

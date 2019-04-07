@@ -536,6 +536,9 @@ workbookPage.viewModel = function (options) {
     vm.goHome = function () {
         m.route.set("/home");
     };
+    vm.goSignOut = function () {
+        f.state().send("signOut");
+    };
     vm.goSettings = function () {
         m.route.set("/settings/:settings", {
             settings: workbook.data.launchConfig().settings
@@ -1366,7 +1369,19 @@ workbookPage.component = {
                                     onclick: vm.goSettings
                                 }, [m("i", {
                                     class: "fa fa-wrench fb-menu-list-icon"
-                                })], "Settings")
+                                })], "Settings"),
+                                m("li", {
+                                    id: "nav-signout",
+                                    class: (
+                                        "pure-menu-link "
+                                    ),
+                                    title: "Sign out of application",
+                                    onclick: vm.goSignOut
+                                }, [m("i", {
+                                    class: (
+                                        "fa fa-sign-out-alt fb-menu-list-icon"
+                                    )
+                                })], "Sign out")
                             ])
                         ])
                     ]),

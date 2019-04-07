@@ -410,6 +410,7 @@ function initPromises() {
 }
 
 function initApp() {
+    let signIn;
     let home;
     let keys = Object.keys(feathers);
 
@@ -553,6 +554,76 @@ function initApp() {
     sseState.resolve("Error").enter(sseErrorDialogViewModel.show);
     sseErrorDialogViewModel.buttonCancel().hide();
 
+    // Build login page
+    signIn = {
+        view: function () {
+            return m("div", {
+                class: "pure-form pure-form-aligned"
+            }, [
+                m("div", {
+                    class: "fb-sign-in fb-sign-in-header"
+                }, "Sign in to Featherbone"),
+                m("div", {
+                    class: "pure-control-group fb-sign-in"
+                }, [
+                    m("label", {
+                        id: "usernameLabel",
+                        for: "username",
+                        class: "fb-sign-in-label"
+                    }, "Username"),
+                    m("input", {
+                        id: "username"
+                    })
+                ]),
+                m("div", {
+                    class: "pure-control-group fb-sign-in"
+                }, [
+                    m("label", {
+                        id: "passwordLabel",
+                        for: "password",
+                        class: "fb-sign-in-label"
+                    }, "Password"),
+                    m("input", {
+                        id: "password",
+                        type: "password"
+                    })
+                ]),
+                m("div", {
+                    class: "pure-control-group fb-sign-in"
+                }, [
+                    m("label", {
+                        id: "signinLabel",
+                        for: "signin",
+                        class: "fb-sign-in-label"
+                    }, ""),
+                    m("button", {
+                        id: "signin",
+                        class: "pure-button pure-button-primary fb-input",
+                        onclick: function () {
+                            f.state().send("authenticate");
+                        }
+                    }, "Sign in")
+                ]),
+                m("div", {
+                    class: "pure-control-group fb-sign-in"
+                }, [
+                    m("label", {
+                        id: "forgotLabel",
+                        for: "forgat",
+                        class: "fb-sign-in-label"
+                    }, ""),
+                    m("button", {
+                        id: "forgot",
+                        class: "pure-button fb-input",
+                        onclick: function () {
+                            return; // TODO
+                        }
+                    }, "Forgot password?")
+                ])
+            ]);
+        }
+    };
+
     // Build home navigation page
     home = {
         oninit: function (vnode) {
@@ -610,7 +681,8 @@ function initApp() {
         }
     };
 
-    m.route(document.body, "/home", {
+    m.route(document.body, "/sign-in", {
+        "/sign-in": signIn,
         "/home": home,
         "/workbook/:workbook/:key": workbookPage.component,
         "/edit/:feather/:key": formPage.component,
@@ -618,6 +690,8 @@ function initApp() {
         "/search/:feather": searchPage.component,
         "/settings/:settings": settingsPage.component
     });
+
+    f.state().goto();
 }
 
 // Listen for session id
@@ -638,7 +712,7 @@ evstart.onmessage = function (event) {
             let subscriptionId;
             let change;
             let data;
-            let state;
+            let patching = "/Busy/Saving/Patching";
 
             // Ignore heartbeats
             if (event.data === "") {
@@ -664,9 +738,8 @@ evstart.onmessage = function (event) {
 
                 if (instance) {
                     // Only update if not caused by this instance
-                    state = instance.state().current()[0];
                     if (
-                        state !== "/Busy/Saving/Patching" && (
+                        instance.state().current()[0] !== patching && (
                             !data.etag || (
                                 data.etag &&
                                 data.etag !== instance.data.etag()
