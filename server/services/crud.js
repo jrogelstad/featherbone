@@ -19,18 +19,10 @@
 (function (exports) {
     "use strict";
 
-    const {
-        Currency
-    } = require("./currency");
-    const {
-        Events
-    } = require("./events");
-    const {
-        Feathers
-    } = require("./feathers");
-    const {
-        Tools
-    } = require("./tools");
+    const {Currency} = require("./currency");
+    const {Events} = require("./events");
+    const {Feathers} = require("./feathers");
+    const {Tools} = require("./tools");
 
     const currency = new Currency();
     const events = new Events();

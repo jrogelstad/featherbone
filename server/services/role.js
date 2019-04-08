@@ -40,9 +40,10 @@
             return new Promise(function (resolve, reject) {
                 let name = obj.data.name;
                 let pwd = obj.data.pwd;
-                let sql = "ALTER ROLE $1 WITH PASSWORD $2;";
+                let sql = "ALTER ROLE %I PASSWORD %L;";
 
-                obj.client.query(sql, [name, pwd], function (err) {
+                sql = sql.format([name, pwrd]);
+                obj.client.query(sql, function (err) {
                     if (err) {
                         reject(err);
                         return;
@@ -68,9 +69,10 @@
             return new Promise(function (resolve, reject) {
                 let name = obj.data.name;
                 let pwd = obj.data.pwd;
-                let sql = "CREATE ROLE $1 WITH PASSWORD $2;";
+                let sql = "CREATE ROLE %I PASSWORD %L;";
 
-                obj.client.query(sql, [name, pwd], function (err) {
+                sql = sql.format([name, pwd]);
+                obj.client.query(sql, function (err) {
                     if (err) {
                         reject(err);
                         return;

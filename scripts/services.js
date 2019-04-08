@@ -475,7 +475,7 @@ f.datasource.registerFunction(
 function updateRole(obj) {
     "use strict";
 
-    return new Promise(function (resolve) {
+    return new Promise(function (resolve, reject) {
         let payload = {
             method: "POST",
             name: "changePassword",
@@ -484,7 +484,7 @@ function updateRole(obj) {
                 name: obj.newRec.name,
                 password: obj.newRec.password
             }
-        }
+        };
 
         if (obj.newRec.password) {
             obj.newRec.password = "";
@@ -498,7 +498,7 @@ function updateRole(obj) {
 function createRole(obj) {
     "use strict";
 
-    return new Promise(function (resolve) {
+    return new Promise(function (resolve, reject) {
         let payload = {
             method: "POST",
             name: "createRole",
@@ -507,7 +507,7 @@ function createRole(obj) {
                 name: obj.newRec.name,
                 password: obj.newRec.password
             }
-        }
+        };
 
         obj.newRec.password = "";
 
