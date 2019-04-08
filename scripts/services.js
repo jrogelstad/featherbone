@@ -486,6 +486,10 @@ function updateRole(obj) {
             }
         };
 
+        if (obj.oldRec.name !== obj.newRec.name) {
+            throw new Error("Name cannot be changed");
+        }
+
         if (obj.newRec.password) {
             obj.newRec.password = "";
             f.datasource.request(payload, true).then(resolve).catch(reject);
@@ -526,6 +530,6 @@ f.datasource.registerFunction(
     "PATCH",
     "Role",
     updateRole,
-    f.datasource.TRIGGER_AFTER
+    f.datasource.TRIGGER_BEFORE
 );
 
