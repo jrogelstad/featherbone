@@ -36,9 +36,9 @@
 
                 user = resp.rows[0].current_user;
                 obj.client.query((
-                        "INSERT INTO \"user_account\" VALUES " +
+                        "INSERT INTO \"role\" VALUES " +
                         "(nextval('object__pk_seq'), $1, now(), $1, now(), " +
-                        "$1, false, null, $1, '', TRUE) " +
+                        "$1, false, null, $1, '', TRUE, TRUE) " +
                         "ON CONFLICT DO NOTHING;"
                     ),
                     [user],
@@ -71,7 +71,6 @@
                         data: {
                             id: "everyone",
                             name: "Everyone",
-                            description: "All users",
                             members: [{
                                 member: user
                             }]
