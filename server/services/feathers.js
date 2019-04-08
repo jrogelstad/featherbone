@@ -27,7 +27,7 @@
     const settings = new Settings();
     const tools = new Tools();
     const formats = tools.formats;
-    
+
     const reserved = [
         "ALL",
         "ANALYSE",
@@ -2116,10 +2116,10 @@
                         reject("No name defined");
                         return;
                     }
-                    
+
                     if (reserved.indexOf(
-                            table.toSnakeCase().toUpperCase()
-                        ) !== -1) {
+                        table.toSnakeCase().toUpperCase()
+                    ) !== -1) {
                         reject(
                             "Cannot create feather \"" + table +
                             "\" because it is a reserved word."

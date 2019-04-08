@@ -517,15 +517,15 @@ function createRole(obj) {
 
 f.datasource.registerFunction(
     "POST",
-    "UserAccount",
-    createUserAccount,
+    "Role",
+    createRole,
     f.datasource.TRIGGER_AFTER
 );
 
 f.datasource.registerFunction(
     "PATCH",
-    "UserAccount",
-    updateUserAccount,
+    "Role",
+    updateRole,
     f.datasource.TRIGGER_AFTER
 );
 
