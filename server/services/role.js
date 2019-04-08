@@ -42,7 +42,7 @@
                 let pwd = obj.data.pwd;
                 let sql = "ALTER ROLE %I PASSWORD %L;";
 
-                sql = sql.format([name, pwrd]);
+                sql = sql.format([name, pwd]);
                 obj.client.query(sql, function (err) {
                     if (err) {
                         reject(err);
