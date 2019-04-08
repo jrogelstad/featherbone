@@ -42,7 +42,7 @@
                 let pwd = obj.data.pwd;
                 let sql = "ALTER ROLE $1 WITH PASSWORD $2;";
 
-                obj.client.query(sql, [name, pwd], function (err, resp) {
+                obj.client.query(sql, [name, pwd], function (err) {
                     if (err) {
                         reject(err);
                         return;
@@ -70,7 +70,7 @@
                 let pwd = obj.data.pwd;
                 let sql = "CREATE ROLE $1 WITH PASSWORD $2;";
 
-                obj.client.query(sql, [name, pwd], function (err, resp) {
+                obj.client.query(sql, [name, pwd], function (err) {
                     if (err) {
                         reject(err);
                         return;

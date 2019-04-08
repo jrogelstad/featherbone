@@ -64,6 +64,14 @@
 
             createEveryone = function (resp) {
                 if (!resp) {
+                    function createEveryoneRole() {
+                        obj.client.query(
+                            "CREATE ROLE everyone;",
+                            [],
+                            grantEveryoneGlobal
+                        )
+                    };
+
                     datasource.request({
                         name: "Role",
                         method: "POST",
@@ -77,7 +85,7 @@
                         },
                         client: obj.client
                     }, true).then(
-                        grantEveryoneGlobal
+                        createEveryoneRole
                     ).catch(
                         reject
                     );

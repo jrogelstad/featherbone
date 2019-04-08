@@ -1319,6 +1319,7 @@
     that.registerFunction("GET", "isAuthorized", feathers.isAuthorized);
     that.registerFunction("POST", "changePassword", role.changePassword);
     that.registerFunction("POST", "createRole", role.createUser);
+    that.registerFunction("POST", "subscribe", subscribe);
     that.registerFunction("POST", "unsubscribe", unsubscribe);
     that.registerFunction(
         "PUT",
