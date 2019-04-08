@@ -966,24 +966,10 @@
     }, {
         "name": "UserAccount",
         "plural": "UserAccounts",
+        "inherits": "Role",
         "module": "Core",
         "description": "System users",
         "properties": {
-            "username": {
-                "description": "Unique user name",
-                "type": "string",
-                "isNaturalKey": true
-            },
-            "password": {
-                "description": "Password",
-                "type": "string",
-                "format": "password"
-            },
-            "isSuper": {
-                "description": "System adiminstrator flag",
-                "type": "boolean",
-                "default": false
-            },
             "contact": {
                 "description": "Contact information",
                 "type": {

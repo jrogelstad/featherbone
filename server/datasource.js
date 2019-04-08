@@ -35,6 +35,7 @@
     const {Routes} = require("./services/routes");
     const {Services} = require("./services/services");
     const {Settings} = require("./services/settings");
+    const {Role} = require("./services/role");
     const {Workbooks} = require("./services/workbooks");
 
     const f = require("../common/core");
@@ -52,6 +53,7 @@
     const routes = new Routes();
     const services = new Services();
     const settings = new Settings();
+    const role = new Role();
     const workbooks = new Workbooks();
     const that = {};
 
@@ -1315,7 +1317,8 @@
     that.registerFunction("GET", "getWorkbook", workbooks.getWorkbook);
     that.registerFunction("GET", "getWorkbooks", workbooks.getWorkbooks);
     that.registerFunction("GET", "isAuthorized", feathers.isAuthorized);
-    that.registerFunction("POST", "subscribe", subscribe);
+    that.registerFunction("POST", "changePassword", role.changePassword);
+    that.registerFunction("POST", "createRole", role.createUser);
     that.registerFunction("POST", "unsubscribe", unsubscribe);
     that.registerFunction(
         "PUT",

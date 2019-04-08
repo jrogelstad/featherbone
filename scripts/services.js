@@ -469,3 +469,63 @@ f.datasource.registerFunction(
     f.datasource.TRIGGER_BEFORE
 );
 
+/**
+  Role
+*/
+function updateRole(obj) {
+    "use strict";
+
+    return new Promise(function (resolve) {
+        let payload = {
+            method: "POST",
+            name: "changePassword",
+            client: obj.client,
+            data: {
+                name: obj.newRec.name,
+                password: obj.newRec.password
+            }
+        }
+
+        if (obj.newRec.password) {
+            obj.newRec.password = "";
+            f.datasource.request(payload, true).then(resolve).catch(reject);
+        } else {
+            resolve();
+        }
+    });
+}
+
+function createRole(obj) {
+    "use strict";
+
+    return new Promise(function (resolve) {
+        let payload = {
+            method: "POST",
+            name: "createRole",
+            client: obj.client,
+            data: {
+                name: obj.newRec.name,
+                password: obj.newRec.password
+            }
+        }
+
+        obj.newRec.password = "";
+
+        f.datasource.request(payload, true).then(resolve).catch(reject);
+    });
+}
+
+f.datasource.registerFunction(
+    "POST",
+    "UserAccount",
+    createUserAccount,
+    f.datasource.TRIGGER_AFTER
+);
+
+f.datasource.registerFunction(
+    "PATCH",
+    "UserAccount",
+    updateUserAccount,
+    f.datasource.TRIGGER_AFTER
+);
+
