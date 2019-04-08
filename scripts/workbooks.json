@@ -198,7 +198,7 @@
                 "feather": "UserAccount",
                 "list": {
                     "columns": [{
-                        "attr": "username"
+                        "attr": "name"
                     }, {
                         "attr": "contact.fullName"
                     }, {

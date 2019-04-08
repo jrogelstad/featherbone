@@ -748,7 +748,9 @@
                     transaction(obj, isChild, isSuperUser).then(
                         resolve
                     ).catch(
-                        reject
+                        function (err) {
+                            reject(err);
+                        }
                     );
                 });
             }
@@ -1318,7 +1320,7 @@
     that.registerFunction("GET", "getWorkbooks", workbooks.getWorkbooks);
     that.registerFunction("GET", "isAuthorized", feathers.isAuthorized);
     that.registerFunction("POST", "changePassword", role.changePassword);
-    that.registerFunction("POST", "createRole", role.createUser);
+    that.registerFunction("POST", "createRole", role.createRole);
     that.registerFunction("POST", "subscribe", subscribe);
     that.registerFunction("POST", "unsubscribe", unsubscribe);
     that.registerFunction(

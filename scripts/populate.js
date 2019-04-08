@@ -35,7 +35,8 @@
                 }
 
                 user = resp.rows[0].current_user;
-                obj.client.query((
+                obj.client.query(
+                    (
                         "INSERT INTO \"role\" VALUES " +
                         "(nextval('object__pk_seq'), $1, now(), $1, now(), " +
                         "$1, false, null, $1, '', TRUE, TRUE) " +
@@ -63,15 +64,15 @@
             };
 
             createEveryone = function (resp) {
-                if (!resp) {
-                    function createEveryoneRole() {
-                        obj.client.query(
-                            "CREATE ROLE everyone;",
-                            [],
-                            grantEveryoneGlobal
-                        )
-                    };
+                function createEveryoneRole() {
+                    obj.client.query(
+                        "CREATE ROLE everyone;",
+                        [],
+                        grantEveryoneGlobal
+                    );
+                }
 
+                if (!resp) {
                     datasource.request({
                         name: "Role",
                         method: "POST",
