@@ -413,6 +413,7 @@ function initApp() {
     let signIn;
     let home;
     let keys = Object.keys(feathers);
+    let showMenuAccount = f.prop(false);
 
     function resolveDependencies(module, dependencies) {
         dependencies = dependencies || module.dependencies;
@@ -666,16 +667,81 @@ function initApp() {
                         m("div", {
                             class: "fb-header-home"
                         }, "Home"),
-                        m("button", {
-                            class: "fb-toolbar-button fb-toolbar-button-home",
-                            title: "Sign out",
-                            onclick: function () {
-                                f.state().send("signOut");
+                        m("div", {
+                            id: "nav-account-div",
+                            class: (
+                                "pure-menu " +
+                                "custom-restricted-width " +
+                                "fb-menu fb-menu-setup"
+                            ),
+                            onclick: showMenuAccount.bind(null, true),
+                            onmouseout: function (ev) {
+                                if (
+                                    !ev || !ev.toElement || !ev.toElement.id ||
+                                    ev.toElement.id.indexOf(
+                                        "nav-account"
+                                    ) === -1
+                                ) {
+                                    showMenuAccount(false);
+                                }
                             }
                         }, [
-                            m("i", {
-                                class: "fa fa-sign-out-alt fb-button-icon"
-                            })
+                            m("span", {
+                                id: "nav-account-button",
+                                title: "Logged in as:",
+                                class: (
+                                    "pure-button " +
+                                    "fa fa-user-circle " +
+                                    "fb-menu-button"
+                                )
+                            }),
+                            m("ul", {
+                                id: "nav-account-list",
+                                class: (
+                                    "pure-menu-list fb-menu-list " +
+                                    "fb-menu-list-setup" + (
+                                        showMenuAccount()
+                                        ? " fb-menu-list-show"
+                                        : ""
+                                    )
+                                )
+                            }, [
+                                m("li", {
+                                    id: "nav-account-myinfo",
+                                    class: "pure-menu-link",
+                                    title: "Edit my contact information"
+                                    //onclick: vm.revert
+                                }, [m("i", {
+                                    id: "nav-account-myinfo-icon",
+                                    class: "fa fa-pencil-alt fb-menu-list-icon"
+                                })], "Info"),
+                                m("li", {
+                                    id: "nav-account-password",
+                                    class: (
+                                        "pure-menu-link "
+                                    ),
+                                    title: "Change password"
+                                    //onclick: vm.goSettings
+                                }, [m("i", {
+                                    id: "nav-account-password-icon",
+                                    class: "fa fa-key fb-menu-list-icon"
+                                })], "Password"),
+                                m("li", {
+                                    id: "nav-account-signout",
+                                    class: (
+                                        "pure-menu-link fb-menu-list-separator"
+                                    ),
+                                    title: "Sign out of application",
+                                    onclick: function () {
+                                        f.state().send("signOut");
+                                    }
+                                }, [m("i", {
+                                    id: "nav-account-signout-icon",
+                                    class: (
+                                        "fa fa-sign-out-alt fb-menu-list-icon"
+                                    )
+                                })], "Sign out")
+                            ])
                         ]),
                         m("button", {
                             class: "fb-toolbar-button fb-toolbar-button-home",
