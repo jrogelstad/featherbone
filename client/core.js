@@ -44,7 +44,7 @@ let styles;
 //
 
 // Define application state
-const state = State.define(function () {
+const appState = State.define(function () {
     this.state("SignedOut", function () {
         this.event("authenticate", function () {
             this.goto("../Authenticating");
@@ -1458,7 +1458,7 @@ f.resolveProperty = function (model, property) {
     @return {Object} statechart
 */
 f.state = function () {
-    return state;
+    return appState;
 };
 
 export default Object.freeze(f);
