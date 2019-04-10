@@ -702,26 +702,37 @@ workbookPage.viewModel = function (options) {
             break;
         }
     };
-    vm.onmouseoveractions = function () {
+    vm.onclickactions = function () {
         vm.showActions(true);
     };
     vm.onmouseoutactions = function (ev) {
         if (
             !ev || !ev.toElement || !ev.toElement.id ||
-            ev.toElement.id.indexOf("nav-") === -1
+            ev.toElement.id.indexOf("nav-actions") === -1
         ) {
             vm.showActions(false);
         }
     };
-    vm.onmouseovermenu = function () {
+    vm.onclickmenu = function () {
         vm.showMenu(true);
     };
     vm.onmouseoutmenu = function (ev) {
         if (
             !ev || !ev.toElement || !ev.toElement.id ||
-            ev.toElement.id.indexOf("nav-") === -1
+            ev.toElement.id.indexOf("nav-menu") === -1
         ) {
             vm.showMenu(false);
+        }
+    };
+    vm.onclickaccount = function () {
+        vm.showMenuAccount(true);
+    };
+    vm.onmouseoutaccount = function (ev) {
+        if (
+            !ev || !ev.toElement || !ev.toElement.id ||
+            ev.toElement.id.indexOf("nav-account") === -1
+        ) {
+            vm.showMenuAccount(false);
         }
     };
     vm.refresh = function () {
@@ -803,6 +814,7 @@ workbookPage.viewModel = function (options) {
     };
     vm.showActions = f.prop(false);
     vm.showMenu = f.prop(false);
+    vm.showMenuAccount = f.prop(false);
     vm.showSortDialog = function () {
         if (vm.tableWidget().models().canFilter()) {
             vm.sortDialog().show();
@@ -1242,17 +1254,17 @@ workbookPage.component = {
                             viewModel: vm.buttonUndo()
                         }),
                         m("div", {
-                            id: "nav-div",
+                            id: "nav-actions-div",
                             class: (
                                 "pure-menu " +
                                 "custom-restricted-width " +
                                 "fb-menu"
                             ),
-                            onmouseover: vm.onmouseoveractions,
+                            onclick: vm.onclickactions,
                             onmouseout: vm.onmouseoutactions
                         }, [
                             m("span", {
-                                id: "nav-button",
+                                id: "nav-actions-button",
                                 class: (
                                     "pure-button " +
                                     "fa fa-bolt " +
@@ -1260,7 +1272,7 @@ workbookPage.component = {
                                 )
                             }),
                             m("ul", {
-                                id: "nav-menu-list",
+                                id: "nav-actions-list",
                                 class: (
                                     "pure-menu-list fb-menu-list" + (
                                         vm.showActions()
@@ -1289,17 +1301,17 @@ workbookPage.component = {
                             viewModel: vm.buttonFilter()
                         }),
                         m("div", {
-                            id: "nav-div",
+                            id: "nav-menu-div",
                             class: (
                                 "pure-menu " +
                                 "custom-restricted-width " +
                                 "fb-menu fb-menu-setup"
                             ),
-                            onmouseover: vm.onmouseovermenu,
+                            onclick: vm.onclickmenu,
                             onmouseout: vm.onmouseoutmenu
                         }, [
                             m("span", {
-                                id: "nav-button",
+                                id: "nav-meun-button",
                                 class: (
                                     "pure-button " +
                                     "fa fa-list " +
@@ -1318,34 +1330,37 @@ workbookPage.component = {
                                 )
                             }, [
                                 m("li", {
-                                    id: "nav-configure",
+                                    id: "nav-menu-configure-worksheet",
                                     class: "pure-menu-link",
                                     title: "Configure current worksheet",
                                     onclick: vm.configureSheet
                                 }, [m("i", {
+                                    id: "nav-menu-configure-worksheet-icon",
                                     class: "fa fa-table  fb-menu-list-icon"
                                 })], "Sheet"),
                                 m("li", {
-                                    id: "nav-configure",
+                                    id: "nav-menu-configure-workbook",
                                     class: "pure-menu-link",
                                     title: "Configure current workbook",
                                     onclick: vm.editWorkbookDialog().show
                                 }, [m("i", {
+                                    id: "nav-menu-configure-workbook-icon",
                                     class: "fa fa-cogs  fb-menu-list-icon"
                                 })], "Workbook"),
                                 m("li", {
-                                    id: "nav-share",
+                                    id: "nav-menu-share",
                                     class: "pure-menu-link",
                                     title: "Share workbook configuration",
                                     onclick: vm.share
                                 }, [m("i", {
+                                    id: "nav-menu-share-icon",
                                     class: (
                                         "fa fa-share-alt " +
                                         "fb-menu-list-icon"
                                     )
                                 })], "Share"),
                                 m("li", {
-                                    id: "nav-revert",
+                                    id: "nav-menu-revert",
                                     class: "pure-menu-link",
                                     title: (
                                         "Revert workbook configuration " +
@@ -1353,10 +1368,11 @@ workbookPage.component = {
                                     ),
                                     onclick: vm.revert
                                 }, [m("i", {
+                                    id: "nav-menu-revert-icon",
                                     class: "fa fa-reply fb-menu-list-icon"
                                 })], "Revert"),
                                 m("li", {
-                                    id: "nav-settings",
+                                    id: "nav-menu-settings",
                                     class: (
                                         "pure-menu-link " +
                                         "fb-menu-list-separator" + (
@@ -1368,16 +1384,70 @@ workbookPage.component = {
                                     title: "Change module settings",
                                     onclick: vm.goSettings
                                 }, [m("i", {
+                                    id: "nav-menu-settings-icon",
                                     class: "fa fa-wrench fb-menu-list-icon"
-                                })], "Settings"),
+                                })], "Settings")
+                            ])
+                        ]),
+                        m("div", {
+                            id: "nav-account-div",
+                            class: (
+                                "pure-menu " +
+                                "custom-restricted-width " +
+                                "fb-menu fb-menu-setup"
+                            ),
+                            onclick: vm.onclickaccount,
+                            onmouseout: vm.onmouseoutaccount
+                        }, [
+                            m("span", {
+                                id: "nav-account-button",
+                                title: "Logged in as:",
+                                class: (
+                                    "pure-button " +
+                                    "fa fa-user-circle " +
+                                    "fb-menu-button"
+                                )
+                            }),
+                            m("ul", {
+                                id: "nav-account-list",
+                                class: (
+                                    "pure-menu-list fb-menu-list " +
+                                    "fb-menu-list-setup" + (
+                                        vm.showMenuAccount()
+                                        ? " fb-menu-list-show"
+                                        : ""
+                                    )
+                                )
+                            }, [
                                 m("li", {
-                                    id: "nav-signout",
+                                    id: "nav-account-myinfo",
+                                    class: "pure-menu-link",
+                                    title: "Edit my contact information"
+                                    //onclick: vm.revert
+                                }, [m("i", {
+                                    id: "nav-account-myinfo-icon",
+                                    class: "fa fa-pencil-alt fb-menu-list-icon"
+                                })], "Info"),
+                                m("li", {
+                                    id: "nav-account-password",
                                     class: (
-                                        "pure-menu-link "
+                                        "pure-menu-link"
+                                    ),
+                                    title: "Change password"
+                                    //onclick: vm.goSettings
+                                }, [m("i", {
+                                    id: "nav-account-password-icon",
+                                    class: "fa fa-key fb-menu-list-icon"
+                                })], "Password"),
+                                m("li", {
+                                    id: "nav-account-signout",
+                                    class: (
+                                        "pure-menu-link fb-menu-list-separator"
                                     ),
                                     title: "Sign out of application",
                                     onclick: vm.goSignOut
                                 }, [m("i", {
+                                    id: "nav-account-signout-icon",
                                     class: (
                                         "fa fa-sign-out-alt fb-menu-list-icon"
                                     )

@@ -1058,7 +1058,7 @@ tableWidget.viewModel = function (options) {
             action.id = action.id || f.createId();
 
             opts = {
-                id: action.id,
+                id: "nav-actions-" + action.id,
                 class: "pure-menu-link",
                 title: action.title
             };
@@ -1078,6 +1078,7 @@ tableWidget.viewModel = function (options) {
 
             if (action.icon) {
                 actionIcon = [m("i", {
+                    id: "nav-actions-" + action.id + "-icon",
                     class: "fa fa-" + action.icon + " fb-menu-list-icon"
                 })];
             }
@@ -1086,7 +1087,7 @@ tableWidget.viewModel = function (options) {
         });
 
         o = {
-            id: f.createId(),
+            id: "nav-actions-import",
             class: "pure-menu-link",
             title: "Import data",
             onclick: doImport
@@ -1098,17 +1099,19 @@ tableWidget.viewModel = function (options) {
 
         menu.push(
             m("li", o, [m("i", {
+                id: "nav-actions-import-icon",
                 class: "fa fa-file-import fb-menu-list-icon"
             })], "Import")
         );
 
         menu.push(
             m("li", {
-                id: f.createId(),
+                id: "nav-actions-export",
                 class: "pure-menu-link",
                 title: "Export data",
                 onclick: doExport
             }, [m("i", {
+                id: "nav-actions-export-icon",
                 class: "fa fa-file-export fb-menu-list-icon"
             })], "Export")
         );
