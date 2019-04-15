@@ -32,6 +32,7 @@
     const AdmZip = require("adm-zip");
     const path = require("path");
     const passport = require("passport");
+    const LocalStrategy = require("passport-local").Strategy;
 
     f.datasource = datasource;
     f.jsonpatch = require("fast-json-patch");
@@ -714,51 +715,48 @@
             "/node_modules/codemirror/theme/neat.css",
             "/node_modules/typeface-raleway/index.css"
         ];
-/*
-        passport.use(new LocalStrategy({
-            usernameField: 'email',
-            passwordField: 'pass'
-        },
-        (username, password, done) => {
-        log.debug("Login process:", username);
-        return db.one(
-            "SELECT user_id, user_name, user_email, user_role " +
-            "FROM users " +
-            "WHERE user_email=$1 AND user_pass=$2", [username, password]
-        )
-          .then((result)=> {
-            return done(null, result);
-          })
-          .catch((err) => {
-            log.error("/login: " + err);
-            return done(null, false, {message:'Wrong user name or password'});
-          });
-        }));
 
-        passport.serializeUser((user, done)=>{
-            log.debug("serialize ", user);
-            done(null, user.user_id);
-          });
+        // Set up authentication with passport
+        passport.use(new LocalStrategy(
+            function (username, password, done) {
+                console.log("Login process:", username);
+                datasource.authenticate(username, password).then(
+                    function (user) {
+                        return done(null, user);
+                    }
+                ).catch(
+                    function (err) {
+                        console.error("/login: " + err);
+                        return done(null, false, {
+                            message: "Wrong user name or password"
+                        });
+                    }
+                );
+            }
+        ));
+
+        passport.serializeUser(function (user, done) {
+            console.log("serialize ", user);
+            done(null, user.name);
+        });
 
         passport.deserializeUser(function (id, done) {
-            log.debug("deserualize ", id);
-            db.one("SELECT user_id, user_name, user_email, user_role FROM users " +
-                "WHERE user_id = $1", [id])
-            .then((user)=>{
-              //log.debug("deserializeUser ", user);
-              done(null, user);
-            })
-            .catch((err)=>{
-              done(new Error(`User with the id ${id} does not exist`));
-            })
+            console.log("deserualize ", id);
+            datasource.deserializeUser(id).then(
+                function (user) {
+                    console.log("deserializeUser ", user);
+                    done(null, user);
+                }
+            ).catch(done);
         });
-*/
+
         app.post(
-            "/connect",
-            passport.authenticate('local'), function (req, resp) {
-                log.debug(req.user);
-                resp.send(req.user);
-            }
+            "/signin",
+            passport.authenticate("local", {
+                successRedirect: "/",
+                failureRedirect: "/sigin",
+                failureFlash: true
+            })
         );
 
         // configure app to use bodyParser()

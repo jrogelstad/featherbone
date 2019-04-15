@@ -19,12 +19,8 @@
 (function (exports) {
     "use strict";
 
-    const {
-        Pool
-    } = require("pg");
-    const {
-        Config
-    } = require("./config");
+    const {Pool} = require("pg");
+    const {Config} = require("./config");
 
     const config = new Config();
 
@@ -36,11 +32,13 @@
         // Reslove connection string
         function setConnectionString(config) {
             return new Promise(function (resolve) {
-                conn = "postgres://";
-                conn += config.postgres.user + ":";
-                conn += config.postgres.password + "@";
-                conn += config.postgres.host + "/";
-                conn += config.postgres.database;
+                conn = (
+                    "postgres://" +
+                    config.postgres.user + ":" +
+                    config.postgres.password + "@" +
+                    config.postgres.host + "/" +
+                    config.postgres.database
+                );
 
                 resolve();
             });
@@ -56,6 +54,51 @@
         // ..........................................................
         // PUBLIC
         //
+        that.authenticate = function (username, password) {
+            return new Promise(function (resolve, reject) {
+                // Do connection
+                function doConnect(config) {
+                    return new Promise(function (resolve, reject) {
+                        let login;
+                        let lconn = (
+                            "postgres://" +
+                            username + ":" + password +
+                            config.postgres.host + "/" +
+                            config.postgres.database
+                        );
+
+                        login = new Pool({
+                            connectionString: lconn
+                        });
+
+                        login.connect(function (err, ignore, done) {
+                            // handle an error from the connection
+                            done();
+
+                            if (err) {
+                                resolve(false);
+                                return;
+                            }
+
+                            that.deserializeUser(username).then(
+                                resolve
+                            ).catch(reject);
+                        });
+                    });
+                }
+
+                // If no connection string, go get it
+                Promise.resolve().then(
+                    config.read
+                ).then(
+                    doConnect
+                ).then(
+                    resolve
+                ).catch(
+                    reject
+                );
+            });
+        };
 
         that.connect = function () {
             return new Promise(function (resolve, reject) {
@@ -106,6 +149,43 @@
                 ).catch(
                     reject
                 );
+            });
+        };
+
+        /**
+          Return user data.
+
+          @param {String} User account or role name
+          @return {Object} User account info
+        */
+        that.deserializeUser = function (username) {
+            return new Promise(function (resolve, reject) {
+                const sql = (
+                    "SELECT name, contact.email AS email, " +
+                    "  contact.phone AS phone " +
+                    "FROM user_account " +
+                    "JOIN contact ON " +
+                    "  (_contact_contact_pk = contact._pk) " +
+                    "WHERE name = $1 " +
+                    "UNION " +
+                    "SELECT name, '', '' " +
+                    "FROM ONLY role " +
+                    "WHERE name = $1;"
+                );
+
+                that.connect().then(function (obj) {
+                    obj.client.query(sql, [username]).then(function (resp) {
+                        if (!resp.rows.length) {
+                            reject(new Error(
+                                "Role " + username + " not found."
+                            ));
+                        }
+
+                        // Send back result
+                        resolve(resp.rows[0]);
+                        obj.done();
+                    }).catch(reject);
+                });
             });
         };
 

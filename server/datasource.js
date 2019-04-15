@@ -530,6 +530,23 @@
         });
     };
 
+    /**
+      Check user and password.
+
+      @param {String} Username
+      @param {String} Password
+      @returns {Object} Promise
+    */
+    that.authenticate = db.authenticate;
+
+    /**
+      Lookup user information.
+
+      @param {String} Username
+      @returns {Object} Promise
+    */
+    that.deserializeUser = db.deserializeUser;
+
     function getOld(client, obj) {
         return new Promise(function (resolve, reject) {
             that.request({
