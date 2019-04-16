@@ -53,6 +53,9 @@ let sseErrorDialogViewModel;
 let models = catalog.store().models();
 let workbookModel = models.workbook;
 
+const preFetch = [];
+const fetchRequests = [];
+
 const workbookSpec = {
     name: "Workbook",
     description: "System workbook definition",
@@ -293,8 +296,6 @@ function initPromises() {
 
                 // Load data as indicated
                 function fetchData() {
-                    let requests = [];
-
                     toFetch.forEach(function (feather) {
                         let name = feather.name.toCamelCase();
                         let ary = models[name].list({
@@ -309,11 +310,10 @@ function initPromises() {
                             ary
                         );
                         ary().defaultLimit(undefined);
-                        // No limit on fetch
-                        requests.push(ary().fetch({}));
+                        preFetch.push(ary);
                     });
 
-                    Promise.all(requests).then(resolve);
+                    resolve();
                 }
 
                 Promise.all(initSettings).then(fetchData);
@@ -527,96 +527,102 @@ function initApp() {
     // Process workbooks
     workbookData.forEach(registerWorkbook);
 
-    // Menu
-    menu = navigator.viewModel();
-
-    // View model for adding workbooks.
-    addWorkbookViewModel = formDialog.viewModel({
-        icon: "plus",
-        title: "Add workbook",
-        model: addWorkbookModel(),
-        config: addWorkbookConfig
+    preFetch.forEach(function (ary) {
+        // No limit on fetch
+        fetchRequests.push(ary().fetch({}));
     });
+    Promise.all(fetchRequests).then(function () {
+        // Menu
+        menu = navigator.viewModel();
 
-    // View model for sse error trapping
-    sseErrorDialogViewModel = dialog.viewModel({
-        icon: "close",
-        title: "Connection Error",
-        message: (
-            "You have lost connection to the server." +
-            "Click \"Ok\" to attempt to reconnect."
-        ),
-        onOk: function () {
-            document.location.reload();
-        }
-    });
-    sseState.resolve("Error").enter(sseErrorDialogViewModel.show);
-    sseErrorDialogViewModel.buttonCancel().hide();
+        // View model for adding workbooks.
+        addWorkbookViewModel = formDialog.viewModel({
+            icon: "plus",
+            title: "Add workbook",
+            model: addWorkbookModel(),
+            config: addWorkbookConfig
+        });
 
-    // Build home navigation page
-    home = {
-        oninit: function (vnode) {
-            Object.keys(workbooks).forEach(function (key) {
-                let workbook = workbooks[key];
-                let config = workbook.getConfig();
+        // View model for sse error trapping
+        sseErrorDialogViewModel = dialog.viewModel({
+            icon: "close",
+            title: "Connection Error",
+            message: (
+                "You have lost connection to the server." +
+                "Click \"Ok\" to attempt to reconnect."
+            ),
+            onOk: function () {
+                document.location.reload();
+            }
+        });
+        sseState.resolve("Error").enter(sseErrorDialogViewModel.show);
+        sseErrorDialogViewModel.buttonCancel().hide();
 
-                vnode["go" + workbook.data.name()] = function () {
-                    m.route.set("/workbook/:workbook/:key", {
-                        workbook: workbook.data.name().toSpinalCase(),
-                        key: config[0].name.toSpinalCase()
-                    });
-                };
-            });
+        // Build home navigation page
+        home = {
+            oninit: function (vnode) {
+                Object.keys(workbooks).forEach(function (key) {
+                    let workbook = workbooks[key];
+                    let config = workbook.getConfig();
 
-            menu.selected("home");
-        },
-        oncreate: function () {
-            document.getElementById("fb-title").text = "Featherbone";
-        },
-        onupdate: function () {
-            menu.selected("home");
-        },
-        view: function () {
-            return m("div", {
-                class: "fb-navigator-menu-container"
-            }, [
-                m(navigator.component, {
-                    viewModel: menu
-                }), [
-                    m(dialog.component, {
-                        viewModel: sseErrorDialogViewModel
-                    }),
-                    m(dialog.component, {
-                        viewModel: addWorkbookViewModel
-                    }),
-                    m("span", {
-                        class: "fb-toolbar fb-toolbar-home"
-                    }, [
-                        m("div", {
-                            class: "fb-header-home"
-                        }, "Home"),
-                        m("button", {
-                            class: "fb-toolbar-button fb-toolbar-button-home",
-                            title: "Add workbook",
-                            onclick: addWorkbookViewModel.show
+                    vnode["go" + workbook.data.name()] = function () {
+                        m.route.set("/workbook/:workbook/:key", {
+                            workbook: workbook.data.name().toSpinalCase(),
+                            key: config[0].name.toSpinalCase()
+                        });
+                    };
+                });
+
+                menu.selected("home");
+            },
+            oncreate: function () {
+                document.getElementById("fb-title").text = "Featherbone";
+            },
+            onupdate: function () {
+                menu.selected("home");
+            },
+            view: function () {
+                return m("div", {
+                    class: "fb-navigator-menu-container"
+                }, [
+                    m(navigator.component, {
+                        viewModel: menu
+                    }), [
+                        m(dialog.component, {
+                            viewModel: sseErrorDialogViewModel
+                        }),
+                        m(dialog.component, {
+                            viewModel: addWorkbookViewModel
+                        }),
+                        m("span", {
+                            class: "fb-toolbar fb-toolbar-home"
                         }, [
-                            m("i", {
-                                class: "fa fa-plus fb-button-icon"
-                            })
+                            m("div", {
+                                class: "fb-header-home"
+                            }, "Home"),
+                            m("button", {
+                                class: "fb-toolbar-button fb-toolbar-button-home",
+                                title: "Add workbook",
+                                onclick: addWorkbookViewModel.show
+                            }, [
+                                m("i", {
+                                    class: "fa fa-plus fb-button-icon"
+                                })
+                            ])
                         ])
-                    ])
-                ]
-            ]);
-        }
-    };
+                    ]
+                ]);
+            }
+        };
 
-    m.route(document.body, "/home", {
-        "/home": home,
-        "/workbook/:workbook/:key": workbookPage.component,
-        "/edit/:feather/:key": formPage.component,
-        "/traverse/:feather/:key": childFormPage.component,
-        "/search/:feather": searchPage.component,
-        "/settings/:settings": settingsPage.component
+        m.route(document.body, "/home", {
+            "/home": home,
+            "/workbook/:workbook/:key": workbookPage.component,
+            "/edit/:feather/:key": formPage.component,
+            "/traverse/:feather/:key": childFormPage.component,
+            "/search/:feather": searchPage.component,
+            "/settings/:settings": settingsPage.component
+        });
     });
 }
 
