@@ -31,7 +31,7 @@ import datasource from "../datasource.js";
 const tableWidget = {};
 const outer = document.createElement("div");
 const COL_WIDTH_DEFAULT = "150";
-const LIMIT = 20;
+const LIMIT = 30;
 const ROW_COUNT = 2;
 const m = window.m;
 
