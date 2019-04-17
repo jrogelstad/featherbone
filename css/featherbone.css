@@ -506,6 +506,11 @@ a.pure-button-selected {
     text-align: center;
 }
 
+.fb-sign-in-error {
+    color: red;
+    margin-bottom: 10px;
+}
+
 .fb-sign-in-header {
     font-family: raleway;
     font-size: x-large;

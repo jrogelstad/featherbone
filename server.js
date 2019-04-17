@@ -22,6 +22,7 @@
 
     const datasource = require("./server/datasource");
     const express = require("express");
+    const session = require("express-session");
     const expressFileUpload = require("express-fileupload");
     const fs = require("fs");
     const bodyParser = require("body-parser");
@@ -33,6 +34,10 @@
     const path = require("path");
     const passport = require("passport");
     const LocalStrategy = require("passport-local").Strategy;
+    const authenticate = passport.authenticate("local", {
+        failureFlash: "Invalid username or password",
+        failWithError: true
+    });
 
     f.datasource = datasource;
     f.jsonpatch = require("fast-json-patch");
@@ -683,6 +688,25 @@
         });
     }
 
+    function doAuthenticate(req, res) {
+        let message;
+        req.flash = function (type, msg) {
+            console.log(msg);
+            message = msg;
+        }
+        
+        function next(err, status) {
+            if (err) {
+              res.status(res.statusCode).json(message);
+              return;
+            }
+            
+            res.json(true);
+        }
+
+        return authenticate(req, res, next);
+    }
+
     function start() {
         // Define exactly which directories and files are to be served
         let dirs = [
@@ -716,6 +740,13 @@
             "/node_modules/typeface-raleway/index.css"
         ];
 
+        // configure app to use bodyParser()
+        // this will let us get the data from a POST
+        app.use(bodyParser.urlencoded({
+            extended: true
+        }));
+        app.use(bodyParser.json());
+
         // Set up authentication with passport
         passport.use(new LocalStrategy(
             function (username, password, done) {
@@ -726,7 +757,7 @@
                     }
                 ).catch(
                     function (err) {
-                        console.error("/login: " + err);
+                        console.error("/signin: " + err);
                         return done(null, false, {
                             message: "Wrong user name or password"
                         });
@@ -740,31 +771,24 @@
             done(null, user.name);
         });
 
-        passport.deserializeUser(function (id, done) {
-            console.log("deserualize ", id);
-            datasource.deserializeUser(id).then(
+        passport.deserializeUser(function (name, done) {
+            console.log("deserualize ", name);
+            datasource.deserializeUser(name).then(
                 function (user) {
-                    console.log("deserializeUser ", user);
+                    console.log("deserializeUser", user);
                     done(null, user);
                 }
             ).catch(done);
         });
 
-        app.post(
-            "/signin",
-            passport.authenticate("local", {
-                successRedirect: "/",
-                failureRedirect: "/sigin",
-                failureFlash: true
-            })
-        );
+        // Initialize passport
+        app.use(express.static("public"));
+        app.use(session({secret: "cats"}));
+        app.use(bodyParser.urlencoded({ extended: false }));
+        app.use(passport.initialize());
+        app.use(passport.session());
 
-        // configure app to use bodyParser()
-        // this will let us get the data from a POST
-        app.use(bodyParser.urlencoded({
-            extended: true
-        }));
-        app.use(bodyParser.json());
+        app.post("/sign-in", doAuthenticate);
 
         // Relax CORS so API Doc (canary) can work
         app.use(cors());

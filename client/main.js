@@ -555,7 +555,7 @@ function initApp() {
     sseState.resolve("Error").enter(sseErrorDialogViewModel.show);
     sseErrorDialogViewModel.buttonCancel().hide();
 
-    // Build login page
+    // Build sign in page
     signIn = {
         view: function () {
             return m("div", {
@@ -564,6 +564,14 @@ function initApp() {
                 m("div", {
                     class: "fb-sign-in fb-sign-in-header"
                 }, "Sign in to Featherbone"),
+                m("div", {
+                    class: "fb-sign-in fb-sign-in-error"
+                }, (
+                      f.state().current().length
+                      ? f.state().resolve(f.state().current()[0]).message()
+                      : ""
+                    )
+                ),
                 m("div", {
                     class: "pure-control-group fb-sign-in"
                 }, [
@@ -617,7 +625,7 @@ function initApp() {
                         id: "forgot",
                         class: "pure-button fb-input",
                         onclick: function () {
-                            return; // TODO
+                            return;
                         }
                     }, "Forgot password?")
                 ])

@@ -43,32 +43,8 @@ let styles;
 // PRIVATE
 //
 
-// Define application state
-const appState = State.define(function () {
-    this.state("SignedOut", function () {
-        this.event("authenticate", function () {
-            this.goto("../Authenticating");
-        });
-        this.enter(() => m.route.set("/sign-in"));
-    });
-    this.state("SignedIn", function () {
-        this.event("signOut", function () {
-            this.goto("../SignedOut");
-        });
-        this.enter(() => m.route.set("/home"));
-    });
-    this.state("Authenticating", function () {
-        this.event("success", function () {
-            this.goto("../SignedIn");
-        });
-        this.event("failed", function () {
-            this.goto("../SignedOut");
-        });
-        this.enter(function () {
-            f.state().send("success"); // temporary
-        });
-    });
-});
+let message;
+let appState;
 
 /** @private
   Auto-build a form definition based on feather properties.
@@ -1450,6 +1426,59 @@ f.resolveProperty = function (model, property) {
 
     return model.data[property];
 };
+
+// Define application state
+message = f.prop("");
+appState = State.define(function () {
+    this.state("SignedOut", function () {
+        this.event("authenticate", function () {
+            this.goto("../Authenticating", {
+                context: {
+                    username: document.getElementById(
+                        "username"
+                    ).value,
+                    password: document.getElementById(
+                        "password"
+                    ).value
+                }
+            });
+        });
+        this.enter(() => m.route.set("/sign-in"));
+        this.message = message;
+    });
+    this.state("SignedIn", function () {
+        this.event("signOut", function () {
+            this.goto("../SignedOut");
+        });
+        this.enter(() => m.route.set("/home"));
+        this.message = () => "";
+    });
+    this.state("Authenticating", function () {
+        this.event("success", function () {
+            this.goto("../SignedIn");
+        });
+        this.event("failed", function () {
+            this.goto("../SignedOut");
+        });
+        this.enter(function (context) {
+            datasource.request({
+                method: "POST",
+                path: "/sign-in",
+                data: {
+                    username: context.username,
+                    password: context.password
+                }
+            }).then(function (resp) {
+                message(""); 
+                f.state().send("success");
+            }).catch(function (err) {
+                message(err.message.replace(/"/g, "")); 
+                f.state().send("failed");
+            });
+        });
+        this.message = () => "";
+    });
+});
 
 /**
     Application statechart. States are `SignedIn`, `SignedOut`
