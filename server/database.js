@@ -56,13 +56,14 @@
         //
         that.authenticate = function (username, password) {
             return new Promise(function (resolve, reject) {
+                debugger
                 // Do connection
                 function doConnect(config) {
                     return new Promise(function (resolve, reject) {
                         let login;
                         let lconn = (
                             "postgres://" +
-                            username + ":" + password +
+                            username + ":" + password  + "@" +
                             config.postgres.host + "/" +
                             config.postgres.database
                         );
