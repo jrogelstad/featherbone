@@ -18,7 +18,7 @@ $ node install
 $ node server
 ```
 
-From your browser navigate to <http://localhost> to run the application.
+From your browser navigate to <http://localhost:10001> to run the application.
 
 An additional example module may be loaded [here](https://github.com/jrogelstad/cardinal)
 
