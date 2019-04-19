@@ -193,6 +193,17 @@
         "'Local configuration';" +
         "COMMENT ON COLUMN \"$workbook\".module IS 'Module reference';"
     );
+    
+    const createSessionSql = (
+        "CREATE TABLE \"session\" (" +
+        "\"sid\" varchar NOT NULL COLLATE \"default\"," +
+        "\"sess\" json NOT NULL," +
+        "\"expire\" timestamp(6) NOT NULL" +
+        ")" +
+        "WITH (OIDS=FALSE); " +
+        "ALTER TABLE \"session\" ADD CONSTRAINT \"session_pkey\" " +
+        "PRIMARY KEY (\"sid\") NOT DEFERRABLE INITIALLY IMMEDIATE; "
+    );
 
     const createSettingsSql = (
         "CREATE TABLE \"$settings\" (" +
@@ -284,6 +295,7 @@
             let createFeather;
             let createAuth;
             let createWorkbook;
+            let createSession;
             let createSubscription;
             let createSettings;
             let createEventTrigger;
@@ -389,7 +401,23 @@
                     }
 
                     if (!exists) {
-                        obj.client.query(createSubcriptionSql, createObject);
+                        obj.client.query(createSubcriptionSql, createSession);
+                        return;
+                    }
+                    createSession();
+                });
+            };
+
+            // Create the session table
+            createSession = function () {
+                sqlCheck("session", function (err, exists) {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+
+                    if (!exists) {
+                        obj.client.query(createSessionSql, createObject);
                         return;
                     }
                     createObject();
