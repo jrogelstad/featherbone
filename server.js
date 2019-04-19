@@ -39,7 +39,7 @@
     let services = [];
     let routes = [];
     let sessions = {};
-    let port = process.env.PORT || 10001;
+    let port = process.env.PORT || 80;
     let settings = datasource.settings();
     let dir = "./files";
 
