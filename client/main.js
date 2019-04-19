@@ -53,6 +53,9 @@ let sseErrorDialogViewModel;
 let models = catalog.store().models();
 let workbookModel = models.workbook;
 
+const preFetch = [];
+const fetchRequests = [];
+
 const workbookSpec = {
     name: "Workbook",
     description: "System workbook definition",
@@ -293,8 +296,6 @@ function initPromises() {
 
                 // Load data as indicated
                 function fetchData() {
-                    let requests = [];
-
                     toFetch.forEach(function (feather) {
                         let name = feather.name.toCamelCase();
                         let ary = models[name].list({
@@ -309,11 +310,10 @@ function initPromises() {
                             ary
                         );
                         ary().defaultLimit(undefined);
-                        // No limit on fetch
-                        requests.push(ary().fetch({}));
+                        preFetch.push(ary);
                     });
 
-                    Promise.all(requests).then(resolve);
+                    resolve();
                 }
 
                 Promise.all(initSettings).then(fetchData);
@@ -529,254 +529,268 @@ function initApp() {
     // Process workbooks
     workbookData.forEach(registerWorkbook);
 
-    // Menu
-    menu = navigator.viewModel();
-
-    // View model for adding workbooks.
-    addWorkbookViewModel = formDialog.viewModel({
-        icon: "plus",
-        title: "Add workbook",
-        model: addWorkbookModel(),
-        config: addWorkbookConfig
+    preFetch.forEach(function (ary) {
+        // No limit on fetch
+        fetchRequests.push(ary().fetch({}));
     });
+    Promise.all(fetchRequests).then(function () {
+        // Menu
+        menu = navigator.viewModel();
 
-    // View model for sse error trapping
-    sseErrorDialogViewModel = dialog.viewModel({
-        icon: "close",
-        title: "Connection Error",
-        message: (
-            "You have lost connection to the server." +
-            "Click \"Ok\" to attempt to reconnect."
-        ),
-        onOk: function () {
-            document.location.reload();
-        }
-    });
-    sseState.resolve("Error").enter(sseErrorDialogViewModel.show);
-    sseErrorDialogViewModel.buttonCancel().hide();
+        // View model for adding workbooks.
+        addWorkbookViewModel = formDialog.viewModel({
+            icon: "plus",
+            title: "Add workbook",
+            model: addWorkbookModel(),
+            config: addWorkbookConfig
+        });
 
-    // Build sign in page
-    signIn = {
-        view: function () {
-            return m("div", {
-                class: "pure-form pure-form-aligned"
-            }, [
-                m("div", {
-                    class: "fb-sign-in fb-sign-in-header"
-                }, "Sign in to Featherbone"),
-                m("div", {
-                    class: "fb-sign-in fb-sign-in-error"
-                }, (
-                      f.state().current().length
-                      ? f.state().resolve(f.state().current()[0]).message()
-                      : ""
-                    )
-                ),
-                m("div", {
-                    class: "pure-control-group fb-sign-in"
+        // View model for sse error trapping
+        sseErrorDialogViewModel = dialog.viewModel({
+            icon: "close",
+            title: "Connection Error",
+            message: (
+                "You have lost connection to the server." +
+                "Click \"Ok\" to attempt to reconnect."
+            ),
+            onOk: function () {
+                document.location.reload();
+            }
+        });
+        sseState.resolve("Error").enter(sseErrorDialogViewModel.show);
+        sseErrorDialogViewModel.buttonCancel().hide();
+
+        // Build sign in page
+        signIn = {
+            view: function () {
+                return m("div", {
+                    class: "pure-form pure-form-aligned"
                 }, [
-                    m("label", {
-                        id: "usernameLabel",
-                        for: "username",
-                        class: "fb-sign-in-label"
-                    }, "Username"),
-                    m("input", {
-                        id: "username"
-                    })
-                ]),
-                m("div", {
-                    class: "pure-control-group fb-sign-in"
-                }, [
-                    m("label", {
-                        id: "passwordLabel",
-                        for: "password",
-                        class: "fb-sign-in-label"
-                    }, "Password"),
-                    m("input", {
-                        id: "password",
-                        type: "password"
-                    })
-                ]),
-                m("div", {
-                    class: "pure-control-group fb-sign-in"
-                }, [
-                    m("label", {
-                        id: "signinLabel",
-                        for: "signin",
-                        class: "fb-sign-in-label"
-                    }, ""),
-                    m("button", {
-                        id: "signin",
-                        class: "pure-button pure-button-primary fb-input",
-                        onclick: function () {
-                            f.state().send("authenticate");
-                        }
-                    }, "Sign in")
-                ]),
-                m("div", {
-                    class: "pure-control-group fb-sign-in"
-                }, [
-                    m("label", {
-                        id: "forgotLabel",
-                        for: "forgat",
-                        class: "fb-sign-in-label"
-                    }, ""),
-                    m("button", {
-                        id: "forgot",
-                        class: "pure-button fb-input",
-                        onclick: function () {
-                            return;
-                        }
-                    }, "Forgot password?")
-                ])
-            ]);
-        }
-    };
-
-    // Build home navigation page
-    home = {
-        oninit: function (vnode) {
-            Object.keys(workbooks).forEach(function (key) {
-                let workbook = workbooks[key];
-                let config = workbook.getConfig();
-
-                vnode["go" + workbook.data.name()] = function () {
-                    m.route.set("/workbook/:workbook/:key", {
-                        workbook: workbook.data.name().toSpinalCase(),
-                        key: config[0].name.toSpinalCase()
-                    });
-                };
-            });
-
-            menu.selected("home");
-        },
-        oncreate: function () {
-            document.getElementById("fb-title").text = "Featherbone";
-        },
-        onupdate: function () {
-            menu.selected("home");
-        },
-        view: function () {
-            return m("div", {
-                class: "fb-navigator-menu-container"
-            }, [
-                m(navigator.component, {
-                    viewModel: menu
-                }), [
-                    m(dialog.component, {
-                        viewModel: sseErrorDialogViewModel
-                    }),
-                    m(dialog.component, {
-                        viewModel: addWorkbookViewModel
-                    }),
-                    m("span", {
-                        class: "fb-toolbar fb-toolbar-home"
+                    m("div", {
+                        class: "fb-sign-in fb-sign-in-header"
+                    }, "Sign in to Featherbone"),
+                    m("div", {
+                        class: "fb-sign-in fb-sign-in-error"
+                    }, (
+                        f.state().current().length
+                        ? f.state().resolve(f.state().current()[0]).message()
+                        : ""
+                    )),
+                    m("div", {
+                        class: "pure-control-group fb-sign-in"
                     }, [
-                        m("div", {
-                            class: "fb-header-home"
-                        }, "Home"),
-                        m("div", {
-                            id: "nav-account-div",
-                            class: (
-                                "pure-menu " +
-                                "custom-restricted-width " +
-                                "fb-menu fb-menu-setup"
-                            ),
-                            onclick: showMenuAccount.bind(null, true),
-                            onmouseout: function (ev) {
-                                if (
-                                    !ev || !ev.toElement || !ev.toElement.id ||
-                                    ev.toElement.id.indexOf(
-                                        "nav-account"
-                                    ) === -1
-                                ) {
-                                    showMenuAccount(false);
-                                }
-                            }
-                        }, [
-                            m("span", {
-                                id: "nav-account-button",
-                                title: "Logged in as:",
-                                class: (
-                                    "pure-button " +
-                                    "fa fa-user-circle " +
-                                    "fb-menu-button"
-                                )
-                            }),
-                            m("ul", {
-                                id: "nav-account-list",
-                                class: (
-                                    "pure-menu-list fb-menu-list " +
-                                    "fb-menu-list-setup" + (
-                                        showMenuAccount()
-                                        ? " fb-menu-list-show"
-                                        : ""
-                                    )
-                                )
-                            }, [
-                                m("li", {
-                                    id: "nav-account-myinfo",
-                                    class: "pure-menu-link",
-                                    title: "Edit my contact information"
-                                    //onclick: vm.revert
-                                }, [m("i", {
-                                    id: "nav-account-myinfo-icon",
-                                    class: "fa fa-pencil-alt fb-menu-list-icon"
-                                })], "Info"),
-                                m("li", {
-                                    id: "nav-account-password",
-                                    class: (
-                                        "pure-menu-link "
-                                    ),
-                                    title: "Change password"
-                                    //onclick: vm.goSettings
-                                }, [m("i", {
-                                    id: "nav-account-password-icon",
-                                    class: "fa fa-key fb-menu-list-icon"
-                                })], "Password"),
-                                m("li", {
-                                    id: "nav-account-signout",
-                                    class: (
-                                        "pure-menu-link fb-menu-list-separator"
-                                    ),
-                                    title: "Sign out of application",
-                                    onclick: function () {
-                                        f.state().send("signOut");
-                                    }
-                                }, [m("i", {
-                                    id: "nav-account-signout-icon",
-                                    class: (
-                                        "fa fa-sign-out-alt fb-menu-list-icon"
-                                    )
-                                })], "Sign out")
-                            ])
-                        ]),
+                        m("label", {
+                            id: "usernameLabel",
+                            for: "username",
+                            class: "fb-sign-in-label"
+                        }, "Username"),
+                        m("input", {
+                            id: "username"
+                        })
+                    ]),
+                    m("div", {
+                        class: "pure-control-group fb-sign-in"
+                    }, [
+                        m("label", {
+                            id: "passwordLabel",
+                            for: "password",
+                            class: "fb-sign-in-label"
+                        }, "Password"),
+                        m("input", {
+                            id: "password",
+                            type: "password"
+                        })
+                    ]),
+                    m("div", {
+                        class: "pure-control-group fb-sign-in"
+                    }, [
+                        m("label", {
+                            id: "signinLabel",
+                            for: "signin",
+                            class: "fb-sign-in-label"
+                        }, ""),
                         m("button", {
-                            class: "fb-toolbar-button fb-toolbar-button-home",
-                            title: "Add workbook",
-                            onclick: addWorkbookViewModel.show
-                        }, [
-                            m("i", {
-                                class: "fa fa-plus fb-button-icon"
-                            })
-                        ])
+                            id: "signin",
+                            class: "pure-button pure-button-primary fb-input",
+                            onclick: function () {
+                                f.state().send("authenticate");
+                            }
+                        }, "Sign in")
+                    ]),
+                    m("div", {
+                        class: "pure-control-group fb-sign-in"
+                    }, [
+                        m("label", {
+                            id: "forgotLabel",
+                            for: "forgat",
+                            class: "fb-sign-in-label"
+                        }, ""),
+                        m("button", {
+                            id: "forgot",
+                            class: "pure-button fb-input",
+                            onclick: function () {
+                                return;
+                            }
+                        }, "Forgot password?")
                     ])
-                ]
-            ]);
-        }
-    };
+                ]);
+            }
+        };
 
-    m.route(document.body, "/sign-in", {
-        "/sign-in": signIn,
-        "/home": home,
-        "/workbook/:workbook/:key": workbookPage.component,
-        "/edit/:feather/:key": formPage.component,
-        "/traverse/:feather/:key": childFormPage.component,
-        "/search/:feather": searchPage.component,
-        "/settings/:settings": settingsPage.component
+        // Build home navigation page
+        home = {
+            oninit: function (vnode) {
+                Object.keys(workbooks).forEach(function (key) {
+                    let workbook = workbooks[key];
+                    let config = workbook.getConfig();
+
+                    vnode["go" + workbook.data.name()] = function () {
+                        m.route.set("/workbook/:workbook/:key", {
+                            workbook: workbook.data.name().toSpinalCase(),
+                            key: config[0].name.toSpinalCase()
+                        });
+                    };
+                });
+
+                menu.selected("home");
+            },
+            oncreate: function () {
+                document.getElementById("fb-title").text = "Featherbone";
+            },
+            onupdate: function () {
+                menu.selected("home");
+            },
+            view: function () {
+                return m("div", {
+                    class: "fb-navigator-menu-container"
+                }, [
+                    m(navigator.component, {
+                        viewModel: menu
+                    }), [
+                        m(dialog.component, {
+                            viewModel: sseErrorDialogViewModel
+                        }),
+                        m(dialog.component, {
+                            viewModel: addWorkbookViewModel
+                        }),
+                        m("span", {
+                            class: "fb-toolbar fb-toolbar-home"
+                        }, [
+                            m("div", {
+                                class: "fb-header-home"
+                            }, "Home"),
+                            m("div", {
+                                id: "nav-account-div",
+                                class: (
+                                    "pure-menu " +
+                                    "custom-restricted-width " +
+                                    "fb-menu fb-menu-setup"
+                                ),
+                                onclick: showMenuAccount.bind(null, true),
+                                onmouseout: function (ev) {
+                                    if (
+                                        !ev || !ev.toElement ||
+                                        !ev.toElement.id ||
+                                        ev.toElement.id.indexOf(
+                                            "nav-account"
+                                        ) === -1
+                                    ) {
+                                        showMenuAccount(false);
+                                    }
+                                }
+                            }, [
+                                m("span", {
+                                    id: "nav-account-button",
+                                    title: "Logged in as:",
+                                    class: (
+                                        "pure-button " +
+                                        "fa fa-user-circle " +
+                                        "fb-menu-button"
+                                    )
+                                }),
+                                m("ul", {
+                                    id: "nav-account-list",
+                                    class: (
+                                        "pure-menu-list fb-menu-list " +
+                                        "fb-menu-list-setup" + (
+                                            showMenuAccount()
+                                            ? " fb-menu-list-show"
+                                            : ""
+                                        )
+                                    )
+                                }, [
+                                    m("li", {
+                                        id: "nav-account-myinfo",
+                                        class: "pure-menu-link",
+                                        title: "Edit my contact information"
+                                        //onclick: vm.revert
+                                    }, [m("i", {
+                                        id: "nav-account-myinfo-icon",
+                                        class: (
+                                            "fa fa-pencil-alt " +
+                                            "fb-menu-list-icon"
+                                        )
+                                    })], "Info"),
+                                    m("li", {
+                                        id: "nav-account-password",
+                                        class: (
+                                            "pure-menu-link "
+                                        ),
+                                        title: "Change password"
+                                        //onclick: vm.goSettings
+                                    }, [m("i", {
+                                        id: "nav-account-password-icon",
+                                        class: "fa fa-key fb-menu-list-icon"
+                                    })], "Password"),
+                                    m("li", {
+                                        id: "nav-account-signout",
+                                        class: (
+                                            "pure-menu-link " +
+                                            "fb-menu-list-separator"
+                                        ),
+                                        title: "Sign out of application",
+                                        onclick: function () {
+                                            f.state().send("signOut");
+                                        }
+                                    }, [m("i", {
+                                        id: "nav-account-signout-icon",
+                                        class: (
+                                            "fa fa-sign-out-alt " +
+                                            "fb-menu-list-icon"
+                                        )
+                                    })], "Sign out")
+                                ])
+                            ]),
+                            m("button", {
+                                class: (
+                                    "fb-toolbar-button " +
+                                    "fb-toolbar-button-home"
+                                ),
+                                title: "Add workbook",
+                                onclick: addWorkbookViewModel.show
+                            }, [
+                                m("i", {
+                                    class: "fa fa-plus fb-button-icon"
+                                })
+                            ])
+                        ])
+                    ]
+                ]);
+            }
+        };
+
+        m.route(document.body, "/sign-in", {
+            "/sign-in": signIn,
+            "/home": home,
+            "/workbook/:workbook/:key": workbookPage.component,
+            "/edit/:feather/:key": formPage.component,
+            "/traverse/:feather/:key": childFormPage.component,
+            "/search/:feather": searchPage.component,
+            "/settings/:settings": settingsPage.component
+        });
+
+        f.state().goto();
     });
-
-    f.state().goto();
 }
 
 // Listen for session id
