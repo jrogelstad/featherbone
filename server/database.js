@@ -25,24 +25,8 @@
     const config = new Config();
 
     exports.Database = function () {
-        let conn;
         let pool;
         let that = {};
-
-        // Reslove connection string
-        function setConnectionString(config) {
-            return new Promise(function (resolve) {
-                conn = (
-                    "postgres://" +
-                    config.postgres.user + ":" +
-                    config.postgres.password + "@" +
-                    config.postgres.host + "/" +
-                    config.postgres.database
-                );
-
-                resolve();
-            });
-        }
 
         function setNodeId(config) {
             return new Promise(function (resolve) {
@@ -61,15 +45,13 @@
                 function doConnect(config) {
                     return new Promise(function (resolve, reject) {
                         let login;
-                        let lconn = (
-                            "postgres://" +
-                            username + ":" + password  + "@" +
-                            config.postgres.host + "/" +
-                            config.postgres.database
-                        );
 
                         login = new Pool({
-                            connectionString: lconn
+                          host: config.postgres.host,
+                          database: config.postgres.database,
+                          user: username,
+                          password: password,
+                          port: config.postgres.port
                         });
 
                         login.connect(function (err, ignore, done) {
@@ -104,12 +86,10 @@
         that.connect = function () {
             return new Promise(function (resolve, reject) {
                 // Do connection
-                function doConnect() {
+                function doConnect(config) {
                     return new Promise(function (resolve, reject) {
                         if (!pool) {
-                            pool = new Pool({
-                                connectionString: conn
-                            });
+                            pool = new Pool(config.postgres);
                         }
 
                         pool.connect(function (err, c, d) {
@@ -141,8 +121,6 @@
                     config.read
                 ).then(
                     setNodeId
-                ).then(
-                    setConnectionString
                 ).then(
                     doConnect
                 ).then(
