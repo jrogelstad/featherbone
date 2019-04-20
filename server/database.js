@@ -77,7 +77,7 @@
                             done();
 
                             if (err) {
-                                resolve(false);
+                                reject(err);
                                 return;
                             }
 
@@ -165,7 +165,7 @@
                     "SELECT name, contact.email AS email, " +
                     "  contact.phone AS phone " +
                     "FROM user_account " +
-                    "JOIN contact ON " +
+                    "LEFT OUTER JOIN contact ON " +
                     "  (_contact_contact_pk = contact._pk) " +
                     "WHERE name = $1 " +
                     "UNION " +
