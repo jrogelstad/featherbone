@@ -25,7 +25,11 @@ function role(data, feather) {
     feather = feather || catalog.getFeather("Role");
     let that = model(data, feather);
 
-    that.state().resolve("/Ready/Fetched/Clean").enter(function () {
+    that.onChange("name", function (prop) {
+        prop.newValue(prop.newValue().toLowerCase());
+    });
+
+    that.onLoad(function () {
         that.data.name.isReadOnly(true);
     });
 
