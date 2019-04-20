@@ -549,7 +549,7 @@ f.datasource.registerFunction(
     "POST",
     "Role",
     createRole,
-    f.datasource.TRIGGER_AFTER
+    f.datasource.TRIGGER_BEFORE
 );
 
 f.datasource.registerFunction(
