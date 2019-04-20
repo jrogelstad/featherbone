@@ -35,7 +35,7 @@
     const passport = require("passport");
     const LocalStrategy = require("passport-local").Strategy;
     const authenticate = passport.authenticate("local", {
-        failureFlash: "Invalid username or password",
+        failureFlash: "Username or password invalid",
         failWithError: true
     });
 
@@ -688,7 +688,7 @@
         });
     }
 
-    function doAuthenticate(req, res) {
+    function doSignIn(req, res) {
         let message;
         req.flash = function (type, msg) {
             console.log(msg);
@@ -705,6 +705,11 @@
         }
 
         return authenticate(req, res, next);
+    }
+    
+    function doSignOut(req) {
+        console.log("SIGN_OUT", req.session);
+        req.logout();
     }
 
     function start() {
@@ -759,7 +764,7 @@
                     function (err) {
                         console.error("/signin: " + err);
                         return done(null, false, {
-                            message: "Wrong user name or password"
+                            message: err.message
                         });
                     }
                 );
@@ -783,12 +788,21 @@
 
         // Initialize passport
         app.use(express.static("public"));
-        app.use(session({secret: "cats"}));
+        app.use(session({
+            secret: "keyboard cat",
+            resave: true,
+            saveUninitialized: true,
+            cookie: { 
+                secure: "auto"
+            },
+            genid: f.createId,
+        }));
         app.use(bodyParser.urlencoded({ extended: false }));
         app.use(passport.initialize());
         app.use(passport.session());
 
-        app.post("/sign-in", doAuthenticate);
+        app.post("/sign-in", doSignIn);
+        app.post("/sign-out", doSignOut);
 
         // Relax CORS so API Doc (canary) can work
         app.use(cors());

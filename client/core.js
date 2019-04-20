@@ -1452,6 +1452,12 @@ appState = State.define(function () {
         });
         this.enter(() => m.route.set("/home"));
         this.message = () => "";
+        this.exit(function (context) {
+            datasource.request({
+                method: "POST",
+                path: "/sign-out"
+            });
+        });
     });
     this.state("Authenticating", function () {
         this.event("success", function () {
