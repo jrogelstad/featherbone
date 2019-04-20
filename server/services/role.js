@@ -27,7 +27,40 @@
         let that = {};
 
         /**
-          Update user account password.
+          Update whether role can log in.
+
+          @param {Object} Payload
+          @param {Object} [payload.client]
+          @param {Object} [payload.data] Data
+          @param {String} [payload.data.name] Role name
+          @param {Boolean} [payload.data.isLogin] Is Login
+          @return {Boolean}
+        */
+        that.changeLogin = function (obj) {
+            return new Promise(function (resolve, reject) {
+                let name = obj.data.name;
+                let pwd = obj.data.pwd;
+                let sql = "ALTER ROLE %I " + (
+                    obj.data.isLogin === true
+                    ? "LOGIN"
+                    : "NOLOGIN"
+                ) +";";
+
+                sql = sql.format([name]);
+                obj.client.query(sql, function (err) {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+
+                    // Send back result
+                    resolve(true);
+                });
+            });
+        };
+
+        /**
+          Update role password.
 
           @param {Object} Payload
           @param {Object} [payload.client]
@@ -62,16 +95,50 @@
           @param {Object} [payload.client]
           @param {Object} [payload.data] Data
           @param {String} [payload.data.name] Role name
+          @param {Boolean} [payload.data.isLogin] Is Login
           @param {String} [payload.data.password] Password
           @return {Boolean}
         */
         that.createRole = function (obj) {
             return new Promise(function (resolve, reject) {
                 let name = obj.data.name;
-                let pwd = obj.data.pwd;
-                let sql = "CREATE ROLE %I PASSWORD %L;";
+                let pwd = obj.data.password;
+                let sql = "CREATE ROLE %I " + (
+                  obj.data.isLogin === true
+                  ? "LOGIN"
+                  : "NOLOGIN"
+                ) + " PASSWORD %L;";
 
                 sql = sql.format([name, pwd]);
+                console.log(sql);
+                obj.client.query(sql, function (err) {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+
+                    // Send back result
+                    resolve(true);
+                });
+            });
+        };
+
+        /**
+          Drop role.
+
+          @param {Object} Payload
+          @param {Object} [payload.client]
+          @param {Object} [payload.data] Data
+          @param {String} [payload.data.name] Role name
+          @return {Boolean}
+        */
+        that.drop = function (obj) {
+            return new Promise(function (resolve, reject) {
+                let name = obj.data.name;
+                let pwd = obj.data.pwd;
+                let sql = "DROP ROLE %I;";
+
+                sql = sql.format([name]);
                 obj.client.query(sql, function (err) {
                     if (err) {
                         reject(err);
