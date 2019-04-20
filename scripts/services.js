@@ -476,9 +476,11 @@ function updateRole(obj) {
     "use strict";
 
     return new Promise(function (resolve, reject) {
+        let requests = [];
+
         let payload = {
             method: "POST",
-            name: "changePassword",
+            name: "changeRolePassword",
             client: obj.client,
             data: {
                 name: obj.newRec.name,
@@ -492,10 +494,16 @@ function updateRole(obj) {
 
         if (obj.newRec.password) {
             obj.newRec.password = "";
-            f.datasource.request(payload, true).then(resolve).catch(reject);
-        } else {
-            resolve();
+            requests.push(f.datasource.request(payload, true));
         }
+        
+        if (obj.newRec.isLogin !== obj.oldRec.isLogin) {
+            payload.name = "changeRoleLogin";
+            payload.data.isLogin = obj.newRec.isLogin;
+            requests.push(f.datasource.request(payload, true));
+        }
+        
+        Promise.all(requests).then(resolve).catch(reject);
     });
 }
 
@@ -509,11 +517,29 @@ function createRole(obj) {
             client: obj.client,
             data: {
                 name: obj.newRec.name,
+                isLogin: obj.newRec.isLogin,
                 password: obj.newRec.password
             }
         };
 
         obj.newRec.password = "";
+
+        f.datasource.request(payload, true).then(resolve).catch(reject);
+    });
+}
+
+function deleteRole(obj) {
+    "use strict";
+
+    return new Promise(function (resolve, reject) {
+        let payload = {
+            method: "POST",
+            name: "dropRole",
+            client: obj.client,
+            data: {
+                name: obj.oldRec.name
+            }
+        };
 
         f.datasource.request(payload, true).then(resolve).catch(reject);
     });
@@ -533,3 +559,9 @@ f.datasource.registerFunction(
     f.datasource.TRIGGER_BEFORE
 );
 
+f.datasource.registerFunction(
+    "DELETE",
+    "Role",
+    deleteRole,
+    f.datasource.TRIGGER_BEFORE
+);
