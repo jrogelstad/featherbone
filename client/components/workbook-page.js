@@ -725,17 +725,6 @@ workbookPage.viewModel = function (options) {
             vm.showMenu(false);
         }
     };
-    vm.onclickaccount = function () {
-        vm.showMenuAccount(true);
-    };
-    vm.onmouseoutaccount = function (ev) {
-        if (
-            !ev || !ev.toElement || !ev.toElement.id ||
-            ev.toElement.id.indexOf("nav-account") === -1
-        ) {
-            vm.showMenuAccount(false);
-        }
-    };
     vm.refresh = function () {
         vm.tableWidget().refresh();
     };
@@ -815,7 +804,6 @@ workbookPage.viewModel = function (options) {
     };
     vm.showActions = f.prop(false);
     vm.showMenu = f.prop(false);
-    vm.showMenuAccount = f.prop(false);
     vm.showSortDialog = function () {
         if (vm.tableWidget().models().canFilter()) {
             vm.sortDialog().show();
