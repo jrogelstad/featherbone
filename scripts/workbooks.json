@@ -180,20 +180,6 @@
         "description": "Application administration",
         "icon": "tools",
         "defaultConfig": [{
-                "name": "Roles",
-                "feather": "Role",
-                "list": {
-                    "columns": [{
-                        "attr": "name"
-                    }, {
-                        "attr": "createdBy"
-                    }, {
-                        "attr": "updated"
-                    }, {
-                        "attr": "updatedBy"
-                    }]
-                }
-            }, {
                 "name": "UserAccounts",
                 "feather": "UserAccount",
                 "list": {
@@ -205,6 +191,20 @@
                         "attr": "contact.email"
                     }, {
                         "attr": "contact.phone"
+                    }]
+                }
+            }, {
+                "name": "Roles",
+                "feather": "Role",
+                "list": {
+                    "columns": [{
+                        "attr": "name"
+                    }, {
+                        "attr": "createdBy"
+                    }, {
+                        "attr": "updated"
+                    }, {
+                        "attr": "updatedBy"
                     }]
                 }
             }, {
