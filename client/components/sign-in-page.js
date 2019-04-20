@@ -22,6 +22,10 @@ const m = window.m;
 const signInPage = {};
 
 signInPage.component = {
+    oncreate: function () {
+        document.getElementById("fb-title").text = "Sign In";
+    },
+
     view: function () {
         return m("div", {
             class: "pure-form pure-form-aligned"
