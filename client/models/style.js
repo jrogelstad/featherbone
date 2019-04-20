@@ -38,7 +38,7 @@ function style(data, feather) {
     that.onChanged("hasColor", handleReadOnly);
     that.onChanged("hasBackgroundColor", handleReadOnly);
 
-    that.state().resolve("/Ready/Fetched/Clean").enter(function () {
+    that.onLoad(function () {
         that.data.name.isReadOnly(true);
         handleReadOnly();
     });

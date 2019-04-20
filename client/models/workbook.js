@@ -273,7 +273,7 @@ function workbookModel(data) {
     substate = state.resolve("/Delete");
     substate.enters.shift();
 
-    that.state().resolve("/Ready/Fetched/Clean").enter(function () {
+    that.onLoad(function () {
         that.data.name.isReadOnly(true);
     });
 

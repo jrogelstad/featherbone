@@ -647,6 +647,19 @@ function model(data, feather) {
     };
 
     /**
+        Execute a function whenever the state changes to `Ready/Fetched/Clean`
+        or in other words right after model data has been fetched and loaded.
+
+        @param {Function} Callback function to execute on load
+        @return Reciever
+    */
+    that.onLoad = function (callback) {
+        that.state().resolve("/Ready/Fetched/Clean").enter(callback);
+
+        return this;
+    };
+
+    /**
       Add a validator to execute when the `isValid` function is
       called, which is also called after saving events. Errors thrown
       by the validator will be caught and passed through `onError`

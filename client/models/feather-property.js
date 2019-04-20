@@ -139,7 +139,7 @@ function featherProperty(data, spec) {
     });
     that.onChanged("isLabelKey", handleReadOnly);
 
-    that.state().resolve("/Ready/Fetched/Clean").enter(handleReadOnly);
+    that.onLoad(handleReadOnly);
 
     that.onValidate(function () {
         let type = that.data.type();

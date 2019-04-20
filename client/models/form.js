@@ -67,7 +67,7 @@ function form(data, feather) {
     });
 
     that.onChanged("feather", handleProperties);
-    that.state().resolve("/Ready/Fetched/Clean").enter(handleProperties);
+    that.onLoad(handleProperties);
 
     return that;
 }
