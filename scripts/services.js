@@ -483,7 +483,7 @@ function updateRole(obj) {
             name: "changeRolePassword",
             client: obj.client,
             data: {
-                name: obj.newRec.name,
+                name: obj.newRec.name.toLowerCase(),
                 password: obj.newRec.password
             }
         };
@@ -502,7 +502,7 @@ function updateRole(obj) {
             payload.data.isLogin = obj.newRec.isLogin;
             requests.push(f.datasource.request(payload, true));
         }
-        
+
         Promise.all(requests).then(resolve).catch(reject);
     });
 }
@@ -516,12 +516,13 @@ function createRole(obj) {
             name: "createRole",
             client: obj.client,
             data: {
-                name: obj.newRec.name,
+                name: obj.newRec.name.toLowerCase(),
                 isLogin: obj.newRec.isLogin,
                 password: obj.newRec.password
             }
         };
 
+        obj.newRec.name = obj.newRec.name.toLowerCase()
         obj.newRec.password = "";
 
         f.datasource.request(payload, true).then(resolve).catch(reject);
