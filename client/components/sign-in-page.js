@@ -15,8 +15,10 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
+/*jslint this, browser*/
 import f from "../core.js";
 
+const m = window.m;
 const signInPage = {};
 
 signInPage.component = {

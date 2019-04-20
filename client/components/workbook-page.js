@@ -29,6 +29,7 @@ import navigator from "./navigator-menu.js";
 import tableDialog from "./table-dialog.js";
 import checkbox from "./checkbox.js";
 import icons from "../icons.js";
+import accountMenu from "./account-menu.js";
 
 const workbookPage = {};
 const sheetConfigureDialog = {};
@@ -1389,71 +1390,7 @@ workbookPage.component = {
                                 })], "Settings")
                             ])
                         ]),
-                        m("div", {
-                            id: "nav-account-div",
-                            class: (
-                                "pure-menu " +
-                                "custom-restricted-width " +
-                                "fb-menu fb-menu-setup"
-                            ),
-                            onclick: vm.onclickaccount,
-                            onmouseout: vm.onmouseoutaccount
-                        }, [
-                            m("span", {
-                                id: "nav-account-button",
-                                title: "Logged in as:",
-                                class: (
-                                    "pure-button " +
-                                    "fa fa-user-circle " +
-                                    "fb-menu-button"
-                                )
-                            }),
-                            m("ul", {
-                                id: "nav-account-list",
-                                class: (
-                                    "pure-menu-list fb-menu-list " +
-                                    "fb-menu-list-setup" + (
-                                        vm.showMenuAccount()
-                                        ? " fb-menu-list-show"
-                                        : ""
-                                    )
-                                )
-                            }, [
-                                m("li", {
-                                    id: "nav-account-myinfo",
-                                    class: "pure-menu-link",
-                                    title: "Edit my contact information"
-                                    //onclick: vm.revert
-                                }, [m("i", {
-                                    id: "nav-account-myinfo-icon",
-                                    class: "fa fa-pencil-alt fb-menu-list-icon"
-                                })], "Info"),
-                                m("li", {
-                                    id: "nav-account-password",
-                                    class: (
-                                        "pure-menu-link"
-                                    ),
-                                    title: "Change password"
-                                    //onclick: vm.goSettings
-                                }, [m("i", {
-                                    id: "nav-account-password-icon",
-                                    class: "fa fa-key fb-menu-list-icon"
-                                })], "Password"),
-                                m("li", {
-                                    id: "nav-account-signout",
-                                    class: (
-                                        "pure-menu-link fb-menu-list-separator"
-                                    ),
-                                    title: "Sign out of application",
-                                    onclick: vm.goSignOut
-                                }, [m("i", {
-                                    id: "nav-account-signout-icon",
-                                    class: (
-                                        "fa fa-sign-out-alt fb-menu-list-icon"
-                                    )
-                                })], "Sign out")
-                            ])
-                        ])
+                        m(accountMenu.component)
                     ]),
                     m(tableWidget.component, {
                         viewModel: vm.tableWidget()
