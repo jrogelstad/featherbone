@@ -1336,8 +1336,10 @@
     that.registerFunction("GET", "getWorkbook", workbooks.getWorkbook);
     that.registerFunction("GET", "getWorkbooks", workbooks.getWorkbooks);
     that.registerFunction("GET", "isAuthorized", feathers.isAuthorized);
-    that.registerFunction("POST", "changePassword", role.changePassword);
+    that.registerFunction("POST", "changeRoleLogin", role.changeLogin);
+    that.registerFunction("POST", "changeRolePassword", role.changePassword);
     that.registerFunction("POST", "createRole", role.createRole);
+    that.registerFunction("POST", "dropRole", role.drop);
     that.registerFunction("POST", "subscribe", subscribe);
     that.registerFunction("POST", "unsubscribe", unsubscribe);
     that.registerFunction(
