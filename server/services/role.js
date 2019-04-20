@@ -72,7 +72,7 @@
         that.changePassword = function (obj) {
             return new Promise(function (resolve, reject) {
                 let name = obj.data.name;
-                let pwd = obj.data.pwd;
+                let pwd = obj.data.password;
                 let sql = "ALTER ROLE %I PASSWORD %L;";
 
                 sql = sql.format([name, pwd]);
