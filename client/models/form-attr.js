@@ -124,12 +124,10 @@ function formAttr(data, feather) {
     that.onChanged("attr", handleDataList);
     that.onChanged("attr", handleDisableCurrency);
     that.onChanged("attr", handleRelationWidget);
-    stateClean = that.state().resolve("/Ready/Fetched/Clean");
-    stateClean.enter(handleColumns);
-    stateClean.enter(handleDataList);
-    stateClean.enter(handleDisableCurrency);
-    stateClean.enter(handleRelationWidget);
-
+    that.onLoad(handleColumns);
+    that.onLoad(handleDataList);
+    that.onLoad(handleDisableCurrency);
+    that.onLoad(handleRelationWidget);
 
     that.data.columns().canAdd(false);
 

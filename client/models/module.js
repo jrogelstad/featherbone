@@ -28,7 +28,7 @@ function module(data, feather) {
     feather = feather || catalog.getFeather("Module");
     let that = model(data, feather);
 
-    that.state().resolve("/Ready/Fetched/Clean").enter(function () {
+    that.onLoad(function () {
         that.data.name.isReadOnly(true);
     });
 

@@ -98,7 +98,7 @@ function featherOverload(data, spec) {
         }
     });
 
-    that.state().resolve("/Ready/Fetched/Clean").enter(handleReadOnly);
+    that.onLoad(handleReadOnly);
 
     that.onValidate(function () {
         let names = propertyNames().map((item) => item.value);

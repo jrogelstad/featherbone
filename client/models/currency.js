@@ -37,7 +37,7 @@ function currency(data, feather) {
         }
     });
 
-    that.state().resolve("/Ready/Fetched/Clean").enter(function () {
+    that.onLoad(function () {
         that.data.code.isReadOnly(true);
     });
 

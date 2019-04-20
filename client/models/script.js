@@ -49,7 +49,7 @@ function script(data, feather) {
         }
     });
 
-    that.state().resolve("/Ready/Fetched/Clean").enter(function () {
+    that.onLoad(function () {
         that.data.name.isReadOnly(true);
     });
 

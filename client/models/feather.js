@@ -124,11 +124,10 @@ function feather(data, spec) {
         function: modules
     });
 
-
     that.onChanged("properties.isNaturalKey", handleReadOnly);
     that.onChanged("properties.isLabelKey", handleReadOnly);
     that.onChanged("inherits", calculateInherited);
-    that.state().resolve("/Ready/Fetched/Clean").enter(calculateInherited);
+    that.onLoad(calculateInherited);
 
     return that;
 }
