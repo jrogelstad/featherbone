@@ -32,6 +32,7 @@ import searchPage from "./components/search-page.js";
 import settingsPage from "./components/settings-page.js";
 import workbookPage from "./components/workbook-page.js";
 import icons from "./icons.js";
+import signInPage from "./components/sign-in-page.js"
 
 const m = window.m;
 const EventSource = window.EventSource;
@@ -410,7 +411,7 @@ function initPromises() {
 }
 
 function initApp() {
-    let signIn;
+    let signIn = signInPage.component;
     let home;
     let keys = Object.keys(feathers);
     let showMenuAccount = f.prop(false);
@@ -559,83 +560,6 @@ function initApp() {
         });
         sseState.resolve("Error").enter(sseErrorDialogViewModel.show);
         sseErrorDialogViewModel.buttonCancel().hide();
-
-        // Build sign in page
-        signIn = {
-            view: function () {
-                return m("div", {
-                    class: "pure-form pure-form-aligned"
-                }, [
-                    m("div", {
-                        class: "fb-sign-in fb-sign-in-header"
-                    }, "Sign in to Featherbone"),
-                    m("div", {
-                        class: "fb-sign-in fb-sign-in-error"
-                    }, (
-                        f.state().current().length
-                        ? f.state().resolve(f.state().current()[0]).message()
-                        : ""
-                    )),
-                    m("div", {
-                        class: "pure-control-group fb-sign-in"
-                    }, [
-                        m("label", {
-                            id: "usernameLabel",
-                            for: "username",
-                            class: "fb-sign-in-label"
-                        }, "Username"),
-                        m("input", {
-                            id: "username"
-                        })
-                    ]),
-                    m("div", {
-                        class: "pure-control-group fb-sign-in"
-                    }, [
-                        m("label", {
-                            id: "passwordLabel",
-                            for: "password",
-                            class: "fb-sign-in-label"
-                        }, "Password"),
-                        m("input", {
-                            id: "password",
-                            type: "password"
-                        })
-                    ]),
-                    m("div", {
-                        class: "pure-control-group fb-sign-in"
-                    }, [
-                        m("label", {
-                            id: "signinLabel",
-                            for: "signin",
-                            class: "fb-sign-in-label"
-                        }, ""),
-                        m("button", {
-                            id: "signin",
-                            class: "pure-button pure-button-primary fb-input",
-                            onclick: function () {
-                                f.state().send("authenticate");
-                            }
-                        }, "Sign in")
-                    ]),
-                    m("div", {
-                        class: "pure-control-group fb-sign-in"
-                    }, [
-                        m("label", {
-                            id: "forgotLabel",
-                            for: "forgat",
-                            class: "fb-sign-in-label"
-                        }, ""),
-                        m("button", {
-                            id: "forgot",
-                            class: "pure-button fb-input",
-                            onclick: function () {
-                                return;
-                            }
-                        }, "Forgot password?")
-                    ])
-                ]);
-            }
-        };
 
         // Build home navigation page
         home = {
