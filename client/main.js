@@ -664,17 +664,14 @@ function goSignIn() {
     f.state().goto();
 }
 
-// Listen for session id
+// Listen for events
 evstart = new EventSource("/sse");
 evstart.onmessage = function (event) {
-    let sessionId = event.data;
-
-    if (sessionId) {
-        catalog.sessionId(sessionId);
+    if (event.data) {
         catalog.register("subscriptions");
 
         // Listen for event changes for this session
-        evsubscr = new EventSource("/sse/" + sessionId);
+        evsubscr = new EventSource("/sse/" + event.data);
         evsubscr.onmessage = function (event) {
             let instance;
             let ary;

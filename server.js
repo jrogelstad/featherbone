@@ -223,7 +223,7 @@
             name: resolveName(req.url),
             method: req.method,
             user: req.user.name,
-            sessionId: req.sessionId,
+            sessionId: req.sessionID,
             id: req.params.id,
             data: req.body || {}
         };
@@ -244,7 +244,7 @@
         payload.name = resolveName(req.url);
         payload.method = "GET"; // Internally this is a select statement
         payload.user = req.user.name;
-        payload.sessionId = req.sessionId;
+        payload.sessionId = req.sessionID;
         payload.filter = payload.filter || {};
 
         if (payload.showDeleted) {
@@ -253,6 +253,7 @@
 
         if (payload.subscription !== undefined) {
             payload.subscription.merge = payload.subscription.merge === "true";
+            payload.subscription.sessionId = req.sessionID;
         }
 
         payload.filter.offset = payload.filter.offset || 0;
@@ -502,7 +503,7 @@
         datasource.lock(
             query.id,
             username,
-            query.sessionId
+            req.sessionID
         ).then(
             respond.bind(res)
         ).catch(
@@ -821,7 +822,7 @@
             }),
             secret: "keyboard cat",
             resave: true,
-            saveUninitialized: false,
+            saveUninitialized: true,
             cookie: {
                 secure: "auto"
             },
@@ -926,9 +927,9 @@
         }
 
         function handleEvents() {
-            app.get("/sse", function (ignore, res) {
+            app.get("/sse", function (req, res) {
                 let crier = new SSE(res);
-                let sessionId = f.createId();
+                let sessionId = req.sessionID;
 
                 // Instantiate address for session
                 app.get("/sse/" + sessionId, function (ignore, res) {
