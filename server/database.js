@@ -25,13 +25,22 @@
     const config = new Config();
 
     exports.Database = function () {
+        let cache;
         let pool;
         let that = {};
 
-        function setNodeId(config) {
+        // Reslove connection string
+        function setConfig(resp) {
             return new Promise(function (resolve) {
-                that.nodeId = config.nodeId.toSnakeCase();
-                resolve(config);
+                cache = resp;
+                resolve(resp);
+            });
+        }
+
+        function setNodeId(resp) {
+            return new Promise(function (resolve) {
+                that.nodeId = resp.nodeId.toSnakeCase();
+                resolve(resp);
             });
         }
 
@@ -40,18 +49,17 @@
         //
         that.authenticate = function (username, password) {
             return new Promise(function (resolve, reject) {
-                debugger
                 // Do connection
-                function doConnect(config) {
+                function doConnect(resp) {
                     return new Promise(function (resolve, reject) {
                         let login;
 
                         login = new Pool({
-                          host: config.postgres.host,
-                          database: config.postgres.database,
-                          user: username,
-                          password: password,
-                          port: config.postgres.port
+                            host: resp.postgres.host,
+                            database: resp.postgres.database,
+                            user: username,
+                            password: password,
+                            port: resp.postgres.port
                         });
 
                         login.connect(function (err, ignore, done) {
@@ -86,10 +94,10 @@
         that.connect = function () {
             return new Promise(function (resolve, reject) {
                 // Do connection
-                function doConnect(config) {
+                function doConnect() {
                     return new Promise(function (resolve, reject) {
                         if (!pool) {
-                            pool = new Pool(config.postgres);
+                            pool = new Pool(cache.postgres);
                         }
 
                         pool.connect(function (err, c, d) {
@@ -111,16 +119,18 @@
                     });
                 }
 
-                if (conn) {
+                if (cache) {
                     doConnect().then(resolve).catch(reject);
                     return;
                 }
 
-                // If no connection string, go get it
+                // If no config cache, go get it
                 Promise.resolve().then(
                     config.read
                 ).then(
                     setNodeId
+                ).then(
+                    setConfig
                 ).then(
                     doConnect
                 ).then(
@@ -165,6 +175,39 @@
                         obj.done();
                     }).catch(reject);
                 });
+            });
+        };
+
+        that.getPool = function () {
+            return new Promise(function (resolve, reject) {
+                if (pool) {
+                    resolve(pool);
+                    return;
+                }
+
+                // Create pool
+                function doPool() {
+                    pool = new Pool(cache.postgres);
+                    resolve(pool);
+                }
+
+                if (cache) {
+                    doPool().then(resolve).catch(reject);
+                    return;
+                }
+
+                // If no connection string, go get it
+                Promise.resolve().then(
+                    config.read
+                ).then(
+                    setNodeId
+                ).then(
+                    setConfig
+                ).then(
+                    doPool
+                ).catch(
+                    reject
+                );
             });
         };
 
