@@ -156,13 +156,6 @@
             }
         },
 
-        /*
-          TODO: Make this real
-        */
-        getCurrentUser: function () {
-            return "admin";
-        },
-
         /**
           Return a time in string format that is the current UTC time.
 

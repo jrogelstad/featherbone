@@ -321,8 +321,7 @@
         "properties": {
             "owner": {
                 "description": "Owner of the document",
-                "type": "string",
-                "default": "getCurrentUser()"
+                "type": "string"
             },
             "etag": {
                 "description": "Optimistic locking key",

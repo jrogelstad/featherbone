@@ -102,22 +102,35 @@
             return new Promise(function (resolve, reject) {
                 let name = obj.data.name;
                 let pwd = obj.data.password;
-                let sql = "CREATE ROLE %I " + (
-                    obj.data.isLogin === true
-                    ? "LOGIN"
-                    : "NOLOGIN"
-                ) + " PASSWORD %L;";
+                let sql = (
+                    "SELECT * FROM pg_catalog.pg_roles " +
+                    "WHERE  rolname = $1;"
+                );
 
-                sql = sql.format([name, pwd]);
-                console.log(sql);
-                obj.client.query(sql, function (err) {
-                    if (err) {
-                        reject(err);
-                        return;
+                obj.client.query(sql, [name]).then(function (resp) {
+                    if (!resp.rows.length) {
+                        sql = "CREATE ROLE %I " + (
+                            obj.data.isLogin === true
+                            ? "LOGIN"
+                            : "NOLOGIN"
+                        ) + " PASSWORD %L;";
+
+                        sql = sql.format([name, pwd]);
+                        console.log(sql);
+                        obj.client.query(sql, function (err) {
+                            if (err) {
+                                reject(err);
+                                return;
+                            }
+
+                            // Send back result
+                            resolve(true);
+                        });
+                    } else {
+                        that.changeLogin(obj).then(
+                            that.changePassword.bind(null, obj)
+                        ).then(resolve).catch(reject);
                     }
-
-                    // Send back result
-                    resolve(true);
                 });
             });
         };

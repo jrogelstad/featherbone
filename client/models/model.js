@@ -1029,7 +1029,6 @@ function model(data, feather) {
 
         function callback() {
             lock = {
-                username: f.getCurrentUser(),
                 created: f.now()
             };
             state.send("locked", {
@@ -1044,7 +1043,6 @@ function model(data, feather) {
 
         lock = {
             id: that.id(),
-            username: f.getCurrentUser(),
             sessionId: catalog.sessionId()
         };
         query = Qs.stringify(lock);
@@ -1072,8 +1070,7 @@ function model(data, feather) {
         }
 
         unlock = {
-            id: that.id(),
-            username: f.getCurrentUser()
+            id: that.id()
         };
         query = Qs.stringify(unlock);
         payload = {

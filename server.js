@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
-/*jslint node, this, eval, devel*/
+/*jslint node, this, eval*/
 (function () {
     "use strict";
     require("./common/string.js");
@@ -222,7 +222,7 @@
         let payload = {
             name: resolveName(req.url),
             method: req.method,
-            user: datasource.getCurrentUser(),
+            user: req.user.name,
             sessionId: req.sessionId,
             id: req.params.id,
             data: req.body || {}
@@ -243,7 +243,7 @@
 
         payload.name = resolveName(req.url);
         payload.method = "GET"; // Internally this is a select statement
-        payload.user = datasource.getCurrentUser();
+        payload.user = req.user.name;
         payload.sessionId = req.sessionId;
         payload.filter = payload.filter || {};
 
@@ -271,7 +271,7 @@
         let payload = {
             method: "GET",
             name: fn,
-            user: datasource.getCurrentUser(),
+            user: req.user.name,
             data: {
                 name: req.params.name
             }
@@ -288,7 +288,7 @@
         let payload = {
             method: "GET",
             name: "baseCurrency",
-            user: datasource.getCurrentUser(),
+            user: req.user.name,
             data: {
                 effective: query.effective
             }
@@ -305,7 +305,7 @@
         let payload = {
             method: "GET",
             name: "convertCurrency",
-            user: datasource.getCurrentUser(),
+            user: req.user.name,
             data: {
                 fromCurrency: query.fromCurrency,
                 amount: query.amount,
@@ -376,7 +376,7 @@
         let payload = {
             method: "PUT",
             name: fn,
-            user: datasource.getCurrentUser(),
+            user: req.user.name,
             data: {
                 specs: req.body
             }
@@ -405,7 +405,7 @@
         let payload = {
             method: "PUT",
             name: "saveSettings",
-            user: datasource.getCurrentUser(),
+            user: req.user.name,
             data: {
                 name: req.params.name,
                 etag: req.body.etag,
@@ -428,7 +428,7 @@
         let payload = {
             method: "DELETE",
             name: fn,
-            user: datasource.getCurrentUser(),
+            user: req.user.name,
             data: {
                 name: req.params.name
             }
@@ -460,7 +460,7 @@
         let payload = {
             method: "POST",
             name: "subscribe",
-            user: datasource.getCurrentUser(),
+            user: req.user.name,
             id: query.id,
             subscription: query.subscription
         };
@@ -480,7 +480,7 @@
         let payload = {
             method: "POST",
             name: "unsubscribe",
-            user: datasource.getCurrentUser(),
+            user: req.user.name,
             subscription: query.subscription
         };
 
@@ -496,7 +496,7 @@
 
     function doLock(req, res) {
         let query = qs.parse(req.params.query);
-        let username = datasource.getCurrentUser();
+        let username = req.user.name;
 
         console.log("Lock", query.id);
         datasource.lock(
@@ -513,7 +513,7 @@
     function doUnlock(req, res) {
         let criteria;
         let query = qs.parse(req.params.query);
-        let username = datasource.getCurrentUser();
+        let username = req.user.name;
 
         criteria = {
             id: query.id,
@@ -532,7 +532,7 @@
 
     function doPackageModule(req, res) {
         let name = req.params.name;
-        let username = datasource.getCurrentUser();
+        let username = req.user.name;
 
         console.log("Package", name);
         datasource.package(
@@ -576,7 +576,7 @@
             zip.extractAllTo(DIR, true);
             datasource.install(
                 DIR,
-                datasource.getCurrentUser()
+                req.user.name
             ).then(cleanup);
         });
     }
@@ -592,7 +592,7 @@
             req.body.filter || {},
             "./files/downloads/",
             req.params.format,
-            datasource.getCurrentUser()
+            req.user.name
         ).then(
             respond.bind(res)
         ).catch(
@@ -627,7 +627,7 @@
                 feather,
                 format,
                 TEMPFILE,
-                datasource.getCurrentUser()
+                req.user.name
             ).then(
                 respond.bind(res)
             ).catch(
@@ -914,7 +914,7 @@
                     payload = {
                         name: message.payload.data.table.toCamelCase(true),
                         method: "GET",
-                        user: datasource.getCurrentUser(),
+                        user: "postgres", // TO DO: FIX!
                         id: message.payload.data.id
                     };
                     datasource.request(payload).then(callback).catch(err);
