@@ -834,8 +834,7 @@ function model(data, feather) {
             query = Qs.stringify({
                 id: that.id(),
                 subscription: {
-                    id: subcriptionId,
-                    sessionId: catalog.sessionId()
+                    id: subcriptionId
                 }
             });
 
@@ -945,10 +944,7 @@ function model(data, feather) {
 
         payload = {
             method: "DELETE",
-            path: that.path(that.name, that.id()),
-            data: {
-                sessionId: catalog.sessionId()
-            }
+            path: that.path(that.name, that.id())
         };
 
         datasource.request(payload).then(
@@ -1042,8 +1038,7 @@ function model(data, feather) {
         }
 
         lock = {
-            id: that.id(),
-            sessionId: catalog.sessionId()
+            id: that.id()
         };
         query = Qs.stringify(lock);
         payload = {

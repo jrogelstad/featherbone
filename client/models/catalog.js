@@ -259,14 +259,6 @@ const catalog = (function () {
 
     that.feathers = store.feathers;
 
-    /**
-      Current sessionid.
-
-      @param {String} Session Id
-      @return {String}
-    */
-    that.sessionId = f.prop();
-
     // Expose global store data
     that.store = function () {
         return store;

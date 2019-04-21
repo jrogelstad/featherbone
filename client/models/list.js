@@ -92,7 +92,6 @@ function createList(feather) {
                 id: model.id(),
                 subscription: {
                     id: subid,
-                    sessionId: catalog.sessionId(),
                     merge: true
                 }
             });
@@ -294,7 +293,6 @@ function createList(feather) {
         if (subid) {
             body.subscription = {
                 id: subid,
-                sessionId: catalog.sessionId(),
                 merge: merge
             };
         }
