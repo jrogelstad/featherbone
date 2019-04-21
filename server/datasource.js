@@ -546,6 +546,13 @@
       @returns {Object} Promise
     */
     that.deserializeUser = db.deserializeUser;
+    
+    /**
+      Return a configured postgres pool.
+
+      @returns {Object} Promise
+    */
+    that.getPool = db.getPool;
 
     function getOld(client, obj) {
         return new Promise(function (resolve, reject) {

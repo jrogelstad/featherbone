@@ -23,6 +23,7 @@
     const datasource = require("./server/datasource");
     const express = require("express");
     const session = require("express-session");
+    const PgSession = require("connect-pg-simple")(session);
     const expressFileUpload = require("express-fileupload");
     const fs = require("fs");
     const bodyParser = require("body-parser");
@@ -49,6 +50,7 @@
     let port = process.env.PORT || 10001;
     let settings = datasource.settings();
     let dir = "./files";
+    let pgPool;
 
     // Make sure file directories exist
     if (!fs.existsSync(dir)) {
@@ -140,15 +142,28 @@
                 });
             }
 
+            function setPool(pool) {
+                return new Promise(function (resolve) {
+                    pgPool = pool;
+                    resolve();
+                });
+            }
+
             // Execute
             Promise.resolve().then(
                 datasource.getCatalog
-            ).then(getServices).then(
+            ).then(
+                getServices
+            ).then(
                 getRoutes
             ).then(
                 datasource.unsubscribe
             ).then(
                 datasource.unlock
+            ).then(
+                datasource.getPool
+            ).then(
+                setPool
             ).then(
                 resolve
             ).catch(
@@ -690,23 +705,23 @@
 
     function doSignIn(req, res) {
         let message;
-        req.flash = function (type, msg) {
+        req.flash = function (ignore, msg) {
             console.log(msg);
             message = msg;
-        }
-        
-        function next(err, status) {
+        };
+
+        function next(err) {
             if (err) {
-              res.status(res.statusCode).json(message);
-              return;
+                res.status(res.statusCode).json(message);
+                return;
             }
-            
+
             res.json(true);
         }
 
         return authenticate(req, res, next);
     }
-    
+
     function doSignOut(req) {
         console.log("SIGN_OUT", req.session);
         req.logout();
@@ -789,15 +804,19 @@
         // Initialize passport
         app.use(express.static("public"));
         app.use(session({
+            store: new PgSession({
+                pool: pgPool,
+                tableName: "$session"
+            }),
             secret: "keyboard cat",
             resave: true,
             saveUninitialized: true,
-            cookie: { 
+            cookie: {
                 secure: "auto"
             },
-            genid: f.createId,
+            genid: () => f.createId()
         }));
-        app.use(bodyParser.urlencoded({ extended: false }));
+        app.use(bodyParser.urlencoded({extended: false}));
         app.use(passport.initialize());
         app.use(passport.session());
 
@@ -816,6 +835,20 @@
 
         // File upload
         app.use(expressFileUpload());
+
+        app.use(function (req, ignore, next) {
+            console.log("SESSION", req.session);
+            console.log("USER", req.user);
+            /*
+            if (!req.user) {
+                console.log("DOH!");
+                res.status(401).json("Unauthorized session");
+                return;
+            }
+            */
+
+            next();
+        });
 
         // Create routes for each catalog object
         registerDataRoutes();

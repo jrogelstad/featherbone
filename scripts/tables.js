@@ -195,13 +195,13 @@
     );
     
     const createSessionSql = (
-        "CREATE TABLE \"session\" (" +
+        "CREATE TABLE \"$session\" (" +
         "\"sid\" varchar NOT NULL COLLATE \"default\"," +
         "\"sess\" json NOT NULL," +
         "\"expire\" timestamp(6) NOT NULL" +
         ")" +
         "WITH (OIDS=FALSE); " +
-        "ALTER TABLE \"session\" ADD CONSTRAINT \"session_pkey\" " +
+        "ALTER TABLE \"$session\" ADD CONSTRAINT \"session_pkey\" " +
         "PRIMARY KEY (\"sid\") NOT DEFERRABLE INITIALLY IMMEDIATE; "
     );
 
@@ -410,7 +410,7 @@
 
             // Create the session table
             createSession = function () {
-                sqlCheck("session", function (err, exists) {
+                sqlCheck("$session", function (err, exists) {
                     if (err) {
                         reject(err);
                         return;
