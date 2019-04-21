@@ -546,13 +546,21 @@
       @returns {Object} Promise
     */
     that.deserializeUser = db.deserializeUser;
-    
+
     /**
       Return a configured postgres pool.
 
       @returns {Object} Promise
     */
     that.getPool = db.getPool;
+
+    /**
+      Sign out of a session.
+
+      @param {String} Session ID
+      @returns {Object} Promise
+    */
+    that.signOut = db.signOut;
 
     function getOld(client, obj) {
         return new Promise(function (resolve, reject) {

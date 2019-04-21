@@ -211,6 +211,22 @@
             });
         };
 
+        that.signOut = function (sid) {
+            return new Promise(function (resolve, reject) {
+                function callback(resp) {
+                    resp.client.query(
+                        "DELETE FROM \"$session\" WHERE sid = $1;",
+                        [sid]
+                    ).then(function () {
+                        resp.done();
+                        resolve();
+                    });
+                }
+
+                that.connect().then(callback).catch(reject);
+            });
+        };
+
         return that;
     };
 

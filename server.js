@@ -39,6 +39,17 @@
         failureFlash: "Username or password invalid",
         failWithError: true
     });
+    const check = [
+        "data",
+        "do",
+        "feather",
+        "module",
+        "modules",
+        "settings",
+        "settings-definition",
+        "workbook",
+        "workbooks"
+    ];
 
     f.datasource = datasource;
     f.jsonpatch = require("fast-json-patch");
@@ -723,8 +734,8 @@
     }
 
     function doSignOut(req) {
-        console.log("SIGN_OUT", req.session);
         req.logout();
+        datasource.signOut(req.sessionID);
     }
 
     function start() {
@@ -810,7 +821,7 @@
             }),
             secret: "keyboard cat",
             resave: true,
-            saveUninitialized: true,
+            saveUninitialized: false,
             cookie: {
                 secure: "auto"
             },
@@ -822,6 +833,19 @@
 
         app.post("/sign-in", doSignIn);
         app.post("/sign-out", doSignOut);
+
+        // Block unauthorized requests to internal data
+        app.use(function (req, res, next) {
+            let target = req.url.slice(1);
+            target = target.slice(0, target.indexOf("/"));
+
+            if (!req.user && check.indexOf(target) !== -1) {
+                res.status(401).json("Unauthorized session");
+                return;
+            }
+
+            next();
+        });
 
         // Relax CORS so API Doc (canary) can work
         app.use(cors());
@@ -835,20 +859,6 @@
 
         // File upload
         app.use(expressFileUpload());
-
-        app.use(function (req, ignore, next) {
-            console.log("SESSION", req.session);
-            console.log("USER", req.user);
-            /*
-            if (!req.user) {
-                console.log("DOH!");
-                res.status(401).json("Unauthorized session");
-                return;
-            }
-            */
-
-            next();
-        });
 
         // Create routes for each catalog object
         registerDataRoutes();
