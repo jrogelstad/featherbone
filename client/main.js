@@ -54,6 +54,7 @@ let addWorkbookViewModel;
 let sseErrorDialogViewModel;
 let models = catalog.store().models();
 let workbookModel = models.workbook;
+let initialized = false;
 
 const preFetch = [];
 const fetchRequests = [];
@@ -415,7 +416,8 @@ function initApp() {
     let signIn = signInPage.component;
     let home;
     let keys = Object.keys(feathers);
-    let showMenuAccount = f.prop(false);
+
+    initialized = true;
 
     function resolveDependencies(module, dependencies) {
         dependencies = dependencies || module.dependencies;
@@ -637,6 +639,31 @@ function initApp() {
     });
 }
 
+// Load application data
+function start() {
+    if (initialized) {
+        return;
+    }
+
+    initPromises();
+    Promise.all([
+        loadCatalog,
+        loadModules,
+        loadForms,
+        loadWorkbooks
+    ]).then(initApp);
+}
+
+function goSignIn() {
+    let signIn = signInPage.component;
+    m.route(document.body, "/sign-in", {
+        "/sign-in": signIn
+    });
+
+    f.state().resolve("/SignedIn").enter(start);
+    f.state().goto();
+}
+
 // Listen for session id
 evstart = new EventSource("/sse");
 evstart.onmessage = function (event) {
@@ -743,15 +770,7 @@ evstart.onmessage = function (event) {
 
         // Done with startup event
         evstart.close();
-
-        // When all intialization done, construct app.
-        initPromises();
-        Promise.all([
-            loadCatalog,
-            loadModules,
-            loadForms,
-            loadWorkbooks
-        ]).then(initApp);
+        goSignIn();
     }
 };
 
