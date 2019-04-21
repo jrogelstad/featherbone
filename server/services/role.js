@@ -39,12 +39,11 @@
         that.changeLogin = function (obj) {
             return new Promise(function (resolve, reject) {
                 let name = obj.data.name;
-                let pwd = obj.data.pwd;
                 let sql = "ALTER ROLE %I " + (
                     obj.data.isLogin === true
                     ? "LOGIN"
                     : "NOLOGIN"
-                ) +";";
+                ) + ";";
 
                 sql = sql.format([name]);
                 obj.client.query(sql, function (err) {
@@ -104,9 +103,9 @@
                 let name = obj.data.name;
                 let pwd = obj.data.password;
                 let sql = "CREATE ROLE %I " + (
-                  obj.data.isLogin === true
-                  ? "LOGIN"
-                  : "NOLOGIN"
+                    obj.data.isLogin === true
+                    ? "LOGIN"
+                    : "NOLOGIN"
                 ) + " PASSWORD %L;";
 
                 sql = sql.format([name, pwd]);
@@ -135,7 +134,6 @@
         that.drop = function (obj) {
             return new Promise(function (resolve, reject) {
                 let name = obj.data.name;
-                let pwd = obj.data.pwd;
                 let sql = "DROP ROLE %I;";
 
                 sql = sql.format([name]);
