@@ -65,11 +65,23 @@
 
             createEveryone = function (resp) {
                 function createEveryoneRole() {
-                    obj.client.query(
-                        "CREATE ROLE everyone;",
-                        [],
-                        grantEveryoneGlobal
+                    let sql = (
+                        "SELECT * FROM pg_catalog.pg_roles " +
+                        "WHERE rolname = 'everyone';"
                     );
+
+                    obj.client.query(sql).then(function (resp) {
+                        if (!resp.rows.length) {
+                            obj.client.query(
+                                "CREATE ROLE everyone;",
+                                [],
+                                grantEveryoneGlobal
+                            );
+                            return;
+                        }
+
+                        grantEveryoneGlobal();
+                    });
                 }
 
                 if (!resp) {
@@ -79,7 +91,7 @@
                         user: user,
                         data: {
                             id: "everyone",
-                            name: "Everyone",
+                            name: "everyone",
                             members: [{
                                 member: user
                             }]

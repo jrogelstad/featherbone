@@ -107,9 +107,10 @@
           Build open api specification.
 
           @param {Object} Datasource
+          @param {String} Username
           @return {Object} Promise
         */
-        that.build = function (datasource) {
+        that.build = function (datasource, username) {
             return new Promise(function (resolve, reject) {
                 let api;
                 let catalog;
@@ -505,7 +506,7 @@
                     payload = {
                         method: "GET",
                         name: "getSettings",
-                        user: datasource.getCurrentUser(),
+                        user: username,
                         data: {
                             name: "catalog"
                         }

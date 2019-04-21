@@ -37,11 +37,13 @@
     const {Settings} = require("./services/settings");
     const {Role} = require("./services/role");
     const {Workbooks} = require("./services/workbooks");
+    const {Config} = require("./config");
 
     const f = require("../common/core");
     const jsonpatch = require("fast-json-patch");
     const db = new Database();
     const events = new Events();
+    const config = new Config();
     const crud = new CRUD();
     const currency = new Currency();
     const exporter = new Exporter();
@@ -129,16 +131,20 @@
     */
     that.getCatalog = function () {
         return new Promise(function (resolve, reject) {
-            let payload = {
-                method: "GET",
-                name: "getSettings",
-                user: that.getCurrentUser(),
-                data: {
-                    name: "catalog"
-                }
-            };
+            function callback(resp) {
+                let payload = {
+                    method: "GET",
+                    name: "getSettings",
+                    user: resp.postgres.user,
+                    data: {
+                        name: "catalog"
+                    }
+                };
 
-            that.request(payload).then(resolve).catch(reject);
+                that.request(payload).then(resolve).catch(reject);
+            }
+
+            config.read().then(callback);
         });
     };
 
@@ -149,19 +155,18 @@
     */
     that.getServices = function () {
         return new Promise(function (resolve, reject) {
-            let payload = {
-                method: "GET",
-                name: "getServices",
-                user: that.getCurrentUser()
-            };
+            function callback(resp) {
+                let payload = {
+                    method: "GET",
+                    name: "getServices",
+                    user: resp.postgres.user
+                };
 
-            that.request(payload).then(resolve).catch(reject);
+                that.request(payload).then(resolve).catch(reject);
+            }
+
+            config.read().then(callback);
         });
-    };
-
-    that.getCurrentUser = function () {
-        // TODO: Make this real
-        return "postgres";
     };
 
     /**
@@ -171,13 +176,17 @@
     */
     that.getRoutes = function () {
         return new Promise(function (resolve, reject) {
-            let payload = {
-                method: "GET",
-                name: "getRoutes",
-                user: that.getCurrentUser()
-            };
+            function callback(resp) {
+                let payload = {
+                    method: "GET",
+                    name: "getRoutes",
+                    user: resp.postgres.user
+                };
 
-            that.request(payload).then(resolve).catch(reject);
+                that.request(payload).then(resolve).catch(reject);
+            }
+
+            config.read().then(callback);
         });
     };
 
@@ -1321,7 +1330,7 @@
         payload = {
             method: "POST",
             name: this,
-            user: "postgres", //getCurrentUser(),
+            user: req.user.name,
             data: args
         };
 

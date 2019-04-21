@@ -320,6 +320,30 @@ f.datasource.registerFunction(
 );
 
 /**
+  Document
+*/
+function handleDocument(obj) {
+    "use strict";
+
+    return new Promise(function (resolve) {
+        let newRec = obj.newRec;
+
+        if (!newRec.owner) {
+            newRec.owner = obj.user;
+        }
+
+        resolve();
+    });
+}
+
+f.datasource.registerFunction(
+    "POST",
+    "Document",
+    handleDocument,
+    f.datasource.TRIGGER_BEFORE
+);
+
+/**
   Form
 */
 function doHandleForm(obj) {
@@ -496,7 +520,7 @@ function updateRole(obj) {
             obj.newRec.password = "";
             requests.push(f.datasource.request(payload, true));
         }
-        
+
         if (obj.newRec.isLogin !== obj.oldRec.isLogin) {
             payload.name = "changeRoleLogin";
             payload.data.isLogin = obj.newRec.isLogin;
@@ -522,7 +546,7 @@ function createRole(obj) {
             }
         };
 
-        obj.newRec.name = obj.newRec.name.toLowerCase()
+        obj.newRec.name = obj.newRec.name.toLowerCase();
         obj.newRec.password = "";
 
         f.datasource.request(payload, true).then(resolve).catch(reject);

@@ -193,7 +193,7 @@
         "'Local configuration';" +
         "COMMENT ON COLUMN \"$workbook\".module IS 'Module reference';"
     );
-    
+
     const createSessionSql = (
         "CREATE TABLE \"$session\" (" +
         "\"sid\" varchar NOT NULL COLLATE \"default\"," +
@@ -248,7 +248,6 @@
                 createdBy: {
                     description: "User who created the record",
                     type: "string",
-                    default: "getCurrentUser()",
                     isReadOnly: true
                 },
                 updated: {
@@ -261,7 +260,6 @@
                 updatedBy: {
                     description: "User who created the record",
                     type: "string",
-                    default: "getCurrentUser()",
                     isReadOnly: true
                 },
                 isDeleted: {
