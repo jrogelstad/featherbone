@@ -111,6 +111,7 @@ accountMenu.component = {
                     ),
                     title: "Sign out of application",
                     onclick: function () {
+                        vm.showMenuAccount(false);
                         f.state().send("signOut");
                     }
                 }, [m("i", {

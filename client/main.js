@@ -625,17 +625,17 @@ function initApp() {
             }
         };
 
-        m.route(document.body, "/sign-in", {
-            "/sign-in": signIn,
+        m.route(document.body, "/home", {
             "/home": home,
             "/workbook/:workbook/:key": workbookPage.component,
             "/edit/:feather/:key": formPage.component,
             "/traverse/:feather/:key": childFormPage.component,
             "/search/:feather": searchPage.component,
-            "/settings/:settings": settingsPage.component
+            "/settings/:settings": settingsPage.component,
+            "/sign-in": signIn,
         });
 
-        f.state().goto();
+        m.route.set("/home");
     });
 }
 
