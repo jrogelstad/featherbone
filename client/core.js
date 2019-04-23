@@ -1430,6 +1430,15 @@ f.resolveProperty = function (model, property) {
 // Define application state
 message = f.prop("");
 appState = State.define(function () {
+    this.state("Uninitialized", function () {
+        this.event("preauthorized", function () {
+            this.goto("../SignedIn");
+        });
+        this.event("signIn", function () {
+            this.goto("../SignedOut");
+        });
+        this.message = () => "";
+    });
     this.state("SignedOut", function () {
         this.event("authenticate", function () {
             this.goto("../Authenticating", {
@@ -1450,7 +1459,6 @@ appState = State.define(function () {
         this.event("signOut", function () {
             this.goto("../SignedOut");
         });
-        this.enter(() => m.route.set("/home"));
         this.message = () => "";
         this.exit(function (context) {
             datasource.request({
@@ -1462,6 +1470,7 @@ appState = State.define(function () {
     this.state("Authenticating", function () {
         this.event("success", function () {
             this.goto("../SignedIn");
+            m.route.set("/home");
         });
         this.event("failed", function () {
             this.goto("../SignedOut");
@@ -1485,6 +1494,7 @@ appState = State.define(function () {
         this.message = () => "";
     });
 });
+appState.goto();
 
 /**
     Application statechart. States are `SignedIn`, `SignedOut`

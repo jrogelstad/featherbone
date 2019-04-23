@@ -37,6 +37,7 @@ import accountMenu from "./components/account-menu.js";
 
 const m = window.m;
 const EventSource = window.EventSource;
+const hash = window.location.hash.slice(window.location.hash.indexOf("/"));
 
 let feathers;
 let loadForms;
@@ -635,7 +636,7 @@ function initApp() {
             "/sign-in": signIn,
         });
 
-        m.route.set("/home");
+        m.route.set(hash);
     });
 }
 
@@ -661,17 +662,20 @@ function goSignIn() {
     });
 
     f.state().resolve("/SignedIn").enter(start);
-    f.state().goto();
+    f.state().send("signIn");
 }
 
 // Listen for events
 evstart = new EventSource("/sse");
 evstart.onmessage = function (event) {
+    let data;
+
     if (event.data) {
+        data = JSON.parse(event.data);
         catalog.register("subscriptions");
 
         // Listen for event changes for this session
-        evsubscr = new EventSource("/sse/" + event.data);
+        evsubscr = new EventSource("/sse/" + data.sessionId);
         evsubscr.onmessage = function (event) {
             let instance;
             let ary;
@@ -767,7 +771,13 @@ evstart.onmessage = function (event) {
 
         // Done with startup event
         evstart.close();
-        goSignIn();
+
+        if (data.authorized) {
+            f.state().send("preauthorized");
+            start();
+        } else {
+            goSignIn();
+        }
     }
 };
 
