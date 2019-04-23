@@ -1460,7 +1460,7 @@ appState = State.define(function () {
             this.goto("../SignedOut");
         });
         this.message = () => "";
-        this.exit(function (context) {
+        this.exit(function () {
             datasource.request({
                 method: "POST",
                 path: "/sign-out"
@@ -1483,11 +1483,11 @@ appState = State.define(function () {
                     username: context.username,
                     password: context.password
                 }
-            }).then(function (resp) {
-                message(""); 
+            }).then(function () {
+                message("");
                 f.state().send("success");
             }).catch(function (err) {
-                message(err.message.replace(/"/g, "")); 
+                message(err.message.replace(/"/g, ""));
                 f.state().send("failed");
             });
         });

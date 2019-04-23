@@ -633,7 +633,7 @@ function initApp() {
             "/traverse/:feather/:key": childFormPage.component,
             "/search/:feather": searchPage.component,
             "/settings/:settings": settingsPage.component,
-            "/sign-in": signIn,
+            "/sign-in": signIn
         });
 
         m.route.set(hash);
@@ -682,7 +682,6 @@ evstart.onmessage = function (event) {
             let payload;
             let subscriptionId;
             let change;
-            let data;
             let patching = "/Busy/Saving/Patching";
 
             // Ignore heartbeats
