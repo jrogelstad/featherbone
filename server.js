@@ -244,7 +244,6 @@
         payload.name = resolveName(req.url);
         payload.method = "GET"; // Internally this is a select statement
         payload.user = req.user.name;
-        payload.sessionId = req.sessionID;
         payload.filter = payload.filter || {};
 
         if (payload.showDeleted) {
@@ -465,6 +464,8 @@
             id: query.id,
             subscription: query.subscription
         };
+        
+        payload.subscription.sessionId = req.sessionID;
 
         console.log(JSON.stringify(payload, null, 2));
         datasource.request(
@@ -782,7 +783,7 @@
         // Set up authentication with passport
         passport.use(new LocalStrategy(
             function (username, password, done) {
-                console.log("Login process:", username);
+                //console.log("Login process:", username);
                 datasource.authenticate(username, password).then(
                     function (user) {
                         return done(null, user);
@@ -799,12 +800,12 @@
         ));
 
         passport.serializeUser(function (user, done) {
-            console.log("serialize ", user);
+            //console.log("serialize ", user);
             done(null, user.name);
         });
 
         passport.deserializeUser(function (name, done) {
-            console.log("deserualize ", name);
+            //console.log("deserualize ", name);
             datasource.deserializeUser(name).then(
                 function (user) {
                     console.log("deserializeUser", user);
@@ -955,7 +956,10 @@
                     console.log("Listening for session " + sessionId);
                 });
 
-                crier.send(sessionId);
+                crier.send({
+                    sessionId: sessionId,
+                    authorized: Boolean(req.user)
+                });
 
                 crier.disconnect(function () {
                     console.log("Client startup done.");
