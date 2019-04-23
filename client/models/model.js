@@ -834,7 +834,8 @@ function model(data, feather) {
             query = Qs.stringify({
                 id: that.id(),
                 subscription: {
-                    id: subcriptionId
+                    id: subcriptionId,
+                    eventKey: catalog.eventKey()
                 }
             });
 
@@ -944,7 +945,10 @@ function model(data, feather) {
 
         payload = {
             method: "DELETE",
-            path: that.path(that.name, that.id())
+            path: that.path(that.name, that.id()),
+            data: {
+                eventKey: catalog.eventKey()
+            }
         };
 
         datasource.request(payload).then(
@@ -1038,7 +1042,8 @@ function model(data, feather) {
         }
 
         lock = {
-            id: that.id()
+            id: that.id(),
+            eventKey: catalog.eventKey()
         };
         query = Qs.stringify(lock);
         payload = {
@@ -1065,7 +1070,8 @@ function model(data, feather) {
         }
 
         unlock = {
-            id: that.id()
+            id: that.id(),
+            eventKey: catalog.eventKey()
         };
         query = Qs.stringify(unlock);
         payload = {

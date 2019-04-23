@@ -134,7 +134,7 @@
 
                     subscription = {
                         nodeId: id,
-                        sessionId: id,
+                        eventKey: id,
                         id: id
                     };
 

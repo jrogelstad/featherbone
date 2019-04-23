@@ -57,7 +57,7 @@
     let app = express();
     let services = [];
     let routes = [];
-    let sessions = {};
+    let eventSessions = {};
     let port = process.env.PORT || 10001;
     let settings = datasource.settings();
     let dir = "./files";
@@ -223,7 +223,7 @@
             name: resolveName(req.url),
             method: req.method,
             user: req.user.name,
-            sessionId: req.sessionID,
+            eventKey: req.eventKey,
             id: req.params.id,
             data: req.body || {}
         };
@@ -252,7 +252,6 @@
 
         if (payload.subscription !== undefined) {
             payload.subscription.merge = payload.subscription.merge === "true";
-            payload.subscription.sessionId = req.sessionID;
         }
 
         payload.filter.offset = payload.filter.offset || 0;
@@ -464,8 +463,6 @@
             id: query.id,
             subscription: query.subscription
         };
-        
-        payload.subscription.sessionId = req.sessionID;
 
         console.log(JSON.stringify(payload, null, 2));
         datasource.request(
@@ -504,7 +501,7 @@
         datasource.lock(
             query.id,
             username,
-            req.sessionID
+            query.eventKey
         ).then(
             respond.bind(res)
         ).catch(
@@ -891,12 +888,12 @@
         app.delete("/workbook/:name", doDeleteWorkbook);
 
         // HANDLE PUSH NOTIFICATION -------------------------------
-        // Receiver callback for all events, sends only to applicable session.
+        // Receiver callback for all events, sends only to applicable instance.
         function receiver(message) {
             let payload;
-            let sessionId = message.payload.subscription.sessionid;
+            let eventKey = message.payload.subscription.eventkey;
             let change = message.payload.subscription.change;
-            let fn = sessions[sessionId];
+            let fn = eventSessions[eventKey];
 
             function callback(resp) {
                 if (resp) {
@@ -930,34 +927,34 @@
         function handleEvents() {
             app.get("/sse", function (req, res) {
                 let crier = new SSE(res);
-                let sessionId = req.sessionID;
+                let eventKey = f.createId();
 
-                // Instantiate address for session
-                app.get("/sse/" + sessionId, function (ignore, res) {
+                // Instantiate address for instance
+                app.get("/sse/" + eventKey, function (ignore, res) {
                     let sessCrier = new SSE(res, {
                         heartbeat: 10
                     });
 
-                    sessions[sessionId] = function (message) {
+                    eventSessions[eventKey] = function (message) {
                         sessCrier.send({
                             message: message.payload
                         });
                     };
 
                     sessCrier.disconnect(function () {
-                        delete sessions[sessionId];
-                        datasource.unsubscribe(sessionId, "session");
+                        delete eventSessions[eventKey];
+                        datasource.unsubscribe(eventKey, "instance");
                         datasource.unlock({
-                            sessionId: sessionId
+                            eventKey: eventKey
                         });
-                        console.log("Closed session " + sessionId);
+                        console.log("Closed instance " + eventKey);
                     });
 
-                    console.log("Listening for session " + sessionId);
+                    console.log("Listening for events " + eventKey);
                 });
 
                 crier.send({
-                    sessionId: sessionId,
+                    eventKey: eventKey,
                     authorized: Boolean(req.user)
                 });
 

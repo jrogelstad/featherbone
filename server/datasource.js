@@ -270,7 +270,7 @@
       @param {String} Session id.
       @returns {Object} Promise
     */
-    that.lock = function (id, username, sessionid) {
+    that.lock = function (id, username, eventkey) {
         return new Promise(function (resolve, reject) {
             // Do the work
             function doLock(resp) {
@@ -285,7 +285,7 @@
                         db.nodeId,
                         id,
                         username,
-                        sessionid
+                        eventkey
                     ).then(
                         callback
                     ).catch(
@@ -312,7 +312,7 @@
       @param {Object} Criteria for what to unlock.
       @param {String} [criteria.id] Object id.
       @param {String} [criteria.username] User name.
-      @param {String} [criteria.sessionId] Session id.
+      @param {String} [criteria.eventKey] Event key.
       @returns {Object} Promise
     */
     that.unlock = function (criteria) {

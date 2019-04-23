@@ -462,7 +462,7 @@
         },
         "/do/lock": {
             "post": {
-                "summary": "Obtain a lock on an object for a session",
+                "summary": "Obtain a lock on an object for a instance",
                 "operationId": "doLock",
                 "tags": [
                     "lock"
@@ -476,9 +476,9 @@
                         "type": "string"
                     }
                 }, {
-                    "name": "sessionId",
+                    "name": "eventKey",
                     "in": "query",
-                    "description": "Session id",
+                    "description": "Event notification key",
                     "required": true,
                     "schema": {
                         "type": "string"
@@ -732,8 +732,8 @@
                                 "description": "Subscription id",
                                 "type": "string"
                             },
-                            "sessionId": {
-                                "description": "Client session id",
+                            "eventKey": {
+                                "description": "Client event notification key",
                                 "type": "string"
                             }
                         }
@@ -1288,15 +1288,15 @@
                                     "description": "Subscription to auto subscribe to results",
                                     "required": [
                                         "id",
-                                        "sessionId"
+                                        "eventKey"
                                     ],
                                     "properties": {
                                         "id": {
                                             "description": "Subscription id",
                                             "type": "string"
                                         },
-                                        "sessionId": {
-                                            "description": "Client session id",
+                                        "eventKey": {
+                                            "description": "Client event notification key",
                                             "type": "string"
                                         },
                                         "merge": {

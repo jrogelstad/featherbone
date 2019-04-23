@@ -259,6 +259,14 @@ const catalog = (function () {
 
     that.feathers = store.feathers;
 
+    /**
+      Current instance event key.
+
+      @param {String} Event key
+      @return {String}
+    */
+    that.eventKey = f.prop();
+
     // Expose global store data
     that.store = function () {
         return store;
