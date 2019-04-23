@@ -61,7 +61,7 @@
           @param {Object} Subscription. If empty promise just resolves
                 without change.
           @param {String} [subscription.nodeId] Node server id. Required.
-          @param {String} [subscription.sessionId] Client session id. Required.
+          @param {String} [subscription.eventKey] Client event key. Required.
           @param {String} [subscription.id] Subscription id. Required.
           @param {Boolean} [subscription.merge] Merge previous subscription.
                 Default false.
@@ -80,8 +80,8 @@
                     throw new Error("Subscription requires a nodeId.");
                 }
 
-                if (!subscription.sessionId) {
-                    throw new Error("Subscription requires a sessionId.");
+                if (!subscription.eventKey) {
+                    throw new Error("Subscription requires a eventKey.");
                 }
 
                 if (!subscription.id) {
@@ -97,7 +97,7 @@
                         ids.forEach(function (id) {
                             let params = [
                                 subscription.nodeId,
-                                subscription.sessionId,
+                                subscription.eventKey,
                                 subscription.id,
                                 id
                             ];
@@ -112,7 +112,7 @@
                             tablename = tablename.toSnakeCase();
                             tparams = [
                                 subscription.nodeId,
-                                subscription.sessionId,
+                                subscription.eventKey,
                                 subscription.id,
                                 tablename
                             ];
@@ -149,7 +149,7 @@
           @param {Object} Database client connection
           @param {String} Id to unsubscribe to.
           @param {String} Unsubscribe id is by 'subscription',
-                'session' or 'node'. Default 'subscription'
+                'instance' or 'node'. Default 'subscription'
           @return {Object} Promise
         */
         events.unsubscribe = function (client, id, type) {
@@ -166,7 +166,7 @@
 
                 if (
                     type !== "subscription" &&
-                    type !== "session" &&
+                    type !== "instance" &&
                     type !== "node"
                 ) {
                     msg = type + " is not a valid type for unsubscribe.";

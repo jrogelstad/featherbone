@@ -674,8 +674,9 @@ evstart.onmessage = function (event) {
         data = JSON.parse(event.data);
         catalog.register("subscriptions");
 
-        // Listen for event changes for this session
-        evsubscr = new EventSource("/sse/" + data.sessionId);
+        // Listen for event changes for this instance
+        catalog.eventKey(data.eventKey);
+        evsubscr = new EventSource("/sse/" + data.eventKey);
         evsubscr.onmessage = function (event) {
             let instance;
             let ary;

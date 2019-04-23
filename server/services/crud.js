@@ -148,7 +148,7 @@
                 };
 
                 afterDoSelect = function (resp) {
-                    let sessionId = "_sessionid"; // JSLint no underscore
+                    let eventKey = "_eventkey"; // JSLint no underscore
                     let msg;
 
                     oldRec = resp;
@@ -165,7 +165,7 @@
 
                     if (
                         oldRec && oldRec.lock &&
-                        oldRec.lock[sessionId] !== obj.sessionid
+                        oldRec.lock[eventKey] !== obj.eventkey
                     ) {
                         msg = "Record is locked by " + oldRec.lock.username;
                         msg += " and cannot be updated.";
@@ -1123,7 +1123,7 @@
                 };
 
                 afterDoSelect = function (resp) {
-                    let sessionId = "_sessionid"; // JSLint no underscore
+                    let eventKey = "_eventkey"; // JSLint no underscore
                     let msg;
 
                     function requiredIsNull(fkey) {
@@ -1154,7 +1154,7 @@
 
                     if (
                         oldRec && oldRec.lock &&
-                        oldRec.lock[sessionId] !== obj.sessionid
+                        oldRec.lock[eventKey] !== obj.eventkey
                     ) {
                         msg = "Record is locked by ";
                         msg += oldRec.lock.username;
@@ -1586,7 +1586,7 @@
           @param {String} Session id.
           @return {Object} Promise
         */
-        crud.lock = function (client, nodeid, id, username, sessionid) {
+        crud.lock = function (client, nodeid, id, username, eventkey) {
             return new Promise(function (resolve, reject) {
                 let msg;
 
@@ -1595,8 +1595,8 @@
                     return;
                 }
 
-                if (!sessionid) {
-                    reject(new Error("Lock requires a sessionid."));
+                if (!eventkey) {
+                    reject(new Error("Lock requires an eventkey."));
                     return;
                 }
 
@@ -1656,7 +1656,7 @@
                         params = [
                             username,
                             nodeid,
-                            sessionid,
+                            eventkey,
                             id
                         ];
 
@@ -1688,7 +1688,7 @@
           @param {Object} Criteria for what to unlock.
           @param {String} [criteria.id] Object id.
           @param {String} [criteria.username] User name.
-          @param {String} [criteria.sessionId] Session id.
+          @param {String} [criteria.eventKey] Session id.
           @param {String} [criteria.nodeId] Node id.
           @return {Object} Promise
         */
@@ -1713,9 +1713,9 @@
                     sql += " AND username(lock) = $" + params.length;
                 }
 
-                if (criteria.sessionId) {
-                    params.push(criteria.sessionId);
-                    sql += " AND _sessionid(lock) = $" + params.length;
+                if (criteria.eventKey) {
+                    params.push(criteria.eventKey);
+                    sql += " AND _eventkey(lock) = $" + params.length;
                 }
 
                 if (criteria.nodeId) {

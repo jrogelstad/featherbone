@@ -31,12 +31,12 @@
         "    SELECT DISTINCT nodeid FROM \"$subscription\"" +
         "    WHERE objectid = TG_TABLE_NAME LOOP " +
         "    FOR sub IN" +
-        "      SELECT 'create' AS change,sessionid, subscriptionid " +
+        "      SELECT 'create' AS change,eventkey, subscriptionid " +
         "      FROM \"$subscription\"" +
         "      WHERE nodeid = node.nodeid AND objectid = TG_TABLE_NAME" +
         "    LOOP" +
         "        INSERT INTO \"$subscription\" " +
-        "        VALUES (node.nodeid, sub.sessionid, sub.subscriptionid, " +
+        "        VALUES (node.nodeid, sub.eventkey, sub.subscriptionid, " +
         "        NEW.id);" +
         "        payload := '{\"subscription\": ' || " +
         "        row_to_json(sub)::text || ',\"data\": {\"id\":\"' || " +
@@ -73,7 +73,7 @@
         "      TG_TABLE_NAME || '\"}'; " +
         "    END IF; " +
         "    FOR sub IN" +
-        "      SELECT change AS change, sessionid, subscriptionid " +
+        "      SELECT change AS change, eventkey, subscriptionid " +
         "      FROM \"$subscription\"" +
         "      WHERE nodeid = node.nodeid AND objectid = NEW.id" +
         "    LOOP" +
@@ -90,15 +90,15 @@
     const createSubcriptionSql = (
         "CREATE TABLE \"$subscription\" (" +
         "nodeid text," +
-        "sessionid text," +
+        "eventkey text," +
         "subscriptionid text," +
         "objectid text," +
-        "PRIMARY KEY (nodeid, sessionid, subscriptionid, objectid)); " +
+        "PRIMARY KEY (nodeid, eventkey, subscriptionid, objectid)); " +
         "COMMENT ON TABLE \"$subscription\" IS " +
         "'Track which changes to listen for';" +
         "COMMENT ON COLUMN \"$subscription\".nodeid IS 'Node server id';" +
-        "COMMENT ON COLUMN \"$subscription\".sessionid IS " +
-        "'Client session id';" +
+        "COMMENT ON COLUMN \"$subscription\".eventkey IS " +
+        "'Client event notification key';" +
         "COMMENT ON COLUMN \"$subscription\".subscriptionid IS " +
         "'Subscription id';" +
         "COMMENT ON COLUMN \"$subscription\".objectid IS 'Object id';"
@@ -371,7 +371,7 @@
                             "   username text," +
                             "   created timestamp with time zone," +
                             "   _nodeid text," +
-                            "   _sessionid text" +
+                            "   _eventkey text" +
                             ");"
                         );
                         obj.client.query(sql, createEventTrigger);

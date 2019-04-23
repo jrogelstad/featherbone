@@ -92,6 +92,7 @@ function createList(feather) {
                 id: model.id(),
                 subscription: {
                     id: subid,
+                    eventKey: catalog.eventKey(),
                     merge: true
                 }
             });
@@ -293,6 +294,7 @@ function createList(feather) {
         if (subid) {
             body.subscription = {
                 id: subid,
+                eventKey: catalog.eventKey(),
                 merge: merge
             };
         }
