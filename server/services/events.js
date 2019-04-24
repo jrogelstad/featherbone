@@ -158,6 +158,7 @@
                 let sql;
                 let param = [id];
                 let msg;
+                let col;
 
                 if (!id) {
                     resolve();
@@ -172,9 +173,15 @@
                     msg = type + " is not a valid type for unsubscribe.";
                     throw new Error(msg);
                 }
+                
+                if (type === "instance") {
+                    col = "eventkey";
+                } else {
+                    col = type + "id";
+                }
 
                 sql = "DELETE FROM \"$subscription\" WHERE ";
-                sql += type + "id = $1";
+                sql += col + " = $1";
 
                 client.query(sql, param).then(resolve).catch(reject);
             });
