@@ -37,8 +37,8 @@ import accountMenu from "./components/account-menu.js";
 
 const m = window.m;
 const EventSource = window.EventSource;
-const hash = window.location.hash.slice(window.location.hash.indexOf("/"));
 
+let hash = window.location.hash.slice(window.location.hash.indexOf("/"));
 let feathers;
 let loadForms;
 let loadCatalog;
@@ -48,7 +48,6 @@ let workbookData;
 let sseState;
 let loadWorkbooks;
 let evstart;
-let evsubscr;
 let menu;
 let workbooks = catalog.register("workbooks");
 let addWorkbookViewModel;
@@ -636,6 +635,10 @@ function initApp() {
             "/sign-in": signIn
         });
 
+        if (hash === "/sign-in") {
+            hash = "/home";
+        }
+
         m.route.set(hash);
     });
 }
@@ -676,98 +679,120 @@ evstart.onmessage = function (event) {
 
         // Listen for event changes for this instance
         catalog.eventKey(data.eventKey);
-        evsubscr = new EventSource("/sse/" + data.eventKey);
-        evsubscr.onmessage = function (event) {
-            let instance;
-            let ary;
-            let payload;
-            let subscriptionId;
-            let change;
-            let patching = "/Busy/Saving/Patching";
+        
+        function listen() {
+            let evsubscr = new EventSource("/sse/" + data.eventKey);
 
-            // Ignore heartbeats
-            if (event.data === "") {
-                return;
-            }
+            evsubscr.onmessage = function (event) {
+                let instance;
+                let ary;
+                let payload;
+                let subscriptionId;
+                let change;
+                let patching = "/Busy/Saving/Patching";
 
-            payload = JSON.parse(event.data);
-            subscriptionId = payload.message.subscription.subscriptionid;
-            change = payload.message.subscription.change;
-            data = payload.message.data;
-            ary = catalog.store().subscriptions()[subscriptionId];
+                // Ignore heartbeats
+                if (event.data === "") {
+                    return;
+                }
 
-            if (!ary) {
-                return;
-            }
+                payload = JSON.parse(event.data);
+                subscriptionId = payload.message.subscription.subscriptionid;
+                change = payload.message.subscription.change;
 
-            // Apply event to the catalog;
-            switch (change) {
-            case "update":
-                instance = ary.find(function (model) {
-                    return model.id() === data.id;
-                });
+                if (change === "signedOut") {
+                    f.state().send("signOut");
+                    return;
+                }
 
-                if (instance) {
-                    // Only update if not caused by this instance
-                    if (
-                        instance.state().current()[0] !== patching && (
-                            !data.etag || (
-                                data.etag &&
-                                data.etag !== instance.data.etag()
+                data = payload.message.data;
+                ary = catalog.store().subscriptions()[subscriptionId];
+
+                if (!ary) {
+                    return;
+                }
+
+                // Apply event to the catalog;
+                switch (change) {
+                case "update":
+                    instance = ary.find(function (model) {
+                        return model.id() === data.id;
+                    });
+
+                    if (instance) {
+                        // Only update if not caused by this instance
+                        if (
+                            instance.state().current()[0] !== patching && (
+                                !data.etag || (
+                                    data.etag &&
+                                    data.etag !== instance.data.etag()
+                                )
                             )
-                        )
-                    ) {
-                        instance.set(data, true, true);
+                        ) {
+                            instance.set(data, true, true);
+                            m.redraw();
+                        }
+                    }
+                    break;
+                case "create":
+                    ary.add(ary.model(data));
+                    break;
+                case "delete":
+                    instance = ary.find(function (model) {
+                        return model.id() === data;
+                    });
+
+                    if (instance) {
+                        if (ary.showDeleted()) {
+                            instance.data.isDeleted(true);
+                        } else {
+                            ary.remove(instance);
+                        }
+                    }
+                    break;
+                case "lock":
+                    instance = ary.find(function (model) {
+                        return model.id() === data.id;
+                    });
+
+                    if (instance) {
+                        instance.lock(data.lock);
                         m.redraw();
                     }
-                }
-                break;
-            case "create":
-                ary.add(ary.model(data));
-                break;
-            case "delete":
-                instance = ary.find(function (model) {
-                    return model.id() === data;
-                });
+                    break;
+                case "unlock":
+                    instance = ary.find(function (model) {
+                        return model.id() === data;
+                    });
 
-                if (instance) {
-                    if (ary.showDeleted()) {
-                        instance.data.isDeleted(true);
-                    } else {
-                        ary.remove(instance);
+                    if (instance) {
+                        instance.unlock();
+                        m.redraw();
                     }
+                    break;
                 }
-                break;
-            case "lock":
-                instance = ary.find(function (model) {
-                    return model.id() === data.id;
-                });
 
-                if (instance) {
-                    instance.lock(data.lock);
-                    m.redraw();
-                }
-                break;
-            case "unlock":
-                instance = ary.find(function (model) {
-                    return model.id() === data;
-                });
+                m.redraw();
+            };
 
-                if (instance) {
-                    instance.unlock();
-                    m.redraw();
-                }
-                break;
-            }
+            // Stop listening when we sign out. We'll realign on
+            // Session with a new listener when we sign back in
+            f.state().resolve("/SignedOut").enter(function () {
+                evsubscr.close();
 
-            m.redraw();
-        };
+                // Remove this function
+                f.state().resolve("/SignedOut").enters.pop();
+            });
 
-        // Houston, we've got a problem.
-        // Report it to state handler.
-        evsubscr.onerror = function (e) {
-            sseState.send("error", e);
-        };
+            // Houston, we've got a problem.
+            // Report it to state handler.
+            evsubscr.onerror = function (e) {
+                sseState.send("error", e);
+            };
+        }
+
+        // Initiate event listener with key on sign in
+        f.state().resolve("/SignedIn").enter(listen);
 
         // Done with startup event
         evstart.close();

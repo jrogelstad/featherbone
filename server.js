@@ -733,6 +733,20 @@
     }
 
     function doSignOut(req) {
+        // Notify all instances on same session
+        Object.keys(eventSessions).forEach(function (key) {
+            if (eventSessions[key].sessionID === req.sessionID) {
+                eventSessions[key]({
+                    payload: {
+                        subscription: {
+                            subscriptionId: "",
+                            change: "signedOut",
+                            data: {}
+                        }
+                    }
+                });
+            }
+        });
         req.logout();
         datasource.signOut(req.sessionID);
     }
@@ -805,7 +819,7 @@
             //console.log("deserualize ", name);
             datasource.deserializeUser(name).then(
                 function (user) {
-                    console.log("deserializeUser", user);
+                    //console.log("deserializeUser", user);
                     done(null, user);
                 }
             ).catch(done);
@@ -929,30 +943,6 @@
                 let crier = new SSE(res);
                 let eventKey = f.createId();
 
-                // Instantiate address for instance
-                app.get("/sse/" + eventKey, function (ignore, res) {
-                    let sessCrier = new SSE(res, {
-                        heartbeat: 10
-                    });
-
-                    eventSessions[eventKey] = function (message) {
-                        sessCrier.send({
-                            message: message.payload
-                        });
-                    };
-
-                    sessCrier.disconnect(function () {
-                        delete eventSessions[eventKey];
-                        datasource.unsubscribe(eventKey, "instance");
-                        datasource.unlock({
-                            eventKey: eventKey
-                        });
-                        console.log("Closed instance " + eventKey);
-                    });
-
-                    console.log("Listening for events " + eventKey);
-                });
-
                 crier.send({
                     eventKey: eventKey,
                     authorized: Boolean(req.user)
@@ -961,6 +951,32 @@
                 crier.disconnect(function () {
                     console.log("Client startup done.");
                 });
+            });
+            
+            // Instantiate address for instance
+            app.get("/sse/:eventKey", function (req, res) {
+                let eventKey = req.params.eventKey;
+                let sessCrier = new SSE(res, {
+                    heartbeat: 10
+                });
+
+                eventSessions[eventKey] = function (message) {
+                    sessCrier.send({
+                        message: message.payload
+                    });
+                };
+                eventSessions[eventKey].sessionID = req.sessionID;
+
+                sessCrier.disconnect(function () {
+                    delete eventSessions[eventKey];
+                    datasource.unsubscribe(eventKey, "instance");
+                    datasource.unlock({
+                        eventKey: eventKey
+                    });
+                    console.log("Closed instance " + eventKey);
+                });
+
+                console.log("Listening for events " + eventKey);
             });
         }
 
