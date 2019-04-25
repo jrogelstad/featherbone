@@ -39,6 +39,8 @@
         failureFlash: "Username or password invalid",
         failWithError: true
     });
+    const {Config} = require("./server/config");
+    const config = new Config();
     const check = [
         "data",
         "do",
@@ -62,6 +64,8 @@
     let settings = datasource.settings();
     let dir = "./files";
     let pgPool;
+    let sessionTimeout;
+    let secret;
 
     // Make sure file directories exist
     if (!fs.existsSync(dir)) {
@@ -159,6 +163,18 @@
                     resolve();
                 });
             }
+            
+            function getConfig() {
+                return new Promise(function (resolve) {
+                    config.read().then(function (resp) {
+                        // Default 15 mins.
+                        sessionTimeout = resp.sessionTimeout || 900000;
+                        console.log("timeout", sessionTimeout);
+                        secret = resp.secret;
+                        resolve();
+                    });
+                }); 
+            }
 
             // Execute
             Promise.resolve().then(
@@ -175,6 +191,8 @@
                 datasource.getPool
             ).then(
                 setPool
+            ).then(
+                getConfig
             ).then(
                 resolve
             ).catch(
@@ -748,7 +766,7 @@
             }
         });
         req.logout();
-        datasource.signOut(req.sessionID);
+        req.session.destroy();
     }
 
     function start() {
@@ -832,11 +850,13 @@
                 pool: pgPool,
                 tableName: "$session"
             }),
-            secret: "keyboard cat",
+            secret: secret,
             resave: true,
-            saveUninitialized: true,
+            rolling: true,
+            saveUninitialized: false,
             cookie: {
-                secure: "auto"
+                secure: "auto",
+                maxAge: sessionTimeout
             },
             genid: () => f.createId()
         }));
