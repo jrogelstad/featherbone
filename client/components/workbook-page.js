@@ -750,7 +750,8 @@ workbookPage.viewModel = function (options) {
         let confirmDialog = vm.confirmDialog();
 
         doShare = function () {
-            workbook.data.localConfig(vm.config());
+            let d = f.copy(vm.config());
+            workbook.data.localConfig(d);
             workbook.save();
         };
 
