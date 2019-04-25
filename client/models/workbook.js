@@ -325,7 +325,7 @@ function workbookChild(data) {
             });
             id = (
                 forms.length
-                ? forms[0].id()
+                ? forms[0].id
                 : undefined
             );
 
