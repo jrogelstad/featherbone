@@ -247,7 +247,7 @@ function workbookModel(data) {
 
         function callback() {
             state.send("fetched");
-            context.promise.resolve(that.data);
+            context.resolve(that.data);
         }
 
         if (that.isValid()) {
@@ -316,7 +316,7 @@ function workbookChild(data) {
             // Copy to new array that has regular filter method
             forms = forms.slice(0, forms.length - 1);
             forms = forms.filter(
-                (form) => form.data.feather() === value
+                (form) => form.feather === value
             ).sort(function (a, b) {
                 if (a.data.name() < b.data.name()) {
                     return -1;
