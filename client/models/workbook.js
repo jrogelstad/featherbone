@@ -367,7 +367,7 @@ function workbookChild(data) {
             });
         }
 
-        that.data.form(forms.find((row) => row.id() === id));
+        that.data.form(forms.find((row) => row.id === id));
     });
 
     that.onValidate(function () {
