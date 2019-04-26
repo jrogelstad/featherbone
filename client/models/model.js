@@ -1473,7 +1473,7 @@ function model(data, feather) {
                 this.state("Locking", function () {
                     this.enter(doLock);
                     this.event("save", function (context) {
-                        this.goto("/Busy/Saving", {
+                        this.goto("/Busy/Saving/Patching", {
                             context: context
                         });
                     });
