@@ -247,7 +247,7 @@ function workbookModel(data) {
 
         function callback() {
             state.send("fetched");
-            context.resolve(that.data);
+            context.promise.resolve(that.data);
         }
 
         if (that.isValid()) {
@@ -267,8 +267,8 @@ function workbookModel(data) {
     substate = state.resolve("/Ready/Fetched/Dirty");
     substate.event("save", save.bind(substate));
     substate = state.resolve("/Ready/Fetched/Clean");
-    substate.event("change", function () {
-        substate.goto("./Dirty");
+    substate.event("changed", function () {
+        this.goto("../Dirty");
     });
     substate = state.resolve("/Delete");
     substate.enters.shift();
