@@ -361,6 +361,8 @@ function initPromises() {
         };
 
         datasource.request(payload).then(function (data) {
+            let mapped;
+
             moduleData = data;
             // Resolve dependencies back to array for easier handling
             moduleData.forEach(function (module) {
@@ -375,23 +377,29 @@ function initPromises() {
                 }
             });
 
+            mapped = moduleData.map(function (mod) {
+                return {
+                    value: mod.name,
+                    label: mod.name
+                };
+            }).sort(function (a, b) {
+                if (a.value > b.value) {
+                    return 1;
+                }
+
+                return -1;
+            });
+
+            mapped.unshift({
+                value: "",
+                lable: ""
+            });
+
+            // TO DO: How to keep this up to date? Change to IsFetchOnStartUp?
             catalog.register(
                 "data",
                 "modules",
-                f.prop(
-                    moduleData.map(function (mod) {
-                        return {
-                            value: mod.name,
-                            label: mod.name
-                        };
-                    }).sort(function (a, b) {
-                        if (a.value > b.value) {
-                            return 1;
-                        }
-
-                        return -1;
-                    })
-                )
+                f.prop(mapped)
             );
 
             resolve();
