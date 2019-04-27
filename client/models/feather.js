@@ -25,7 +25,6 @@ const f = window.f;
 function feather(data, spec) {
     spec = spec || catalog.getFeather("Feather");
     let that;
-    let modules;
     let inheritedProperties = f.prop([]);
 
     inheritedProperties().canAdd = f.prop(false);
@@ -98,30 +97,10 @@ function feather(data, spec) {
         function: inheritedProperties
     });
 
-    modules = function () {
-        let feathers = catalog.store().feathers();
-        let keys = Object.keys(feathers);
-        let ary = [];
-
-        keys.forEach(function (key) {
-            let mod = feathers[key].module;
-
-            if (mod && ary.indexOf(mod) === -1) {
-                ary.push(mod);
-            }
-        });
-
-        return ary.map(function (item) {
-            return {
-                value: item,
-                label: item
-            };
-        });
-    };
     that.addCalculated({
         name: "modules",
         type: "array",
-        function: modules
+        function: catalog.store().data().modules
     });
 
     that.onChanged("properties.isNaturalKey", handleReadOnly);
