@@ -44,7 +44,7 @@
                 let sql = (
                     "SELECT name, script, version, to_json(dependencies) " +
                     "AS dependencies " +
-                    "FROM \"_module\";"
+                    "FROM \"_module\" WHERE NOT is_deleted;"
                 );
 
                 // Query routes
