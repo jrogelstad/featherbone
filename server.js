@@ -169,7 +169,6 @@
                     config.read().then(function (resp) {
                         // Default 15 mins.
                         sessionTimeout = resp.sessionTimeout || 900000;
-                        console.log("timeout", sessionTimeout);
                         secret = resp.secret;
                         resolve();
                     });
