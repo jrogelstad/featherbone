@@ -476,6 +476,7 @@
                                         prop.default !== undefined && (
                                             prop.default !== null ||
                                             prop.type === "object" ||
+                                            prop.type === "array" ||
                                             prop.format === "date" ||
                                             prop.format === "dateTime"
                                         )
