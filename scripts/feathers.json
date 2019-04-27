@@ -168,7 +168,8 @@
             "dataList": {
                 "description": "Array of input values",
                 "type": "array",
-                "isRequired": false
+                "isRequired": false,
+                "default": null
             },
             "isIndexed": {
                 "description": "Flag whether to index property",
