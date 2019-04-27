@@ -198,6 +198,7 @@ function handleDefault(prop, frmt) {
     // Handle default
     if (prop.default !== undefined && (
         prop.default !== null ||
+        prop.type === "object" ||
         prop.format === "date" ||
         prop.format === "dateTime"
     )) {

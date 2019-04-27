@@ -473,8 +473,12 @@
                                     data[key] === undefined
                                 ) {
                                     if (
-                                        prop.default !== undefined &&
-                                        prop.default !== null
+                                        prop.default !== undefined && (
+                                            prop.default !== null ||
+                                            prop.type === "object" ||
+                                            prop.format === "date" ||
+                                            prop.format === "dateTime"
+                                        )
                                     ) {
                                         data[key] = prop.default;
                                     } else if (prop.isRequired !== true) {

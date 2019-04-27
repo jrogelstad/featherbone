@@ -29,7 +29,8 @@
             },
             "authorization": {
                 "description": "Module",
-                "type": "object"
+                "type": "object",
+                "default": null
             },
             "inherits": {
                 "description": "Inherits",

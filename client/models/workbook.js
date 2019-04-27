@@ -222,11 +222,6 @@ function workbookModel(data) {
         return config;
     };
 
-    modules().unshift({
-        value: "",
-        label: ""
-    });
-
     that.addCalculated({
         name: "modules",
         type: "array",
