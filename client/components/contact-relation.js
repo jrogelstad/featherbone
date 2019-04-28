@@ -51,9 +51,21 @@ contactRelation.viewModel = function (options) {
         let model = parentModel.data[options.parentProperty]();
 
         if (model) {
-            phone = model.data.phone();
-            email = model.data.email();
-            address = model.data.address();
+            phone = (
+                model.data.phone
+                ? model.data.phone()
+                : ""
+            );
+            email = (
+                model.data.email
+                ? model.data.email()
+                : ""
+            );
+            address = (
+                model.data.address
+                ? model.data.address()
+                : ""
+            );
 
             if (phone) {
                 phoneUrl = "tel:" + phone;
