@@ -268,8 +268,16 @@ relationWidget.viewModel = function (options) {
     vm.onmouseovermenu = function () {
         vm.showMenu(true);
     };
-    vm.onmouseoutmenu = function () {
-        vm.showMenu(false);
+    vm.onmouseoutmenu = function (ev) {
+        if (
+            !ev || !ev.toElement ||
+            !ev.toElement.id ||
+            ev.toElement.id.indexOf(
+                "nav-relation"
+            ) === -1
+        ) {
+            vm.showMenu(false);
+        }
     };
     vm.parentProperty = f.prop(options.parentProperty);
     vm.parantViewModel = f.prop(options.parentViewModel);
@@ -366,6 +374,7 @@ relationWidget.component = {
         let editMenuClass = "pure-menu-link";
         let buttonClass = "pure-button fa fa-bars fb-relation-button";
         let labelClass = "fb-relation-label";
+        let id = vm.id();
 
         menuStyle = {
             display: (
@@ -423,28 +432,36 @@ relationWidget.component = {
                     onmouseout: vm.onmouseoutmenu
                 }, [
                     m("span", {
+                        id: "nav-relation-span-" + id,
                         class: buttonClass
                     }),
                     m("ul", {
+                        id: "nav-relation-list-" + id,
                         class: "pure-menu-list fb-relation-menu-list",
                         style: menuStyle
                     }, [
                         m("li", {
+                            id: "nav-relation-search-" + id,
                             class: editMenuClass,
                             onclick: vm.search
                         }, [m("i", {
+                            id: "nav-relation-search-icon-" + id,
                             class: "fa fa-search"
                         })], " Search"),
                         m("li", {
+                            id: "nav-relation-open-" + id,
                             class: openMenuClass,
                             onclick: vm.open
                         }, [m("i", {
+                            id: "nav-relation-open-icon-" + id,
                             class: "fa fa-folder-open"
                         })], " Open"),
                         m("li", {
+                            id: "nav-relation-new-" + id,
                             class: editMenuClass,
                             onclick: vm.new
                         }, [m("i", {
+                            id: "nav-relation-new-icon-" + id,
                             class: "fa fa-plus-circle"
                         })], " New")
                     ])
