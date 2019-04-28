@@ -33,8 +33,10 @@ function doUpsertFeather(obj) {
         // Save the feather in the catalog
         feather.properties = {};
         props.forEach(function (prop) {
-            feather.properties[prop.name] = prop;
-            delete prop.name;
+            if (prop) {
+                feather.properties[prop.name] = prop;
+                delete prop.name;
+            }
         });
         feather.overloads = {};
         overloads.forEach(function (o) {
