@@ -150,39 +150,52 @@ function buildFieldset(vm, attrs) {
             labelOpts.onclick = function () {
                 menuButtons[key].display = "block";
             };
-            labelOpts.onmouseout = function () {
-                menuButtons[key].display = "none";
+            labelOpts.onmouseout = function (ev) {
+                if (
+                    !ev || !ev.toElement ||
+                    !ev.toElement.id ||
+                    ev.toElement.id.indexOf(
+                        "nav-relation"
+                    ) === -1
+                ) {
+                    menuButtons[key].display = "none";
+                }
             };
             label = m("div", labelOpts, [
                 m("div", {
-                    class: "pure-menu fb-relation-menu",
-                    onmouseover: function () {
-                        menuButtons[key].display = "block";
-                    }
+                    id: "nav-relation-div-" + key,
+                    class: "pure-menu fb-relation-menu"
                 }, [
                     m("ul", {
                         class: "pure-menu-list fb-relation-menu-list",
+                        id: "nav-relation-list-" + key,
                         style: {
                             top: "27px",
                             display: menuButtons[key].display
                         }
                     }, [
                         m("li", {
+                            id: "nav-relation-search-" + key,
                             class: editMenuClass(),
                             onclick: relation.search
                         }, [m("i", {
+                            id: "nav-relation-search-icon-" + key,
                             class: "fa fa-search"
                         })], " Search"),
                         m("li", {
+                            id: "nav-relation-open-" + key,
                             class: openMenuClass(),
                             onclick: relation.open
                         }, [m("i", {
+                            id: "nav-relation-open-icon-" + key,
                             class: "fa fa-folder-open"
                         })], " Open"),
                         m("li", {
+                            id: "nav-relation-new-" + key,
                             class: editMenuClass(),
                             onclick: relation.new
                         }, [m("i", {
+                            id: "nav-relation-new-icon-" + key,
                             class: "fa fa-plus-circle"
                         })], " New")
                     ])
