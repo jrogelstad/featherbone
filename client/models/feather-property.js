@@ -88,7 +88,7 @@ function featherProperty(data, spec) {
     }
 
     function handleReadOnly() {
-        let isNotNumber = that.data.type() !== "number";
+        let isNotNumber = d.type() !== "number";
         let parentHasNaturalKey = that.parent().data.properties().some(
             function (prop) {
                 return prop !== that && prop.data.isNaturalKey();
@@ -99,6 +99,7 @@ function featherProperty(data, spec) {
                 return prop !== that && prop.data.isLabelKey();
             }
         );
+        let type = d.type();
 
         d.scale.isReadOnly(isNotNumber);
         d.precision.isReadOnly(isNotNumber);
@@ -108,6 +109,16 @@ function featherProperty(data, spec) {
         d.isIndexed.isReadOnly(d.isNaturalKey());
         d.isLabelKey.isReadOnly(d.isNaturalKey() || parentHasLabelKey);
         d.autonumber.isReadOnly(!d.isNaturalKey());
+        
+        if (
+            type === "array" ||
+            type === "object" ||
+            typeof type === "object"
+        ) {
+            d.default.isReadOnly(true);
+        } else {
+            d.default.isReadOnly(false);
+        }
     }
 
     that.addCalculated({
@@ -118,7 +129,9 @@ function featherProperty(data, spec) {
 
     that.onChanged("type", handleReadOnly);
     that.onChanged("type", function () {
-        if (d.type() === "number") {
+        let type = d.type();
+
+        if (type === "number") {
             d.scale(f.SCALE_DEFAULT);
             d.precision(f.PRECISION_DEFAULT);
         } else {
@@ -126,6 +139,14 @@ function featherProperty(data, spec) {
             d.precision(-1);
             d.min(0);
             d.max(0);
+        }
+
+        if (
+            type === "array" ||
+            type === "object" ||
+            typeof type === "object"
+        ) {
+            d.default("");
         }
 
         d.format.isReadOnly(formats().length === 0);
@@ -143,12 +164,14 @@ function featherProperty(data, spec) {
 
     that.onValidate(function () {
         let type = that.data.type();
+        let defaultValue = that.data.default();
+        let name = that.data.name();
 
         if (typeof type !== "string") {
             if (!type.relation) {
                 throw new Error(
                     "Feather name required on relation type \"" +
-                    that.data.name() + "\""
+                    name + "\""
                 );
             }
 
@@ -160,13 +183,67 @@ function featherProperty(data, spec) {
             ) {
                 throw new Error(
                     "One or more properties required on relation type \"" +
-                    that.data.name() + "\""
+                    name + "\""
                 );
             }
+        }
+
+        switch (type) {
+        case "integer":
+        case "number":
+            if (isNaN(defaultValue) && defaultValue !== "") {
+                throw new Error(
+                    "Default for \"" + name +
+                    "\" must be a number or blank"
+                );
+            }
+            break;
+        case "boolean":
+            if (
+                defaultValue !== null &&
+                defaultValue !== "" &&
+                defaultValue !== true &&
+                defaultValue !== false &&
+                defaultValue.toLowerCase() !== "true" &&
+                defaultValue.toLowerCase() !== "false"
+            ) {
+                throw new Error(
+                    "Default for \"" + name +
+                    "\" must be  \"true\", \"false\" or blank"
+                );
+            }
+            break;
         }
     });
 
     that.handleReadOnly = handleReadOnly;
+    
+    that.data.default.toJSON = function () {
+        let type = that.data.type();
+        let defaultValue = that.data.default();
+        
+        switch (type) {
+        case "integer":
+        case "number":
+            return Number(defaultValue);
+            break;
+        case "boolean":
+            if (defaultValue  === null || defaultValue === "") {
+                return null;
+            } else if (defaultValue === true || defaultValue === false) {
+                return defaultValue;
+            } else if (defaultValue.toLowerCase() === "true") {
+                return true;
+            } else {
+                return false;
+            }
+
+            break;
+        default:
+            return defaultValue;
+            break;
+        }
+    }
 
     return that;
 }
