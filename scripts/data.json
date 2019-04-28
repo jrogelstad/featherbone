@@ -158,6 +158,14 @@
                 "attr": "isReadOnly",
                 "label": "Read Only",
                 "width": 100
+            }, {
+                "attr": "isNaturalKey",
+                "label": "Natural Key",
+                "width": 100
+            }, {
+                "attr": "isLabelKey",
+                "label": "Label Key",
+                "width": 100
             }]
         }, {
             "attr": "inheritedProperties",
@@ -165,6 +173,8 @@
             "unit": 0,
             "showLabel": false,
             "columns": [{
+                "attr": "inheritedFrom"
+            }, {
                 "attr": "name"
             }, {
                 "attr": "description"
@@ -182,7 +192,13 @@
                 "label": "Read Only",
                 "width": 100
             }, {
-                "attr": "inheritedFrom"
+                "attr": "isNaturalKey",
+                "label": "Natural Key",
+                "width": 100
+            }, {
+                "attr": "isLabelKey",
+                "label": "Label Key",
+                "width": 100
             }]
         }, {
             "attr": "overloads",
