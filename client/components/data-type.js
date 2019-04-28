@@ -263,6 +263,7 @@ dataType.viewModel = function (options) {
     };
     vm.types = f.prop(Object.freeze([
         "array",
+        "boolean",
         "integer",
         "number",
         "object",

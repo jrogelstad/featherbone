@@ -2060,7 +2060,10 @@
                         }
 
                         // If no specific authorization, make one
-                        if (authorization === undefined) {
+                        if (
+                            authorization === undefined ||
+                            authorization === null
+                        ) {
                             authorization = {
                                 data: {
                                     feather: name,

@@ -147,7 +147,7 @@
                 "attr": "description"
             }, {
                 "attr": "type",
-                "width": 160
+                "width": 170
             }, {
                 "attr": "default"
             }, {
@@ -170,7 +170,7 @@
                 "attr": "description"
             }, {
                 "attr": "type",
-                "width": 160
+                "width": 170
             }, {
                 "attr": "default"
             }, {
@@ -204,7 +204,7 @@
                 "attr": "overloadType"
             }, {
                 "attr": "type",
-                "width": 160
+                "width": 170
             }]
         }, {
             "attr": "isSystem",
