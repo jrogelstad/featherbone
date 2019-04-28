@@ -173,7 +173,7 @@ function extendArray(model, prop, name, onChange, onChanged) {
 
         while (i < len) {
             item = cache[i];
-            isNotDeleting = item.state().current()[0] !== "/Delete";
+            isNotDeleting = (item && item.state().current()[0] !== "/Delete");
             value = (
                 isNotDeleting
                 ? item.toJSON()
