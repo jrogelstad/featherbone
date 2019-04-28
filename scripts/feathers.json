@@ -61,6 +61,11 @@
                 "type": "boolean",
                 "default": false,
                 "isRequired": true
+            },
+            "etag": {
+                "description": "Optimistic locking key",
+                "type": "string",
+                "default": "createId()"
             }
         }
     },
