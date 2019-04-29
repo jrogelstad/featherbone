@@ -191,7 +191,7 @@ function featherProperty(data, spec) {
         switch (type) {
         case "integer":
         case "number":
-            if (!Boolean(Number(defaultValue)) && defaultValue !== "") {
+            if (Number.isNaN(Number(defaultValue))) {
                 throw new Error(
                     "Default for \"" + name +
                     "\" must be a number or blank"
