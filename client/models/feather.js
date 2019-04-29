@@ -77,7 +77,12 @@ function feather(data, spec) {
         }
     }
 
-    function handleReadOnly() {
+    function handleReadOnly () {
+        that.data.name.isReadOnly(true);
+        that.data.inherits.isReadOnly(true);
+    }
+
+    function handleReadOnlyProps() {
         that.data.properties().forEach((prop) => prop.handleReadOnly());
     }
 
@@ -103,10 +108,11 @@ function feather(data, spec) {
         function: catalog.store().data().modules
     });
 
-    that.onChanged("properties.isNaturalKey", handleReadOnly);
-    that.onChanged("properties.isLabelKey", handleReadOnly);
+    that.onChanged("properties.isNaturalKey", handleReadOnlyProps);
+    that.onChanged("properties.isLabelKey", handleReadOnlyProps);
     that.onChanged("inherits", calculateInherited);
     that.onLoad(calculateInherited);
+    that.onLoad(handleReadOnly);
 
     return that;
 }
