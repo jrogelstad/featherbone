@@ -173,7 +173,7 @@
                     msg = type + " is not a valid type for unsubscribe.";
                     throw new Error(msg);
                 }
-                
+
                 if (type === "instance") {
                     col = "eventkey";
                 } else {

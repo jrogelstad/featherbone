@@ -20,7 +20,6 @@ import model from "./model.js";
 
 function formAttr(data, feather) {
     let that;
-    let stateClean;
 
     function handleProp(name, validator) {
         let attr = that.data.attr;

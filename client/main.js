@@ -681,123 +681,123 @@ evstart = new EventSource("/sse");
 evstart.onmessage = function (event) {
     let data;
 
+    function listen() {
+        let evsubscr = new EventSource("/sse/" + data.eventKey);
+
+        evsubscr.onmessage = function (event) {
+            let instance;
+            let ary;
+            let payload;
+            let subscriptionId;
+            let change;
+            let patching = "/Busy/Saving/Patching";
+
+            // Ignore heartbeats
+            if (event.data === "") {
+                return;
+            }
+
+            payload = JSON.parse(event.data);
+            subscriptionId = payload.message.subscription.subscriptionid;
+            change = payload.message.subscription.change;
+
+            if (change === "signedOut") {
+                f.state().send("signOut");
+                return;
+            }
+
+            data = payload.message.data;
+            ary = catalog.store().subscriptions()[subscriptionId];
+
+            if (!ary) {
+                return;
+            }
+
+            // Apply event to the catalog;
+            switch (change) {
+            case "update":
+                instance = ary.find(function (model) {
+                    return model.id() === data.id;
+                });
+
+                if (instance) {
+                    // Only update if not caused by this instance
+                    if (
+                        instance.state().current()[0] !== patching && (
+                            !data.etag || (
+                                data.etag &&
+                                data.etag !== instance.data.etag()
+                            )
+                        )
+                    ) {
+                        instance.set(data, true, true);
+                        m.redraw();
+                    }
+                }
+                break;
+            case "create":
+                ary.add(ary.model(data));
+                break;
+            case "delete":
+                instance = ary.find(function (model) {
+                    return model.id() === data;
+                });
+
+                if (instance) {
+                    if (ary.showDeleted()) {
+                        instance.data.isDeleted(true);
+                    } else {
+                        ary.remove(instance);
+                    }
+                }
+                break;
+            case "lock":
+                instance = ary.find(function (model) {
+                    return model.id() === data.id;
+                });
+
+                if (instance) {
+                    instance.lock(data.lock);
+                    m.redraw();
+                }
+                break;
+            case "unlock":
+                instance = ary.find(function (model) {
+                    return model.id() === data;
+                });
+
+                if (instance) {
+                    instance.unlock();
+                    m.redraw();
+                }
+                break;
+            }
+
+            m.redraw();
+        };
+
+        // Stop listening when we sign out. We'll realign on
+        // Session with a new listener when we sign back in
+        f.state().resolve("/SignedOut").enter(function () {
+            evsubscr.close();
+
+            // Remove this function
+            f.state().resolve("/SignedOut").enters.pop();
+        });
+
+        // Houston, we've got a problem.
+        // Report it to state handler.
+        evsubscr.onerror = function (e) {
+            sseState.send("error", e);
+        };
+    }
+
     if (event.data) {
         data = JSON.parse(event.data);
         catalog.register("subscriptions");
 
         // Listen for event changes for this instance
         catalog.eventKey(data.eventKey);
-        
-        function listen() {
-            let evsubscr = new EventSource("/sse/" + data.eventKey);
-
-            evsubscr.onmessage = function (event) {
-                let instance;
-                let ary;
-                let payload;
-                let subscriptionId;
-                let change;
-                let patching = "/Busy/Saving/Patching";
-
-                // Ignore heartbeats
-                if (event.data === "") {
-                    return;
-                }
-
-                payload = JSON.parse(event.data);
-                subscriptionId = payload.message.subscription.subscriptionid;
-                change = payload.message.subscription.change;
-
-                if (change === "signedOut") {
-                    f.state().send("signOut");
-                    return;
-                }
-
-                data = payload.message.data;
-                ary = catalog.store().subscriptions()[subscriptionId];
-
-                if (!ary) {
-                    return;
-                }
-
-                // Apply event to the catalog;
-                switch (change) {
-                case "update":
-                    instance = ary.find(function (model) {
-                        return model.id() === data.id;
-                    });
-
-                    if (instance) {
-                        // Only update if not caused by this instance
-                        if (
-                            instance.state().current()[0] !== patching && (
-                                !data.etag || (
-                                    data.etag &&
-                                    data.etag !== instance.data.etag()
-                                )
-                            )
-                        ) {
-                            instance.set(data, true, true);
-                            m.redraw();
-                        }
-                    }
-                    break;
-                case "create":
-                    ary.add(ary.model(data));
-                    break;
-                case "delete":
-                    instance = ary.find(function (model) {
-                        return model.id() === data;
-                    });
-
-                    if (instance) {
-                        if (ary.showDeleted()) {
-                            instance.data.isDeleted(true);
-                        } else {
-                            ary.remove(instance);
-                        }
-                    }
-                    break;
-                case "lock":
-                    instance = ary.find(function (model) {
-                        return model.id() === data.id;
-                    });
-
-                    if (instance) {
-                        instance.lock(data.lock);
-                        m.redraw();
-                    }
-                    break;
-                case "unlock":
-                    instance = ary.find(function (model) {
-                        return model.id() === data;
-                    });
-
-                    if (instance) {
-                        instance.unlock();
-                        m.redraw();
-                    }
-                    break;
-                }
-
-                m.redraw();
-            };
-
-            // Stop listening when we sign out. We'll realign on
-            // Session with a new listener when we sign back in
-            f.state().resolve("/SignedOut").enter(function () {
-                evsubscr.close();
-
-                // Remove this function
-                f.state().resolve("/SignedOut").enters.pop();
-            });
-
-            // Houston, we've got a problem.
-            // Report it to state handler.
-            evsubscr.onerror = function (e) {
-                sseState.send("error", e);
-            };
-        }
 
         // Initiate event listener with key on sign in
         f.state().resolve("/SignedIn").enter(listen);

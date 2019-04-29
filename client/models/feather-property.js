@@ -109,7 +109,7 @@ function featherProperty(data, spec) {
         d.isIndexed.isReadOnly(d.isNaturalKey());
         d.isLabelKey.isReadOnly(d.isNaturalKey() || parentHasLabelKey);
         d.autonumber.isReadOnly(!d.isNaturalKey());
-        
+
         if (
             type === "array" ||
             type === "object" ||
@@ -191,7 +191,7 @@ function featherProperty(data, spec) {
         switch (type) {
         case "integer":
         case "number":
-            if (isNaN(defaultValue) && defaultValue !== "") {
+            if (!Boolean(Number(defaultValue)) && defaultValue !== "") {
                 throw new Error(
                     "Default for \"" + name +
                     "\" must be a number or blank"
@@ -217,33 +217,33 @@ function featherProperty(data, spec) {
     });
 
     that.handleReadOnly = handleReadOnly;
-    
+
     that.data.default.toJSON = function () {
         let type = that.data.type();
         let defaultValue = that.data.default();
-        
+
         switch (type) {
         case "integer":
         case "number":
             return Number(defaultValue);
-            break;
         case "boolean":
-            if (defaultValue  === null || defaultValue === "") {
+            if (defaultValue === null || defaultValue === "") {
                 return null;
-            } else if (defaultValue === true || defaultValue === false) {
-                return defaultValue;
-            } else if (defaultValue.toLowerCase() === "true") {
-                return true;
-            } else {
-                return false;
             }
 
-            break;
+            if (defaultValue === true || defaultValue === false) {
+                return defaultValue;
+            }
+
+            if (defaultValue.toLowerCase() === "true") {
+                return true;
+            }
+
+            return false;
         default:
             return defaultValue;
-            break;
         }
-    }
+    };
 
     return that;
 }

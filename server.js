@@ -67,6 +67,7 @@
     let pgPool;
     let sessionTimeout;
     let secret;
+    let systemUser;
 
     // Make sure file directories exist
     if (!fs.existsSync(dir)) {
@@ -164,16 +165,17 @@
                     resolve();
                 });
             }
-            
+
             function getConfig() {
                 return new Promise(function (resolve) {
                     config.read().then(function (resp) {
                         // Default 1 day.
                         sessionTimeout = resp.sessionTimeout || 86400000;
                         secret = resp.secret;
+                        systemUser = resp.postgres.user;
                         resolve();
                     });
-                }); 
+                });
             }
 
             // Execute
@@ -958,7 +960,7 @@
                     payload = {
                         name: message.payload.data.table.toCamelCase(true),
                         method: "GET",
-                        user: "postgres", // TO DO: FIX!
+                        user: systemUser,
                         id: message.payload.data.id
                     };
                     datasource.request(payload).then(callback).catch(err);
@@ -983,7 +985,7 @@
                     console.log("Client startup done.");
                 });
             });
-            
+
             // Instantiate address for instance
             app.get("/sse/:eventKey", function (req, res) {
                 let eventKey = req.params.eventKey;
