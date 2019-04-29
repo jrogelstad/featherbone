@@ -60,6 +60,7 @@
     let services = [];
     let routes = [];
     let eventSessions = {};
+    let sessions = {};
     let port = process.env.PORT || 10001;
     let settings = datasource.settings();
     let dir = "./files";
@@ -869,11 +870,22 @@
         // Block unauthorized requests to internal data
         app.use(function (req, res, next) {
             let target = req.url.slice(1);
+            let interval = req.session.cookie.expires - new Date();
             target = target.slice(0, target.indexOf("/"));
 
             if (!req.user && check.indexOf(target) !== -1) {
                 res.status(401).json("Unauthorized session");
                 return;
+            }
+
+            if (req.session && sessions[req.sessionID]) {
+                clearTimeout(sessions[req.sessionID]);
+            }
+            if (req.user) {
+                sessions[req.sessionID] = setTimeout(function () {
+                    console.log("Session " + req.sessionID + " timed out");
+                    doSignOut(req, res);
+                }, interval);
             }
 
             next();
