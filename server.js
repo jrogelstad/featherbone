@@ -168,8 +168,8 @@
             function getConfig() {
                 return new Promise(function (resolve) {
                     config.read().then(function (resp) {
-                        // Default 15 mins.
-                        sessionTimeout = resp.sessionTimeout || 900000;
+                        // Default 1 day.
+                        sessionTimeout = resp.sessionTimeout || 86400000;
                         secret = resp.secret;
                         resolve();
                     });

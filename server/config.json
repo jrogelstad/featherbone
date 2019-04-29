@@ -1,6 +1,6 @@
 {
     "nodeId": "node1",
-    "sessionTimeout": 60000,
+    "sessionTimeout": 86400000,
     "secret": "Your own session key here",
     "postgres":{
         "host": "127.0.0.1",
