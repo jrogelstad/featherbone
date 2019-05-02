@@ -30,7 +30,6 @@
     const {Feathers} = require("./services/feathers");
     const {Importer, Exporter} = require("./services/io");
     const {Installer} = require("./services/installer");
-    const {Modules} = require("./services/modules");
     const {Packager} = require("./services/packager");
     const {Routes} = require("./services/routes");
     const {Services} = require("./services/services");
@@ -50,7 +49,6 @@
     const feathers = new Feathers();
     const importer = new Importer();
     const installer = new Installer();
-    const modules = new Modules();
     const packager = new Packager();
     const routes = new Routes();
     const services = new Services();
@@ -1340,7 +1338,6 @@
     that.registerFunction("GET", "convertCurrency", currency.convertCurrency);
     that.registerFunction("GET", "getServices", services.getServices);
     that.registerFunction("GET", "getFeather", feathers.getFeather);
-    that.registerFunction("GET", "getModules", modules.getModules);
     that.registerFunction("GET", "getRoutes", routes.getRoutes);
     that.registerFunction("GET", "getSettings", settings.getSettings);
     that.registerFunction("GET", "getSettingsRow", settings.getSettingsRow);
