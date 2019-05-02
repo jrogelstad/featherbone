@@ -44,6 +44,7 @@ let loadForms;
 let loadCatalog;
 let loadModules;
 let moduleData;
+let moduleSid = f.createId();
 let workbookData;
 let sseState;
 let loadWorkbooks;
@@ -122,7 +123,7 @@ function registerWorkbook(workbook) {
 
 function addWorkbookModel() {
     let that = model(undefined, workbookSpec);
-    let modules = f.prop(catalog.store().data().modules().slice());
+    let modules = f.prop(catalog.store().data().modules());
     let theFeathers = catalog.store().feathers();
     let blank = ({
         value: "",
@@ -205,7 +206,6 @@ function addWorkbookModel() {
         workbook.save().then(callback);
     }
 
-    modules().unshift(blank);
     theFeathers().unshift(blank);
 
     that.addCalculated({
@@ -355,15 +355,26 @@ function initPromises() {
 
     // Load modules
     loadModules = new Promise(function (resolve) {
+        let ary = [];
         let payload = {
-            method: "GET",
-            path: "/modules/"
+            method: "POST",
+            path: "/data/modules",
+            data: {
+                subscription: {
+                    id: moduleSid,
+                    eventKey: catalog.eventKey()
+                },
+                properties: ["id", "name", "script", "version", "dependencies"]
+            }
         };
+
 
         datasource.request(payload).then(function (data) {
             let mapped;
 
             moduleData = data;
+            catalog.register("subscriptions", moduleSid, moduleData);
+
             // Resolve dependencies back to array for easier handling
             moduleData.forEach(function (module) {
                 if (module.dependencies) {
@@ -710,6 +721,17 @@ evstart.onmessage = function (event) {
             ary = catalog.store().subscriptions()[subscriptionId];
 
             if (!ary) {
+                return;
+            }
+
+            // Special application change events
+            if (subscriptionId === moduleSid) {
+                if (change === "create") {
+                    catalog.store().data().modules().push({
+                        value: data.name,
+                        label: data.name 
+                    });
+                }
                 return;
             }
 

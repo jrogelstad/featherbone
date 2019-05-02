@@ -179,7 +179,7 @@ function workbookModel(data) {
     let state;
     let substate;
     let doPut;
-    let modules = f.prop(catalog.store().data().modules().slice());
+    let modules = f.prop(catalog.store().data().modules());
 
     function save(promise) {
         this.goto("/Busy/Saving", {
