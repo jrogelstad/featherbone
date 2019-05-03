@@ -363,7 +363,6 @@ function initPromises() {
 
     // Load modules
     loadModules = new Promise(function (resolve) {
-        let ary = [];
         let payload = {
             method: "POST",
             path: "/data/modules",
@@ -414,7 +413,6 @@ function initPromises() {
                 lable: ""
             });
 
-            // TO DO: How to keep this up to date? Change to IsFetchOnStartUp?
             catalog.register(
                 "data",
                 "modules",
@@ -717,7 +715,6 @@ evstart.onmessage = function (event) {
             }
 
             payload = JSON.parse(event.data);
-            subscriptionId = payload.message.subscription.subscriptionid;
             change = payload.message.subscription.change;
 
             if (change === "signedOut") {
@@ -726,6 +723,17 @@ evstart.onmessage = function (event) {
             }
 
             data = payload.message.data;
+
+            if (change === "feather") {
+                if (payload.message.subscription.deleted) {
+                    catalog.unregister("feathers", data);
+                } else {
+                    catalog.register("feathers", data.id, data);
+                }
+                return;
+            }
+
+            subscriptionId = payload.message.subscription.subscriptionid;
             ary = catalog.store().subscriptions()[subscriptionId];
 
             if (!ary) {
@@ -738,7 +746,7 @@ evstart.onmessage = function (event) {
                 if (change === "create") {
                     catalog.store().data().modules().push({
                         value: data.name,
-                        label: data.name 
+                        label: data.name
                     });
                 }
                 return;

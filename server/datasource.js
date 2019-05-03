@@ -642,7 +642,6 @@
         be intialized by default and wrapped in a transaction if necessary.
       @param {String} [payload.callback] Callback
       @param {Boolean} Bypass authorization checks. Default = false.
-      @param {Boolean} Ignore registration and treat as data. Default = false.
       @return receiver
     */
     that.request = function (obj, isSuperUser) {
