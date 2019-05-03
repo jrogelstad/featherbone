@@ -40,6 +40,7 @@ const EventSource = window.EventSource;
 
 let hash = window.location.hash.slice(window.location.hash.indexOf("/"));
 let feathers;
+let formsSid = f.createId();
 let loadForms;
 let loadCatalog;
 let loadModules;
@@ -344,10 +345,17 @@ function initPromises() {
     loadForms = new Promise(function (resolve) {
         let payload = {
             method: "POST",
-            path: "/data/forms"
+            path: "/data/forms",
+            data: {
+                subscription: {
+                    id: formsSid,
+                    eventKey: catalog.eventKey()
+                }
+            }
         };
 
         datasource.request(payload).then(function (data) {
+            catalog.register("subscriptions", formsSid, data);
             catalog.register("data", "forms", f.prop(data));
             resolve();
         });
@@ -725,7 +733,8 @@ evstart.onmessage = function (event) {
             }
 
             // Special application change events
-            if (subscriptionId === moduleSid) {
+            switch (subscriptionId) {
+            case moduleSid:
                 if (change === "create") {
                     catalog.store().data().modules().push({
                         value: data.name,
@@ -733,9 +742,21 @@ evstart.onmessage = function (event) {
                     });
                 }
                 return;
+            case formsSid:
+                if (change === "create") {
+                    ary.push(data);
+                } else if (change === "update") {
+                    instance = ary.find((item) => item.id === data.id);
+                    ary.splice(ary.indexOf(instance), 1, data);
+                } else if (change === "delete") {
+                    instance = ary.find((item) => item.id === data);
+                    ary.splice(ary.indexOf(instance), 1);
+                }
+
+                return;
             }
 
-            // Apply event to the catalog;
+            // Apply event to the catalog data;
             switch (change) {
             case "update":
                 instance = ary.find(function (model) {
