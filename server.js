@@ -249,7 +249,7 @@
         };
 
         console.log(JSON.stringify(payload, null, 2));
-        datasource.request(payload, false, true).then(
+        datasource.request(payload).then(
             function (data) {
                 respond.bind(res, data)();
             }
@@ -277,7 +277,7 @@
         payload.filter.offset = payload.filter.offset || 0;
 
         console.log(JSON.stringify(payload, null, 2));
-        datasource.request(payload, false, true).then(
+        datasource.request(payload).then(
             function (data) {
                 respond.bind(res, data)();
             }
@@ -346,10 +346,6 @@
         doGetMethod("getFeather", req, res);
     }
 
-    function doGetModules(req, res) {
-        doGetMethod("getModules", req, res);
-    }
-
     function doGetSettingsRow(req, res) {
         doGetMethod("getSettingsRow", req, res);
     }
@@ -366,29 +362,31 @@
         doGetMethod("getWorkbooks", req, res);
     }
 
+    function registerDataRoute(key) {
+        let name = key.toSpinalCase();
+        let catalog = settings.data.catalog.data;
+
+        if (catalog[key].isReadOnly) {
+            app.get("/data/" + name + "/:id", doRequest);
+        } else {
+            app.post("/data/" + name, doRequest);
+            app.get("/data/" + name + "/:id", doRequest);
+            app.patch("/data/" + name + "/:id", doRequest);
+            app.delete("/data/" + name + "/:id", doRequest);
+        }
+
+        if (catalog[key].plural && !catalog[key].isChild) {
+            name = catalog[key].plural.toSpinalCase();
+            app.post("/data/" + name, doQueryRequest);
+        }
+    }
+
     function registerDataRoutes() {
         let keys;
-        let name;
         let catalog = settings.data.catalog.data;
 
         keys = Object.keys(catalog);
-        keys.forEach(function (key) {
-            name = key.toSpinalCase();
-
-            if (catalog[key].isReadOnly) {
-                app.get("/data/" + name + "/:id", doRequest);
-            } else {
-                app.post("/data/" + name, doRequest);
-                app.get("/data/" + name + "/:id", doRequest);
-                app.patch("/data/" + name + "/:id", doRequest);
-                app.delete("/data/" + name + "/:id", doRequest);
-            }
-
-            if (catalog[key].plural && !catalog[key].isChild) {
-                name = catalog[key].plural.toSpinalCase();
-                app.post("/data/" + name, doQueryRequest);
-            }
-        });
+        keys.forEach(registerDataRoute);
     }
 
     function doSaveMethod(fn, req, res) {
@@ -410,10 +408,6 @@
         ).catch(
             error.bind(res)
         );
-    }
-
-    function doSaveFeather(req, res) {
-        doSaveMethod("saveFeather", req, res);
     }
 
     function doSaveWorkbook(req, res) {
@@ -463,11 +457,6 @@
         ).catch(
             error.bind(res)
         );
-    }
-
-    function doDeleteFeather(req, res) {
-        req.isCamelCase = true;
-        doDeleteMethod("deleteFeather", req, res);
     }
 
     function doDeleteWorkbook(req, res) {
@@ -771,6 +760,83 @@
         req.session.destroy();
     }
 
+    // Listen for changes to feathers, update and broadcast to all
+    function subscribeToFeathers() {
+        return new Promise(function (resolve, reject) {
+            let sid = f.createId();
+            let eventKey = f.createId();
+            let payload = {
+                name: "Feather",
+                method: "GET",
+                user: systemUser,
+                subscription: {
+                    id: sid,
+                    eventKey: eventKey
+                }
+            };
+
+            function changeCallback(resp) {
+                // Update all clients
+                Object.keys(eventSessions).forEach(function (key) {
+                    if (eventSessions[key].sessionID) {
+                        eventSessions[key]({
+                            payload: {
+                                subscription: {
+                                    change: "feather",
+                                    deleted: false
+                                },
+                                data: resp
+                            }
+                        });
+                    }
+                });
+            }
+
+            // Response function in case a feather changes
+            eventSessions[eventKey] = function (message) {
+                let name;
+
+                if (message.payload.change !== "delete") {
+                    name = message.payload.data.name;
+
+                    // Update server with route changes
+                    registerDataRoute(name);
+
+                    // Get feather to update client
+                    datasource.request({
+                        method: "GET",
+                        name: "getFeather",
+                        user: systemUser,
+                        data: {
+                            name: message.payload.data.name
+                        }
+                    }).then(changeCallback).catch(reject);
+                } else {
+                     // Update all clients
+                    Object.keys(eventSessions).forEach(function (key) {
+                        if (eventSessions[key].sessionID) {
+                            eventSessions[key]({
+                                payload: {
+                                    subscription: {
+                                        change: "feather",
+                                        deleted: true
+                                    },
+                                    data: message.payload.data,
+                                }
+                            });
+                        }
+                    });
+                }
+
+                // Update subscription
+                delete payload.client;
+                datasource.request(payload);
+            };
+
+            datasource.request(payload).then(resolve).catch(reject);
+        });
+    }
+
     function start() {
         // Define exactly which directories and files are to be served
         let dirs = [
@@ -921,11 +987,8 @@
         app.post("/do/lock/:query", doLock);
         app.post("/do/unlock/:query", doUnlock);
         app.get("/feather/:name", doGetFeather);
-        app.put("/feather/:name", doSaveFeather);
-        app.delete("/feather/:name", doDeleteFeather);
         app.post("/module/package/:name", doPackageModule);
         app.post("/module/install", doInstall);
-        app.get("/modules", doGetModules);
         app.get("/settings/:name", doGetSettingsRow);
         app.put("/settings/:name", doSaveSettings);
         app.get("/settings-definition", doGetSettingsDefinition);
@@ -1040,5 +1103,5 @@
     // FIRE IT UP
     //
 
-    init().then(start).catch(process.exit);
+    init().then(subscribeToFeathers).then(start).catch(process.exit);
 }());
