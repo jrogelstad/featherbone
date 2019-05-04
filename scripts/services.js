@@ -29,12 +29,28 @@ function doUpsertFeather(obj) {
         let feather = f.copy(obj.newRec);
         let props = feather.properties;
         let overloads = feather.overloads || [];
+        let exclusions = [
+            "id",
+            "etag",
+            "isDeleted",
+            "objectType",
+            "lock",
+            "updated",
+            "updatedBy",
+            "created",
+            "createdBy"
+        ]
 
         // Save the feather in the catalog
         feather.properties = {};
-        delete feather.id;
+        exclusions.forEach(function (attr) {
+            delete feather[attr];
+        });
         props.forEach(function (prop) {
             if (prop) {
+                exclusions.forEach(function (attr) {
+                    delete prop[attr];
+                });
                 feather.properties[prop.name] = prop;
                 delete prop.name;
             }

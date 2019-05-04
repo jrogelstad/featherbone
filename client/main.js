@@ -733,11 +733,10 @@ evstart.onmessage = function (event) {
                     catalog.registerModel(
                         data.name,
                         function (d, spec) {
-                            return model(d, spec || f.copy(data));
+                            return model(d, spec || data);
                         },
                         Boolean(data.plural)
                     );
-                    delete data.name;
                 }
                 return;
             }
