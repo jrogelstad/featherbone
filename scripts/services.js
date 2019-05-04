@@ -32,6 +32,7 @@ function doUpsertFeather(obj) {
 
         // Save the feather in the catalog
         feather.properties = {};
+        delete feather.id;
         props.forEach(function (prop) {
             if (prop) {
                 feather.properties[prop.name] = prop;
