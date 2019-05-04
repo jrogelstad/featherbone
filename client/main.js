@@ -727,8 +727,17 @@ evstart.onmessage = function (event) {
             if (change === "feather") {
                 if (payload.message.subscription.deleted) {
                     catalog.unregister("feathers", data);
+                    catalog.unregister("models", data.toCamelCase());
                 } else {
-                    catalog.register("feathers", data.id, data);
+                    catalog.register("feathers", data.name, data);
+                    catalog.registerModel(
+                        data.name,
+                        function (d, spec) {
+                            return model(d, spec || f.copy(data));
+                        },
+                        Boolean(data.plural)
+                    );
+                    delete data.name;
                 }
                 return;
             }
