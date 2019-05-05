@@ -8,7 +8,7 @@ A JavaScript based persistence framework for building object relational database
   
 # Install
 
-Make sure your Postgres installation matches the credentials [here](https://github.com/jrogelstad/featherbone/blob/master/server/config.json), or modify the configuration file to match your administrator credentials. If the database specified does not exist, it will be created automatically.
+Make sure your PostgreSQL installation matches the credentials [here](https://github.com/jrogelstad/featherbone/blob/master/server/config.json), or modify the configuration file to match your administrator credentials. If the database specified does not exist, it will be created automatically.
 
 Clone this repository and from the cloned location:
 
@@ -18,7 +18,7 @@ $ node install
 $ node server
 ```
 
-From your browser navigate to <http://localhost:10001> to run the application.
+From your browser navigate to <http://localhost:10001> to run the application. Use the same user name and password as specified as in your PostgreSQL credentials to sign in.
 
 An additional example module may be loaded [here](https://github.com/jrogelstad/cardinal)
 
