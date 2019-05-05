@@ -65,7 +65,7 @@ function saveProfile(name, config, dialog) {
         }
 
         if (config) {
-            newProfile.data.workbooks[name] = config;
+            newProfile.data.workbooks[name] = f.copy(config);
         } else {
             delete newProfile.data.workbooks[name];
         }
