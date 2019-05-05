@@ -39,7 +39,7 @@ function doUpsertFeather(obj) {
             "updatedBy",
             "created",
             "createdBy"
-        ]
+        ];
 
         // Save the feather in the catalog
         feather.properties = {};

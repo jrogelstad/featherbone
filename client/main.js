@@ -44,6 +44,7 @@ let formsSid = f.createId();
 let loadForms;
 let loadCatalog;
 let loadModules;
+let loadProfile;
 let moduleData;
 let moduleSid = f.createId();
 let workbookData;
@@ -423,6 +424,19 @@ function initPromises() {
         });
     });
 
+    // Load profile
+    loadProfile = new Promise(function (resolve) {
+        let payload = {
+            method: "GET",
+            path: "/profile"
+        };
+
+        datasource.request(payload).then(function (resp) {
+            catalog.register("data", "profile", f.prop(resp));
+            resolve();
+        });
+    });
+
     // Load workbooks
     loadWorkbooks = new Promise(function (resolve) {
         let payload = {
@@ -679,6 +693,7 @@ function start() {
         loadCatalog,
         loadModules,
         loadForms,
+        loadProfile,
         loadWorkbooks
     ]).then(initApp);
 }

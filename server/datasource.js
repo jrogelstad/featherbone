@@ -30,6 +30,7 @@
     const {Feathers} = require("./services/feathers");
     const {Importer, Exporter} = require("./services/io");
     const {Installer} = require("./services/installer");
+    const {Profile} = require("./services/profile");
     const {Packager} = require("./services/packager");
     const {Routes} = require("./services/routes");
     const {Services} = require("./services/services");
@@ -50,6 +51,7 @@
     const importer = new Importer();
     const installer = new Installer();
     const packager = new Packager();
+    const profile = new Profile();
     const routes = new Routes();
     const services = new Services();
     const settings = new Settings();
@@ -1337,6 +1339,7 @@
     that.registerFunction("GET", "convertCurrency", currency.convertCurrency);
     that.registerFunction("GET", "getServices", services.getServices);
     that.registerFunction("GET", "getFeather", feathers.getFeather);
+    that.registerFunction("GET", "getProfile", profile.getProfile);
     that.registerFunction("GET", "getRoutes", routes.getRoutes);
     that.registerFunction("GET", "getSettings", settings.getSettings);
     that.registerFunction("GET", "getSettingsRow", settings.getSettingsRow);
@@ -1348,6 +1351,7 @@
     that.registerFunction("GET", "getWorkbook", workbooks.getWorkbook);
     that.registerFunction("GET", "getWorkbooks", workbooks.getWorkbooks);
     that.registerFunction("GET", "isAuthorized", feathers.isAuthorized);
+    that.registerFunction("PATCH", "patchProfile", profile.patchProfile);
     that.registerFunction("POST", "changeRoleLogin", role.changeLogin);
     that.registerFunction("POST", "changeRolePassword", role.changePassword);
     that.registerFunction("POST", "createRole", role.createRole);
@@ -1360,6 +1364,7 @@
         feathers.saveAuthorization
     );
     that.registerFunction("PUT", "saveFeather", feathers.saveFeather);
+    that.registerFunction("PUT", "saveProfile", profile.saveProfile);
     that.registerFunction("PUT", "saveSettings", settings.saveSettings);
     that.registerFunction("PUT", "saveWorkbook", workbooks.saveWorkbook);
     that.registerFunction("DELETE", "deleteFeather", feathers.deleteFeather);
