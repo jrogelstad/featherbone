@@ -219,6 +219,7 @@ function workbookModel(data) {
 
         if (
             profile &&
+            profile.data &&
             profile.data.workbooks &&
             profile.data.workbooks[d.name()]
         ) {
