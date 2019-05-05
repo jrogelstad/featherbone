@@ -64,7 +64,11 @@ function saveProfile(name, config, dialog) {
             newProfile.data.workbooks = {};
         }
 
-        newProfile.data.workbooks[name] = config;
+        if (config) {
+            newProfile.data.workbooks[name] = config;
+        } else {
+            delete newProfile.data.workbooks[name];
+        }
         patch = jsonpatch.compare(oldProfile.data, newProfile.data);
         if (patch && patch.length) {
             datasource.request({
@@ -78,7 +82,7 @@ function saveProfile(name, config, dialog) {
                 // Error dialog if conflict with another instance
             });
         }
-    } else {
+    } else if (config) {
         newProfile = {};
         newProfile.workbooks = {};
         newProfile.workbooks[name] = config;
@@ -764,7 +768,7 @@ workbookPage.viewModel = function (options) {
         }
     };
     vm.onclickmenu = function () {
-        vm.showMenu(true);
+        vm.showMenu(!vm.showMenu());
     };
     vm.onmouseoutmenu = function (ev) {
         if (
@@ -779,15 +783,16 @@ workbookPage.viewModel = function (options) {
     };
     vm.revert = function () {
         let workbookJSON = vm.workbook().toJSON();
-        let localConfig = vm.config();
+        let config = vm.config();
         let defaultConfig = workbookJSON.defaultConfig;
         let sheet = defaultConfig[0];
+        let profile = catalog.store().data().profile().data;
 
-        localConfig.length = 0;
+        config.length = 0;
         defaultConfig.forEach(function (item) {
-            localConfig.push(item);
+            config.push(item);
         });
-        workbookJSON.localConfig = localConfig;
+        saveProfile(workbook.data.name(), undefined, vm.confirmDialog());
         m.route.set("/workbook/:workbook/:sheet", {
             workbook: workbookJSON.name.toSpinalCase(),
             sheet: sheet.name.toSpinalCase()
