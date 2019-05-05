@@ -116,7 +116,6 @@
                         ) + " PASSWORD %L;";
 
                         sql = sql.format([name, pwd]);
-                        console.log(sql);
                         obj.client.query(sql, function (err) {
                             if (err) {
                                 reject(err);
