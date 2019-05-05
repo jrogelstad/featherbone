@@ -22,8 +22,8 @@
     const f = require("../../common/core");
     const jsonpatch = require("fast-json-patch");
     const conflictErr = new Error(
-        "Profile has been changed by another " +
-        "instance. Refresh and try again."
+        "Profile has been changed by another instance. " +
+        "Changes will not save until the browser is refereshed."
     );
     conflictErr.statusCode = 409;
 
@@ -107,7 +107,7 @@
                     obj.client.query(
                         sql,
                         [role, etag, obj.data]
-                    ).then(resolve).catch(reject);
+                    ).then(resolve.bind(null, etag)).catch(reject);
                 });
             });
         };
@@ -124,7 +124,7 @@
         */
         that.patchProfile = function (obj) {
             return new Promise(function (resolve, reject) {
-                let sql = "SELECT data FROM \"$profiles\" WHERE role = $1;";
+                let sql = "SELECT etag, data FROM \"$profiles\" WHERE role = $1;";
                 let data;
                 let role = obj.client.currentUser;
                 let etag = f.createId();
@@ -138,7 +138,7 @@
 
                     // Send back result
                     if (resp.rows.length) {
-                        if (obj.etag !== resp.rows[0].etag) {
+                        if (obj.data.etag !== resp.rows[0].etag) {
                             reject(conflictErr);
                             return;
                         }
@@ -152,7 +152,7 @@
                         obj.client.query(
                             sql,
                             [role, etag, data]
-                        ).then(resolve).catch(reject);
+                        ).then(resolve.bind(null, etag)).catch(reject);
                     } else {
                         reject(
                             new Error("Profile does not exist for " + role)

@@ -50,13 +50,20 @@ const editWorkbookConfig = {
     }]
 };
 
-function saveProfile(name, config, dialog) {
+let profileInvalid = false;
+
+function saveProfile(name, config, dlg) {
     let oldProfile = catalog.store().data().profile();
     let newProfile = f.copy(oldProfile);
     let patch;
 
-    function callback() {
+    function callback(resp) {
+        newProfile.etag = resp;
         catalog.store().data().profile(newProfile);
+    }
+
+    if (profileInvalid) {
+        return;
     }
 
     if (oldProfile) {
@@ -78,8 +85,12 @@ function saveProfile(name, config, dialog) {
                     etag: oldProfile.etag,
                     patch: patch
                 }
-            }).then(callback).catch(function () {
-                // Error dialog if conflict with another instance
+            }).then(callback).catch(function (err) {
+                profileInvalid = true;
+                dlg.message(err.message);
+                dlg.icon("window-close");
+                dlg.buttonCancel().hide();
+                dlg.show();
             });
         }
     } else if (config) {
