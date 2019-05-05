@@ -1282,8 +1282,6 @@ tableWidget.viewModel = function (options) {
         let widthStart;
         let typeStart = dataTransfer.typeStart;
 
-        vm.isDragging(false);
-
         ev.preventDefault();
 
         switch (typeStart) {
@@ -1303,6 +1301,8 @@ tableWidget.viewModel = function (options) {
                 ary.splice(toIdx, 0, moved);
             }
         }
+        
+        vm.isDragging(false);
     };
     vm.onkeydown = function (e) {
         let id;

@@ -222,7 +222,7 @@ function workbookModel(data) {
             profile.data.workbooks &&
             profile.data.workbooks[d.name()]
         ) {
-            config = profile.data.workbooks[d.name()];
+            config = f.copy(profile.data.workbooks[d.name()]);
         } else if (d.localConfig().length) {
             config = d.localConfig();
         }
