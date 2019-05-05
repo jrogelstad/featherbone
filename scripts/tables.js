@@ -222,6 +222,19 @@
         "'Object containing settings';"
     );
 
+    const createProfilesSql = (
+        "CREATE TABLE \"$profiles\" (" +
+        "role text PRIMARY KEY," +
+        "etag text, " +
+        "data json);" +
+        "COMMENT ON TABLE \"$profiles\" IS " +
+        "'Internal table for storing user profile information';" +
+        "COMMENT ON COLUMN \"$profiles\".role IS 'Role profile belongs to';" +
+        "COMMENT ON COLUMN \"$profiles\".etag IS 'Version';" +
+        "COMMENT ON COLUMN \"$profiles\".data IS " +
+        "'Profile data';"
+    );
+
     const objectDef = {
         Object: {
             description: (
@@ -298,6 +311,7 @@
             let createSettings;
             let createEventTrigger;
             let createLock;
+            let createProfiles;
             let sqlCheck;
             let done;
             let sql;
@@ -479,7 +493,23 @@
                     }
 
                     if (!exists) {
-                        obj.client.query(createWorkbookSql, createSettings);
+                        obj.client.query(createWorkbookSql, createProfiles);
+                        return;
+                    }
+                    createProfiles();
+                });
+            };
+
+            // Create the profile table
+            createProfiles = function () {
+                sqlCheck("$profiles", function (err, exists) {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+
+                    if (!exists) {
+                        obj.client.query(createProfilesSql, createSettings);
                         return;
                     }
                     createSettings();

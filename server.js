@@ -47,6 +47,7 @@
         "feather",
         "module",
         "modules",
+        "profile",
         "settings",
         "settings-definition",
         "workbook",
@@ -760,6 +761,47 @@
         req.session.destroy();
     }
 
+    function doGetProfile(req, res) {
+        let payload = {
+            method: "GET",
+            name: "getProfile",
+            user: req.user.name
+        };
+
+        console.log(JSON.stringify(payload, null, 2));
+        datasource.request(payload).then(respond.bind(res)).catch(
+            error.bind(res)
+        );
+    }
+
+    function doPutProfile(req, res) {
+        let payload = {
+            method: "PUT",
+            name: "saveProfile",
+            user: req.user.name,
+            data: req.body
+        };
+
+        console.log(JSON.stringify(payload, null, 2));
+        datasource.request(payload).then(respond.bind(res)).catch(
+            error.bind(res)
+        );
+    }
+
+    function doPatchProfile(req, res) {
+        let payload = {
+            method: "PATCH",
+            name: "patchProfile",
+            user: req.user.name,
+            data: req.body
+        };
+
+        console.log(JSON.stringify(payload, null, 2));
+        datasource.request(payload).then(respond.bind(res)).catch(
+            error.bind(res)
+        );
+    }
+
     // Listen for changes to feathers, update and broadcast to all
     function subscribeToFeathers() {
         return new Promise(function (resolve, reject) {
@@ -821,7 +863,7 @@
                                         change: "feather",
                                         deleted: true
                                     },
-                                    data: message.payload.data,
+                                    data: message.payload.data
                                 }
                             });
                         }
@@ -989,6 +1031,9 @@
         app.get("/feather/:name", doGetFeather);
         app.post("/module/package/:name", doPackageModule);
         app.post("/module/install", doInstall);
+        app.get("/profile", doGetProfile);
+        app.put("/profile", doPutProfile);
+        app.patch("/profile", doPatchProfile);
         app.get("/settings/:name", doGetSettingsRow);
         app.put("/settings/:name", doSaveSettings);
         app.get("/settings-definition", doGetSettingsDefinition);

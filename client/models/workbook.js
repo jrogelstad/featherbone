@@ -215,8 +215,15 @@ function workbookModel(data) {
     that.getConfig = function () {
         let d = that.data;
         let config = d.defaultConfig();
+        let profile = catalog.store().data().profile();
 
-        if (d.localConfig().length) {
+        if (
+            profile &&
+            profile.data.workbooks &&
+            profile.data.workbooks[d.name()]
+        ) {
+            config = profile.data.workbooks[d.name()];
+        } else if (d.localConfig().length) {
             config = d.localConfig();
         }
         return config;
@@ -270,6 +277,7 @@ function workbookModel(data) {
 
     that.onLoad(function () {
         that.data.name.isReadOnly(true);
+        that.data.localConfig(f.copy(that.data.defaultConfig()));
     });
 
     return that;

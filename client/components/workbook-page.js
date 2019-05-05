@@ -30,10 +30,12 @@ import tableDialog from "./table-dialog.js";
 import checkbox from "./checkbox.js";
 import icons from "../icons.js";
 import accountMenu from "./account-menu.js";
+import datasource from "../datasource.js";
 
 const workbookPage = {};
 const sheetConfigureDialog = {};
 const m = window.m;
+const jsonpatch = window.jsonpatch;
 const editWorkbookConfig = {
     attrs: [{
         attr: "name"
@@ -47,6 +49,44 @@ const editWorkbookConfig = {
         dataList: "modules"
     }]
 };
+
+function saveProfile(name, config, dialog) {
+    let oldProfile = catalog.store().data().profile();
+    let newProfile = f.copy(oldProfile);
+    let patch;
+
+    function callback() {
+        catalog.store().data().profile(newProfile);
+    }
+
+    if (oldProfile) {
+        if (!newProfile.workbooks) {
+            newProfile.workbooks = {};
+        }
+
+        newProfile.workbooks[name] = config;
+        patch = jsonpatch.compare(oldProfile.data, newProfile.data);
+        datasource.request({
+            method: "PATCH",
+            path: "/profile",
+            data: {
+                etag: oldProfile.etag,
+                patch: patch
+            }
+        }).then(callback).catch(function () {
+            // Error dialog if conflict with another instance
+        });
+    } else {
+        newProfile = {};
+        newProfile.workbooks = {};
+        newProfile.workbooks[name] = config;
+        datasource.request({
+            method: "PUT",
+            path: "/profile",
+            data: newProfile
+        }).then(callback);
+    }
+}
 
 // View model for worksheet configuration.
 sheetConfigureDialog.viewModel = function (options) {
@@ -64,6 +104,7 @@ sheetConfigureDialog.viewModel = function (options) {
         "fb-group-tab "
     );
     let activeClass = buttonClass + " fb-group-tab-active";
+    let workbook = options.parentViewModel.workbook();
 
     options.onOk = function () {
         let id = vm.sheetId();
@@ -76,6 +117,11 @@ sheetConfigureDialog.viewModel = function (options) {
             tw.config(sheet.list);
         }
         vm.state().send("close");
+        saveProfile(
+            workbook.data.name(),
+            workbook.data.localConfig(),
+            options.parentViewModel.confirmDialog()
+        );
     };
     options.icon = "table";
     options.title = "Configure worksheet";
