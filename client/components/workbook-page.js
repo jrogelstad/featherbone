@@ -60,22 +60,24 @@ function saveProfile(name, config, dialog) {
     }
 
     if (oldProfile) {
-        if (!newProfile.workbooks) {
-            newProfile.workbooks = {};
+        if (!newProfile.data.workbooks) {
+            newProfile.data.workbooks = {};
         }
 
-        newProfile.workbooks[name] = config;
+        newProfile.data.workbooks[name] = config;
         patch = jsonpatch.compare(oldProfile.data, newProfile.data);
-        datasource.request({
-            method: "PATCH",
-            path: "/profile",
-            data: {
-                etag: oldProfile.etag,
-                patch: patch
-            }
-        }).then(callback).catch(function () {
-            // Error dialog if conflict with another instance
-        });
+        if (patch && patch.length) {
+            datasource.request({
+                method: "PATCH",
+                path: "/profile",
+                data: {
+                    etag: oldProfile.etag,
+                    patch: patch
+                }
+            }).then(callback).catch(function () {
+                // Error dialog if conflict with another instance
+            });
+        }
     } else {
         newProfile = {};
         newProfile.workbooks = {};
@@ -119,7 +121,7 @@ sheetConfigureDialog.viewModel = function (options) {
         vm.state().send("close");
         saveProfile(
             workbook.data.name(),
-            workbook.data.localConfig(),
+            options.parentViewModel.config(),
             options.parentViewModel.confirmDialog()
         );
     };
@@ -732,6 +734,7 @@ workbookPage.viewModel = function (options) {
         if (fromIdx !== toIdx) {
             moved = ary.splice(fromIdx, 1)[0];
             ary.splice(toIdx, 0, moved);
+            vm.saveProfile();
         }
         vm.isDraggingTab(false);
     };
@@ -789,6 +792,13 @@ workbookPage.viewModel = function (options) {
             workbook: workbookJSON.name.toSpinalCase(),
             sheet: sheet.name.toSpinalCase()
         });
+    };
+    vm.saveProfile = function () {
+        saveProfile(
+            workbook.data.name(),
+            vm.config(),
+            vm.confirmDialog()
+        );
     };
     vm.searchInput = f.prop();
     vm.share = function () {
@@ -919,6 +929,13 @@ workbookPage.viewModel = function (options) {
         subscribe: true,
         footerId: vm.footerId()
     }));
+
+    // Watch when columns change and save profile
+    vm.tableWidget().isDragging.state().resolve("/Changing").exit(function () {
+        if (!vm.tableWidget().isDragging()) {
+            vm.saveProfile();
+        }
+    });
 
     // Create dialog view models
     vm.filterDialog(filterDialog.viewModel({
