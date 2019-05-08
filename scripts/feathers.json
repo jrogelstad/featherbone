@@ -253,6 +253,7 @@
         "name": "Role",
         "plural": "Roles",
         "module": "Core",
+        "isFetchOnStartup": true,
         "description": "User authorization role",
         "authorization": false,
         "properties": {
@@ -276,13 +277,18 @@
                 "description": "System adiminstrator flag",
                 "type": "boolean",
                 "default": false
+            },
+            "etag": {
+                "description": "Optimistic locking key",
+                "type": "string",
+                "default": "createId()"
             }
         }
     },
     {
         "name": "RoleMember",
         "module": "Core",
-        "description": "Member reference to a parent role",
+        "description": "Member reference to a child role",
         "authorization": false,
         "properties": {
             "parent": {
@@ -293,7 +299,26 @@
                 }
             },
             "member": {
-                "description": "member",
+                "description": "Member role name",
+                "type": "string"
+            }
+        }
+    },
+    {
+        "name": "RoleMemberOf",
+        "module": "Core",
+        "description": "Member reference to a parent role",
+        "authorization": false,
+        "properties": {
+            "parent": {
+                "description": "Parent role",
+                "type": {
+                    "relation": "Role",
+                    "childOf": "memberOf"
+                }
+            },
+            "role": {
+                "description": "Parent member role name",
                 "type": "string"
             }
         }
