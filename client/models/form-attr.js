@@ -102,12 +102,18 @@ function formAttr(data, feather) {
         }
         formFeather = catalog.getFeather(formFeather);
         keys = Object.keys(formFeather.properties || []).sort();
-        return keys.map(function (key) {
+        result = keys.map(function (key) {
             return {
                 value: key,
                 label: key
             };
         });
+        result.unshift({
+            value: "",
+            label: ""
+        });
+
+        return result;
     }
 
     feather = feather || catalog.getFeather("FormAttr");
