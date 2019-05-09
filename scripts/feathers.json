@@ -263,49 +263,14 @@
                 "isNaturalKey": true,
                 "isRequired": true
             },
-            "password": {
-                "description": "Password",
-                "type": "string",
-                "format": "password"
-            },
-            "isLogin": {
-                "description": "Can login as user",
-                "type": "boolean",
-                "default": false
-            },
-            "isSuper": {
-                "description": "System adiminstrator flag",
-                "type": "boolean",
-                "default": false
-            },
-            "etag": {
-                "description": "Optimistic locking key",
-                "type": "string",
-                "default": "createId()"
-            }
-        }
-    },
-    {
-        "name": "RoleMember",
-        "module": "Core",
-        "description": "Member reference to a child role",
-        "authorization": false,
-        "properties": {
-            "parent": {
-                "description": "Parent role",
-                "type": {
-                    "relation": "Role",
-                    "childOf": "members"
-                }
-            },
-            "member": {
-                "description": "Member role name",
+            "description": {
+                "description": "Description",
                 "type": "string"
             }
         }
     },
     {
-        "name": "RoleMemberOf",
+        "name": "roleMembership",
         "module": "Core",
         "description": "Member reference to a parent role",
         "authorization": false,

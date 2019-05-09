@@ -19,38 +19,26 @@ import catalog from "./catalog.js";
 import model from "./model.js";
 
 /*
-  Role Member model
+  User account model
 */
-function roleMember(data, feather) {
-    feather = feather || catalog.getFeather("RoleMember");
+function userAccount(data, feather) {
+    feather = feather || catalog.getFeather("Role");
     let that = model(data, feather);
 
-    function roleNames () {
-        let roles = catalog.store().data().roles();
-        let name;
-        let result;
-        
-        result = roles.map(function (role) {
-            name = role.data.name();
-            return {
-                value: name,
-                label: name
-            };
-        });
-        result.unshift({
-            value: "",
-            label: ""
-        });
-        return result;
-    }
+    // New roles are always members of everyone
+    that.data.memberOf().add({
+        role: "everyone"
+    });
 
-    that.addCalculated({
-        name: "roleNames",
-        type: "array",
-        function: roleNames
+    that.onChange("name", function (prop) {
+        prop.newValue(prop.newValue().toLowerCase());
+    });
+
+    that.onLoad(function () {
+        that.data.name.isReadOnly(true);
     });
 
     return that;
 }
 
-catalog.registerModel("RoleMember", roleMember);
+catalog.registerModel("UserAccount", userAccount, true);

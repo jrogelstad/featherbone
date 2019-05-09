@@ -518,35 +518,12 @@ f.datasource.registerFunction(
 function updateRole(obj) {
     "use strict";
 
-    return new Promise(function (resolve, reject) {
-        let requests = [];
-
-        let payload = {
-            method: "POST",
-            name: "changeRolePassword",
-            client: obj.client,
-            data: {
-                name: obj.newRec.name.toLowerCase(),
-                password: obj.newRec.password
-            }
-        };
-
+    return new Promise(function (resolve) {
         if (obj.oldRec.name !== obj.newRec.name) {
             throw new Error("Name cannot be changed");
         }
 
-        if (obj.newRec.password) {
-            obj.newRec.password = "";
-            requests.push(f.datasource.request(payload, true));
-        }
-
-        if (obj.newRec.isLogin !== obj.oldRec.isLogin) {
-            payload.name = "changeRoleLogin";
-            payload.data.isLogin = obj.newRec.isLogin;
-            requests.push(f.datasource.request(payload, true));
-        }
-
-        Promise.all(requests).then(resolve).catch(reject);
+        resolve();
     });
 }
 
@@ -560,13 +537,10 @@ function createRole(obj) {
             client: obj.client,
             data: {
                 name: obj.newRec.name.toLowerCase(),
-                isLogin: obj.newRec.isLogin,
-                password: obj.newRec.password
+                isLogin: false,
+                isInherits: true
             }
         };
-
-        obj.newRec.name = obj.newRec.name.toLowerCase();
-        obj.newRec.password = "";
 
         f.datasource.request(payload, true).then(resolve).catch(reject);
     });
@@ -606,6 +580,84 @@ f.datasource.registerFunction(
 f.datasource.registerFunction(
     "DELETE",
     "Role",
+    deleteRole,
+    f.datasource.TRIGGER_BEFORE
+);
+
+/**
+  User Account
+*/
+function updateUserAccount(obj) {
+    "use strict";
+
+    return new Promise(function (resolve, reject) {
+        let payload = {
+            method: "POST",
+            name: "changeRolePassword",
+            client: obj.client,
+            data: {
+                name: obj.newRec.name.toLowerCase(),
+                password: obj.newRec.password
+            }
+        };
+
+        if (obj.oldRec.name !== obj.newRec.name) {
+            throw new Error("Name cannot be changed");
+        }
+
+        if (obj.newRec.password) {
+            obj.newRec.password = "";
+            f.datasource.request(
+                payload, 
+                true
+            ).then(resolve).catch(reject);
+            return;
+        }
+
+        resolve();
+    });
+}
+
+function createUserAccount(obj) {
+    "use strict";
+
+    return new Promise(function (resolve, reject) {
+        let payload = {
+            method: "POST",
+            name: "createRole",
+            client: obj.client,
+            data: {
+                name: obj.newRec.name.toLowerCase(),
+                isLogin: true,
+                password: obj.newRec.password,
+                isInherits: false
+            }
+        };
+
+        obj.newRec.name = obj.newRec.name.toLowerCase();
+        obj.newRec.password = "";
+
+        f.datasource.request(payload, true).then(resolve).catch(reject);
+    });
+}
+
+f.datasource.registerFunction(
+    "POST",
+    "UserAccount",
+    createUserAccount,
+    f.datasource.TRIGGER_BEFORE
+);
+
+f.datasource.registerFunction(
+    "PATCH",
+    "UserAccount",
+    updateUserAccount,
+    f.datasource.TRIGGER_BEFORE
+);
+
+f.datasource.registerFunction(
+    "DELETE",
+    "UserAccount",
     deleteRole,
     f.datasource.TRIGGER_BEFORE
 );

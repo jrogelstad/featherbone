@@ -19,10 +19,10 @@ import catalog from "./catalog.js";
 import model from "./model.js";
 
 /*
-  Role Member Of model
+  User Account Membership model
 */
-function roleMemberOf(data, feather) {
-    feather = feather || catalog.getFeather("RoleMemberOf");
+function userAccountMembership(data, feather) {
+    feather = feather || catalog.getFeather("UserAccountMembership");
     let that = model(data, feather);
 
     function roleNames () {
@@ -53,4 +53,4 @@ function roleMemberOf(data, feather) {
     return that;
 }
 
-catalog.registerModel("RoleMemberOf", roleMemberOf);
+catalog.registerModel("UserAccountMembership", userAccountMembership);
