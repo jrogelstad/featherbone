@@ -113,7 +113,11 @@
                             obj.data.isLogin === true
                             ? "LOGIN"
                             : "NOLOGIN"
-                        ) + " PASSWORD %L;";
+                        ) + (
+                            obj.data.isInherit === true
+                            ? " INHERIT "
+                            : " NOINHERIT "
+                        ) +" PASSWORD %L;";
 
                         sql = sql.format([name, pwd]);
                         obj.client.query(sql, function (err) {

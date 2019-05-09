@@ -19,21 +19,38 @@ import catalog from "./catalog.js";
 import model from "./model.js";
 
 /*
-  Role model
+  Role Membership model
 */
-function role(data, feather) {
-    feather = feather || catalog.getFeather("Role");
+function roleMembership(data, feather) {
+    feather = feather || catalog.getFeather("RoleMembership");
     let that = model(data, feather);
 
-    that.onChange("name", function (prop) {
-        prop.newValue(prop.newValue().toLowerCase());
-    });
+    function roleNames () {
+        let roles = catalog.store().data().roles();
+        let name;
+        let result;
+        
+        result = roles.map(function (role) {
+            name = role.data.name();
+            return {
+                value: name,
+                label: name
+            };
+        });
+        result.unshift({
+            value: "",
+            label: ""
+        });
+        return result;
+    }
 
-    that.onLoad(function () {
-        that.data.name.isReadOnly(true);
+    that.addCalculated({
+        name: "roleNames",
+        type: "array",
+        function: roleNames
     });
 
     return that;
 }
 
-catalog.registerModel("Role", role, true);
+catalog.registerModel("RoleMembership", roleMembership);

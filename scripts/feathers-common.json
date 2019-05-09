@@ -966,10 +966,26 @@
     }, {
         "name": "UserAccount",
         "plural": "UserAccounts",
-        "inherits": "Role",
+        "inherits": "Document",
         "module": "Core",
         "description": "System users",
         "properties": {
+            "name": {
+                "description": "Name",
+                "type": "string",
+                "isNaturalKey": true,
+                "isRequired": true
+            },
+            "password": {
+                "description": "Password",
+                "type": "string",
+                "format": "password"
+            },
+            "isSuper": {
+                "description": "System adiminstrator flag",
+                "type": "boolean",
+                "default": false
+            },
             "contact": {
                 "description": "Contact information",
                 "type": {
@@ -983,5 +999,24 @@
                 }
             }
         }
-    }
+    },
+    {
+        "name": "userAccountMembership",
+        "module": "Core",
+        "description": "User account reference to a parent role",
+        "authorization": false,
+        "properties": {
+            "parent": {
+                "description": "Parent role",
+                "type": {
+                    "relation": "Role",
+                    "childOf": "memberOf"
+                }
+            },
+            "role": {
+                "description": "Parent member role name",
+                "type": "string"
+            }
+        }
+    },
 ]
