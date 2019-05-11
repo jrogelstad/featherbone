@@ -593,7 +593,7 @@ function createRole(obj) {
         let requests = [];
         let membership = obj.newRec.membership || [];
         let options = obj.roleOptions || {
-            name: obj.newRec.name.toLowerCase(),
+            name: obj.newRec.name.toLowerCase().replace(/ /g, "_");
             isLogin: true,
             password: obj.newRec.password,
             isInherits: false
