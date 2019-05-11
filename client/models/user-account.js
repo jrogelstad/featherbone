@@ -22,13 +22,16 @@ import model from "./model.js";
   User account model
 */
 function userAccount(data, feather) {
-    feather = feather || catalog.getFeather("Role");
-    let that = model(data, feather);
-
+    feather = feather || catalog.getFeather("UserAccount");
     // New roles are always members of everyone
-    that.data.memberOf().add({
-        role: "everyone"
-    });
+    if (data === undefined) {
+        data = {
+            membership: [{
+                role: "everyone"
+            }]
+        }
+    }
+    let that = model(data, feather);
 
     that.onChange("name", function (prop) {
         prop.newValue(prop.newValue().toLowerCase());
