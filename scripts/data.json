@@ -627,6 +627,10 @@
             "attr": "name"
         },
         {
+            "attr": "isSuper",
+            "unit": 1
+        },
+        {
             "attr": "membership",
             "grid": 1,
             "showLabel": false,

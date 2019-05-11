@@ -921,20 +921,20 @@
                         return;
                     }
 
-                    tools.getKey({
-                        id: obj.data.role,
-                        client: obj.client
-                    }).then(afterGetRoleKey).catch(reject);
+                    obj.client.query(
+                        "SELECT _pk FROM \"role\" WHERE name = $1",
+                        [obj.data.role]
+                    ).then(afterGetRoleKey).catch(reject);
                 };
 
                 afterGetRoleKey = function (resp) {
-                    rolePk = resp;
-
                     // Validation
-                    if (!rolePk) {
-                        reject("Role \"" + id + "\" not found");
+                    if (!resp.rows.length) {
+                        reject("Role \"" + obj.data.role + "\" not found");
                         return;
                     }
+
+                    rolePk = resp.rows[0]._pk;
 
                     if (obj.data.id && obj.data.isMember) {
                         sql = "SELECT tableoid::regclass::text AS feather ";
