@@ -179,8 +179,7 @@
             return new Promise(function (resolve, reject) {
                 let sql = "GRANT %I TO %I;";
 
-                sql.format([obj.fromRole, obj.toRole]);
-
+                sql = sql.format([obj.data.fromRole, obj.data.toRole]);
                 obj.client.query(sql).then(resolve).catch(reject);
             });
         };
@@ -199,8 +198,7 @@
             return new Promise(function (resolve, reject) {
                 let sql = "REVOKE %I FROM %I;";
 
-                sql.format([obj.fromRole, obj.toRole]);
-
+                sql = sql.format([obj.data.fromRole, obj.data.toRole]);
                 obj.client.query(sql).then(resolve).catch(reject);
             });
         };
