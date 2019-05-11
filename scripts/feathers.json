@@ -262,10 +262,6 @@
                 "type": "string",
                 "isNaturalKey": true,
                 "isRequired": true
-            },
-            "description": {
-                "description": "Description",
-                "type": "string"
             }
         }
     },
@@ -398,6 +394,206 @@
             "module": {
                 "description": "Module script belongs to",
                 "type": "string"
+            }
+        }
+    },
+    {
+        "name": "Honorific",
+        "plural": "Honorifics",
+        "module": "Core",
+        "authorization": false,
+        "description": "Honorific",
+        "properties": {
+            "title": {
+                "description": "Title",
+                "type": "string",
+                "isNaturalKey": true
+            }
+        }
+    },
+    {
+        "name": "Address",
+        "module": "Core",
+        "description": "Physical location",
+        "isChild": true,
+        "authorization": false,
+        "properties": {
+            "type": {
+                "description": "Home, work, other",
+                "type": "string",
+                "format": "enum",
+                "default": "H",
+                "isRequired": true,
+                "dataList": [{
+                    "value": "H",
+                    "label": "Home"
+                }, {
+                    "value": "W",
+                    "label": "Work"
+                }, {
+                    "value": "M",
+                    "label": "Mailing"
+                }, {
+                    "value": "O",
+                    "label": "Other"
+                }]
+            },
+            "street": {
+                "description": "Street",
+                "type": "string",
+                "isRequired": true
+            },
+            "unit": {
+                "description": "Unit",
+                "type": "string"
+            },
+            "city": {
+                "description": "City",
+                "type": "string",
+                "isRequired": true
+            },
+            "state": {
+                "description": "State",
+                "type": "string",
+                "isRequired": true
+            },
+            "postalCode": {
+                "description": "Postal code",
+                "type": "string",
+                "isRequired": true
+            },
+            "country": {
+                "description": "Country",
+                "type": "string",
+                "isRequired": true
+            }
+        }
+    },
+    {
+        "name": "Contact",
+        "plural": "Contacts",
+        "module": "Core",
+        "authorization": false,
+        "description": "Information about a person",
+        "inherits": "Document",
+        "properties": {
+            "honorific": {
+                "description": "Honorific",
+                "type": {
+                    "relation": "Honorific",
+                    "properties": [
+                        "title"
+                    ]
+                }
+            },
+            "firstName": {
+                "description": "First name",
+                "type": "string"
+            },
+            "lastName": {
+                "description": "Last name",
+                "type": "string",
+                "isRequired": true
+            },
+            "fullName": {
+                "description": "Name",
+                "type": "string",
+                "isReadOnly": true,
+                "isIndexed": true
+            },
+            "phone": {
+                "description": "Primary phone number",
+                "type": "string",
+                "format": "tel",
+                "alias": "Phone"
+            },
+            "phoneType": {
+                "description": "Home, work, other",
+                "type": "string",
+                "default": "M",
+                "format": "enum",
+                "isRequired": true,
+                "dataList": [{
+                    "value": "M",
+                    "label": "Mobile"
+                }, {
+                    "value": "H",
+                    "label": "Home"
+                }, {
+                    "value": "W",
+                    "label": "Work"
+                }, {
+                    "value": "O",
+                    "label": "Other"
+                }]
+            },
+            "email": {
+                "description": "Primary phone number",
+                "type": "string",
+                "format": "email"
+            },
+            "emailType": {
+                "description": "Personal, work, other",
+                "type": "string",
+                "default": "P",
+                "format": "enum",
+                "isRequired": true,
+                "dataList": [{
+                    "value": "P",
+                    "label": "Personal"
+                }, {
+                    "value": "W",
+                    "label": "Work"
+                }, {
+                    "value": "O",
+                    "label": "Other"
+                }]
+            },
+            "address": {
+                "description": "Primary Address",
+                "type": {
+                    "relation": "Address",
+                    "properties": ["type", "street", "unit",
+                        "city", "state", "postalCode", "country"
+                    ]
+                }
+            },
+            "webSite": {
+                "description": "Personal web page",
+                "type": "string",
+                "format": "url"
+            }
+        }
+    },
+    {
+        "name": "UserAccount",
+        "plural": "UserAccounts",
+        "inherits": "Role",
+        "module": "Core",
+        authorization: false,
+        "description": "System users",
+        "properties": {
+            "password": {
+                "description": "Password",
+                "type": "string",
+                "format": "password"
+            },
+            "isSuper": {
+                "description": "System adiminstrator flag",
+                "type": "boolean",
+                "default": false
+            },
+            "contact": {
+                "description": "Contact information",
+                "type": {
+                    "relation": "Contact",
+                    "properties": [
+                        "fullName",
+                        "phone",
+                        "email",
+                        "address"
+                    ]
+                }
             }
         }
     }

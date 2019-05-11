@@ -205,7 +205,17 @@
                         "attr": "updated"
                     }, {
                         "attr": "updatedBy"
-                    }]
+                    }],
+                    "filter": {
+                        "criteria": [{
+                            "property": "objectType",
+                            "value": "Role"
+                        }],
+                        "sort": [{
+                            "property": "name",
+                            "order": "ASC"
+                        }]
+                    }
                 }
             }, {
             "name": "Countries",

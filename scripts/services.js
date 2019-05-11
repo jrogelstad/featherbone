@@ -518,12 +518,71 @@ f.datasource.registerFunction(
 function updateRole(obj) {
     "use strict";
 
-    return new Promise(function (resolve) {
+    return new Promise(function (resolve, reject) {
+        let n = 0;
+        let oldRec = obj.oldRec;
+        let newRec = obj.newRec;
+        let requests = [];
+
         if (obj.oldRec.name !== obj.newRec.name) {
             throw new Error("Name cannot be changed");
         }
 
-        resolve();
+        // compare old and new membership, where different grant or revoke
+        if (oldRec.membership.length < newRec.membership.length) {
+            oldRec.membership.length = newRec.membership.length;
+        }
+
+        // Revoke changed roles
+        while (n < oldRec.length) {
+            if (
+                oldRec.membership[n].role !== newRec.membership[n].role &&
+                oldRec.membership[n].role
+            ) {
+                requests.push(
+                    f.datasource.request(
+                        {
+                            method: "POST",
+                            name: "revokeMembership",
+                            data: {
+                                fromRole: oldRec.membership.role,
+                                toRole: oldRec.name
+                            },
+                            client: obj.client
+                        },
+                        true
+                    )
+                );
+            }
+            n += 1;
+        }
+
+        // Grant changed roles
+        n = 0;
+        while (n < oldRec.length) {
+            if (
+                oldRec.membership[n].role !== newRec.membership[n].role &&
+                newRec.membership[n].role
+            ) {
+                requests.push(
+                    f.datasource.request(
+                        {
+                            method: "POST",
+                            name: "grantMembership",
+                            data: {
+                                fromRole: oldRec.membership.role,
+                                toRole: oldRec.name
+                            },
+                            client: obj.client
+                        },
+                        true
+                    )
+                );
+            }
+            n += 1;
+        }
+
+        Promise.all(requests).then(resolve).catch(reject);
     });
 }
 
@@ -531,18 +590,45 @@ function createRole(obj) {
     "use strict";
 
     return new Promise(function (resolve, reject) {
+        let requests = [];
+        let membership = obj.newRec.membership || [];
+        let options = obj.roleOptions || {
+            name: obj.newRec.name.toLowerCase(),
+            isLogin: true,
+            password: obj.newRec.password,
+            isInherits: false
+        };
         let payload = {
             method: "POST",
             name: "createRole",
             client: obj.client,
-            data: {
-                name: obj.newRec.name.toLowerCase(),
-                isLogin: false,
-                isInherits: true
-            }
+            data: options
         };
 
-        f.datasource.request(payload, true).then(resolve).catch(reject);
+        function grant() {
+            membership.forEach(function (item) {
+                let mpayload = {
+                    method: "POST",
+                    name: "grantMembership",
+                    client: obj.client,
+                    data: {
+                        fromRole: obj.newRec.name,
+                        toRole: item.role
+                    }
+                };
+
+                requests.push(
+                    f.datasource.request(
+                        mpayload,
+                        true
+                    )
+                );
+            });
+
+            Promise.all(requests).then(resolve).catch(reject);
+        }
+
+        f.datasource.request(payload, true).then(grant).catch(reject);
     });
 }
 
@@ -601,14 +687,10 @@ function updateUserAccount(obj) {
             }
         };
 
-        if (obj.oldRec.name !== obj.newRec.name) {
-            throw new Error("Name cannot be changed");
-        }
-
         if (obj.newRec.password) {
             obj.newRec.password = "";
             f.datasource.request(
-                payload, 
+                payload,
                 true
             ).then(resolve).catch(reject);
             return;
@@ -621,23 +703,15 @@ function updateUserAccount(obj) {
 function createUserAccount(obj) {
     "use strict";
 
-    return new Promise(function (resolve, reject) {
-        let payload = {
-            method: "POST",
-            name: "createRole",
-            client: obj.client,
-            data: {
-                name: obj.newRec.name.toLowerCase(),
-                isLogin: true,
-                password: obj.newRec.password,
-                isInherits: false
-            }
+    return new Promise(function (resolve) {
+        // Forward user account based options for role
+        obj.roleOptions = {
+            name: obj.newRec.name.toLowerCase(),
+            isLogin: true,
+            password: obj.newRec.password,
+            isInherits: false
         };
-
-        obj.newRec.name = obj.newRec.name.toLowerCase();
-        obj.newRec.password = "";
-
-        f.datasource.request(payload, true).then(resolve).catch(reject);
+        resolve();
     });
 }
 
@@ -655,9 +729,3 @@ f.datasource.registerFunction(
     f.datasource.TRIGGER_BEFORE
 );
 
-f.datasource.registerFunction(
-    "DELETE",
-    "UserAccount",
-    deleteRole,
-    f.datasource.TRIGGER_BEFORE
-);

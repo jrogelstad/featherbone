@@ -1356,6 +1356,8 @@
     that.registerFunction("POST", "changeRolePassword", role.changePassword);
     that.registerFunction("POST", "createRole", role.createRole);
     that.registerFunction("POST", "dropRole", role.drop);
+    that.registerFunction("POST", "grantMembership", role.grantMembership);
+    that.registerFunction("POST", "revokeMembership", role.revokeMembership);
     that.registerFunction("POST", "subscribe", subscribe);
     that.registerFunction("POST", "unsubscribe", unsubscribe);
     that.registerFunction(

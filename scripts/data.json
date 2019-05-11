@@ -578,6 +578,67 @@
         }]
     }
 }, {
+    "id": "oe3slzjh4l8x",
+    "name": "User Account",
+    "description": "User account form",
+    "module": "Core",
+    "feather": "UserAccount",
+    "tabs": [
+        {
+            "name": "Membership"
+        }
+    ],
+    "attrs": [
+        {
+            "attr": "name"
+        },
+        {
+            "attr": "isSuper",
+            "unit": 1
+        },
+        {
+            "attr": "password"
+        },
+        {
+            "attr": "membership",
+            "grid": 1,
+            "showLabel": false,
+            "columns": [
+                {
+                    "attr": "role",
+                    "dataList": "roleNames"
+                }
+            ]
+        }
+    ]
+}, {
+    "id": "5pnnrbkzbj5m",
+    "name": "Role",
+    "description": "Role form",
+    "module": "Core",
+    "feather": "Role",
+    "tabs": [
+        {
+            "name": "Membership"
+        }
+    ],
+    "attrs": [
+        {
+            "attr": "name"
+        },
+        {
+            "attr": "membership",
+            "grid": 1,
+            "showLabel": false,
+            "columns": [
+                {
+                    "attr": "role",
+                    "dataList": "roleNames"
+                }
+            ]
+        }
+    ]
+}, {
     "name": "Style",
     "method": "POST",
     "id": "v3v4pvouv03d",

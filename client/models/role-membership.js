@@ -25,12 +25,15 @@ function roleMembership(data, feather) {
     feather = feather || catalog.getFeather("RoleMembership");
     let that = model(data, feather);
 
-    function roleNames () {
+    function roleNames() {
         let roles = catalog.store().data().roles();
         let name;
         let result;
-        
-        result = roles.map(function (role) {
+
+        result = roles.filter(function (role) {
+            return role.data.objectType() === "Role";
+        });
+        result = result.map(function (role) {
             name = role.data.name();
             return {
                 value: name,

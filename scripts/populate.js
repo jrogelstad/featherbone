@@ -21,31 +21,70 @@
 
     exports.execute = function (obj) {
         return new Promise(function (resolve, reject) {
-            let afterCurrentUser;
             let getEveryone;
             let createEveryone;
             let grantEveryoneGlobal;
             let user;
+            let id;
             let datasource = require("../server/datasource");
 
-            afterCurrentUser = function (err, resp) {
+            function member() {
+                return new Promise(function (resolve, reject) {
+                    obj.client.query(
+                        (
+                            "INSERT INTO \"user_account_membership\" VALUES " +
+                            "(nextval('object__pk_seq'), $1, now(), $1, " +
+                            "now(), $1, false, null, $2, 'everyone') " +
+                            "ON CONFLICT DO NOTHING;"
+                        ),
+                        [user, id]
+                    ).then(resolve).catch(reject);
+                });
+            }
+
+            function grant() {
+                return new Promise(function (resolve, reject) {
+                    let sql = "GRANT everyone TO %I";
+                    sql.format([user]);
+                    obj.client.query(sql).then(resolve).catch(reject);
+                });
+            }
+
+            function insertCurrentUser(resp) {
+                return new Promise(function (resolve, reject) {
+                    user = resp.rows[0].current_user;
+                    id = resp.rows[0].id;
+                    obj.client.query(
+                        (
+                            "INSERT INTO \"user_account\" VALUES " +
+                            "$2, 'e54y397l4arw', now(), $1, now(), " +
+                            "$1, false, null, $1, '', TRUE, TRUE) " +
+                            "ON CONFLICT DO NOTHING;"
+                        ),
+                        [user, id]
+                    ).then(member).then(resolve).catch(reject);
+                });
+            }
+
+            function afterGetUserAccount(err, resp) {
                 if (err) {
                     reject(err);
                     return;
                 }
 
+                if (resp.rows.length) {
+                    getEveryone();
+                    return;
+                }
+
                 user = resp.rows[0].current_user;
+                id = resp.rows[0].id;
                 obj.client.query(
-                    (
-                        "INSERT INTO \"role\" VALUES " +
-                        "(nextval('object__pk_seq'), $1, now(), $1, now(), " +
-                        "$1, false, null, $1, '', TRUE, TRUE) " +
-                        "ON CONFLICT DO NOTHING;"
-                    ),
-                    [user],
-                    getEveryone
-                );
-            };
+                    "SELECT CURRENT_USER, nextval('object__pk_seq') AS id"
+                ).then(
+                    insertCurrentUser
+                ).then(member).then(grant).then(getEveryone).catch(reject);
+            }
 
             // Create Everyone role
             getEveryone = function (err) {
@@ -90,11 +129,8 @@
                         method: "POST",
                         user: user,
                         data: {
-                            id: "everyone",
-                            name: "everyone",
-                            members: [{
-                                member: user
-                            }]
+                            id: "frem61h1sh1d",
+                            name: "everyone"
                         },
                         client: obj.client
                     }, true).then(
@@ -116,6 +152,10 @@
                 let reqFeather;
                 let reqModule;
                 let reqDataService;
+                let reqHonorific;
+                let reqAddress;
+                let reqContact;
+                let reqUserAccount;
                 let promises = [];
 
                 req = function () {
@@ -152,12 +192,27 @@
                 reqDataService = req();
                 reqDataService.data.id = "data_service";
                 promises.push(datasource.request(reqDataService));
+                reqHonorific = req();
+                reqHonorific.data.id = "honorific";
+                promises.push(datasource.request(reqHonorific));
+                reqAddress = req();
+                reqAddress.data.id = "address";
+                promises.push(datasource.request(reqAddress));
+                reqContact = req();
+                reqContact.data.id = "contact";
+                promises.push(datasource.request(reqContact));
+                reqUserAccount = req();
+                reqUserAccount.data.id = "user_account";
+                promises.push(datasource.request(reqUserAccount));
 
                 Promise.all(promises).then(resolve).catch(reject);
             };
 
             /* Start */
-            obj.client.query("SELECT CURRENT_USER", afterCurrentUser);
+            obj.client.query(
+                "SELECT * FROM user_account WHERE name = CURRENT_USER",
+                afterGetUserAccount
+            );
         });
     };
 }(exports));
