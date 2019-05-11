@@ -32,10 +32,9 @@
                 return new Promise(function (resolve, reject) {
                     obj.client.query(
                         (
-                            "INSERT INTO \"user_account_membership\" VALUES " +
-                            "(nextval('object__pk_seq'), $1, now(), $1, " +
-                            "now(), $1, false, null, $2, 'everyone') " +
-                            "ON CONFLICT DO NOTHING;"
+                            "INSERT INTO \"role_membership\" VALUES " +
+                            "(nextval('object__pk_seq'), '48jc3ewrtmp', now(), $1, " +
+                            "now(), $1, false, null, $2, 'everyone');"
                         ),
                         [user, id]
                     ).then(resolve).catch(reject);
@@ -44,9 +43,30 @@
 
             function grant() {
                 return new Promise(function (resolve, reject) {
-                    let sql = "GRANT everyone TO %I";
-                    sql.format([user]);
+                    let sql = "GRANT everyone TO %I;";
+                    sql = sql.format([user]);
                     obj.client.query(sql).then(resolve).catch(reject);
+                });
+            }
+
+            function checkEveryone() {
+                return new Promise(function (resolve, reject) {
+                    obj.client.query(
+                        "SELECT * FROM pg_roles WHERE rolname = 'everyone';"
+                    ).then(createRoleEveryone).then(resolve).catch(reject);
+                });
+            }
+
+            function createRoleEveryone(resp) {
+                return new Promise(function (resolve, reject) {
+                    if (resp.rows.length) {
+                        resolve();
+                        return;
+                    }
+
+                    obj.client.query(
+                        "CREATE ROLE everyone;"
+                    ).then(resolve).catch(reject);
                 });
             }
 
@@ -57,15 +77,16 @@
                     obj.client.query(
                         (
                             "INSERT INTO \"user_account\" VALUES " +
-                            "$2, 'e54y397l4arw', now(), $1, now(), " +
-                            "$1, false, null, $1, '', TRUE, TRUE) " +
-                            "ON CONFLICT DO NOTHING;"
+                            "($2, 'e54y397l4arw', now(), $1, now(), " +
+                            "$1, false, null, $1, '', TRUE);"
                         ),
                         [user, id]
-                    ).then(member).then(resolve).catch(reject);
+                    ).then(resolve).catch(reject);
                 });
             }
 
+            // Create admin user manually since we can't run any usual crud
+            // logic until this guy exists
             function afterGetUserAccount(err, resp) {
                 if (err) {
                     reject(err);
@@ -77,22 +98,23 @@
                     return;
                 }
 
-                user = resp.rows[0].current_user;
-                id = resp.rows[0].id;
                 obj.client.query(
-                    "SELECT CURRENT_USER, nextval('object__pk_seq') AS id"
+                    "SELECT CURRENT_USER AS current_user, nextval('object__pk_seq') AS id"
                 ).then(
                     insertCurrentUser
-                ).then(member).then(grant).then(getEveryone).catch(reject);
+                ).then(
+                    member
+                ).then(
+                    checkEveryone
+                ).then(
+                    grant
+                ).then(
+                    getEveryone
+                ).catch(reject);
             }
 
             // Create Everyone role
-            getEveryone = function (err) {
-                if (err) {
-                    reject(err);
-                    return;
-                }
-
+            getEveryone = function () {
                 datasource.request({
                     name: "Role",
                     method: "GET",

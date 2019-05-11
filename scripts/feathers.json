@@ -570,7 +570,7 @@
         "plural": "UserAccounts",
         "inherits": "Role",
         "module": "Core",
-        authorization: false,
+        "authorization": false,
         "description": "System users",
         "properties": {
             "password": {

@@ -114,7 +114,7 @@
                             ? "LOGIN"
                             : "NOLOGIN"
                         ) + (
-                            obj.data.isInherit === true
+                            obj.data.isInherit !== false
                             ? " INHERIT "
                             : " NOINHERIT "
                         ) + " PASSWORD %L;";
