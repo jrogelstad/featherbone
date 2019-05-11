@@ -795,15 +795,18 @@
                 /* If feather, check class authorization */
                 if (feather) {
                     params = [feather.toSnakeCase(), user];
-                    sql = "SELECT pk FROM \"$auth\" AS auth ";
-                    sql += " JOIN \"$feather\" AS feather ";
-                    sql += "ON feather._pk=auth.object_pk ";
-                    sql += "  JOIN role ON role._pk=auth.role_pk ";
-                    sql += "  JOIN role_membership ";
-                    sql += "ON role_membership._parent_role_pk=role._pk ";
-                    sql += "WHERE feather.id=$1";
-                    sql += "  AND role_membership.role=$2";
-                    sql += "  AND %I";
+                    sql = (
+                        "SELECT pk FROM \"$auth\" AS auth " +
+                        "  JOIN \"$feather\" AS feather " +
+                        "    ON feather._pk=auth.object_pk " +
+                        "  JOIN role " +
+                        "    ON role._pk=auth.role_pk " +
+                        "  JOIN pg_authid " +
+                        "    ON role.name=rolname " +
+                        "WHERE feather.id=$1" +
+                        "  AND pg_has_role($2, pg_authid.oid, 'member')" +
+                        "  AND %I;"
+                    );
                     sql = sql.format([action.toSnakeCase()]);
 
                     obj.client.query(sql, params, function (err, resp) {
