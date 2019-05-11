@@ -77,7 +77,7 @@ function feather(data, spec) {
         }
     }
 
-    function handleReadOnly () {
+    function handleReadOnly() {
         that.data.name.isReadOnly(true);
         that.data.inherits.isReadOnly(true);
     }

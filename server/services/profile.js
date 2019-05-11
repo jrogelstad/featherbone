@@ -44,7 +44,9 @@
         */
         that.getProfile = function (obj) {
             return new Promise(function (resolve, reject) {
-                let sql = "SELECT etag, data FROM \"$profiles\" WHERE role = $1;";
+                let sql = (
+                    "SELECT etag, data FROM \"$profiles\" WHERE role = $1;"
+                );
                 let role = obj.client.currentUser;
 
                 // Query profile
@@ -124,7 +126,9 @@
         */
         that.patchProfile = function (obj) {
             return new Promise(function (resolve, reject) {
-                let sql = "SELECT etag, data FROM \"$profiles\" WHERE role = $1;";
+                let sql = (
+                    "SELECT etag, data FROM \"$profiles\" WHERE role = $1;"
+                );
                 let data;
                 let role = obj.client.currentUser;
                 let etag = f.createId();

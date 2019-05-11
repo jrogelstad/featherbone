@@ -34,7 +34,7 @@
           @param {Object} [payload.data] Data
           @param {String} [payload.data.name] Role name
           @param {Boolean} [payload.data.isLogin] Is Login
-          @return {Boolean}
+          @return {Object} Promise
         */
         that.changeLogin = function (obj) {
             return new Promise(function (resolve, reject) {
@@ -66,7 +66,7 @@
           @param {Object} [payload.data] Data
           @param {String} [payload.data.name] Role name
           @param {String} [payload.data.password] Password
-          @return {Boolean}
+          @return {Object} Promise
         */
         that.changePassword = function (obj) {
             return new Promise(function (resolve, reject) {
@@ -96,7 +96,7 @@
           @param {String} [payload.data.name] Role name
           @param {Boolean} [payload.data.isLogin] Is Login
           @param {String} [payload.data.password] Password
-          @return {Boolean}
+          @return {Object} Promise
         */
         that.createRole = function (obj) {
             return new Promise(function (resolve, reject) {
@@ -104,7 +104,7 @@
                 let pwd = obj.data.password;
                 let sql = (
                     "SELECT * FROM pg_catalog.pg_roles " +
-                    "WHERE  rolname = $1;"
+                    "WHERE rolname = $1;"
                 );
 
                 obj.client.query(sql, [name]).then(function (resp) {
@@ -117,7 +117,7 @@
                             obj.data.isInherit === true
                             ? " INHERIT "
                             : " NOINHERIT "
-                        ) +" PASSWORD %L;";
+                        ) + " PASSWORD %L;";
 
                         sql = sql.format([name, pwd]);
                         obj.client.query(sql, function (err) {
@@ -145,7 +145,7 @@
           @param {Object} [payload.client]
           @param {Object} [payload.data] Data
           @param {String} [payload.data.name] Role name
-          @return {Boolean}
+          @return {Object} Promise
         */
         that.drop = function (obj) {
             return new Promise(function (resolve, reject) {
@@ -162,6 +162,46 @@
                     // Send back result
                     resolve(true);
                 });
+            });
+        };
+
+        /**
+          Grant one user or role privileges to another role.
+
+          @param {Object} Payload
+          @param {Object} [payload.client]
+          @param {Object} [payload.data] Data
+          @param {String} [payload.data.fromRole] Child role
+          @param {Boolean} [payload.data.toRole] Parent role
+          @return {Object} Promise
+        */
+        that.grantMembership = function (obj) {
+            return new Promise(function (resolve, reject) {
+                let sql = "GRANT %I TO %I;";
+
+                sql.format([obj.fromRole, obj.toRole]);
+
+                obj.client.query(sql).then(resolve).catch(reject);
+            });
+        };
+
+        /**
+          Revoke one user or role privileges from another role.
+
+          @param {Object} Payload
+          @param {Object} [payload.client]
+          @param {Object} [payload.data] Data
+          @param {String} [payload.data.fromRole] Child role
+          @param {Boolean} [payload.data.toRole] Parent role
+          @return {Object} Promise
+        */
+        that.revokeMembership = function (obj) {
+            return new Promise(function (resolve, reject) {
+                let sql = "REVOKE %I FROM %I;";
+
+                sql.format([obj.fromRole, obj.toRole]);
+
+                obj.client.query(sql).then(resolve).catch(reject);
             });
         };
 
