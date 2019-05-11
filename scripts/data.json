@@ -578,70 +578,78 @@
         }]
     }
 }, {
+    "name": "Form",
+    "method": "POST",
     "id": "oe3slzjh4l8x",
-    "name": "User Account",
-    "description": "User account form",
-    "module": "Core",
-    "feather": "UserAccount",
-    "tabs": [
-        {
-            "name": "Membership"
-        }
-    ],
-    "attrs": [
-        {
-            "attr": "name"
-        },
-        {
-            "attr": "isSuper",
-            "unit": 1
-        },
-        {
-            "attr": "password"
-        },
-        {
-            "attr": "membership",
-            "grid": 1,
-            "showLabel": false,
-            "columns": [
-                {
-                    "attr": "role",
-                    "dataList": "roleNames"
-                }
-            ]
-        }
-    ]
+    "data": {
+        "name": "User Account",
+        "description": "User account form",
+        "module": "Core",
+        "feather": "UserAccount",
+        "tabs": [
+            {
+                "name": "Membership"
+            }
+        ],
+        "attrs": [
+            {
+                "attr": "name"
+            },
+            {
+                "attr": "isSuper",
+                "unit": 1
+            },
+            {
+                "attr": "password"
+            },
+            {
+                "attr": "membership",
+                "grid": 1,
+                "showLabel": false,
+                "columns": [
+                    {
+                        "attr": "role",
+                        "dataList": "roleNames"
+                    }
+                ]
+            }
+        ]
+    }
 }, {
+    "name": "Form",
+    "method": "POST",
     "id": "5pnnrbkzbj5m",
-    "name": "Role",
-    "description": "Role form",
-    "module": "Core",
-    "feather": "Role",
-    "tabs": [
-        {
-            "name": "Membership"
-        }
-    ],
-    "attrs": [
-        {
-            "attr": "name"
-        },
-        {
-            "attr": "isSuper",
-            "unit": 1
-        },
-        {
-            "attr": "membership",
-            "grid": 1,
-            "showLabel": false,
-            "columns": [
-                {
-                    "attr": "role",
-                    "dataList": "roleNames"
-                }
-            ]
-        }
-    ]
+    "data": {
+        "name": "Role",
+        "description": "Role form",
+        "module": "Core",
+        "feather": "Role",
+        "tabs": [
+            {
+                "name": "Membership"
+            }
+        ],
+        "attrs": [
+            {
+                "attr": "name"
+            },
+            {
+                "attr": "isSuper",
+                "unit": 1
+            },
+            {
+                "attr": "membership",
+                "grid": 1,
+                "showLabel": false,
+                "columns": [
+                    {
+                        "attr": "role",
+                        "dataList": "roleNames"
+                    }
+                ]
+            }
+        ]
+    }
 }, {
     "name": "Style",
     "method": "POST",
