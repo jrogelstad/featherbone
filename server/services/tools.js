@@ -100,11 +100,11 @@
                 "  SELECT " + action + " FROM ( " +
                 "    SELECT " + action +
                 "    FROM \"$auth\"" +
-                "      JOIN \"role\" ON" +
-                "           \"$auth\".\"role_pk\"=\"role\".\"_pk\"" +
-                "      JOIN \"pg_authid\"" +
-                "        ON \"role\".\"name\"=" +
-                "           \"pg_authid\".\"rolname\"" +
+                "      JOIN role ON" +
+                "           \"$auth\".role_pk=role._pk" +
+                "      JOIN pg_authid" +
+                "        ON role.name=" +
+                "           pg_authid.rolname" +
                 "    WHERE pg_has_role($1, pg_authid.oid, 'member')" +
                 "      AND object_pk=\"$feather\".parent_pk" +
                 "    ORDER BY " + action + " DESC" +
@@ -119,11 +119,11 @@
                 "  SELECT " + action + " FROM (" +
                 "    SELECT " + action +
                 "    FROM \"$auth\"" +
-                "    JOIN \"role\" ON" +
-                "         \"$auth\".\"role_pk\"=\"role\".\"_pk\"" +
-                "      JOIN \"pg_authid\"" +
-                "        ON \"role\".\"name\"=" +
-                "           \"pg_authid\".\"rolname\"" +
+                "    JOIN role ON" +
+                "         \"$auth\".role_pk=role._pk" +
+                "      JOIN pg_authid" +
+                "        ON role.name=" +
+                "           pg_authid.rolname" +
                 "    WHERE pg_has_role($1, pg_authid.oid, 'member')" +
                 "      AND object_pk=%I._pk" +
                 "    ORDER BY " + action + " DESC" +
