@@ -21,8 +21,6 @@
 
     exports.execute = function (obj) {
         return new Promise(function (resolve, reject) {
-            let getEveryone;
-            let createEveryone;
             let grantEveryoneGlobal;
             let user;
             let id;
@@ -33,7 +31,8 @@
                     obj.client.query(
                         (
                             "INSERT INTO \"role_membership\" VALUES " +
-                            "(nextval('object__pk_seq'), '48jc3ewrtmp', now(), $1, " +
+                            "(nextval('object__pk_seq'), '48jc3ewrtmp', " +
+                            "now(), $1, " +
                             "now(), $1, false, null, $2, 'everyone');"
                         ),
                         [user, id]
@@ -49,11 +48,15 @@
                 });
             }
 
-            function checkEveryone() {
+            function createEveryone(resp) {
                 return new Promise(function (resolve, reject) {
                     obj.client.query(
-                        "SELECT * FROM pg_roles WHERE rolname = 'everyone';"
-                    ).then(createRoleEveryone).then(resolve).catch(reject);
+                        "INSERT INTO \"role\" VALUES " +
+                        "(nextval('object__pk_seq'), " +
+                        "'z6obwieygb0', now(), $1, now(), " +
+                        "$1, false, null, 'everyone', false);",
+                    [user]
+                    ).then(resolve).catch(reject);
                 });
             }
 
@@ -66,7 +69,15 @@
 
                     obj.client.query(
                         "CREATE ROLE everyone;"
-                    ).then(resolve).catch(reject);
+                    ).then(createEveryone).then(resolve).catch(reject);
+                });
+            }
+
+            function checkEveryone() {
+                return new Promise(function (resolve, reject) {
+                    obj.client.query(
+                        "SELECT * FROM pg_roles WHERE rolname = 'everyone';"
+                    ).then(createRoleEveryone).then(resolve).catch(reject);
                 });
             }
 
@@ -76,9 +87,9 @@
                     id = resp.rows[0].id;
                     obj.client.query(
                         (
-                            "INSERT INTO \"user_account\" VALUES " +
+                            "INSERT INTO user_account VALUES " +
                             "($2, 'e54y397l4arw', now(), $1, now(), " +
-                            "$1, false, null, $1, '', TRUE);"
+                            "$1, false, null, $1, true, '');"
                         ),
                         [user, id]
                     ).then(resolve).catch(reject);
@@ -94,12 +105,13 @@
                 }
 
                 if (resp.rows.length) {
-                    getEveryone();
+                    grantEveryoneGlobal();
                     return;
                 }
 
                 obj.client.query(
-                    "SELECT CURRENT_USER AS current_user, nextval('object__pk_seq') AS id"
+                    "SELECT CURRENT_USER AS current_user, " +
+                    "nextval('object__pk_seq') AS id"
                 ).then(
                     insertCurrentUser
                 ).then(
@@ -109,63 +121,9 @@
                 ).then(
                     grant
                 ).then(
-                    getEveryone
+                    grantEveryoneGlobal
                 ).catch(reject);
             }
-
-            // Create Everyone role
-            getEveryone = function () {
-                datasource.request({
-                    name: "Role",
-                    method: "GET",
-                    user: user,
-                    id: "everyone",
-                    client: obj.client
-                }, true).then(createEveryone).catch(reject);
-            };
-
-            createEveryone = function (resp) {
-                function createEveryoneRole() {
-                    let sql = (
-                        "SELECT * FROM pg_catalog.pg_roles " +
-                        "WHERE rolname = 'everyone';"
-                    );
-
-                    obj.client.query(sql).then(function (resp) {
-                        if (!resp.rows.length) {
-                            obj.client.query(
-                                "CREATE ROLE everyone;",
-                                [],
-                                grantEveryoneGlobal
-                            );
-                            return;
-                        }
-
-                        grantEveryoneGlobal();
-                    });
-                }
-
-                if (!resp) {
-                    datasource.request({
-                        name: "Role",
-                        method: "POST",
-                        user: user,
-                        data: {
-                            id: "frem61h1sh1d",
-                            name: "everyone"
-                        },
-                        client: obj.client
-                    }, true).then(
-                        createEveryoneRole
-                    ).catch(
-                        reject
-                    );
-                    return;
-                }
-
-                // Done
-                resolve(true);
-            };
 
             grantEveryoneGlobal = function () {
                 let req;

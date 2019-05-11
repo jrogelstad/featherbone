@@ -262,6 +262,11 @@
                 "type": "string",
                 "isNaturalKey": true,
                 "isRequired": true
+            },
+            "isSuper": {
+                "description": "System adiminstrator flag",
+                "type": "boolean",
+                "default": false
             }
         }
     },
@@ -577,11 +582,6 @@
                 "description": "Password",
                 "type": "string",
                 "format": "password"
-            },
-            "isSuper": {
-                "description": "System adiminstrator flag",
-                "type": "boolean",
-                "default": false
             },
             "contact": {
                 "description": "Contact information",
