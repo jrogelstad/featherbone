@@ -97,27 +97,27 @@
                 let params = [obj.client.currentUser];
                 let sql;
 
-                sql = "SELECT name, description, module, ";
-                sql += "launch_config AS \"launchConfig\", ";
-                sql += "icon, ";
-                sql += "default_config AS \"defaultConfig\", ";
-                sql += "local_config AS \"localConfig\" ";
-                sql += "FROM \"$workbook\"";
-                sql += "WHERE EXISTS (";
-                sql += "  SELECT can_read FROM ( ";
-                sql += "    SELECT can_read ";
-                sql += "    FROM \"$auth\"";
-                sql += "      JOIN \"role\"";
-                sql += "        ON \"$auth\".\"role_pk\"=\"role\".\"_pk\"";
-                sql += "      JOIN \"role_member\"";
-                sql += "        ON \"role\".\"_pk\"=";
-                sql += "           \"role_member\".\"_parent_role_pk\"";
-                sql += "    WHERE member=$1";
-                sql += "      AND object_pk=\"$workbook\"._pk";
-                sql += "    ORDER BY can_read DESC";
-                sql += "    LIMIT 1";
-                sql += "  ) AS data ";
-                sql += "  WHERE can_read)";
+                sql = ("SELECT name, description, module, " +
+                    "launch_config AS \"launchConfig\", " +
+                    "icon, " +
+                    "default_config AS \"defaultConfig\", " +
+                    "local_config AS \"localConfig\" " +
+                    "FROM \"$workbook\"" +
+                    "WHERE EXISTS (" +
+                    "  SELECT can_read FROM ( " +
+                    "    SELECT can_read " +
+                    "    FROM \"$auth\"" +
+                    "      JOIN \"role\"" +
+                    "        ON \"$auth\".\"role_pk\"=\"role\".\"_pk\"" +
+                        "  JOIN pg_authid " +
+                        "    ON role.name=rolname " +
+                    "    WHERE pg_has_role($1, pg_authid.oid, 'member')" +
+                    "      AND object_pk=\"$workbook\"._pk" +
+                    "    ORDER BY can_read DESC" +
+                    "    LIMIT 1" +
+                    "  ) AS data " +
+                    "  WHERE can_read)"
+                );
 
                 if (obj.data.name) {
                     sql += " AND name=$2";
