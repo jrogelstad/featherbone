@@ -794,14 +794,13 @@ workbookPage.viewModel = function (options) {
     };
     vm.revert = function () {
         let workbookJSON = vm.workbook().toJSON();
-        let config = vm.config();
+        let currentConfig = vm.config();
         let defaultConfig = workbookJSON.defaultConfig;
         let sheet = defaultConfig[0];
-        let profile = catalog.store().data().profile().data;
 
-        config.length = 0;
+        currentConfig.length = 0;
         defaultConfig.forEach(function (item) {
-            config.push(item);
+            currentConfig.push(item);
         });
         saveProfile(workbook.data.name(), undefined, vm.confirmDialog());
         m.route.set("/workbook/:workbook/:sheet", {

@@ -1301,7 +1301,7 @@ tableWidget.viewModel = function (options) {
                 ary.splice(toIdx, 0, moved);
             }
         }
-        
+
         vm.isDragging(false);
     };
     vm.onkeydown = function (e) {
