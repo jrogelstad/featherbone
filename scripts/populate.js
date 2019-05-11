@@ -26,7 +26,7 @@
             let id;
             let datasource = require("../server/datasource");
 
-            function member() {
+            function insertMember() {
                 return new Promise(function (resolve, reject) {
                     obj.client.query(
                         (
@@ -40,7 +40,7 @@
                 });
             }
 
-            function grant() {
+            function grantMembership() {
                 return new Promise(function (resolve, reject) {
                     let sql = "GRANT everyone TO %I;";
                     sql = sql.format([user]);
@@ -60,6 +60,14 @@
                 });
             }
 
+            function checkEveryone() {
+                return new Promise(function (resolve, reject) {
+                    obj.client.query(
+                        "SELECT * FROM \"role\" WHERE name = 'everyone';"
+                    ).then(createEveryone).then(resolve).catch(reject);
+                });
+            }
+
             function createRoleEveryone(resp) {
                 return new Promise(function (resolve, reject) {
                     if (resp.rows.length) {
@@ -69,11 +77,11 @@
 
                     obj.client.query(
                         "CREATE ROLE everyone;"
-                    ).then(createEveryone).then(resolve).catch(reject);
+                    ).then(resolve).catch(reject);
                 });
             }
 
-            function checkEveryone() {
+            function checkRoleEveryone() {
                 return new Promise(function (resolve, reject) {
                     obj.client.query(
                         "SELECT * FROM pg_roles WHERE rolname = 'everyone';"
@@ -115,11 +123,13 @@
                 ).then(
                     insertCurrentUser
                 ).then(
-                    member
+                    insertMember
+                ).then(
+                    checkRoleEveryone
                 ).then(
                     checkEveryone
                 ).then(
-                    grant
+                    grantMembership
                 ).then(
                     grantEveryoneGlobal
                 ).catch(reject);

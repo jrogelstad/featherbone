@@ -1,10 +1,12 @@
 /**
     Framework for building object relational database apps
     Copyright (C) 2019  John Rogelstad
+
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
+
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -797,10 +799,10 @@
                     sql += " JOIN \"$feather\" AS feather ";
                     sql += "ON feather._pk=auth.object_pk ";
                     sql += "  JOIN role ON role._pk=auth.role_pk ";
-                    sql += "  JOIN role_member ";
-                    sql += "ON role_member._parent_role_pk=role._pk ";
+                    sql += "  JOIN role_membership ";
+                    sql += "ON role_membership._parent_role_pk=role._pk ";
                     sql += "WHERE feather.id=$1";
-                    sql += "  AND role_member.member=$2";
+                    sql += "  AND role_membership.role=$2";
                     sql += "  AND %I";
                     sql = sql.format([action.toSnakeCase()]);
 
@@ -1026,11 +1028,13 @@
                     );
 
                     // Find an existing authorization record
-                    sql = "SELECT auth.* FROM \"$auth\" AS auth ";
-                    sql += "JOIN object ON object._pk=object_pk ";
-                    sql += "JOIN role ON role._pk=role_pk ";
-                    sql += "WHERE object.id=$1 AND role.id=$2";
-                    sql += " AND is_member_auth=$3 ";
+                    sql = (
+                        "SELECT auth.* FROM \"$auth\" AS auth " +
+                        "JOIN object ON object._pk=object_pk " +
+                        "JOIN role ON role._pk=role_pk " +
+                        "WHERE object.id=$1 AND role.id=$2" +
+                        " AND is_member_auth=$3;"
+                    );
 
                     obj.client.query(
                         sql,
@@ -1055,10 +1059,11 @@
                             sql = "DELETE FROM \"$auth\" WHERE pk=$1";
                             params = [pk];
                         } else {
-
-                            sql = "UPDATE \"$auth\" SET can_create=$1,";
-                            sql += "can_read=$2,";
-                            sql += "can_update=$3, can_delete=$4 WHERE pk=$5";
+                            sql = (
+                                "UPDATE \"$auth\" SET can_create=$1," +
+                                "can_read=$2, can_update=$3, can_delete=$4 " +
+                                "WHERE pk=$5"
+                            );
 
                             params = [
                                 (
@@ -1085,10 +1090,21 @@
                             ];
                         }
                     } else if (hasAuth || !isMember) {
-
-                        sql = "INSERT INTO \"$auth\" VALUES (";
-                        sql += "nextval('$auth_pk_seq'), $1, $2,";
-                        sql += "$3, $4, $5, $6, $7)";
+                        sql = (
+                            "INSERT INTO \"$auth\" AS a VALUES (" +
+                            "nextval('$auth_pk_seq'), " +
+                            "$1, $2,$3, $4, $5, $6, $7 " +
+                            ") ON CONFLICT ON CONSTRAINT" +
+                            "\"$auth_object_pk_role_pk_is_member_auth_key\" " +
+                            "DO UPDATE SET " +
+                            "  can_create=$3, " +
+                            "  can_read=$4, " +
+                            "  can_update=$5, " +
+                            "  can_delete=$6 " +
+                            "WHERE a.object_pk =$1 " +
+                            "  AND a.role_pk=$2 " +
+                            "  AND a.is_member_auth=$7;"
+                        );
                         params = [
                             objPk,
                             rolePk,
