@@ -71,8 +71,7 @@ function extendArray(model, prop, name, onChange, onChanged) {
             result = value;
         } else {
             // Create an instance
-            result = catalog.store().models()[name]();
-            result.set(value, true, true);
+            result = catalog.store().models()[name](value);
         }
 
         result.parent(model);
@@ -1177,11 +1176,10 @@ function model(data, feather) {
         isFrozen = false;
     };
 
-    doInit = function () {
+    doInit = function (data) {
         let props = feather.properties;
         let overloads = feather.overloads;
         let keys = Object.keys(props || {});
-        let initData = this;
 
         // Loop through each model property and instantiate a data property
         keys.forEach(function (key) {
@@ -1200,7 +1198,7 @@ function model(data, feather) {
             let min = p.min;
             let max = p.max;
             let type = p.type;
-            let value = initData[key];
+            let value = data[key];
             let formatter = {};
 
             p.default = overload.default || p.default;
@@ -1246,12 +1244,11 @@ function model(data, feather) {
 
                         // Special instantiation
                         if (cFeather) {
-                            result = model(undefined, cFeather);
+                            result = model(value, cFeather);
                         // Get regular model
                         } else {
-                            result = catalog.store().models()[name]();
+                            result = catalog.store().models()[name](value);
                         }
-                        result.set(value, true, true);
 
                         // Synchronize statechart
                         state.resolve("/Busy/Fetching").enter(
@@ -1401,7 +1398,7 @@ function model(data, feather) {
 
     // Define state
     state = State.define(function () {
-        this.enter(doInit.bind(data));
+        this.enter(doInit.bind(null, data));
 
         this.state("Ready", {
             H: "*"

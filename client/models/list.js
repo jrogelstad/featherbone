@@ -270,9 +270,8 @@ function createList(feather) {
             }
 
             data.forEach(function (item) {
-                let model = models[name]();
+                let model = models[name](item);
 
-                model.set(item, true, true);
                 model.state().goto("/Ready/Fetched");
                 ary.add(model);
             });
