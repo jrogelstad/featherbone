@@ -97,7 +97,8 @@
                 let params = [obj.client.currentUser];
                 let sql;
 
-                sql = ("SELECT name, description, module, " +
+                sql = (
+                    "SELECT name, description, module, " +
                     "launch_config AS \"launchConfig\", " +
                     "icon, " +
                     "default_config AS \"defaultConfig\", " +
@@ -109,8 +110,8 @@
                     "    FROM \"$auth\"" +
                     "      JOIN \"role\"" +
                     "        ON \"$auth\".\"role_pk\"=\"role\".\"_pk\"" +
-                        "  JOIN pg_authid " +
-                        "    ON role.name=rolname " +
+                    "  JOIN pg_authid " +
+                    "    ON role.name=rolname " +
                     "    WHERE pg_has_role($1, pg_authid.oid, 'member')" +
                     "      AND object_pk=\"$workbook\"._pk" +
                     "    ORDER BY can_read DESC" +
