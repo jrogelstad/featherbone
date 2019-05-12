@@ -48,14 +48,14 @@
                 });
             }
 
-            function createEveryone(resp) {
+            function createEveryone() {
                 return new Promise(function (resolve, reject) {
                     obj.client.query(
                         "INSERT INTO \"role\" VALUES " +
                         "(nextval('object__pk_seq'), " +
                         "'z6obwieygb0', now(), $1, now(), " +
                         "$1, false, null, 'everyone', false);",
-                    [user]
+                        [user]
                     ).then(resolve).catch(reject);
                 });
             }
