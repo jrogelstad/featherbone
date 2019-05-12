@@ -545,8 +545,8 @@ function updateRole(obj) {
                             method: "POST",
                             name: "revokeMembership",
                             data: {
-                                fromRole: oldRec.membership.role,
-                                toRole: oldRec.name
+                                fromRole: oldRec.name,
+                                toRole: oldRec.membership.role
                             },
                             client: obj.client
                         },
@@ -570,8 +570,8 @@ function updateRole(obj) {
                             method: "POST",
                             name: "grantMembership",
                             data: {
-                                fromRole: oldRec.membership.role,
-                                toRole: oldRec.name
+                                fromRole: newRec.name,
+                                toRole: newRec.membership.role
                             },
                             client: obj.client
                         },
@@ -593,7 +593,7 @@ function createRole(obj) {
         let requests = [];
         let membership = obj.newRec.membership || [];
         let options = obj.roleOptions || {
-            name: obj.newRec.name.toLowerCase().replace(/ /g, "_");
+            name: obj.newRec.name.toLowerCase().replace(/ /g, "_"),
             isLogin: true,
             password: obj.newRec.password,
             isInherits: false
@@ -612,8 +612,8 @@ function createRole(obj) {
                     name: "grantMembership",
                     client: obj.client,
                     data: {
-                        fromRole: obj.newRec.name,
-                        toRole: item.role
+                        fromRole: item.role,
+                        toRole: obj.newRec.name
                     }
                 };
 
