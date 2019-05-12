@@ -529,6 +529,39 @@
         }
     }
 
+    function addWorkbooks(manifest, zip, resp, folder) {
+        let content = tools.sanitize(resp.rows);
+        let name = "workbooks.json";
+        let filename = folder + name;
+
+        content.forEach(function (workbook) {
+            removeExclusions(workbook);
+            if (workbook.localConfig.length) {
+                workbook.defaultConfig = workbook.localConfig;
+            }
+
+            delete workbook.localConfig;
+            
+            if (!Object.keys(workbook.launchConfig).length) {
+                delete workbook.launchConfig;
+            }
+        });
+
+        if (content.length) {
+            content = JSON.stringify(content, null, 4);
+
+            manifest.files.push({
+                type: "workbook",
+                path: name
+            });
+
+            zip.addFile(
+                filename,
+                Buffer.alloc(content.length, content)
+            );
+        }
+    }
+
     function addBatch(type, manifest, zip, resp, folder) {
         let content = [];
         let rows = tools.sanitize(resp.rows);
@@ -700,6 +733,13 @@
                 );
                 requests.push(client.query(sql, params));
 
+                // Workbooks
+                sql = (
+                    "SELECT * FROM \"$workbook\" WHERE module = $1 " +
+                    "ORDER BY name;"
+                );
+                requests.push(client.query(sql, params));
+
                 Promise.all(requests).then(function (resp) {
                     let filename = name;
                     let pathname = path.format({
@@ -713,6 +753,7 @@
                         addServices(manifest, zip, resp[3], folder);
                         addBatch("Route", manifest, zip, resp[4], folder);
                         addBatch("Style", manifest, zip, resp[5], folder);
+                        addWorkbooks(manifest, zip, resp[6], folder);
                         if (sub.module) {
                             addModule(manifest, zip, [sub.module], folder);
                         } else {
