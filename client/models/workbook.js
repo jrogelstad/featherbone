@@ -278,7 +278,6 @@ function workbookModel(data) {
 
     that.onLoad(function () {
         that.data.name.isReadOnly(true);
-        that.data.localConfig(f.copy(that.data.defaultConfig()));
     });
 
     return that;
