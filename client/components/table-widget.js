@@ -289,12 +289,15 @@ function createTableDataView(options, col) {
     if (typeof format === "object" && d[col]()) {
         tableData = function () {
             let rel;
+            let keys;
 
             // If relation, use feather natural key to
             // find value to display
             rel = catalog.getFeather(format.relation);
-            rel = Object.keys(rel.properties).find(
-                (key) => rel.properties[key].isNaturalKey
+            keys = Object.keys(rel.properties);
+            rel = (
+                keys.find((key) => rel.properties[key].isNaturalKey) ||
+                keys.find((key) => rel.properties[key].isLabelKey)
             );
 
             if (rel) {
