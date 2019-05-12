@@ -26,7 +26,7 @@ function roleMembership(data, feather) {
     let that = model(data, feather);
 
     function roleNames() {
-        let roles = catalog.store().data().roles();
+        let roles = catalog.store().data().roles().slice();
         let name;
         let result;
 
