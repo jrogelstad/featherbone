@@ -35,7 +35,7 @@ function role(data, feather) {
     });
 
     that.onValidate(function () {
-        that.data.membership().forEach(function(item) {
+        that.data.membership().forEach(function (item) {
             if (!item.data.role()) {
                 throw new Error("Role must be selected for membership");
             }

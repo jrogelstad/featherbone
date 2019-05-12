@@ -29,7 +29,7 @@ function userAccount(data, feather) {
             membership: [{
                 role: "everyone"
             }]
-        }
+        };
     }
     let that = model(data, feather);
 
