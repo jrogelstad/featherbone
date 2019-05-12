@@ -585,6 +585,7 @@ workbookPage.viewModel = function (options) {
                 }
                 vm.tabClicked(config[idx].name);
             }
+            vm.saveProfile();
         };
 
         confirmDialog.message(
@@ -793,20 +794,8 @@ workbookPage.viewModel = function (options) {
         vm.tableWidget().refresh();
     };
     vm.revert = function () {
-        let workbookJSON = vm.workbook().toJSON();
-        let currentConfig = vm.config();
-        let defaultConfig = workbookJSON.defaultConfig;
-        let sheet = defaultConfig[0];
-
-        currentConfig.length = 0;
-        defaultConfig.forEach(function (item) {
-            currentConfig.push(item);
-        });
         saveProfile(workbook.data.name(), undefined, vm.confirmDialog());
-        m.route.set("/workbook/:workbook/:sheet", {
-            workbook: workbookJSON.name.toSpinalCase(),
-            sheet: sheet.name.toSpinalCase()
-        });
+        document.location.reload();
     };
     vm.saveProfile = function () {
         saveProfile(
