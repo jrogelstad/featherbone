@@ -933,13 +933,15 @@
                 };
 
                 afterGetRoleKey = function (resp) {
+                    let pkAttr = "_pk"; // Lint
+
                     // Validation
                     if (!resp.rows.length) {
                         reject("Role \"" + obj.data.role + "\" not found");
                         return;
                     }
 
-                    rolePk = resp.rows[0]._pk;
+                    rolePk = resp.rows[0][pkAttr];
 
                     if (obj.data.id && obj.data.isMember) {
                         sql = "SELECT tableoid::regclass::text AS feather ";
