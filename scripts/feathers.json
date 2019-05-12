@@ -267,6 +267,11 @@
                 "description": "System adiminstrator flag",
                 "type": "boolean",
                 "default": false
+            },
+            "etag": {
+                "description": "Optimistic locking key",
+                "type": "string",
+                "default": "createId()"
             }
         }
     },

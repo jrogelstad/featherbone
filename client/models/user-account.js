@@ -33,10 +33,6 @@ function userAccount(data, feather) {
     }
     let that = model(data, feather);
 
-    that.onChange("name", function (prop) {
-        prop.newValue(prop.newValue().toLowerCase());
-    });
-
     that.onLoad(function () {
         that.data.name.isReadOnly(true);
     });
