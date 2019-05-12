@@ -534,10 +534,14 @@ function updateRole(obj) {
         }
 
         // Revoke changed roles
-        while (n < oldRec.length) {
+        while (n < oldRec.membership.length) {
             if (
-                oldRec.membership[n].role !== newRec.membership[n].role &&
-                oldRec.membership[n].role
+                newRec.membership[n] === undefined ||
+                newRec.membership[n] === null || (
+                    oldRec.membership[n] !== undefined &&
+                    oldRec.membership[n] !== null &&
+                    oldRec.membership[n].role !== newRec.membership[n].role
+                )
             ) {
                 requests.push(
                     f.datasource.request(
@@ -545,8 +549,8 @@ function updateRole(obj) {
                             method: "POST",
                             name: "revokeMembership",
                             data: {
-                                fromRole: oldRec.name,
-                                toRole: oldRec.membership.role
+                                fromRole: oldRec.membership[n].role,
+                                toRole: oldRec.name
                             },
                             client: obj.client
                         },
@@ -559,10 +563,14 @@ function updateRole(obj) {
 
         // Grant changed roles
         n = 0;
-        while (n < oldRec.length) {
+        while (n < oldRec.membership.length) {
             if (
-                oldRec.membership[n].role !== newRec.membership[n].role &&
-                newRec.membership[n].role
+                oldRec.membership[n] === undefined ||
+                oldRec.membership[n] === null || (
+                    newRec.membership[n] !== undefined &&
+                    newRec.membership[n] !== null &&
+                    oldRec.membership[n].role !== newRec.membership[n].role
+                )
             ) {
                 requests.push(
                     f.datasource.request(
@@ -570,8 +578,8 @@ function updateRole(obj) {
                             method: "POST",
                             name: "grantMembership",
                             data: {
-                                fromRole: newRec.name,
-                                toRole: newRec.membership.role
+                                fromRole: newRec.membership[n].role,
+                                toRole: oldRec.name
                             },
                             client: obj.client
                         },
@@ -592,8 +600,9 @@ function createRole(obj) {
     return new Promise(function (resolve, reject) {
         let requests = [];
         let membership = obj.newRec.membership || [];
+        let re = new RegExp(" ", "g");
         let options = obj.roleOptions || {
-            name: obj.newRec.name.toLowerCase().replace(/ /g, "_"),
+            name: obj.newRec.name.toLowerCase().replace(re, "_"),
             isLogin: true,
             password: obj.newRec.password,
             isInherits: false

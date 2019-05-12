@@ -24,13 +24,22 @@ import model from "./model.js";
 function role(data, feather) {
     feather = feather || catalog.getFeather("Role");
     let that = model(data, feather);
+    let re = new RegExp(" ", "g");
 
     that.onChange("name", function (prop) {
-        prop.newValue(prop.newValue().toLowerCase());
+        prop.newValue(prop.newValue().toLowerCase().replace(re, "_"));
     });
 
     that.onLoad(function () {
         that.data.name.isReadOnly(true);
+    });
+
+    that.onValidate(function () {
+        that.data.membership().forEach(function(item) {
+            if (!item.data.role()) {
+                throw new Error("Role must be selected for membership");
+            }
+        });
     });
 
     return that;
