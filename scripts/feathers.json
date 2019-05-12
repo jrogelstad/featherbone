@@ -509,7 +509,8 @@
                 "description": "Name",
                 "type": "string",
                 "isReadOnly": true,
-                "isIndexed": true
+                "isIndexed": true,
+                "isLabelKey": true
             },
             "phone": {
                 "description": "Primary phone number",
