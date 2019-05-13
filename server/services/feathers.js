@@ -884,6 +884,7 @@
           @param {String} [payload.data.feather] Feather
           @param {String} [payload.data.role] Role
           @param {Boolean} [payload.data.isInternal] Not a feather
+          @param {Boolean} [payload.data.isSilentError] Silence errors
           @param {Object} [payload.data.actions] Required
           @param {Boolean} [payload.data.actions.canCreate]
           @param {Boolean} [payload.data.actions.canRead]
@@ -990,6 +991,10 @@
                     }
 
                     if (err) {
+                        if (obj.data.isSilentError) {
+                            done(null, false);
+                            return;
+                        }
                         reject(err);
                         return;
                     }
@@ -1020,6 +1025,10 @@
                             }
 
                             if (resp.rows[0].owner !== obj.client.currentUser) {
+                                if (obj.data.isSilentError) {
+                                    done(null, false);
+                                    return;
+                                }
                                 err = "Must be super user or owner of \"" + id;
                                 err += "\" to set authorization.";
                                 reject(err);
@@ -2080,8 +2089,7 @@
 
                         // If no specific authorization, make one
                         if (
-                            spec.properties.owner &&
-                            !isChild && (
+                            !isChild && !spec.isChild && (
                                 authorization === undefined ||
                                 authorization === null
                             )
@@ -2090,6 +2098,7 @@
                                 data: {
                                     feather: name,
                                     role: "everyone",
+                                    isSilentError: true,
                                     actions: {
                                         canCreate: true,
                                         canRead: true,
