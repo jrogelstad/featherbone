@@ -99,14 +99,10 @@
                 "WHERE EXISTS (" +
                 "  SELECT " + action + " FROM ( " +
                 "    SELECT " + action +
-                "    FROM \"$auth\"" +
-                "      JOIN role ON" +
-                "           \"$auth\".role_pk=role._pk" +
-                "      JOIN pg_authid" +
-                "        ON role.name=" +
-                "           pg_authid.rolname" +
+                "    FROM \"$auth\", pg_authid" +
                 "    WHERE pg_has_role($1, pg_authid.oid, 'member')" +
-                "      AND object_pk=\"$feather\".parent_pk" +
+                "      AND \"$auth\".object_pk=\"$feather\".parent_pk" +
+                "      AND \"$auth\".role=pg_authid.rolname" +
                 "    ORDER BY " + action + " DESC" +
                 "    LIMIT 1" +
                 "  ) AS data" +
@@ -118,14 +114,10 @@
                 "WHERE EXISTS ( " +
                 "  SELECT " + action + " FROM (" +
                 "    SELECT " + action +
-                "    FROM \"$auth\"" +
-                "    JOIN role ON" +
-                "         \"$auth\".role_pk=role._pk" +
-                "      JOIN pg_authid" +
-                "        ON role.name=" +
-                "           pg_authid.rolname" +
+                "    FROM \"$auth\", pg_authid" +
                 "    WHERE pg_has_role($1, pg_authid.oid, 'member')" +
-                "      AND object_pk=%I._pk" +
+                "      AND \"$auth\".object_pk=%I._pk" +
+                "      AND \"$auth\".role=pg_authid.rolname" +
                 "    ORDER BY " + action + " DESC" +
                 "    LIMIT 1 " +
                 "  ) AS data " +
