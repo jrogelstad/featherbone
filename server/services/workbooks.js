@@ -263,6 +263,7 @@
                                         authorization = {
                                             data: {
                                                 role: "everyone",
+                                                isInternal: true,
                                                 actions: {
                                                     canCreate: true,
                                                     canRead: true,

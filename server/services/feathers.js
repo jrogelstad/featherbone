@@ -883,6 +883,7 @@
           @param {String} [payload.data.id] Object id (if record level)
           @param {String} [payload.data.feather] Feather
           @param {String} [payload.data.role] Role
+          @param {Boolean} [payload.data.isInternal] Not a feather
           @param {Object} [payload.data.actions] Required
           @param {Boolean} [payload.data.actions.canCreate]
           @param {Boolean} [payload.data.actions.canRead]
@@ -937,6 +938,11 @@
                         return;
                     }
 
+                    if (obj.data.isInternal) {
+                        afterCheckSuperUser();
+                        return;
+                    }
+ 
                     if (obj.data.id) {
                         sql = (
                             "SELECT tableoid::regclass::text AS feather " +
