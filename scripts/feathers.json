@@ -1,7 +1,27 @@
-[{
+[
+    {
+        "name": "Document",
+        "module": "Core",
+        "plural": "Documents",
+        "description": "Base document class",
+        "authorization": false,
+        "properties": {
+            "owner": {
+                "description": "Owner of the document",
+                "type": "string",
+                "isRequired": true
+            },
+            "etag": {
+                "description": "Optimistic locking key",
+                "type": "string",
+                "default": "createId()"
+            }
+        }
+    }, {
         "name": "Feather",
         "plural": "Feathers",
         "module": "Core",
+        "inherits": "Document",
         "description": "Object definitions",
         "authorization": false,
         "isReadOnly": false,
@@ -61,11 +81,6 @@
                 "type": "boolean",
                 "default": false,
                 "isRequired": true
-            },
-            "etag": {
-                "description": "Optimistic locking key",
-                "type": "string",
-                "default": "createId()"
             }
         }
     },
@@ -290,6 +305,7 @@
         "name": "Role",
         "plural": "Roles",
         "module": "Core",
+        "inherits": "Document",
         "isFetchOnStartup": true,
         "description": "User authorization role",
         "authorization": false,
@@ -304,11 +320,6 @@
                 "description": "System adiminstrator flag",
                 "type": "boolean",
                 "default": false
-            },
-            "etag": {
-                "description": "Optimistic locking key",
-                "type": "string",
-                "default": "createId()"
             }
         }
     },
@@ -349,24 +360,6 @@
             "change": {
                 "description": "Patch formatted json indicating changes",
                 "type": "object"
-            }
-        }
-    },
-    {
-        "name": "Document",
-        "module": "Core",
-        "plural": "Documents",
-        "description": "Base document class",
-        "authorization": false,
-        "properties": {
-            "owner": {
-                "description": "Owner of the document",
-                "type": "string"
-            },
-            "etag": {
-                "description": "Optimistic locking key",
-                "type": "string",
-                "default": "createId()"
             }
         }
     },

@@ -30,7 +30,7 @@ function featherAuthorization(data, feather) {
         let name;
         let result;
 
-        result = result.map(function (role) {
+        result = roles.map(function (role) {
             name = role.data.name();
             return {
                 value: name,

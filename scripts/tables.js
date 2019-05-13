@@ -142,8 +142,8 @@
         "can_update boolean not null," +
         "can_delete boolean not null," +
         "is_member_auth boolean not null," +
-        "CONSTRAINT \"$auth_object_pk_role_is_member_auth_key\" " +
-        "UNIQUE (object_pk, role, is_member_auth));" +
+        "CONSTRAINT \"$auth_object_pk_role_key\" " +
+        "UNIQUE (object_pk, role));" +
         "COMMENT ON TABLE \"$auth\" IS " +
         "'Table for storing object level authorization information';" +
         "COMMENT ON COLUMN \"$auth\".pk IS 'Primary key';" +
@@ -154,9 +154,7 @@
         "COMMENT ON COLUMN \"$auth\".can_create IS 'Can create the object';" +
         "COMMENT ON COLUMN \"$auth\".can_read IS 'Can read the object';" +
         "COMMENT ON COLUMN \"$auth\".can_update IS 'Can update the object';" +
-        "COMMENT ON COLUMN \"$auth\".can_delete IS 'Can delete the object';" +
-        "COMMENT ON COLUMN \"$auth\".is_member_auth IS " +
-        "'Is authorization for members of a parent';"
+        "COMMENT ON COLUMN \"$auth\".can_delete IS 'Can delete the object';"
     );
 
     const createFeatherSql = (

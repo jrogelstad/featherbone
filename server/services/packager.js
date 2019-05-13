@@ -541,7 +541,7 @@
             }
 
             delete workbook.localConfig;
-            
+
             if (!Object.keys(workbook.launchConfig).length) {
                 delete workbook.launchConfig;
             }
