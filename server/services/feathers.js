@@ -681,9 +681,10 @@
         /**
           Return a class definition, including inherited properties.
           @param {Object} Request payload
-          @param {Object} [payload.name] Feather name
           @param {Object} [payload.client] Database client
-          @param {Boolean} [payload.includeInherited] Include inherited
+          @param {Object} [payload.data] Data
+          @param {Object} [payload.data.name] Feather name
+          @param {Boolean} [payload.data.includeInherited] Include inherited
                 or not. Default = true.
           @return {Object} Promise
         */
@@ -796,13 +797,14 @@
                 if (feather) {
                     params = [feather.toSnakeCase(), user];
                     sql = (
-                        "SELECT pk FROM \"$auth\" AS auth, pg_authid " +
-                        "  JOIN \"$feather\" AS feather " +
-                        "    ON feather._pk=auth.object_pk " +
-                        "WHERE feather.id=$1" +
+                        "SELECT pk FROM \"$auth\" " +
+                        "  JOIN \"$feather\" " +
+                        "    ON \"$feather\"._pk=\"$auth\".object_pk " +
+                        "  JOIN pg_authid " +
+                         "   ON \"$auth\".role=pg_authid.rolname " +
+                        "WHERE \"$feather\".id=$1" +
                         "  AND pg_has_role($2, pg_authid.oid, 'member')" +
                         "  AND \"$auth\".object_pk=\"$feather\".parent_pk" +
-                        "  AND \"$auth\".role=pg_authid.rolname" +
                         "  AND %I;"
                     );
                     sql = sql.format([action.toSnakeCase()]);
@@ -962,19 +964,21 @@
                     that.getFeather({
                         client: obj.client,
                         data: {
-                            name: feather
+                            name: feather,
+                            includeInherited: true
                         }
                     }).then(afterGetFeather).catch(reject);
                 };
 
                 afterGetFeather = function (resp) {
                     feather = resp;
-
+    
                     if (tools.isChildFeather(feather)) {
                         err = "Can not set authorization on child feathers.";
                     } else if (!feather.properties.owner) {
                         err = (
-                            "Feather must have owner property to set " +
+                            "Feather '" + resp.name + 
+                            "' must have owner property to set " +
                             "authorization."
                         );
                     }
@@ -1036,7 +1040,7 @@
                         "SELECT auth.* FROM \"$auth\" AS auth " +
                         "  JOIN object ON object._pk=object_pk " +
                         "WHERE object.id=$1 " +
-                        "  AND \"$auth\".role=$2;"
+                        "  AND auth.role=$2;"
                     );
 
                     obj.client.query(
@@ -1986,6 +1990,8 @@
                                 }
                             }).then(callback).catch(reject);
                             return;
+                        } else {
+                            isChild = tools.isChildFeather(feather);
                         }
 
                         afterInsertFeather();
@@ -2068,8 +2074,11 @@
 
                         // If no specific authorization, make one
                         if (
-                            authorization === undefined ||
-                            authorization === null
+                            spec.properties.owner &&
+                            !isChild && (
+                                authorization === undefined ||
+                                authorization === null
+                            )
                         ) {
                             authorization = {
                                 data: {

@@ -442,6 +442,7 @@
         "plural": "Honorifics",
         "module": "Core",
         "authorization": false,
+        "inherits": "Document",
         "description": "Honorific",
         "properties": {
             "title": {
@@ -456,7 +457,6 @@
         "module": "Core",
         "description": "Physical location",
         "isChild": true,
-        "authorization": false,
         "properties": {
             "type": {
                 "description": "Home, work, other",

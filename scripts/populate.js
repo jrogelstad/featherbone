@@ -16,6 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 /*jslint node*/
+const f = require("../common/core");
+
 (function (exports) {
     "use strict";
 
@@ -54,8 +56,8 @@
                         "INSERT INTO \"role\" VALUES " +
                         "(nextval('object__pk_seq'), " +
                         "'z6obwieygb0', now(), $1, now(), " +
-                        "$1, false, null, 'everyone', false);",
-                        [user]
+                        "$1, false, null, $1, $2, 'everyone', false);",
+                        [user, f.createId()]
                     ).then(resolve).catch(reject);
                 });
             }
@@ -97,9 +99,9 @@
                         (
                             "INSERT INTO user_account VALUES " +
                             "($2, 'e54y397l4arw', now(), $1, now(), " +
-                            "$1, false, null, $1, true, '');"
+                            "$1, false, null, $1, $3, $1, true, '');"
                         ),
-                        [user, id]
+                        [user, id, f.createId()]
                     ).then(resolve).catch(reject);
                 });
             }
@@ -138,12 +140,10 @@
             grantEveryoneGlobal = function () {
                 let req;
                 let reqRole;
-                let reqLog;
                 let reqFeather;
                 let reqModule;
                 let reqDataService;
                 let reqHonorific;
-                let reqAddress;
                 let reqContact;
                 let reqUserAccount;
                 let promises = [];
@@ -154,7 +154,7 @@
                         name: "saveAuthorization",
                         user: user,
                         data: {
-                            id: "role",
+                            feather: "Role",
                             role: "everyone",
                             actions: {
                                 canCreate: true,
@@ -170,29 +170,23 @@
                 /* Grant everyone access to system objects */
                 reqRole = req();
                 promises.push(datasource.request(reqRole));
-                reqLog = req();
-                reqLog.data.id = "log";
-                promises.push(datasource.request(reqLog));
                 reqFeather = req();
-                reqFeather.data.id = "feather";
+                reqFeather.data.feather = "Feather";
                 promises.push(datasource.request(reqFeather));
                 reqModule = req();
-                reqModule.data.id = "module";
+                reqModule.data.feather = "Module";
                 promises.push(datasource.request(reqModule));
                 reqDataService = req();
-                reqDataService.data.id = "data_service";
+                reqDataService.data.feather = "DataService";
                 promises.push(datasource.request(reqDataService));
                 reqHonorific = req();
-                reqHonorific.data.id = "honorific";
+                reqHonorific.data.feather = "Honorific";
                 promises.push(datasource.request(reqHonorific));
-                reqAddress = req();
-                reqAddress.data.id = "address";
-                promises.push(datasource.request(reqAddress));
                 reqContact = req();
-                reqContact.data.id = "contact";
+                reqContact.data.feather = "Contact";
                 promises.push(datasource.request(reqContact));
                 reqUserAccount = req();
-                reqUserAccount.data.id = "user_account";
+                reqUserAccount.data.feather = "UserAccount";
                 promises.push(datasource.request(reqUserAccount));
 
                 Promise.all(promises).then(resolve).catch(reject);
