@@ -388,6 +388,7 @@
         "name": "Unit",
         "plural": "Units",
         "module": "Core",
+        "inherits": "Document",
         "description": "Unit of measure",
         "properties": {
             "code": {
@@ -521,6 +522,7 @@
         "name": "CurrencyConversion",
         "plural": "CurrencyConversions",
         "module": "Core",
+        "inherits": "Document",
         "description": "Currency Conversion rates",
         "properties": {
             "fromCurrency": {
@@ -569,6 +571,7 @@
         "name": "BaseCurrency",
         "plural": "BaseCurrencies",
         "module": "Core",
+        "inherits": "Document",
         "description": "Base currency effectivity",
         "isFetchOnStartup": true,
         "properties": {
@@ -597,6 +600,7 @@
         "name": "Country",
         "plural": "Countries",
         "module": "Core",
+        "inherits": "Document",
         "description": "Country",
         "isFetchOnStartup": true,
         "properties": {
@@ -618,6 +622,7 @@
         "name": "State",
         "plural": "States",
         "module": "Core",
+        "inherits": "Document",
         "description": "State",
         "isFetchOnStartup": true,
         "properties": {
@@ -638,6 +643,7 @@
         "name": "SocialNetwork",
         "plural": "SocialNetworks",
         "module": "Core",
+        "inherits": "Document",
         "description": "Social media networks",
         "properties": {
             "name": {
