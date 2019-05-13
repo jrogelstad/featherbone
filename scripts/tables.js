@@ -141,7 +141,6 @@
         "can_read boolean not null," +
         "can_update boolean not null," +
         "can_delete boolean not null," +
-        "is_member_auth boolean not null," +
         "CONSTRAINT \"$auth_object_pk_role_key\" " +
         "UNIQUE (object_pk, role));" +
         "COMMENT ON TABLE \"$auth\" IS " +
