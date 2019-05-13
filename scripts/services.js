@@ -29,7 +29,7 @@ function doUpsertFeather(obj) {
         let feather = f.copy(obj.newRec);
         let props = feather.properties;
         let overloads = feather.overloads || [];
-        let authorizations = feather.authorizations;
+        let authorizations = feather.authorizations || [];
         let exclusions = [
             "id",
             "etag",
