@@ -371,7 +371,7 @@ f.datasource.registerFunction(
 /**
   Document
 */
-function handleDocument(obj) {
+function doCreateDocument(obj) {
     "use strict";
 
     return new Promise(function (resolve) {
@@ -385,10 +385,56 @@ function handleDocument(obj) {
     });
 }
 
+function doUpdateDocument(obj) {
+    "use strict";
+
+    return new Promise(function (resolve, reject) {
+        let newRec = obj.newRec;
+        let oldRec = obj.oldRec;
+        let payload;
+
+        function callback(isSuper) {
+            if (!isSuper) {
+                throw new Error(
+                    "Only the record owner or a super user are allowed to " +
+                    "change document ownership."
+                );
+            }
+
+            resolve();
+        }
+
+        if (
+            newRec.owner !== oldRec.owner &&
+            obj.user !== oldRec.owner
+        ) {
+            payload = {
+                method: "GET",
+                name: "isSuperUser",
+                client: obj.client,
+                data: {
+                    user: obj.user
+                }
+            };
+
+            f.datasource.request(payload).then(callback).catch(reject);
+        }
+
+        resolve();
+    });
+}
+
 f.datasource.registerFunction(
     "POST",
     "Document",
-    handleDocument,
+    doCreateDocument,
+    f.datasource.TRIGGER_BEFORE
+);
+
+f.datasource.registerFunction(
+    "PATCH",
+    "Document",
+    doUpdateDocument,
     f.datasource.TRIGGER_BEFORE
 );
 

@@ -15,42 +15,31 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
+/*jslint browser*/
 import catalog from "./catalog.js";
 import model from "./model.js";
+import f from "../core.js";
 
 /*
-  Feather authorization model
+  Document Model
 */
-function featherAuthorization(data, feather) {
-    feather = feather || catalog.getFeather("FeatherAuthorization");
+function document(data, feather) {
+    if (data === undefined) {
+        data = {
+            owner: f.currentUser();
+        }
+    }
+    feather = feather || catalog.getFeather("Document");
     let that = model(data, feather);
+    let d = that.data;
 
-    function roleNames() {
-        let roles = catalog.store().data().roles().slice();
-        let name;
-        let result;
-
-        result = roles.map(function (role) {
-            name = role.data.name();
-            return {
-                value: name,
-                label: name
-            };
-        });
-        result.unshift({
-            value: "",
-            label: ""
-        });
-        return result;
+    function handleReadOnly() {
+        d.owner.readOnly(d.owner() !== f.currentUser());
     }
 
-    that.addCalculated({
-        name: "roleNames",
-        type: "array",
-        function: roleNames
-    });
+    that.onLoad(handleReadOnly);
 
     return that;
 }
 
-catalog.registerModel("FeatherAuthorization", featherAuthorization);
+catalog.registerModel("Document", document, true);

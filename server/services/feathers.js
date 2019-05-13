@@ -867,7 +867,6 @@
             {
               id: "ExWIx6'",
               role: "jdoe",
-              isMember: true,
               actions:
                 {
                   canCreate: false,
@@ -882,7 +881,6 @@
           @param {String} [payload.data.id] Object id (if record level)
           @param {String} [payload.data.feather] Feather
           @param {String} [payload.data.role] Role
-          @param {Boolean} [payload.data.isMember] Record level auth
           @param {Object} [payload.data.actions] Required
           @param {Boolean} [payload.data.actions.canCreate]
           @param {Boolean} [payload.data.actions.canRead]
@@ -913,7 +911,6 @@
                     : obj.data.id
                 );
                 let actions = obj.data.actions || {};
-                let isMember = false;
                 let hasAuth = false;
 
                 afterGetObjKey = function (resp) {
@@ -938,14 +935,20 @@
                         return;
                     }
 
-                    if (obj.data.id && obj.data.isMember) {
-                        sql = "SELECT tableoid::regclass::text AS feather ";
-                        sql += "FROM object WHERE id=$1";
+                    if (obj.data.id) {
+                        sql = (
+                            "SELECT tableoid::regclass::text AS feather " +
+                            "FROM object WHERE id=$1"
+                        );
                         obj.client.query(sql, [id], afterGetFeatherName);
                         return;
                     }
 
-                    checkSuperUser();
+                    afterGetFeatherName(null, {
+                        rows: [{
+                            feather: obj.data.feather
+                        }]
+                    });
                 };
 
                 afterGetFeatherName = function (err, resp) {
@@ -970,8 +973,10 @@
                     if (tools.isChildFeather(feather)) {
                         err = "Can not set authorization on child feathers.";
                     } else if (!feather.properties.owner) {
-                        err = "Feather must have owner property to set ";
-                        err += "authorization";
+                        err = (
+                            "Feather must have owner property to set " +
+                            "authorization."
+                        );
                     }
 
                     if (err) {
@@ -996,8 +1001,7 @@
                             return;
                         }
 
-                        sql = "SELECT owner FROM %I WHERE _pk=$1";
-                        sql = sql.format(feather.name.toSnakeCase());
+                        sql = "SELECT owner FROM object WHERE _pk=$1;";
 
                         obj.client.query(sql, [objPk], function (err, resp) {
                             if (err) {
@@ -1030,14 +1034,14 @@
                     // Find an existing authorization record
                     sql = (
                         "SELECT auth.* FROM \"$auth\" AS auth " +
-                        "JOIN object ON object._pk=object_pk " +
-                        "WHERE object.id=$1 AND \"$auth\".role=$2" +
-                        " AND is_member_auth=$3;"
+                        "  JOIN object ON object._pk=object_pk " +
+                        "WHERE object.id=$1 " +
+                        "  AND \"$auth\".role=$2;"
                     );
 
                     obj.client.query(
                         sql,
-                        [id, obj.data.role, isMember],
+                        [id, obj.data.role],
                         afterQueryAuth
                     );
                 };
@@ -1053,8 +1057,7 @@
                     if (result) {
                         pk = result.pk;
 
-                        if (!hasAuth && isMember) {
-
+                        if (!hasAuth) {
                             sql = "DELETE FROM \"$auth\" WHERE pk=$1";
                             params = [pk];
                         } else {
@@ -1088,21 +1091,11 @@
                                 pk
                             ];
                         }
-                    } else if (hasAuth || !isMember) {
+                    } else if (hasAuth) {
                         sql = (
-                            "INSERT INTO \"$auth\" AS a VALUES (" +
-                            "nextval('$auth_pk_seq'), " +
-                            "$1, $2, $3, $4, $5, $6, $7 " +
-                            ") ON CONFLICT ON CONSTRAINT" +
-                            "\"$auth_object_pk_role_is_member_auth_key\" " +
-                            "DO UPDATE SET " +
-                            "  can_create=$3, " +
-                            "  can_read=$4, " +
-                            "  can_update=$5, " +
-                            "  can_delete=$6 " +
-                            "WHERE a.object_pk =$1 " +
-                            "  AND a.role=$2 " +
-                            "  AND a.is_member_auth=$7;"
+                            "INSERT INTO \"$auth\" AS a VALUES " +
+                            "(nextval('$auth_pk_seq'), " +
+                            "$1, $2, $3, $4, $5, $6)"
                         );
                         params = [
                             objPk,
@@ -1126,8 +1119,7 @@
                                 actions.canDelete === undefined
                                 ? false
                                 : actions.canDelete
-                            ),
-                            isMember
+                            )
                         ];
                     } else {
                         done(null, false);

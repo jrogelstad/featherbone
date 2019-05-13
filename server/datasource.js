@@ -36,6 +36,7 @@
     const {Services} = require("./services/services");
     const {Settings} = require("./services/settings");
     const {Role} = require("./services/role");
+    const {Tools} = require("./services/tools");
     const {Workbooks} = require("./services/workbooks");
     const {Config} = require("./config");
 
@@ -56,6 +57,7 @@
     const services = new Services();
     const settings = new Settings();
     const role = new Role();
+    const tools = new Tools();
     const workbooks = new Workbooks();
     const that = {};
 
@@ -1351,6 +1353,7 @@
     that.registerFunction("GET", "getWorkbook", workbooks.getWorkbook);
     that.registerFunction("GET", "getWorkbooks", workbooks.getWorkbooks);
     that.registerFunction("GET", "isAuthorized", feathers.isAuthorized);
+    that.registerFunction("GET", "isSuperUser", tools.isSuperUser);
     that.registerFunction("PATCH", "patchProfile", profile.patchProfile);
     that.registerFunction("POST", "changeRoleLogin", role.changeLogin);
     that.registerFunction("POST", "changeRolePassword", role.changePassword);

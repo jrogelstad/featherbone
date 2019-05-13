@@ -1428,6 +1428,7 @@ f.resolveProperty = function (model, property) {
 };
 
 // Define application state
+f.currentUser = f.prop("");
 message = f.prop("");
 appState = State.define(function () {
     this.state("Uninitialized", function () {
@@ -1441,18 +1442,24 @@ appState = State.define(function () {
     });
     this.state("SignedOut", function () {
         this.event("authenticate", function () {
+            let user = document.getElementById(
+                "username"
+            ).value;
+
+            f.currentUser(user);
             this.goto("../Authenticating", {
                 context: {
-                    username: document.getElementById(
-                        "username"
-                    ).value,
+                    username: user,
                     password: document.getElementById(
                         "password"
                     ).value
                 }
             });
         });
-        this.enter(() => m.route.set("/sign-in"));
+        this.enter(function () {
+            f.currentUser("");
+            m.route.set("/sign-in");
+        });
         this.message = message;
     });
     this.state("SignedIn", function () {
