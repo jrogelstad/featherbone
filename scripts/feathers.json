@@ -73,7 +73,6 @@
         "name": "FeatherProperty",
         "module": "Core",
         "description": "Feather property",
-        "authorization": false,
         "properties": {
             "parent": {
                 "description": "Parent feather",
@@ -187,7 +186,6 @@
         "name": "FeatherOverload",
         "module": "Core",
         "description": "Override behvaior of inherited properties on client",
-        "authorization": false,
         "properties": {
             "parent": {
                 "description": "Parent feather",
@@ -246,6 +244,45 @@
             "dataList": {
                 "description": "Over loaded list of available values for this feather",
                 "type": "array"
+            }
+        }
+    },
+    {
+        "name": "FeatherAuthorization",
+        "module": "Core",
+        "description": "Role authorized to use the parent feather",
+        "properties": {
+            "parent": {
+                "description": "Parent feather",
+                "type": {
+                    "relation": "Feather",
+                    "childOf": "authorizations"
+                }
+            },
+            "role": {
+                "description": "Name",
+                "type": "string",
+                "isRequired": true
+            },
+            "canCreate": {
+                "description": "Role can create new records",
+                "type": "boolean",
+                "default": false
+            },
+            "canRead": {
+                "description": "Role can read records",
+                "type": "boolean",
+                "default": true
+            },
+            "canUpdate": {
+                "description": "Role can update records",
+                "type": "boolean",
+                "default": false
+            },
+            "canDelete": {
+                "description": "Role can delete records",
+                "type": "boolean",
+                "default": false
             }
         }
     },

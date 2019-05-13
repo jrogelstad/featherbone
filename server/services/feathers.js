@@ -796,15 +796,13 @@
                 if (feather) {
                     params = [feather.toSnakeCase(), user];
                     sql = (
-                        "SELECT pk FROM \"$auth\" AS auth " +
+                        "SELECT pk FROM \"$auth\" AS auth, pg_authid " +
                         "  JOIN \"$feather\" AS feather " +
                         "    ON feather._pk=auth.object_pk " +
-                        "  JOIN role " +
-                        "    ON role._pk=auth.role_pk " +
-                        "  JOIN pg_authid " +
-                        "    ON role.name=rolname " +
                         "WHERE feather.id=$1" +
                         "  AND pg_has_role($2, pg_authid.oid, 'member')" +
+                        "  AND \"$auth\".object_pk=\"$feather\".parent_pk" +
+                        "  AND \"$auth\".role=pg_authid.rolname" +
                         "  AND %I;"
                     );
                     sql = sql.format([action.toSnakeCase()]);
@@ -868,7 +866,7 @@
           Example:
             {
               id: "ExWIx6'",
-              role: "IWi.QWvo",
+              role: "jdoe",
               isMember: true,
               actions:
                 {
@@ -881,13 +879,15 @@
 
           @param {Object} Payload
           @param {Object} [payload.data] Payload data
-          @param {String} [payload.data.id] Object id
-          @param {String} [payload.daat.role] Role
+          @param {String} [payload.data.id] Object id (if record level)
+          @param {String} [payload.data.feather] Feather
+          @param {String} [payload.data.role] Role
+          @param {Boolean} [payload.data.isMember] Record level auth
           @param {Object} [payload.data.actions] Required
           @param {Boolean} [payload.data.actions.canCreate]
           @param {Boolean} [payload.data.actions.canRead]
           @param {Boolean} [payload.data.actions.canUpdate]
-          @param {Boolean} [payload.daat.actions.canDelete]
+          @param {Boolean} [payload.data.actions.canDelete]
           @return {Object} Promise
         */
         that.saveAuthorization = function (obj) {
@@ -898,7 +898,6 @@
                 let feather;
                 let params;
                 let objPk;
-                let rolePk;
                 let err;
                 let afterGetObjKey;
                 let afterGetRoleKey;
@@ -933,15 +932,11 @@
                 };
 
                 afterGetRoleKey = function (resp) {
-                    let pkAttr = "_pk"; // Lint
-
                     // Validation
                     if (!resp.rows.length) {
                         reject("Role \"" + obj.data.role + "\" not found");
                         return;
                     }
-
-                    rolePk = resp.rows[0][pkAttr];
 
                     if (obj.data.id && obj.data.isMember) {
                         sql = "SELECT tableoid::regclass::text AS feather ";
@@ -1036,8 +1031,7 @@
                     sql = (
                         "SELECT auth.* FROM \"$auth\" AS auth " +
                         "JOIN object ON object._pk=object_pk " +
-                        "JOIN role ON role._pk=role_pk " +
-                        "WHERE object.id=$1 AND role.id=$2" +
+                        "WHERE object.id=$1 AND \"$auth\".role=$2" +
                         " AND is_member_auth=$3;"
                     );
 
@@ -1098,21 +1092,21 @@
                         sql = (
                             "INSERT INTO \"$auth\" AS a VALUES (" +
                             "nextval('$auth_pk_seq'), " +
-                            "$1, $2,$3, $4, $5, $6, $7 " +
+                            "$1, $2, $3, $4, $5, $6, $7 " +
                             ") ON CONFLICT ON CONSTRAINT" +
-                            "\"$auth_object_pk_role_pk_is_member_auth_key\" " +
+                            "\"$auth_object_pk_role_is_member_auth_key\" " +
                             "DO UPDATE SET " +
                             "  can_create=$3, " +
                             "  can_read=$4, " +
                             "  can_update=$5, " +
                             "  can_delete=$6 " +
                             "WHERE a.object_pk =$1 " +
-                            "  AND a.role_pk=$2 " +
+                            "  AND a.role=$2 " +
                             "  AND a.is_member_auth=$7;"
                         );
                         params = [
                             objPk,
-                            rolePk,
+                            obj.data.role,
                             (
                                 actions.canCreate === undefined
                                 ? false

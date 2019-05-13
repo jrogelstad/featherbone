@@ -136,21 +136,21 @@
         "CREATE TABLE \"$auth\" (" +
         "pk serial PRIMARY KEY," +
         "object_pk bigint not null," +
-        "role_pk bigint not null," +
+        "role text not null," +
         "can_create boolean not null," +
         "can_read boolean not null," +
         "can_update boolean not null," +
         "can_delete boolean not null," +
         "is_member_auth boolean not null," +
-        "CONSTRAINT \"$auth_object_pk_role_pk_is_member_auth_key\" " +
-        "UNIQUE (object_pk, role_pk, is_member_auth));" +
+        "CONSTRAINT \"$auth_object_pk_role_is_member_auth_key\" " +
+        "UNIQUE (object_pk, role, is_member_auth));" +
         "COMMENT ON TABLE \"$auth\" IS " +
         "'Table for storing object level authorization information';" +
         "COMMENT ON COLUMN \"$auth\".pk IS 'Primary key';" +
         "COMMENT ON COLUMN \"$auth\".object_pk IS " +
         "'Primary key for object authorization applies to';" +
-        "COMMENT ON COLUMN \"$auth\".role_pk IS " +
-        "'Primary key for role authorization applies to';" +
+        "COMMENT ON COLUMN \"$auth\".role IS " +
+        "'Role authorization applies to';" +
         "COMMENT ON COLUMN \"$auth\".can_create IS 'Can create the object';" +
         "COMMENT ON COLUMN \"$auth\".can_read IS 'Can read the object';" +
         "COMMENT ON COLUMN \"$auth\".can_update IS 'Can update the object';" +

@@ -29,6 +29,7 @@ function doUpsertFeather(obj) {
         let feather = f.copy(obj.newRec);
         let props = feather.properties;
         let overloads = feather.overloads || [];
+        let authorizations = feather.authorizations;
         let exclusions = [
             "id",
             "etag",
@@ -40,6 +41,35 @@ function doUpsertFeather(obj) {
             "created",
             "createdBy"
         ];
+
+        function authorize() {
+            let requests = [];
+
+            authorizations.forEach(function (item) {
+                let apayload = {
+                    method: "POST",
+                    name: "saveAuthorization",
+                    client: obj.client,
+                    data: {
+                        feather: feather.name,
+                        role: item.role,
+                        canCreate: item.canCreate,
+                        canRead: item.canRead,
+                        canUpdate: item.canUpdate,
+                        canDelete: item.canDelete
+                    }
+                };
+
+                requests.push(
+                    f.datasource.request(
+                        apayload,
+                        true
+                    )
+                );
+            });
+
+            Promise.all(requests).then(resolve).catch(reject);
+        }
 
         // Save the feather in the catalog
         feather.properties = {};
@@ -91,7 +121,7 @@ function doUpsertFeather(obj) {
             client: obj.client
         };
 
-        f.datasource.request(payload, true).then(resolve).catch(reject);
+        f.datasource.request(payload, true).then(authorize).catch(reject);
     });
 }
 

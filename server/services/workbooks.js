@@ -107,13 +107,10 @@
                     "WHERE EXISTS (" +
                     "  SELECT can_read FROM ( " +
                     "    SELECT can_read " +
-                    "    FROM \"$auth\"" +
-                    "      JOIN \"role\"" +
-                    "        ON \"$auth\".\"role_pk\"=\"role\".\"_pk\"" +
-                    "  JOIN pg_authid " +
-                    "    ON role.name=rolname " +
+                    "    FROM \"$auth\", pg_authid " +
                     "    WHERE pg_has_role($1, pg_authid.oid, 'member')" +
-                    "      AND object_pk=\"$workbook\"._pk" +
+                    "      AND \"$auth\".object_pk=\"$workbook\"._pk" +
+                    "      AND \"$auth\".role=pg_authid.rolname" +
                     "    ORDER BY can_read DESC" +
                     "    LIMIT 1" +
                     "  ) AS data " +
