@@ -801,7 +801,7 @@
                         "  JOIN \"$feather\" " +
                         "    ON \"$feather\"._pk=\"$auth\".object_pk " +
                         "  JOIN pg_authid " +
-                         "   ON \"$auth\".role=pg_authid.rolname " +
+                        "   ON \"$auth\".role=pg_authid.rolname " +
                         "WHERE \"$feather\".id=$1" +
                         "  AND pg_has_role($2, pg_authid.oid, 'member')" +
                         "  AND \"$auth\".object_pk=\"$feather\".parent_pk" +
@@ -943,7 +943,7 @@
                         afterCheckSuperUser();
                         return;
                     }
- 
+
                     if (obj.data.id) {
                         sql = (
                             "SELECT tableoid::regclass::text AS feather " +
@@ -979,12 +979,12 @@
 
                 afterGetFeather = function (resp) {
                     feather = resp;
-    
+
                     if (tools.isChildFeather(feather)) {
                         err = "Can not set authorization on child feathers.";
                     } else if (!feather.properties.owner) {
                         err = (
-                            "Feather '" + resp.name + 
+                            "Feather '" + resp.name +
                             "' must have owner property to set " +
                             "authorization."
                         );
@@ -1200,7 +1200,7 @@
          * @param {Object | Array} [payload.spec] Feather specification(s).
          * @param {String} [payload.spec.name] Name
          * @param {String} [payload.spec.description] Description
-         * @param {Object | Boolean} [payload.spec.authorization]
+         * @param {Object | Array | Boolean} [payload.spec.authorization]
          *      Authorization spec. Defaults to grant all to everyone if
          *      undefined. Pass false to grant no auth.
          * @param {String} [payload.spec.properties] Feather properties
@@ -2005,10 +2005,9 @@
                                 }
                             }).then(callback).catch(reject);
                             return;
-                        } else {
-                            isChild = tools.isChildFeather(feather);
                         }
 
+                        isChild = tools.isChildFeather(feather);
                         afterInsertFeather();
                     };
 
@@ -2082,6 +2081,8 @@
                     };
 
                     afterPropagateViews = function (err) {
+                        let requests = [];
+
                         if (err) {
                             reject(err);
                             return;
@@ -2094,31 +2095,35 @@
                                 authorization === null
                             )
                         ) {
-                            authorization = {
-                                data: {
-                                    feather: name,
-                                    role: "everyone",
-                                    isSilentError: true,
-                                    actions: {
-                                        canCreate: true,
-                                        canRead: true,
-                                        canUpdate: true,
-                                        canDelete: true
-                                    }
-                                },
-                                client: obj.client
-                            };
+                            throw new Error(
+                                "Feather must specify authorization."
+                            );
                         }
 
                         /* Set authorization */
-                        if (authorization) {
-                            that.saveAuthorization(
-                                authorization
-                            ).then(
+                        if (
+                            typeof authorization === "object" &&
+                            !Array.isArray(authorization)
+                        ) {
+                            authorization = [authorization];
+                        }
+
+                        if (
+                            Array.isArray(authorization) &&
+                            authorization.length
+                        ) {
+                            authorization.forEach(function (auth) {
+                                auth.feather = name;
+                                auth.isSilentError = true;
+                                requests.push(that.saveAuthorization({
+                                    client: obj.client,
+                                    data: auth
+                                }));
+                            });
+
+                            Promise.all(requests).then(
                                 afterSaveAuthorization
-                            ).catch(
-                                reject
-                            );
+                            ).catch(reject);
                             return;
                         }
 

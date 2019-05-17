@@ -97,6 +97,12 @@ function feather(data, spec) {
         that.data.properties().forEach((prop) => prop.handleReadOnly());
     }
 
+    function isChild(p) {
+        let type = p.data.type();
+
+        return typeof type === "object" && type.childOf;
+    }
+
     that.addCalculated({
         name: "feathers",
         type: "array",
@@ -124,6 +130,16 @@ function feather(data, spec) {
     that.onChanged("inherits", calculateInherited);
     that.onLoad(calculateInherited);
     that.onLoad(handleReadOnly);
+
+    that.onValidate(function () {
+        if (
+            !that.data.authorizations().length &&
+            !that.data.isChild() &&
+            !that.data.properties().some(isChild)
+        ) {
+            throw new Error("Feather must have at least one authorization.");
+        }
+    });
 
     return that;
 }
