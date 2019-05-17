@@ -143,6 +143,7 @@
                         data: {
                             name: name,
                             version: version,
+                            owner: user,
                             script: script,
                             dependencies: dependencies.map(function (dep) {
                                 return {
@@ -265,7 +266,8 @@
                         data: {
                             name: name,
                             module: module,
-                            script: script
+                            script: script,
+                            owner: user
                         }
                     };
 
