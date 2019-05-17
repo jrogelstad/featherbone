@@ -378,7 +378,7 @@ function doCreateDocument(obj) {
         let newRec = obj.newRec;
 
         if (!newRec.owner) {
-            newRec.owner = obj.user;
+            newRec.owner = obj.client.currentUser;
         }
 
         resolve();
@@ -406,14 +406,14 @@ function doUpdateDocument(obj) {
 
         if (
             newRec.owner !== oldRec.owner &&
-            obj.user !== oldRec.owner
+            obj.client.currentUser !== oldRec.owner
         ) {
             payload = {
                 method: "GET",
                 name: "isSuperUser",
                 client: obj.client,
                 data: {
-                    user: obj.user
+                    user: obj.client.currentUser
                 }
             };
 
