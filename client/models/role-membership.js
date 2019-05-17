@@ -27,17 +27,16 @@ function roleMembership(data, feather) {
 
     function roleNames() {
         let roles = catalog.store().data().roles().slice();
-        let name;
         let result;
 
         result = roles.filter(function (role) {
             return role.data.objectType() === "Role";
         });
+        result = result.map((role) => role.data.name()).sort();
         result = result.map(function (role) {
-            name = role.data.name();
             return {
-                value: name,
-                label: name
+                value: role,
+                label: role
             };
         });
         result.unshift({
