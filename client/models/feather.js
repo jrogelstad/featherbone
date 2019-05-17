@@ -24,6 +24,17 @@ const f = window.f;
 
 function feather(data, spec) {
     spec = spec || catalog.getFeather("Feather");
+    if (data === undefined) {
+        data = {
+            authorizations: [{
+                role: "everyone",
+                canCreate: true,
+                canRead: true,
+                canUpdate: true,
+                canDelete: true
+            }]
+        };
+    }
     let that;
     let inheritedProperties = f.prop([]);
 
