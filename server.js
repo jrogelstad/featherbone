@@ -838,7 +838,10 @@
             eventSessions[eventKey] = function (message) {
                 let name;
 
-                if (message.payload.change !== "delete") {
+                if (
+                    message.payload.change === "create" ||
+                    message.payload.change === "update"
+                ) {
                     name = message.payload.data.name;
 
                     // Update server with route changes
