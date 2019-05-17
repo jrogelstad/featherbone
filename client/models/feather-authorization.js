@@ -27,14 +27,13 @@ function featherAuthorization(data, feather) {
 
     function roleNames() {
         let roles = catalog.store().data().roles().slice();
-        let name;
         let result;
 
-        result = roles.map(function (role) {
-            name = role.data.name();
+        result = roles.map((role) => role.data.name()).sort();
+        result = result.map(function (role) {
             return {
-                value: name,
-                label: name
+                value: role,
+                label: role
             };
         });
         result.unshift({
