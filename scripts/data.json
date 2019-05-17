@@ -112,6 +112,8 @@
         }, {
             "name": "Overloads"
         }, {
+            "name": "Authorizations"
+        }, {
             "name": "Advanced"
         }],
         "attrs": [{
@@ -223,8 +225,33 @@
                 "width": 170
             }]
         }, {
-            "attr": "isSystem",
+            "attr": "authorizations",
             "grid": 4,
+            "unit": 0,
+            "showLabel": false,
+            "columns": [{
+                "attr": "role",
+                "dataList": "roleNames"
+            }, {
+                "attr": "canCreate",
+                "label": "Create",
+                "width": 80
+            }, {
+                "attr": "canRead",
+                "label": "Read",
+                "width": 80
+            }, {
+                "attr": "canUpdate",
+                "label": "Update",
+                "width": 80
+            }, {
+                "attr": "canDelete",
+                "label": "Delete",
+                "width": 80
+            }]
+        }, {
+            "attr": "isSystem",
+            "grid": 5,
             "unit": 0
         }, {
             "attr": "isChild",
