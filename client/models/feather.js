@@ -132,6 +132,8 @@ function feather(data, spec) {
     that.onLoad(handleReadOnly);
 
     that.onValidate(function () {
+        let authRoles = [];
+
         if (
             !that.data.authorizations().length &&
             !that.data.isChild() &&
@@ -139,6 +141,18 @@ function feather(data, spec) {
         ) {
             throw new Error("Feather must have at least one authorization.");
         }
+        
+        that.data.authorizations().forEach(function (auth) {
+            let role = auth.data.role();
+
+            if (authRoles.indexOf(role) !== -1) {
+                throw new Error(
+                    "Role '" + role +
+                    "' must only be in one authorization per feather."
+                );
+            }
+            authRoles.push(role);
+        });
     });
 
     return that;
