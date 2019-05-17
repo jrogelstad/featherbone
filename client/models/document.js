@@ -23,10 +23,10 @@ import f from "../core.js";
 /*
   Document Model
 */
-function document(data, feather) {
+function doc(data, feather) {
     if (data === undefined) {
         data = {
-            owner: f.currentUser();
+            owner: f.currentUser()
         }
     }
     feather = feather || catalog.getFeather("Document");
@@ -34,7 +34,7 @@ function document(data, feather) {
     let d = that.data;
 
     function handleReadOnly() {
-        d.owner.readOnly(d.owner() !== f.currentUser());
+        d.owner.isReadOnly(d.owner() !== f.currentUser());
     }
 
     that.onLoad(handleReadOnly);
@@ -42,4 +42,4 @@ function document(data, feather) {
     return that;
 }
 
-catalog.registerModel("Document", document, true);
+catalog.registerModel("Document", doc, true);
