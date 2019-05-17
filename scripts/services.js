@@ -29,7 +29,6 @@ function doUpsertFeather(obj) {
         let feather = f.copy(obj.newRec);
         let props = feather.properties;
         let overloads = feather.overloads || [];
-        let authorizations = feather.authorizations || [];
         let exclusions = [
             "id",
             "etag",
@@ -42,33 +41,42 @@ function doUpsertFeather(obj) {
             "createdBy"
         ];
 
+        function isChild(p) {
+            return typeof p.type === "object" && p.type.childOf;
+        }
+
         function authorize() {
-            let requests = [];
+            if (obj.oldRec) {
+                let requests = [];
 
-            authorizations.forEach(function (item) {
-                let apayload = {
-                    method: "POST",
-                    name: "saveAuthorization",
-                    client: obj.client,
-                    data: {
-                        feather: feather.name,
-                        role: item.role,
-                        canCreate: item.canCreate,
-                        canRead: item.canRead,
-                        canUpdate: item.canUpdate,
-                        canDelete: item.canDelete
-                    }
-                };
+                obj.oldRec.authorizations.forEach(function (item) {
+                    let apayload = {
+                        method: "POST",
+                        name: "saveAuthorization",
+                        client: obj.client,
+                        data: {
+                            feather: feather.name,
+                            role: item.role,
+                            canCreate: item.canCreate,
+                            canRead: item.canRead,
+                            canUpdate: item.canUpdate,
+                            canDelete: item.canDelete
+                        }
+                    };
 
-                requests.push(
-                    f.datasource.request(
-                        apayload,
-                        true
-                    )
-                );
-            });
+                    requests.push(
+                        f.datasource.request(
+                            apayload,
+                            true
+                        )
+                    );
+                });
 
-            Promise.all(requests).then(resolve).catch(reject);
+                Promise.all(requests).then(resolve).catch(reject);
+                return;
+            }
+
+            resolve();
         }
 
         // Save the feather in the catalog
@@ -111,6 +119,46 @@ function doUpsertFeather(obj) {
 
             feather.overloads[o.name] = overload;
         });
+
+        // On insert assign authorization to everyone if none specified
+        if (!obj.oldRec) {
+            obj.newRec.authorizations = obj.newRec.authorizations || [];
+            if (
+                !obj.newRec.authorizations.length &&
+                !obj.newRec.properties.some(isChild) &&
+                !obj.newRec.isChild
+            ) {
+                obj.newRec.authorizations = [{
+                    role: "everyone",
+                    canCreate: true,
+                    canRead: true,
+                    canUpdate: true,
+                    canDelete: true
+                }];
+                feather.authorization = [{
+                    role: "everyone",
+                    actions: {
+                        canCreate: true,
+                        canRead: true,
+                        canUpdate: true,
+                        canDelete: true
+                    }
+                }];
+            } else if (obj.newRec.authorizations.length) {
+                feather.authorization = [];
+                obj.newRec.authorizations.forEach(function (auth) {
+                    feather.authorization.push({
+                        role: auth.role,
+                        actions: {
+                            canCreate: auth.canCreate,
+                            canRead: auth.canRead,
+                            canUpdate: auth.canUpdate,
+                            canDelete: auth.canDelete
+                        }
+                    });
+                });
+            }
+        }
 
         payload = {
             method: "PUT",
