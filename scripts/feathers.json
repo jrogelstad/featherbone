@@ -9,6 +9,7 @@
             "owner": {
                 "description": "Owner of the document",
                 "type": "string",
+                "format": "userAccount",
                 "isRequired": true
             },
             "etag": {
