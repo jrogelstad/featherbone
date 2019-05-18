@@ -56,7 +56,7 @@ const f = require("../common/core");
                         "INSERT INTO \"role\" VALUES " +
                         "(nextval('object__pk_seq'), " +
                         "'z6obwieygb0', now(), $1, now(), " +
-                        "$1, false, null, $1, $2, 'everyone', false);",
+                        "$1, false, null, $1, $2, 'everyone');",
                         [user, f.createId()]
                     ).then(resolve).catch(reject);
                 });
@@ -99,7 +99,7 @@ const f = require("../common/core");
                         (
                             "INSERT INTO user_account VALUES " +
                             "($2, 'e54y397l4arw', now(), $1, now(), " +
-                            "$1, false, null, $1, $3, $1, true, '');"
+                            "$1, false, null, $1, $3, $1, '', true);"
                         ),
                         [user, id, f.createId()]
                     ).then(resolve).catch(reject);

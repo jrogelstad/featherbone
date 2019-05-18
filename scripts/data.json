@@ -630,11 +630,14 @@
                 "attr": "password"
             },
             {
-                "attr": "isSuper",
-                "unit": 1
+                "attr": "isSuper"
             },
             {
                 "attr": "owner",
+                "unit": 1
+            },
+            {
+                "attr": "contact",
                 "unit": 1
             },
             {

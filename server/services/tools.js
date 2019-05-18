@@ -381,7 +381,7 @@
         */
         tools.isSuperUser = function (obj) {
             return new Promise(function (resolve, reject) {
-                let sql = "SELECT is_super FROM \"role\" WHERE name=$1;";
+                let sql = "SELECT is_super FROM user_account WHERE name=$1;";
                 let user = (
                     obj.user === undefined
                     ? obj.client.currentUser
@@ -522,7 +522,7 @@
                         obj.callback("User does not exist");
                     }
 
-                    sql = "SELECT * FROM \"role\" WHERE name=$1;";
+                    sql = "SELECT * FROM user_account WHERE name=$1;";
                     obj.client.query(sql, [user], afterGetPgUser);
                 };
 
@@ -533,10 +533,10 @@
                     }
 
                     if (resp.rows.length) {
-                        sql = "UPDATE \"role\" SET is_super=$2 ";
+                        sql = "UPDATE user_account SET is_super=$2 ";
                         sql += "WHERE name=$1";
                     } else {
-                        sql = "INSERT INTO \"role\" VALUES ($1, $2)";
+                        throw new Error("User " + user + " not found.");
                     }
 
                     obj.client.query(sql, [user, isSuper], afterUpsert);

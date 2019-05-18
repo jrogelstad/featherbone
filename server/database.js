@@ -157,10 +157,6 @@
                     "FROM user_account " +
                     "LEFT OUTER JOIN contact ON " +
                     "  (_contact_contact_pk = contact._pk) " +
-                    "WHERE name = $1 " +
-                    "UNION " +
-                    "SELECT name, is_super, '', '' " +
-                    "FROM ONLY role " +
                     "WHERE name = $1;"
                 );
 
@@ -168,7 +164,7 @@
                     obj.client.query(sql, [username]).then(function (resp) {
                         if (!resp.rows.length) {
                             reject(new Error(
-                                "Role " + username + " not found."
+                                "User account " + username + " not found."
                             ));
                         }
 
