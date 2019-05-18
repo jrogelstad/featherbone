@@ -33,8 +33,7 @@ const exclusions = [
     "updated",
     "updatedBy",
     "objectType",
-    "etag",
-    "owner"
+    "etag"
 ];
 
 let styles;
@@ -888,6 +887,44 @@ f.formats.url.tableData = function (obj) {
             obj.viewModel.canToggle(false);
         }
     }, obj.value);
+};
+
+f.formats.userAccount = {};
+
+function userAccountNames() {
+    let roles = catalog.store().data().roles().slice();
+    let result;
+
+    result =  roles.filter((r) => r.data.objectType() === "UserAccount");
+    result = result.map((role) => role.data.name()).sort();
+    result = result.map(function (role) {
+        return {
+            value: role,
+            label: role
+        };
+    });
+    result.unshift({
+        value: "",
+        label: ""
+    });
+    return result;
+}
+
+f.formats.userAccount.editor = function (options) {
+    let obj = {
+        viewModel: options.parentViewModel,
+        dataList: userAccountNames()
+    };
+    let opts = {
+        id: options.id,
+        prop: options.prop,
+        class: options.class,
+        readonly: options.readonly,
+        oncreate: options.onCreate,
+        onremove: options.onRemove,
+        stlye: options.stlye
+    };
+    return buildSelector(obj, opts);
 };
 
 f.types.array.editor = function (options) {

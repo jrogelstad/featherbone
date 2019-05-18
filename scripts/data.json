@@ -257,6 +257,10 @@
             "attr": "isChild",
             "grid": 5,
             "unit": 0
+        },
+        {
+            "attr": "owner",
+            "unit": 1
         }]
     }
 }, {
@@ -623,11 +627,15 @@
                 "attr": "name"
             },
             {
+                "attr": "password"
+            },
+            {
                 "attr": "isSuper",
                 "unit": 1
             },
             {
-                "attr": "password"
+                "attr": "owner",
+                "unit": 1
             },
             {
                 "attr": "membership",
