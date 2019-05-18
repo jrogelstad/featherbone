@@ -293,9 +293,9 @@ function model(data, feather) {
             data,
             feather
         );
-    } else {
-        data = data || {};
     }
+
+    data = data || {};
 
     that = {
         data: {}

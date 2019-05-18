@@ -141,7 +141,7 @@ function feather(data, spec) {
         ) {
             throw new Error("Feather must have at least one authorization.");
         }
-        
+
         that.data.authorizations().forEach(function (auth) {
             let role = auth.data.role();
 
