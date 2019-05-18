@@ -463,6 +463,7 @@
             function doExport(resp) {
                 return new Promise(function (resolve, reject) {
                     function callback(ok) {
+                        delete resp.client.currentUser;
                         resp.done();
                         resolve(ok);
                     }
@@ -510,6 +511,7 @@
             function doImport(resp) {
                 return new Promise(function (resolve, reject) {
                     function callback(ok) {
+                        delete resp.client.currentUser;
                         resp.done();
                         resolve(ok);
                     }
@@ -576,46 +578,6 @@
         });
     }
 
-
-    // Add old/new record objects for convenience
-    function doPrepareTrigger(client, obj) {
-        return new Promise(function (resolve, reject) {
-            function setRec(result) {
-                obj.oldRec = result;
-                resolve();
-            }
-
-            function setRecs(result) {
-                obj.oldRec = result;
-                obj.newRec = f.copy(result);
-                jsonpatch.applyPatch(obj.newRec, obj.data);
-                resolve();
-            }
-
-            if (!obj.newRec && !obj.oldRec) {
-                switch (obj.method) {
-                case "POST":
-                    obj.newRec = f.copy(obj.data);
-                    resolve();
-                    break;
-                case "PATCH":
-                    obj.newRec = f.copy(obj.data);
-                    getOld(client, obj).then(setRecs).catch(reject);
-                    break;
-                case "DELETE":
-                    getOld(client, obj).then(setRec).catch(reject);
-                    break;
-                default:
-                    throw "Unknown trigger method " + obj.method;
-                }
-
-                return;
-            }
-
-            resolve();
-        });
-    }
-
     /**
       Request.
 
@@ -678,9 +640,53 @@
                 obj.cache = Object.freeze(f.copy(obj.data));
             }
 
+        // Add old/new record objects for convenience
+        function doPrepareTrigger(client, obj) {
+            return new Promise(function (resolve, reject) {
+                function setRec(result) {
+                    obj.oldRec = result;
+                    resolve();
+                }
+
+                function setRecs(result) {
+                    obj.oldRec = result;
+                    obj.newRec = f.copy(result);
+                    jsonpatch.applyPatch(obj.newRec, obj.data);
+                    resolve();
+                }
+
+                if (!obj.newRec && !obj.oldRec) {
+                    switch (obj.method) {
+                    case "POST":
+                        obj.newRec = f.copy(obj.data);
+                        resolve();
+                        break;
+                    case "PATCH":
+                        obj.newRec = f.copy(obj.data);
+                        begin().then(
+                            getOld.bind(null, client, obj)
+                        ).then(setRecs).catch(reject);
+                        break;
+                    case "DELETE":
+                        begin().then(
+                            getOld.bind(null, client, obj)
+                        ).then(setRec).catch(reject);
+                        break;
+                    default:
+                        throw "Unknown trigger method " + obj.method;
+                    }
+
+                    return;
+                }
+
+                resolve();
+            });
+        }
+
             function close(resp) {
                 return new Promise(function (resolve) {
                     //console.log("CLOSING");
+                    delete client.currentUser;
                     done();
                     resolve(resp);
                 });
@@ -714,6 +720,7 @@
                     if (client.wrapped) {
                         //console.log("COMMIT->", obj.name, obj.method);
                         client.query("COMMIT;", function (err) {
+                            delete client.currentUser;
                             client.wrapped = false;
                             if (err) {
                                 reject(error(err));
@@ -742,6 +749,7 @@
                 if (client.wrapped) {
                     client.query("ROLLBACK;", function () {
                         //console.log("ROLLED BACK");
+                        delete client.currentUser;
                         client.wrapped = false;
                         callback(error(err));
                         return;
@@ -754,27 +762,30 @@
                 return;
             }
 
+            function begin() {
+                return new Promise(function (resolve, reject) {
+                    if (!client.wrapped) {
+                        client.query("BEGIN;").then(function () {
+                            client.wrapped = true;
+                            resolve();
+                        }).catch(reject);
+                        return;
+                    }
+                    resolve();
+                });
+            }
+
             function doExecute() {
                 // console.log("EXECUTE->", obj.name, obj.method);
                 return new Promise(function (resolve, reject) {
-                    if (wrap && !client.wrapped && !isTriggering) {
-                        client.query(
-                            "BEGIN;",
-                            function (err) {
-                                if (err) {
-                                    reject(err);
-                                    return;
-                                }
-                                //console.log("BEGAN");
-
-                                client.wrapped = true;
-                                transaction(obj, false, isSuperUser).then(
-                                    resolve
-                                ).catch(
-                                    reject
-                                );
-                            }
-                        );
+                    if (wrap && !isTriggering) {
+                        begin().then(function () {
+                            transaction(obj, false, isSuperUser).then(
+                                resolve
+                            ).catch(
+                                reject
+                            );
+                        }).catch(reject);
                         return;
                     }
 
@@ -1098,9 +1109,16 @@
                     // If alter data, process it
                     if (catalog[obj.name]) {
                         if (obj.method === "GET") {
-                            doQuery().then(resolve).catch(reject);
+                            doQuery().then(function (resp) {
+                                if (!client.wrapped) {
+                                    delete client.currentUser;
+                                }
+                                resolve(resp);
+                            }).catch(reject);
                         } else if (obj.method === "POST" && obj.id) {
-                            doUpsert().then(
+                            begin().then(
+                                doUpsert
+                            ).then(
                                 doTraverseBefore.bind(null, obj.name)
                             ).then(
                                 resolve
