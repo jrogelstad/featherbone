@@ -21,8 +21,10 @@
 
     const {Pool} = require("pg");
     const {Config} = require("./config");
+    const {Tools} = require("./services/tools");
 
     const config = new Config();
+    const tools = new Tools();
 
     exports.Database = function () {
         let cache;
@@ -150,14 +152,14 @@
         that.deserializeUser = function (username) {
             return new Promise(function (resolve, reject) {
                 const sql = (
-                    "SELECT name, contact.email AS email, " +
+                    "SELECT name, is_super, contact.email AS email, " +
                     "  contact.phone AS phone " +
                     "FROM user_account " +
                     "LEFT OUTER JOIN contact ON " +
                     "  (_contact_contact_pk = contact._pk) " +
                     "WHERE name = $1 " +
                     "UNION " +
-                    "SELECT name, '', '' " +
+                    "SELECT name, is_super, '', '' " +
                     "FROM ONLY role " +
                     "WHERE name = $1;"
                 );
@@ -171,7 +173,7 @@
                         }
 
                         // Send back result
-                        resolve(resp.rows[0]);
+                        resolve(tools.sanitize(resp.rows[0]));
                         obj.done();
                     }).catch(reject);
                 });
