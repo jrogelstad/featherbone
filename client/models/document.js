@@ -36,7 +36,12 @@ function doc(data, feather) {
     let d = that.data;
 
     function handleReadOnly() {
-        d.owner.isReadOnly(d.owner() !== f.currentUser().name);
+        let user = f.currentUser();
+
+        d.owner.isReadOnly(
+            d.owner() !== user.name &&
+            !user.isSuper
+        );
     }
 
     that.onLoad(handleReadOnly);

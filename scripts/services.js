@@ -26,6 +26,7 @@ function doUpsertFeather(obj) {
 
     return new Promise(function (resolve, reject) {
         let payload;
+        let auths = [];
         let feather = f.copy(obj.newRec);
         let props = feather.properties;
         let overloads = feather.overloads || [];
@@ -40,43 +41,16 @@ function doUpsertFeather(obj) {
             "created",
             "createdBy"
         ];
+        let defaultAuth = [{
+            role: "everyone",
+            canCreate: true,
+            canRead: true,
+            canUpdate: true,
+            canDelete: true
+        }];
 
         function isChild(p) {
             return typeof p.type === "object" && p.type.childOf;
-        }
-
-        function authorize() {
-            if (obj.oldRec) {
-                let requests = [];
-
-                obj.oldRec.authorizations.forEach(function (item) {
-                    let apayload = {
-                        method: "POST",
-                        name: "saveAuthorization",
-                        client: obj.client,
-                        data: {
-                            feather: feather.name,
-                            role: item.role,
-                            canCreate: item.canCreate,
-                            canRead: item.canRead,
-                            canUpdate: item.canUpdate,
-                            canDelete: item.canDelete
-                        }
-                    };
-
-                    requests.push(
-                        f.datasource.request(
-                            apayload,
-                            true
-                        )
-                    );
-                });
-
-                Promise.all(requests).then(resolve).catch(reject);
-                return;
-            }
-
-            resolve();
         }
 
         // Save the feather in the catalog
@@ -128,13 +102,7 @@ function doUpsertFeather(obj) {
                 !obj.newRec.properties.some(isChild) &&
                 !obj.newRec.isChild
             ) {
-                obj.newRec.authorizations = [{
-                    role: "everyone",
-                    canCreate: true,
-                    canRead: true,
-                    canUpdate: true,
-                    canDelete: true
-                }];
+                obj.newRec.authorizations = defaultAuth;
                 feather.authorization = [{
                     role: "everyone",
                     actions: {
@@ -158,6 +126,49 @@ function doUpsertFeather(obj) {
                     });
                 });
             }
+        // Handle authorization changes on update
+        } else {
+            obj.oldRec.authorizations.forEach(function (auth) {
+                auths.push({
+                    role: auth.role,
+                    actions: {
+                        canCreate: false,
+                        canRead: false,
+                        canUpdate: false,
+                        canDelete: false
+                    }
+                });
+            });
+
+            if (
+                !obj.newRec.authorizations.length &&
+                !obj.newRec.properties.some(isChild) &&
+                !obj.newRec.isChild
+            ) {
+                obj.newRec.authorizations = defaultAuth;
+            }
+
+            obj.newRec.authorizations.forEach(function (auth) {
+                let found = auths.find((a) => a.role === auth.role);
+
+                if (found) {
+                    found.actions.canCreate = auth.canCreate;
+                    found.actions.canRead = auth.canRead;
+                    found.actions.canUpdate = auth.canUpdate;
+                    found.actions.canDelete = auth.canDelete;
+                } else {
+                    auths.push({
+                        role: auth.role,
+                        actions: {
+                            canCreate: auth.canCreate,
+                            canRead: auth.canRead,
+                            canUpdate: auth.canUpdate,
+                            canDelete: auth.canDelete
+                        }
+                    });
+                }
+            });
+            feather.authorization = auths;
         }
 
         payload = {
@@ -169,7 +180,7 @@ function doUpsertFeather(obj) {
             client: obj.client
         };
 
-        f.datasource.request(payload, true).then(authorize).catch(reject);
+        f.datasource.request(payload, true).then(resolve).catch(reject);
     });
 }
 
@@ -422,11 +433,36 @@ f.datasource.registerFunction(
 function doCreateDocument(obj) {
     "use strict";
 
-    return new Promise(function (resolve) {
+    return new Promise(function (resolve, reject) {
         let newRec = obj.newRec;
+        let payload;
+
+        function callback(resp) {
+            if (!resp) {
+                throw new Error(
+                    "Only a super user may set the owner as another user."
+                );
+            }
+
+            resolve();
+        }
 
         if (!newRec.owner) {
             newRec.owner = obj.client.currentUser;
+        }
+
+        if (newRec.owner !== obj.client.currentUser) {
+            payload = {
+                method: "GET",
+                name: "isSuperUser",
+                client: obj.client,
+                data: {
+                    user: obj.client.currentUser
+                }
+            };
+
+            f.datasource.request(payload).then(callback).catch(reject);
+            return;
         }
 
         resolve();
@@ -466,6 +502,8 @@ function doUpdateDocument(obj) {
             };
 
             f.datasource.request(payload).then(callback).catch(reject);
+            return;
+            
         }
 
         resolve();
