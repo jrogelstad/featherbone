@@ -152,16 +152,15 @@
                 let name = obj.data.name;
                 let sql = "DROP ROLE %I;";
 
-                sql = sql.format([name]);
-                obj.client.query(sql, function (err) {
-                    if (err) {
-                        reject(err);
-                        return;
-                    }
+                function callback() {
+                    obj.client.query(
+                        "DELETE FROM \"$auth\" WHERE role=$1;",
+                        [name]
+                    ).then(resolve).catch(reject);
+                }
 
-                    // Send back result
-                    resolve(true);
-                });
+                sql = sql.format([name]);
+                obj.client.query(sql).then(callback).catch(reject);
             });
         };
 
