@@ -1089,7 +1089,7 @@
 
                 crier.send({
                     eventKey: eventKey,
-                    authorized: Boolean(req.user)
+                    authorized: req.user
                 });
 
                 crier.disconnect(function () {
