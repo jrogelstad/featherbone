@@ -2088,7 +2088,7 @@
                             return;
                         }
 
-                        // If no specific authorization, make one
+                        /* If no specific authoriztion this won't work */
                         if (
                             !isChild && !spec.isChild && (
                                 authorization === undefined ||
