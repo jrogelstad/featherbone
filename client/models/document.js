@@ -28,6 +28,8 @@ function doc(data, feather) {
         data = {
             owner: f.currentUser()
         }
+    } else if (data.owener === undefined) {
+        data.owner = f.currentUser();
     }
     feather = feather || catalog.getFeather("Document");
     let that = model(data, feather);
