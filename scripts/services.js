@@ -149,6 +149,10 @@ function doUpsertFeather(obj) {
             }
 
             obj.newRec.authorizations.forEach(function (auth) {
+                if (auth === null) {
+                    return;
+                }
+
                 let found = auths.find((a) => a.role === auth.role);
 
                 if (found) {
