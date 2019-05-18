@@ -67,7 +67,7 @@
 
         tools.buildAuthSql = function (action, table, tokens) {
             let actions;
-            let i = 6;
+            let i = 7;
             let msg;
             let sql;
 
@@ -101,7 +101,8 @@
                 "    SELECT " + action +
                 "    FROM \"$auth\", pg_authid" +
                 "    WHERE pg_has_role($1, pg_authid.oid, 'member')" +
-                "      AND \"$auth\".object_pk=\"$feather\".parent_pk" +
+                "      AND \"$auth\".object_pk " +
+                "        IN (\"$feather\".parent_pk, %I._pk)" +
                 "      AND \"$auth\".role=pg_authid.rolname" +
                 "    ORDER BY " + action + " DESC" +
                 "    LIMIT 1" +
