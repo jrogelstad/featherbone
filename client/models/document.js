@@ -26,17 +26,17 @@ import f from "../core.js";
 function doc(data, feather) {
     if (data === undefined) {
         data = {
-            owner: f.currentUser()
-        }
+            owner: f.currentUser().name
+        };
     } else if (data.owener === undefined) {
-        data.owner = f.currentUser();
+        data.owner = f.currentUser().name;
     }
     feather = feather || catalog.getFeather("Document");
     let that = model(data, feather);
     let d = that.data;
 
     function handleReadOnly() {
-        d.owner.isReadOnly(d.owner() !== f.currentUser());
+        d.owner.isReadOnly(d.owner() !== f.currentUser().name);
     }
 
     that.onLoad(handleReadOnly);

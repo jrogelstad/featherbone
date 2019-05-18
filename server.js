@@ -736,7 +736,7 @@
                 return;
             }
 
-            res.json(true);
+            res.json(req.user);
         }
 
         return authenticate(req, res, next);
