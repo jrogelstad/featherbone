@@ -251,7 +251,6 @@ function isToMany(p) {
   @return {Object}
 */
 function model(data, feather) {
-    data = data || {};
     feather = feather || {};
     feather.overloads = feather.overloads || {};
     feather.inherits = feather.inherits || "Object";
@@ -286,12 +285,6 @@ function model(data, feather) {
     let isFrozen = false;
     let naturalKey;
 
-    that = {
-        data: {}
-    };
-
-    d = that.data;
-
     // Inherit parent logic via traversal
     if (feather.inherits && feather.inherits !== "Object") {
         superclass = catalog.getFeather(feather.inherits);
@@ -300,7 +293,15 @@ function model(data, feather) {
             data,
             feather
         );
+    } else {
+        data = data || {};
     }
+
+    that = {
+        data: {}
+    };
+
+    d = that.data;
 
     // ..........................................................
     // PUBLIC
