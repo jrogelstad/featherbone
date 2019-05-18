@@ -880,7 +880,7 @@ evstart.onmessage = function (event) {
         evstart.close();
 
         if (data.authorized) {
-            f.currentUser(data.authorized.name);
+            f.currentUser(data.authorized);
             f.state().send("preauthorized");
             start();
         } else {

@@ -895,7 +895,7 @@ function userAccountNames() {
     let roles = catalog.store().data().roles().slice();
     let result;
 
-    result =  roles.filter((r) => r.data.objectType() === "UserAccount");
+    result = roles.filter((r) => r.data.objectType() === "UserAccount");
     result = result.map((role) => role.data.name()).sort();
     result = result.map(function (role) {
         return {
@@ -1465,7 +1465,7 @@ f.resolveProperty = function (model, property) {
 };
 
 // Define application state
-f.currentUser = f.prop("");
+f.currentUser = f.prop();
 message = f.prop("");
 appState = State.define(function () {
     this.state("Uninitialized", function () {
@@ -1483,7 +1483,6 @@ appState = State.define(function () {
                 "username"
             ).value;
 
-            f.currentUser(user);
             this.goto("../Authenticating", {
                 context: {
                     username: user,
@@ -1494,7 +1493,7 @@ appState = State.define(function () {
             });
         });
         this.enter(function () {
-            f.currentUser("");
+            f.currentUser(undefined);
             m.route.set("/sign-in");
         });
         this.message = message;
@@ -1527,7 +1526,8 @@ appState = State.define(function () {
                     username: context.username,
                     password: context.password
                 }
-            }).then(function () {
+            }).then(function (resp) {
+                f.currentUser(resp);
                 message("");
                 f.state().send("success");
             }).catch(function (err) {

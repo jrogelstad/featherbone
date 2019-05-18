@@ -62,7 +62,11 @@ accountMenu.component = {
         }, [
             m("span", {
                 id: "nav-account-button",
-                title: "Signed in as: " + f.currentUser(),
+                title: "Signed in as: " + (
+                    f.currentUser()
+                    ? f.currentUser().name
+                    : ""
+                ),
                 class: (
                     "pure-button " +
                     "fa fa-user-circle " +
