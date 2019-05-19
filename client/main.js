@@ -126,20 +126,28 @@ function registerWorkbook(workbook) {
 function addWorkbookModel() {
     let that = model(undefined, workbookSpec);
     let modules = f.prop(catalog.store().data().modules());
-    let theFeathers = catalog.store().feathers();
-    let blank = ({
-        value: "",
-        label: ""
-    });
 
-    theFeathers = f.prop(Object.keys(feathers).filter(function (name) {
-        return (!feathers[name].isChild && !feathers[name].isSystem);
-    }).sort().map(function (key) {
-        return {
-            value: key,
-            label: key
-        };
-    }));
+    function theFeathers() {
+        let allFeathers = catalog.store().feathers();
+        let result;
+        let blank = ({
+            value: "",
+            label: ""
+        });
+
+        result = Object.keys(allFeathers).filter(function (name) {
+            return (!allFeathers[name].isChild && !allFeathers[name].isSystem);
+        }).sort().map(function (key) {
+            return {
+                value: key,
+                label: key
+            };
+        });
+        
+        result.unshift(blank);
+
+        return result;
+    }
 
     function addWorkbook(promise) {
         let d = that.data;
@@ -207,8 +215,6 @@ function addWorkbookModel() {
         workbook.set(data);
         workbook.save().then(callback);
     }
-
-    theFeathers().unshift(blank);
 
     that.addCalculated({
         name: "feathers",
