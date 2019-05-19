@@ -630,7 +630,7 @@ function createTableRow(options, model) {
                 "User: " + lock.username + "\nSince: " +
                 new Date(lock.created).toLocaleTimeString()
             ),
-            class: "fa fa-lock",
+            class: "fa fa-user-lock",
             style: iconStyle
         });
     } else if (currentState === "/Delete") {
