@@ -48,7 +48,6 @@ let loadProfile;
 let moduleData;
 let moduleSid = f.createId();
 let workbookData;
-let sseState;
 let loadWorkbooks;
 let evstart;
 let menu;
@@ -61,6 +60,26 @@ let initialized = false;
 
 const preFetch = [];
 const fetchRequests = [];
+
+// Global sse state handler, allows any page
+// to observe when we've got a sse connection problem,
+// presumably a disconnect
+const sseState = State.define(function () {
+    this.state("Ok", function () {
+        this.event("error", function (error) {
+            this.goto("/Error", {
+                context: error
+            });
+        });
+        this.event("close", function (error) {
+            this.goto("/Closed");
+        });
+    });
+    this.state("Closed");
+    this.state("Error");
+});
+sseState.goto(); // Initialze
+catalog.register("global", "sseState", sseState);
 
 const workbookSpec = {
     name: "Workbook",
@@ -331,22 +350,6 @@ function initPromises() {
             });
         });
     });
-
-    // Global sse state handler, allows any page
-    // to observe when we've got a sse connection problem,
-    // presumably a disconnect
-    sseState = State.define(function () {
-        this.state("Ok", function () {
-            this.event("error", function (error) {
-                this.goto("/Error", {
-                    context: error
-                });
-            });
-        });
-        this.state("Error");
-    });
-    sseState.goto(); // Initialze
-    catalog.register("global", "sseState", sseState);
 
     // Load forms
     loadForms = new Promise(function (resolve) {
