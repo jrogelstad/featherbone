@@ -102,9 +102,10 @@
                                 id
                             ];
 
-                            sql = "INSERT INTO \"$subscription\" VALUES ";
-                            sql += "($1, $2, $3, $4)";
-                            sql += "ON CONFLICT DO NOTHING;";
+                            sql = (
+                                "INSERT INTO \"$subscription\" VALUES " +
+                                "($1, $2, $3, $4) ON CONFLICT DO NOTHING;"
+                            );
                             queries.push(client.query(sql, params));
                         });
 
@@ -116,8 +117,10 @@
                                 subscription.id,
                                 tablename
                             ];
-                            sql = "INSERT INTO \"$subscription\" VALUES ";
-                            sql += "($1, $2, $3, $4);";
+                            sql = (
+                                "INSERT INTO \"$subscription\" VALUES " +
+                                "($1, $2, $3, $4) ON CONFLICT DO NOTHING;"
+                            );
 
                             queries.push(client.query(sql, tparams));
                         }
