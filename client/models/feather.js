@@ -37,12 +37,9 @@ function feather(data, spec) {
     }
     let that;
     let inheritedProperties = f.prop([]);
+    let re = new RegExp(" ", "g");
 
     inheritedProperties().canAdd = f.prop(false);
-
-    // ..........................................................
-    // PUBLIC
-    //
 
     that = model(data, spec);
 
@@ -90,6 +87,7 @@ function feather(data, spec) {
 
     function handleReadOnly() {
         that.data.name.isReadOnly(true);
+        that.data.plural.isReadOnly(true);
         that.data.inherits.isReadOnly(true);
     }
 
@@ -101,6 +99,14 @@ function feather(data, spec) {
         let type = p.data.type();
 
         return typeof type === "object" && type.childOf;
+    }
+    
+    function sanitize(prop) {
+        let value = prop.newValue();
+
+        value = value.replace(re, "");
+        value = value.slice(0,1).toUpperCase() + value.slice(1);
+        prop.newValue(value);
     }
 
     that.addCalculated({
@@ -124,6 +130,14 @@ function feather(data, spec) {
         type: "array",
         function: catalog.store().data().modules
     });
+
+    that.onChange("name", sanitize);
+    that.onChanged("name", function (prop) {
+        if (prop() && !that.data.plural()) {
+            that.data.plural(prop() + "s");
+        }
+    });
+    that.onChange("plural", sanitize);
 
     that.onChanged("properties.isNaturalKey", handleReadOnlyProps);
     that.onChanged("properties.isLabelKey", handleReadOnlyProps);
