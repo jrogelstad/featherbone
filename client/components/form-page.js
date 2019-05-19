@@ -274,23 +274,28 @@ formPage.component = {
 
         vm.toggleNew();
 
-        switch (model.state().current()[0]) {
-        case "/Locked":
+        if (model.canUpdate() === false) {
             icon = "lock";
-            lock = model.data.lock() || {};
-            title = (
-                "User: " + lock.username + "\nSince: " +
-                new Date(lock.created).toLocaleTimeString()
-            );
-            break;
-        case "/Ready/Fetched/Dirty":
-            icon = "pencil-alt";
-            title = "Editing record";
-            break;
-        case "/Ready/New":
-            icon = "plus";
-            title = "New record";
-            break;
+            title = "Unauthorized to edit";
+        } else {
+            switch (model.state().current()[0]) {
+            case "/Locked":
+                icon = "user-lock";
+                lock = model.data.lock() || {};
+                title = (
+                    "User: " + lock.username + "\nSince: " +
+                    new Date(lock.created).toLocaleTimeString()
+                );
+                break;
+            case "/Ready/Fetched/Dirty":
+                icon = "pencil-alt";
+                title = "Editing record";
+                break;
+            case "/Ready/New":
+                icon = "plus";
+                title = "New record";
+                break;
+            }
         }
 
         // Build view

@@ -350,6 +350,8 @@ function model(data, feather) {
         return state.resolve(state.current()[0]).canUndo();
     };
 
+    that.canUpdate = () => canUpdate;
+
     that.canDelete = function () {
         return deleteChecks.every(function (check) {
             return check();
