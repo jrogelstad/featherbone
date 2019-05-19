@@ -94,6 +94,7 @@ formPage.viewModel = function (options) {
         delete instances[vm.model().id()];
 
         if (options.isNewWindow) {
+            sseState.send("close");
             window.close();
             return;
         }
