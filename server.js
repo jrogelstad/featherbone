@@ -839,8 +839,8 @@
                 let name;
 
                 if (
-                    message.payload.change === "create" ||
-                    message.payload.change === "update"
+                    message.payload.subscription.change === "create" ||
+                    message.payload.subscription.change === "update"
                 ) {
                     name = message.payload.data.name;
 
