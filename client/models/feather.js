@@ -100,12 +100,12 @@ function feather(data, spec) {
 
         return typeof type === "object" && type.childOf;
     }
-    
+
     function sanitize(prop) {
         let value = prop.newValue();
 
         value = value.replace(re, "");
-        value = value.slice(0,1).toUpperCase() + value.slice(1);
+        value = value.slice(0, 1).toUpperCase() + value.slice(1);
         prop.newValue(value);
     }
 
