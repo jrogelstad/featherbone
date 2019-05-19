@@ -672,11 +672,8 @@
                 "attr": "name"
             },
             {
-                "attr": "isSuper",
-                "unit": 1
-            },
-            {
                 "attr": "membership",
+                "unit": 0,
                 "grid": 1,
                 "showLabel": false,
                 "columns": [

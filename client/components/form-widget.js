@@ -22,6 +22,7 @@ import dialog from "./dialog.js";
 
 const formWidget = {};
 const m = window.m;
+const console = window.console;
 
 function buildButtons(vm) {
     let ret;
@@ -87,6 +88,10 @@ function buildFieldset(vm, attrs) {
         let key = item.attr;
         let model = vm.model();
         let prop = model.data[key];
+        if (!prop) {
+            console.error("Unknown attribute " + key + " in form");
+            return;
+        }
         let dataList = item.dataList || prop.dataList;
         let value = prop();
         let options = {};
