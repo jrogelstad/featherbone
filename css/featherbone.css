@@ -280,6 +280,10 @@ a.pure-button-selected {
   margin-right: 5px;
 }
 
+.fb-form-workbook {
+  background-color: #3F51B5;
+}
+
 .fb-form-content {
   overflow: auto;
   position: absolute;
@@ -550,6 +554,7 @@ a.pure-button-selected {
   display: inline-block;
   width: 100%;
   overflow: auto;
+  background-color: white;
 }
 
 .fb-table-header {
@@ -562,8 +567,6 @@ a.pure-button-selected {
   background-color: #3F51B5;
   height: 38px;
   padding-top: 3px;
-  border-top: solid thin;
-  border-bottom: solid thin;
   border-color: darkslateblue;
 }
 

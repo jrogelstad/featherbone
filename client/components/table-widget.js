@@ -1135,6 +1135,7 @@ tableWidget.viewModel = function (options) {
         }];
     };
     vm.canToggle = f.prop(true);
+    vm.class = f.prop(options.class || "");
     vm.isEditModeEnabled = f.prop(options.isEditModeEnabled !== false);
     vm.isQuery = f.prop(true);
     vm.config = f.prop(options.config);
@@ -1813,7 +1814,7 @@ tableWidget.component = {
         }
 
         return m("div", {
-            class: "pure-form"
+            class: "pure-form " + vm.class()
         }, [
             m(dialog.component, {
                 viewModel: vm.confirmDialog()
