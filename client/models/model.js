@@ -360,14 +360,16 @@ function model(data, feather) {
 
     that.checkDelete = function () {
         if (canDelete === undefined) {
+            that.onCanDelete(function () {
+                return Boolean(canDelete);
+            });
+
             catalog.isAuthorized({
                 id: that.id(),
-                action: "canUpdate"
+                action: "canDelete"
             }).then(function (resp) {
                 canDelete = resp;
-            }).catch(function (err) {
-                that.doError(err);
-            });
+            }).catch(doError);
         }
     };
 
@@ -393,9 +395,7 @@ function model(data, feather) {
                     if (canUpdate && !wasFrozen) {
                         doThaw();
                     }
-                }).catch(function (err) {
-                    that.doError(err);
-                });
+                }).catch(doError);
             }
         }
     };

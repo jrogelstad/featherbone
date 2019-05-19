@@ -1122,18 +1122,6 @@ workbookPage.viewModel = function (options) {
         vm.buttonDelete().show();
         vm.buttonUndo().hide();
     });
-    tableState.resolve("/Selection/On").enter(function () {
-        let canDelete = function (selection) {
-            return selection.canDelete();
-        };
-        let enableButton = vm.tableWidget().selections().some(canDelete);
-
-        if (enableButton) {
-            vm.buttonDelete().enable();
-        } else {
-            vm.buttonDelete().disable();
-        }
-    });
     tableState.resolve("/Selection/On/Clean").enter(function () {
         vm.buttonDelete().show();
         vm.buttonUndo().hide();
@@ -1207,6 +1195,12 @@ workbookPage.component = {
         let activeSheet = vm.sheet();
         let config = vm.config();
         let idx = 0;
+
+        if (vm.tableWidget().selections().some((s) => s.canDelete())) {
+            vm.buttonDelete().enable();
+        } else {
+            vm.buttonDelete().disable();
+        }
 
         // Build tabs
         tabs = vm.sheets().map(function (sheet) {
