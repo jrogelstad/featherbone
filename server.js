@@ -856,7 +856,7 @@
                             name: message.payload.data.name
                         }
                     }).then(changeCallback).catch(reject);
-                } else {
+                } else if (message.payload.subscription.change === "delete") {
                      // Update all clients
                     Object.keys(eventSessions).forEach(function (key) {
                         if (eventSessions[key].sessionID) {
