@@ -802,6 +802,31 @@
         );
     }
 
+    function doIsAuthorized(req, res) {
+        let payload = {
+            method: "GET",
+            name: "isAuthorized",
+            user: req.user.name,
+            data: {
+                user: req.user.name,
+                action: req.query.action
+            }
+        };
+
+        if (req.query.id) {
+            payload.data.id = req.query.id;
+        } else if (req.query.feather) {
+            payload.data.feather = req.query.feather;
+        }
+
+        console.log(JSON.stringify(payload, null, 2));
+        datasource.request(payload).then(
+            respond.bind(res)
+        ).catch(
+            error.bind(res)
+        );
+    }
+
     // Listen for changes to feathers, update and broadcast to all
     function subscribeToFeathers() {
         return new Promise(function (resolve, reject) {
@@ -1025,6 +1050,7 @@
 
         app.get("/currency/base", doGetBaseCurrency);
         app.get("/currency/convert", doConvertCurrency);
+        app.get("/do/is-authorized", doIsAuthorized);
         app.post("/do/export/:format/:feather", doExport);
         app.post("/do/import/:format/:feather", doImport);
         app.post("/do/subscribe/:query", doSubscribe);

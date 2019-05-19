@@ -20,6 +20,9 @@ import f from "../core.js";
 import State from "../state.js";
 import datasource from "../datasource.js";
 const store = {};
+const auths = {};
+
+const m = window.m;
 
 store.feathers = f.prop({});
 
@@ -201,6 +204,60 @@ const catalog = (function () {
         }
 
         return result;
+    };
+
+    /**
+        Check whether current is authorized to perform an action on a
+        particular feather (class) or object.
+
+        Allowable actions: `canCreate`, `canRead`, `canUpdate`, `canDelete`
+
+        `canCreate` will only check feather names.
+
+        @param {Object} Options
+        @param {Object} [options] Payload
+        @param {String} [options.action] Action name
+        @param {String} [options.feather] Feather name
+        @param {String} [options.id] Object id
+        @return {Object} Promise
+    */
+    that.isAuthorized = function (opts) {
+        return new Promise(function (resolve, reject) {
+            let payload = {
+                method: "GET",
+                path: "/do/is-authorized",
+                data: {
+                    feather: opts.feather,
+                    id: opts.id,
+                    action: opts.action
+                }
+            };
+
+            // Check if memozied
+            if (
+                opts.feather &&
+                auths[opts.feather] &&
+                auths[opts.feather][opts.action] !== undefined
+            ) {
+                resolve(auths[opts.feather][opts.action]);
+                m.redraw();
+                return;
+            }
+
+            function callback(resp) {
+                // Memoize to reduce calls
+                if (opts.feather) {
+                    if (!auths[opts.feather]) {
+                        auths[opts.feather] = {};
+                    }
+                    auths[opts.feather][opts.action] = resp;
+                }
+
+                resolve(resp);
+            }
+
+            datasource.request(payload).then(callback).catch(reject);
+        });
     };
 
     /**
