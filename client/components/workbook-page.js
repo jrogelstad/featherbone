@@ -35,6 +35,7 @@ import datasource from "../datasource.js";
 const workbookPage = {};
 const sheetConfigureDialog = {};
 const m = window.m;
+const console = window.console;
 const jsonpatch = window.jsonpatch;
 const editWorkbookConfig = {
     attrs: [{
@@ -1144,6 +1145,18 @@ workbookPage.viewModel = function (options) {
 
     sseState.resolve("Error").enter(function () {
         vm.sseErrorDialog().show();
+    });
+
+    catalog.isAuthorized({
+        feather: feather.name,
+        action: "canCreate"
+    }).then(function (canCreate) {
+        if (!canCreate) {
+            vm.buttonNew().disable();
+            vm.buttonNew().title("Unauthorized");
+        }
+    }).catch(function (err) {
+        console.error(err.message);
     });
 
     return vm;

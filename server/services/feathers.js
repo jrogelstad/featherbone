@@ -773,10 +773,10 @@
           @param {Object} Payload
           @param {Object} [payload.data] Payload data
           @param {String} [payload.data.action] Required
-          @param {String} [payload.data.feather] Class
+          @param {String} [payload.data.feather] Feather name
           @param {String} [payload.data.id] Object id
           @param {String} [payload.data.user] User. Defaults to current user
-          @param {String} [payload.client] Datobase client
+          @param {String} [payload.client] Database client
           @return {Object} Promise
         */
         that.isAuthorized = function (obj) {
@@ -793,72 +793,96 @@
                 let tokens = [];
                 let result = false;
 
-                /* If feather, check class authorization */
-                if (feather) {
-                    params = [feather.toSnakeCase(), user];
-                    sql = (
-                        "SELECT pk FROM \"$auth\" " +
-                        "  JOIN \"$feather\" " +
-                        "    ON \"$feather\"._pk=\"$auth\".object_pk " +
-                        "  JOIN pg_authid " +
-                        "   ON \"$auth\".role=pg_authid.rolname " +
-                        "WHERE \"$feather\".id=$1" +
-                        "  AND pg_has_role($2, pg_authid.oid, 'member')" +
-                        "  AND \"$auth\".object_pk=\"$feather\".parent_pk" +
-                        "  AND %I;"
-                    );
-                    sql = sql.format([action.toSnakeCase()]);
+                function callback(isSuper) {
+                    if (isSuper) {
+                        resolve(true);
+                        return;
+                    }
 
-                    obj.client.query(sql, params, function (err, resp) {
-                        if (err) {
-                            reject(err);
-                            return;
-                        }
+                    /* If feather, check class authorization */
+                    if (feather) {
+                        params = [feather.toSnakeCase(), user];
+                        sql = (
+                            "SELECT pk FROM \"$auth\" " +
+                            "  JOIN \"$feather\" " +
+                            "    ON \"$feather\"._pk=\"$auth\".object_pk " +
+                            "  JOIN pg_authid " +
+                            "   ON \"$auth\".role=pg_authid.rolname " +
+                            "WHERE \"$feather\".id=$1" +
+                            "  AND pg_has_role($2, pg_authid.oid, 'member')" +
+                            "  AND \"$auth\".object_pk=\"$feather\".parent_pk" +
+                            "  AND %I;"
+                        );
+                        sql = sql.format([action.toSnakeCase()]);
 
-                        result = resp.rows.length > 0;
-                        resolve(result);
-                    });
+                        obj.client.query(sql, params, function (err, resp) {
+                            if (err) {
+                                reject(err);
+                                return;
+                            }
 
-                    /* Otherwise check object authorization */
-                } else if (id) {
-                    /* Find object */
-                    sql = "SELECT _pk, tableoid::regclass::text AS \"t\" ";
-                    sql += "FROM object WHERE id = $1;";
+                            result = resp.rows.length > 0;
+                            resolve(result);
+                        });
 
-                    obj.client.query(sql, [id], function (err, resp) {
-                        if (err) {
-                            reject(err);
-                            return;
-                        }
+                        /* Otherwise check object authorization */
+                    } else if (id) {
+                        /* Find object */
+                        sql = "SELECT _pk, tableoid::regclass::text AS \"t\" ";
+                        sql += "FROM object WHERE id = $1;";
 
-                        /* If object found, check authorization */
-                        if (resp.rows.length > 0) {
-                            table = resp.rows[0].t;
-                            pk = resp.rows[0][tools.PKCOL];
+                        obj.client.query(sql, [id], function (err, resp) {
+                            if (err) {
+                                reject(err);
+                                return;
+                            }
 
-                            tokens.push(table);
-                            authSql = tools.buildAuthSql(action, table, tokens);
-                            sql = "SELECT _pk FROM %I WHERE _pk = $2 ";
-                            sql += authSql;
-                            sql = sql.format(tokens);
+                            /* If object found, check authorization */
+                            if (resp.rows.length > 0) {
+                                table = resp.rows[0].t;
+                                pk = resp.rows[0][tools.PKCOL];
 
-                            obj.client.query(
-                                sql,
-                                [user, pk],
-                                function (err, resp) {
-                                    if (err) {
-                                        reject(err);
-                                        return;
+                                tokens.push(table);
+                                authSql = tools.buildAuthSql(
+                                    action,
+                                    table,
+                                    tokens
+                                );
+                                sql = (
+                                    "SELECT _pk FROM %I WHERE _pk = $2 " +
+                                    authSql
+                                );
+                                sql = sql.format(tokens);
+
+                                obj.client.query(
+                                    sql,
+                                    [user, pk],
+                                    function (err, resp) {
+                                        if (err) {
+                                            reject(err);
+                                            return;
+                                        }
+
+                                        result = resp.rows.length > 0;
+
+                                        resolve(result);
                                     }
-
-                                    result = resp.rows.length > 0;
-
-                                    resolve(result);
-                                }
-                            );
-                        }
-                    });
+                                );
+                            }
+                        });
+                    }
                 }
+
+                if (!obj.data.feather && !obj.data.id) {
+                    throw new Error(
+                        "Authorization check requires feather or id"
+                    );
+                }
+
+                tools.isSuperUser({
+                    client: obj.client,
+                    user: obj.data.user
+                }).then(callback).catch(reject);
             });
         };
 
