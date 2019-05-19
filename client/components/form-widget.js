@@ -344,6 +344,7 @@ formWidget.viewModel = function (options) {
             model.id(options.id);
             if (!options.isNew) {
                 model.fetch();
+                model.checkUpdate();
             }
         }
     }

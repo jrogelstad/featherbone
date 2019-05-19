@@ -284,6 +284,8 @@ function model(data, feather) {
     let onChanged = {};
     let isFrozen = false;
     let naturalKey;
+    let canUpdate;
+    let canDelete;
 
     // Inherit parent logic via traversal
     if (feather.inherits && feather.inherits !== "Object") {
@@ -352,6 +354,48 @@ function model(data, feather) {
         return deleteChecks.every(function (check) {
             return check();
         });
+    };
+
+    that.checkDelete = function () {
+        if (canDelete === undefined) {
+            catalog.isAuthorized({
+                id: that.id(),
+                action: "canUpdate"
+            }).then(function (resp) {
+                canDelete = resp;
+            }).catch(function (err) {
+                that.doError(err);
+            });
+        }
+    };
+
+    /**
+        Will freeze model until it is confirmed the current user has
+        authorization to update it. Without this action, editing will
+        seem to be allowed until saving when an error will be thrown by
+        the server. We wait as long as possible to check this to reduce
+        overhead since most records fetched are not going to be updated.
+    */
+    that.checkUpdate = function () {
+        let wasFrozen = that.isFrozen();
+
+        if (canUpdate === undefined) {
+            if (!wasFrozen) {
+                doFreeze();
+                catalog.isAuthorized({
+                    id: that.id(),
+                    action: "canUpdate"
+                }).then(function (resp) {
+                    canUpdate = resp;
+
+                    if (canUpdate && !wasFrozen) {
+                        doThaw();
+                    }
+                }).catch(function (err) {
+                    that.doError(err);
+                });
+            }
+        }
     };
 
     /**
@@ -1014,10 +1058,7 @@ function model(data, feather) {
                 freezeCache[key] = {};
                 freezeCache[key].isReadOnly = prop.isReadOnly();
                 prop.isReadOnly(true);
-                if (prop.state().current()[0] !== "/Disabled") {
-                    prop.state().send("disable");
-                    prop.isDisabled = true;
-                }
+                prop.state().send("disable");
             }
         });
 
@@ -1166,9 +1207,7 @@ function model(data, feather) {
                 prop.state().send("enable");
                 if (freezeCache[key] !== undefined) {
                     prop.isReadOnly(freezeCache[key].isReadOnly);
-                    if (freezeCache[key].isDisabled) {
-                        prop.state().send("enable");
-                    }
+                    prop.state().send("enable");
                 }
             }
         });

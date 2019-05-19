@@ -1644,10 +1644,22 @@ tableWidget.viewModel = function (options) {
                     vm.nextFocus(id);
                     return true;
                 };
+                this.enter(function () {
+                    let checkUpdate = vm.models().checkUpdate;
+
+                    if (checkUpdate) {
+                        checkUpdate(false);
+                    }
+                });
             });
             this.state("Edit", function () {
                 this.enter(function () {
                     let last;
+                    let checkUpdate = vm.models().checkUpdate;
+
+                    if (checkUpdate) {
+                        checkUpdate(true);
+                    }
 
                     if (vm.selections().length > 1) {
                         last = vm.lastSelected();
