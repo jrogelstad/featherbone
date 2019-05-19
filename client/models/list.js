@@ -44,6 +44,7 @@ function createList(feather) {
     let ary = [];
     let dirty = [];
     let sid = f.createId();
+    let isCheckUpdates = false;
 
     // ..........................................................
     // PUBLIC
@@ -108,7 +109,25 @@ function createList(feather) {
 
     ary.canFilter = f.prop(true);
 
-    /*
+    /**
+        If turned on perform `checkUpdate` on all fetched
+        models, or any newly fetched models. Do this if
+        models are going to be edited.
+
+        @param {Boolean} Enable or disable checking
+    */
+    ary.checkUpdate = function (enabled) {
+        if (enabled === true) {
+            isCheckUpdates = true;
+            ary.forEach(function (model) {
+                model.checkUpdate();
+            });
+        } else if (enabled === false) {
+            isCheckUpdates = false;
+        }
+    };
+
+    /**
       Fetch data.
 
       @param {Object} filter,
@@ -273,6 +292,9 @@ function createList(feather) {
                 let model = models[name](item);
 
                 model.state().goto("/Ready/Fetched");
+                if (isCheckUpdates) {
+                    model.checkUpdate();
+                }
                 ary.add(model);
             });
 
