@@ -53,6 +53,9 @@ function doUpsertFeather(obj) {
             return typeof p.type === "object" && p.type.childOf;
         }
 
+
+        delete feather.authorizations; // Process below
+
         // Save the feather in the catalog
         feather.properties = {};
         exclusions.forEach(function (attr) {

@@ -1259,7 +1259,6 @@
                     let createSequence;
                     let table;
                     let inherits;
-                    let authorization;
                     let dropSql;
                     let changed = false;
                     let sql = "";
@@ -1973,7 +1972,14 @@
                         name = spec.name;
                         catalog[name] = spec;
                         delete spec.name;
-                        delete spec.authorization;
+
+                        if (
+                            typeof spec.authorization === "object" &&
+                            !Array.isArray(spec.authorization)
+                        ) {
+                            spec.authorization = [spec.authorization];
+                        }
+
                         spec.isChild = (
                             spec.isChild || tools.isChildFeather(spec)
                         );
@@ -2091,8 +2097,8 @@
                         /* If no specific authoriztion this won't work */
                         if (
                             !isChild && !spec.isChild && (
-                                authorization === undefined ||
-                                authorization === null
+                                spec.authorization === undefined ||
+                                spec.authorization === null
                             )
                         ) {
                             throw new Error(
@@ -2102,17 +2108,10 @@
 
                         /* Set authorization */
                         if (
-                            typeof authorization === "object" &&
-                            !Array.isArray(authorization)
+                            Array.isArray(spec.authorization) &&
+                            spec.authorization.length
                         ) {
-                            authorization = [authorization];
-                        }
-
-                        if (
-                            Array.isArray(authorization) &&
-                            authorization.length
-                        ) {
-                            authorization.forEach(function (auth) {
+                            spec.authorization.forEach(function (auth) {
                                 auth.feather = name;
                                 auth.isSilentError = true;
                                 requests.push(that.saveAuthorization({
@@ -2149,7 +2148,6 @@
                     );
                     inherits = (spec.inherits || "Object");
                     inherits = inherits.toSnakeCase();
-                    authorization = spec.authorization;
 
                     if (!table) {
                         reject("No name defined");
