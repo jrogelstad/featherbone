@@ -924,6 +924,7 @@ workbookPage.viewModel = function (options) {
 
     // Create table widget view model
     vm.tableWidget(tableWidget.viewModel({
+        class: "fb-form-workbook",
         actions: vm.sheet().actions,
         config: vm.sheet().list,
         isEditModeEnabled: vm.sheet().isEditModeEnabled,
