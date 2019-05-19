@@ -1399,6 +1399,7 @@ tableWidget.viewModel = function (options) {
                 state.enter(selectionChanged);
                 state = model.state().resolve("/Ready/Fetched/Clean");
                 state.enter(selectionFetched);
+                model.checkDelete();
 
                 selections.push(model);
             }
