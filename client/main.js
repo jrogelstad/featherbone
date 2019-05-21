@@ -71,7 +71,7 @@ const sseState = State.define(function () {
                 context: error
             });
         });
-        this.event("close", function (error) {
+        this.event("close", function () {
             this.goto("/Closed");
         });
     });
@@ -162,7 +162,7 @@ function addWorkbookModel() {
                 label: key
             };
         });
-        
+
         result.unshift(blank);
 
         return result;
