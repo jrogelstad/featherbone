@@ -278,6 +278,7 @@
             "role": {
                 "description": "Name",
                 "type": "string",
+                "format": "role",
                 "isRequired": true
             },
             "canCreate": {

@@ -230,8 +230,7 @@
             "unit": 0,
             "showLabel": false,
             "columns": [{
-                "attr": "role",
-                "dataList": "roleNames"
+                "attr": "role"
             }, {
                 "attr": "canCreate",
                 "label": "Create",
