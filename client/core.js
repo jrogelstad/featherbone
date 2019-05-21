@@ -776,6 +776,46 @@ f.formats.overloadType.tableData = function (obj) {
 
 f.formats.password.editor = input.bind(null, "password");
 
+f.formats.role = {};
+
+function roleNames() {
+    let roles = catalog.store().data().roles().slice();
+    let result;
+
+    result = roles.map((role) => role.data.name()).sort();
+    result = result.map(function (role) {
+        return {
+            value: role,
+            label: role
+        };
+    });
+    result.unshift({
+        value: "",
+        label: ""
+    });
+    return result;
+}
+
+function selectEditor(dataList, options) {
+    let obj = {
+        viewModel: options.parentViewModel,
+        dataList: dataList()
+    };
+    let opts = {
+        id: options.id,
+        prop: options.prop,
+        class: options.class,
+        readonly: options.readonly,
+        oncreate: options.onCreate,
+        onremove: options.onRemove,
+        style: options.style,
+        isCell: options.isCell
+    };
+    return buildSelector(obj, opts);
+}
+
+f.formats.role.editor = selectEditor.bind(null, roleNames);
+
 f.formats.tel.editor = input.bind(null, "tel");
 
 f.formats.textArea.editor = function (options) {
@@ -910,22 +950,7 @@ function userAccountNames() {
     return result;
 }
 
-f.formats.userAccount.editor = function (options) {
-    let obj = {
-        viewModel: options.parentViewModel,
-        dataList: userAccountNames()
-    };
-    let opts = {
-        id: options.id,
-        prop: options.prop,
-        class: options.class,
-        readonly: options.readonly,
-        oncreate: options.onCreate,
-        onremove: options.onRemove,
-        stlye: options.stlye
-    };
-    return buildSelector(obj, opts);
-};
+f.formats.userAccount.editor = selectEditor.bind(null, userAccountNames);
 
 f.types.array.editor = function (options) {
     return m(catalog.store().components().dataList, options);
