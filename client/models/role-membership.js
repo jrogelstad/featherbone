@@ -30,7 +30,7 @@ function roleMembership(data, feather) {
         let result;
 
         result = roles.filter(function (role) {
-            return role.data.objectType() === "Role";
+            return role.data.objectType() !== "UserAccount";
         });
         result = result.map((role) => role.data.name()).sort();
         result = result.map(function (role) {
