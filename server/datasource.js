@@ -640,48 +640,61 @@
                 obj.cache = Object.freeze(f.copy(obj.data));
             }
 
-        // Add old/new record objects for convenience
-        function doPrepareTrigger(client, obj) {
-            return new Promise(function (resolve, reject) {
-                function setRec(result) {
-                    obj.oldRec = result;
+            function begin() {
+                return new Promise(function (resolve, reject) {
+                    if (!client.wrapped) {
+                        client.query("BEGIN;").then(function () {
+                            client.wrapped = true;
+                            resolve();
+                        }).catch(reject);
+                        return;
+                    }
                     resolve();
-                }
+                });
+            }
 
-                function setRecs(result) {
-                    obj.oldRec = result;
-                    obj.newRec = f.copy(result);
-                    jsonpatch.applyPatch(obj.newRec, obj.data);
-                    resolve();
-                }
-
-                if (!obj.newRec && !obj.oldRec) {
-                    switch (obj.method) {
-                    case "POST":
-                        obj.newRec = f.copy(obj.data);
+            // Add old/new record objects for convenience
+            function doPrepareTrigger(client, obj) {
+                return new Promise(function (resolve, reject) {
+                    function setRec(result) {
+                        obj.oldRec = result;
                         resolve();
-                        break;
-                    case "PATCH":
-                        obj.newRec = f.copy(obj.data);
-                        begin().then(
-                            getOld.bind(null, client, obj)
-                        ).then(setRecs).catch(reject);
-                        break;
-                    case "DELETE":
-                        begin().then(
-                            getOld.bind(null, client, obj)
-                        ).then(setRec).catch(reject);
-                        break;
-                    default:
-                        throw "Unknown trigger method " + obj.method;
                     }
 
-                    return;
-                }
+                    function setRecs(result) {
+                        obj.oldRec = result;
+                        obj.newRec = f.copy(result);
+                        jsonpatch.applyPatch(obj.newRec, obj.data);
+                        resolve();
+                    }
 
-                resolve();
-            });
-        }
+                    if (!obj.newRec && !obj.oldRec) {
+                        switch (obj.method) {
+                        case "POST":
+                            obj.newRec = f.copy(obj.data);
+                            resolve();
+                            break;
+                        case "PATCH":
+                            obj.newRec = f.copy(obj.data);
+                            begin().then(
+                                getOld.bind(null, client, obj)
+                            ).then(setRecs).catch(reject);
+                            break;
+                        case "DELETE":
+                            begin().then(
+                                getOld.bind(null, client, obj)
+                            ).then(setRec).catch(reject);
+                            break;
+                        default:
+                            throw "Unknown trigger method " + obj.method;
+                        }
+
+                        return;
+                    }
+
+                    resolve();
+                });
+            }
 
             function close(resp) {
                 return new Promise(function (resolve) {
@@ -700,7 +713,9 @@
                     err = new Error(err);
                 }
 
-                err.statusCode = 500;
+                if (!err.statusCode) {
+                    err.statusCode = 500;
+                }
 
                 if (!isExternalClient) {
                     done();
@@ -760,19 +775,6 @@
                 callback(err);
 
                 return;
-            }
-
-            function begin() {
-                return new Promise(function (resolve, reject) {
-                    if (!client.wrapped) {
-                        client.query("BEGIN;").then(function () {
-                            client.wrapped = true;
-                            resolve();
-                        }).catch(reject);
-                        return;
-                    }
-                    resolve();
-                });
             }
 
             function doExecute() {
