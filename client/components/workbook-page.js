@@ -52,7 +52,7 @@ const editWorkbookConfig = {
     }, {
         attr: "icon",
         dataList: icons,
-        grid:1
+        grid: 1
     }, {
         attr: "module",
         dataList: "modules",
@@ -65,21 +65,13 @@ const editWorkbookConfig = {
         columns: [{
             attr: "role"
         }, {
-            label: "Create",
-            attr: "canCreate",
-            width: "80px"
-        }, {
             label: "Read",
             attr: "canRead",
-            width: "80px"
+            width: 60
         }, {
             label: "Update",
             attr: "canUpdate",
-            width: "80px"
-        }, {
-            label: "Delete",
-            attr: "canDelete",
-            width: "80px"
+            width: 60
         }]
     }]
 };
@@ -989,7 +981,7 @@ workbookPage.viewModel = function (options) {
         model: workbook,
         config: editWorkbookConfig
     }));
-    vm.editWorkbookDialog().style().width = "650px";
+    vm.editWorkbookDialog().style().width = "475px";
 
     vm.editWorkbookDialog().buttons().push(
         f.prop(button.viewModel({

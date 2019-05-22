@@ -169,11 +169,6 @@ const workbookAuth = {
             type: "string",
             format: "role"
         },
-        canCreate: {
-            description: "User can create workbooks",
-            type: "boolean",
-            default: false
-        },
         canRead: {
             description: "User can read workbooks",
             type: "boolean",
@@ -181,11 +176,6 @@ const workbookAuth = {
         },
         canUpdate: {
             description: "User can update workbooks",
-            type: "boolean",
-            default: false
-        },
-        canDelete: {
-            description: "User can delete workbooks",
             type: "boolean",
             default: false
         }
@@ -441,7 +431,7 @@ workbookChild.calculated = f.prop({});
 
 function workbookAuthorization(data) {
     let that = model(data, workbookAuth);
-    
+
     that.idProperty("role");
 
     return that;

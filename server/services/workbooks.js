@@ -19,12 +19,11 @@
 (function (exports) {
     "use strict";
 
-    const {
-        Feathers
-    } = require("./feathers");
-
+    const {Feathers} = require("./feathers");
+    const {Tools} = require("./tools");
     const f = require("../../common/core");
     const feathers = new Feathers();
+    const tools = new Tools();
 
     exports.Workbooks = function () {
         // ..........................................................
@@ -153,14 +152,58 @@
                 let params;
                 let authorization;
                 let id;
+                let user = obj.data.specs.user;
                 let findSql = "SELECT * FROM \"$workbook\" WHERE name = $1;";
-                let workbooks = (
+                let workbooks;
+                let len;
+                let n = 0;
+
+                function execute() {
+                    obj.client.query(sql, params, function (err) {
+                        if (err) {
+                            reject(err);
+                            return;
+                        }
+
+                        // If no specific authorization, make one
+                        if (authorization === undefined) {
+                            authorization = {
+                                data: {
+                                    role: "everyone",
+                                    isInternal: true,
+                                    actions: {
+                                        canCreate: true,
+                                        canRead: true,
+                                        canUpdate: true,
+                                        canDelete: true
+                                    }
+                                },
+                                client: obj.client
+                            };
+                        }
+                        authorization.data.id = id;
+                        authorization.client = obj.client;
+
+                        // Set authorization
+                        if (authorization) {
+                            feathers.saveAuthorization(
+                                authorization
+                            ).then(nextWorkbook).catch(reject);
+                            return;
+                        }
+
+                        // Only come here if authorization was false
+                        nextWorkbook();
+                    });
+                }
+
+                delete obj.data.specs.user;
+                workbooks = (
                     Array.isArray(obj.data.specs)
                     ? obj.data.specs
                     : [obj.data.specs]
                 );
-                let len = workbooks.length;
-                let n = 0;
+                len = workbooks.length;
 
                 nextWorkbook = function () {
                     if (n < len) {
@@ -218,76 +261,59 @@
                                         wb.module,
                                         icon
                                     ];
+                                    execute();
                                 } else {
-                                    // Insert new workbook
-                                    sql = "INSERT INTO \"$workbook\"";
-                                    sql += "(_pk, id, name, description, ";
-                                    sql += "module, ";
-                                    sql += "launch_config, default_config, ";
-                                    sql += "local_config, icon, ";
-                                    sql += "created_by, updated_by, created, ";
-                                    sql += "updated, is_deleted) ";
-                                    sql += "VALUES (";
-                                    sql += "nextval('object__pk_seq'),";
-                                    sql += "$1, $2, $3, $4, $5, $6, $7, $8,";
-                                    sql += "$8, $9, ";
-                                    sql += "now(), now(), false) ";
-                                    sql += "RETURNING _pk;";
-                                    id = f.createId();
-                                    launchConfig = wb.launchConfig || {};
-                                    localConfig = wb.localConfig || [];
-                                    defaultConfig = wb.defaultConfig || [];
-                                    icon = wb.icon || "folder";
-                                    params = [
-                                        id,
-                                        wb.name,
-                                        wb.description || "",
-                                        wb.module,
-                                        launchConfig,
-                                        JSON.stringify(defaultConfig),
-                                        JSON.stringify(localConfig),
-                                        icon,
-                                        obj.client.currentUser
-                                    ];
+                                    tools.isSuperUser({
+                                        client: obj.client,
+                                        user: user
+                                    }).then(function (isSuper) {
+                                        let e;
+
+                                        if (!isSuper) {
+                                            e = new Error(
+                                                "Only super users may create" +
+                                                " workbooks."
+                                            );
+                                            e.statusCode = 401;
+                                            throw e;
+                                        }
+
+                                        // Insert new workbook
+                                        sql = (
+                                            "INSERT INTO \"$workbook\"" +
+                                            "(_pk, id, name, description, " +
+                                            "module, " +
+                                            "launch_config, default_config, " +
+                                            "local_config, icon, " +
+                                            "created_by, updated_by, " +
+                                            "created, updated, is_deleted) " +
+                                            "VALUES (" +
+                                            "nextval('object__pk_seq')," +
+                                            "$1, $2, $3, $4, $5, $6, $7, $8," +
+                                            "$8, $9, " +
+                                            "now(), now(), false) " +
+                                            "RETURNING _pk;"
+                                        );
+                                        id = f.createId();
+                                        launchConfig = wb.launchConfig || {};
+                                        localConfig = wb.localConfig || [];
+                                        defaultConfig = wb.defaultConfig || [];
+                                        icon = wb.icon || "folder";
+                                        params = [
+                                            id,
+                                            wb.name,
+                                            wb.description || "",
+                                            wb.module,
+                                            launchConfig,
+                                            JSON.stringify(defaultConfig),
+                                            JSON.stringify(localConfig),
+                                            icon,
+                                            obj.client.currentUser
+                                        ];
+
+                                        execute();
+                                    }).catch(reject);
                                 }
-
-                                // Execute
-                                obj.client.query(sql, params, function (err) {
-                                    if (err) {
-                                        reject(err);
-                                        return;
-                                    }
-
-                                    // If no specific authorization, make one
-                                    if (authorization === undefined) {
-                                        authorization = {
-                                            data: {
-                                                role: "everyone",
-                                                isInternal: true,
-                                                actions: {
-                                                    canCreate: true,
-                                                    canRead: true,
-                                                    canUpdate: true,
-                                                    canDelete: true
-                                                }
-                                            },
-                                            client: obj.client
-                                        };
-                                    }
-                                    authorization.data.id = id;
-                                    authorization.client = obj.client;
-
-                                    // Set authorization
-                                    if (authorization) {
-                                        feathers.saveAuthorization(
-                                            authorization
-                                        ).then(nextWorkbook).catch(reject);
-                                        return;
-                                    }
-
-                                    // Only come here if authorization was false
-                                    nextWorkbook();
-                                });
                             }
                         );
                         return;
