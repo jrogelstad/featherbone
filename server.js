@@ -390,12 +390,13 @@
         keys.forEach(registerDataRoute);
     }
 
-    function doSaveMethod(fn, req, res) {
+    function doSaveWorkbook(req, res) {
         let payload = {
             method: "PUT",
-            name: fn,
+            name: "saveWorkbook",
             user: req.user.name,
             data: {
+                user: req.user.name,
                 specs: req.body
             }
         };
@@ -409,11 +410,6 @@
         ).catch(
             error.bind(res)
         );
-    }
-
-    function doSaveWorkbook(req, res) {
-        req.body.user = req.user.name;
-        doSaveMethod("saveWorkbook", req, res);
     }
 
     function doSaveSettings(req, res) {
@@ -439,12 +435,13 @@
         );
     }
 
-    function doDeleteMethod(fn, req, res) {
+    function doDeleteWorkbook(req, res) {
         let payload = {
             method: "DELETE",
-            name: fn,
+            name: "deleteWorkbook",
             user: req.user.name,
             data: {
+                user: req.user.name,
                 name: req.params.name
             }
         };
@@ -459,10 +456,6 @@
         ).catch(
             error.bind(res)
         );
-    }
-
-    function doDeleteWorkbook(req, res) {
-        doDeleteMethod("deleteWorkbook", req, res);
     }
 
     function doSubscribe(req, res) {
