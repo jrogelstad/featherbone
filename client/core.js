@@ -1159,7 +1159,8 @@ f.buildInputComponent = function (obj) {
         if (w) {
             return m(w, {
                 parentViewModel: obj.viewModel,
-                parentProperty: key
+                parentProperty: key,
+                height: obj.options.height
             });
         }
     }
