@@ -38,16 +38,49 @@ const m = window.m;
 const console = window.console;
 const jsonpatch = window.jsonpatch;
 const editWorkbookConfig = {
-    attrs: [{
-        attr: "name"
+    tabs: [{
+        name: "Definition"
     }, {
-        attr: "description"
+        name: "Authorizations"
+    }],
+    attrs: [{
+        attr: "name",
+        grid: 1
+    }, {
+        attr: "description",
+        grid: 1
     }, {
         attr: "icon",
-        dataList: icons
+        dataList: icons,
+        grid:1
     }, {
         attr: "module",
-        dataList: "modules"
+        dataList: "modules",
+        grid: 1
+    }, {
+        attr: "authorizations",
+        showLabel: false,
+        height: "98px",
+        grid: 2,
+        columns: [{
+            attr: "role"
+        }, {
+            label: "Create",
+            attr: "canCreate",
+            width: "80px"
+        }, {
+            label: "Read",
+            attr: "canRead",
+            width: "80px"
+        }, {
+            label: "Update",
+            attr: "canUpdate",
+            width: "80px"
+        }, {
+            label: "Delete",
+            attr: "canDelete",
+            width: "80px"
+        }]
     }]
 };
 
@@ -956,6 +989,7 @@ workbookPage.viewModel = function (options) {
         model: workbook,
         config: editWorkbookConfig
     }));
+    vm.editWorkbookDialog().style().width = "650px";
 
     vm.editWorkbookDialog().buttons().push(
         f.prop(button.viewModel({

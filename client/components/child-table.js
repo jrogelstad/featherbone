@@ -31,13 +31,14 @@ const m = window.m;
   @param {Array} [options.models] Array of child models
   @param {String} [options.feather] Feather
   @param {Array} [options.config] Column configuration
+  @param {String} [options.height] Table height setting (optional)
 */
 childTable.viewModel = function (options) {
     let tableState;
     let canAdd;
     let root = f.findRoot(options.parentViewModel.model());
     let vm = {};
-    let instances = catalog.store().instances();
+    let instances = catalog.register("instances");
 
     function toggleCanAdd() {
         let currentState = root.state().current()[0];
@@ -104,7 +105,8 @@ childTable.viewModel = function (options) {
         config: options.config,
         models: options.models,
         feather: options.feather,
-        containerId: vm.parentViewModel().containerId()
+        containerId: vm.parentViewModel().containerId(),
+        height: options.height
     }));
     vm.tableWidget().toggleEdit();
     vm.tableWidget().isQuery(false);
@@ -254,7 +256,8 @@ childTable.component = {
                 parentProperty: parentProperty,
                 models: models,
                 feather: feather,
-                config: config
+                config: config,
+                height: vnode.attrs.height
             });
         }
         this.viewModel = relations[parentProperty];

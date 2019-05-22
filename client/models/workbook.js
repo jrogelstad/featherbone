@@ -59,6 +59,13 @@ const workbook = {
         localConfig: {
             description: "Parent of \"parent\" on \"WorkbookLocalConfig\"",
             type: "object"
+        },
+        authorizations: {
+            description: "Parent of \"parent\" on \"WorkbookAuthorization\"",
+            type: {
+                parentOf: "parent",
+                relation: "WorkbookAuthorization"
+            }
         }
     }
 };
@@ -74,7 +81,7 @@ const workbookDefaultConifg = {
             default: "createId"
         },
         parent: {
-            description: "Workbook name",
+            description: "Workbook parent",
             type: {
                 relation: "Workbook",
                 childOf: "defaultConfig"
@@ -141,6 +148,50 @@ const workbookList = {
 
 const workbookLocalConfig = f.copy(workbookDefaultConifg);
 
+const workbookAuth = {
+    description: "Workbook authorization definition",
+    isSystem: true,
+    properties: {
+        isDeleted: {
+            description: "Boilerplate",
+            type: "boolean",
+            default: false
+        },
+        parent: {
+            description: "Workbook parent",
+            type: {
+                relation: "Workbook",
+                childOf: "authorizations"
+            }
+        },
+        role: {
+            description: "Role",
+            type: "string",
+            format: "role"
+        },
+        canCreate: {
+            description: "User can create workbooks",
+            type: "boolean",
+            default: false
+        },
+        canRead: {
+            description: "User can read workbooks",
+            type: "boolean",
+            default: true
+        },
+        canUpdate: {
+            description: "User can update workbooks",
+            type: "boolean",
+            default: false
+        },
+        canDelete: {
+            description: "User can delete workbooks",
+            type: "boolean",
+            default: false
+        }
+    }
+};
+
 workbookLocalConfig.description = "Workbook local sheet definition";
 workbookLocalConfig.properties.parent.type.childOf = "localConfig";
 workbookLocalConfig.properties.list = {
@@ -155,6 +206,7 @@ feathers.Workbook = workbook;
 feathers.WorkbookDefaultConfig = workbookDefaultConifg;
 feathers.WorkbookLocalConfig = workbookLocalConfig;
 feathers.WorkbookList = workbookList;
+feathers.WorkbookAuthorization = workbookAuth;
 
 function resolveConfig(config) {
     config.forEach(function (sheet) {
@@ -171,6 +223,7 @@ function resolveConfig(config) {
 
 /**
   Model with special rest API handling for Workbook saves.
+
   @param {Object} Default data
   return {Object}
 */
@@ -386,6 +439,16 @@ function workbookChild(data) {
 workbookChild.static = f.prop({});
 workbookChild.calculated = f.prop({});
 
+function workbookAuthorization(data) {
+    let that = model(data, workbookAuth);
+    
+    that.idProperty("role");
+
+    return that;
+}
+workbookAuthorization.static = f.prop({});
+workbookAuthorization.calculated = f.prop({});
+
 workbookModel.list = ("Workbook");
 workbookModel.static = f.prop({});
 workbookModel.calculated = f.prop({});
@@ -393,5 +456,6 @@ workbookModel.calculated = f.prop({});
 models = catalog.store().models();
 models.workbook = workbookModel;
 models.workbookLocalConfig = workbookChild;
+models.workbookAuthorization = workbookAuthorization;
 Object.freeze(models.workbookLocalConfig);
 

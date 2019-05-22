@@ -94,7 +94,9 @@ function buildFieldset(vm, attrs) {
         }
         let dataList = item.dataList || prop.dataList;
         let value = prop();
-        let options = {};
+        let options = {
+            height: item.height
+        };
         let menuButtons = vm.menuButtons();
         let relation = vm.relations()[key];
 
