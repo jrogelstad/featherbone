@@ -41,7 +41,8 @@
 
             @param {Object} Request payload
             @param {Object} [payload.data] Payload data
-            @param {Object | Array} [payload.data.name] Workbook to delete
+            @param {String} [payload.data.name] Workbook to delete
+            @param {String} [payload.data.name] Workbook to delete
             @param {Object} [payload.client] Database client
             @return {Object} Promise
         */
@@ -49,14 +50,29 @@
             return new Promise(function (resolve, reject) {
                 let sql = "DELETE FROM \"$workbook\" WHERE name=$1;";
 
-                obj.client.query(sql, [obj.data.name], function (err) {
-                    if (err) {
-                        reject(err);
-                        return;
+                tools.isSuperUser({
+                    client: obj.client,
+                    user: obj.user
+                }).then(function (isSuper) {
+                    let err;
+
+                    if (!isSuper) {
+                        err = new Error(
+                            "Only super users may delete workbooks."
+                        );
+                        err.statusCode = 401;
+                        throw err;
                     }
 
-                    resolve(true);
-                });
+                    obj.client.query(sql, [obj.data.name], function (err) {
+                        if (err) {
+                            reject(err);
+                            return;
+                        }
+
+                        resolve(true);
+                    });
+                }).catch(reject);
             });
         };
 
@@ -138,7 +154,8 @@
           Create or upate workbooks.
 
           @param {Object} Payload
-          @param {Object | Array} [payload.data] Workbook data.
+          @param {Object} [payload.data] Workbook data.
+          @param {String} [payload.data.user] User name.
           @param {Object | Array} [payload.data.specs] Workbook specification.
           @param {Object} [payload.client] Database client
           @return {Object} Promise
@@ -152,10 +169,14 @@
                 let params;
                 let authorization;
                 let id;
-                let user = obj.data.specs.user;
+                let user = obj.data.user;
                 let findSql = "SELECT * FROM \"$workbook\" WHERE name = $1;";
-                let workbooks;
-                let len;
+                let workbooks = (
+                    Array.isArray(obj.data.specs)
+                    ? obj.data.specs
+                    : [obj.data.specs]
+                );
+                let len = workbooks.length;
                 let n = 0;
 
                 function execute() {
@@ -196,14 +217,6 @@
                         nextWorkbook();
                     });
                 }
-
-                delete obj.data.specs.user;
-                workbooks = (
-                    Array.isArray(obj.data.specs)
-                    ? obj.data.specs
-                    : [obj.data.specs]
-                );
-                len = workbooks.length;
 
                 nextWorkbook = function () {
                     if (n < len) {
