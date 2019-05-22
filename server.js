@@ -412,6 +412,7 @@
     }
 
     function doSaveWorkbook(req, res) {
+        req.body.user = req.user.name;
         doSaveMethod("saveWorkbook", req, res);
     }
 

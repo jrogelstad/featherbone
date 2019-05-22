@@ -586,6 +586,8 @@ function initApp() {
         fetchRequests.push(ary().fetch({}));
     });
     Promise.all(fetchRequests).then(function () {
+        let isSuper = f.currentUser().isSuper;
+
         // Menu
         menu = navigator.viewModel();
 
@@ -657,11 +659,20 @@ function initApp() {
                             m(accountMenu.component),
                             m("button", {
                                 class: (
-                                    "fb-toolbar-button " +
-                                    "fb-toolbar-button-home"
+                                    "pure-button fb-toolbar-button " +
+                                    "fb-toolbar-button-home " + (
+                                        isSuper
+                                        ? ""
+                                        : "fb-button-disabled"
+                                    )
                                 ),
-                                title: "Add workbook",
-                                onclick: addWorkbookViewModel.show
+                                title: (
+                                    isSuper
+                                    ? "Add workbook"
+                                    : "Must be a super user to add a workbook"
+                                ),
+                                onclick: addWorkbookViewModel.show,
+                                disabled: !isSuper
                             }, [
                                 m("i", {
                                     class: "fa fa-plus fb-button-icon"
