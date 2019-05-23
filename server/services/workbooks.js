@@ -40,8 +40,8 @@
           Remove a workbook from the database.
 
             @param {Object} Request payload
+            @param {String} [payload.user] User name
             @param {Object} [payload.data] Payload data
-            @param {String} [payload.data.name] Workbook to delete
             @param {String} [payload.data.name] Workbook to delete
             @param {Object} [payload.client] Database client
             @return {Object} Promise
@@ -91,6 +91,7 @@
                 }
 
                 that.getWorkbooks({
+                    user: obj.user,
                     data: obj.data,
                     client: obj.client
                 }).then(callback).catch(reject);
@@ -109,44 +110,77 @@
         */
         that.getWorkbooks = function (obj) {
             return new Promise(function (resolve, reject) {
-                let params = [obj.client.currentUser];
-                let sql;
+                let user = obj.user;
 
-                sql = (
-                    "SELECT name, description, module, " +
-                    "launch_config AS \"launchConfig\", " +
-                    "icon, " +
-                    "default_config AS \"defaultConfig\", " +
-                    "local_config AS \"localConfig\" " +
-                    "FROM \"$workbook\"" +
-                    "WHERE EXISTS (" +
-                    "  SELECT can_read FROM ( " +
-                    "    SELECT can_read " +
-                    "    FROM \"$auth\", pg_authid " +
-                    "    WHERE pg_has_role($1, pg_authid.oid, 'member')" +
-                    "      AND \"$auth\".object_pk=\"$workbook\"._pk" +
-                    "      AND \"$auth\".role=pg_authid.rolname" +
-                    "    ORDER BY can_read DESC" +
-                    "    LIMIT 1" +
-                    "  ) AS data " +
-                    "  WHERE can_read)"
-                );
+                function callback(isSuper) {
+                    let params = [];
+                    let sql;
 
-                if (obj.data.name) {
-                    sql += " AND name=$2";
-                    params.push(obj.data.name);
-                }
+                    sql = (
+                        "SELECT name, description, module, " +
+                        "launch_config AS \"launchConfig\", " +
+                        "icon, " +
+                        "default_config AS \"defaultConfig\", " +
+                        "local_config AS \"localConfig\", " +
+                        "to_json(ARRAY( SELECT ROW(role, can_read, " +
+                        "can_update) " +
+                        "  FROM \"$auth\" as auth " +
+                        "  WHERE auth.object_pk = workbook._pk " +
+                        "  ORDER BY auth.pk)) AS authorizations " +
+                        "FROM \"$workbook\" AS workbook "
+                    );
 
-                sql += " ORDER BY _pk";
-
-                obj.client.query(sql, params, function (err, resp) {
-                    if (err) {
-                        reject(err);
-                        return;
+                    if (!isSuper) {
+                        params = [obj.client.currentUser];
+                        sql += (
+                            "WHERE EXISTS (" +
+                            "  SELECT can_read FROM ( " +
+                            "    SELECT can_read " +
+                            "    FROM \"$auth\", pg_authid " +
+                            "    WHERE pg_has_role(" +
+                            "        $1, pg_authid.oid, 'member')" +
+                            "      AND \"$auth\".object_pk=\"$workbook\"._pk" +
+                            "      AND \"$auth\".role=pg_authid.rolname" +
+                            "    ORDER BY can_read DESC" +
+                            "    LIMIT 1" +
+                            "  ) AS data " +
+                            "  WHERE can_read)"
+                        );
                     }
 
-                    resolve(resp.rows);
-                });
+                    if (obj.data.name) {
+                        sql += " AND name=$2";
+                        params.push(obj.data.name);
+                    }
+
+                    sql += " ORDER BY _pk";
+
+                    obj.client.query(sql, params, function (err, resp) {
+                        function auths(a) {
+                            return {
+                                role: a.f1,
+                                canUpdate: a.f2,
+                                canDelete: a.f3
+                            };
+                        }
+
+                        if (err) {
+                            reject(err);
+                            return;
+                        }
+
+                        resp.rows.forEach(function (row) {
+                            row.authorizations = row.authorizations.map(auths);
+                        });
+
+                        resolve(resp.rows);
+                    });
+                }
+
+                tools.isSuperUser({
+                    client: obj.client,
+                    user: user
+                }).then(callback).catch(reject);
             });
         };
 
@@ -154,8 +188,8 @@
           Create or upate workbooks.
 
           @param {Object} Payload
+          @param {String} [payload.user] User name.
           @param {Object} [payload.data] Workbook data.
-          @param {String} [payload.data.user] User name.
           @param {Object | Array} [payload.data.specs] Workbook specification.
           @param {Object} [payload.client] Database client
           @return {Object} Promise
@@ -169,7 +203,7 @@
                 let params;
                 let authorization;
                 let id;
-                let user = obj.data.user;
+                let user = obj.user;
                 let findSql = "SELECT * FROM \"$workbook\" WHERE name = $1;";
                 let workbooks = (
                     Array.isArray(obj.data.specs)
