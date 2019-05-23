@@ -170,12 +170,12 @@ const workbookAuth = {
             format: "role"
         },
         canRead: {
-            description: "User can read workbooks",
+            description: "User can use workbook",
             type: "boolean",
             default: true
         },
         canUpdate: {
-            description: "User can update workbooks",
+            description: "User can update definition and share workbook configuration changes",
             type: "boolean",
             default: false
         }
