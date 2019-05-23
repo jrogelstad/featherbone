@@ -127,19 +127,20 @@
                         "  FROM \"$auth\" as auth " +
                         "  WHERE auth.object_pk = workbook._pk " +
                         "  ORDER BY auth.pk)) AS authorizations " +
-                        "FROM \"$workbook\" AS workbook "
+                        "FROM \"$workbook\" AS workbook " +
+                        "WHERE true "
                     );
 
                     if (!isSuper) {
                         params = [obj.client.currentUser];
                         sql += (
-                            "WHERE EXISTS (" +
+                            "AND EXISTS (" +
                             "  SELECT can_read FROM ( " +
                             "    SELECT can_read " +
                             "    FROM \"$auth\", pg_authid " +
                             "    WHERE pg_has_role(" +
                             "        $1, pg_authid.oid, 'member')" +
-                            "      AND \"$auth\".object_pk=\"$workbook\"._pk" +
+                            "      AND \"$auth\".object_pk=workbook._pk" +
                             "      AND \"$auth\".role=pg_authid.rolname" +
                             "    ORDER BY can_read DESC" +
                             "    LIMIT 1" +
@@ -159,8 +160,8 @@
                         function auths(a) {
                             return {
                                 role: a.f1,
-                                canUpdate: a.f2,
-                                canDelete: a.f3
+                                canRead: a.f2,
+                                canUpdate: a.f3
                             };
                         }
 
@@ -201,7 +202,7 @@
                 let wb;
                 let sql;
                 let params;
-                let authorization;
+                let authorizations;
                 let id;
                 let user = obj.user;
                 let findSql = "SELECT * FROM \"$workbook\" WHERE name = $1;";
@@ -215,35 +216,50 @@
 
                 function execute() {
                     obj.client.query(sql, params, function (err) {
+                        let requests = [];
+
                         if (err) {
                             reject(err);
                             return;
                         }
 
                         // If no specific authorization, make one
-                        if (authorization === undefined) {
-                            authorization = {
+                        if (authorizations === undefined) {
+                            authorizations = [{
                                 data: {
                                     role: "everyone",
-                                    isInternal: true,
                                     actions: {
-                                        canCreate: true,
                                         canRead: true,
-                                        canUpdate: true,
-                                        canDelete: true
+                                        canUpdate: true
                                     }
-                                },
-                                client: obj.client
-                            };
+                                }
+                            }];
                         }
-                        authorization.data.id = id;
-                        authorization.client = obj.client;
 
                         // Set authorization
-                        if (authorization) {
-                            feathers.saveAuthorization(
-                                authorization
-                            ).then(nextWorkbook).catch(reject);
+                        if (authorizations) {
+                            authorizations.forEach(function (auth) {
+                                requests.push(
+                                    feathers.saveAuthorization({
+                                        client: obj.client,
+                                        data: {
+                                            id: id,
+                                            role: auth.role,
+                                            isInternal: true,
+                                            actions: {
+                                                canCreate: null,
+                                                canRead: auth.canRead,
+                                                canUpdate: auth.canUpdate,
+                                                canDelete: null
+                                            }
+                                        }
+                                    })
+                                );
+                            });
+
+                            Promise.all(requests).then(
+                                nextWorkbook
+                            ).catch(reject);
                             return;
                         }
 
@@ -255,7 +271,7 @@
                 nextWorkbook = function () {
                     if (n < len) {
                         wb = workbooks[n];
-                        authorization = wb.authorization;
+                        authorizations = wb.authorizations;
                         n += 1;
 
                         // Upsert workbook

@@ -137,10 +137,10 @@
         "pk serial PRIMARY KEY," +
         "object_pk bigint not null," +
         "role text not null," +
-        "can_create boolean not null," +
-        "can_read boolean not null," +
-        "can_update boolean not null," +
-        "can_delete boolean not null," +
+        "can_create boolean," +
+        "can_read boolean," +
+        "can_update boolean," +
+        "can_delete boolean," +
         "CONSTRAINT \"$auth_object_pk_role_key\" " +
         "UNIQUE (object_pk, role));" +
         "COMMENT ON TABLE \"$auth\" IS " +
