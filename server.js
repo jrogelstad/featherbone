@@ -396,7 +396,6 @@
             name: "saveWorkbook",
             user: req.user.name,
             data: {
-                user: req.user.name,
                 specs: req.body
             }
         };
@@ -441,7 +440,6 @@
             name: "deleteWorkbook",
             user: req.user.name,
             data: {
-                user: req.user.name,
                 name: req.params.name
             }
         };
