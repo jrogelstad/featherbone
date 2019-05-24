@@ -186,6 +186,97 @@
         };
 
         /**
+          Check whether a user is authorized to perform an action on a
+          particular feather (class) or object.
+
+          Allowable actions: "canCreate", "canRead", "canUpdate", "canDelete"
+
+          "canCreate" will only check feather names.
+
+          @param {Object} Payload
+          @param {Object} [payload.data] Payload data
+          @param {String} [payload.data.action] Required
+          @param {String} [payload.data.id] Object id
+          @param {String} [payload.data.user] User. Defaults to current user
+          @param {String} [payload.client] Database client
+          @return {Object} Promise
+        */
+        that.isAuthorized = function (obj) {
+            return new Promise(function (resolve, reject) {
+                let table;
+                let pk;
+                let authSql;
+                let sql;
+                let params;
+                let user = obj.data.user || obj.client.currentUser;
+                let action = obj.data.action;
+                let id = obj.data.id;
+                let tokens = [];
+                let result = false;
+
+                function callback(isSuper) {
+                    if (isSuper) {
+                        resolve(true);
+                        return;
+                    }
+
+                    /* Find object */
+                    sql = "SELECT _pk, tableoid::regclass::text AS \"t\" ";
+                    sql += "FROM object WHERE id = $1;";
+
+                    obj.client.query(sql, [id], function (err, resp) {
+                        if (err) {
+                            reject(err);
+                            return;
+                        }
+
+                        /* If object found, check authorization */
+                        if (resp.rows.length > 0) {
+                            table = resp.rows[0].t;
+                            pk = resp.rows[0][tools.PKCOL];
+
+                            tokens.push(table);
+                            authSql = tools.buildAuthSql(
+                                action,
+                                table,
+                                tokens
+                            );
+                            sql = (
+                                "SELECT _pk FROM %I WHERE _pk = $2 " +
+                                authSql
+                            );
+                            sql = sql.format(tokens);
+
+                            obj.client.query(
+                                sql,
+                                [user, pk],
+                                function (err, resp) {
+                                    if (err) {
+                                        reject(err);
+                                        return;
+                                    }
+
+                                    result = resp.rows.length > 0;
+
+                                    resolve(result);
+                                }
+                            );
+                        }
+                    });
+                }
+
+                if (!obj.data.id) {
+                    throw new Error("Authorization check requires id");
+                }
+
+                tools.isSuperUser({
+                    client: obj.client,
+                    user: obj.data.user
+                }).then(callback).catch(reject);
+            });
+        };
+
+        /**
           Create or upate workbooks.
 
           @param {Object} Payload
@@ -213,9 +304,20 @@
                 );
                 let len = workbooks.length;
                 let n = 0;
+                let oldAuth;
+
+                findSql = (
+                    "SELECT * FROM \"$workbook\" AS workbook, " +
+                    "to_json(ARRAY( SELECT ROW(role) " +
+                    "  FROM \"$auth\" as auth " +
+                    "  WHERE auth.object_pk = workbook._pk " +
+                    "  ORDER BY auth.pk)) AS authorizations " +
+                    "WHERE name = $1;"
+                );
 
                 function execute() {
                     obj.client.query(sql, params, function (err) {
+                        let auths = [];
                         let requests = [];
 
                         if (err) {
@@ -236,11 +338,44 @@
                             }];
                         }
 
-                        // Set authorization
+                        if (oldAuth) {
+                            // Clear old auths in case of deletions
+                            oldAuth.forEach(function (auth) {
+                                auths.push({
+                                    client: obj.client,
+                                    data: {
+                                        id: id,
+                                        role: auth.f1,
+                                        isInternal: true,
+                                        actions: {
+                                            canCreate: false,
+                                            canRead: false,
+                                            canUpdate: false,
+                                            canDelete: false
+                                        }
+                                    }
+                                });
+                            });
+                        }
+
+                        // Set new authorizations
                         if (authorizations) {
                             authorizations.forEach(function (auth) {
-                                requests.push(
-                                    feathers.saveAuthorization({
+                                let found;
+                                let actions;
+
+                                if (auth === null) {
+                                    return; // Was deleted
+                                }
+
+                                found = auths.find((a) => a.data.role === auth.role);
+
+                                if (found) {
+                                    actions = found.data.actions;
+                                    actions.canUpdate = auth.canUpdate;
+                                    actions.canRead = auth.canRead;
+                                } else {
+                                    auths.push({
                                         client: obj.client,
                                         data: {
                                             id: id,
@@ -253,18 +388,17 @@
                                                 canDelete: null
                                             }
                                         }
-                                    })
-                                );
+                                    });
+                                }
                             });
-
-                            Promise.all(requests).then(
-                                nextWorkbook
-                            ).catch(reject);
-                            return;
                         }
 
-                        // Only come here if authorization was false
-                        nextWorkbook();
+                        auths.forEach(function (auth) {
+                            requests.push(
+                                feathers.saveAuthorization(auth)
+                            );
+                        });
+                        Promise.all(requests).then(nextWorkbook).catch(reject);
                     });
                 }
 
@@ -273,6 +407,7 @@
                         wb = workbooks[n];
                         authorizations = wb.authorizations;
                         n += 1;
+                        oldAuth = false;
 
                         // Upsert workbook
                         obj.client.query(
@@ -291,6 +426,8 @@
 
                                 row = resp.rows[0];
                                 if (row) {
+                                    oldAuth = row.authorizations;
+
                                     // Update workbook
                                     sql = (
                                         "UPDATE \"$workbook\" SET " +
