@@ -175,7 +175,10 @@ const workbookAuth = {
             default: true
         },
         canUpdate: {
-            description: "User can update definition and share workbook changes",
+            description: (
+                "User can update definition and " +
+                "share workbook changes"
+            ),
             type: "boolean",
             default: false
         }
@@ -288,18 +291,17 @@ function workbookModel(data) {
         }
 
         if (canUpdate === undefined) {
-                that.isReadOnly(true);
-                that.isAuthorized("canUpdate").then(function (resp) {
-                    canUpdate = resp;
+            that.state().goto("/Ready/Fetched/ReadOnly");
+            that.isAuthorized("canUpdate").then(function (resp) {
+                canUpdate = resp;
 
-                    if (canUpdate) {
-                        that.isReadOnly(false);
-                    }
-                }).catch(doError);
-            }
+                if (canUpdate) {
+                    that.state().goto("/Ready/Fetched/Clean");
+                }
+            });
         }
     };
-    
+
     /**
         Check whether workbook is authorized to perform an action.
 

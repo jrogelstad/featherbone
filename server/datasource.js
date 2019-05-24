@@ -1372,7 +1372,11 @@
     );
     that.registerFunction("GET", "getWorkbook", workbooks.getWorkbook);
     that.registerFunction("GET", "getWorkbooks", workbooks.getWorkbooks);
-    that.registerFunction("GET", "workbookIsAuthorized", workbooks.isAuthorized);
+    that.registerFunction(
+        "GET",
+        "workbookIsAuthorized",
+        workbooks.isAuthorized
+    );
     that.registerFunction("GET", "isAuthorized", feathers.isAuthorized);
     that.registerFunction("GET", "isSuperUser", tools.isSuperUser);
     that.registerFunction("PATCH", "patchProfile", profile.patchProfile);

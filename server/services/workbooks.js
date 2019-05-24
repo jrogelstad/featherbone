@@ -196,23 +196,19 @@
           @param {Object} Payload
           @param {Object} [payload.data] Payload data
           @param {String} [payload.data.action] Required
-          @param {String} [payload.data.id] Object id
-          @param {String} [payload.data.user] User. Defaults to current user
+          @param {String} [payload.data.name] Workbook name
+          @param {String} [payload.data.user] User.
           @param {String} [payload.client] Database client
           @return {Object} Promise
         */
         that.isAuthorized = function (obj) {
             return new Promise(function (resolve, reject) {
-                let table;
-                let pk;
-                let authSql;
                 let sql;
-                let params;
-                let user = obj.data.user || obj.client.currentUser;
-                let action = obj.data.action;
-                let id = obj.data.id;
-                let tokens = [];
-                let result = false;
+                let user = obj.data.user;
+                let action = obj.data.action || "";
+                let name = obj.data.name;
+
+                action = action.toSnakeCase();
 
                 function callback(isSuper) {
                     if (isSuper) {
@@ -220,53 +216,33 @@
                         return;
                     }
 
-                    /* Find object */
-                    sql = "SELECT _pk, tableoid::regclass::text AS \"t\" ";
-                    sql += "FROM object WHERE id = $1;";
+                    sql = (
+                        "SELECT _pk " +
+                        "FROM \"$workbook\" AS workbook, " +
+                        "  \"$auth\" AS auth, " +
+                        "  pg_authid " +
+                        "WHERE name = $1 " +
+                        "  AND workbook._pk=auth.object_pk" +
+                        "  AND auth.role=pg_authid.rolname " +
+                        "  AND pg_has_role($2, pg_authid.oid, 'member')" +
+                        "  AND " + action + " " +
+                        "LIMIT 1;"
+                    );
 
-                    obj.client.query(sql, [id], function (err, resp) {
-                        if (err) {
-                            reject(err);
-                            return;
-                        }
-
-                        /* If object found, check authorization */
-                        if (resp.rows.length > 0) {
-                            table = resp.rows[0].t;
-                            pk = resp.rows[0][tools.PKCOL];
-
-                            tokens.push(table);
-                            authSql = tools.buildAuthSql(
-                                action,
-                                table,
-                                tokens
-                            );
-                            sql = (
-                                "SELECT _pk FROM %I WHERE _pk = $2 " +
-                                authSql
-                            );
-                            sql = sql.format(tokens);
-
-                            obj.client.query(
-                                sql,
-                                [user, pk],
-                                function (err, resp) {
-                                    if (err) {
-                                        reject(err);
-                                        return;
-                                    }
-
-                                    result = resp.rows.length > 0;
-
-                                    resolve(result);
-                                }
-                            );
-                        }
-                    });
+                    obj.client.query(sql, [name, user]).then(function (resp) {
+                        resolve(resp.rows.length > 0);
+                    }).catch(reject);
                 }
 
-                if (!obj.data.id) {
-                    throw new Error("Authorization check requires id");
+                if (action !== "can_read" && action !== "can_update") {
+                    throw new Error(
+                        "Only actions `canRead` and `canUpdate` supported " +
+                        "for workbook."
+                    );
+                }
+
+                if (!name) {
+                    throw new Error("Authorization check requires name");
                 }
 
                 tools.isSuperUser({
@@ -368,7 +344,9 @@
                                     return; // Was deleted
                                 }
 
-                                found = auths.find((a) => a.data.role === auth.role);
+                                found = auths.find(
+                                    (a) => a.data.role === auth.role
+                                );
 
                                 if (found) {
                                     actions = found.data.actions;
