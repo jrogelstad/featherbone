@@ -982,9 +982,6 @@ workbookPage.viewModel = function (options) {
         config: editWorkbookConfig
     }));
     vm.editWorkbookDialog().style().width = "475px";
-    vm.editWorkbookDialog().state().resolve("/Display/Showing").enter(
-        workbook.checkUpdate
-    );
 
     vm.editWorkbookDialog().buttons().push(
         f.prop(button.viewModel({
@@ -1449,7 +1446,13 @@ workbookPage.component = {
                                 })], "Workbook"),
                                 m("li", {
                                     id: "nav-menu-share",
-                                    class: "pure-menu-link",
+                                    class: (
+                                        "pure-menu-link " + (
+                                            vm.workbook().canUpdate()
+                                            ? ""
+                                            : " pure-menu-disabled"
+                                        )
+                                    ),
                                     title: "Share workbook configuration",
                                     onclick: vm.share
                                 }, [m("i", {
