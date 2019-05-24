@@ -175,7 +175,7 @@ const workbookAuth = {
             default: true
         },
         canUpdate: {
-            description: "User can update definition and share workbook configuration changes",
+            description: "User can update definition and share workbook changes",
             type: "boolean",
             default: false
         }
@@ -223,6 +223,7 @@ function workbookModel(data) {
     let substate;
     let doPut;
     let modules = f.prop(catalog.store().data().modules());
+    let canUpdate;
 
     function save(promise) {
         this.goto("/Busy/Saving", {
@@ -278,6 +279,48 @@ function workbookModel(data) {
         type: "array",
         function: modules
     });
+
+    that.canUpdate = () => canUpdate;
+
+    that.checkUpdate = function () {
+        if (that.state().current()[0] !== "/Ready/Fetched/Clean") {
+            return;
+        }
+
+        if (canUpdate === undefined) {
+                that.isReadOnly(true);
+                that.isAuthorized("canUpdate").then(function (resp) {
+                    canUpdate = resp;
+
+                    if (canUpdate) {
+                        that.isReadOnly(false);
+                    }
+                }).catch(doError);
+            }
+        }
+    };
+    
+    /**
+        Check whether workbook is authorized to perform an action.
+
+        Allowable actions: `canRead`, `canUpdate`
+
+        @param {String} Action name
+        @return {Object} Promise
+    */
+    that.isAuthorized = function (action) {
+        return new Promise(function (resolve, reject) {
+            let payload = {
+                method: "GET",
+                path: "/workbook/is-authorized/" + that.id(),
+                data: {
+                    action: action
+                }
+            };
+
+            datasource.request(payload).then(resolve).catch(reject);
+        });
+    };
 
     // ..........................................................
     // PRIVATE

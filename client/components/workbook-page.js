@@ -982,6 +982,9 @@ workbookPage.viewModel = function (options) {
         config: editWorkbookConfig
     }));
     vm.editWorkbookDialog().style().width = "475px";
+    vm.editWorkbookDialog().state().resolve("/Display/Showing").enter(
+        workbook.checkUpdate
+    );
 
     vm.editWorkbookDialog().buttons().push(
         f.prop(button.viewModel({

@@ -819,6 +819,26 @@
         );
     }
 
+    function doWorkbookIsAuthorized(req, res) {
+        let payload = {
+            method: "GET",
+            name: "workbookIsAuthorized",
+            user: req.user.name,
+            data: {
+                name: req.path.name,
+                user: req.user.name,
+                action: req.query.action
+            }
+        };
+
+        console.log(JSON.stringify(payload, null, 2));
+        datasource.request(payload).then(
+            respond.bind(res)
+        ).catch(
+            error.bind(res)
+        );
+    }
+
     // Listen for changes to feathers, update and broadcast to all
     function subscribeToFeathers() {
         return new Promise(function (resolve, reject) {
@@ -1059,6 +1079,7 @@
         app.put("/settings/:name", doSaveSettings);
         app.get("/settings-definition", doGetSettingsDefinition);
         app.get("/workbooks", doGetWorkbooks);
+        app.get("/workbook/is-authorized/:name", doWorkbookIsAuthorized);
         app.get("/workbook/:name", doGetWorkbook);
         app.put("/workbook/:name", doSaveWorkbook);
         app.delete("/workbook/:name", doDeleteWorkbook);
