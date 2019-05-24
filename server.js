@@ -825,7 +825,7 @@
             name: "workbookIsAuthorized",
             user: req.user.name,
             data: {
-                name: req.path.name,
+                name: req.params.name,
                 user: req.user.name,
                 action: req.query.action
             }
