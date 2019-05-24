@@ -99,6 +99,11 @@ formPage.viewModel = function (options) {
             return;
         }
 
+        if (window.history.state === null) {
+            m.route.set("/home");
+            return;
+        }
+
         window.history.go(pageIdx * -1);
     };
     vm.doNew = function () {
@@ -186,8 +191,16 @@ formPage.viewModel = function (options) {
     // Create button view models
     vm.buttonBack(button.viewModel({
         onclick: vm.doBack,
-        label: "&Back",
-        icon: "arrow-left",
+        label: (
+            window.history.state === null
+            ? "&Done"
+            : "&Back"
+        ),
+        icon: (
+            window.history.state === null
+            ? ""
+            : "arrow-left"
+        ),
         class: "fb-toolbar-button"
     }));
 
