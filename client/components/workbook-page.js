@@ -120,13 +120,12 @@ function saveProfile(name, config, dlg) {
             });
         }
     } else if (config) {
-        newProfile = {};
-        newProfile.workbooks = {};
-        newProfile.workbooks[name] = config;
+        newProfile = {data: {workbooks: {}}};
+        newProfile.data.workbooks[name] = f.copy(config);
         datasource.request({
             method: "PUT",
             path: "/profile",
-            data: newProfile
+            data: newProfile.data
         }).then(callback);
     }
 }
