@@ -21,9 +21,75 @@ import button from "./button.js";
 import catalog from "../models/catalog.js";
 import formWidget from "./form-widget.js";
 import dialog from "./dialog.js";
+import model from "../models/model.js";
+import datasource from "../datasource.js";
 
 const formPage = {};
 const m = window.m;
+
+const authFeather = {
+    name: "FormAuthorization",
+    plural: "FormAuthorizations",
+    isSystem: true,
+    properties: {
+        id: {
+            description: "Internal id",
+            type: "string",
+            default: "createId()"
+        },
+        objectId: {
+            description: "Object id",
+            type: "string"
+        },
+        canRead: {
+            description: "User can read object",
+            type: "boolean"
+        },
+        canUpdate: {
+            description: "User can update object",
+            type: "boolean"
+        },
+        canDelete: {
+            description: "User can update object",
+            type: "boolean"
+        }
+    }
+};
+
+// Local model for handling authorization
+function authModel(data) {
+    let that = model(data, authFeather);
+
+    function save() {
+        return new Promise(function (resolve, reject) {
+            let payload = {
+                method: "POST",
+                path: "/do/save-authorization",
+                data: {
+                    id: that.data.objectId(),
+                    actions: {
+                        canRead: that.data.canRead(),
+                        canUpdate: that.data.canUpdate(),
+                        canDelete: that.data.canDelete()
+                    }
+                }
+            };
+
+            function callback(resp) {
+                resolve(resp);
+            }
+
+            datasource.request(payload).then(callback).catch(reject);
+        });
+    }
+
+    // Redirect save event toward custom save event
+    that.state().resolve("/Busy/Saving/Posting").enters.pop();
+    that.state().resolve("/Busy/Saving/Posting").enter(save);
+    that.state().resolve("/Ready/Fetched/Dirty").event("save", function () {
+        that.state().goto("/Busy/Saving/Posting");
+    });
+}
 
 formPage.viewModel = function (options) {
     // Handle options where opened as a new window
@@ -36,7 +102,7 @@ formPage.viewModel = function (options) {
     let isDisabled;
     let applyTitle;
     let saveTitle;
-    let model;
+    let fmodel;
     let instances = catalog.register("instances");
     let sseState = catalog.store().global().sseState;
     let feather = options.feather.toCamelCase(true);
@@ -65,9 +131,9 @@ formPage.viewModel = function (options) {
 
     // Check if we've already got a model instantiated
     if (options.key && instances[options.key]) {
-        model = instances[options.key];
+        fmodel = instances[options.key];
     } else {
-        model = options.feather.toCamelCase();
+        fmodel = options.feather.toCamelCase();
     }
 
     // ..........................................................
@@ -75,6 +141,7 @@ formPage.viewModel = function (options) {
     //
 
     vm.buttonApply = f.prop();
+    vm.buttonAuth = f.prop();
     vm.buttonBack = f.prop();
     vm.buttonSave = f.prop();
     vm.buttonSaveAndNew = f.prop();
@@ -134,6 +201,16 @@ formPage.viewModel = function (options) {
             vm.doNew();
         });
     };
+    vm.editAuthDialog = f.prop(dialog.viewModel({
+        icon: "key",
+        title: "Edit Authorizations",
+        message: (
+            "Content here!"
+        ),
+        onOk: function () {
+            return;
+        }
+    }));
     vm.formWidget = f.prop();
     vm.isNew = f.prop(isNew);
     vm.model = function () {
@@ -168,7 +245,7 @@ formPage.viewModel = function (options) {
     // Create form widget
     vm.formWidget(formWidget.viewModel({
         isNew: isNew,
-        model: model,
+        model: fmodel,
         id: options.key,
         config: form,
         outsideElementIds: ["toolbar", "title"]
@@ -208,6 +285,13 @@ formPage.viewModel = function (options) {
         onclick: vm.doApply,
         label: "&Apply",
         class: "fb-toolbar-button"
+    }));
+
+    vm.buttonAuth(button.viewModel({
+        onclick: vm.editAuthDialog().show,
+        icon: "key",
+        title: "Edit Authorizations",
+        class: "fb-toolbar-button fb-toolbar-button-right"
     }));
 
     vm.buttonSave(button.viewModel({
@@ -282,19 +366,20 @@ formPage.component = {
         let lock;
         let title;
         let vm = this.viewModel;
-        let model = vm.model();
+        let fmodel = vm.model();
         let icon = "file-alt";
 
         vm.toggleNew();
+        vm.buttonAuth().disable();
 
-        if (model.canUpdate() === false) {
+        if (fmodel.canUpdate() === false) {
             icon = "lock";
             title = "Unauthorized to edit";
         } else {
-            switch (model.state().current()[0]) {
+            switch (fmodel.state().current()[0]) {
             case "/Locked":
                 icon = "user-lock";
-                lock = model.data.lock() || {};
+                lock = fmodel.data.lock() || {};
                 title = (
                     "User: " + lock.username + "\nSince: " +
                     new Date(lock.created).toLocaleTimeString()
@@ -308,6 +393,13 @@ formPage.component = {
                 icon = "plus";
                 title = "New record";
                 break;
+            default:
+                if (
+                    fmodel.data.owner &&
+                    fmodel.data.owner() === f.currentUser().name
+                ) {
+                    vm.buttonAuth().enable();
+                }
             }
         }
 
@@ -317,6 +409,9 @@ formPage.component = {
                 id: "toolbar",
                 class: "fb-toolbar"
             }, [
+                m(button.component, {
+                    viewModel: vm.buttonAuth()
+                }),
                 m(button.component, {
                     viewModel: vm.buttonBack()
                 }),
@@ -342,6 +437,9 @@ formPage.component = {
             ]),
             m(dialog.component, {
                 viewModel: vm.sseErrorDialog()
+            }),
+            m(dialog.component, {
+                viewModel: vm.editAuthDialog()
             }),
             m(formWidget.component, {
                 viewModel: vm.formWidget()

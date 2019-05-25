@@ -581,6 +581,10 @@ a.pure-button-selected {
   color: white;
 }
 
+.fb-toolbar-button-right {
+  float: right
+}
+
 .fb-toolbar-button-home {
     float: right;
     margin: 4px;

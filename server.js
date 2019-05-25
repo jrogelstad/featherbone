@@ -819,6 +819,26 @@
         );
     }
 
+    function doSaveAuthorization(req, res) {
+        let payload = {
+            method: "POST",
+            name: "saveAuthorization",
+            user: req.user.name,
+            data: {
+                user: req.user.name,
+                id: req.query.id,
+                actions: req.query.actions
+            }
+        };
+
+        console.log(JSON.stringify(payload, null, 2));
+        datasource.request(payload).then(
+            respond.bind(res)
+        ).catch(
+            error.bind(res)
+        );
+    }
+
     function doWorkbookIsAuthorized(req, res) {
         let payload = {
             method: "GET",
@@ -1063,6 +1083,7 @@
         app.get("/currency/base", doGetBaseCurrency);
         app.get("/currency/convert", doConvertCurrency);
         app.get("/do/is-authorized", doIsAuthorized);
+        app.post("/do/save-authorization", doSaveAuthorization);
         app.post("/do/export/:format/:feather", doExport);
         app.post("/do/import/:format/:feather", doImport);
         app.post("/do/subscribe/:query", doSubscribe);
