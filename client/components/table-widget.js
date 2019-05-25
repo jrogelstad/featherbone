@@ -701,7 +701,7 @@ function resize(vm, vnode) {
         );
     } else {
         yPosition = f.getElementPosition(e).y;
-        height = window.innerHeight - yPosition - 45;
+        height = window.innerHeight - yPosition - 47;
 
         if (height < 150) {
             height = 150;
