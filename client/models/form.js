@@ -21,28 +21,32 @@ import model from "./model.js";
 
 function form(data, feather) {
     let that;
+    let props;
 
     function properties() {
-        let keys;
-        let formFeather = that.data.feather();
-        let result = [];
+        if (!props) {
+            let keys;
+            let formFeather = that.data.feather();
+            let result = [];
 
-        if (!formFeather) {
-            return result;
+            if (!formFeather) {
+                return result;
+            }
+            formFeather = catalog.getFeather(formFeather);
+            keys = Object.keys(formFeather.properties || []).sort();
+            keys.unshift("");
+            props = keys.map(function (key) {
+                return {
+                    value: key,
+                    label: key
+                };
+            });
         }
-        formFeather = catalog.getFeather(formFeather);
-        keys = Object.keys(formFeather.properties || []).sort();
-        keys.unshift("");
-        return keys.map(function (key) {
-            return {
-                value: key,
-                label: key
-            };
-        });
+        return props;
     }
 
     function handleProperties() {
-        that.data.properties(properties());
+        props = undefined;
     }
 
     feather = feather || catalog.getFeather("Form");
@@ -63,7 +67,7 @@ function form(data, feather) {
     that.addCalculated({
         name: "properties",
         type: "array",
-        function: f.prop()
+        function: properties
     });
 
     that.onChanged("feather", handleProperties);
