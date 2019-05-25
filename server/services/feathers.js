@@ -1068,10 +1068,17 @@
                 afterCheckSuperUser = function () {
                     // Determine whether any authorization has been granted
                     hasAuth = (
-                        actions.canCreate ||
-                        actions.canRead ||
-                        actions.canUpdate ||
-                        actions.canDelete
+                        (
+                            actions.canCreate === true ||
+                            actions.canRead === true ||
+                            actions.canUpdate === true ||
+                            actions.canDelete === true
+                        ) && (
+                            actions.canCreate !== null ||
+                            actions.canRead !== null ||
+                            actions.canUpdate !== null ||
+                            actions.canDelete !== null                       
+                        )
                     );
 
                     // Find an existing authorization record

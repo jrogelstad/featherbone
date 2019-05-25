@@ -23,9 +23,11 @@ import formWidget from "./form-widget.js";
 import dialog from "./dialog.js";
 import model from "../models/model.js";
 import datasource from "../datasource.js";
+import State from "../state.js";
 
 const formPage = {};
 const m = window.m;
+const console = window.console;
 
 const authFeather = {
     name: "FormAuthorization",
@@ -41,16 +43,36 @@ const authFeather = {
             description: "Object id",
             type: "string"
         },
+        role: {
+            description: "Role name",
+            type: "string",
+            isRequired: true
+        },
         canRead: {
-            description: "User can read object",
-            type: "boolean"
+            description: "Role can read object",
+            type: "boolean",
+            default: null
         },
         canUpdate: {
-            description: "User can update object",
-            type: "boolean"
+            description: "Role can update object",
+            type: "boolean",
+            default: null
         },
         canDelete: {
-            description: "User can update object",
+            description: "Role can update object",
+            type: "boolean",
+            default: null
+        },
+        featherCanRead: {
+            description: "Role can read feather",
+            type: "boolean"
+        },
+        featherCanUpdate: {
+            description: "Role can update feather",
+            type: "boolean"
+        },
+        featherCanDelete: {
+            description: "Role can update feather",
             type: "boolean"
         }
     }
@@ -59,6 +81,45 @@ const authFeather = {
 // Local model for handling authorization
 function authModel(data) {
     let that = model(data, authFeather);
+    let d = that.data;
+
+    // Three way switch
+    function action(...args) {
+        let oaction = "can" + args[0];
+        let faction = "featherCan" + args[0];
+
+        if (args.length === 2) {
+            d[action].style("");
+            if (d[faction]() !== null) {
+                if (d[oaction]() === null) {
+                    d[oaction](!d[faction]());
+                } else if (d[oaction]() === d[faction]()) {
+                    d[oaction](null);
+                    d[oaction].style("DEFAULT");
+                } else {
+                    d[oaction](!d[oaction]);
+                }
+            } else {
+                d[oaction](!d[oaction]);
+            }
+        }
+
+        if (d[oaction]() === null) {
+            return d[faction]();
+        } else {
+            return d[oaction]();
+        }
+    }
+
+    function featherActionChange(action, prop) {
+        action = "can" + action;
+
+        d[action].style(
+            (d[action]() === null && prop.newValue() !== null)
+            ? "DEFAULT"
+            : ""
+        );
+    }
 
     function save() {
         return new Promise(function (resolve, reject) {
@@ -66,11 +127,12 @@ function authModel(data) {
                 method: "POST",
                 path: "/do/save-authorization",
                 data: {
-                    id: that.data.objectId(),
+                    id: d.objectId(),
                     actions: {
-                        canRead: that.data.canRead(),
-                        canUpdate: that.data.canUpdate(),
-                        canDelete: that.data.canDelete()
+                        canCreate: null,
+                        canRead: d.canRead(),
+                        canUpdate: d.canUpdate(),
+                        canDelete: d.canDelete()
                     }
                 }
             };
@@ -83,12 +145,227 @@ function authModel(data) {
         });
     }
 
-    // Redirect save event toward custom save event
+    // Redirect save event toward custom save function
     that.state().resolve("/Busy/Saving/Posting").enters.pop();
     that.state().resolve("/Busy/Saving/Posting").enter(save);
     that.state().resolve("/Ready/Fetched/Dirty").event("save", function () {
         that.state().goto("/Busy/Saving/Posting");
     });
+
+    that.addCalculated({
+        name: "editorCanRead",
+        type: "boolean",
+        function: action.bind(null, "Read")
+    });
+
+    that.addCalculated({
+        name: "editorCanUpdate",
+        type: "boolean",
+        function: action.bind(null, "Update")
+    });
+
+    that.addCalculated({
+        name: "editorCanDelete",
+        type: "boolean",
+        function: action.bind(null, "Delete")
+    });
+
+    that.onChange("featherCanRead", featherActionChange.bind(null, "Read"));
+    that.onChange("featherCanUpdate", featherActionChange.bind(null, "Update"));
+    that.onChange("featherCanDelete", featherActionChange.bind(null, "Delete"));
+}
+
+// Custom list for authorization handling
+function createAuthList() {
+    let state;
+    let ary = [];
+    let dirty = [];
+
+    function doFetch(context) {
+        let payload;
+        let body = {};
+
+        // Undo any edited rows
+        ary.forEach((model) => model.undo());
+
+        function callback(data) {
+            ary.reset();
+
+            data.forEach(function (item) {
+                let amodel = authModel(item);
+
+                amodel.state().goto("/Ready/Fetched");
+                ary.add(amodel);
+            });
+
+            state.send("fetched");
+            context.resolve(ary);
+        }
+
+        payload = {
+            method: "POST",
+            url: "do/get-authorizations",
+            data: body
+        };
+
+        return m.request(payload).then(callback).catch(console.error);
+    }
+
+    function doSave(context) {
+        let requests = [];
+
+        dirty.forEach((model) => requests.push(model.save()));
+
+        Promise.all(requests).then(context.resolve).catch(context.reject);
+    }
+
+    function doSend(...args) {
+        let evt = args[0];
+
+        return new Promise(function (resolve, reject) {
+            let context = {
+                resolve: resolve,
+                reject: reject
+            };
+
+            state.send(evt, context);
+        });
+    }
+
+    function onClean() {
+        dirty.remove(this);
+        state.send("changed");
+    }
+
+    function onDelete() {
+        ary.remove(this);
+        state.send("changed");
+    }
+
+    function onDirty() {
+        dirty.push(this);
+        state.send("changed");
+    }
+
+    ary.add = function (model) {
+        let mstate;
+        let id = model.id();
+        let idx = ary.index();
+        let oid = Number(idx[id]);
+
+        if (!Number.isNaN(oid)) {
+            dirty.remove(ary[oid]);
+            ary.splice(oid, 1, model);
+        } else {
+            idx[id] = ary.length;
+            ary.push(model);
+        }
+
+        mstate = model.state();
+        mstate.resolve("/Delete").enter(onDirty.bind(model));
+        mstate.resolve("/Ready/Fetched/Dirty").enter(onDirty.bind(model));
+        mstate.resolve("/Ready/Fetched/Clean").enter(onClean.bind(model));
+        mstate.resolve("/Deleted").enter(onDelete.bind(model));
+
+        if (model.state().current()[0] === "/Ready/New") {
+            dirty.push(model);
+            state.send("changed");
+        }
+    };
+
+    ary.fetch = () => doSend("fetch");
+
+    ary.index = f.prop({});
+
+    // Remove a model from the list
+    ary.remove = function (model) {
+        let id = model.id();
+        let idx = ary.index();
+        let i = Number(idx[id]);
+
+        if (!Number.isNaN(i)) {
+            ary.splice(i, 1);
+            Object.keys(idx).forEach(function (key) {
+                if (idx[key] > i) {
+                    idx[key] -= 1;
+                }
+            });
+            delete idx[id];
+        }
+        dirty.remove(model);
+    };
+
+    ary.reset = function () {
+        ary.length = 0;
+        dirty.length = 0;
+        ary.index({});
+    };
+
+    ary.save = () => doSend("save");
+
+    ary.state = () => state;
+
+    dirty.remove = function (model) {
+        let i = dirty.indexOf(model);
+
+        if (i > -1) {
+            dirty.splice(i, 1);
+        }
+    };
+
+    // Define statechart
+    state = State.define(function () {
+        this.state("Unitialized", function () {
+            this.event("fetch", function (context) {
+                this.goto("/Busy", {context: context});
+            });
+        });
+
+        this.state("Busy", function () {
+            this.state("Fetching", function () {
+                this.enter(doFetch);
+            });
+            this.state("Saving", function () {
+                this.enter(doSave);
+                this.event("changed", function () {
+                    this.goto("/Fetched");
+                });
+                this.canExit = () => !dirty.length;
+            });
+            this.event("fetched", function () {
+                this.goto("/Fetched");
+            });
+        });
+
+        this.state("Fetched", function () {
+            this.event("changed", function () {
+                this.goto("/Fetched", {force: true});
+            });
+            this.c = this.C; // Squelch jslint complaint
+            this.c(function () {
+                if (dirty.length) {
+                    return "./Dirty";
+                }
+                return "./Clean";
+            });
+            this.event("fetch", function (context) {
+                this.goto("/Busy", {context: context});
+            });
+            this.state("Clean", function () {
+                this.enter(function () {
+                    dirty.length = 0;
+                });
+            });
+            this.state("Dirty", function () {
+                this.event("save", function (context) {
+                    this.goto("/Busy/Saving", {context: context});
+                });
+            });
+        });
+    });
+    state.goto();
+
+    return ary;
 }
 
 formPage.viewModel = function (options) {
@@ -113,6 +390,7 @@ formPage.viewModel = function (options) {
     let vm = {};
     let pageIdx = options.index || 1;
     let isNew = options.create && options.isNew !== false;
+    let authorizations = createAuthList();
 
     // Helper function to pass back data to sending model
     function callReceiver() {
