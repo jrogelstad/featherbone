@@ -819,6 +819,25 @@
         );
     }
 
+    function doGetAuthorizations(req, res) {
+        let payload = {
+            method: "GET",
+            name: "getAuthorizations",
+            user: req.user.name,
+            data: {
+                id: req.params.id
+            }
+        };
+
+        console.log(JSON.stringify(payload, null, 2));
+        datasource.request(payload).then(
+            respond.bind(res)
+        ).catch(
+            error.bind(res)
+        );
+    }
+
+
     function doSaveAuthorization(req, res) {
         let payload = {
             method: "POST",
@@ -1082,6 +1101,7 @@
 
         app.get("/currency/base", doGetBaseCurrency);
         app.get("/currency/convert", doConvertCurrency);
+        app.get("/do/get-authorizations/:id", doGetAuthorizations);
         app.get("/do/is-authorized", doIsAuthorized);
         app.post("/do/save-authorization", doSaveAuthorization);
         app.post("/do/export/:format/:feather", doExport);

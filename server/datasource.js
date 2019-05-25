@@ -1379,6 +1379,7 @@
     );
     that.registerFunction("GET", "isAuthorized", feathers.isAuthorized);
     that.registerFunction("GET", "isSuperUser", tools.isSuperUser);
+    that.registerFunction("GET", "getAuthorizations", tools.getAuthorizations);
     that.registerFunction("PATCH", "patchProfile", profile.patchProfile);
     that.registerFunction("POST", "changeRoleLogin", role.changeLogin);
     that.registerFunction("POST", "changeRolePassword", role.changePassword);

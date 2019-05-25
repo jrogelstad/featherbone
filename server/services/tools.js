@@ -376,7 +376,7 @@
 
           @param {Object} Payload
           @param {String} [payload.user] User. Defaults to current user
-          @param {String} [payload.client] Datobase client
+          @param {String} [payload.client] Database client
           @return Promise
         */
         tools.isSuperUser = function (obj) {
@@ -400,6 +400,28 @@
                         : false
                     );
                 });
+            });
+        };
+
+        /**
+          Returns authorizations for an object.
+
+          @param {Object} Payload
+          @param {String} [payload.client] Database client
+          @param {String} [payload.id] Object ID
+          @return Promise
+        */
+        tools.getAuthorizations = function (obj) {
+            return new Promise(function (resolve, reject) {
+                let sql = (
+                    "SELECT auth.role, auth.can_read, auth.can_update," +
+                    "auth.can_delete FROM object, \"$auth\" AS auth " +
+                    "WHERE id=$1 AND object._pk=auth.pk;"
+                );
+
+                obj.client.query(sql, [obj.id]).then(function (resp) {
+                    resolve(tools.sanitize(resp.rows));
+                }).catch(reject);
             });
         };
 
