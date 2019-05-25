@@ -176,14 +176,15 @@ function authModel(data) {
 }
 
 // Custom list for authorization handling
-function createAuthList() {
+function createAuthList(feather) {
     let state;
     let ary = [];
     let dirty = [];
 
+    feather = catalog.getFeather(feather);
+
     function doFetch(context) {
         let payload;
-        let body = {};
 
         // Undo any edited rows
         ary.forEach((model) => model.undo());
@@ -191,11 +192,33 @@ function createAuthList() {
         function callback(data) {
             ary.reset();
 
-            data.forEach(function (item) {
-                let amodel = authModel(item);
+            // Add standard feather authorizations
+            feather.authorizations.forEach(function (auth) {
+                let amodel = authModel({
+                    role: auth.role,
+                    featherCanRead: auth.actions.canRead,
+                    featherCanUpdate: auth.actions.canUpdate,
+                    featherCanDelete: auth.actions.canDelete
+                });
 
                 amodel.state().goto("/Ready/Fetched");
                 ary.add(amodel);
+            });
+
+            // Add in object authorizations
+            data.forEach(function (item) {
+                let found = ary.models().find(function (auth) {
+                    return auth.role === item.role;
+                });
+
+                if (found) {
+                    found.set(item);
+                } else {
+                    found = authModel(item);
+                    ary.add(found);
+                }
+
+                found.state().goto("/Ready/Fetched");
             });
 
             state.send("fetched");
@@ -203,9 +226,8 @@ function createAuthList() {
         }
 
         payload = {
-            method: "POST",
-            url: "do/get-authorizations",
-            data: body
+            method: "GET",
+            url: "do/get-authorizations/" + context.id
         };
 
         return m.request(payload).then(callback).catch(console.error);
@@ -221,11 +243,13 @@ function createAuthList() {
 
     function doSend(...args) {
         let evt = args[0];
+        let id = args[1];
 
         return new Promise(function (resolve, reject) {
             let context = {
                 resolve: resolve,
-                reject: reject
+                reject: reject,
+                id: id
             };
 
             state.send(evt, context);
@@ -273,7 +297,7 @@ function createAuthList() {
         }
     };
 
-    ary.fetch = () => doSend("fetch");
+    ary.fetch = (id) => doSend("fetch", id);
 
     ary.index = f.prop({});
 
@@ -390,7 +414,7 @@ formPage.viewModel = function (options) {
     let vm = {};
     let pageIdx = options.index || 1;
     let isNew = options.create && options.isNew !== false;
-    let authorizations = createAuthList();
+    let authorizations = createAuthList(feather);
 
     // Helper function to pass back data to sending model
     function callReceiver() {
@@ -489,6 +513,9 @@ formPage.viewModel = function (options) {
             return;
         }
     }));
+    vm.editAuthDialog().state().resolve("/Display/Showing").enter(function () {
+        authorizations.fetch(vm.model().id());
+    });
     vm.formWidget = f.prop();
     vm.isNew = f.prop(isNew);
     vm.model = function () {
