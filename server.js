@@ -819,13 +819,13 @@
         );
     }
 
-    function doGetAuthorizations(req, res) {
+    function doGetObjectAuthorizations(req, res) {
         let payload = {
             method: "GET",
             name: "getAuthorizations",
             user: req.user.name,
             data: {
-                id: req.params.id
+                id: req.body.filter.criteria[0].value
             }
         };
 
@@ -1101,8 +1101,8 @@
 
         app.get("/currency/base", doGetBaseCurrency);
         app.get("/currency/convert", doConvertCurrency);
-        app.get("/do/get-authorizations/:id", doGetAuthorizations);
         app.get("/do/is-authorized", doIsAuthorized);
+        app.post("/data/object-authorizations", doGetObjectAuthorizations);
         app.post("/do/save-authorization", doSaveAuthorization);
         app.post("/do/export/:format/:feather", doExport);
         app.post("/do/import/:format/:feather", doImport);
