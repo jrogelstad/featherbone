@@ -304,13 +304,11 @@
                         // If no specific authorization, make one
                         if (authorizations === undefined) {
                             authorizations = [{
-                                data: {
-                                    role: "everyone",
-                                    actions: {
-                                        canRead: true,
-                                        canUpdate: true
-                                    }
-                                }
+                                role: "everyone",
+                                canCreate: null,
+                                canRead: true,
+                                canUpdate: true,
+                                canDelete: null,
                             }];
                         }
 
@@ -350,8 +348,10 @@
 
                                 if (found) {
                                     actions = found.data.actions;
+                                    actions.canCreate = null;
                                     actions.canUpdate = auth.canUpdate;
                                     actions.canRead = auth.canRead;
+                                    actions.canDelete = null;
                                 } else {
                                     auths.push({
                                         client: obj.client,

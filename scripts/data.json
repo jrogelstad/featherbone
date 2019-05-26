@@ -687,13 +687,13 @@
 }, {
     "name": "Style",
     "method": "POST",
-    "id": ""j0b035m0jim4"",
+    "id": "j0b035m0jim4",
     "data": {
         "name": "DEFAULT",
         "description": "Default value",
         "module": "Core",
         "hasColor": true,
-        "color": ""#c0c0c0""
+        "color": "#c0c0c0"
     }
 }, {
     "name": "Unit",
