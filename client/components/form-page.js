@@ -50,20 +50,33 @@ const authFeather = {
             format: "role",
             isRequired: true
         },
+        editorCanRead: {
+            description: "Editor for can read feather",
+            type: "boolean"
+        },
+        editorCanUpdate: {
+            description: "Editor for can update feather",
+            type: "boolean"
+        },
+        editorCanDelete: {
+            description: "Editor for can delete feather",
+            type: "boolean"
+        },
         canRead: {
             description: "Role can read object",
-            type: "boolean",
-            default: null
+            type: "string"
         },
         canUpdate: {
             description: "Role can update object",
-            type: "boolean",
-            default: null
+            type: "string"
         },
         canDelete: {
             description: "Role can update object",
-            type: "boolean",
-            default: null
+            type: "string"
+        },
+        hasFeatherAuth: {
+            description: "Has feather authorization",
+            type: "boolean"
         },
         featherCanRead: {
             description: "Role can read feather",
@@ -76,6 +89,9 @@ const authFeather = {
         featherCanDelete: {
             description: "Role can update feather",
             type: "boolean"
+        },
+        isDeleted: {
+            type: "boolean"
         }
     }
 };
@@ -85,39 +101,46 @@ function authModel(data) {
     let that = model(data, authFeather);
     let d = that.data;
 
-    // Three way switch
-    function action(...args) {
-        let oaction = "can" + args[0];
-        let faction = "featherCan" + args[0];
+    function resolveAction(value) {
+        if (value === "true") {
+            value = true;
+        } else if (value === "false") {
+            value = false;
+        }
 
-        if (args.length === 2) {
-            d[action].style("");
-            if (d[faction]() !== null) {
-                if (d[oaction]() === null) {
-                    d[oaction](!d[faction]());
-                } else if (d[oaction]() === d[faction]()) {
-                    d[oaction](null);
-                    d[oaction].style("DEFAULT");
-                } else {
-                    d[oaction](!d[oaction]);
-                }
-            } else {
-                d[oaction](!d[oaction]);
+        return value;
+    }
+
+    // Three way switch
+    function editing(action, prop) {
+        let oaction = "can" + action;
+        let faction = "featherCan" + action;
+        let value;
+
+        if (d.hasFeatherAuth()) {
+            if (d[oaction]() === null) {
+                value = !d[faction]();
+                d[oaction](value.toString());
+                return;
+            }
+
+            if (d[oaction]() === d[faction]()) {
+                d[oaction](null);
+                prop.newValue(prop.oldValue());
+                return;
             }
         }
 
-        if (d[oaction]() === null) {
-            return d[faction]();
-        } else {
-            return d[oaction]();
-        }
+        value = !resolveAction(d[oaction]());
+        d[oaction](value.toString());
     }
 
-    function featherActionChange(action, prop) {
-        action = "can" + action;
+    function actionChanged(action) {
+        let oaction = "can" + action;
+        let eaction = "editorCan" + action;
 
-        d[action].style(
-            (d[action]() === null && prop.newValue() !== null)
+        d[eaction].style(
+            (d[oaction]() === null && d.hasFeatherAuth())
             ? "DEFAULT"
             : ""
         );
@@ -132,9 +155,9 @@ function authModel(data) {
                     id: d.objectId(),
                     actions: {
                         canCreate: null,
-                        canRead: d.canRead(),
-                        canUpdate: d.canUpdate(),
-                        canDelete: d.canDelete()
+                        canRead: resolveAction(d.canRead()),
+                        canUpdate: resolveAction(d.canUpdate()),
+                        canDelete: resolveAction(d.canDelete())
                     }
                 }
             };
@@ -154,31 +177,26 @@ function authModel(data) {
         that.state().goto("/Busy/Saving/Posting");
     });
 
-    that.addCalculated({
-        name: "editorCanRead",
-        type: "boolean",
-        function: action.bind(null, "Read")
+    that.onLoad(function () {
+        actionChanged("Read");
+        actionChanged("Update");
+        actionChanged("Delete");
     });
+    that.onChange("editorCanRead", editing.bind(null, "Read"));
+    that.onChange("editorCanUpdate", editing.bind(null, "Update"));
+    that.onChange("editorCanDelete", editing.bind(null, "Delete"));
+    that.onChanged("canRead", actionChanged.bind(null, "Read"));
+    that.onChanged("canUpdate", actionChanged.bind(null, "Update"));
+    that.onChanged("canDelete", actionChanged.bind(null, "Delete"));
+    that.onChanged("featherCanRead", actionChanged.bind(null, "Read"));
+    that.onChanged("featherCanUpdate", actionChanged.bind(null, "Update"));
+    that.onChanged("featherCanDelete", actionChanged.bind(null, "Delete"));
 
-    that.addCalculated({
-        name: "editorCanUpdate",
-        type: "boolean",
-        function: action.bind(null, "Update")
-    });
-
-    that.addCalculated({
-        name: "editorCanDelete",
-        type: "boolean",
-        function: action.bind(null, "Delete")
-    });
-
-    that.onChange("featherCanRead", featherActionChange.bind(null, "Read"));
-    that.onChange("featherCanUpdate", featherActionChange.bind(null, "Update"));
-    that.onChange("featherCanDelete", featherActionChange.bind(null, "Delete"));
+    return that;
 }
 
 catalog.register("feathers", "ObjectAuthorization", authFeather);
-catalog.register("models", "ObjectAuthorization", authModel);
+catalog.registerModel("objectAuthorization", authModel);
 
 authTable.viewModel = function (options) {
     let tableState;
@@ -197,15 +215,15 @@ authTable.viewModel = function (options) {
                 attr: "role"
             }, {
                 label: "Read",
-                attr: "editCanRead",
+                attr: "editorCanRead",
                 width: 60
             }, {
                 label: "Update",
-                attr: "editCanUpdate",
+                attr: "editorCanUpdate",
                 width: 60
             }, {
                 label: "Delete",
-                attr: "editCanUpdate",
+                attr: "editorCanUpdate",
                 width: 60
             }]
         },
@@ -421,6 +439,57 @@ formPage.viewModel = function (options) {
                 property: "id",
                 value: vm.model().id()
             }]
+        }).then(function () {
+            // Add in feather auths
+            let auths = catalog.getFeather(feather).authorization;
+
+            auths.forEach(function (auth) {
+                let actions = auth.actions;
+                let found = authorizations().find(function (a) {
+                    return a.data.role() === auth.role;
+                });
+
+                if (found) {
+                    found.set({
+                        role: auth.role,
+                        editorCanRead: (
+                            found.data.canRead() === null
+                            ? actions.canRead
+                            : !Boolean(found.data.canRead() === "true")
+                        ),
+                        editorCanUpdate: (
+                            found.data.canUpdate() === null
+                            ? actions.canUpdate.toString()
+                            : !Boolean(found.data.canUpdate() === "true")
+                        ),
+                        editorCanDelete: (
+                            found.data.canDelete() === null
+                            ? actions.canDelete.toString()
+                            : !Boolean(found.data.canDelete() === "true")
+                        ),
+                        hasFeatherAuth: true,
+                        featherCanRead: actions.canRead,
+                        featherCanUpdate: actions.canUpdate,
+                        featherCanDelete: actions.canDelete
+                    }, true, true);
+                } else {
+                    found = authModel({
+                        role: auth.role,
+                        canRead: null,
+                        canUpdate: null,
+                        canDelete: null,
+                        editorCanRead: actions.canRead,
+                        editorCanUpdate: actions.canUpdate,
+                        editorCanDelete: actions.canDelete,
+                        hasFeatherAuth: true,
+                        featherCanRead: actions.canRead,
+                        featherCanUpdate: actions.canUpdate,
+                        featherCanDelete: actions.canDelete
+                    });
+                    found.state().goto("/Ready/Fetched/Clean");
+                    authorizations().add(found);
+                }
+            });
         });
     });
     vm.formWidget = f.prop();
