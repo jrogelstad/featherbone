@@ -43,7 +43,9 @@ checkbox.component = {
                 id: this.id,
                 class: "fb-checkbox-input",
                 type: "checkbox",
-                onclick: (e) => vnode.attrs.onclick(e.target.checked),
+                onclick: function (e) {
+                    vnode.attrs.onclick(e.target.checked);
+                },
                 oncreate: vnode.attrs.onCreate,
                 onremove: vnode.attrs.onRemove,
                 checked: vnode.attrs.value,
