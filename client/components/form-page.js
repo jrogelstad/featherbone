@@ -24,7 +24,9 @@ import dialog from "./dialog.js";
 import model from "../models/model.js";
 import datasource from "../datasource.js";
 import list from "../models/list.js";
+import tableWidget from "./table-widget.js";
 
+const authTable = {};
 const formPage = {};
 const m = window.m;
 
@@ -45,6 +47,7 @@ const authFeather = {
         role: {
             description: "Role name",
             type: "string",
+            format: "role",
             isRequired: true
         },
         canRead: {
@@ -177,6 +180,120 @@ function authModel(data) {
 catalog.register("feathers", "ObjectAuthorization", authFeather);
 catalog.register("models", "ObjectAuthorization", authModel);
 
+authTable.viewModel = function (options) {
+    let tableState;
+    let vm = {};
+
+    vm.buttonAdd = f.prop();
+    vm.buttonRemove = f.prop();
+    vm.buttonUndo = f.prop();
+    vm.tableWidget = f.prop();
+
+    // Create table widget view model
+    vm.tableWidget(tableWidget.viewModel({
+        models: options.models,
+        config: {
+            columns: [{
+                attr: "role"
+            }, {
+                label: "Read",
+                attr: "editCanRead",
+                width: 60
+            }, {
+                label: "Update",
+                attr: "editCanUpdate",
+                width: 60
+            }, {
+                label: "Delete",
+                attr: "editCanUpdate",
+                width: 60
+            }]
+        },
+        feather: "ObjectAuthorization",
+        height: "200px"
+    }));
+    vm.tableWidget().toggleEdit();
+    vm.tableWidget().isQuery(false);
+
+    // Create button view models
+    vm.buttonAdd(button.viewModel({
+        onclick: vm.tableWidget().modelNew,
+        title: "Insert",
+        hotkey: "I",
+        icon: "plus-circle",
+        class: "fb-icon-button",
+        style: {
+            backgroundColor: "white"
+        }
+    }));
+
+    vm.buttonRemove(button.viewModel({
+        onclick: vm.tableWidget().modelDelete,
+        title: "Delete",
+        hotkey: "D",
+        icon: "trash",
+        class: "fb-icon-button",
+        style: {
+            backgroundColor: "white"
+        }
+    }));
+    vm.buttonRemove().disable();
+
+    vm.buttonUndo(button.viewModel({
+        onclick: vm.tableWidget().undo,
+        title: "Undo",
+        hotkey: "U",
+        icon: "undo",
+        class: "fb-icon-button",
+        style: {
+            backgroundColor: "white"
+        }
+    }));
+    vm.buttonUndo().hide();
+
+    // Bind buttons to table widget state change events
+    tableState = vm.tableWidget().state();
+    tableState.resolve("/Selection/Off").enter(function () {
+        vm.buttonRemove().disable();
+        vm.buttonRemove().show();
+        vm.buttonUndo().hide();
+    });
+    tableState.resolve("/Selection/On").enter(vm.buttonRemove().enable);
+    tableState.resolve("/Selection/On/Clean").enter(function () {
+        vm.buttonRemove().show();
+        vm.buttonUndo().hide();
+    });
+    tableState.resolve("/Selection/On/Dirty").enter(function () {
+        vm.buttonRemove().hide();
+        vm.buttonUndo().show();
+    });
+
+    return vm;
+};
+
+authTable.component = {
+    oninit: function (vnode) {
+        this.viewModel = vnode.attrs.viewModel;
+    },
+
+    view: function () {
+        return m("div", [
+            m(button.component, {
+                viewModel: this.viewModel.buttonAdd()
+            }),
+            m(button.component, {
+                viewModel: this.viewModel.buttonRemove()
+            }),
+            m(button.component, {
+                viewModel: this.viewModel.buttonUndo()
+            }),
+            m(tableWidget.component, {
+                viewModel: this.viewModel.tableWidget()
+            })
+        ]);
+    }
+};
+
 formPage.viewModel = function (options) {
     // Handle options where opened as a new window
     if (window.options) {
@@ -200,6 +317,7 @@ formPage.viewModel = function (options) {
     let pageIdx = options.index || 1;
     let isNew = options.create && options.isNew !== false;
     let authorizations = list("ObjectAuthorization")({fetch: false});
+    let authViewModel = authTable.viewModel({models: authorizations()});
 
     // Helper function to pass back data to sending model
     function callReceiver() {
@@ -291,13 +409,12 @@ formPage.viewModel = function (options) {
     vm.editAuthDialog = f.prop(dialog.viewModel({
         icon: "key",
         title: "Edit Authorizations",
-        message: (
-            "Content here!"
-        ),
-        onOk: function () {
-            return;
-        }
+        onOk: authorizations.save
     }));
+    vm.editAuthDialog().content = function () {
+        return m(authTable.component, {viewModel: authViewModel});
+    };
+    vm.editAuthDialog().style().width = "575px";
     vm.editAuthDialog().state().resolve("/Display/Showing").enter(function () {
         authorizations().fetch({
             criteria: [{
