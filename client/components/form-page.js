@@ -23,15 +23,14 @@ import formWidget from "./form-widget.js";
 import dialog from "./dialog.js";
 import model from "../models/model.js";
 import datasource from "../datasource.js";
-import State from "../state.js";
+import list from "../models/list.js";
 
 const formPage = {};
 const m = window.m;
-const console = window.console;
 
 const authFeather = {
-    name: "FormAuthorization",
-    plural: "FormAuthorizations",
+    name: "ObjectAuthorization",
+    plural: "ObjectAuthorizations",
     isSystem: true,
     properties: {
         id: {
@@ -78,7 +77,7 @@ const authFeather = {
     }
 };
 
-// Local model for handling authorization
+// Model for handling object authorization
 function authModel(data) {
     let that = model(data, authFeather);
     let d = that.data;
@@ -175,222 +174,8 @@ function authModel(data) {
     that.onChange("featherCanDelete", featherActionChange.bind(null, "Delete"));
 }
 
-// Custom list for authorization handling
-function createAuthList(feather) {
-    let state;
-    let ary = [];
-    let dirty = [];
-
-    feather = catalog.getFeather(feather);
-
-    function doFetch(context) {
-        let payload;
-
-        // Undo any edited rows
-        ary.forEach((model) => model.undo());
-
-        function callback(data) {
-            ary.reset();
-
-            // Add standard feather authorizations
-            feather.authorizations.forEach(function (auth) {
-                let amodel = authModel({
-                    role: auth.role,
-                    featherCanRead: auth.actions.canRead,
-                    featherCanUpdate: auth.actions.canUpdate,
-                    featherCanDelete: auth.actions.canDelete
-                });
-
-                amodel.state().goto("/Ready/Fetched");
-                ary.add(amodel);
-            });
-
-            // Add in object authorizations
-            data.forEach(function (item) {
-                let found = ary.models().find(function (auth) {
-                    return auth.role === item.role;
-                });
-
-                if (found) {
-                    found.set(item);
-                } else {
-                    found = authModel(item);
-                    ary.add(found);
-                }
-
-                found.state().goto("/Ready/Fetched");
-            });
-
-            state.send("fetched");
-            context.resolve(ary);
-        }
-
-        payload = {
-            method: "GET",
-            url: "do/get-authorizations/" + context.id
-        };
-
-        return m.request(payload).then(callback).catch(console.error);
-    }
-
-    function doSave(context) {
-        let requests = [];
-
-        dirty.forEach((model) => requests.push(model.save()));
-
-        Promise.all(requests).then(context.resolve).catch(context.reject);
-    }
-
-    function doSend(...args) {
-        let evt = args[0];
-        let id = args[1];
-
-        return new Promise(function (resolve, reject) {
-            let context = {
-                resolve: resolve,
-                reject: reject,
-                id: id
-            };
-
-            state.send(evt, context);
-        });
-    }
-
-    function onClean() {
-        dirty.remove(this);
-        state.send("changed");
-    }
-
-    function onDelete() {
-        ary.remove(this);
-        state.send("changed");
-    }
-
-    function onDirty() {
-        dirty.push(this);
-        state.send("changed");
-    }
-
-    ary.add = function (model) {
-        let mstate;
-        let id = model.id();
-        let idx = ary.index();
-        let oid = Number(idx[id]);
-
-        if (!Number.isNaN(oid)) {
-            dirty.remove(ary[oid]);
-            ary.splice(oid, 1, model);
-        } else {
-            idx[id] = ary.length;
-            ary.push(model);
-        }
-
-        mstate = model.state();
-        mstate.resolve("/Delete").enter(onDirty.bind(model));
-        mstate.resolve("/Ready/Fetched/Dirty").enter(onDirty.bind(model));
-        mstate.resolve("/Ready/Fetched/Clean").enter(onClean.bind(model));
-        mstate.resolve("/Deleted").enter(onDelete.bind(model));
-
-        if (model.state().current()[0] === "/Ready/New") {
-            dirty.push(model);
-            state.send("changed");
-        }
-    };
-
-    ary.fetch = (id) => doSend("fetch", id);
-
-    ary.index = f.prop({});
-
-    // Remove a model from the list
-    ary.remove = function (model) {
-        let id = model.id();
-        let idx = ary.index();
-        let i = Number(idx[id]);
-
-        if (!Number.isNaN(i)) {
-            ary.splice(i, 1);
-            Object.keys(idx).forEach(function (key) {
-                if (idx[key] > i) {
-                    idx[key] -= 1;
-                }
-            });
-            delete idx[id];
-        }
-        dirty.remove(model);
-    };
-
-    ary.reset = function () {
-        ary.length = 0;
-        dirty.length = 0;
-        ary.index({});
-    };
-
-    ary.save = () => doSend("save");
-
-    ary.state = () => state;
-
-    dirty.remove = function (model) {
-        let i = dirty.indexOf(model);
-
-        if (i > -1) {
-            dirty.splice(i, 1);
-        }
-    };
-
-    // Define statechart
-    state = State.define(function () {
-        this.state("Unitialized", function () {
-            this.event("fetch", function (context) {
-                this.goto("/Busy", {context: context});
-            });
-        });
-
-        this.state("Busy", function () {
-            this.state("Fetching", function () {
-                this.enter(doFetch);
-            });
-            this.state("Saving", function () {
-                this.enter(doSave);
-                this.event("changed", function () {
-                    this.goto("/Fetched");
-                });
-                this.canExit = () => !dirty.length;
-            });
-            this.event("fetched", function () {
-                this.goto("/Fetched");
-            });
-        });
-
-        this.state("Fetched", function () {
-            this.event("changed", function () {
-                this.goto("/Fetched", {force: true});
-            });
-            this.c = this.C; // Squelch jslint complaint
-            this.c(function () {
-                if (dirty.length) {
-                    return "./Dirty";
-                }
-                return "./Clean";
-            });
-            this.event("fetch", function (context) {
-                this.goto("/Busy", {context: context});
-            });
-            this.state("Clean", function () {
-                this.enter(function () {
-                    dirty.length = 0;
-                });
-            });
-            this.state("Dirty", function () {
-                this.event("save", function (context) {
-                    this.goto("/Busy/Saving", {context: context});
-                });
-            });
-        });
-    });
-    state.goto();
-
-    return ary;
-}
+catalog.register("feathers", "ObjectAuthorization", authFeather);
+catalog.register("models", "ObjectAuthorization", authModel);
 
 formPage.viewModel = function (options) {
     // Handle options where opened as a new window
@@ -414,7 +199,7 @@ formPage.viewModel = function (options) {
     let vm = {};
     let pageIdx = options.index || 1;
     let isNew = options.create && options.isNew !== false;
-    let authorizations = createAuthList(feather);
+    let authorizations = list("ObjectAuthorization")({fetch: false});
 
     // Helper function to pass back data to sending model
     function callReceiver() {
@@ -514,7 +299,12 @@ formPage.viewModel = function (options) {
         }
     }));
     vm.editAuthDialog().state().resolve("/Display/Showing").enter(function () {
-        authorizations.fetch(vm.model().id());
+        authorizations().fetch({
+            criteria: [{
+                property: "id",
+                value: vm.model().id()
+            }]
+        });
     });
     vm.formWidget = f.prop();
     vm.isNew = f.prop(isNew);
