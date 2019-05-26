@@ -687,57 +687,13 @@
 }, {
     "name": "Style",
     "method": "POST",
-    "id": "v3v4pvouv03d",
+    "id": ""j0b035m0jim4"",
     "data": {
-        "name": "HIGH",
-        "description": "High priority",
+        "name": "DEFAULT",
+        "description": "Default value",
         "module": "Core",
         "hasColor": true,
-        "color": "#FF0000"
-    }
-}, {
-    "name": "Style",
-    "method": "POST",
-    "id": "bnwzxo32wquw",
-    "data": {
-        "name": "ERROR",
-        "description": "Critical error",
-        "module": "Core",
-        "hasColor": true,
-        "color": "#FF0000"
-    }
-}, {
-    "name": "Style",
-    "method": "POST",
-    "id": "g8ogbhrguiws",
-    "data": {
-        "name": "WARN",
-        "description": "Warning",
-        "module": "Core",
-        "hasColor": true,
-        "color": "#FFA500"
-    }
-}, {
-    "name": "Style",
-    "method": "POST",
-    "id": "21fl151peol9",
-    "data": {
-        "name": "HIGHLIGHT",
-        "description": "Highlight",
-        "module": "Core",
-        "hasColor": true,
-        "color": "#0000FF"
-    }
-}, {
-    "name": "Style",
-    "method": "POST",
-    "id": "x0qpwww6vmox",
-    "data": {
-        "name": "ALT-HIGHLIGHT",
-        "description": "Alternate highlight",
-        "module": "Core",
-        "hasColor": true,
-        "color": "#008000"
+        "color": ""#c0c0c0""
     }
 }, {
     "name": "Unit",
