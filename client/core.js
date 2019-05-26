@@ -1054,7 +1054,7 @@ f.types.string.tableData = function (obj) {
 };
 
 /**
-  Helper function for building input elements
+  Factory for building input elements
 
   Use of this function requires that "Checkbox" has been pre-registered,
   (i.e. "required") in the application before it is called.

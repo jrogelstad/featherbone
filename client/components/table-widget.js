@@ -58,6 +58,16 @@ widthWithScroll = inner.offsetWidth;
 outer.parentNode.removeChild(outer);
 scrWidth = widthNoScroll - widthWithScroll;
 
+function handleStyle(style, tdOpts) {
+    if (style) {
+        style = f.getStyle(style);
+        tdOpts.style.color = style.color;
+        tdOpts.style.backgroundColor = style.backgroundColor;
+        tdOpts.style.fontWeight = style.fontWeight;
+        tdOpts.style.textDecoration = style.textDecoration;
+    }
+}
+
 function createTableDataEditor(options, col) {
     let config = options.config;
     let defaultFocusId = options.defaultFocusId;
@@ -77,6 +87,11 @@ function createTableDataEditor(options, col) {
     let columnWidth = item.width || COL_WIDTH_DEFAULT;
     let dataList = item.dataList || prop.dataList;
     let cfilter = item.filter;
+    let style = (
+        prop.style
+        ? prop.style()
+        : ""
+    );
 
     columnWidth -= 6;
 
@@ -178,6 +193,8 @@ function createTableDataEditor(options, col) {
     tdOpts.style.maxWidth = columnWidth + "px";
     tdOpts.style.fontSize = zoom;
 
+    handleStyle(style, tdOpts);
+
     if (dataList) {
         // If reference a property, get the property
         if (typeof dataList === "string") {
@@ -277,13 +294,7 @@ function createTableDataView(options, col) {
         }
     };
 
-    if (style) {
-        style = f.getStyle(style);
-        tdOpts.style.color = style.color;
-        tdOpts.style.backgroundColor = style.backgroundColor;
-        tdOpts.style.fontWeight = style.fontWeight;
-        tdOpts.style.textDecoration = style.textDecoration;
-    }
+    handleStyle(style, tdOpts);
 
     // Build cell
     if (typeof format === "object" && d[col]()) {

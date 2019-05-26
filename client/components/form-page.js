@@ -100,6 +100,7 @@ const authFeather = {
 function authModel(data) {
     let that = model(data, authFeather);
     let d = that.data;
+    let state;
 
     function resolveAction(value) {
         if (value === "true") {
@@ -124,7 +125,7 @@ function authModel(data) {
                 return;
             }
 
-            if (d[oaction]() === d[faction]()) {
+            if (resolveAction(d[oaction]()) === d[faction]()) {
                 d[oaction](null);
                 prop.newValue(prop.oldValue());
                 return;
@@ -171,11 +172,16 @@ function authModel(data) {
     }
 
     // Redirect save event toward custom save function
-    that.state().resolve("/Busy/Saving/Posting").enters.pop();
-    that.state().resolve("/Busy/Saving/Posting").enter(save);
-    that.state().resolve("/Ready/Fetched/Dirty").event("save", function () {
+    state = that.state();
+    state.resolve("/Busy/Saving/Posting").enters.pop();
+    state.resolve("/Busy/Saving/Posting").enter(save);
+    state.resolve("/Ready/Fetched/Dirty").event("save", function () {
         that.state().goto("/Busy/Saving/Posting");
     });
+    state.resolve("/Ready/Fetched/Clean").event("changed", function () {
+        this.goto("../Dirty");
+    });
+    state.resolve("/Delete").enters.shift();
 
     that.onLoad(function () {
         actionChanged("Read");
@@ -223,7 +229,7 @@ authTable.viewModel = function (options) {
                 width: 60
             }, {
                 label: "Delete",
-                attr: "editorCanUpdate",
+                attr: "editorCanDelete",
                 width: 60
             }]
         },
