@@ -104,6 +104,7 @@
                 "      AND \"$auth\".object_pk " +
                 "        IN (\"$feather\".parent_pk, %I._pk)" +
                 "      AND \"$auth\".role=pg_authid.rolname" +
+                "      AND " + action + " IS NOT NULL " +
                 "    ORDER BY " + action + " DESC" +
                 "    LIMIT 1" +
                 "  ) AS data" +
@@ -119,6 +120,7 @@
                 "    WHERE pg_has_role($1, pg_authid.oid, 'member')" +
                 "      AND \"$auth\".object_pk=%I._pk" +
                 "      AND \"$auth\".role=pg_authid.rolname" +
+                "      AND " + action + " IS NOT NULL " +
                 "    ORDER BY " + action + " DESC" +
                 "    LIMIT 1 " +
                 "  ) AS data " +
