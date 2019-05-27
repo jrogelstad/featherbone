@@ -117,10 +117,11 @@ function createTableDataEditor(options, col) {
             e.focus();
         };
         inputOpts.onremove = function (vnode) {
+            let e = document.getElementById(vnode.dom.id);
             // Key down handler for up down movement
-            document.getElementById(
-                vnode.dom.id
-            ).removeEventListener("keydown", onshifttab);
+            if (e) {
+                e.removeEventListener("keydown", onshifttab);
+            }
         };
         vm.nextFocus(undefined);
 
