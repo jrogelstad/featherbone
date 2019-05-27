@@ -845,8 +845,9 @@
             user: req.user.name,
             data: {
                 user: req.user.name,
-                id: req.query.id,
-                actions: req.query.actions
+                id: req.body.id,
+                role: req.body.role,
+                actions: req.body.actions
             }
         };
 
