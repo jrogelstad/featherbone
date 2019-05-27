@@ -250,7 +250,7 @@
         };
 
         console.log(JSON.stringify(payload, null, 2));
-        datasource.request(payload).then(
+        datasource.request(payload, req.user.isSuper).then(
             function (data) {
                 respond.bind(res, data)();
             }
@@ -278,7 +278,7 @@
         payload.filter.offset = payload.filter.offset || 0;
 
         console.log(JSON.stringify(payload, null, 2));
-        datasource.request(payload).then(
+        datasource.request(payload, req.user.isSuper).then(
             function (data) {
                 respond.bind(res, data)();
             }
@@ -298,7 +298,10 @@
         };
 
         console.log(JSON.stringify(payload, null, 2));
-        datasource.request(payload).then(respond.bind(res)).catch(
+        datasource.request(
+            payload,
+            req.user.isSuper
+        ).then(respond.bind(res)).catch(
             error.bind(res)
         );
     }
