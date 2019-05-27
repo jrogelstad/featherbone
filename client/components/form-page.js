@@ -96,21 +96,23 @@ const authFeather = {
     }
 };
 
+function resolveAction(value) {
+    if (value === "true") {
+        value = true;
+    } else if (value === "false") {
+        value = false;
+    } else if (value === "") {
+        value = null
+    }
+
+    return value;
+}
+
 // Model for handling object authorization
 function authModel(data) {
     let that = model(data, authFeather);
     let d = that.data;
     let state;
-
-    function resolveAction(value) {
-        if (value === "true") {
-            value = true;
-        } else if (value === "false") {
-            value = false;
-        }
-
-        return value;
-    }
 
     // Three way switch
     function editing(action, prop) {
@@ -154,6 +156,7 @@ function authModel(data) {
                 path: "/do/save-authorization",
                 data: {
                     id: d.objectId(),
+                    role: d.role(),
                     actions: {
                         canCreate: null,
                         canRead: resolveAction(d.canRead()),
@@ -433,7 +436,12 @@ formPage.viewModel = function (options) {
     vm.editAuthDialog = f.prop(dialog.viewModel({
         icon: "key",
         title: "Edit Authorizations",
-        onOk: authorizations.save
+        onOk: function () {
+            let id = vm.model().id();
+
+            authorizations().forEach((a) => a.data.objectId(id));
+            authorizations().save();
+        }
     }));
     vm.editAuthDialog().content = function () {
         return m(authTable.component, {viewModel: authViewModel});
