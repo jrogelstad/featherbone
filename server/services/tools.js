@@ -416,10 +416,10 @@
                 let sql = (
                     "SELECT auth.role, auth.can_read, auth.can_update," +
                     "auth.can_delete FROM object, \"$auth\" AS auth " +
-                    "WHERE id=$1 AND object._pk=auth.pk;"
+                    "WHERE id=$1 AND object._pk=auth.object_pk;"
                 );
 
-                obj.client.query(sql, [obj.id]).then(function (resp) {
+                obj.client.query(sql, [obj.data.id]).then(function (resp) {
                     resolve(tools.sanitize(resp.rows));
                 }).catch(reject);
             });
