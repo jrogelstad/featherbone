@@ -445,9 +445,9 @@ formPage.viewModel = function (options) {
                     featherCanUpdate: actions.canUpdate,
                     featherCanDelete: actions.canDelete
                 });
-                found.state().goto("/Ready/Fetched/Clean");
                 authorizations().add(found);
             }
+            found.state().goto("/Ready/Fetched/Clean");
         });
 
         // Sort
