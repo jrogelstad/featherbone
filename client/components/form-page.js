@@ -102,7 +102,7 @@ function resolveAction(value) {
     } else if (value === "false") {
         value = false;
     } else if (value === "") {
-        value = null
+        value = null;
     }
 
     return value;
@@ -149,6 +149,25 @@ function authModel(data) {
         );
     }
 
+    function handleEditor() {
+        function getValue(action) {
+            if (resolveAction(d["can" + action]()) !== null) {
+                return resolveAction(d["can" + action]());
+            }
+            if (d.hasFeatherAuth()) {
+                return d["featherCan" + action]();
+            }
+            return null;
+        }
+
+        // Silently set editor default values
+        that.set({
+            editorCanRead: getValue("Read"),
+            editorCanUpdate: getValue("Update"),
+            editorCanDelete: getValue("Delete")
+        }, true);
+    }
+
     function save() {
         return new Promise(function (resolve, reject) {
             let payload = {
@@ -187,6 +206,7 @@ function authModel(data) {
     state.resolve("/Delete").enters.shift();
 
     that.onLoad(function () {
+        handleEditor();
         actionChanged("Read");
         actionChanged("Update");
         actionChanged("Delete");
@@ -361,6 +381,68 @@ formPage.viewModel = function (options) {
         }
     }
 
+    // Process feather auths after object authorization fetch
+    function postProcess() {
+        // Add in feather auths
+        let auths = catalog.getFeather(feather).authorization;
+
+        auths.forEach(function (auth) {
+            let actions = auth.actions;
+            let found = authorizations().find(function (a) {
+                return a.data.role() === auth.role;
+            });
+
+            if (found) {
+                found.set({
+                    role: auth.role,
+                    editorCanRead: (
+                        found.data.canRead() === null
+                        ? actions.canRead
+                        : !Boolean(found.data.canRead() === "true")
+                    ),
+                    editorCanUpdate: (
+                        found.data.canUpdate() === null
+                        ? actions.canUpdate.toString()
+                        : !Boolean(found.data.canUpdate() === "true")
+                    ),
+                    editorCanDelete: (
+                        found.data.canDelete() === null
+                        ? actions.canDelete.toString()
+                        : !Boolean(found.data.canDelete() === "true")
+                    ),
+                    hasFeatherAuth: true,
+                    featherCanRead: actions.canRead,
+                    featherCanUpdate: actions.canUpdate,
+                    featherCanDelete: actions.canDelete
+                }, true, true);
+            } else {
+                found = authModel({
+                    role: auth.role,
+                    canRead: null,
+                    canUpdate: null,
+                    canDelete: null,
+                    editorCanRead: actions.canRead,
+                    editorCanUpdate: actions.canUpdate,
+                    editorCanDelete: actions.canDelete,
+                    hasFeatherAuth: true,
+                    featherCanRead: actions.canRead,
+                    featherCanUpdate: actions.canUpdate,
+                    featherCanDelete: actions.canDelete
+                });
+                found.state().goto("/Ready/Fetched/Clean");
+                authorizations().add(found);
+            }
+        });
+        
+        // Sort
+        authorizations().sort(function (a, b) {
+            if (a.data.role() < b.data.role()) {
+                return -1;
+            }
+            return 1;
+        });
+    }
+
     // Check if we've already got a model instantiated
     if (options.key && instances[options.key]) {
         fmodel = instances[options.key];
@@ -453,58 +535,7 @@ formPage.viewModel = function (options) {
                 property: "id",
                 value: vm.model().id()
             }]
-        }).then(function () {
-            // Add in feather auths
-            let auths = catalog.getFeather(feather).authorization;
-
-            auths.forEach(function (auth) {
-                let actions = auth.actions;
-                let found = authorizations().find(function (a) {
-                    return a.data.role() === auth.role;
-                });
-
-                if (found) {
-                    found.set({
-                        role: auth.role,
-                        editorCanRead: (
-                            found.data.canRead() === null
-                            ? actions.canRead
-                            : !Boolean(found.data.canRead() === "true")
-                        ),
-                        editorCanUpdate: (
-                            found.data.canUpdate() === null
-                            ? actions.canUpdate.toString()
-                            : !Boolean(found.data.canUpdate() === "true")
-                        ),
-                        editorCanDelete: (
-                            found.data.canDelete() === null
-                            ? actions.canDelete.toString()
-                            : !Boolean(found.data.canDelete() === "true")
-                        ),
-                        hasFeatherAuth: true,
-                        featherCanRead: actions.canRead,
-                        featherCanUpdate: actions.canUpdate,
-                        featherCanDelete: actions.canDelete
-                    }, true, true);
-                } else {
-                    found = authModel({
-                        role: auth.role,
-                        canRead: null,
-                        canUpdate: null,
-                        canDelete: null,
-                        editorCanRead: actions.canRead,
-                        editorCanUpdate: actions.canUpdate,
-                        editorCanDelete: actions.canDelete,
-                        hasFeatherAuth: true,
-                        featherCanRead: actions.canRead,
-                        featherCanUpdate: actions.canUpdate,
-                        featherCanDelete: actions.canDelete
-                    });
-                    found.state().goto("/Ready/Fetched/Clean");
-                    authorizations().add(found);
-                }
-            });
-        });
+        }, false).then(postProcess);
     });
     vm.formWidget = f.prop();
     vm.isNew = f.prop(isNew);
