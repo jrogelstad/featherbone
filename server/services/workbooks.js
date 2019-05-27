@@ -308,7 +308,7 @@
                                 canCreate: null,
                                 canRead: true,
                                 canUpdate: true,
-                                canDelete: null,
+                                canDelete: null
                             }];
                         }
 

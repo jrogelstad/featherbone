@@ -1072,7 +1072,7 @@
                             actions.canCreate !== null ||
                             actions.canRead !== null ||
                             actions.canUpdate !== null ||
-                            actions.canDelete !== null                       
+                            actions.canDelete !== null
                         )
                     );
 
@@ -1174,13 +1174,13 @@
                     obj.client.query(sql, params, done);
                 };
 
-                done = function (err) {
+                done = function (err, resp) {
                     if (err) {
                         reject(err);
                         return;
                     }
 
-                    resolve(true);
+                    resolve(resp !== false);
                 };
 
                 // Kick off query by getting object key, the rest falls
