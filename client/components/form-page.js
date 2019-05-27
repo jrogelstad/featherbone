@@ -40,10 +40,6 @@ const authFeather = {
             type: "string",
             default: "createId()"
         },
-        objectId: {
-            description: "Object id",
-            type: "string"
-        },
         role: {
             description: "Role name",
             type: "string",
@@ -169,11 +165,12 @@ function authModel(data) {
     }
 
     function doSave(context) {
+        let isDeleting = context.isDeleting;
         let payload = {
             method: "POST",
             path: "/do/save-authorization",
             data: {
-                id: d.objectId(),
+                id: that.objectId(),
                 role: d.role(),
                 actions: {
                     canCreate: null,
@@ -184,8 +181,14 @@ function authModel(data) {
             }
         };
 
+        if (isDeleting) {
+            payload.data.actions.canRead = null;
+            payload.data.actions.canUpdate = null;
+            payload.data.actions.canDelete = null;
+        }
+
         function callback(resp) {
-            if (resp) {
+            if (resp && !isDeleting) {
                 state.goto("/Ready/Fetched/Clean");
             } else {
                 state.goto("/Deleted");
@@ -195,6 +198,8 @@ function authModel(data) {
 
         datasource.request(payload).then(callback);
     }
+
+    that.objectId = f.prop();
 
     // Redirect save event toward custom save function
     state = that.state();
@@ -209,6 +214,12 @@ function authModel(data) {
         this.goto("../Dirty");
     });
     state.resolve("/Delete").enters.shift();
+    state.resolve("/Delete").event("save", function (context) {
+        context.isDeleting = true;
+        that.state().goto("/Busy/Saving/Posting", {
+            context: context
+        });
+    });
 
     that.onLoad(function () {
         handleEditor();
@@ -526,7 +537,7 @@ formPage.viewModel = function (options) {
         onOk: function () {
             let id = vm.model().id();
 
-            authorizations().forEach((a) => a.data.objectId(id));
+            authorizations().forEach((a) => a.objectId(id));
             authorizations().save();
         }
     }));
