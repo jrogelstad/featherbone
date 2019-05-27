@@ -168,37 +168,42 @@ function authModel(data) {
         }, true);
     }
 
-    function save() {
-        return new Promise(function (resolve, reject) {
-            let payload = {
-                method: "POST",
-                path: "/do/save-authorization",
-                data: {
-                    id: d.objectId(),
-                    role: d.role(),
-                    actions: {
-                        canCreate: null,
-                        canRead: resolveAction(d.canRead()),
-                        canUpdate: resolveAction(d.canUpdate()),
-                        canDelete: resolveAction(d.canDelete())
-                    }
+    function doSave(context) {
+        let payload = {
+            method: "POST",
+            path: "/do/save-authorization",
+            data: {
+                id: d.objectId(),
+                role: d.role(),
+                actions: {
+                    canCreate: null,
+                    canRead: resolveAction(d.canRead()),
+                    canUpdate: resolveAction(d.canUpdate()),
+                    canDelete: resolveAction(d.canDelete())
                 }
-            };
-
-            function callback(resp) {
-                resolve(resp);
             }
+        };
 
-            datasource.request(payload).then(callback).catch(reject);
-        });
+        function callback(resp) {
+            if (resp) {
+                state.goto("/Ready/Fetched/Clean");
+            } else {
+                state.goto("/Deleted");
+            }
+            context.resolve();
+        }
+
+        datasource.request(payload).then(callback);
     }
 
     // Redirect save event toward custom save function
     state = that.state();
     state.resolve("/Busy/Saving/Posting").enters.pop();
-    state.resolve("/Busy/Saving/Posting").enter(save);
-    state.resolve("/Ready/Fetched/Dirty").event("save", function () {
-        that.state().goto("/Busy/Saving/Posting");
+    state.resolve("/Busy/Saving/Posting").enter(doSave);
+    state.resolve("/Ready/Fetched/Dirty").event("save", function (context) {
+        that.state().goto("/Busy/Saving/Posting", {
+            context: context
+        });
     });
     state.resolve("/Ready/Fetched/Clean").event("changed", function () {
         this.goto("../Dirty");
@@ -433,7 +438,7 @@ formPage.viewModel = function (options) {
                 authorizations().add(found);
             }
         });
-        
+
         // Sort
         authorizations().sort(function (a, b) {
             if (a.data.role() < b.data.role()) {

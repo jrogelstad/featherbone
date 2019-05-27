@@ -337,7 +337,10 @@ function createList(feather) {
             requests.push(model.save());
         });
 
-        Promise.all(requests).then(context.resolve).catch(context.reject);
+        Promise.all(requests).then(function (resp) {
+            state.send("changed");
+            context.resolve(resp);
+        }).catch(context.reject);
     };
 
     doSend = function (...args) {
