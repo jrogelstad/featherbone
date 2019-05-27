@@ -1030,11 +1030,6 @@
                     tools.isSuperUser({
                         client: obj.client
                     }).then(function (isSuper) {
-                        if (err) {
-                            reject(err);
-                            return;
-                        }
-
                         if (isSuper) {
                             afterCheckSuperUser();
                             return;
