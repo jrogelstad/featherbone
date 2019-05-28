@@ -460,6 +460,15 @@ formPage.viewModel = function (options) {
     vm.buttonBack = f.prop();
     vm.buttonSave = f.prop();
     vm.buttonSaveAndNew = f.prop();
+    vm.confirmDialog = f.prop(dialog.viewModel({
+        icon: "question-circle",
+        title: "Confirm close",
+        message: ("You will lose changes you have made. Are you sure?"),
+        onOk: function () {
+            vm.model().state().send("undo");
+            vm.doBack();
+        }
+    }));
     vm.doApply = function () {
         vm.model().save().then(function () {
             callReceiver(false);
@@ -469,7 +478,8 @@ formPage.viewModel = function (options) {
         let instance = vm.model();
 
         if (instance.state().current()[0] === "/Ready/Fetched/Dirty") {
-            instance.state().send("undo");
+            vm.confirmDialog().show();
+            return;
         }
 
         // Once we consciously leave, purge memoize
@@ -762,6 +772,9 @@ formPage.component = {
                 }),
                 m("label", vm.title())
             ]),
+            m(dialog.component, {
+                viewModel: vm.confirmDialog()
+            }),
             m(dialog.component, {
                 viewModel: vm.sseErrorDialog()
             }),
