@@ -380,6 +380,7 @@ formPage.viewModel = function (options) {
     let pageIdx = options.index || 1;
     let isNew = options.create && options.isNew !== false;
     let authorizations = list("ObjectAuthorization")({fetch: false});
+    authorizations().checkUpdate = false;
     let authViewModel = authTable.viewModel({models: authorizations()});
 
     // Helper function to pass back data to sending model
@@ -410,27 +411,11 @@ formPage.viewModel = function (options) {
 
             if (found) {
                 found.set({
-                    role: auth.role,
-                    editorCanRead: (
-                        found.data.canRead() === null
-                        ? actions.canRead
-                        : !Boolean(found.data.canRead() === "true")
-                    ),
-                    editorCanUpdate: (
-                        found.data.canUpdate() === null
-                        ? actions.canUpdate.toString()
-                        : !Boolean(found.data.canUpdate() === "true")
-                    ),
-                    editorCanDelete: (
-                        found.data.canDelete() === null
-                        ? actions.canDelete.toString()
-                        : !Boolean(found.data.canDelete() === "true")
-                    ),
                     hasFeatherAuth: true,
                     featherCanRead: actions.canRead,
                     featherCanUpdate: actions.canUpdate,
                     featherCanDelete: actions.canDelete
-                }, true, true);
+                });
             } else {
                 found = authModel({
                     role: auth.role,
