@@ -142,10 +142,12 @@ function createTableDataEditor(options, col) {
         };
 
         inputOpts.onremove = function (vnode) {
+            let e = document.getElementById(vnode.dom.id);
+
             // Key down handler for up down movement
-            document.getElementById(
-                vnode.dom.id
-            ).removeEventListener("keydown", onshifttab);
+            if (e) {
+                e.removeEventListener("keydown", onshifttab);
+            }
         };
     }
 
@@ -160,10 +162,11 @@ function createTableDataEditor(options, col) {
         };
 
         inputOpts.onremove = function (vnode) {
+            let e = document.getElementById(vnode.dom.id);
             // Key down handler for up down movement
-            document.getElementById(
-                vnode.dom.id
-            ).removeEventListener("keydown", ontab);
+            if (e) {
+                e.removeEventListener("keydown", ontab);
+            }
         };
     }
 
