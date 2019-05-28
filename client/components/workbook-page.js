@@ -660,7 +660,14 @@ workbookPage.viewModel = function (options) {
                 isNewWindow: true
             };
             win.receiver = function (model) {
-                vm.tableWidget().models().add(model, true);
+                // If model came from other window now closed it's
+                // unstable, so rebuild it
+                let name = model.name.toCamelCase();
+                let nmodel = catalog.store().models()[name](model.toJSON());
+
+                nmodel.state().goto("/Ready/Fetched/Clean");
+                nmodel.checkDelete();
+                vm.tableWidget().models().add(nmodel, true);
                 m.redraw();
             };
             return;
