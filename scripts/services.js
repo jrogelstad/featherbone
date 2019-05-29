@@ -53,7 +53,6 @@ function doUpsertFeather(obj) {
             return typeof p.type === "object" && p.type.childOf;
         }
 
-
         delete feather.authorizations; // Process below
 
         // Save the feather in the catalog
@@ -191,6 +190,23 @@ function doUpsertFeather(obj) {
     });
 }
 
+function doDeleteFeather(obj) {
+    "use strict";
+
+    return new Promise(function (resolve, reject) {
+        let cpayload = {
+            method: "DELETE",
+            name: "deleteFeather",
+            data: {
+                name: obj.oldRec.name
+            },
+            client: obj.client
+        };
+
+        f.datasource.request(cpayload, true).then(resolve).catch(reject);
+    });
+}
+
 f.datasource.registerFunction(
     "POST",
     "Feather",
@@ -202,6 +218,13 @@ f.datasource.registerFunction(
     "PATCH",
     "Feather",
     doUpsertFeather,
+    f.datasource.TRIGGER_BEFORE
+);
+
+f.datasource.registerFunction(
+    "DELETE",
+    "Feather",
+    doDeleteFeather,
     f.datasource.TRIGGER_BEFORE
 );
 
