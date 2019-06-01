@@ -19,6 +19,9 @@
 (function (exports) {
     "use strict";
 
+    const {Database} = require("../database");
+    const db = new Database();
+
     exports.Services = function () {
         // ..........................................................
         // PUBLIC
@@ -39,9 +42,10 @@
                     "SELECT name, to_json(module), script " +
                     "FROM \"_data_service\";"
                 );
+                let client = db.getClient(obj.client);
 
                 // Query routes
-                obj.client.query(sql, function (err, resp) {
+                client.query(sql, function (err, resp) {
                     if (err) {
                         reject(err);
                         return;

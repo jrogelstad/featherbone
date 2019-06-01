@@ -463,12 +463,12 @@
             function doExport(resp) {
                 return new Promise(function (resolve, reject) {
                     function callback(ok) {
-                        delete resp.client.currentUser;
+                        resp.client.currentUser(undefined);
                         resp.done();
                         resolve(ok);
                     }
 
-                    resp.client.currentUser = username;
+                    resp.client.currentUser(username);
 
                     exporter[format](
                         resp.client,
@@ -511,12 +511,12 @@
             function doImport(resp) {
                 return new Promise(function (resolve, reject) {
                     function callback(ok) {
-                        delete resp.client.currentUser;
+                        resp.client.currentUser(undefined);
                         resp.done();
                         resolve(ok);
                     }
 
-                    resp.client.currentUser = username;
+                    resp.client.currentUser(username);
 
                     importer[format](
                         that,
@@ -631,7 +631,7 @@
             let wrap = false;
             let isTriggering = (
                 obj.client
-                ? obj.client.isTriggering
+                ? obj.client.isTriggering()
                 : false
             );
 
@@ -642,9 +642,9 @@
 
             function begin() {
                 return new Promise(function (resolve, reject) {
-                    if (!client.wrapped) {
-                        client.query("BEGIN;").then(function () {
-                            client.wrapped = true;
+                    if (!client.wrapped()) {
+                        db.getClient(client).query("BEGIN;").then(function () {
+                            client.wrapped(true);
                             resolve();
                         }).catch(reject);
                         return;
@@ -654,7 +654,7 @@
             }
 
             // Add old/new record objects for convenience
-            function doPrepareTrigger(client, obj) {
+            function doPrepareTrigger(obj) {
                 return new Promise(function (resolve, reject) {
                     function setRec(result) {
                         obj.oldRec = result;
@@ -692,6 +692,8 @@
                         return;
                     }
 
+                    client.isTriggering(true);
+
                     resolve();
                 });
             }
@@ -699,7 +701,7 @@
             function close(resp) {
                 return new Promise(function (resolve) {
                     //console.log("CLOSING");
-                    delete client.currentUser;
+                    client.currentUser(undefined);
                     done();
                     resolve(resp);
                 });
@@ -732,11 +734,11 @@
                         return;
                     }
 
-                    if (client.wrapped) {
+                    if (client.wrapped()) {
                         //console.log("COMMIT->", obj.name, obj.method);
-                        client.query("COMMIT;", function (err) {
-                            delete client.currentUser;
-                            client.wrapped = false;
+                        db.getClient(client).query("COMMIT;", function (err) {
+                            client.currentUser(undefined);
+                            client.wrapped(false);
                             if (err) {
                                 reject(error(err));
                                 return;
@@ -761,11 +763,11 @@
 
                 //console.log("ROLLBACK->", obj.name, obj.method);
 
-                if (client.wrapped) {
-                    client.query("ROLLBACK;", function () {
+                if (client.wrapped()) {
+                    db.getClient(client).query("ROLLBACK;", function () {
                         //console.log("ROLLED BACK");
-                        delete client.currentUser;
-                        client.wrapped = false;
+                        client.currentUser(undefined);
+                        client.wrapped(false);
                         callback(error(err));
                         return;
                     });
@@ -829,7 +831,7 @@
                 // console.log("CLEAR_TRIGGER->", obj.name, obj.method);
                 return new Promise(function (resolve) {
                     if (!isTriggering) {
-                        client.isTriggering = false;
+                        client.isTriggering(false);
                     }
 
                     resolve();
@@ -843,8 +845,6 @@
                     let parent = feather.inherits || "Object";
 
                     function doTrigger() {
-                        client.isTriggering = true;
-
                         if (name === "Object") {
                             Promise.resolve().then(
                                 doMethod.bind(null, name, TRIGGER_AFTER)
@@ -875,7 +875,7 @@
 
                     // If business logic defined, do it
                     if (isRegistered(obj.method, name, TRIGGER_AFTER)) {
-                        doPrepareTrigger(client, obj).then(
+                        doPrepareTrigger(obj).then(
                             doTrigger
                         ).catch(
                             reject
@@ -942,8 +942,6 @@
                     let parent = feather.inherits || "Object";
 
                     function doTrigger() {
-                        client.isTriggering = true;
-
                         if (name === "Object") {
                             Promise.resolve().then(
                                 doMethod.bind(null, name, TRIGGER_BEFORE)
@@ -974,7 +972,7 @@
 
                     // If business logic defined, do it
                     if (isRegistered(obj.method, name, TRIGGER_BEFORE)) {
-                        doPrepareTrigger(client, obj).then(
+                        doPrepareTrigger(obj).then(
                             doTrigger
                         ).catch(
                             reject
@@ -1086,6 +1084,8 @@
 
             function doRequest(resp) {
                 if (!isExternalClient) {
+                    // Disallow SQL calls directly from db services by
+                    // making client simply a reference object.
                     client = resp.client;
                     done = resp.done;
                 }
@@ -1094,14 +1094,14 @@
                 return new Promise(function (resolve, reject) {
                     let msg;
 
-                    if (!client.currentUser && !obj.user) {
+                    if (!client.currentUser() && !obj.user) {
                         msg = "User undefined. " + obj.method + " " + obj.name;
                         reject(msg);
                         return;
                     }
 
-                    if (!client.currentUser) {
-                        client.currentUser = obj.user;
+                    if (!client.currentUser()) {
+                        client.currentUser(obj.user);
                     }
 
                     if (obj.subscription) {
@@ -1112,8 +1112,8 @@
                     if (catalog[obj.name]) {
                         if (obj.method === "GET") {
                             doQuery().then(function (resp) {
-                                if (!client.wrapped) {
-                                    delete client.currentUser;
+                                if (!client.wrapped()) {
+                                    client.currentUser(undefined);
                                 }
                                 resolve(resp);
                             }).catch(reject);
@@ -1180,7 +1180,7 @@
             }
 
             Promise.resolve().then(
-                db.connect
+                db.connect.bind(null, true)
             ).then(
                 doRequest
             ).then(

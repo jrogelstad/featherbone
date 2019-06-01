@@ -19,6 +19,9 @@
 (function (exports) {
     "use strict";
 
+    const {Database} = require("../database");
+    const db = new Database();
+
     exports.Role = function () {
         // ..........................................................
         // PUBLIC
@@ -44,9 +47,10 @@
                     ? "LOGIN"
                     : "NOLOGIN"
                 ) + ";";
+                let client = db.getClient(obj.client);
 
                 sql = sql.format([name]);
-                obj.client.query(sql, function (err) {
+                client.query(sql, function (err) {
                     if (err) {
                         reject(err);
                         return;
@@ -73,9 +77,10 @@
                 let name = obj.data.name;
                 let pwd = obj.data.password;
                 let sql = "ALTER ROLE %I PASSWORD %L;";
+                let client = db.getClient(obj.client);
 
                 sql = sql.format([name, pwd]);
-                obj.client.query(sql, function (err) {
+                client.query(sql, function (err) {
                     if (err) {
                         reject(err);
                         return;
@@ -106,8 +111,9 @@
                     "SELECT * FROM pg_catalog.pg_roles " +
                     "WHERE rolname = $1;"
                 );
+                let client = db.getClient(obj.client);
 
-                obj.client.query(sql, [name]).then(function (resp) {
+                client.query(sql, [name]).then(function (resp) {
                     if (!resp.rows.length) {
                         sql = "CREATE ROLE %I " + (
                             obj.data.isLogin === true
@@ -120,7 +126,7 @@
                         ) + " PASSWORD %L;";
 
                         sql = sql.format([name, pwd]);
-                        obj.client.query(sql, function (err) {
+                        client.query(sql, function (err) {
                             if (err) {
                                 reject(err);
                                 return;
@@ -151,16 +157,17 @@
             return new Promise(function (resolve, reject) {
                 let name = obj.data.name;
                 let sql = "DROP ROLE %I;";
+                let client = db.getClient(obj.client);
 
                 function callback() {
-                    obj.client.query(
+                    client.query(
                         "DELETE FROM \"$auth\" WHERE role=$1;",
                         [name]
                     ).then(resolve).catch(reject);
                 }
 
                 sql = sql.format([name]);
-                obj.client.query(sql).then(callback).catch(reject);
+                client.query(sql).then(callback).catch(reject);
             });
         };
 
@@ -177,9 +184,10 @@
         that.grantMembership = function (obj) {
             return new Promise(function (resolve, reject) {
                 let sql = "GRANT %I TO %I;";
+                let client = db.getClient(obj.client);
 
                 sql = sql.format([obj.data.fromRole, obj.data.toRole]);
-                obj.client.query(sql).then(resolve).catch(reject);
+                client.query(sql).then(resolve).catch(reject);
             });
         };
 
@@ -196,9 +204,10 @@
         that.revokeMembership = function (obj) {
             return new Promise(function (resolve, reject) {
                 let sql = "REVOKE %I FROM %I;";
+                let client = db.getClient(obj.client);
 
                 sql = sql.format([obj.data.fromRole, obj.data.toRole]);
-                obj.client.query(sql).then(resolve).catch(reject);
+                client.query(sql).then(resolve).catch(reject);
             });
         };
 

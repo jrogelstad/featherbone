@@ -19,6 +19,9 @@
 (function (exports) {
     "use strict";
 
+    const {Database} = require("../database");
+    const db = new Database();
+
     exports.Routes = function () {
         // ..........................................................
         // PUBLIC
@@ -36,9 +39,10 @@
         that.getRoutes = function (obj) {
             return new Promise(function (resolve, reject) {
                 let sql = "SELECT module, path, function FROM \"_route\" ";
+                let client = db.getClient(obj.client);
 
                 // Query routes
-                obj.client.query(sql, function (err, resp) {
+                client.query(sql, function (err, resp) {
                     if (err) {
                         reject(err);
                         return;

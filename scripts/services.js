@@ -478,16 +478,16 @@ function doCreateDocument(obj) {
         }
 
         if (!newRec.owner) {
-            newRec.owner = obj.client.currentUser;
+            newRec.owner = obj.client.currentUser();
         }
 
-        if (newRec.owner !== obj.client.currentUser) {
+        if (newRec.owner !== obj.client.currentUser()) {
             payload = {
                 method: "GET",
                 name: "isSuperUser",
                 client: obj.client,
                 data: {
-                    user: obj.client.currentUser
+                    user: obj.client.currentUser()
                 }
             };
 
@@ -520,14 +520,14 @@ function doUpdateDocument(obj) {
 
         if (
             newRec.owner !== oldRec.owner &&
-            obj.client.currentUser !== oldRec.owner
+            obj.client.currentUser() !== oldRec.owner
         ) {
             payload = {
                 method: "GET",
                 name: "isSuperUser",
                 client: obj.client,
                 data: {
-                    user: obj.client.currentUser
+                    user: obj.client.currentUser()
                 }
             };
 

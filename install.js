@@ -23,11 +23,13 @@
 
     const {Client} = require("pg");
     const {Config} = require("./server/config");
+    const {Database} = require("./server/database");
     const {Installer} = require("./server/services/installer");
     const datasource = require("./server/datasource");
     const format = require("pg-format");
     const path = require("path");
 
+    const db = new Database();
     const installer = new Installer();
     const config = new Config();
 
@@ -44,9 +46,10 @@
         return new Promise(function (resolve, reject) {
             function callback(config) {
                 user = config.postgres.user;
-                client = new Client(config.postgres);
-
-                client.connect().then(resolve).catch(reject);
+                db.connect().then(function (resp) {
+                    client = resp.client;
+                    resolve();
+                }).catch(reject);
             }
 
             config.read().then(callback).catch(reject);

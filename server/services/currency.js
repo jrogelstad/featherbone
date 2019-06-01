@@ -19,15 +19,9 @@
 (function (exports) {
     "use strict";
 
-    const {
-        Database
-    } = require("../database");
-    const {
-        Events
-    } = require("./events");
-    const {
-        Tools
-    } = require("./tools");
+    const {Database} = require("../database");
+    const {Events} = require("./events");
+    const {Tools} = require("./tools");
     const Big = require("../../node_modules/big.js/big.js");
 
     const db = new Database();
@@ -265,6 +259,7 @@
                 let fromCurr = obj.data.fromCurrency;
                 let fromAmount = obj.data.amount;
                 let msg;
+                let client = db.getClient(obj.client);
 
                 // Advance date to next day so we get latest conversion for
                 // that day
@@ -353,7 +348,7 @@
                         effective.toISOString()
                     ];
 
-                    obj.client.query(sql, params).then(
+                    client.query(sql, params).then(
                         calculate
                     ).catch(
                         reject

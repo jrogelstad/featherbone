@@ -20,9 +20,11 @@
     "use strict";
 
     const f = require("../../common/core");
+    const {Database} = require("../database");
     const ops = Object.keys(f.operators);
     const format = require("pg-format");
 
+    const db = new Database();
     const tools = {};
 
     function curry(...args1) {
@@ -265,7 +267,7 @@
                     if (isSuperUser === false) {
                         sql += tools.buildAuthSql("canRead", table, tokens);
 
-                        params.push(obj.client.currentUser);
+                        params.push(obj.client.currentUser());
                         p += 1;
                     }
 
@@ -386,11 +388,12 @@
                 let sql = "SELECT is_super FROM user_account WHERE name=$1;";
                 let user = (
                     obj.user === undefined
-                    ? obj.client.currentUser
+                    ? obj.client.currentUser()
                     : obj.user
                 );
+                let client = db.getClient(obj.client);
 
-                obj.client.query(sql, [user], function (err, resp) {
+                client.query(sql, [user], function (err, resp) {
                     if (err) {
                         reject(err);
                         return;
@@ -415,13 +418,14 @@
         */
         tools.getAuthorizations = function (obj) {
             return new Promise(function (resolve, reject) {
+                let client = db.getClient(obj.client);
                 let sql = (
                     "SELECT auth.role, auth.can_read, auth.can_update," +
                     "auth.can_delete FROM object, \"$auth\" AS auth " +
                     "WHERE id=$1 AND object._pk=auth.object_pk;"
                 );
 
-                obj.client.query(sql, [obj.data.id]).then(function (resp) {
+                client.query(sql, [obj.data.id]).then(function (resp) {
                     resolve(tools.sanitize(resp.rows));
                 }).catch(reject);
             });
@@ -521,6 +525,7 @@
                 let afterGetUser;
                 let afterUpsert;
                 let user = obj.user;
+                let client = db.getClient(obj.client);
 
                 afterCheckSuperUser = function (err, ok) {
                     if (err) {
@@ -533,7 +538,7 @@
                     }
 
                     sql = "SELECT * FROM pg_user WHERE usename=$1;";
-                    obj.client.query(sql, [user], afterGetUser);
+                    client.query(sql, [user], afterGetUser);
                 };
 
                 afterGetPgUser = function (err, resp) {
@@ -547,7 +552,7 @@
                     }
 
                     sql = "SELECT * FROM user_account WHERE name=$1;";
-                    obj.client.query(sql, [user], afterGetPgUser);
+                    client.query(sql, [user], afterGetPgUser);
                 };
 
                 afterGetUser = function (err, resp) {
@@ -563,7 +568,7 @@
                         throw new Error("User " + user + " not found.");
                     }
 
-                    obj.client.query(sql, [user, isSuper], afterUpsert);
+                    client.query(sql, [user, isSuper], afterUpsert);
                 };
 
                 afterUpsert = function (err) {
@@ -577,8 +582,8 @@
                 };
 
                 tools.isSuperUser({
-                    name: obj.client.currentUser,
-                    client: obj.client
+                    name: client.currentUser(),
+                    client: client
                 }).then(afterCheckSuperUser).catch(reject);
             });
         };

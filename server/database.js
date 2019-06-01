@@ -21,10 +21,19 @@
 
     const {Pool} = require("pg");
     const {Config} = require("./config");
-    const {Tools} = require("./services/tools");
+    const f = require("../common/core");
 
     const config = new Config();
-    const tools = new Tools();
+    const clients = {};
+
+    function prop(store) {
+        return function (...args) {
+            if (args.length) {
+                store = args[0];
+            }
+            return store;
+        };
+    }
 
     exports.Database = function () {
         let cache;
@@ -93,8 +102,10 @@
             });
         };
 
-        that.connect = function () {
+        that.connect = function (referenceOnly) {
             return new Promise(function (resolve, reject) {
+                let id = f.createId();
+
                 // Do connection
                 function doConnect() {
                     return new Promise(function (resolve, reject) {
@@ -113,9 +124,34 @@
                                 return;
                             }
 
+                            c.clientId = id;
+                            c.currentUser = prop();
+                            c.isTriggering = prop(false);
+                            c.wrapped = prop(false);
+                            clients[id] = c;
+
+                            if (referenceOnly) {
+                                resolve({
+                                    client: Object.freeze({
+                                        clientId: c.clientId,
+                                        currentUser: c.currentUser,
+                                        isTriggering: c.isTriggering,
+                                        wrapped: c.wrapped
+                                    }),
+                                    done: function () {
+                                        delete clients[id];
+                                        d();
+                                    }
+                                });
+                                return;
+                            }
+
                             resolve({
                                 client: c,
-                                done: d
+                                done: function () {
+                                    delete clients[id];
+                                    d();
+                                }
                             });
                         });
                     });
@@ -162,19 +198,26 @@
 
                 that.connect().then(function (obj) {
                     obj.client.query(sql, [username]).then(function (resp) {
+                        let row;
+
                         if (!resp.rows.length) {
                             reject(new Error(
                                 "User account " + username + " not found."
                             ));
                         }
 
+                        row = resp.rows[0];
+                        row.isSuper = row.isSuper;
+                        delete row.is_super;
                         // Send back result
-                        resolve(tools.sanitize(resp.rows[0]));
+                        resolve(row);
                         obj.done();
                     }).catch(reject);
                 });
             });
         };
+
+        that.getClient = (ref) => clients[ref.clientId];
 
         that.getPool = function () {
             return new Promise(function (resolve, reject) {
