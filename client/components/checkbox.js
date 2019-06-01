@@ -23,24 +23,39 @@ import catalog from "../models/catalog.js";
 const checkbox = {};
 const m = window.m;
 
+checkbox.viewModel = function (options) {
+    let vm = {};
+
+    vm.hasFocus = f.prop(false);
+    vm.id = f.prop(options.id || f.createId());
+
+    return vm;
+};
+
 // Define checkbox component
 checkbox.component = {
     oninit: function (vnode) {
-        this.id = vnode.attrs.id || f.createId();
+        this.viewModel = checkbox.viewModel(vnode.attrs);
     },
 
     view: function (vnode) {
         let labelClass = "fb-checkbox-label";
+        let vm = this.viewModel;
+        let id = vm.id();
 
         if (vnode.attrs.readonly) {
             labelClass += " fb-checkbox-readonly";
+        }
+
+        if (vm.hasFocus()) {
+            labelClass += " fb-checkbox-focus";
         }
 
         return m("div", {
             class: "fb-checkbox"
         }, [
             m("input", {
-                id: this.id,
+                id: id,
                 class: "fb-checkbox-input",
                 type: "checkbox",
                 onclick: function (e) {
@@ -51,10 +66,12 @@ checkbox.component = {
                 checked: vnode.attrs.value,
                 style: vnode.attrs.style || {},
                 disabled: vnode.attrs.readonly,
-                required: Boolean(vnode.attrs.required)
+                required: Boolean(vnode.attrs.required),
+                onfocus: () => vm.hasFocus(true),
+                onblur: () => vm.hasFocus(false)
             }),
             m("label", {
-                for: this.id,
+                for: id,
                 title: vnode.attrs.title,
                 class: labelClass
             }, m("i", {
