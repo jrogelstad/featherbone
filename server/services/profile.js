@@ -19,6 +19,8 @@
 (function (exports) {
     "use strict";
 
+    const {Database} = require("../database");
+    const db = new Database();
     const f = require("../../common/core");
     const jsonpatch = require("fast-json-patch");
     const conflictErr = new Error(
@@ -47,10 +49,11 @@
                 let sql = (
                     "SELECT etag, data FROM \"$profiles\" WHERE role = $1;"
                 );
-                let role = obj.client.currentUser;
+                let role = obj.client.currentUser();
+                let client = db.getClient(obj.client);
 
                 // Query profile
-                obj.client.query(sql, [role], function (err, resp) {
+                client.query(sql, [role], function (err, resp) {
                     if (err) {
                         reject(err);
                         return;
@@ -71,7 +74,7 @@
 
           @param {Object} Request payload
           @param {Object} [payload.client] Database client
-          @param {String} [payload.client.currentUser] Current user
+          @param {Function} [payload.client.currentUser] Current user
           @param {String} [payload.etag] Version for optimistic locking
           @param {Object} [payload.data] Profile data
           @return {Object} Promise
@@ -81,11 +84,12 @@
                 let sql = (
                     "SELECT etag FROM \"$profiles\" WHERE role = $1;"
                 );
-                let role = obj.client.currentUser;
+                let role = obj.client.currentUser();
                 let etag = f.createId();
+                let client = db.getClient(obj.client);
 
                 // Query profile
-                obj.client.query(sql, [role], function (err, resp) {
+                client.query(sql, [role], function (err, resp) {
                     if (err) {
                         reject(err);
                         return;
@@ -106,7 +110,7 @@
                         sql = "INSERT INTO \"$profiles\" VALUES ($1, $2, $3);";
                     }
 
-                    obj.client.query(
+                    client.query(
                         sql,
                         [role, etag, obj.data]
                     ).then(resolve.bind(null, etag)).catch(reject);
@@ -119,7 +123,7 @@
 
           @param {Object} Request payload
           @param {Object} [payload.client] Database client
-          @param {String} [payload.client.currentUser] Current user
+          @param {Function} [payload.client.currentUser] Current user
           @param {String} [payload.etag] Version for optimistic locking
           @param {Object} [payload.data] Profile data
           @return {Object} Promise
@@ -130,11 +134,12 @@
                     "SELECT etag, data FROM \"$profiles\" WHERE role = $1;"
                 );
                 let data;
-                let role = obj.client.currentUser;
+                let role = obj.client.currentUser();
                 let etag = f.createId();
+                let client = db.getClient(obj.client);
 
                 // Query profile
-                obj.client.query(sql, [role], function (err, resp) {
+                client.query(sql, [role], function (err, resp) {
                     if (err) {
                         reject(err);
                         return;
@@ -153,7 +158,7 @@
                         );
                         data = resp.rows[0].data;
                         jsonpatch.applyPatch(data, obj.data.patch);
-                        obj.client.query(
+                        client.query(
                             sql,
                             [role, etag, data]
                         ).then(resolve.bind(null, etag)).catch(reject);

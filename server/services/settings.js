@@ -16,7 +16,10 @@
 (function (exports) {
     "use strict";
 
+    const {Database} = require("../database");
     const f = require("../../common/core");
+
+    const db = new Database();
     const settings = {};
 
     // ..........................................................
@@ -69,6 +72,7 @@
         return new Promise(function (resolve, reject) {
             let payload;
             let name = obj.data.name;
+            let client = db.getClient(obj.client);
 
             function callback(ok) {
                 let sql;
@@ -83,7 +87,7 @@
                 }
 
                 // If here, need to query for the current settings
-                obj.client.query(sql, [name]).then(function (resp) {
+                client.query(sql, [name]).then(function (resp) {
                     let rec;
 
                     // If we found something, cache it
@@ -113,7 +117,7 @@
                     name: "$settings",
                     id: settings.data[name].id,
                     etag: settings.data[name].etag,
-                    client: obj.client,
+                    client: client,
                     callback: callback
                 };
 
@@ -136,6 +140,7 @@
     settings.getSettingsDefinition = function (obj) {
         return new Promise(function (resolve, reject) {
             let sql;
+            let client = db.getClient(obj.client);
 
             sql = "SELECT definition FROM \"$settings\" ";
             sql += "WHERE definition is NOT NULL";
@@ -148,7 +153,7 @@
                 resolve(resp.rows.map(definition));
             }
 
-            obj.client.query(sql).then(callback).catch(reject);
+            client.query(sql).then(callback).catch(reject);
         });
     };
 
@@ -196,7 +201,8 @@
             let name = obj.data.name;
             let data = obj.data.data;
             let etag = obj.etag || f.createId();
-            let params = [name, data, etag, obj.client.currentUser];
+            let params = [name, data, etag, obj.client.currentUser()];
+            let client = db.getClient(obj.client);
 
             function done() {
                 settings[name] = {
@@ -229,7 +235,7 @@
                         sql += " data = $2, etag = $3, ";
                         sql += " updated = now(), updated_by = $4 ";
                         sql += "WHERE name = $1;";
-                        obj.client.query(sql, params, done);
+                        client.query(sql, params, done);
                         return;
                     }
 
@@ -239,11 +245,11 @@
                     sql += "is_deleted) VALUES ";
                     sql += "($1, $2, $3, $1, now(), $4, now(), $4, false);";
 
-                    obj.client.query(sql, params).then(resolve).catch(reject);
+                    client.query(sql, params).then(resolve).catch(reject);
                 });
             }
 
-            obj.client.query(sql, [name]).then(
+            client.query(sql, [name]).then(
                 update
             ).then(
                 done

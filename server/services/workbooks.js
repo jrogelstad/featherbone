@@ -19,9 +19,12 @@
 (function (exports) {
     "use strict";
 
+    const {Database} = require("../database");
     const {Feathers} = require("./feathers");
     const {Tools} = require("./tools");
     const f = require("../../common/core");
+
+    const db = new Database();
     const feathers = new Feathers();
     const tools = new Tools();
 
@@ -49,9 +52,10 @@
         that.deleteWorkbook = function (obj) {
             return new Promise(function (resolve, reject) {
                 let sql = "DELETE FROM \"$workbook\" WHERE name=$1;";
+                let client = db.getClient(obj.client);
 
                 tools.isSuperUser({
-                    client: obj.client,
+                    client: client,
                     user: obj.user
                 }).then(function (isSuper) {
                     let err;
@@ -64,7 +68,7 @@
                         throw err;
                     }
 
-                    obj.client.query(sql, [obj.data.name], function (err) {
+                    client.query(sql, [obj.data.name], function (err) {
                         if (err) {
                             reject(err);
                             return;
@@ -111,6 +115,7 @@
         that.getWorkbooks = function (obj) {
             return new Promise(function (resolve, reject) {
                 let user = obj.user;
+                let client = db.getClient(obj.client);
 
                 function callback(isSuper) {
                     let params = [];
@@ -132,7 +137,7 @@
                     );
 
                     if (!isSuper) {
-                        params = [obj.client.currentUser];
+                        params = [client.currentUser()];
                         sql += (
                             "AND EXISTS (" +
                             "  SELECT can_read FROM ( " +
@@ -156,7 +161,7 @@
 
                     sql += " ORDER BY _pk";
 
-                    obj.client.query(sql, params, function (err, resp) {
+                    client.query(sql, params, function (err, resp) {
                         function auths(a) {
                             return {
                                 role: a.f1,
@@ -179,7 +184,7 @@
                 }
 
                 tools.isSuperUser({
-                    client: obj.client,
+                    client: client,
                     user: user
                 }).then(callback).catch(reject);
             });
@@ -207,6 +212,7 @@
                 let user = obj.data.user;
                 let action = obj.data.action || "";
                 let name = obj.data.name;
+                let client = db.getClient(obj.client);
 
                 action = action.toSnakeCase();
 
@@ -229,7 +235,7 @@
                         "LIMIT 1;"
                     );
 
-                    obj.client.query(sql, [name, user]).then(function (resp) {
+                    client.query(sql, [name, user]).then(function (resp) {
                         resolve(resp.rows.length > 0);
                     }).catch(reject);
                 }
@@ -246,7 +252,7 @@
                 }
 
                 tools.isSuperUser({
-                    client: obj.client,
+                    client: client,
                     user: obj.data.user
                 }).then(callback).catch(reject);
             });
@@ -281,6 +287,7 @@
                 let len = workbooks.length;
                 let n = 0;
                 let oldAuth;
+                let client = db.getClient(obj.client);
 
                 findSql = (
                     "SELECT * FROM \"$workbook\" AS workbook, " +
@@ -292,7 +299,7 @@
                 );
 
                 function execute() {
-                    obj.client.query(sql, params, function (err) {
+                    client.query(sql, params, function (err) {
                         let auths = [];
                         let requests = [];
 
@@ -316,7 +323,7 @@
                             // Clear old auths in case of deletions
                             oldAuth.forEach(function (auth) {
                                 auths.push({
-                                    client: obj.client,
+                                    client: client,
                                     data: {
                                         id: id,
                                         role: auth.f1,
@@ -354,7 +361,7 @@
                                     actions.canDelete = null;
                                 } else {
                                     auths.push({
-                                        client: obj.client,
+                                        client: client,
                                         data: {
                                             id: id,
                                             role: auth.role,
@@ -388,7 +395,7 @@
                         oldAuth = false;
 
                         // Upsert workbook
-                        obj.client.query(
+                        client.query(
                             findSql,
                             [wb.name],
                             function (err, resp) {
@@ -431,7 +438,7 @@
                                     );
                                     params = [
                                         wb.name,
-                                        obj.client.currentUser,
+                                        client.currentUser(),
                                         wb.description || row.description,
                                         JSON.stringify(launchConfig),
                                         JSON.stringify(defaultConfig),
@@ -442,7 +449,7 @@
                                     execute();
                                 } else {
                                     tools.isSuperUser({
-                                        client: obj.client,
+                                        client: client,
                                         user: user
                                     }).then(function (isSuper) {
                                         let e;
@@ -486,7 +493,7 @@
                                             JSON.stringify(defaultConfig),
                                             JSON.stringify(localConfig),
                                             icon,
-                                            obj.client.currentUser
+                                            client.currentUser()
                                         ];
 
                                         execute();

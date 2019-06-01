@@ -20,11 +20,13 @@
     "use strict";
 
     const {Currency} = require("./currency");
+    const {Database} = require("../database");
     const {Events} = require("./events");
     const {Feathers} = require("./feathers");
     const {Tools} = require("./tools");
 
     const currency = new Currency();
+    const db = new Database();
     const events = new Events();
     const feathers = new Feathers();
     const tools = new Tools();
@@ -94,6 +96,7 @@
                 let sql = "UPDATE object SET is_deleted = true WHERE id=$1;";
                 let clen = 1;
                 let c = 0;
+                let client = db.getClient(obj.client);
 
                 if (obj.isHard === true) {
                     sql = "DELETE FROM object WHERE id=$1;";
@@ -117,7 +120,7 @@
 
                     if (isSuperUser === false) {
                         feathers.isAuthorized({
-                            client: obj.client,
+                            client: client,
                             data: {
                                 id: obj.id,
                                 action: "canDelete"
@@ -142,7 +145,7 @@
                         id: obj.id,
                         showDeleted: true,
                         properties: Object.keys(props).filter(noChildProps),
-                        client: obj.client,
+                        client: client,
                         callback: afterDoSelect
                     }, true).then(afterDoSelect).catch(reject);
                 };
@@ -192,14 +195,14 @@
                             crud.doDelete({
                                 name: rel,
                                 id: row.id,
-                                client: obj.client,
+                                client: client,
                                 isHard: obj.isHard
                             }, true).then(afterDelete).catch(reject);
                         });
                     });
 
                     // Finally, delete parent object
-                    obj.client.query(sql, [obj.id], afterDelete);
+                    client.query(sql, [obj.id], afterDelete);
                 };
 
                 // Handle change log
@@ -228,7 +231,7 @@
                             updated: now,
                             updatedBy: now
                         },
-                        client: obj.client
+                        client: client
                     }, true).then(afterLog).catch(reject);
                 };
 
@@ -239,7 +242,7 @@
                 // Kick off query by getting feather, the rest falls
                 // through callbacks
                 feathers.getFeather({
-                    client: obj.client,
+                    client: client,
                     data: {
                         name: obj.name
                     }
@@ -298,12 +301,13 @@
                 let clen = 1;
                 let c = 0;
                 let p = 2;
+                let client = db.getClient(obj.client);
 
                 payload = {
                     data: {
                         name: obj.name
                     },
-                    client: obj.client
+                    client: client
                 };
 
                 afterGetFeather = function (resp) {
@@ -338,7 +342,7 @@
 
                     tools.getKey({
                         id: data.id,
-                        client: obj.client
+                        client: client
                     }, true).then(afterIdCheck).catch(reject);
                 };
 
@@ -366,7 +370,7 @@
 
                     if (unique) {
                         tools.getKeys({
-                            client: obj.client,
+                            client: client,
                             name: unique.feather,
                             filter: {
                                 criteria: [{
@@ -394,7 +398,7 @@
 
                     if (!isChild && isSuperUser === false) {
                         feathers.isAuthorized({
-                            client: obj.client,
+                            client: client,
                             data: {
                                 feather: name,
                                 action: "canCreate"
@@ -420,14 +424,14 @@
                     // Set some system controlled values
                     data.updated = f.now();
                     data.created = data.updated;
-                    data.createdBy = obj.client.currentUser;
-                    data.updatedBy = obj.client.currentUser;
+                    data.createdBy = client.currentUser();
+                    data.updatedBy = client.currentUser();
                     data.isDeleted = false;
                     data.lock = null;
 
                     // Get primary key
                     sql = "select nextval('object__pk_seq')";
-                    obj.client.query(sql, afterNextVal);
+                    client.query(sql, afterNextVal);
                 };
 
                 afterNextVal = function (err, resp) {
@@ -498,11 +502,11 @@
                                         crud.doInsert({
                                             name: prop.type.relation,
                                             data: data[key],
-                                            client: obj.client
+                                            client: client
                                         }, true, true).then(function () {
                                             tools.getKey({
                                                 id: data[key].id,
-                                                client: obj.client
+                                                client: client
                                             }).then(afterGetPk).catch(reject);
                                         }).catch(reject);
                                         return;
@@ -514,7 +518,7 @@
                                     } else {
                                         tools.getKey({
                                             id: data[key].id,
-                                            client: obj.client
+                                            client: client
                                         }).then(afterGetPk).catch(reject);
                                     }
                                     return;
@@ -561,7 +565,7 @@
                                     afterHandleRelations();
                                 };
 
-                                obj.client.query(
+                                client.query(
                                     "SELECT nextval($1) AS seq",
                                     [prop.autonumber.sequence],
                                     callback
@@ -714,7 +718,7 @@
                                 pk: pk,
                                 name: rel,
                                 data: row,
-                                client: obj.client
+                                client: client
                             }, true).then(afterInsert).catch(reject);
                         });
                     });
@@ -734,7 +738,7 @@
                         crud.doSelect({
                             name: obj.name,
                             id: data.id,
-                            client: obj.client
+                            client: client
                         }).then(afterDoSelect).catch(reject);
                     }
 
@@ -745,7 +749,7 @@
                     }
 
                     // Perform the parent insert
-                    obj.client.query(sql, values).then(
+                    client.query(sql, values).then(
                         afterParentInsert
                     ).catch(
                         reject
@@ -767,7 +771,7 @@
                             updatedBy: data.updatedBy,
                             change: f.copy(result)
                         },
-                        client: obj.client
+                        client: client
                     }, true).then(afterLog).catch(reject);
                 };
 
@@ -816,10 +820,11 @@
                 let mapKeys;
                 let tokens = [];
                 let cols = [];
+                let client = db.getClient(obj.client);
 
                 payload = {
                     name: obj.name,
-                    client: obj.client,
+                    client: client,
                     showDeleted: obj.showDeleted
                 };
 
@@ -878,7 +883,7 @@
 
                     sql += " WHERE _pk = $1";
 
-                    obj.client.query(sql, [key], function (err, resp) {
+                    client.query(sql, [key], function (err, resp) {
                         let result;
 
                         if (err) {
@@ -921,7 +926,7 @@
                         sql += tools.processSort(sort, tokens);
                         sql = sql.format(tokens);
 
-                        obj.client.query(sql, keys, function (err, resp) {
+                        client.query(sql, keys, function (err, resp) {
                             if (err) {
                                 reject(err);
                                 return;
@@ -944,7 +949,7 @@
 
                             // Handle subscription
                             events.subscribe(
-                                obj.client,
+                                client,
                                 obj.subscription,
                                 result.map(ids),
                                 feathername
@@ -959,7 +964,7 @@
                     } else {
                         // Handle subscription
                         events.unsubscribe(
-                            obj.client,
+                            client,
                             subscription.id
                         ).then(
                             function () {
@@ -995,7 +1000,7 @@
                 // Kick off query by getting feather, the rest falls through
                 // callbacks
                 feathers.getFeather({
-                    client: obj.client,
+                    client: client,
                     data: {
                         name: obj.name
                     }
@@ -1050,6 +1055,7 @@
                 let children = [];
                 let p = 1;
                 let n = 0;
+                let client = db.getClient(obj.client);
 
                 if (!patches.length) {
                     resolve([]);
@@ -1079,7 +1085,7 @@
 
                     tools.getKey({
                         id: id,
-                        client: obj.client
+                        client: client
                     }).then(afterGetKey).catch(reject);
                 }
 
@@ -1101,7 +1107,7 @@
 
                     if (isSuperUser === false) {
                         feathers.isAuthorized({
-                            client: obj.client,
+                            client: client,
                             data: {
                                 id: id,
                                 action: "canUpdate"
@@ -1122,7 +1128,7 @@
                         name: obj.name,
                         id: obj.id,
                         properties: keys.filter(noChildProps),
-                        client: obj.client,
+                        client: client,
                         sanitize: false
                     }, isChild).then(afterDoSelect).catch(reject);
                 };
@@ -1195,7 +1201,7 @@
                     updRec.created = oldRec.created;
                     updRec.createdBy = oldRec.createdBy;
                     updRec.updated = new Date().toJSON();
-                    updRec.updatedBy = obj.client.currentUser;
+                    updRec.updatedBy = client.currentUser();
                     updRec.isDeleted = false;
                     updRec.lock = oldRec.lock;
 
@@ -1212,7 +1218,7 @@
                     // Check unique properties
                     if (keys.some(uniqueChanged)) {
                         tools.getKeys({
-                            client: obj.client,
+                            client: client,
                             name: unique.feather,
                             filter: {
                                 criteria: [{
@@ -1273,7 +1279,7 @@
                                             payload: {
                                                 name: relation,
                                                 id: cid,
-                                                client: obj.client
+                                                client: client
                                             }
                                         });
                                     }
@@ -1302,7 +1308,7 @@
                                                     name: relation,
                                                     id: cid,
                                                     data: cpatches,
-                                                    client: obj.client
+                                                    client: client
                                                 }
                                             });
                                         }
@@ -1316,7 +1322,7 @@
                                             payload: {
                                                 name: relation,
                                                 data: cNewRec,
-                                                client: obj.client
+                                                client: client
                                             }
                                         });
                                     }
@@ -1329,7 +1335,7 @@
                                     crud.doDelete({
                                         name: props[key].type.relation,
                                         id: oldRec[key].id,
-                                        client: obj.client,
+                                        client: client,
                                         isHard: true
                                     }, true, true).then(function () {
                                         afterGetRelKey(null, -1);
@@ -1344,11 +1350,11 @@
                                         name: props[key].type.relation,
                                         id: updRec[key].id,
                                         data: updRec[key],
-                                        client: obj.client
+                                        client: client
                                     }, true, true).then(function () {
                                         tools.getKey({
                                             id: updRec[key].id,
-                                            client: obj.client
+                                            client: client
                                         }).then(
                                             afterGetRelKey
                                         ).catch(
@@ -1380,11 +1386,11 @@
                                         name: props[key].type.relation,
                                         id: updRec[key].id,
                                         data: cpatches,
-                                        client: obj.client
+                                        client: client
                                     }, true, true).then(function () {
                                         tools.getKey({
                                             id: updRec[key].id,
-                                            client: obj.client
+                                            client: client
                                         }).then(
                                             afterGetRelKey
                                         ).catch(
@@ -1407,7 +1413,7 @@
                                 if (updProp.id) {
                                     tools.getKey({
                                         id: updRec[key].id,
-                                        client: obj.client
+                                        client: client
                                     }).then(afterGetRelKey).catch(reject);
                                 } else {
                                     afterGetRelKey(null, -1);
@@ -1502,7 +1508,7 @@
                     clen += 1;
 
                     Promise.all(children).then(
-                        () => obj.client.query(sql, params)
+                        () => client.query(sql, params)
                     ).then(
                         afterUpdate
                     ).catch(
@@ -1521,7 +1527,7 @@
                     crud.doSelect({
                         name: feather.name,
                         id: id,
-                        client: obj.client
+                        client: client
                     }).then(afterSelectUpdated).catch(reject);
                 };
 
@@ -1544,7 +1550,7 @@
                                     result
                                 ))
                             },
-                            client: obj.client
+                            client: client
                         }, true).then(doUnlock).catch(reject);
                         return;
                     }
@@ -1552,7 +1558,7 @@
                 };
 
                 doUnlock = function () {
-                    crud.unlock(obj.client, {
+                    crud.unlock(client, {
                         id: obj.id
                     }).then(
                         done
@@ -1573,7 +1579,7 @@
                 // Kick off query by getting feather, the rest falls
                 // through callbacks
                 feathers.getFeather({
-                    client: obj.client,
+                    client: client,
                     data: {
                         name: obj.name
                     }

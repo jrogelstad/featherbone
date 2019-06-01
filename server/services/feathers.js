@@ -18,14 +18,12 @@
 (function (exports) {
     "use strict";
 
-    const {
-        Tools
-    } = require("./tools");
-    const {
-        Settings
-    } = require("./settings");
+    const {Database} = require("../database");
+    const {Tools} = require("./tools");
+    const {Settings} = require("./settings");
     const f = require("../../common/core");
 
+    const db = new Database();
     const settings = new Settings();
     const tools = new Tools();
     const formats = tools.formats;
@@ -158,6 +156,7 @@
             let args = ["_" + table, "_pk"];
             let cols = ["%I"];
             let sql = "";
+            let client = obj.client;
 
             afterGetFeather = function (resp) {
                 feather = resp;
@@ -249,7 +248,7 @@
 
                 // If execute, run the sql now
                 if (execute) {
-                    obj.client.query(sql, function (err) {
+                    client.query(sql, function (err) {
                         if (err) {
                             obj.callback(err);
                             return;
@@ -265,7 +264,7 @@
             };
 
             that.getFeather({
-                client: obj.client,
+                client: client,
                 data: {
                     name: obj.name
                 }
@@ -281,12 +280,13 @@
             let statements = obj.statements || [];
             let level = obj.level || 0;
             let sql = "";
+            let client = obj.client;
 
             afterGetCatalog = function (resp) {
                 catalog = resp;
                 createView({
                     name: name,
-                    client: obj.client,
+                    client: client,
                     callback: afterCreateView,
                     dropFirst: true,
                     execute: false
@@ -355,7 +355,7 @@
                         sql += statement.sql;
                     });
 
-                    obj.client.query(sql, function (err) {
+                    client.query(sql, function (err) {
                         if (err) {
                             obj.callback(err);
                             return;
@@ -385,7 +385,7 @@
                                 func: propagateViews,
                                 payload: {
                                     name: key,
-                                    client: obj.client,
+                                    client: client,
                                     callback: next,
                                     statements: statements,
                                     level: level + 1
@@ -403,7 +403,7 @@
                             func: propagateViews,
                             payload: {
                                 name: key,
-                                client: obj.client,
+                                client: client,
                                 callback: next,
                                 statements: statements,
                                 level: level + 1
@@ -427,7 +427,7 @@
                                 func: createView,
                                 payload: {
                                     name: type.relation,
-                                    client: obj.client,
+                                    client: client,
                                     callback: next,
                                     execute: false
                                 }
@@ -443,7 +443,7 @@
             };
 
             settings.getSettings({
-                client: obj.client,
+                client: client,
                 data: {
                     name: "catalog"
                 }
@@ -456,6 +456,7 @@
                 let afterGetChildFeather;
                 let afterGetParentFeather;
                 let done;
+                let client = obj.client;
 
                 afterGetChildFeather = function (resp) {
                     let cKeys;
@@ -471,7 +472,7 @@
                             cParent = cProps[cKey].type.relation;
 
                             that.getFeather({
-                                client: obj.client,
+                                client: client,
                                 data: {
                                     name: obj.parent
                                 }
@@ -489,14 +490,14 @@
                         getParentKey({
                             child: cParent,
                             parent: obj.parent,
-                            client: obj.client
+                            client: client
                         }).then(resolve).catch(reject);
                         return;
                     }
 
                     tools.getKey({
                         name: cParent.toSnakeCase(),
-                        client: obj.client
+                        client: client
                     }).then(done).catch(reject);
                 };
 
@@ -510,7 +511,7 @@
                 };
 
                 that.getFeather({
-                    client: obj.client,
+                    client: client,
                     data: {
                         name: obj.child
                     }
@@ -554,6 +555,7 @@
                 );
                 let o = 0;
                 let c = 0;
+                let client = db.getClient(obj.client);
 
                 afterGetCatalog = function (resp) {
                     catalog = resp;
@@ -569,7 +571,7 @@
                     // Drop table(s)
                     sql = "DROP VIEW %I; DROP TABLE %I;" + sql;
                     sql = sql.format(["_" + table, table]);
-                    obj.client.query(sql, function (err) {
+                    client.query(sql, function (err) {
                         if (err) {
                             reject(err);
                             return;
@@ -577,14 +579,14 @@
 
                         sql = "DELETE FROM \"$auth\" WHERE object_pk=";
                         sql += "(SELECT _pk FROM \"$feather\" WHERE id=$1);";
-                        obj.client.query(sql, [table], function (err) {
+                        client.query(sql, [table], function (err) {
                             if (err) {
                                 reject(err);
                                 return;
                             }
 
                             sql = "DELETE FROM \"$feather\" WHERE id=$1;";
-                            obj.client.query(sql, [table], function (err) {
+                            client.query(sql, [table], function (err) {
                                 if (err) {
                                     reject(err);
                                     return;
@@ -607,7 +609,7 @@
                         createView({
                             name: rel,
                             dropFirst: true,
-                            client: obj.client,
+                            client: client,
                             callback: createViews
                         });
                         return;
@@ -656,7 +658,7 @@
                         /* Update catalog settings */
                         delete catalog[name];
                         settings.saveSettings({
-                            client: obj.client,
+                            client: client,
                             data: {
                                 name: "catalog",
                                 data: catalog
@@ -670,7 +672,7 @@
                 };
 
                 settings.getSettings({
-                    client: obj.client,
+                    client: client,
                     data: {
                         name: "catalog"
                     }
@@ -692,6 +694,7 @@
             return new Promise(function (resolve, reject) {
                 let callback;
                 let name = obj.data.name;
+                let client = db.getClient(obj.client);
 
                 callback = function (catalog) {
                     let resultProps;
@@ -756,7 +759,7 @@
 
                 /* First, get catalog */
                 settings.getSettings({
-                    client: obj.client,
+                    client: client,
                     data: {name: "catalog"}
                 }).then(callback).catch(reject);
             });
@@ -786,12 +789,13 @@
                 let authSql;
                 let sql;
                 let params;
-                let user = obj.data.user || obj.client.currentUser;
+                let user = obj.data.user || obj.client.currentUser();
                 let feather = obj.data.feather;
                 let action = obj.data.action;
                 let id = obj.data.id;
                 let tokens = [];
                 let result = false;
+                let client = db.getClient(obj.client);
 
                 function callback(isSuper) {
                     if (isSuper) {
@@ -815,7 +819,7 @@
                         );
                         sql = sql.format([action.toSnakeCase()]);
 
-                        obj.client.query(sql, params, function (err, resp) {
+                        client.query(sql, params, function (err, resp) {
                             if (err) {
                                 reject(err);
                                 return;
@@ -831,7 +835,7 @@
                         sql = "SELECT _pk, tableoid::regclass::text AS \"t\" ";
                         sql += "FROM object WHERE id = $1;";
 
-                        obj.client.query(sql, [id], function (err, resp) {
+                        client.query(sql, [id], function (err, resp) {
                             if (err) {
                                 reject(err);
                                 return;
@@ -854,7 +858,7 @@
                                 );
                                 sql = sql.format(tokens);
 
-                                obj.client.query(
+                                client.query(
                                     sql,
                                     [user, pk],
                                     function (err, resp) {
@@ -880,7 +884,7 @@
                 }
 
                 tools.isSuperUser({
-                    client: obj.client,
+                    client: client,
                     user: obj.data.user
                 }).then(callback).catch(reject);
             });
@@ -940,6 +944,7 @@
                 );
                 let actions = obj.data.actions || {};
                 let hasAuth = false;
+                let client = db.getClient(obj.client);
 
                 afterGetObjKey = function (resp) {
                     objPk = resp;
@@ -950,7 +955,7 @@
                         return;
                     }
 
-                    obj.client.query(
+                    client.query(
                         "SELECT _pk FROM \"role\" WHERE name = $1",
                         [obj.data.role]
                     ).then(afterGetRoleKey).catch(reject);
@@ -973,7 +978,7 @@
                             "SELECT tableoid::regclass::text AS feather " +
                             "FROM object WHERE id=$1"
                         );
-                        obj.client.query(sql, [id], afterGetFeatherName);
+                        client.query(sql, [id], afterGetFeatherName);
                         return;
                     }
 
@@ -993,7 +998,7 @@
                     feather = resp.rows[0].feather.toCamelCase(true);
 
                     that.getFeather({
-                        client: obj.client,
+                        client: client,
                         data: {
                             name: feather,
                             includeInherited: true
@@ -1028,7 +1033,7 @@
 
                 checkSuperUser = function () {
                     tools.isSuperUser({
-                        client: obj.client
+                        client: client
                     }).then(function (isSuper) {
                         if (isSuper) {
                             afterCheckSuperUser();
@@ -1037,13 +1042,13 @@
 
                         sql = "SELECT owner FROM object WHERE _pk=$1;";
 
-                        obj.client.query(sql, [objPk], function (err, resp) {
+                        client.query(sql, [objPk], function (err, resp) {
                             if (err) {
                                 reject(err);
                                 return;
                             }
 
-                            if (resp.rows[0].owner !== obj.client.currentUser) {
+                            if (resp.rows[0].owner !== client.currentUser()) {
                                 if (obj.data.isSilentError) {
                                     done(null, false);
                                     return;
@@ -1084,7 +1089,7 @@
                         "  AND auth.role=$2;"
                     );
 
-                    obj.client.query(
+                    client.query(
                         sql,
                         [id, obj.data.role],
                         afterQueryAuth
@@ -1171,7 +1176,7 @@
                         return;
                     }
 
-                    obj.client.query(sql, params, done);
+                    client.query(sql, params, done);
                 };
 
                 done = function (err, resp) {
@@ -1187,7 +1192,7 @@
                 // through callbacks
                 tools.getKey({
                     id: id,
-                    client: obj.client
+                    client: client
                 }).then(afterGetObjKey).catch(reject);
             });
         };
@@ -1255,6 +1260,7 @@
                 );
                 let c = 0;
                 let len = specs.length;
+                let client = db.getClient(obj.client);
 
                 function nextSpec() {
                     let sqlUpd;
@@ -1333,7 +1339,7 @@
                         feather = resp;
 
                         settings.getSettings({
-                            client: obj.client,
+                            client: client,
                             data: {
                                 name: "catalog"
                             }
@@ -1666,7 +1672,7 @@
 
                         /* Update schema */
                         sql = sql.format(tokens);
-                        obj.client.query(sql, createSequence);
+                        client.query(sql, createSequence);
                     };
 
                     createSequence = function (err) {
@@ -1686,7 +1692,7 @@
                         sql += "WHERE relkind = 'S' AND relname = $1 ";
                         sql += "AND nspname = 'public'";
 
-                        obj.client.query(sql, [sequence], function (err, resp) {
+                        client.query(sql, [sequence], function (err, resp) {
                             if (err) {
                                 reject(err);
                                 return;
@@ -1695,7 +1701,7 @@
                             if (!resp.rows.length) {
                                 sql = "CREATE SEQUENCE %I;";
                                 sql = sql.format([sequence]);
-                                obj.client.query(sql, function (err) {
+                                client.query(sql, function (err) {
                                     if (err) {
                                         reject(err);
                                         return;
@@ -1718,7 +1724,7 @@
                             return new Promise(function (resolve, reject) {
                                 sql = "ALTER TABLE %I DISABLE TRIGGER ALL;";
                                 sql = sql.format([table]);
-                                obj.client.query(sql).then(
+                                client.query(sql).then(
                                     resolve
                                 ).catch(
                                     reject
@@ -1731,7 +1737,7 @@
                                 sql = "UPDATE %I SET " + tokens.join(",");
                                 sql += ";";
                                 sql = sql.format(args);
-                                obj.client.query(sql, values).then(
+                                client.query(sql, values).then(
                                     resolve
                                 ).catch(
                                     reject
@@ -1743,7 +1749,7 @@
                             return new Promise(function (resolve, reject) {
                                 sql = "ALTER TABLE %I ENABLE TRIGGER ALL;";
                                 sql = sql.format([table]);
-                                obj.client.query(sql).then(
+                                client.query(sql).then(
                                     resolve
                                 ).catch(
                                     reject
@@ -1790,7 +1796,7 @@
                                 sqlUpd = "UPDATE %I SET " + tokens.join(",");
                                 sqlUpd += " WHERE _pk = $1";
                                 sqlUpd = sqlUpd.format(args);
-                                obj.client.query(sql, [n], iterateDefaults);
+                                client.query(sql, [n], iterateDefaults);
                                 return;
                             }
 
@@ -1815,7 +1821,7 @@
                                     i += 1;
                                 }
 
-                                obj.client.query(
+                                client.query(
                                     sqlUpd,
                                     values,
                                     function (err) {
@@ -1825,7 +1831,7 @@
                                         }
 
                                         // Look for next record
-                                        obj.client.query(
+                                        client.query(
                                             sql,
                                             [n],
                                             iterateDefaults
@@ -1941,7 +1947,7 @@
                                 ]);
                             });
 
-                            obj.client.query(
+                            client.query(
                                 sql.format(tokens),
                                 updateCatalog
                             );
@@ -2011,7 +2017,7 @@
                         );
 
                         settings.saveSettings({
-                            client: obj.client,
+                            client: client,
                             data: {
                                 name: "catalog",
                                 data: catalog
@@ -2025,12 +2031,12 @@
                         callback = function (resp) {
                             isChild = tools.isChildFeather(resp);
                             sql = "SELECT nextval('object__pk_seq') AS pk;";
-                            obj.client.query(sql, afterNextVal);
+                            client.query(sql, afterNextVal);
                         };
 
                         if (!feather) {
                             that.getFeather({
-                                client: obj.client,
+                                client: client,
                                 callback: callback,
                                 data: {
                                     name: name
@@ -2072,19 +2078,19 @@
                             values = [
                                 pk,
                                 table,
-                                obj.client.currentUser,
-                                obj.client.currentUser,
+                                client.currentUser(),
+                                client.currentUser(),
                                 isChild,
                                 key
                             ];
-                            obj.client.query(sql, values, afterInsertFeather);
+                            client.query(sql, values, afterInsertFeather);
                         };
 
                         if (isChild) {
                             getParentKey({
                                 parent: parent,
                                 child: name,
-                                client: obj.client
+                                client: client
                             }).then(callback).catch(reject);
                             return;
                         }
@@ -2103,7 +2109,7 @@
                         if (changed) {
                             propagateViews({
                                 name: name,
-                                client: obj.client,
+                                client: client,
                                 callback: afterPropagateViews
                             });
                             return;
@@ -2141,7 +2147,7 @@
                                 auth.feather = name;
                                 auth.isSilentError = true;
                                 requests.push(that.saveAuthorization({
-                                    client: obj.client,
+                                    client: client,
                                     data: auth
                                 }));
                             });
@@ -2191,7 +2197,7 @@
                     }
 
                     that.getFeather({
-                        client: obj.client,
+                        client: client,
                         data: {
                             name: spec.name,
                             includeInherited: false
