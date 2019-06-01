@@ -127,6 +127,12 @@ function featherProperty(data, spec) {
         function: formats
     });
 
+    that.onChange("name", function (prop) {
+        let re = new RegExp(" ", "g");
+        let value = prop.newValue().toCamelCase().replace(re, "");
+
+        prop.newValue(value);
+    });
     that.onChanged("type", handleReadOnly);
     that.onChanged("type", function () {
         let type = d.type();
