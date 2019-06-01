@@ -251,7 +251,11 @@ function isToMany(p) {
   @return {Object}
 */
 function model(data, feather) {
-    feather = feather || {};
+    feather = (
+        feather
+        ? f.copy(feather)
+        : {}
+    );
     feather.overloads = feather.overloads || {};
     feather.inherits = feather.inherits || "Object";
 
