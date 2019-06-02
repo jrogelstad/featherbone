@@ -479,10 +479,11 @@ formPage.viewModel = function (options) {
         let current = instance.state().current()[0];
 
         if (
-                (
-                    current === "/Ready/New" ||
-                    current === "/Ready/Fetched/Dirty"
-                ) && force !== true
+            (
+                current === "/Ready/New" ||
+                current === "/Ready/Fetched/Dirty"
+            ) &&
+            force !== true
         ) {
             vm.confirmDialog().show();
             return;
