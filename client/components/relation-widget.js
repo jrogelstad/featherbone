@@ -411,11 +411,12 @@ relationWidget.component = {
                 maxWidth: "100%"
             };
             buttonClass += " fb-relation-button-cell";
-            menuStyle.top = "35px";
+            menuStyle.top = "34px";
             menuStyle.right = "-100px";
             labelClass = "fb-relation-label-cell";
 
             menu = m("div", {
+                id: "nav-relation-div-container-" + id,
                 onmouseover: vm.onmouseovermenu,
                 style: {
                     position: "relative",
@@ -423,6 +424,7 @@ relationWidget.component = {
                 }
             }, [
                 m("div", {
+                    id: "nav-relation-div-menu-" + id,
                     class: (
                         "pure-menu " +
                         "custom-restricted-width " +
