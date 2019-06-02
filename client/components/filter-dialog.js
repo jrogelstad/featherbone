@@ -68,7 +68,6 @@ filterDialog.viewModel = function (options) {
       @param {Object} [obj.value] Value
     */
     function buildInputComponent(obj) {
-        let rel;
         let w;
         let component;
         let prop;
@@ -79,6 +78,7 @@ filterDialog.viewModel = function (options) {
         let value = obj.value;
         let index = obj.index;
         let opts = {};
+        let featherName;
 
         prop = resolveProperty(feather, attr);
         type = prop.type;
@@ -107,8 +107,14 @@ filterDialog.viewModel = function (options) {
 
         // Handle relations
         if (!type.childOf && !type.parentOf) {
-            rel = type.relation.toCamelCase();
-            w = catalog.store().components()[rel + "Relation"];
+            featherName = feather.name.toCamelCase();
+
+            w = f.findRelationWidget(type.relation, true);
+
+            if (!w) {
+                // Nothing specific, deduce from feather definition
+                w = f.buildRelationWidgetFromFeather(type, featherName);
+            }
 
             if (w) {
                 return m(w, {
