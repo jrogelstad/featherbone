@@ -139,6 +139,7 @@ function feather(data, spec) {
     });
     that.onChange("plural", sanitize);
 
+    that.onChanged("properties", handleReadOnlyProps);
     that.onChanged("properties.isNaturalKey", handleReadOnlyProps);
     that.onChanged("properties.isLabelKey", handleReadOnlyProps);
     that.onChanged("inherits", calculateInherited);
