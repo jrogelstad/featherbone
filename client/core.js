@@ -1067,7 +1067,6 @@ f.types.string.tableData = function (obj) {
 */
 f.buildInputComponent = function (obj) {
     let w;
-    let name;
     let featherName;
     let key = obj.key;
     let isPath = key.indexOf(".") !== -1;
@@ -1123,18 +1122,38 @@ f.buildInputComponent = function (obj) {
         });
     }
 
+    function findRelationWidget(relation, isTop) {
+        let name = relation.toCamelCase() + "Relation";
+        let ret = components[name];
+        let inherits;
+
+        if (ret || relation === "Object") {
+            return ret;
+        }
+
+        inherits = catalog.getFeather(relation).inherits || "Object";
+        ret = findRelationWidget(inherits);
+
+        if (w && isTop) {
+            components[name] = ret; // Memoize
+        }
+
+        return ret;
+    }
+
     // Handle relations
     if (prop.isToOne()) {
         featherName = obj.viewModel.model().name.toCamelCase();
-        name = prop.type.relation.toCamelCase() + "Relation";
 
-        if (components[name]) {
-            // Hard-coded
-            w = components[name];
-        } else if (obj.widget) {
+        if (obj.widget) {
             // Relation widget defined by form layout
             w = buildRelationWidgetFromLayout(obj.widget.id);
         } else {
+            // See if we have one defined somewhere
+            w = findRelationWidget(prop.type.relation, true);
+        }
+
+        if (!w) {
             // Nothing specific, deduce from feather definition
             w = buildRelationWidgetFromFeather(prop.type, featherName);
         }
