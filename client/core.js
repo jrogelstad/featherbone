@@ -1053,6 +1053,26 @@ f.types.string.tableData = function (obj) {
     return obj.value;
 };
 
+f.findRelationWidget = function (relation, isTop) {
+    let name = relation.toCamelCase() + "Relation";
+    let components = catalog.store().components();
+    let ret = components[name];
+    let inherits;
+
+    if (ret || relation === "Object") {
+        return ret;
+    }
+
+    inherits = catalog.getFeather(relation).inherits || "Object";
+    ret = f.findRelationWidget(inherits);
+
+    if (ret && isTop) {
+        components[name] = ret; // Memoize
+    }
+
+    return ret;
+};
+
 /**
   Factory for building input elements
 
@@ -1071,9 +1091,7 @@ f.buildInputComponent = function (obj) {
     let key = obj.key;
     let isPath = key.indexOf(".") !== -1;
     let prop = f.resolveProperty(obj.model, key);
-    let components = catalog.store().components();
     let editor;
-    let filter;
 
     obj.options.id = obj.options.id || key;
 
@@ -1123,58 +1141,16 @@ f.buildInputComponent = function (obj) {
         });
     }
 
-    function findInherited(feather, inherited) {
-        let feathers = catalog.feathers().slice();
-
-        feathers = feathers.filter((item) => item.inherits === feather);
-        Object.keys(feathers).forEach(function (key) {
-            inherited.push(key);
-            findInherited(key, inherited);
-        });
-    }
-
-    function findRelationWidget(relation, filter) {
-        let name = relation.toCamelCase() + "Relation";
-        let ret = components[name];
-        let inherits;
-        let inherited = [relation];
-
-        if (ret || relation === "Object") {
-            return ret;
-        }
-
-        inherits = catalog.getFeather(relation).inherits || "Object";
-        ret = findRelationWidget(inherits);
-
-        if (w && filter) {
-            // Find all feathers inheriting this relation's feather
-            // and include in filter
-            findInherited(relation, inherited);
-            if (!filter.criteria) {
-                filter.criteria = [];
-            }
-            filter.criteria.push({
-                property: "ObjectType",
-                operator: "IN",
-                value: inherited
-            });
-            components[name] = ret; // Memoize
-        }
-
-        return ret;
-    }
-
     // Handle relations
     if (prop.isToOne()) {
         featherName = obj.viewModel.model().name.toCamelCase();
-        filter = obj.filter || {};
 
         if (obj.widget) {
             // Relation widget defined by form layout
             w = buildRelationWidgetFromLayout(obj.widget.id);
         } else {
             // See if we have one defined somewhere
-            w = findRelationWidget(prop.type.relation, filter);
+            w = f.findRelationWidget(prop.type.relation, true);
         }
 
         if (!w) {
@@ -1186,7 +1162,7 @@ f.buildInputComponent = function (obj) {
             return m(w, {
                 parentViewModel: obj.viewModel,
                 parentProperty: key,
-                filter: filter,
+                filter: obj.filter,
                 isCell: obj.options.isCell,
                 style: obj.options.style,
                 onCreate: obj.options.oncreate,
@@ -1210,6 +1186,8 @@ f.buildInputComponent = function (obj) {
 
     console.log("Widget for property '" + key + "' is undefined");
 };
+
+f.buildRelationWidgetFromFeather = buildRelationWidgetFromFeather;
 
 /*
   Returns the exact x, y coordinents of an HTML element.
