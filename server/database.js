@@ -207,7 +207,7 @@
                         }
 
                         row = resp.rows[0];
-                        row.isSuper = row.isSuper;
+                        row.isSuper = row.is_super;
                         delete row.is_super;
                         // Send back result
                         resolve(row);
