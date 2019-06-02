@@ -285,34 +285,38 @@
         }, {
             "attr": "default"
         }, {
-            "attr": "isRequired"
+            "attr": "isRequired",
+            "unit": 1
         }, {
-            "attr": "isReadOnly"
+            "attr": "isReadOnly",
+            "unit": 1
         }, {
-            "attr": "isNaturalKey"
+            "attr": "isNaturalKey",
+            "unit": 1
         }, {
-            "attr": "isLabelKey"
+            "attr": "isLabelKey",
+            "unit": 1
         }, {
             "attr": "isIndexed",
-            "unit": 0
+            "unit": 1
         }, {
             "attr": "autonumber",
-            "unit": 1
+            "unit": 2
         }, {
             "attr": "dataList",
-            "unit": 1
+            "unit": 2
         }, {
             "attr": "scale",
-            "unit": 1
+            "unit": 2
         }, {
             "attr": "precision",
-            "unit": 1
+            "unit": 2
         }, {
             "attr": "min",
-            "unit": 1
+            "unit": 2
         }, {
             "attr": "max",
-            "unit": 1
+            "unit": 2
         }]
     }
 }, {
