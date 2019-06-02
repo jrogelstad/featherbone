@@ -283,6 +283,8 @@
             "attr": "format",
             "dataList": "formats"
         }, {
+            "attr": "default"
+        }, {
             "attr": "isRequired"
         }, {
             "attr": "isReadOnly"
@@ -291,7 +293,8 @@
         }, {
             "attr": "isLabelKey"
         }, {
-            "attr": "isIndexed"
+            "attr": "isIndexed",
+            "unit": 0
         }, {
             "attr": "autonumber",
             "unit": 1

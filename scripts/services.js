@@ -66,6 +66,14 @@ function doUpsertFeather(obj) {
                     delete prop[attr];
                 });
                 feather.properties[prop.name] = prop;
+                if (
+                    typeof prop.default === "string" &&
+                    prop.default.toLowerCase() === "null"
+                ) {
+                    prop.default = null;
+                } else if (prop.default === "") {
+                    delete prop.default;
+                }
                 delete prop.name;
             }
         });
