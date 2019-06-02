@@ -94,8 +94,10 @@
 
     function subscribe(obj) {
         return new Promise(function (resolve, reject) {
+            let client = db.getClient(obj.client);
+
             events.subscribe(
-                obj.client,
+                client,
                 obj.subscription,
                 [obj.id]
             ).then(
@@ -108,8 +110,10 @@
 
     function unsubscribe(obj) {
         return new Promise(function (resolve, reject) {
+            let client = db.getClient(obj.client);
+
             events.unsubscribe(
-                obj.client,
+                client,
                 obj.subscription.id
             ).then(
                 resolve.bind(null, true)
