@@ -328,8 +328,15 @@ function createTableDataView(options, col) {
 
                 return m("a", {
                     href: url,
-                    onclick: function () {
+                    onclick: function (e) {
                         vm.canToggle(false);
+                        e.preventDefault();
+                        m.route.set("/edit/:feather/:key", {
+                            feather: prop.type.relation.toSnakeCase(),
+                            key: d[col]().id()
+                        }, {
+                            state: {}
+                        });
                     }
                 }, value);
             }
