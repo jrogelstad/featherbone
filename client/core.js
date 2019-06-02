@@ -1073,6 +1073,7 @@ f.buildInputComponent = function (obj) {
     let prop = f.resolveProperty(obj.model, key);
     let components = catalog.store().components();
     let editor;
+    let filter;
 
     obj.options.id = obj.options.id || key;
 
@@ -1122,10 +1123,21 @@ f.buildInputComponent = function (obj) {
         });
     }
 
-    function findRelationWidget(relation, isTop) {
+    function findInherited(feather, inherited) {
+        let feathers = catalog.feathers().slice();
+
+        feathers = feathers.filter((item) => item.inherits === feather);
+        Object.keys(feathers).forEach(function (key) {
+            inherited.push(key);
+            findInherited(key, inherited);
+        });
+    }
+
+    function findRelationWidget(relation, filter) {
         let name = relation.toCamelCase() + "Relation";
         let ret = components[name];
         let inherits;
+        let inherited = [relation];
 
         if (ret || relation === "Object") {
             return ret;
@@ -1134,7 +1146,18 @@ f.buildInputComponent = function (obj) {
         inherits = catalog.getFeather(relation).inherits || "Object";
         ret = findRelationWidget(inherits);
 
-        if (w && isTop) {
+        if (w && filter) {
+            // Find all feathers inheriting this relation's feather
+            // and include in filter
+            findInherited(relation, inherited);
+            if (!filter.criteria) {
+                filter.criteria = [];
+            }
+            filter.criteria.push({
+                property: "ObjectType",
+                operator: "IN",
+                value: inherited
+            });
             components[name] = ret; // Memoize
         }
 
@@ -1144,13 +1167,14 @@ f.buildInputComponent = function (obj) {
     // Handle relations
     if (prop.isToOne()) {
         featherName = obj.viewModel.model().name.toCamelCase();
+        filter = obj.filter || {};
 
         if (obj.widget) {
             // Relation widget defined by form layout
             w = buildRelationWidgetFromLayout(obj.widget.id);
         } else {
             // See if we have one defined somewhere
-            w = findRelationWidget(prop.type.relation, true);
+            w = findRelationWidget(prop.type.relation, filter);
         }
 
         if (!w) {
@@ -1162,7 +1186,7 @@ f.buildInputComponent = function (obj) {
             return m(w, {
                 parentViewModel: obj.viewModel,
                 parentProperty: key,
-                filter: obj.filter,
+                filter: filter,
                 isCell: obj.options.isCell,
                 style: obj.options.style,
                 onCreate: obj.options.oncreate,
