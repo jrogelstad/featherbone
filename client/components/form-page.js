@@ -466,7 +466,7 @@ formPage.viewModel = function (options) {
         message: ("You will lose changes you have made. Are you sure?"),
         onOk: function () {
             vm.model().state().send("undo");
-            vm.doBack();
+            vm.doBack(true);
         }
     }));
     vm.doApply = function () {
@@ -474,10 +474,16 @@ formPage.viewModel = function (options) {
             callReceiver(false);
         });
     };
-    vm.doBack = function () {
+    vm.doBack = function (force) {
         let instance = vm.model();
+        let current = instance.state().current()[0];
 
-        if (instance.state().current()[0] === "/Ready/Fetched/Dirty") {
+        if (
+                (
+                    current === "/Ready/New" ||
+                    current === "/Ready/Fetched/Dirty"
+                ) && force !== true
+        ) {
             vm.confirmDialog().show();
             return;
         }
