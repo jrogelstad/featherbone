@@ -79,6 +79,10 @@ function buildForm(feather) {
 
     // Build config with remaining keys
     keys.forEach(function (key) {
+        let value = {attr: key};
+        let p;
+        let k;
+
         if (exclusions.indexOf(key) !== -1) {
             return;
         }
@@ -95,10 +99,20 @@ function buildForm(feather) {
                 props[key].type.childOf || props[key].type.parentOf
             )
         ) {
-            return;
+            p = catalog.getFeather(props[key].type.relation).properties;
+            k = Object.keys(p);
+            k = k.filter(function (key) {
+                return (
+                    exclusions.indexOf(key) === -1 &&
+                    (typeof p[key] !== "object" || !p[key].type.childOf)
+                );
+            });
+            value.columns = k.map(function (key) {
+                return {attr: key};
+            });
         }
 
-        attrs.push({attr: key});
+        attrs.push(value);
     });
 
     return {attrs: attrs};

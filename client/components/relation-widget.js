@@ -101,6 +101,7 @@ relationWidget.viewModel = function (options) {
     vm.formConfig = f.prop(options.form);
     vm.id = f.prop(options.id);
     vm.isCell = f.prop(Boolean(options.isCell));
+    vm.isRelationWidget = true;
     vm.isReadOnly = options.isReadOnly || f.prop(false);
     vm.label = function () {
         let model = modelValue();
