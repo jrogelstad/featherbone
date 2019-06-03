@@ -89,15 +89,18 @@ function featherProperty(data, spec) {
 
     function handleReadOnly() {
         let isNotNumber = d.type() !== "number";
-        let parentHasNaturalKey = that.parent().data.properties().some(
-            function (prop) {
-                return prop !== that && prop.data.isNaturalKey();
-            }
+        let pd = that.parent().data;
+        let parentHasNaturalKey = (
+            pd.properties().some(
+                (prop) => prop !== that && prop.data.isNaturalKey()
+            ) ||
+            pd.inheritedProperties().some((prop) => prop.data.isNaturalKey())
         );
-        let parentHasLabelKey = that.parent().data.properties().some(
-            function (prop) {
-                return prop !== that && prop.data.isLabelKey();
-            }
+        let parentHasLabelKey = (
+            pd.properties().some(
+                (prop) => prop !== that && prop.data.isLabelKey()
+            ) || 
+            pd.inheritedProperties().some((prop) => prop.data.isLabelKey())
         );
         let type = d.type();
 

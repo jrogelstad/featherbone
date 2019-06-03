@@ -59,6 +59,16 @@ function feather(data, spec) {
         });
     }
 
+    function handleReadOnly() {
+        that.data.name.isReadOnly(true);
+        that.data.plural.isReadOnly(true);
+        that.data.inherits.isReadOnly(true);
+    }
+
+    function handleReadOnlyProps() {
+        that.data.properties().forEach((prop) => prop.handleReadOnly());
+    }
+
     function calculateInherited() {
         let parent = that.data.inherits();
         let featherProperty;
@@ -83,16 +93,7 @@ function feather(data, spec) {
                 props.push(instance);
             });
         }
-    }
-
-    function handleReadOnly() {
-        that.data.name.isReadOnly(true);
-        that.data.plural.isReadOnly(true);
-        that.data.inherits.isReadOnly(true);
-    }
-
-    function handleReadOnlyProps() {
-        that.data.properties().forEach((prop) => prop.handleReadOnly());
+        handleReadOnlyProps();
     }
 
     function isChild(p) {
