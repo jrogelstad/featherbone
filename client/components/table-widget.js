@@ -851,7 +851,7 @@ tableWidget.viewModel = function (options) {
     }
 
     function getFilter(p) {
-        let fattrs;
+        let fattrs = [];
         let criterion;
         let value = vm.search();
         let filter = f.copy(vm.filter());
@@ -879,8 +879,26 @@ tableWidget.viewModel = function (options) {
 
         // Only search on text attributes
         if (value) {
-            fattrs = vm.attrs().filter(function (attr) {
-                return formatOf(vm.feather(), attr) === "string";
+            vm.attrs().forEach(function (attr) {
+                let theFeather = vm.feather();
+                let fmt = formatOf(theFeather, attr);
+                let nk;
+                let props;
+
+                if (fmt === "string") {
+                    fattrs.push(attr);
+                } else if (
+                    typeof fmt === "object" &&
+                    !fmt.childOf
+                ) {
+                    props = catalog.getFeather(fmt.relation).properties;
+                    nk = Object.keys(props).find(
+                        (key) => props[key].isNaturalKey
+                    );
+                    if (nk) {
+                        fattrs.push(attr + "." + nk);
+                    }
+                }
             });
 
             if (fattrs.length) {
