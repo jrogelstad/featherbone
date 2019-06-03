@@ -146,7 +146,7 @@ function buildFieldset(vm, attrs) {
         };
 
         // For relations we get buttons for label
-        if (relation) {
+        if (relation && relation.isRelationWidget) {
             if (!menuButtons[key]) {
                 menuButtons[key] = {
                     display: "none"
