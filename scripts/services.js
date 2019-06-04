@@ -244,73 +244,78 @@ function handleContact(obj) {
 
     return new Promise(function (resolve) {
         let found;
-        let oldPhone;
-        let newPhone;
-        let oldEmail;
-        let newEmail;
+        let oldAddr = {};
+        let newAddr = {};
         let newRec = obj.newRec;
         let oldRec = obj.oldRec;
 
-        // Handle primary phone biz logic
-        newRec.phones = (
-            Array.isArray(newRec.phones)
-            ? newRec.phones
-            : []
-        );
+        function handlePrimary(attr, attrs) {
+            let oldThing;
+            let newThing;
 
-        if (oldRec && oldRec.phone) {
-            oldPhone = oldRec.phone;
-        }
+            newRec[attrs] = (
+                Array.isArray(newRec[attrs])
+                ? newRec[attrs]
+                : []
+            );
 
-        if (newRec && newRec.phone) {
-            newPhone = newRec.Phone;
-        }
+            if (oldRec && oldRec[attr]) {
+                oldThing = oldRec[attr];
+            }
 
-        if (!oldRec || oldPhone !== newPhone) {
-            newRec.phones.forEach(function (row) {
-                if (row === null) {
-                    return;
-                }
+            if (newRec && newRec[attr]) {
+                newThing = newRec[attr];
+            }
 
-                row.isPrimary = false;
-            });
+            if (!oldRec || oldThing !== newThing) {
+                newRec[attrs].forEach(function (row) {
+                    if (row === null) {
+                        return;
+                    }
 
-            if (newRec.phone) {
-                found = newRec.phones.find(
-                    (row) => row && row.phone === newRec.phone
-                );
+                    row.isPrimary = false;
+                });
 
-                if (found) {
-                    found.isPrimary = true;
-                    found.type = newRec.phoneType;
-                } else {
-                    newRec.phones.push({
-                        id: f.createId(),
-                        type: newRec.phoneType,
-                        phone: newRec.phone,
-                        isPrimary: true
-                    });
+                if (newRec[attr]) {
+                    found = newRec[attrs].find(
+                        (row) => row && row[attr] === newRec[attr]
+                    );
+
+                    if (found) {
+                        found.isPrimary = true;
+                        found.type = newRec[attr + "Type"];
+                    } else {
+                        found = {
+                            id: f.createId(),
+                            type: newRec[attr + "Type"],
+                            isPrimary: true
+                        };
+                        found[attr] = newRec[attr];
+                        newRec[attrs].push(found);
+                    }
                 }
             }
         }
 
-        // Handle primary email biz logic
-        newRec.emails = (
-            Array.isArray(newRec.emails)
-            ? newRec.emails
+        handlePrimary("phone", "phones");
+        handlePrimary("email", "emails");
+
+        newRec.addresses = (
+            Array.isArray(newRec.addresses)
+            ? newRec.addresses
             : []
         );
 
-        if (oldRec && oldRec.email) {
-            oldEmail = oldRec.email;
+        if (oldRec && oldRec.address) {
+            oldAddr = oldRec.address;
         }
 
-        if (newRec && newRec.email) {
-            newEmail = newRec.email;
+        if (newRec && newRec.address) {
+            newAddr = newRec.address;
         }
 
-        if (!oldRec || oldEmail !== newEmail) {
-            newRec.emails.forEach(function (row) {
+        if (!oldRec || oldAddr.id !== newAddr.id) {
+            newRec.addresses.forEach(function (row) {
                 if (row === null) {
                     return;
                 }
@@ -318,19 +323,20 @@ function handleContact(obj) {
                 row.isPrimary = false;
             });
 
-            if (newRec.email) {
-                found = newRec.emails.find(
-                    (row) => row && row.email === newRec.email
+            if (newRec.address) {
+                found = newRec.addresses.find(
+                    (row) => (
+                        row && row.address &&
+                        row.address.id === newRec.address.id
+                    )
                 );
 
                 if (found) {
                     found.isPrimary = true;
-                    found.type = newRec.emailType;
                 } else {
-                    newRec.emails.push({
+                    newRec.addresses.push({
                         id: f.createId(),
-                        type: newRec.emailType,
-                        email: newRec.email,
+                        address: newRec.address,
                         isPrimary: true
                     });
                 }
