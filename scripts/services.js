@@ -243,7 +243,99 @@ function handleContact(obj) {
     "use strict";
 
     return new Promise(function (resolve) {
+        let found;
+        let oldPhone;
+        let newPhone;
+        let oldEmail;
+        let newEmail;
         let newRec = obj.newRec;
+        let oldRec = obj.oldRec;
+
+        // Handle primary phone biz logic
+        newRec.phones = (
+            Array.isArray(newRec.phones)
+            ? newRec.phones
+            : []
+        );
+
+        if (oldRec && oldRec.phone) {
+            oldPhone = oldRec.phone;
+        }
+
+        if (newRec && newRec.phone) {
+            newPhone = newRec.Phone;
+        }
+
+        if (!oldRec || oldPhone !== newPhone) {
+            newRec.phones.forEach(function (row) {
+                if (row === null) {
+                    return;
+                }
+
+                row.isPrimary = false;
+            });
+
+            if (newRec.phone) {
+                found = newRec.phones.find(
+                    (row) => row && row.phone === newRec.phone
+                );
+
+                if (found) {
+                    found.isPrimary = true;
+                    found.type = newRec.phoneType;
+                } else {
+                    newRec.phones.push({
+                        id: f.createId(),
+                        type: newRec.phoneType,
+                        phone: newRec.phone,
+                        isPrimary: true
+                    });
+                }
+            }
+        }
+
+        // Handle primary email biz logic
+        newRec.emails = (
+            Array.isArray(newRec.emails)
+            ? newRec.emails
+            : []
+        );
+
+        if (oldRec && oldRec.email) {
+            oldEmail = oldRec.email;
+        }
+
+        if (newRec && newRec.email) {
+            newEmail = newRec.email;
+        }
+
+        if (!oldRec || oldEmail !== newEmail) {
+            newRec.emails.forEach(function (row) {
+                if (row === null) {
+                    return;
+                }
+
+                row.isPrimary = false;
+            });
+
+            if (newRec.email) {
+                found = newRec.emails.find(
+                    (row) => row && row.email === newRec.email
+                );
+
+                if (found) {
+                    found.isPrimary = true;
+                    found.type = newRec.emailType;
+                } else {
+                    newRec.emails.push({
+                        id: f.createId(),
+                        type: newRec.emailType,
+                        email: newRec.email,
+                        isPrimary: true
+                    });
+                }
+            }
+        }
 
         if (newRec.firstName) {
             newRec.fullName = newRec.firstName + " " + newRec.lastName;
@@ -541,7 +633,6 @@ function doUpdateDocument(obj) {
 
             f.datasource.request(payload).then(callback).catch(reject);
             return;
-            
         }
 
         resolve();
