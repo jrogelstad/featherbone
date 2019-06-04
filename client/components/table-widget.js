@@ -302,45 +302,49 @@ function createTableDataView(options, col) {
 
     // Build cell
     if (typeof format === "object" && d[col]()) {
-        tableData = function () {
-            let rel;
-            let keys;
+        if (f.types[prop.type.relation.toCamelCase()].tableData) {
+            tableData = f.types[prop.type.relation.toCamelCase()].tableData;
+        } else {
+            tableData = function () {
+                let rel;
+                let keys;
 
-            // If relation, use feather natural key to
-            // find value to display
-            rel = catalog.getFeather(format.relation);
-            keys = Object.keys(rel.properties);
-            rel = (
-                keys.find((key) => rel.properties[key].isNaturalKey) ||
-                keys.find((key) => rel.properties[key].isLabelKey)
-            );
-
-            if (rel) {
-                value = d[col]().data[rel]();
-
-                url = (
-                    window.location.protocol + "//" +
-                    window.location.hostname + ":" +
-                    window.location.port + "#!/edit/" +
-                    prop.type.relation.toSnakeCase() +
-                    "/" + d[col]().id()
+                // If relation, use feather natural key to
+                // find value to display
+                rel = catalog.getFeather(format.relation);
+                keys = Object.keys(rel.properties);
+                rel = (
+                    keys.find((key) => rel.properties[key].isNaturalKey) ||
+                    keys.find((key) => rel.properties[key].isLabelKey)
                 );
 
-                return m("a", {
-                    href: url,
-                    onclick: function (e) {
-                        vm.canToggle(false);
-                        e.preventDefault();
-                        m.route.set("/edit/:feather/:key", {
-                            feather: prop.type.relation.toSnakeCase(),
-                            key: d[col]().id()
-                        }, {
-                            state: {}
-                        });
-                    }
-                }, value);
-            }
-        };
+                if (rel) {
+                    value = d[col]().data[rel]();
+
+                    url = (
+                        window.location.protocol + "//" +
+                        window.location.hostname + ":" +
+                        window.location.port + "#!/edit/" +
+                        prop.type.relation.toSnakeCase() +
+                        "/" + d[col]().id()
+                    );
+
+                    return m("a", {
+                        href: url,
+                        onclick: function (e) {
+                            vm.canToggle(false);
+                            e.preventDefault();
+                            m.route.set("/edit/:feather/:key", {
+                                feather: prop.type.relation.toSnakeCase(),
+                                key: d[col]().id()
+                            }, {
+                                state: {}
+                            });
+                        }
+                    }, value);
+                }
+            };
+        }
     } else if (prop.format && f.formats[prop.format].tableData) {
         tableData = f.formats[prop.format].tableData;
     } else if (f.types[prop.type] && f.types[prop.type].tableData) {

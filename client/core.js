@@ -110,7 +110,7 @@ function buildForm(feather) {
             value.columns = k.map(function (key) {
                 return {attr: key};
             });
-            value.height = "150px"
+            value.height = "150px";
         }
 
         attrs.push(value);
@@ -966,6 +966,35 @@ function userAccountNames() {
 }
 
 f.formats.userAccount.editor = selectEditor.bind(null, userAccountNames);
+
+f.types.address = {};
+f.types.address.tableData = function (obj) {
+    let value = obj.value;
+    let content = "";
+    let cr = "\n";
+    let title = "";
+    let d;
+
+    if (value) {
+        d = value.data;
+
+        content = d.city() + ", " + d.state() + " " + d.postalCode();
+
+        title = d.street();
+
+        if (d.unit()) {
+            title += cr + d.unit();
+        }
+
+        title += cr + d.city() + ", ";
+        title += d.state() + " " + d.postalCode();
+        title += cr + d.country();
+
+        obj.options.title = title;
+    }
+
+    return content;
+};
 
 f.types.array.editor = function (options) {
     return m(catalog.store().components().dataList, options);
