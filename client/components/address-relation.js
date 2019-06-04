@@ -32,7 +32,7 @@ addressRelation.viewModel = function (options) {
     vm.buttonClear = f.prop();
     vm.content = function (isCell) {
         let d;
-        let content;
+        let content = "";
         let cr = "\n";
 
         if (!vm.model()) {
@@ -174,6 +174,13 @@ addressRelation.component = {
             readonly: readonly,
             rows: 4
         };
+
+        if (vm.isCell()) {
+            options.rows = 1;
+            options.style = {
+                width: "100%"
+            }
+        }
 
         if (!readonly) {
             options.title = "Click or Enter key to edit";
