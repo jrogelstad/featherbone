@@ -699,7 +699,8 @@
                     "is_fetch_on_startup, is_read_only, " +
                     "to_json(properties) AS properties, " +
                     "to_json(overloads) AS overloads " +
-                    "FROM _feather WHERE module = $1"
+                    "FROM _feather WHERE module = $1" +
+                    " AND NOT is_deleted;"
                 );
                 requests.push(client.query(sql, params));
 
@@ -707,6 +708,7 @@
                 sql = (
                     "SELECT to_json(_form) AS form " +
                     "FROM _form WHERE module = $1 " +
+                    "AND NOT is_deleted " +
                     "ORDER BY name"
                 );
                 requests.push(client.query(sql, params));
@@ -715,6 +717,7 @@
                 sql = (
                     "SELECT name, script " +
                     "FROM data_service WHERE module = $1 " +
+                    "AND NOT is_deleted " +
                     "ORDER BY name;"
                 );
                 requests.push(client.query(sql, params));
@@ -722,6 +725,7 @@
                 // Routes
                 sql = (
                     "SELECT * FROM route WHERE module = $1 " +
+                    "AND NOT is_deleted " +
                     "ORDER BY path;"
                 );
                 requests.push(client.query(sql, params));
@@ -729,6 +733,7 @@
                 // Styles
                 sql = (
                     "SELECT * FROM style WHERE module = $1 " +
+                    "AND NOT is_deleted " +
                     "ORDER BY name;"
                 );
                 requests.push(client.query(sql, params));
@@ -736,6 +741,7 @@
                 // Workbooks
                 sql = (
                     "SELECT * FROM \"$workbook\" WHERE module = $1 " +
+                    "AND NOT is_deleted " +
                     "ORDER BY name;"
                 );
                 requests.push(client.query(sql, params));
