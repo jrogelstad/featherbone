@@ -179,7 +179,7 @@ addressRelation.component = {
             options.rows = 1;
             options.style = {
                 width: "100%"
-            }
+            };
         }
 
         if (!readonly) {
