@@ -22,6 +22,20 @@ import catalog from "../models/catalog.js";
 const relationWidget = {};
 const m = window.m;
 
+function positionMenu(vnode) {
+    let e = document.getElementById(vnode.dom.id);
+    let menuRect = e.getBoundingClientRect();
+    let pe = "parentElement"; // Keep short for lint;
+    let tbl = e[pe][pe][pe][pe][pe][pe];
+    let tblRect = tbl.getBoundingClientRect();
+
+    // If menu spills out of table, move up and right
+    if (menuRect.bottom > tblRect.bottom) {
+        e.style.top = "-60px";
+        e.style.right = "-155px";
+    }
+}
+
 /**
   @param {Object} Options
   @param {Object} [options.parentViewModel] Parent view-model. Required
@@ -441,7 +455,8 @@ relationWidget.component = {
                     m("ul", {
                         id: "nav-relation-list-" + id,
                         class: "pure-menu-list fb-relation-menu-list",
-                        style: menuStyle
+                        style: menuStyle,
+                        onupdate: positionMenu
                     }, [
                         m("li", {
                             id: "nav-relation-search-" + id,
