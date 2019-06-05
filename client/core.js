@@ -110,7 +110,7 @@ function buildForm(feather) {
             value.columns = k.map(function (key) {
                 return {attr: key};
             });
-            value.height = "150px";
+            value.height = "175px";
         }
 
         attrs.push(value);
