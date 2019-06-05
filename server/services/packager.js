@@ -128,8 +128,8 @@
                     return ret;
                 }());
 
-                // Remove Core module from top
-                modules.shift();
+                // Never package core
+                modules = modules.filter((module) => module.name !== "Core");
 
                 resolve(modules);
             }
