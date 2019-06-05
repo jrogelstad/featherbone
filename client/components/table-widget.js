@@ -273,7 +273,7 @@ function createTableDataView(options, col) {
         ? prop.style()
         : ""
     );
-    let rel;
+    let relation;
 
     columnWidth -= 6;
 
@@ -303,9 +303,9 @@ function createTableDataView(options, col) {
 
     // Build cell
     if (typeof format === "object" && d[col]()) {
-        rel = prop.type.relation.toCamelCase();
-        if (f.types[rel] && f.types[rel].tableData) {
-            tableData = f.types[rel].tableData;
+        relation = prop.type.relation.toCamelCase();
+        if (f.types[relation] && f.types[relation].tableData) {
+            tableData = f.types[relation].tableData;
         } else {
             tableData = function () {
                 let rel;
