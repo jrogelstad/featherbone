@@ -60,7 +60,7 @@ module.static = f.prop({
                 data: formData
             };
 
-            datasource.request(payload).catch(error);
+            datasource.request(payload).then(viewModel.refresh).catch(error);
         }
 
         input.setAttribute("type", "file");
