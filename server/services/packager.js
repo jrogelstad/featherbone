@@ -347,9 +347,41 @@
             });
         }
 
-        // Process feathers, start by sorting alpha, then resolving,
-        // then sorting on dependencies
+        // Process feathers, start by sorting alpha and relation
+        // dependencies, then inheritence
         content.sort(function (a, b) {
+            function withB(key) {
+                let p = a.properties[key];
+
+                return (
+                    typeof p.type === "object" &&
+                    p.type.relation === b.name
+                );
+            }
+
+            function withA(key) {
+                let p = b.properties[key];
+
+                return (
+                    typeof p.type === "object" &&
+                    p.type.relation === a.name
+                );
+            }
+
+            if (
+                a.properties &&
+                Object.keys(a.properties).some(withB)
+            ) {
+                return 1;
+            }
+
+            if (
+                b.properties &&
+                Object.keys(b.properties).some(withA)
+            ) {
+                return -1;
+            }
+
             if (a.name > b.name) {
                 return 1;
             }
