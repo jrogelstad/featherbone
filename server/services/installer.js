@@ -22,6 +22,8 @@
     const MANIFEST = "manifest.json";
 
     const {API} = require("./api");
+    const {Database} = require("../database");
+    const {Feathers} = require("./feathers");
     const fs = require("fs");
     const path = require("path");
     const f = require("../../common/core");
@@ -29,6 +31,8 @@
     f.jsonpatch = require("fast-json-patch");
 
     const api = new API();
+    const db = new Database();
+    const feathers = new Feathers();
 
     function btoa(str) {
         return Buffer.from(str.toString(), "binary").toString("base64");
@@ -455,6 +459,124 @@
                     manifest = JSON.parse(data);
                     client.query("BEGIN;").then(processFile);
                 });
+            });
+        };
+
+        that.uninstall = function (obj) {
+            return new Promise(function (resolve, reject) {
+                let client = db.getClient(obj.client);
+                let name = obj.data.name;
+                let requests;
+                let sql = (
+                    "SELECT * FROM module_dependency " +
+                    "  JOIN module ON module._pk=_parent_module_pk " +
+                    "WHERE module.name=$1;"
+                );
+
+                function callback(resp) {
+                    if (resp.rows.length) {
+                        throw new Error(
+                            "Can not delete module " + name +
+                            " because it has dependencies"
+                        );
+                    }
+                    requests = [
+                        client.query(
+                            (
+                                "DELETE FROM form_attr_column WHERE EXISTS (" +
+                                "  SELECT * FROM form_attr, form " +
+                                "  WHERE form_attr._pk=_parent_form_attr_pk " +
+                                "    AND form._pk=form_attr._parent_form_pk " +
+                                "    AND form.module=$1);"
+                            ),
+                            [name]
+                        ),
+                        client.query(
+                            (
+                                "DELETE FROM form_attr WHERE EXISTS (" +
+                                "  SELECT * FROM form " +
+                                "  WHERE form._pk=form_attr._parent_form_pk " +
+                                "    AND form.module=$1);"
+                            ),
+                            [name]
+                        ),
+                        client.query(
+                            (
+                                "DELETE FROM form_tab WHERE EXISTS (" +
+                                "  SELECT * FROM form " +
+                                "    WHERE form._pk=form_tab._parent_form_pk " +
+                                "    AND form.module=$1);"
+                            ),
+                            [name]
+                        ),
+                        client.query(
+                            "DELETE FROM form WHERE module=$1",
+                            [name]
+                        ),
+                        client.query(
+                            "DELETE FROM relation_widget WHERE module = $1",
+                            [name]
+                        ),
+                        client.query(
+                            "DELETE FROM data_service WHERE module=$1",
+                            [name]
+                        ),
+                        client.query(
+                            "DELETE FROM route WHERE module=$1",
+                            [name]
+                        ),
+                        client.query(
+                            "DELETE FROM style WHERE module=$1",
+                            [name]
+                        ),
+                        client.query(
+                            "DELETE FROM \"$workbook\" WHERE module=$1",
+                            [name]
+                        ),
+                        client.query(
+                            "DELETE FROM module WHERE name = $1",
+                            [name]
+                        )
+                    ];
+
+                    Promise.all(requests).then(function () {
+                        let found;
+
+                        function deleteFeather(resp) {
+                            if (found === undefined) {
+                                found = resp.rows;
+                            }
+
+                            if (found.length) {
+                                feathers.deleteFeather({
+                                    client: client,
+                                    data: {
+                                        name: found.pop().name
+                                    }
+                                }).then(deleteFeather).catch(reject);
+                                return;
+                            }
+
+                            sql = "DELETE FROM feather WHERE module=$1";
+                            client.query(
+                                sql,
+                                [name]
+                            ).then(resolve).catch(reject);
+                        }
+
+                        sql = (
+                            "SELECT name FROM feather WHERE module=$1 " +
+                            " AND NOT is_deleted " +
+                            "ORDER BY _pk;"
+                        );
+                        client.query(
+                            sql,
+                            [name]
+                        ).then(deleteFeather).catch(reject);
+                    }).catch(reject);
+                }
+
+                client.query(sql, [name]).then(callback).catch(reject);
             });
         };
 

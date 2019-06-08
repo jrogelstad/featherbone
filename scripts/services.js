@@ -809,6 +809,42 @@ f.datasource.registerFunction(
     f.datasource.TRIGGER_BEFORE
 );
 
+function doDeleteModule(obj) {
+    "use strict";
+
+    return new Promise(function (resolve, reject) {
+        let payload = {
+            method: "GET",
+            name: "Module",
+            showDeleted: true,
+            id: obj.id,
+            client: obj.client
+        };
+
+        function callback(resp) {
+            payload = {
+                method: "DELETE",
+                name: "deleteModule",
+                data: {
+                    name: resp.name
+                },
+                client: obj.client
+            };
+
+            f.datasource.request(payload, true).then(resolve).catch(reject);
+        }
+
+        f.datasource.request(payload, true).then(callback).catch(reject);
+    });
+}
+
+f.datasource.registerFunction(
+    "DELETE",
+    "Module",
+    doDeleteModule,
+    f.datasource.TRIGGER_AFTER
+);
+
 /**
   Role
 */
