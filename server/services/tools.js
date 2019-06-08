@@ -237,7 +237,7 @@
                 let filter = obj.filter;
                 let table = name.toSnakeCase();
                 let clause = "NOT is_deleted";
-                let sql = "SELECT _pk FROM %I WHERE " + clause;
+                let sql = "SELECT _pk FROM %I WHERE ";
                 let tokens = ["_" + table];
                 let criteria = false;
                 let sort = [];
@@ -257,6 +257,8 @@
                     if (obj.showDeleted) {
                         clause = "true";
                     }
+
+                    sql += clause;
 
                     if (filter) {
                         criteria = filter.criteria || [];
