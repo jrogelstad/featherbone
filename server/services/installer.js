@@ -514,6 +514,17 @@
                             [name]
                         ),
                         client.query(
+                            (
+                                "DELETE FROM relation_search_column " +
+                                "WHERE EXISTS (" +
+                                "  SELECT * FROM relation_widget " +
+                                "  WHERE relation_widget._pk=" +
+                                "    _parent_relation_widget_pk " +
+                                "    AND relation_widget.module=$1);"
+                            ),
+                            [name]
+                        ),
+                        client.query(
                             "DELETE FROM relation_widget WHERE module = $1",
                             [name]
                         ),
