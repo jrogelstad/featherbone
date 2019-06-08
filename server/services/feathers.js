@@ -569,7 +569,10 @@
                     }
 
                     // Drop table(s)
-                    sql = "DROP VIEW %I; DROP TABLE %I;" + sql;
+                    sql = (
+                        "DROP VIEW IF EXISTS %I; " +
+                        "DROP TABLE IF EXISTS %I;" + sql
+                    );
                     sql = sql.format(["_" + table, table]);
                     client.query(sql, function (err) {
                         if (err) {
@@ -643,7 +646,7 @@
                                 if (type.properties) {
                                     view = "_" + name.toSnakeCase() + "$";
                                     view += key.toSnakeCase();
-                                    sql += "DROP VIEW %I;";
+                                    sql += "DROP VIEW IF EXISTS %I;";
                                     sql = sql.format([view]);
                                 }
 
