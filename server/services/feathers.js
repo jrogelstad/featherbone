@@ -528,7 +528,7 @@
 
             @param {Object} Request payload
             @param {Object} [payload.data] Payload data
-            @param {Object | Array} [payload.data.name] Name(s) of
+            @param {String | Array} [payload.data.name] Name(s) of
                 feather(s) to delete
             @param {Object} [payload.client] Database client
             @return {Object} Promise
