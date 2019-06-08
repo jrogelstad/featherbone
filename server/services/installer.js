@@ -469,7 +469,7 @@
                 let requests;
                 let sql = (
                     "SELECT * FROM module_dependency " +
-                    "  JOIN module ON module._pk=_parent_module_pk " +
+                    "  JOIN module ON module._pk=_module_script_pk " +
                     "WHERE module.name=$1;"
                 );
 
@@ -477,7 +477,7 @@
                     if (resp.rows.length) {
                         throw new Error(
                             "Can not delete module " + name +
-                            " because it has dependencies"
+                            " because other modules are dependant on it"
                         );
                     }
                     requests = [
@@ -531,6 +531,15 @@
                         ),
                         client.query(
                             "DELETE FROM \"$workbook\" WHERE module=$1",
+                            [name]
+                        ),
+                        client.query(
+                            (
+                                "DELETE FROM module_dependency WHERE EXISTS (" +
+                                "  SELECT * FROM module " +
+                                "  WHERE _parent_module_pk=module._pk " +
+                                "    AND module.name = $1);"
+                            ),
                             [name]
                         ),
                         client.query(
