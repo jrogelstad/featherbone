@@ -227,6 +227,7 @@ function workbookModel(data) {
     let doPut;
     let modules = f.prop(catalog.store().data().modules());
     let canUpdate;
+    let profileConfig;
 
     function save(promise) {
         this.goto("/Busy/Saving", {
@@ -261,8 +262,13 @@ function workbookModel(data) {
 
     that.getConfig = function () {
         let d = that.data;
-        let config = d.defaultConfig();
-        let profile = catalog.store().data().profile();
+        let profile;
+
+        if (profileConfig) {
+            return profileConfig;
+        }
+
+        profile = catalog.store().data().profile();
 
         if (
             profile &&
@@ -270,11 +276,15 @@ function workbookModel(data) {
             profile.data.workbooks &&
             profile.data.workbooks[d.name()]
         ) {
-            config = f.copy(profile.data.workbooks[d.name()]);
-        } else if (d.localConfig().length) {
-            config = d.localConfig();
+            profileConfig = f.copy(profile.data.workbooks[d.name()]);
+            return profileConfig;
         }
-        return config;
+
+        if (d.localConfig().length) {
+            return d.localConfig();
+        }
+
+        return d.defaultConfig();
     };
 
     that.addCalculated({
