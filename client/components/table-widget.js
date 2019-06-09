@@ -1902,7 +1902,10 @@ tableWidget.component = {
                     onremove: function (vnode) {
                         // Key down handler for up down movement
                         let e = document.getElementById(vnode.dom.id);
-                        e.removeEventListener("keydown", vm.onkeydown);
+
+                        if (e) {
+                            e.removeEventListener("keydown", vm.onkeydown);
+                        }
                     }
                 }, rows)
             ])
