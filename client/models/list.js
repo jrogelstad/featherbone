@@ -50,8 +50,16 @@ function createList(feather) {
     // PUBLIC
     //
 
-    // Add a model to the list. Will replace existing
-    // if model with same id is already found in array
+    /**
+        Add a model to the list. Will replace existing
+        if model with same id is already found in array.
+        Pass subscribe option to automatically subscribe
+        to server events on the model.
+
+        @method add
+        @param {Object} Model
+        @param {Boolean} Subscribe flag.
+    */
     ary.add = function (model, subscribe) {
         let mstate;
         let payload;
@@ -107,6 +115,13 @@ function createList(feather) {
         }
     };
 
+    /**
+        Set whether the array can have a filter. Turn
+        off when list is not fetching.
+        
+        @method canFilter
+        @param {Boolean} Can filter flag
+        @return {Boolean}
     ary.canFilter = f.prop(true);
 
     /**
@@ -114,6 +129,7 @@ function createList(feather) {
         models, or any newly fetched models. Do this if
         models are going to be edited.
 
+        @method checkUpdate
         @param {Boolean} Enable or disable checking
     */
     ary.checkUpdate = function (enabled) {
@@ -128,11 +144,12 @@ function createList(feather) {
     };
 
     /**
-      Fetch data.
+        Fetch data. Returns a Promise.
 
-      @param {Object} filter,
-      @param {Boolean} merge
-      @return Promise
+        @method fetch
+        @param {Object} filter,
+        @param {Boolean} merge
+        @return {Object}
     */
     ary.fetch = function (filter, merge) {
         ary.filter(filter || {});
@@ -140,23 +157,68 @@ function createList(feather) {
         return doSend("fetch", merge);
     };
 
+    /**
+        Filter to use when fetching.
+
+        @method Filter
+        @param {Object} Filter
+        @return {Object}
+    */
     ary.filter = f.prop({});
 
+    /**
+        Default fetch limit.
+
+        @method defaultLimit
+        @param {Integer} Limit
+        @return {Integer}
+    */
     ary.defaultLimit = f.prop(LIMIT);
 
+    /**
+        Model index.
+
+        @method index
+        @param {Object} Model index
+        @return {Object}
+    */
     ary.index = f.prop({});
 
+    /**
+        Model factory for creating new model instances.
+
+        @method model
+        @param {Object} Data
+        @param {Object} Feather
+        @return {Objects}
+    */
     ary.model = models[feather.toCamelCase() || "Model"];
 
+    /**
+        The url path to data.
+
+        @method path
+        @param {String} Path
+        @return {String}
+    */
     ary.path = f.prop();
 
-    /*
-      Array of properties to fetch if only a subset required.
-      If undefined, then all properties returned.
+    /**
+        Array of properties to fetch if only a subset required.
+        If undefined, then all properties returned.
+
+        @method properties
+        @param {Array} Array of properties
+        @return {Array}
     */
     ary.properties = f.prop();
 
-    // Remove a model from the list
+    /**
+        Remove a model from the list.
+
+        @method remove
+        @param {Object} Model
+    */
     ary.remove = function (model) {
         let id = model.id();
         let idx = ary.index();
@@ -174,30 +236,54 @@ function createList(feather) {
         dirty.remove(model);
     };
 
+    /**
+        Clear list.
+
+        @method reset
+    */
     ary.reset = function () {
         ary.length = 0;
         dirty.length = 0;
         ary.index({});
     };
 
+    /**
+        Toggle whether to show deleted records.
+
+        @method showDeleted
+        @param {Boolean} Whether to show deleted
+        @param {Boolean}
+    */
     ary.showDeleted = f.prop(false);
 
+    /**
+        Save dirty records in list. Returns a Promise.
+
+        @method save
+        @return {Object}
+    */
     ary.save = function () {
         return doSend("save");
     };
 
+    /**
+        List state.
+
+        @return {Object}
+    */
     ary.state = function () {
         return state;
     };
 
     /**
-      Subscribe to change events on any records
-      in the array. Returns subscription id when
-      enabled by passing true at least once. Pass
-      false to unsubscribe.
+        Subscribe to change events on any records
+        in the array. Returns subscription id when
+        enabled by passing true at least once. Pass
+        false to unsubscribe.
 
-      @param {Boolean} Subscribe or unsubscribe.
-      @return {String} Subcription id.
+        @method subscribe
+        @param {Boolean} Subscribe or unsubscribe.
+        @return {String} Subcription id.
     */
     ary.subscribe = function (...args) {
         let query;
@@ -446,6 +532,7 @@ function createList(feather) {
     remove(model): Removes the passed model from the array.
     fetch (filter): Requeries the server for new results.
 
+  @module list
   @param {String} Feather name
   @return {Function}
 */

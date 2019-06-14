@@ -21,6 +21,11 @@ import datasource from "./datasource.js";
 import State from "./state.js";
 
 const m = window.m;
+/**
+    Featherbone base module.
+
+    @module f
+*/
 const f = window.f;
 const console = window.console;
 const CodeMirror = window.CodeMirror;
@@ -179,6 +184,7 @@ function buildRelationWidgetFromFeather(type, featherName) {
     return widget;
 }
 
+/** @private */
 function buildSelector(obj, opts) {
     let id = opts.id;
     let vm = obj.viewModel;
@@ -296,12 +302,13 @@ function isToOne(p) {
     );
 }
 
-/** private */
+/** @private */
 function isToMany(p) {
     return p.type && typeof p.type === "object" && p.type.parentOf;
 }
 
 // Resize according to surroundings
+/** @private */
 function resizeEditor(editor) {
     let containerHeight;
     let bottomHeight;
@@ -320,28 +327,31 @@ function resizeEditor(editor) {
 }
 
 /**
-  Return system catalog.
+    Return system catalog.
 
-  @return {Object}
+    @method catalog
+    @return {Object}
 */
 f.catalog = function () {
     return catalog;
 };
 
 /**
-  Return system datasource.
+    Return system datasource.
 
-  @return {Object}
+    @method datasource
+    @return {Object}
 */
 f.datasource = function () {
     return datasource;
 };
 
 /**
-  Return the matching currency object.
+    Return the matching currency object.
 
-  @param {String} Currency code
-  @return {Object}
+    @method getCurrency
+    @param {String} Currency code
+    @return {Object}
 */
 f.getCurrency = function (code) {
     return catalog.store().data().currencies().find(function (curr) {
@@ -355,17 +365,18 @@ f.getCurrency = function (code) {
 };
 
 /**
-  Return a form based on a form id or a feather. If multiple forms exist,
-  the first one will be used. If none exist one will be built based
-  on feather definition.
+    Return a form based on a form id or a feather. If multiple forms exist,
+    the first one will be used. If none exist one will be built based
+    on feather definition.
 
-  The form returned is not a form model,  but simply a regular
-  javascript object.
+    The form returned is not a form model,  but simply a regular
+    javascript object.
 
-  @param {Object} Options
-  @param {String} [options.form] Form id
-  @param {String} [options.feather] Feather name
-  @return {Object} Form
+    @method getForm
+    @param {Object} Options
+    @param {String} [options.form] Form id
+    @param {String} [options.feather] Feather name
+    @return {Object} Form
 */
 f.getForm = function (options) {
     let form;
@@ -400,7 +411,9 @@ f.getForm = function (options) {
 };
 
 /**
-  Object to define what input type to use for data
+    Object to define what input type to use for data
+
+    @submodule inputMap
 */
 f.inputMap = {
     integer: "number",
@@ -421,11 +434,12 @@ f.inputMap = {
 };
 
 /**
-  Return an array of feathers organized as options.
-  Useful for models that need to offer a selection
-  of feathers.
+    Return an array of feathers organized as options.
+    Useful for models that need to offer a selection
+    of feathers.
 
-  @return {Array}
+    @method feathers
+    @return {Array}
 */
 f.feathers = function () {
     let tables = catalog.store().feathers();
@@ -440,11 +454,11 @@ f.feathers = function () {
 };
 
 /**
-  Find the top most parent model in a model heiarchy.
-  For example from an order line find the parent order.
+    Find the top most parent model in a model heiarchy.
+    For example from an order line find the parent order.
 
-  @param {Object} Model
-  @return {Object} Parent model
+    @param {Object} Model
+    @return {Object} Parent model
 */
 f.findRoot = function (model) {
     let parent = model.parent();
@@ -1118,16 +1132,17 @@ f.findRelationWidget = function (relation, isTop) {
 };
 
 /**
-  Factory for building input elements
+    Factory for building input elements
 
-  Use of this function requires that "Checkbox" has been pre-registered,
-  (i.e. "required") in the application before it is called.
+    Use of this function requires that "Checkbox" has been pre-registered,
+    (i.e. "required") in the application before it is called.
 
-  @param {Object} Options object
-  @param {Object} [options.model] Model
-  @param {String} [options.key] Property key
-  @param {Object} [options.viewModel] View Model
-  @param {Array} [options.dataList] Array for input lists
+    @method buildInputComponent
+    @param {Object} Options object
+    @param {Object} [options.model] Model
+    @param {String} [options.key] Property key
+    @param {Object} [options.viewModel] View Model
+    @param {Array} [options.dataList] Array for input lists
 */
 f.buildInputComponent = function (obj) {
     let w;
@@ -1231,13 +1246,21 @@ f.buildInputComponent = function (obj) {
     console.log("Widget for property '" + key + "' is undefined");
 };
 
+/**
+    @method buildRelationWidgetFromFeather
+    @return {Object}
+*/
 f.buildRelationWidgetFromFeather = buildRelationWidgetFromFeather;
 
-/*
+/**
   Returns the exact x, y coordinents of an HTML element.
 
   Thanks to:
   http://www.kirupa.com/html5/get_element_position_using_javascript.htm
+  
+  @method getElementPosition
+  @param {Object} Element
+  @return {Object}
 */
 f.getElementPosition = function (element) {
     let xPosition = 0;
@@ -1266,6 +1289,7 @@ f.getElementPosition = function (element) {
 /**
     Get a style by name. Returns an object with style elements.
 
+    @method getStyle
     @param {String} Name
     @return {Object}
 */
@@ -1298,7 +1322,9 @@ f.getStyle = function (name) {
 
 /**
   Creates a property getter setter function with a default value.
-  Includes state...
+  Includes state.s
+
+  @method prop
   @param {Any} Initial
   @param {Object} Formatter. Optional
   @param {Any} [formatter.default] Function or value returned
@@ -1493,7 +1519,14 @@ f.prop = function (store, formatter) {
     return p;
 };
 
-/** @private  Helper function to resolve property dot notation */
+/**
+    Helper function to resolve property dot notation.
+
+    @method resolveAlias
+    @param {Object} Feather
+    @param {String} Attribute name
+    @return {String}
+*/
 f.resolveAlias = function (feather, attr) {
     let prefix;
     let suffix;
@@ -1529,6 +1562,7 @@ f.resolveAlias = function (feather, attr) {
         prop = f.resolveProperty(contact, "address.city");
         console.log(prop()); // "Philadephia"
 
+    @method resolveProperty
     @param {Object} Model
     @param {String} Property name
     @return {Function} Property function

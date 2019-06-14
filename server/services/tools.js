@@ -436,7 +436,7 @@
         /**
           Clear out primmary keys and normalize data
           @param {Object} Data to sanitize
-          @returns {Object} Sanitized object
+          @return {Object} Sanitized object
         */
         tools.sanitize = function (obj) {
             let oldObj;
@@ -511,7 +511,7 @@
           @param {Object} Payload
           @param {String} [payload.user] User
           @param {Object} [payload.client] Database client
-          @returns {Object} Promise
+          @return {Object} Promise
         */
         tools.setSuperUser = function (obj, isSuper) {
             return new Promise(function (resolve, reject) {

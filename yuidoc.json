@@ -6,8 +6,11 @@
     "logo": "../featherbone-small.png",
     "options": {
         "linkNatives": "true",        
-        "attributesEmit": "true",
-        "selleck": "true",
-        "paths": "*/js"
+        "attributesEmit": "false",
+        "selleck": "false",
+        "paths": [
+            "./client"
+        ],
+        "exclude": "components, models"
     }
 }

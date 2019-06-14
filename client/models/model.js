@@ -457,7 +457,7 @@ function model(data, feather) {
       The data property that is the unique identifier for the model.
       Default is "id".
 
-      @param {String}
+      @param {String} Id property
       @return {String}
     */
     that.idProperty = f.prop("id");
@@ -512,7 +512,6 @@ function model(data, feather) {
     /**
       Lock record. To be applied when notification of locked status.
 
-      @seealso Unlock
       @return Promise
     */
     that.lock = function (lock) {
@@ -562,7 +561,7 @@ function model(data, feather) {
           // Add a check
           that.oncanDelete(deleteCheck);
         }
-      @seealso canDelete
+
       @param {Function} Test function to execute when running canDelete
       @return Reciever
     */
@@ -733,8 +732,7 @@ function model(data, feather) {
           // Add a validator
           that.onValidate(validator);
         }
-      @seealso isValid
-      @seealso onError
+
       @param {Function} Callback to execute when validating
       @return Reciever
     */
@@ -944,7 +942,6 @@ function model(data, feather) {
     /**
       Unlock record. To be applied when notification of unlocked status.
 
-      @seealso Lock
       @return Promise
     */
     that.unlock = function () {

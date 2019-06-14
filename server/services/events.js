@@ -38,7 +38,7 @@
           @param {Object} Database client connection
           @param {String} Channel (node server id)
           @param {Function} Callback, responds to events
-          @returns {Object} promise
+          @return {Object} promise
         */
         events.listen = function (client, channel, callback) {
             return new Promise(function (resolve, reject) {

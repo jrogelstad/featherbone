@@ -21,7 +21,7 @@
 
     /**
        Convert date to "YYYY-MM-DDTHH:MM" date time format.
-       @returns {String}
+       @return {String}
     */
     Date.prototype.toLocalDateTime = function () {
         let month = this.getMonth() + 1;
@@ -36,7 +36,7 @@
 
     /**
        Convert date to "YYYY-MM-DD" format.
-       @returns {String}
+       @return {String}
     */
     Date.prototype.toLocalDate = function () {
         let month = this.getMonth() + 1;
@@ -50,7 +50,7 @@
 
     /**
        Strip time off date
-       @returns {String}
+       @return {String}
     */
     Date.prototype.toDate = function () {
         this.setHours(0);

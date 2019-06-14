@@ -109,7 +109,11 @@ function settings() {
     return that;
 }
 
-// Invoke catalog settings as an object
+/**
+    Invoke catalog settings as an object
+
+    @module catalog
+*/
 const catalog = (function () {
     let that = settings();
 
@@ -117,6 +121,7 @@ const catalog = (function () {
       Return a model specification (feather) including inherited and
       calculated properties.
 
+      @method getFeather
       @param {String} Feather
       @param {Boolean} Include inherited or not. Default = true.
       @param {Boolean} Include calculated or not. Default = true.
@@ -214,6 +219,7 @@ const catalog = (function () {
 
         `canCreate` will only check feather names.
 
+        @method isAuthorized
         @param {Object} Options
         @param {Object} [options] Payload
         @param {String} [options.action] Action name
@@ -263,6 +269,7 @@ const catalog = (function () {
     /**
         Store global data.
 
+        @method register
         @param {String} Data type
         @param {String} Name of instance
         @param {Any} Value to store
@@ -292,6 +299,7 @@ const catalog = (function () {
             * Registers the model in the catalog
             * Freezes the model
 
+        @method registerModel
         @param {String} Feather name
         @param {Function} Model factory
         @param {Boolean} Flag whether to append list function to model
@@ -310,15 +318,29 @@ const catalog = (function () {
         return model;
     };
 
+    /**
+        Unregister a property from the store.
+
+        @method unregister
+        @param {String} Property
+        @param {String} Name
+    */
     that.unregister = function (property, name) {
         delete store[property]()[name];
     };
 
+    /**
+        Return feathers loaded in the catalog.
+    
+        @method feathers
+        @return {Object} feathers
+    */
     that.feathers = store.feathers;
 
     /**
       Current instance event key.
 
+      @method eventKey
       @param {String} Event key
       @return {String}
     */

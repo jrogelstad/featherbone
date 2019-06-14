@@ -20,17 +20,25 @@ import f from "../core.js";
 import catalog from "../models/catalog.js";
 import State from "../state.js";
 
+/**
+    Button component
+
+    @module button
+*/
 const button = {};
 const m = window.m;
 
 /**
-  @param {Object} Options
-  @param {String} [options.label] Label
-  @param {String} [options.icon] Icon name
-  @param {Function} [options.onclick] On click function
-  @param {String} [options.class] Class
-  @param {Object} [options.style] Style
-  @return {Object}
+    Generate view model for button.
+
+    @module viewModel
+    @param {Object} Options
+    @param {String} [options.label] Label
+    @param {String} [options.icon] Icon name
+    @param {Function} [options.onclick] On click function
+    @param {String} [options.class] Class
+    @param {Object} [options.style] Style
+    @return {Object}
 */
 button.viewModel = function (options) {
     options = options || {};
@@ -249,7 +257,11 @@ button.viewModel = function (options) {
 
 catalog.register("viewModels", "button", button.viewModel);
 
-// Define button component
+/**
+    Button component
+    
+    @submodule component
+*/
 button.component = {
     oninit: function (vnode) {
         let vm = vnode.attrs.viewModel || button.viewModel(vnode.attrs);
