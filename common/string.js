@@ -22,7 +22,7 @@
     /**
        Change string with underscores '_' or '-' to camel case.
        @param {Boolean} Convert first character to upper case. Default false.
-       @returns {String}
+       @return {String}
     */
     String.prototype.toCamelCase = function (upper) {
         let f = this.slice(0, 1);
@@ -47,7 +47,7 @@
 
        "contact.name".toName() // "Contact Name"
 
-       @returns {String}
+       @return {String}
     */
     String.prototype.toName = function () {
         return this.replace(/\./g, " _").toCamelCase().toProperCase();
@@ -55,7 +55,7 @@
 
     /**
        Change a camel case string to proper case.
-       @returns {String} The argument modified
+       @return {String} The argument modified
     */
     String.prototype.toProperCase = function () {
         let str = this.replace((/([a-z])([A-Z])/g), "$1 $2");
@@ -64,7 +64,7 @@
 
     /**
        Change a camel case string to snake case.
-       @returns {String} The argument modified
+       @return {String} The argument modified
     */
     String.prototype.toSnakeCase = function () {
         return this.replace((/([a-z])([A-Z])/g), "$1_$2").toLowerCase();
@@ -72,7 +72,7 @@
 
     /**
        Change a camel case string to spinal case.
-       @returns {String} The argument modified
+       @return {String} The argument modified
     */
     String.prototype.toSpinalCase = function () {
         return this.replace((/([a-z])([A-Z])/g), "$1-$2").toLowerCase();

@@ -133,7 +133,7 @@
     /**
       Fetch catalog.
 
-      @returns {Object} promise
+      @return {Object} promise
     */
     that.getCatalog = function () {
         return new Promise(function (resolve, reject) {
@@ -157,7 +157,7 @@
     /**
       Fetch Services.
 
-      @returns {Object} promise
+      @return {Object} promise
     */
     that.getServices = function () {
         return new Promise(function (resolve, reject) {
@@ -178,7 +178,7 @@
     /**
       Fetch routes.
 
-      @returns {Object} promise
+      @return {Object} promise
     */
     that.getRoutes = function () {
         return new Promise(function (resolve, reject) {
@@ -199,7 +199,7 @@
     /**
       Initialize listener.
 
-      @returns {Object} promise
+      @return {Object} promise
     */
     that.listen = function (callback) {
         function doListen(resp) {
@@ -232,7 +232,7 @@
     /**
       Unsubcribe.
 
-      @returns {Object} promise
+      @return {Object} promise
     */
     that.unsubscribe = function (id, type) {
         return new Promise(function (resolve, reject) {
@@ -274,7 +274,7 @@
       @param {String} Object id.
       @param {String} User name.
       @param {String} Session id.
-      @returns {Object} Promise
+      @return {Object} Promise
     */
     that.lock = function (id, username, eventkey) {
         return new Promise(function (resolve, reject) {
@@ -319,7 +319,7 @@
       @param {String} [criteria.id] Object id.
       @param {String} [criteria.username] User name.
       @param {String} [criteria.eventKey] Event key.
-      @returns {Object} Promise
+      @return {Object} Promise
     */
     that.unlock = function (criteria) {
         return new Promise(function (resolve, reject) {
@@ -359,7 +359,7 @@
 
       @param {String} Manifest filename.
       @param {String} User name.
-      @returns {Object} Promise
+      @return {Object} Promise
     */
     that.install = function (filename, username) {
         return new Promise(function (resolve, reject) {
@@ -401,7 +401,7 @@
 
       @param {String} Module name.
       @param {String} User name.
-      @returns {Object} Promise
+      @return {Object} Promise
     */
     that.package = function (name, username) {
         return new Promise(function (resolve, reject) {
@@ -446,7 +446,7 @@
       @param {String} Diretory
       @param {String} Format
       @param {String} Username
-      @returns {Object} Promise
+      @return {Object} Promise
     */
     that.export = function (
         feather,
@@ -507,7 +507,7 @@
       @param {String} Format
       @param {String} Filename
       @param {String} Username
-      @returns {Object} Promise
+      @return {Object} Promise
     */
     that.import = function (feather, format, filename, username) {
         return new Promise(function (resolve, reject) {
@@ -552,7 +552,7 @@
 
       @param {String} Username
       @param {String} Password
-      @returns {Object} Promise
+      @return {Object} Promise
     */
     that.authenticate = db.authenticate;
 
@@ -560,14 +560,14 @@
       Lookup user information.
 
       @param {String} Username
-      @returns {Object} Promise
+      @return {Object} Promise
     */
     that.deserializeUser = db.deserializeUser;
 
     /**
       Return a configured postgres pool.
 
-      @returns {Object} Promise
+      @return {Object} Promise
     */
     that.getPool = db.getPool;
 
@@ -1247,7 +1247,6 @@
           }
         });
 
-      @seealso requestFunction
       @param {String} Function name
       @param {String} Method. "GET", "POST", "PUT", "PATCH", or "DELETE"
       @param {Function} Function
@@ -1310,7 +1309,6 @@
 
       @param {Object} Request
       @param {Object} Response
-      @seealso registerFunction
       @return receiver
     */
     that.postFunction = function (req, res) {
