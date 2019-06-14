@@ -1,4 +1,4 @@
-/**
+/*
     Framework for building object relational database apps
     Copyright (C) 2019  John Rogelstad
 
@@ -14,7 +14,7 @@
 
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-**/
+*/
 /*jslint browser*/
 import f from "../core.js";
 import dialog from "./dialog.js";
@@ -119,7 +119,7 @@ formDialog.viewModel = function (options) {
 /**
   Form dialog component
 
-  @params {Object} View model
+  @param {Object} View model
 */
 formDialog.component = dialog.component;
 
