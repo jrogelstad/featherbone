@@ -1,4 +1,4 @@
-/**
+/*
     Framework for building object relational database apps
     Copyright (C) 2019  John Rogelstad
 
@@ -14,7 +14,7 @@
 
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-**/
+*/
 /*jslint this, browser*/
 import f from "../core.js";
 import catalog from "../models/catalog.js";
@@ -348,7 +348,7 @@ catalog.register("viewModels", "relationWidget", relationWidget.viewModel);
   @param {String} [options.parentProperty] Name of the relation
     in view model to attached to
   @param {String} [options.valueProperty] Value property
-  @params {Boolean} [options.isCell] Use style for cell in table
+  @param {Boolean} [options.isCell] Use style for cell in table
 */
 relationWidget.component = {
     oninit: function (vnode) {

@@ -1,4 +1,4 @@
-/**
+/*
     Framework for building object relational database apps
     Copyright (C) 2019  John Rogelstad
 
@@ -14,7 +14,7 @@
 
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-**/
+*/
 /*jslint this, browser*/
 import f from "../core.js";
 import datasource from "../datasource.js";
@@ -324,7 +324,7 @@ function model(data, feather) {
       @param {String} [options.format] Return format
       @param {Boolean} [options.isReadOnly] Read only (default true)
       @param {String} [options.style] Style name
-      @returns Receiver
+      @return Receiver
     */
     that.addCalculated = function (options) {
         let fn = options.function;
@@ -417,7 +417,7 @@ function model(data, feather) {
       Returns a promise with a boolean passed back as the value.
 
       @param {Boolean} Automatically commit. Default false.
-      @returns {Object} promise
+      @return {Object} promise
     */
     that.delete = function (autoSave) {
         state.send("delete");
@@ -432,7 +432,7 @@ function model(data, feather) {
     /*
       Send event to fetch data based on the current id from the server.
       Returns a promise with model.data passed back as the value.
-      @returns {Object} promise
+      @return {Object} promise
     */
     that.fetch = function () {
         return doSend("fetch");
@@ -441,7 +441,7 @@ function model(data, feather) {
     /**
       Return the unique identifier value for the model.
 
-      @returns {String}
+      @return {String}
     */
     that.id = function (...args) {
         let prop = that.idProperty();
@@ -458,14 +458,14 @@ function model(data, feather) {
       Default is "id".
 
       @param {String}
-      @returns {String}
+      @return {String}
     */
     that.idProperty = f.prop("id");
 
     /**
       Indicates if model is in  a frozen state.
 
-      @returns {Boolen}
+      @return {Boolen}
     */
     that.isFrozen = function () {
         return isFrozen;
@@ -479,13 +479,13 @@ function model(data, feather) {
     /**
       Indicates whether the model is read only.
 
-      @returns {Boolean}
+      @return {Boolean}
     */
     that.isReadOnly = f.prop(feather.isReadOnly === true);
 
     /**
       Returns whether the object is in a valid state to save.
-      @returns {Boolean}
+      @return {Boolean}
     */
     that.isValid = function () {
         try {
@@ -754,7 +754,7 @@ function model(data, feather) {
 
       @param {String} Name
       @param {String} Id (Optional)
-      @returns {String}
+      @return {String}
     */
     that.path = function (name, id) {
         let ret = "/data/" + name.toSpinalCase();
@@ -785,7 +785,7 @@ function model(data, feather) {
     /**
       Send an event to all properties.
       @param {String} event name.
-      @returns receiver
+      @return receiver
     */
     that.sendToProperties = function (str) {
         let keys = Object.keys(d);
@@ -803,7 +803,7 @@ function model(data, feather) {
       Set properties to the values of a passed object
       @param {Object} Data to set
       @param {Boolean} Silence change events
-      @returns reciever
+      @return reciever
     */
     that.set = function (data, silent, islastFetched) {
         data = data || {};
@@ -856,7 +856,7 @@ function model(data, feather) {
       name of a style.
 
       @param {String} Style name
-      @returns {String}
+      @return {String}
     */
     that.style = f.prop("");
 
@@ -865,7 +865,7 @@ function model(data, feather) {
       passed and already subscribed, subscription id returned.
 
       @param {Boolean} Flag whether or not to subscribe to events.
-      @returns {Boolean | String} False or subscription id.
+      @return {Boolean | String} False or subscription id.
     */
     that.subscribe = function (...args) {
         let query;

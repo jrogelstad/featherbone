@@ -1,4 +1,4 @@
-/**
+/*
     Framework for building object relational database apps
     Copyright (C) 2019  John Rogelstad
 
@@ -14,7 +14,7 @@
 
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-**/
+*/
 /*jslint this, browser*/
 import catalog from "./models/catalog.js";
 import datasource from "./datasource.js";
@@ -1459,7 +1459,7 @@ f.prop = function (store, formatter) {
 
     /**
       @param {Boolean} Is read only
-      @returns {Boolean}
+      @return {Boolean}
     */
     p.isReadOnly = function (value) {
         if (value !== undefined) {
@@ -1469,7 +1469,7 @@ f.prop = function (store, formatter) {
     };
     /**
       @param {Boolean} Is required
-      @returns {Boolean}
+      @return {Boolean}
     */
     p.isRequired = function (value) {
         if (value !== undefined) {
