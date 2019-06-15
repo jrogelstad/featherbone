@@ -21,13 +21,18 @@ import button from "./button.js";
 import catalog from "../models/catalog.js";
 import formWidget from "./form-widget.js";
 
+/**
+    @class settingsPage
+*/
 const settingsPage = {};
 const m = window.m;
 
 /**
-  View model for settings page.
+    View model for settings page.
 
-  @param {Object} Options
+    @method viewModel
+    @param {Object} Options
+    @return {Object}
 */
 settingsPage.viewModel = function (options) {
     options = options || {};
@@ -93,9 +98,10 @@ settingsPage.viewModel = function (options) {
 };
 
 /**
-  Settings page component
+    Settings page component
 
-  @param {Object} View model
+    @property component
+    @type Object
 */
 settingsPage.component = {
     oninit: function (vnode) {

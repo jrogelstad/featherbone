@@ -9,8 +9,8 @@
         "attributesEmit": "false",
         "selleck": "false",
         "paths": [
-            "./client"
+            "./client/*.js"
         ],
-        "exclude": "components, models"
+        "exclude": "server, components, models"
     }
 }

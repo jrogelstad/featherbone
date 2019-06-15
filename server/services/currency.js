@@ -177,6 +177,11 @@
         });
     }
 
+    /**
+        Currency conversion service.
+
+        @class Currency
+    */
     exports.Currency = function () {
         // ..........................................................
         // PUBLIC
@@ -185,13 +190,14 @@
         let that = {};
 
         /**
-          Resolves to a base currency object based on an effective date.
+            Resolves to a base currency object based on an effective date.
 
-          @param {Object} [payload] Payload
-          @param {String} [payload.data] Arguments.
-          @param {String} [payload.data.effective] ISO formatted date.
+            @method baseCurrency
+            @param {Object} [payload] Payload
+            @param {String} [payload.data] Arguments.
+            @param {String} [payload.data.effective] ISO formatted date.
                 Default today.
-          @return {Object} Promise
+            @return {Object} Promise
         */
         that.baseCurrency = function (obj) {
             return new Promise(function (resolve, reject) {
@@ -237,19 +243,20 @@
         };
 
         /**
-          Resolves to a base currency money object populated with the base
-          currency amount.
+            Resolves to a base currency money object populated with the base
+            currency amount.
 
-          @param {Object} [payload] Payload
-          @param {Object} [payload.client] Database client
-          @param {String} [payload.data] Arguments
-          @param {String} [payload.data.fromCurrency] Currency code from
-          @param {Number} [payload.data.amount] Amount
-          @param {String} [payload.data.toCurrency] Target currency.
+            @method convertCurrency
+            @param {Object} [payload] Payload
+            @param {Object} [payload.client] Database client
+            @param {String} [payload.data] Arguments
+            @param {String} [payload.data.fromCurrency] Currency code from
+            @param {Number} [payload.data.amount] Amount
+            @param {String} [payload.data.toCurrency] Target currency.
                 Default base.
-          @param {String} [payload.data.effective] ISO formatted date.
+            @param {String} [payload.data.effective] ISO formatted date.
                 Default today.
-          @return {Object} Promise
+            @return {Object} Promise
         */
         that.convertCurrency = function (obj) {
             return new Promise(function (resolve, reject) {

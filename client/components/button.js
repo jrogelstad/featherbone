@@ -31,7 +31,7 @@ const m = window.m;
 /**
     Generate view model for button.
 
-    @module viewModel
+    @method viemModel
     @param {Object} Options
     @param {String} [options.label] Label
     @param {String} [options.icon] Icon name

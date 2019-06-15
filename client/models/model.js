@@ -262,17 +262,17 @@ function isToMany(p) {
 }
 
 /**
-    A factory that returns a persisting object based on a definition
-    called a `feather`. Can be extended by modifying the return object
-    directly.
-
-    @class model
-    @param {Object} Default data
-    @param {Object} Feather
-    @param {Array} [feather.name] the class name of the object
-    @param {Array} [feather.properties] the properties to set on the
-        data object
-    @return {Object}
+* A factory that returns a persisting object based on a definition
+* called a `feather`. Can be extended by modifying the return object
+* directly.
+*
+* @class model
+* @param {Object} Default data
+* @param {Object} Feather
+* @param {Array} [feather.name] the class name of the object
+* @param {Array} [feather.properties] the properties to set on the
+*     data object
+* @return {Object}
 */
 function model(data, feather) {
     feather = (
@@ -337,21 +337,21 @@ function model(data, feather) {
     // PUBLIC
     //
 
-    /**
-        Add a calculated property to "data."
-
-        @method addCalculated
-        @param {Object} Options
-        @param {String} [options.name] Name (required)
-        @param {String} [options.description] Description
-        @param {Function} [options.function] Function (required)
-        @param {String} [options.type] Return type (default "string")
-        @param {String} [options.format] Return format
-        @param {Boolean} [options.isReadOnly] Read only (default true)
-        @param {String} [options.style] Style name
-        @chainable
-        @return {Object}
-    */
+/**
+*  Add a calculated property to "data."
+*
+* @method addCalculated
+* @param {Object} Options
+* @param {String} [options.name] Name (required)
+* @param {String} [options.description] Description
+* @param {Function} [options.function] Function (required)
+* @param {String} [options.type] Return type (default "string")
+* @param {String} [options.format] Return format
+* @param {Boolean} [options.isReadOnly] Read only (default true)
+* @param {String} [options.style] Style name
+* @chainable
+* @return {Object}
+*/
     that.addCalculated = function (options) {
         let fn = options.function;
 
@@ -372,13 +372,13 @@ function model(data, feather) {
         return this;
     };
 
-    /**
-        Check whether changes in model can be saved in its
-        current state.
-
-        @method canSave
-        @return {Boolean}
-    */
+/**
+* Check whether changes in model can be saved in its
+* current state.
+*
+* @method canSave
+* @return {Boolean}
+*/
     that.canSave = function () {
         return state.resolve(state.current()[0]).canSave();
     };

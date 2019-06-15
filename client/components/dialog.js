@@ -21,6 +21,9 @@ import catalog from "../models/catalog.js";
 import State from "../state.js";
 import button from "./button.js";
 
+/**
+    @class dialog
+*/
 const dialog = {};
 const m = window.m;
 const dialogPolyfill = window.dialogPolyfill;
@@ -28,11 +31,12 @@ const dialogPolyfill = window.dialogPolyfill;
 /**
   View model for sort dialog.
 
-  @param {Object} Options
-  @param {Array} [options.icon] Dialog icon
-  @param {Array} [options.title] Dialog title
-  @param {Array} [options.message] Text message
-  @param {Function} [options.onclickOk] Function to execute on ok clicked
+    @method viewModel
+    @param {Object} Options
+    @param {Array} [options.icon] Dialog icon
+    @param {Array} [options.title] Dialog title
+    @param {Array} [options.message] Text message
+    @param {Function} [options.onclickOk] Function to execute on ok clicked
 */
 dialog.viewModel = function (options) {
     options = options || {};
@@ -159,9 +163,10 @@ dialog.viewModel = function (options) {
 catalog.register("viewModels", "dialog", dialog.viewModel);
 
 /**
-  Dialog component
+    Dialog component
 
-  @param {Object} View model
+    @property component
+    @type Object
 */
 dialog.component = {
     oninit: function (vnode) {
