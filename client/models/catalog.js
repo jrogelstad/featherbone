@@ -112,7 +112,7 @@ function settings() {
 /**
     Invoke catalog settings as an object
 
-    @module catalog
+    @class catalog
 */
 const catalog = (function () {
     let that = settings();
@@ -331,7 +331,7 @@ const catalog = (function () {
 
     /**
         Return feathers loaded in the catalog.
-    
+
         @method feathers
         @return {Object} feathers
     */

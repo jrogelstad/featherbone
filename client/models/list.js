@@ -118,10 +118,11 @@ function createList(feather) {
     /**
         Set whether the array can have a filter. Turn
         off when list is not fetching.
-        
+
         @method canFilter
         @param {Boolean} Can filter flag
         @return {Boolean}
+    */
     ary.canFilter = f.prop(true);
 
     /**
@@ -252,7 +253,7 @@ function createList(feather) {
 
         @method showDeleted
         @param {Boolean} Whether to show deleted
-        @param {Boolean}
+        @return {Boolean}
     */
     ary.showDeleted = f.prop(false);
 
@@ -269,6 +270,7 @@ function createList(feather) {
     /**
         List state.
 
+        @method state
         @return {Object}
     */
     ary.state = function () {
@@ -532,7 +534,7 @@ function createList(feather) {
     remove(model): Removes the passed model from the array.
     fetch (filter): Requeries the server for new results.
 
-  @module list
+  @class list
   @param {String} Feather name
   @return {Function}
 */

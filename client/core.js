@@ -22,9 +22,9 @@ import State from "./state.js";
 
 const m = window.m;
 /**
-    Featherbone base module.
+    Featherbone global object.
 
-    @module f
+    @class f
 */
 const f = window.f;
 const console = window.console;
@@ -50,11 +50,13 @@ let styles;
 let message;
 let appState;
 
-/** @private
-  Auto-build a form definition based on feather properties.
+/**
+    Auto-build a form definition based on feather properties.
 
-  @param {String | Object} Feather
-  @return {Object} Form definition
+    @private
+    @method buildForm
+    @param {String | Object} Feather
+    @return {Object} Form definition
 */
 function buildForm(feather) {
     let props;

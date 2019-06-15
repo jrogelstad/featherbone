@@ -215,10 +215,11 @@ function resolveConfig(config) {
 }
 
 /**
-  Model with special rest API handling for Workbook saves.
+    Model with special rest API handling for Workbook saves.
 
-  @param {Object} Default data
-  return {Object}
+    @method workbook
+    @param {Object} Default data
+    return {Object}
 */
 function workbookModel(data) {
     let that;
@@ -382,10 +383,11 @@ function workbookModel(data) {
 }
 
 /**
-  Workbook configuration model.
+    Workbook configuration model.
 
-  @param {Object} Default data
-  return {Object}
+    @method workbookChild
+    @param {Object} Default data
+    return {Object}
 */
 function workbookChild(data) {
     let that = model(data, workbookLocalConfig);
