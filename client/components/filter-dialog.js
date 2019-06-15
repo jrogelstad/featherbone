@@ -22,17 +22,22 @@ import model from "../models/model.js";
 import checkbox from "./checkbox.js";
 import tableDialog from "./table-dialog.js";
 
+/**
+    @class filterDialog
+*/
 const filterDialog = {};
 const m = window.m;
 
 /**
-  View model for sort dialog.
+    View model for sort dialog.
 
-  @param {Object} Options
-  @param {Array} [options.propertyName] Filter property being modified
-  @param {Array} [options.attrs] Attributes
-  @param {Array} [options.list] Model list
-  @param {Function} [options.filter] Filter property
+    @method viewModel
+    @param {Object} Options
+    @param {Array} [options.propertyName] Filter property being modified
+    @param {Array} [options.attrs] Attributes
+    @param {Array} [options.list] Model list
+    @param {Function} [options.filter] Filter property
+    @return {Object}
 */
 filterDialog.viewModel = function (options) {
     options = options || {};
@@ -393,9 +398,10 @@ filterDialog.viewModel = function (options) {
 };
 
 /**
-  Filter dialog component
+    Filter dialog component
 
-  @param {Object} View model
+    @property component
+    @type object
 */
 filterDialog.component = tableDialog.component;
 

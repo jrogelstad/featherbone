@@ -20,13 +20,18 @@ import f from "../core.js";
 import dialog from "./dialog.js";
 import formWidget from "./form-widget.js";
 
+/**
+    @class formDialog
+*/
 const formDialog = {};
 const m = window.m;
 
 /**
-  View model for form dialog.
+    View model for form dialog.
 
-  @param {Object} Options
+    @method viewModel
+    @param {Object} Options
+    @return {Object}
 */
 formDialog.viewModel = function (options) {
     let vm;
@@ -117,9 +122,10 @@ formDialog.viewModel = function (options) {
 };
 
 /**
-  Form dialog component
+    Form dialog component
 
-  @param {Object} View model
+    @property component
+    @type Object
 */
 formDialog.component = dialog.component;
 

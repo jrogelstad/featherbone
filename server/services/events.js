@@ -22,6 +22,11 @@
     const {Tools} = require("./tools");
     const tools = new Tools();
 
+    /**
+        Event management services.
+
+        @class Events
+    */
     exports.Events = function () {
         // ..........................................................
         // PRIVATE
@@ -33,12 +38,13 @@
         // PUBLIC
         //
         /**
-          Initialize listener.
+            Initialize listener.
 
-          @param {Object} Database client connection
-          @param {String} Channel (node server id)
-          @param {Function} Callback, responds to events
-          @return {Object} promise
+            @method listen
+            @param {Object} Database client connection
+            @param {String} Channel (node server id)
+            @param {Function} Callback, responds to events
+            @return {Object} promise
         */
         events.listen = function (client, channel, callback) {
             return new Promise(function (resolve, reject) {
@@ -53,21 +59,22 @@
         };
 
         /**
-          Subscribe to changes against objects with matching ids. If merge is
-          true then previous subscription objects continue to listen, otherwise
-          previous subscription unsubscribed to.
+            Subscribe to changes against objects with matching ids. If merge is
+            true then previous subscription objects continue to listen, otherwise
+            previous subscription unsubscribed to.
 
-          @param {Object} Database client connection
-          @param {Object} Subscription. If empty promise just resolves
+            @method subscribe
+            @param {Object} Database client connection
+            @param {Object} Subscription. If empty promise just resolves
                 without change.
-          @param {String} [subscription.nodeId] Node server id. Required.
-          @param {String} [subscription.eventKey] Client event key. Required.
-          @param {String} [subscription.id] Subscription id. Required.
-          @param {Boolean} [subscription.merge] Merge previous subscription.
+            @param {String} [subscription.nodeId] Node server id. Required.
+            @param {String} [subscription.eventKey] Client event key. Required.
+            @param {String} [subscription.id] Subscription id. Required.
+            @param {Boolean} [subscription.merge] Merge previous subscription.
                 Default false.
-          @param {Array} Ids to listen to
-          @param {String} Feather or table name to listen for inserts.
-          @return {Object} Promise
+            @param {Array} Ids to listen to
+            @param {String} Feather or table name to listen for inserts.
+            @return {Object} Promise
         */
         events.subscribe = function (client, subscription, ids, tablename) {
             return new Promise(function (resolve, reject) {
@@ -147,13 +154,14 @@
         };
 
         /**
-          Unsubscribe to event notifications by type.
+            Unsubscribe to event notifications by type.
 
-          @param {Object} Database client connection
-          @param {String} Id to unsubscribe to.
-          @param {String} Unsubscribe id is by 'subscription',
+            @method unsubscribe
+            @param {Object} Database client connection
+            @param {String} Id to unsubscribe to.
+            @param {String} Unsubscribe id is by 'subscription',
                 'instance' or 'node'. Default 'subscription'
-          @return {Object} Promise
+            @return {Object} Promise
         */
         events.unsubscribe = function (client, id, type) {
             return new Promise(function (resolve, reject) {

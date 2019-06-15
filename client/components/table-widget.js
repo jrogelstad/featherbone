@@ -28,6 +28,9 @@ import State from "../state.js";
 import checkbox from "./checkbox.js";
 import datasource from "../datasource.js";
 
+/**
+    @class tableWidget
+*/
 const tableWidget = {};
 const outer = document.createElement("div");
 const COL_WIDTH_DEFAULT = "150";
@@ -740,6 +743,7 @@ function resize(vm, vnode) {
 }
 
 /**
+    @method viewModel
     @param {Object} Options
     @param {Array} [options.actions] Actions
     @param {Object|String} [options.feather] Feather
@@ -1791,6 +1795,10 @@ tableWidget.viewModel = function (options) {
 catalog.register("viewModels", "tableWidget", tableWidget.viewModel);
 
 // Define table widget component
+/**
+    @property component
+    @type Object
+*/
 tableWidget.component = {
 
     oninit: function (vnode) {

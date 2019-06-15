@@ -22,6 +22,11 @@ import State from "./state.js";
 
 const m = window.m;
 /**
+    Core module
+    
+    @module Core
+*/
+/**
     Featherbone global object.
 
     @class f

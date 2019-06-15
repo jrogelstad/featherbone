@@ -131,6 +131,11 @@
         "WITH"
     ];
 
+    /**
+        Feather management service.
+
+        @class Feathers
+    */
     exports.Feathers = function () {
         // ..........................................................
         // PRIVATE
@@ -524,8 +529,9 @@
         //
 
         /**
-          Remove a class from the database.
+            Remove a feather definition from the database.
 
+            @method deleteFeather
             @param {Object} Request payload
             @param {Object} [payload.data] Payload data
             @param {String | Array} [payload.data.name] Name(s) of
@@ -684,14 +690,16 @@
         };
 
         /**
-          Return a class definition, including inherited properties.
-          @param {Object} Request payload
-          @param {Object} [payload.client] Database client
-          @param {Object} [payload.data] Data
-          @param {Object} [payload.data.name] Feather name
-          @param {Boolean} [payload.data.includeInherited] Include inherited
+            Return a feather definition, including inherited properties.
+
+            @method getFeather
+            @param {Object} Request payload
+            @param {Object} [payload.client] Database client
+            @param {Object} [payload.data] Data
+            @param {Object} [payload.data.name] Feather name
+            @param {Boolean} [payload.data.includeInherited] Include inherited
                 or not. Default = true.
-          @return {Object} Promise
+            @return {Object} Promise
         */
         that.getFeather = function (obj) {
             return new Promise(function (resolve, reject) {
@@ -769,21 +777,22 @@
         };
 
         /**
-          Check whether a user is authorized to perform an action on a
-          particular feather (class) or object.
+            Check whether a user is authorized to perform an action on a
+            particular feather (class) or object. Returns a Promise.
 
-          Allowable actions: "canCreate", "canRead", "canUpdate", "canDelete"
+            Allowable actions: `canCreate`, `canRead`, `canUpdate`, `canDelete`
 
-          "canCreate" will only check feather names.
+            `canCreate` will only check feather names.
 
-          @param {Object} Payload
-          @param {Object} [payload.data] Payload data
-          @param {String} [payload.data.action] Required
-          @param {String} [payload.data.feather] Feather name
-          @param {String} [payload.data.id] Object id
-          @param {String} [payload.data.user] User. Defaults to current user
-          @param {String} [payload.client] Database client
-          @return {Object} Promise
+            @method isAuthorized
+            @param {Object} Payload
+            @param {Object} [payload.data] Payload data
+            @param {String} [payload.data.action] Required
+            @param {String} [payload.data.feather] Feather name
+            @param {String} [payload.data.id] Object id
+            @param {String} [payload.data.user] User. Defaults to current user
+            @param {String} [payload.client] Database client
+            @return {Object}
         */
         that.isAuthorized = function (obj) {
             return new Promise(function (resolve, reject) {
@@ -894,34 +903,36 @@
         };
 
         /**
-          Set authorazition for a particular authorization role.
+            Set authorazition for a particular authorization role.
 
-          Example:
-            {
-              id: "ExWIx6'",
-              role: "jdoe",
-              actions:
+            @example
+                // Example payload
                 {
-                  canCreate: false,
-                  canRead: true,
-                  canUpdate: false,
-                  canDelete: false
+                    id: "ExWIx6'",
+                    role: "jdoe",
+                    actions:
+                    {
+                        canCreate: false,
+                        canRead: true,
+                        canUpdate: false,
+                        canDelete: false
+                    }
                 }
-            }
 
-          @param {Object} Payload
-          @param {Object} [payload.data] Payload data
-          @param {String} [payload.data.id] Object id (if record level)
-          @param {String} [payload.data.feather] Feather
-          @param {String} [payload.data.role] Role
-          @param {Boolean} [payload.data.isInternal] Not a feather
-          @param {Boolean} [payload.data.isSilentError] Silence errors
-          @param {Object} [payload.data.actions] Required
-          @param {Boolean} [payload.data.actions.canCreate]
-          @param {Boolean} [payload.data.actions.canRead]
-          @param {Boolean} [payload.data.actions.canUpdate]
-          @param {Boolean} [payload.data.actions.canDelete]
-          @return {Object} Promise
+            @method saveAuthorization
+            @param {Object} Payload
+            @param {Object} [payload.data] Payload data
+            @param {String} [payload.data.id] Object id (if record level)
+            @param {String} [payload.data.feather] Feather
+            @param {String} [payload.data.role] Role
+            @param {Boolean} [payload.data.isInternal] Not a feather
+            @param {Boolean} [payload.data.isSilentError] Silence errors
+            @param {Object} [payload.data.actions] Required
+            @param {Boolean} [payload.data.actions.canCreate]
+            @param {Boolean} [payload.data.actions.canRead]
+            @param {Boolean} [payload.data.actions.canUpdate]
+            @param {Boolean} [payload.data.actions.canDelete]
+            @return {Object} Promise
         */
         that.saveAuthorization = function (obj) {
             return new Promise(function (resolve, reject) {
@@ -1201,11 +1212,11 @@
         };
 
         /**
-          Create or update a persistence class. This function is idempotent.
-          Subsequent saves will automatically drop properties no longer present.
+            Create or update a persistence class. This function is idempotent.
+            Subsequent saves will automatically drop properties no longer present.
 
-          Example payload:
-           {
+            Example payload:
+            {
              "name": "Contact",
              "description": "Contact data about a person",
              "inherits": "Object",
@@ -1227,30 +1238,30 @@
                 "type": "number"
               }
             }
-          }
+            }
 
-         * @param {Object} Payload
-         * @param {Object} [payload.client] Database client.
-         * @param {Object | Array} [payload.spec] Feather specification(s).
-         * @param {String} [payload.spec.name] Name
-         * @param {String} [payload.spec.description] Description
-         * @param {Object | Array | Boolean} [payload.spec.authorization]
-         *      Authorization spec. Defaults to grant all to everyone if
-         *      undefined. Pass false to grant no auth.
-         * @param {String} [payload.spec.properties] Feather properties
-         * @param {String} [payload.spec.properties.description]
-         *      Description
-         * @param {String} [spec.properties.default] Default value
-         *      or function name.
-         * @param {String | Object} [payload.spec.properties.type]
-         *      Type. Standard types are string, boolean, number, date.
-         *      Object is used
-         *      for relation specs.
-         * @param {String} [payload.spec.properties.relation] Feather name of
-         *  relation.
-         * @param {String} [payload.spec.properties.childOf] Property name
-         *  on parent relation if one to many relation.
-         * @return {Object} Promise
+            @param {Object} Payload
+            @param {Object} [payload.client] Database client.
+            @param {Object | Array} [payload.spec] Feather specification(s).
+            @param {String} [payload.spec.name] Name
+            @param {String} [payload.spec.description] Description
+            @param {Object | Array | Boolean} [payload.spec.authorization]
+                 Authorization spec. Defaults to grant all to everyone if
+                 undefined. Pass false to grant no auth.
+            @param {String} [payload.spec.properties] Feather properties
+            @param {String} [payload.spec.properties.description]
+                 Description
+            @param {String} [spec.properties.default] Default value
+                 or function name.
+            @param {String | Object} [payload.spec.properties.type]
+                 Type. Standard types are string, boolean, number, date.
+                 Object is used
+                 for relation specs.
+            @param {String} [payload.spec.properties.relation] Feather name of
+                relation.
+            @param {String} [payload.spec.properties.childOf] Property name
+                on parent relation if one to many relation.
+            @return {Object} Promise
         */
         that.saveFeather = function (obj) {
             return new Promise(function (resolve, reject) {

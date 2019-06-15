@@ -22,18 +22,22 @@ import catalog from "../models/catalog.js";
 import dialog from "./dialog.js";
 import State from "../state.js";
 
+/**
+    @class tableDialog
+*/
 const tableDialog = {};
 const m = window.m;
 
 /**
-  View model for sort dialog.
+    View model for sort dialog.
 
-  @param {Object} Options
-  @param {Array} [options.propertyName] Filter property being modified
-  @param {Array} [options.attrs] Attributes
-  @param {Array} [options.list] Model list
-  @param {Array} [options.feather] Feather
-  @param {Function} [options.filter] Filter property
+    @method viewModel
+    @param {Object} Options
+    @param {Array} [options.propertyName] Filter property being modified
+    @param {Array} [options.attrs] Attributes
+    @param {Array} [options.list] Model list
+    @param {Array} [options.feather] Feather
+    @param {Function} [options.filter] Filter property
 */
 tableDialog.viewModel = function (options) {
     options = options || {};
@@ -368,9 +372,10 @@ tableDialog.viewModel = function (options) {
 };
 
 /**
-  Table dialog component
+    Table dialog component
 
-  @param {Object} View model
+    @property component
+    @type Object
 */
 tableDialog.component = dialog.component;
 
