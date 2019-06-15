@@ -19,14 +19,26 @@
 const m = window.m;
 const datasource = {
     /**
-    Returns the base url used to fetch and post data
-    @return {String}
+        @class datasource
+    */
+
+    /**
+        Returns the base url used to fetch and post data
+
+        @method baseUrl
+        @return {String}
     */
     baseUrl: function () {
         let l = window.location;
         return "http://" + l.hostname + ":" + l.port;
     },
 
+    /**
+        Ajax request. (Need to explain this)
+
+        @method request
+        @return {String}
+    */
     request: function (options) {
         options.url = datasource.baseUrl() + options.path;
         if (options.id) {

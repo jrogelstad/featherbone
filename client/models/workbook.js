@@ -319,6 +319,7 @@ function workbookModel(data) {
 
         Allowable actions: `canRead`, `canUpdate`
 
+        @method isAuthorized
         @param {String} Action name
         @return {Object} Promise
     */
