@@ -217,7 +217,8 @@ function resolveConfig(config) {
 /**
     Model with special rest API handling for Workbook saves.
 
-    @method workbook
+    @class workbook
+    @extends model
     @param {Object} Default data
     return {Object}
 */
@@ -385,7 +386,8 @@ function workbookModel(data) {
 /**
     Workbook configuration model.
 
-    @method workbookChild
+    @class workbookChild
+    @extends model
     @param {Object} Default data
     return {Object}
 */

@@ -1,4 +1,4 @@
-/**
+/*
     Framework for building object relational database apps
     Copyright (C) 2019  John Rogelstad
 
@@ -14,20 +14,28 @@
 
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-**/
+*/
 /*jslint this, node */
 (function () {
     "use strict";
 
     const Big = require("big.js");
+    /**
+        Helper functions added to JavaScript `Number` prototype.
+
+        @class Number
+    */
 
     /**
         Add padding to a number.
 
-          pad(9, 3);      // "009";
-          pad(12, 3);     // "012"
-          pad(9, 3, '-')  // "--9"
+        @example
+            let x = 9;
+            
+            x.pad(3);      // "009";
+            x.pad(3, '-')  // "--9"
 
+        @method pad
         @param {Number} Number
         @param {Number} Width
         @param {String} Pad character, default 0
@@ -48,22 +56,62 @@
         );
     };
 
+    /**
+        Divide current number by another.
+
+        @method div
+        @param {Number) Divisor
+        @chainable
+        @return {Number)
+    */
     Number.prototype.div = function (n) {
         return new Big(this).div(n).valueOf() - 0;
     };
 
+    /**
+        Subtract number from current number.
+
+        @method div
+        @param {Number) Subtrahend
+        @chainable
+        @return {Number)
+    */
     Number.prototype.minus = function (n) {
         return new Big(this).minus(n).valueOf() - 0;
     };
 
+    /**
+        Add number to current number.
+
+        @method div
+        @param {Number) Addend
+        @chainable
+        @return {Number)
+    */
     Number.prototype.plus = function (n) {
         return new Big(this).plus(n).valueOf() - 0;
     };
 
+    /**
+        Muliply by another number.
+
+        @method div
+        @chainable
+        @param {Number) Multiplier
+        @return {Number)
+    */
     Number.prototype.times = function (n) {
         return new Big(this).times(n).valueOf() - 0;
     };
 
+    /**
+        Round number.
+
+        @method round
+        @param {Number) Precision
+        @chainable
+        @return {Number)
+    */
     Number.prototype.round = function (dp) {
         return new Big(this).round(dp).valueOf() - 0;
     };
