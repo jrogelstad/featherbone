@@ -1,4 +1,4 @@
-/**
+/*
     Framework for building object relational database apps
     Copyright (C) 2019  John Rogelstad
 
@@ -14,11 +14,11 @@
 
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-**/
+*/
 /*jslint browser*/
 /*global f*/
 
-/**
+/*
   Feather specification
 */
 function doUpsertFeather(obj) {
@@ -236,7 +236,7 @@ f.datasource.registerFunction(
     f.datasource.TRIGGER_BEFORE
 );
 
-/**
+/*
   Contact
 */
 function handleContact(obj) {
@@ -367,7 +367,7 @@ f.datasource.registerFunction(
     f.datasource.TRIGGER_BEFORE
 );
 
-/**
+/*
   Currency
 */
 function doUpdateCurrencyBefore(obj) {
@@ -525,7 +525,7 @@ f.datasource.registerFunction(
     f.datasource.TRIGGER_BEFORE
 );
 
-/**
+/*
   Currency conversion
 */
 function doCheckCurrencyConversion(obj) {
@@ -563,7 +563,7 @@ f.datasource.registerFunction(
     f.datasource.TRIGGER_BEFORE
 );
 
-/**
+/*
   Document
 */
 function doCreateDocument(obj) {
@@ -659,7 +659,7 @@ f.datasource.registerFunction(
     f.datasource.TRIGGER_BEFORE
 );
 
-/**
+/*
   Form
 */
 function doHandleForm(obj) {
@@ -791,7 +791,7 @@ f.datasource.registerFunction(
     f.datasource.TRIGGER_BEFORE
 );
 
-/**
+/*
   Module
 */
 function doUpdateModule(obj) {
@@ -849,7 +849,7 @@ f.datasource.registerFunction(
     f.datasource.TRIGGER_AFTER
 );
 
-/**
+/*
   Role
 */
 function updateRole(obj) {
@@ -1016,7 +1016,7 @@ f.datasource.registerFunction(
     f.datasource.TRIGGER_BEFORE
 );
 
-/**
+/*
   User Account
 */
 function updateUserAccount(obj) {

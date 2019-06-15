@@ -35,11 +35,12 @@
     const jsonpatch = require("fast-json-patch");
 
     /**
-      Return a promise that resolves money object with
-      zero amount and base currency. Used as currency
-      default.
+        Return a promise that resolves money object with
+        zero amount and base currency. Used as currency
+        default.
 
-      @return {Object} Promise
+        @method money
+        @return {Object} Promise
     */
     f.money = function () {
         return new Promise(function (resolve, reject) {
@@ -60,6 +61,11 @@
         });
     };
 
+    /**
+        Services for create, read, update and delete actions.
+
+        @class CRUD
+    */
     exports.CRUD = function () {
         // ..........................................................
         // PRIVATE
@@ -72,15 +78,16 @@
         //
 
         /**
-        Perform soft delete on object records.
+            Perform soft delete on object records.
 
-        @param {Object} Request payload
-        @param {Object} [payload.id] Id of record to delete
-        @param {Object} [payload.client] Database client
-        @param {Function} [payload.isHard] Hard delete flag. Default false.
-        @param {Boolean} Request as child. Default false.
-        @param {Boolean} Request as super user. Default false.
-        @return {Object} Promise
+            @method doDelete
+            @param {Object} Request payload
+            @param {Object} [payload.id] Id of record to delete
+            @param {Object} [payload.client] Database client
+            @param {Function} [payload.isHard] Hard delete flag. Default false.
+            @param {Boolean} Request as child. Default false.
+            @param {Boolean} Request as super user. Default false.
+            @return {Object} Promise
         */
         crud.doDelete = function (obj, isChild, isSuperUser) {
             return new Promise(function (resolve, reject) {
@@ -251,15 +258,16 @@
         };
 
         /**
-          Insert records for a passed object.
+            Insert records for a passed object.
 
-          @param {Object} Request payload
-          @param {Object} [payload.name] Object type name
-          @param {Object} [payload.data] Data to insert
-          @param {Object} [payload.client] Database client
-          @param {Boolean} Request as child. Default false.
-          @param {Boolean} Request as super user. Default false.
-          @return {Object} Promise
+            @method doInsert
+            @param {Object} Request payload
+            @param {Object} [payload.name] Object type name
+            @param {Object} [payload.data] Data to insert
+            @param {Object} [payload.client] Database client
+            @param {Boolean} Request as child. Default false.
+            @param {Boolean} Request as super user. Default false.
+            @return {Object} Promise
         */
         crud.doInsert = function (obj, isChild, isSuperUser) {
             return new Promise(function (resolve, reject) {
@@ -794,19 +802,20 @@
         };
 
         /**
-          Select records for an object or array of objects.
+            Select records for an object or array of objects.
 
-          @param {Object} Request payload
-          @param {Object} [payload.id] Id of record to select
-          @param {Object} [payload.name] Name of feather
-          @param {Object} [payload.filter] Filter criteria of records to select
-          @param {Object} [payload.client] Database client
-          @param {Boolean} [payload.showDeleted] include deleted records
-          @param {Object} [payload.subscription] subscribe to events on results
-          @param {Boolean} [payload.sanitize] sanitize result. Default true
-          @param {Boolean} Request as child. Default false.
-          @param {Boolean} Request as super user. Default false.
-          @return receiver
+            @method doSelect
+            @param {Object} Request payload
+            @param {Object} [payload.id] Id of record to select
+            @param {Object} [payload.name] Name of feather
+            @param {Object} [payload.filter] Filter criteria of records to select
+            @param {Object} [payload.client] Database client
+            @param {Boolean} [payload.showDeleted] include deleted records
+            @param {Object} [payload.subscription] subscribe to events on results
+            @param {Boolean} [payload.sanitize] sanitize result. Default true
+            @param {Boolean} Request as child. Default false.
+            @param {Boolean} Request as super user. Default false.
+            @return receiver
         */
         crud.doSelect = function (obj, isChild, isSuperUser) {
             return new Promise(function (resolve, reject) {
@@ -1009,14 +1018,15 @@
         };
 
         /**
-          Update records based on patch definition.
+            Update records based on patch definition.
 
-          @param {Object} Request payload
-          @param {Object} [payload.id] Id of record to update
-          @param {Object} [payload.data] Patch to apply
-          @param {Object} [payload.client] Database client
-          @param {Boolean} Request as super user. Default false.
-          @return receiver
+            @method doUpdate
+            @param {Object} Request payload
+            @param {Object} [payload.id] Id of record to update
+            @param {Object} [payload.data] Patch to apply
+            @param {Object} [payload.client] Database client
+            @param {Boolean} Request as super user. Default false.
+            @return receiver
         */
         crud.doUpdate = function (obj, isChild, isSuperUser) {
             return new Promise(function (resolve, reject) {
@@ -1588,14 +1598,15 @@
         };
 
         /**
-          Lock a record to prevent others from editing.
+            Lock a record to prevent others from editing.
 
-          @param {Object} Database client connection
-          @param {String} Node id.
-          @param {String} Object id.
-          @param {String} User name.
-          @param {String} Session id.
-          @return {Object} Promise
+            @method lock
+            @param {Object} Database client connection
+            @param {String} Node id.
+            @param {String} Object id.
+            @param {String} User name.
+            @param {String} Session id.
+            @return {Object} Promise
         */
         crud.lock = function (client, nodeid, id, username, eventkey) {
             return new Promise(function (resolve, reject) {
@@ -1693,15 +1704,16 @@
         };
 
         /**
-          Unlock object(s) by type.
+            Unlock object(s) by type.
 
-          @param {Object} Database client connection
-          @param {Object} Criteria for what to unlock.
-          @param {String} [criteria.id] Object id.
-          @param {String} [criteria.username] User name.
-          @param {String} [criteria.eventKey] Session id.
-          @param {String} [criteria.nodeId] Node id.
-          @return {Object} Promise
+            @method unlock
+            @param {Object} Database client connection
+            @param {Object} Criteria for what to unlock.
+            @param {String} [criteria.id] Object id.
+            @param {String} [criteria.username] User name.
+            @param {String} [criteria.eventKey] Session id.
+            @param {String} [criteria.nodeId] Node id.
+            @return {Object} Promise
         */
         crud.unlock = function (client, criteria) {
             return new Promise(function (resolve, reject) {

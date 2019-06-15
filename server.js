@@ -86,10 +86,12 @@
     }
 
     /**
-     * Remove directory recursively
-     * @param {string} dir_path
-     * @see https://stackoverflow.com/a/42505874/3027390
-     */
+        Remove directory recursively.
+        https://stackoverflow.com/a/42505874/3027390
+
+        @method rimraf
+        @param {string} dir_path
+    */
     function rimraf(dir_path) {
         if (fs.existsSync(dir_path)) {
             fs.readdirSync(dir_path).forEach(function (entry) {
