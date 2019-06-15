@@ -126,12 +126,18 @@ function buildForm(feather) {
     return {attrs: attrs};
 }
 
-/** @private */
+/**
+    @private
+    @method column
+*/
 function column(item) {
     return {attr: item};
 }
 
-/** @private */
+/**
+    @private
+    @method buildRelationWidgetFromFeather
+*/
 function buildRelationWidgetFromFeather(type, featherName) {
     let name = featherName + "$" + type.relation + "Relation";
     let widget = catalog.store().components()[name];
@@ -186,7 +192,10 @@ function buildRelationWidgetFromFeather(type, featherName) {
     return widget;
 }
 
-/** @private */
+/**
+    @private
+    @method buildSelector
+*/
 function buildSelector(obj, opts) {
     let id = opts.id;
     let vm = obj.viewModel;
@@ -242,7 +251,10 @@ function buildSelector(obj, opts) {
     return selectComponents[id].content;
 }
 
-/** @private */
+/**
+    @private
+    @method buildRelationWidgetFromLayout
+*/
 function buildRelationWidgetFromLayout(id) {
     let widget = catalog.store().components()[id];
 
@@ -291,12 +303,17 @@ function buildRelationWidgetFromLayout(id) {
     return widget;
 }
 
-/** private */
+/** 
+    @private 
+    @method isChild
+*/
 function isChild(p) {
     return p.type && typeof p.type === "object" && p.type.childOf;
 }
 
-/** private */
+/** @private
+    @method isChild
+*/
 function isToOne(p) {
     return (
         p.type && typeof p.type === "object" &&
@@ -304,13 +321,19 @@ function isToOne(p) {
     );
 }
 
-/** @private */
+/**
+    @private
+    @method isToMany
+*/
 function isToMany(p) {
     return p.type && typeof p.type === "object" && p.type.parentOf;
 }
 
 // Resize according to surroundings
-/** @private */
+/**
+    @private
+    @method resizeEditor
+*/
 function resizeEditor(editor) {
     let containerHeight;
     let bottomHeight;
@@ -460,6 +483,7 @@ f.feathers = function () {
     Find the top most parent model in a model heiarchy.
     For example from an order line find the parent order.
 
+    @method findRoot
     @param {Object} Model
     @return {Object} Parent model
 */
@@ -594,13 +618,14 @@ f.baseCurrency = function (effective) {
 };
 
 /**
-  Return a money object.
+    Return a money object.
 
-  @param {Number} Amount.
-  @param {String} Currency code.
-  @param {Date} Effective date.
-  @param {Number} Base amount.
-  @return {Object}
+    @method money
+    @param {Number} Amount.
+    @param {String} Currency code.
+    @param {Date} Effective date.
+    @param {Number} Base amount.
+    @return {Object}
 */
 f.money = function (amount, currency, effective, baseAmount) {
     let ret = {
@@ -1428,6 +1453,13 @@ f.prop = function (store, formatter) {
         return formatter.fromType(store);
     };
 
+    /**
+        Getter setter for the new value in `changing` state.
+
+        @method alias
+        @param {String} Alias name
+        @return {String}
+    */
     p.alias = function (...args) {
         if (args.length) {
             alias = args[0];
@@ -1435,10 +1467,12 @@ f.prop = function (store, formatter) {
         return alias;
     };
 
-    /*
-      Getter setter for the new value
-      @param {Any} New value
-      @return {Any}
+    /**
+        Getter setter for the new value in `changing` state.
+
+        @method newValue
+        @param {Any} New value
+        @return {Any}
     */
     p.newValue = function (...args) {
         if (args.length && p.state().current()[0] === "/Changing") {
@@ -1447,34 +1481,10 @@ f.prop = function (store, formatter) {
 
         return newValue;
     };
-
-    p.newValue.toJSON = function () {
-        return proposed;
-    };
-
-    p.oldValue = function () {
-        return formatter.fromType(oldValue);
-    };
-
-    p.oldValue.toJSON = function () {
-        return oldValue;
-    };
-
-    p.state = function () {
-        return state;
-    };
-
-    p.toJSON = function () {
-        if (
-            typeof store === "object" && store !== null &&
-            typeof store.toJSON === "function"
-        ) {
-            return store.toJSON();
-        }
-
-        return store;
-    };
-
+    /**
+        @method toJSON
+        @return {Object}
+    */
     p.newValue.toJSON = function () {
         if (
             typeof newValue === "object" && newValue !== null &&
@@ -1485,10 +1495,48 @@ f.prop = function (store, formatter) {
 
         return formatter.toType(newValue);
     };
+    /**
+        Use when in `changing` state.
+
+        @method oldValue
+        @return {Object}
+    */
+    p.oldValue = function () {
+        return formatter.fromType(oldValue);
+    };
+    /**
+        @method toJSON
+        @return {Object}
+    */
+    p.oldValue.toJSON = function () {
+        return oldValue;
+    };
+    /**
+        @method state
+        @return {Object}
+    */
+    p.state = function () {
+        return state;
+    };
 
     /**
-      @param {Boolean} Is read only
-      @return {Boolean}
+        @method toJSON
+        @return {Object}
+    */
+    p.toJSON = function () {
+        if (
+            typeof store === "object" && store !== null &&
+            typeof store.toJSON === "function"
+        ) {
+            return store.toJSON();
+        }
+
+        return store;
+    };
+    /**
+        @method isReadOnly
+        @param {Boolean} Is read only
+        @return {Boolean}
     */
     p.isReadOnly = function (value) {
         if (value !== undefined) {
@@ -1497,8 +1545,9 @@ f.prop = function (store, formatter) {
         return isReadOnly;
     };
     /**
-      @param {Boolean} Is required
-      @return {Boolean}
+        @method isRequired
+        @param {Boolean} Is required
+        @return {Boolean}
     */
     p.isRequired = function (value) {
         if (value !== undefined) {
@@ -1506,12 +1555,24 @@ f.prop = function (store, formatter) {
         }
         return isRequired;
     };
+    /**
+        @method isToOne
+        @return {Boolean}
+    */
     p.isToOne = function () {
         return isToOne(p);
     };
+    /**
+        @method isToMany
+        @return {Boolean}
+    */
     p.isToMany = function () {
         return isToMany(p);
     };
+    /**
+        @method isChild
+        @return {Boolean}
+    */
     p.isChild = function () {
         return isChild(p);
     };
@@ -1672,6 +1733,7 @@ appState.goto();
     Application statechart. States are `SignedIn`, `SignedOut`
     and `Authenticating.`
 
+    @method state
     @return {Object} statechart
 */
 f.state = function () {

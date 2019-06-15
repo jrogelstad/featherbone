@@ -224,6 +224,7 @@
         /**
             Returns date string "1970-01-01".
 
+            @method startOfTime
             @return {String}
         */
         startOfTime: function () {
