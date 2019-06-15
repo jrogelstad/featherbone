@@ -44,8 +44,9 @@ feathers.DataListOption = dataListOption;
 /**
   Model for creating data list options.
 
+  @module dataListOptionModel
   @param {Object} Default data
-  return {Object}
+  @return {Object}
 */
 function dataListOptionModel(data) {
     let that;

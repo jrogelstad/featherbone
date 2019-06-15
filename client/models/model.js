@@ -30,18 +30,26 @@ const store = catalog.store();
 // PRIVATE
 //
 
-/** @private */
+/**
+    @private
+    @method onFetching
+*/
 function onFetching() {
     this.state().goto("/Busy/Fetching");
 }
 
-/** @private */
+/**
+    @private
+    @method onFetched
+*/
 function onFetched() {
     this.state().goto("/Ready/Fetched");
 }
 
-/** @private
+/**
     Function to extend child array
+    @private
+    @method extendArray
 */
 function extendArray(model, prop, name, onChange, onChanged) {
     let state = model.state();
@@ -186,7 +194,10 @@ function extendArray(model, prop, name, onChange, onChanged) {
     };
 }
 
-/** @private */
+/**
+    @private
+    @method handleDefault
+*/
 function handleDefault(prop, frmt) {
     if (!prop.default && !frmt) {
         return;
@@ -220,12 +231,20 @@ function handleDefault(prop, frmt) {
     return def;
 }
 
-/** private */
+/**
+    @private
+    @method isChild
+    @param {Function} Property
+*/
 function isChild(p) {
     return p.type && typeof p.type === "object" && p.type.childOf;
 }
 
-/** private */
+/**
+    @private
+    @method isToOne
+    @param {Function} Property
+*/
 function isToOne(p) {
     return (
         p.type && typeof p.type === "object" &&
@@ -233,22 +252,27 @@ function isToOne(p) {
     );
 }
 
-/** private */
+/**
+    @private
+    @method isToMany
+    @param {Function} Property
+*/
 function isToMany(p) {
     return p.type && typeof p.type === "object" && p.type.parentOf;
 }
 
 /**
-  A factory that returns a persisting object based on a definition
-  called a `feather`. Can be extended by modifying the return object
-  directly.
+    A factory that returns a persisting object based on a definition
+    called a `feather`. Can be extended by modifying the return object
+    directly.
 
-  @param {Object} Default data
-  @param {Object} Feather
-  @param {Array} [feather.name] the class name of the object
-  @param {Array} [feather.properties] the properties to set on the
+    @class model
+    @param {Object} Default data
+    @param {Object} Feather
+    @param {Array} [feather.name] the class name of the object
+    @param {Array} [feather.properties] the properties to set on the
         data object
-  @return {Object}
+    @return {Object}
 */
 function model(data, feather) {
     feather = (
@@ -314,17 +338,19 @@ function model(data, feather) {
     //
 
     /**
-      Add a calculated property to "data."
+        Add a calculated property to "data."
 
-      @param {Object} Options
-      @param {String} [options.name] Name (required)
-      @param {String} [options.description] Description
-      @param {Function} [options.function] Function (required)
-      @param {String} [options.type] Return type (default "string")
-      @param {String} [options.format] Return format
-      @param {Boolean} [options.isReadOnly] Read only (default true)
-      @param {String} [options.style] Style name
-      @return Receiver
+        @method addCalculated
+        @param {Object} Options
+        @param {String} [options.name] Name (required)
+        @param {String} [options.description] Description
+        @param {Function} [options.function] Function (required)
+        @param {String} [options.type] Return type (default "string")
+        @param {String} [options.format] Return format
+        @param {Boolean} [options.isReadOnly] Read only (default true)
+        @param {String} [options.style] Style name
+        @chainable
+        @return {Object}
     */
     that.addCalculated = function (options) {
         let fn = options.function;
@@ -346,22 +372,55 @@ function model(data, feather) {
         return this;
     };
 
+    /**
+        Check whether changes in model can be saved in its
+        current state.
+
+        @method canSave
+        @return {Boolean}
+    */
     that.canSave = function () {
         return state.resolve(state.current()[0]).canSave();
     };
 
+    /**
+        Check whether model can undo changes in its current state.
+
+        @method canUndo
+        @return {Boolean}
+    */
     that.canUndo = function () {
         return state.resolve(state.current()[0]).canUndo();
     };
 
+    /**
+        Check whether model can be updated according to
+        authorization check.
+
+        @method canUpdate
+        @return {Boolean}
+    */
     that.canUpdate = () => canUpdate;
 
+    /**
+        Check whether model can be deleted in its current state.
+
+        @method canSave
+        @return {Boolean}
+    */
     that.canDelete = function () {
         return deleteChecks.every(function (check) {
             return check();
         });
     };
 
+    /**
+        Perform an authorization check whether the model
+        can be deleted form the server. The result of
+        `canCheck` will be based on the response of this query.
+
+        @method checkDelete
+    */
     that.checkDelete = function () {
         if (canDelete === undefined) {
             that.onCanDelete(function () {
@@ -383,6 +442,8 @@ function model(data, feather) {
         seem to be allowed until saving when an error will be thrown by
         the server. We wait as long as possible to check this to reduce
         overhead since most records fetched are not going to be updated.
+
+        @method checkUpdate
     */
     that.checkUpdate = function () {
         let wasFrozen = that.isFrozen();
@@ -405,19 +466,22 @@ function model(data, feather) {
     };
 
     /**
-      Send event to clear properties on the object and set it to
-      "/Ready/New" state.
+        Send event to clear properties on the object and set it to
+        "/Ready/New" state.
+
+        @method clear
     */
     that.clear = function () {
         state.send("clear");
     };
 
     /**
-      Send event to delete the current object from the server.
-      Returns a promise with a boolean passed back as the value.
+        Send event to delete the current object from the server.
+        Returns a promise with a boolean passed back as the value.
 
-      @param {Boolean} Automatically commit. Default false.
-      @return {Object} promise
+        @method delete
+        @param {Boolean} Automatically commit. Default false.
+        @return {Object} promise
     */
     that.delete = function (autoSave) {
         state.send("delete");
@@ -429,19 +493,22 @@ function model(data, feather) {
         });
     };
 
-    /*
-      Send event to fetch data based on the current id from the server.
-      Returns a promise with model.data passed back as the value.
-      @return {Object} promise
+    /**
+        Send event to fetch data based on the current id from the server.
+        Returns a promise with model.data passed back as the value.
+
+        @method fetch
+        @return {Object} promise
     */
     that.fetch = function () {
         return doSend("fetch");
     };
 
     /**
-      Return the unique identifier value for the model.
+        Return the unique identifier value for the model.
 
-      @return {String}
+        @method id
+        @return {String}
     */
     that.id = function (...args) {
         let prop = that.idProperty();
@@ -454,38 +521,49 @@ function model(data, feather) {
     };
 
     /**
-      The data property that is the unique identifier for the model.
-      Default is "id".
+        The data property that is the unique identifier for the model.
+        Default is "id".
 
-      @param {String} Id property
-      @return {String}
+        @method idProperty
+        @param {String} Id property
+        @return {String}
     */
     that.idProperty = f.prop("id");
 
     /**
-      Indicates if model is in  a frozen state.
+        Indicates if model is in  a frozen state.
 
-      @return {Boolen}
+        @method isFrozen
+        @return {Boolen}
     */
     that.isFrozen = function () {
         return isFrozen;
     };
 
     /**
-      Property that indicates object is a model (i.e. class).
+        Property that indicates object is a model (i.e. class).
+
+        @attribute isModel
+        @default true
+        @type boolean
     */
     that.isModel = true;
 
     /**
-      Indicates whether the model is read only.
+        Indicates whether the model is read only.
 
-      @return {Boolean}
+        @method isReadOnly
+        @param {Boolean} Read only flag
+        @return {Boolean}
     */
     that.isReadOnly = f.prop(feather.isReadOnly === true);
 
     /**
-      Returns whether the object is in a valid state to save.
-      @return {Boolean}
+        Returns whether the object is in a valid state to save.
+        `lastError` value will be set by this if any are found.
+
+        @method isValid
+        @return {Boolean}
     */
     that.isValid = function () {
         try {
@@ -502,27 +580,40 @@ function model(data, feather) {
     };
 
     /**
-      Return the last error raised.
-      @return {String}
+        Return the last error raised.
+
+        @method lastError
+        @return {String}
     */
     that.lastError = function () {
         return lastError;
     };
 
     /**
-      Lock record. To be applied when notification of locked status.
+        Lock record. To be applied when notification of locked status.
+        Prevents other users from editing the record.
 
-      @return Promise
+        @method lock
+        @return Promise
     */
     that.lock = function (lock) {
         state.send("lock", lock);
     };
 
     /**
-      Feather name of model.
+        Feather name of model.
+
+        @attribute name
+        @type tring
     */
     that.name = feather.name || "Object";
 
+    /**
+        Returns natural key property name.
+
+        @method naturalKey
+        @return {String}
+    */
     that.naturalKey = function () {
         if (naturalKey === undefined) {
             naturalKey = Object.keys(feather.properties).find(
@@ -544,26 +635,29 @@ function model(data, feather) {
     };
 
     /**
-      Add a function that returns a boolean to execute when the
-      `canDelete` function is called. The function should validate
-      whether a record will be allowed to be deleted.
+        Add a function that returns a boolean to execute when the
+        `canDelete` function is called. The function should validate
+        whether a record will be allowed to be deleted.
 
-        let contact,
-          catalog = require("catalog"),
-          model = require("model");
+        @example
+            let contact,
+              catalog = require("catalog"),
+              model = require("model");
 
-        transaction = function (data, feather) {
-          let shared = feather || catalog.getFeather("Transaction"),
-            that = model(data, shared),
-            deleteCheck function () {
-              return !that.data.isPosted())
-            };
-          // Add a check
-          that.oncanDelete(deleteCheck);
-        }
+            transaction = function (data, feather) {
+              let shared = feather || catalog.getFeather("Transaction"),
+                that = model(data, shared),
+                deleteCheck function () {
+                  return !that.data.isPosted())
+                };
+              // Add a check
+              that.oncanDelete(deleteCheck);
+            }
 
-      @param {Function} Test function to execute when running canDelete
-      @return Reciever
+        @method onCanDelete
+        @param {Function} Test function to execute when running canDelete
+        @chainable
+        @return {Object}
     */
     that.onCanDelete = function (callback) {
         deleteChecks.push(callback);
@@ -575,8 +669,10 @@ function model(data, feather) {
         Add an event binding to a property that will be triggered before a
         property change. Pass a callback in and the property will be
         passed to the callback. The property will be passed to the
-        callback as the first argument.
+        callback as the first argument. Dot notation is supported to
+        traverse child properties.
 
+        @example
             let contact;
             let catalog = require("catalog");
             let model = require("model");
@@ -595,9 +691,11 @@ function model(data, feather) {
               });
             }
 
+        @method onChange
         @param {String} Property name to call on cahnge
         @param {Function} Callback function to call on change
-        @return Reciever
+        @chainable
+        @return {Object}
     */
     that.onChange = function (name, callback) {
         let attr;
@@ -628,8 +726,10 @@ function model(data, feather) {
         Add an event binding to a property that will be triggered after
         a property change. Pass a callback in and the property will be
         passed to the callback. The property will be passed to the
-        callback as the first argument.
+        callback as the first argument. Dot notation is supported to
+        traverse child properties.
 
+        @example
             let contact;
             let catalog = require("catalog");
             let model = require("model");
@@ -644,9 +744,11 @@ function model(data, feather) {
               });
             }
 
+        @method onChanged
         @param {String} Property name to call on cahnge
         @param {Function} Callback function to call on change
-        @return Reciever
+        @chainable
+        @return {Object}
     */
     that.onChanged = function (name, callback) {
         let attr;
@@ -674,22 +776,27 @@ function model(data, feather) {
     };
 
     /**
-      Add an error handler binding to the object. Pass a callback
-      in and the error will be passed as an argument.
-        let contact,
-          catalog = require("catalog"),
-          model = require("model");
+        Add an error handler binding to the object. Pass a callback
+        in and the error will be passed as an argument.
 
-        contact = function (data, feather) {
-          let shared = feather || catalog.getFeather("Contact"),
-            that = model(data, shared);
-          // Add an error handler
-          that.onError(function (err) {
-            console.log("Error->", err);
-          });
-        }
-      @param {Function} Callback to execute on error
-      @return Reciever
+        @example
+            let contact,
+              catalog = require("catalog"),
+              model = require("model");
+
+            contact = function (data, feather) {
+              let shared = feather || catalog.getFeather("Contact"),
+                that = model(data, shared);
+              // Add an error handler
+              that.onError(function (err) {
+                console.log("Error->", err);
+              });
+            }
+
+        @method onError
+        @param {Function} Callback to execute on error
+        @chainable
+        @return {Object}
     */
     that.onError = function (callback) {
         errHandlers.push(callback);
@@ -701,8 +808,10 @@ function model(data, feather) {
         Execute a function whenever the state changes to `Ready/Fetched/Clean`
         or in other words right after model data has been fetched and loaded.
 
+        @method onLoad
         @param {Function} Callback function to execute on load
-        @return Reciever
+        @chainable
+        @return {Object}
     */
     that.onLoad = function (callback) {
         that.state().resolve("/Ready/Fetched/Clean").enter(callback);
@@ -711,30 +820,33 @@ function model(data, feather) {
     };
 
     /**
-      Add a validator to execute when the `isValid` function is
-      called, which is also called after saving events. Errors thrown
-      by the validator will be caught and passed through `onError`
-      callback(s). The most recent error may also be access via
-      `lastError`.
+        Add a validator to execute when the `isValid` function is
+        called, which is also called after saving events. Errors thrown
+        by the validator will be caught and passed through `onError`
+        callback(s). The most recent error may also be access via
+        `lastError`.
 
-        let contact,
-          catalog = require("catalog"),
-          model = require("model");
+        @example
+            let contact,
+              catalog = require("catalog"),
+              model = require("model");
 
-        contact = function (data, feather) {
-          let shared = feather || catalog.getFeather("Contact"),
-            that = model(data, shared),
-            validator function () {
-              if (!that.data.first()) {
-                throw "First name must not be empty.";
-              }
-            };
-          // Add a validator
-          that.onValidate(validator);
-        }
+            contact = function (data, feather) {
+              let shared = feather || catalog.getFeather("Contact"),
+                that = model(data, shared),
+                validator function () {
+                  if (!that.data.first()) {
+                    throw "First name must not be empty.";
+                  }
+                };
+              // Add a validator
+              that.onValidate(validator);
+            }
 
-      @param {Function} Callback to execute when validating
-      @return Reciever
+        @method onValidate
+        @param {Function} Callback to execute when validating
+        @chainable
+        @return {Object}
     */
     that.onValidate = function (callback) {
         validators.push(callback);
@@ -743,16 +855,20 @@ function model(data, feather) {
     };
 
     /**
-      Returns parent object if applicable.
+        Returns parent object if applicable.
+
+        @method parant
+        @return {Object}
     */
     that.parent = f.prop();
 
     /**
-      Returns a path to execute server requests.
+        Returns a path to execute server requests.
 
-      @param {String} Name
-      @param {String} Id (Optional)
-      @return {String}
+        @method path
+        @param {String} Name
+        @param {String} Id (Optional)
+        @return {String}
     */
     that.path = function (name, id) {
         let ret = "/data/" + name.toSpinalCase();
@@ -766,24 +882,33 @@ function model(data, feather) {
 
     /**
         Plural name of feather.
+
+        @attribute plural
+        @type String
     */
     that.plural = feather.plural;
 
     /**
-      Send the save event to persist current data to the server.
-      Only results in action in the "/Ready/Fetched/Dirty" and
-      "/Ready/New" states.
-      Returns a promise with model.data as the value.
-      @return {Object} promise
+        Send the save event to persist current data to the server.
+        Only results in action in the "/Ready/Fetched/Dirty" and
+        "/Ready/New" states.
+
+        Returns a promise with model.data as the value.
+
+        @method save
+        @return {Object}
     */
     that.save = function () {
         return doSend("save");
     };
 
     /**
-      Send an event to all properties.
-      @param {String} event name.
-      @return receiver
+        Send an event to all properties.
+
+        @method sendToProperties
+        @param {String} Event name.
+        @chainable
+        @return {Object}
     */
     that.sendToProperties = function (str) {
         let keys = Object.keys(d);
@@ -798,10 +923,14 @@ function model(data, feather) {
     };
 
     /**
-      Set properties to the values of a passed object
-      @param {Object} Data to set
-      @param {Boolean} Silence change events
-      @return reciever
+        Set properties to the values of a passed object. In
+        other words deserialize an object.
+
+        @method set
+        @param {Object} Data to set
+        @param {Boolean} Silence change events
+        @chainable
+        @return {Object}
     */
     that.set = function (data, silent, islastFetched) {
         data = data || {};
@@ -841,6 +970,12 @@ function model(data, feather) {
         return this;
     };
 
+    /**
+        Model state.
+
+        @method state
+        @return {Object}
+    */
     that.state = function (...args) {
         if (args.length) {
             state = args[0];
@@ -850,20 +985,22 @@ function model(data, feather) {
     };
 
     /**
-      The style of the model when displayed in rows. Should be the
-      name of a style.
+        The style of the model when displayed in rows. Should be the
+        name of a style.
 
-      @param {String} Style name
-      @return {String}
+        @method style
+        @param {String} Style name
+        @return {String}
     */
     that.style = f.prop("");
 
     /**
-      Subscribe or unsubscribe model to external events. If no flag
-      passed and already subscribed, subscription id returned.
+        Subscribe or unsubscribe model to external events. If no flag
+        passed and already subscribed, subscription id returned.
 
-      @param {Boolean} Flag whether or not to subscribe to events.
-      @return {Boolean | String} False or subscription id.
+        @method subscribe
+        @param {Boolean} Flag whether or not to subscribe to events.
+        @return {Boolean | String} False or subscription id.
     */
     that.subscribe = function (...args) {
         let query;
@@ -922,6 +1059,12 @@ function model(data, feather) {
         }
     };
 
+    /**
+        Serialize data to a simple JavaScript object.
+
+        @method toJSON
+        @return {Object}
+    */
     that.toJSON = function () {
         let keys = Object.keys(d);
         let result = {};
@@ -935,14 +1078,20 @@ function model(data, feather) {
         return result;
     };
 
+    /**
+        Undo changes since last fetch.
+
+        @method undo
+    */
     that.undo = function () {
         state.send("undo");
     };
 
     /**
-      Unlock record. To be applied when notification of unlocked status.
+        Unlock record. To be applied when notification of unlocked status.
 
-      @return Promise
+        @method unlock
+        @return Promise
     */
     that.unlock = function () {
         state.send("unlock");

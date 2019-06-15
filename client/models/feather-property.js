@@ -99,7 +99,7 @@ function featherProperty(data, spec) {
         let parentHasLabelKey = (
             pd.properties().some(
                 (prop) => prop !== that && prop.data.isLabelKey()
-            ) || 
+            ) ||
             pd.inheritedProperties().some((prop) => prop.data.isLabelKey())
         );
         let type = d.type();
