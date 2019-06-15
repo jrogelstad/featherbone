@@ -1,4 +1,4 @@
-/**
+/*
     Framework for building object relational database apps
     Copyright (C) 2019  John Rogelstad
 
@@ -14,7 +14,7 @@
 
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-**/
+*/
 /*global exports*/
 /*jslint node, browser*/
 (function (exports) {
@@ -558,12 +558,3 @@
     };
 
 }(exports));
-
-/** Drop everything
-
-  DROP TABLE object CASCADE;
-  DROP TABLE "$auth";
-  DROP TABLE "$sheet";
-  DROP TABLE "$user";
-  DROP FUNCTION to_camel_case(text);
-*/

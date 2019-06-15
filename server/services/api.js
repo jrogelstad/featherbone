@@ -96,6 +96,11 @@
         });
     }
 
+    /**
+        Service for building Open API specification.
+
+        @class API
+    */
     exports.API = function () {
         // ..........................................................
         // PUBLIC
@@ -104,11 +109,12 @@
         let that = {};
 
         /**
-          Build open api specification.
+            Build open api specification.
 
-          @param {Object} Datasource
-          @param {String} Username
-          @return {Object} Promise
+            @method build
+            @param {Object} Datasource
+            @param {String} Username
+            @return {Object} Promise
         */
         that.build = function (datasource, username) {
             return new Promise(function (resolve, reject) {

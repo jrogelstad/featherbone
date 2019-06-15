@@ -59,6 +59,11 @@
     const role = new Role();
     const tools = new Tools();
     const workbooks = new Workbooks();
+    /**
+        Server datasource class.
+
+        @class datasource
+    */
     const that = {};
 
     let registered;
@@ -126,14 +131,27 @@
     // ..........................................................
     // PUBLIC
     //
-
+    /**
+        @property TRIGGER_BEFORE
+        @type Integer
+        @static
+        @final
+    */
     that.TRIGGER_BEFORE = TRIGGER_BEFORE;
+
+    /**
+        @property TRIGGER_AFTER
+        @type Integer
+        @static
+        @final
+    */
     that.TRIGGER_AFTER = TRIGGER_AFTER;
 
     /**
-      Fetch catalog.
+        Fetch catalog. Returns Promise.
 
-      @return {Object} promise
+        @method getCatalog
+        @return {Object}
     */
     that.getCatalog = function () {
         return new Promise(function (resolve, reject) {
@@ -155,9 +173,10 @@
     };
 
     /**
-      Fetch Services.
+        Fetch Services. Returns Promise.
 
-      @return {Object} promise
+        @method getServices
+        @return {Object}
     */
     that.getServices = function () {
         return new Promise(function (resolve, reject) {
@@ -176,9 +195,10 @@
     };
 
     /**
-      Fetch routes.
+        Fetch routes. Returns Promise.
 
-      @return {Object} promise
+        @method getRoutes
+        @return {Object}
     */
     that.getRoutes = function () {
         return new Promise(function (resolve, reject) {
@@ -197,9 +217,10 @@
     };
 
     /**
-      Initialize listener.
+        Initialize listener. Returns Promise.
 
-      @return {Object} promise
+        @method listen
+        @return {Object}
     */
     that.listen = function (callback) {
         function doListen(resp) {
@@ -230,9 +251,10 @@
     };
 
     /**
-      Unsubcribe.
+        Unsubcribe. Returns Promise.
 
-      @return {Object} promise
+        @method unsubscribe
+        @return {Object}
     */
     that.unsubscribe = function (id, type) {
         return new Promise(function (resolve, reject) {
@@ -269,12 +291,13 @@
     };
 
     /**
-      Lock.
+        Lock record. Returns Promise.
 
-      @param {String} Object id.
-      @param {String} User name.
-      @param {String} Session id.
-      @return {Object} Promise
+        @method
+        @param {String} Object id
+        @param {String} User name
+        @param {String} Session id
+        @return {Object}
     */
     that.lock = function (id, username, eventkey) {
         return new Promise(function (resolve, reject) {
@@ -313,13 +336,14 @@
     };
 
     /**
-      Unlock.
+        Unlock one or more records.
 
-      @param {Object} Criteria for what to unlock.
-      @param {String} [criteria.id] Object id.
-      @param {String} [criteria.username] User name.
-      @param {String} [criteria.eventKey] Event key.
-      @return {Object} Promise
+        @method unlock
+        @param {Object} Criteria for what to unlock
+        @param {String} [criteria.id] Object id
+        @param {String} [criteria.username] User name
+        @param {String} [criteria.eventKey] Event key
+        @return {Object} Promise
     */
     that.unlock = function (criteria) {
         return new Promise(function (resolve, reject) {
@@ -355,11 +379,12 @@
     };
 
     /**
-      Install a module from a specified manifest file name.
+        Install a module from a specified manifest file name.
 
-      @param {String} Manifest filename.
-      @param {String} User name.
-      @return {Object} Promise
+        @method install
+        @param {String} Manifest filename.
+        @param {String} User name.
+        @return {Object} Promise
     */
     that.install = function (filename, username) {
         return new Promise(function (resolve, reject) {
@@ -397,11 +422,12 @@
     };
 
     /**
-      Package a module.
+        Package a module.
 
-      @param {String} Module name.
-      @param {String} User name.
-      @return {Object} Promise
+        @method package
+        @param {String} Module name
+        @param {String} User name
+        @return {Object} Promise
     */
     that.package = function (name, username) {
         return new Promise(function (resolve, reject) {
@@ -438,15 +464,16 @@
     };
 
     /**
-      Export data.
+        Export data.
 
-      @param {String} Feather
-      @param {Array} Properties (Optional)
-      @param {String} Filter
-      @param {String} Diretory
-      @param {String} Format
-      @param {String} Username
-      @return {Object} Promise
+        @method export
+        @param {String} Feather
+        @param {Array} Properties (Optional)
+        @param {String} Filter
+        @param {String} Diretory
+        @param {String} Format
+        @param {String} Username
+        @return {Object} Promise
     */
     that.export = function (
         feather,
@@ -501,13 +528,14 @@
     };
 
     /**
-      Import data.
+        Import data.
 
-      @param {String} Feather
-      @param {String} Format
-      @param {String} Filename
-      @param {String} Username
-      @return {Object} Promise
+        @method import
+        @param {String} Feather
+        @param {String} Format
+        @param {String} Filename
+        @param {String} Username
+        @return {Object} Promise
     */
     that.import = function (feather, format, filename, username) {
         return new Promise(function (resolve, reject) {
@@ -548,26 +576,29 @@
     };
 
     /**
-      Check user and password.
+        Check user and password.
 
-      @param {String} Username
-      @param {String} Password
-      @return {Object} Promise
+        @method authenticate
+        @param {String} Username
+        @param {String} Password
+        @return {Object} Promise
     */
     that.authenticate = db.authenticate;
 
     /**
-      Lookup user information.
+        Lookup user information.
 
-      @param {String} Username
-      @return {Object} Promise
+        @method deserializeUser
+        @param {String} Username
+        @return {Object} Promise
     */
     that.deserializeUser = db.deserializeUser;
 
     /**
-      Return a configured postgres pool.
+        Return a configured postgres pool.
 
-      @return {Object} Promise
+        @method getPool
+        @return {Object} Promise
     */
     that.getPool = db.getPool;
 
@@ -583,36 +614,39 @@
     }
 
     /**
-      Request.
+        Service request.
 
-      Example payload:
-          {
-             "name": "Contact",
-             "method": "POST",
-             "data": {
-               "id": "1f8c8akkptfe",
-               "created": "2015-04-26T12:57:57.896Z",
-               "createdBy": "admin",
-               "updated": "2015-04-26T12:57:57.896Z",
-               "updatedBy": "admin",
-               "fullName": "John Doe",
-               "birthDate": "1970-01-01T00:00:00.000Z",
-               "isMarried": true,
-               "dependentes": 2
-             }
-          }
+        @example
+            // Example payload:
+            let payload = {
+                "name": "Contact",
+                "method": "POST",
+                "data": {
+                    "id": "1f8c8akkptfe",
+                    "created": "2015-04-26T12:57:57.896Z",
+                    "createdBy": "admin",
+                    "updated": "2015-04-26T12:57:57.896Z",
+                    "updatedBy": "admin",
+                    "fullName": "John Doe",
+                    "birthDate": "1970-01-01T00:00:00.000Z",
+                    "isMarried": true,
+                    "dependentes": 2
+                }
+            }
 
-      @param {Object} Payload
-      @param {String} [payload.name] Name of feather or function
-      @param {String} [payload.method] Method to perform: "GET", "POST",
+        @method request
+        @param {Object} Payload
+        @param {String} [payload.name] Name of feather or function
+        @param {String} [payload.method] Method to perform: "GET", "POST",
         "PUT", "PATCH" or "DELETE"
-      @param {String} [payload.id] Identifier for "GET", "PATCH" ond "DELETE"
-      @param {String} [payload.data] Data for "POST" and "PATCH" or functions
-      @param {Object} [payload.client] Database client. If undefined one will
+        @param {String} [payload.id] Identifier for "GET", "PATCH" ond "DELETE"
+        @param {String} [payload.data] Data for "POST" and "PATCH" or functions
+        @param {Object} [payload.client] Database client. If undefined one will
         be intialized by default and wrapped in a transaction if necessary.
-      @param {String} [payload.callback] Callback
-      @param {Boolean} Bypass authorization checks. Default = false.
-      @return receiver
+        @param {String} [payload.callback] Callback
+        @param {Boolean} Bypass authorization checks. Default = false.
+        @chainable
+        @return {Object}
     */
     that.request = function (obj, isSuperUser) {
         return new Promise(function (resolve, reject) {
@@ -1198,60 +1232,62 @@
     };
 
     /**
-      Register a function that can be called by a method type. Use
-      this to expose function calls via `request`. As a rule, all
-      functions must accept an object as an argument whose properties
-      can be used to calculate the result. The object should be passed
-      as `data` on the request.
+        Register a function that can be called by a method type. Use
+        this to expose function calls via `request`. As a rule, all
+        functions must accept an object as an argument whose properties
+        can be used to calculate the result. The object should be passed
+        as `data` on the request.
 
-      The object should include a callback to forward a response on
-      completion. The callback should accept an error as the first
-      argument and a response as the second.
+        The object should include a callback to forward a response on
+        completion. The callback should accept an error as the first
+        argument and a response as the second.
 
-      The request will automatically append an active client to the object
-      to use for executing queries.
+        The request will automatically append an active client to the object
+        to use for executing queries.
 
-        var fn, callback, datasource = require(./datasource);
+        @example
+            let fn, callback, datasource = require(./datasource);
 
-        // Create a function that updates something specific
-        fn = function (obj) {
-          var sql = "UPDATE foo SET bar = false WHERE id=$1;",
-            params = [obj.id];
+            // Create a function that updates something specific
+            fn = function (obj) {
+              let sql = "UPDATE foo SET bar = false WHERE id=$1;",
+                params = [obj.id];
 
-          obj.client.query(sql, params, function (err, resp) {
-            obj.callback(err, resp.rows);
-          })
-        }
+              obj.client.query(sql, params, function (err, resp) {
+                obj.callback(err, resp.rows);
+              })
+            }
 
-        // Register the function
-        datasource.registerFunction("POST", "myUpdate", fn);
+            // Register the function
+            datasource.registerFunction("POST", "myUpdate", fn);
 
-        // Define a callback to use when calling our function
-        callback = function (err, resp) {
-          if (err) {
-            console.error(err);
-            return;
-          }
+            // Define a callback to use when calling our function
+            callback = function (err, resp) {
+              if (err) {
+                console.error(err);
+                return;
+              }
 
-          console.log("Query rows->", resp);
-        }
+              console.log("Query rows->", resp);
+            }
 
-        // Execute a request that calls our function and sends a response
-        // via the callback
-        datasource.request({
-          method: "GET",
-          name: "myUpdate",
-          callback: callback,
-          data: {
-            id: "HTJ28n"
-          }
-        });
+            // Execute a request that calls our function and sends a response
+            // via the callback
+            datasource.request({
+              method: "GET",
+              name: "myUpdate",
+              callback: callback,
+              data: {
+                id: "HTJ28n"
+              }
+            });
 
-      @param {String} Function name
-      @param {String} Method. "GET", "POST", "PUT", "PATCH", or "DELETE"
-      @param {Function} Function
-      @param {Number} Constant TRIGGER_BEFORE or TRIGGER_AFTER
-      @return receiver
+        @method registerFunction
+        @param {String} Function name
+        @param {String} Method. "GET", "POST", "PUT", "PATCH", or "DELETE"
+        @param {Function} Function
+        @param {Number} Constant TRIGGER_BEFORE or TRIGGER_AFTER
+        @return receiver
     */
     that.registerFunction = function (method, name, func, trigger) {
         if (trigger) {
@@ -1266,7 +1302,8 @@
     };
 
     /**
-      @return {Object} Object listing register functions
+        @method registeredFunctions
+        @return {Object} Object listing register functions
     */
     that.registeredFunctions = function () {
         let keys = Object.keys(registered);
@@ -1287,29 +1324,31 @@
     };
 
     /**
-      Helper to expose a registered function to the public API. Use by binding
-      the name of the registered function to be called. The function will
-      transform the data on a routed requset to the proper format to make a
-      `POST` request on the registered function.
+        Helper to expose a registered function to the public API. Use by binding
+        the name of the registered function to be called. The function will
+        transform the data on a routed requset to the proper format to make a
+        `POST` request on the registered function.
 
-        // Expose the example function described on `registerFunction` to a
-        // router.
-        (function (app, datasource) {
-          "strict";
+        @example
+            // Expose the example function described on `registerFunction` to a
+            // router.
+            (function (app, datasource) {
+              "strict";
 
-          // Register route to the public
-          var express = require("express");
-            router = express.Router(),
-            func = datasource.postFunction.bind("myUpdate");
+              // Register route to the public
+              var express = require("express");
+                router = express.Router(),
+                func = datasource.postFunction.bind("myUpdate");
 
-          router.route("/my-update").post(func);
-          app.use("/my-app", router);
+              router.route("/my-update").post(func);
+              app.use("/my-app", router);
 
-        }(app, datasource));
+            }(app, datasource));
 
-      @param {Object} Request
-      @param {Object} Response
-      @return receiver
+        @method postFunction
+        @param {Object} Request
+        @param {Object} Response
+        @return receiver
     */
     that.postFunction = function (req, res) {
         let payload;
