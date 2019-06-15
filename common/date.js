@@ -1,4 +1,4 @@
-/**
+/*
     Framework for building object relational database apps
     Copyright (C) 2019  John Rogelstad
 
@@ -14,14 +14,21 @@
 
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-**/
+*/
 /*jslint this*/
 (function () {
     "use strict";
+    /**
+        Helper functions added to JavaScript `Date` prototype.
+
+        @class Date
+    */
 
     /**
-       Convert date to "YYYY-MM-DDTHH:MM" date time format.
-       @return {String}
+        Convert date to "YYYY-MM-DDTHH:MM" date time format.
+
+        @method toLocalDateTime
+        @return {String}
     */
     Date.prototype.toLocalDateTime = function () {
         let month = this.getMonth() + 1;
@@ -36,7 +43,9 @@
 
     /**
        Convert date to "YYYY-MM-DD" format.
-       @return {String}
+
+        @method toLocalDate
+        @return {String}
     */
     Date.prototype.toLocalDate = function () {
         let month = this.getMonth() + 1;
@@ -49,8 +58,10 @@
     };
 
     /**
-       Strip time off date
-       @return {String}
+        Strip time off date
+
+        @method toDate
+        @return {String}
     */
     Date.prototype.toDate = function () {
         this.setHours(0);

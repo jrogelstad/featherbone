@@ -1,4 +1,4 @@
-/**
+/*
     Framework for building object relational database apps
     Copyright (C) 2019  John Rogelstad
 
@@ -14,22 +14,10 @@
 
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-**/
+*/
 /*jslint this, node */
 import Big from "../node_modules/big.js/big.mjs";
 
-/**
-    Add padding to a number.
-
-      pad(9, 3);      // "009";
-      pad(12, 3);     // "012"
-      pad(9, 3, '-')  // "--9"
-
-    @param {Number} Number
-    @param {Number} Width
-    @param {String} Pad character, default 0
-    @return {String}
-*/
 Number.prototype.pad = function (width, str) {
     let n = String(this);
     let a = [];

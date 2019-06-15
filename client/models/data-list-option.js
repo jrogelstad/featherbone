@@ -44,7 +44,8 @@ feathers.DataListOption = dataListOption;
 /**
   Model for creating data list options.
 
-  @module dataListOptionModel
+  @class dataListOptionModel
+  @extends model
   @param {Object} Default data
   @return {Object}
 */

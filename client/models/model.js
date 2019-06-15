@@ -543,7 +543,7 @@ function model(data, feather) {
     /**
         Property that indicates object is a model (i.e. class).
 
-        @attribute isModel
+        @property isModel
         @default true
         @type boolean
     */
@@ -603,7 +603,7 @@ function model(data, feather) {
     /**
         Feather name of model.
 
-        @attribute name
+        @property name
         @type tring
     */
     that.name = feather.name || "Object";
@@ -883,7 +883,7 @@ function model(data, feather) {
     /**
         Plural name of feather.
 
-        @attribute plural
+        @property plural
         @type String
     */
     that.plural = feather.plural;

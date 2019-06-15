@@ -1,4 +1,4 @@
-/**
+/*
     Framework for building object relational database apps
     Copyright (C) 2019  John Rogelstad
 
@@ -14,7 +14,7 @@
 
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-**/
+*/
 /*jslint this, devel, bitwise, browser*/
 /*global window, require, module*/
 (function () {
@@ -25,23 +25,25 @@
         SCALE_DEFAULT: 8,
 
         /**
-          Make a deep copy of an object.
+            Make a deep copy of an object.
 
-          @param {Object} Object
-          @return {Object}
+            @method copy
+            @param {Object} Object
+            @return {Object}
         */
         copy: function (obj) {
             return JSON.parse(JSON.stringify(obj));
         },
 
         /**
-          Return a unique identifier string.
+            Return a unique identifier string.
 
-          Moddified from https://github.com/google/closure-library
-          @author arv@google.com (Erik Arvidsson)
-          http://www.apache.org/licenses/LICENSE-2.0
+            Moddified from https://github.com/google/closure-library
+            @author arv@google.com (Erik Arvidsson)
+            http://www.apache.org/licenses/LICENSE-2.0
 
-          @return {String}
+            @method createId
+            @return {String}
         */
         createId: function () {
             let x = 2147483648;
@@ -55,10 +57,19 @@
         },
 
         /**
-          Objects for performing data manipulation.
+            Objects for performing data manipulation.
+            
+            @property models
+            @type Object
         */
         models: {},
 
+        /**
+            Formats for data types.
+         
+            @property formats
+            @type Object
+        */
         formats: {
             integer: {
                 default: 0,
@@ -157,16 +168,20 @@
         },
 
         /**
-          Return a time in string format that is the current UTC time.
+            Return a time in string format that is the current UTC time.
 
-          @return {String}
+            @method now
+            @return {String}
         */
         now: function () {
             return (new Date()).toISOString();
         },
 
         /**
-          Allowable filter operators.
+            Allowable filter operators.
+
+            @property operators
+            @type Object
         */
         operators: {
             "=": "equals",
@@ -186,6 +201,7 @@
             Parse date string "YYYY-MM-DD" to a date in a sensical way because
             https://stackoverflow.com/questions/2587345
 
+            @method parseDate
             @param {String} Date string
             @return {Date}
         */
@@ -198,16 +214,28 @@
         /**
           Return a date in string format that is the current date.
 
-          @return {String}
+            @method today
+            @return {String}
         */
         today: function () {
             return new Date().toDate().toLocalDate();
         },
 
+        /**
+            Returns date string "1970-01-01".
+
+            @return {String}
+        */
         startOfTime: function () {
             return "1970-01-01";
         },
 
+        /**
+            Allowed data types.
+
+            @property types
+            @type Object
+        */      
         types: {
             array: {
                 default: function () {

@@ -415,7 +415,8 @@ f.getForm = function (options) {
 /**
     Object to define what input type to use for data
 
-    @submodule inputMap
+    @property inputMap
+    @type Object
 */
 f.inputMap = {
     integer: "number",

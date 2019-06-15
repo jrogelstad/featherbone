@@ -23,7 +23,7 @@ import State from "../state.js";
 /**
     Button component
 
-    @module button
+    @class button
 */
 const button = {};
 const m = window.m;
@@ -259,8 +259,9 @@ catalog.register("viewModels", "button", button.viewModel);
 
 /**
     Button component
-    
-    @submodule component
+
+    @attribute component
+    @type Object
 */
 button.component = {
     oninit: function (vnode) {
