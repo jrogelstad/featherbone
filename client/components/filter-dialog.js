@@ -22,7 +22,7 @@ import model from "../models/model.js";
 import checkbox from "./checkbox.js";
 import tableDialog from "./table-dialog.js";
 
-/**
+/*  
     @class filterDialog
 */
 const filterDialog = {};

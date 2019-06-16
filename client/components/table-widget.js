@@ -28,7 +28,7 @@ import State from "../state.js";
 import checkbox from "./checkbox.js";
 import datasource from "../datasource.js";
 
-/**
+/*
     @class tableWidget
 */
 const tableWidget = {};

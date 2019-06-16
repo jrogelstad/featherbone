@@ -22,6 +22,8 @@
         Helper functions added to JavaScript `String` prototype.
 
         @class String
+        @constructor
+        @returns {String}
     */
 
     /**

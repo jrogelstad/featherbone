@@ -20,7 +20,7 @@ import f from "../core.js";
 import dialog from "./dialog.js";
 import formWidget from "./form-widget.js";
 
-/**
+/*
     @class formDialog
 */
 const formDialog = {};

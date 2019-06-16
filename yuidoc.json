@@ -12,6 +12,9 @@
             "./common",
             "./client"
         ],
+        "ignorePaths": [
+            "./client/models/workbook.js"
+        ],
         "exclude": "server"
     }
 }

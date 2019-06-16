@@ -22,6 +22,8 @@
         Helper functions added to JavaScript `Date` prototype.
 
         @class Date
+        @constructor
+        @returns {Date}
     */
 
     /**

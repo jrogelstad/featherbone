@@ -21,13 +21,13 @@ import button from "./button.js";
 import catalog from "../models/catalog.js";
 import tableWidget from "./table-widget.js";
 
-/**
+/*
     @class childTable
 */
 const childTable = {};
 const m = window.m;
 
-/**
+/*
     View model for child table.
 
     @method viewModel

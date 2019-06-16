@@ -22,7 +22,7 @@ import catalog from "../models/catalog.js";
 import dialog from "./dialog.js";
 import State from "../state.js";
 
-/**
+/*
     @class tableDialog
 */
 const tableDialog = {};
