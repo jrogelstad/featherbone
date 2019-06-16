@@ -267,10 +267,12 @@ function isToMany(p) {
     directly.
 
     @class model
-    @param {Object} Default data
-    @param {Object} Feather
-    @param {Array} [feather.name] the class name of the object
-    @param {Array} [feather.properties] the properties to set on the
+    @constructor
+    @param {Object} data Default data
+    @param {Object} feather Feather specification
+    @param {String} feather.name Class name of the object
+    @param {String} [feather.inherits] Parent feather name
+    @param {Object} feather.properties Properties to set on the
       data object
     @return {Object}
 */
@@ -327,6 +329,34 @@ function model(data, feather) {
 
     data = data || {};
 
+    /**
+        Holder of getter/setter functions for all model data attributes as
+        defined by the feather passed in.
+
+        @example
+            let instance;
+            let catalog = f.catalog();
+            let model = catalog.store().factories().model;
+            let data = {
+                name: "foo"
+            };
+            let feather = {
+                name: "MyFeather",
+                properties: {
+                    name: {
+                        type: "string"
+                    }
+                }
+            }
+
+            instance = model(data, feather);
+            instance.data.name(); // foo
+            instance.data.name("bar"); // bar
+            instance.data.name(); // bar
+
+        @property data
+        @type Object
+    */
     that = {
         data: {}
     };
@@ -341,10 +371,10 @@ function model(data, feather) {
         Add a calculated property to "data."
 
         @method addCalculated
-        @param [options] {Object} Options
-        @param {String} [options.name] Name
+        @param {Object} options Options
+        @param {String} options.name Name
         @param {String} [options.description] Description
-        @param {Function} [options.function] Function
+        @param {Function} options.function Function
         @param {String} [options.type] Return type (default "string")
         @param {String} [options.format] Return format
         @param {Boolean} [options.isReadOnly] Read only (default true)
@@ -480,8 +510,8 @@ function model(data, feather) {
         Returns a promise with a boolean passed back as the value.
 
         @method delete
-        @param {Boolean} Automatically commit. Default false.
-        @return {Object} promise
+        @param {Boolean} autoSave Automatically commit. Default false.
+        @return {Promise}
     */
     that.delete = function (autoSave) {
         state.send("delete");
@@ -498,7 +528,7 @@ function model(data, feather) {
         Returns a promise with model.data passed back as the value.
 
         @method fetch
-        @return {Object} promise
+        @return {Promise}
     */
     that.fetch = function () {
         return doSend("fetch");
@@ -525,7 +555,7 @@ function model(data, feather) {
         Default is "id".
 
         @method idProperty
-        @param {String} Id property
+        @param {String} property Id property
         @return {String}
     */
     that.idProperty = f.prop("id");
@@ -541,7 +571,7 @@ function model(data, feather) {
     };
 
     /**
-        Property that indicates object is a model (i.e. class).
+        Property that indicates object is a model instance.
 
         @property isModel
         @default true
@@ -553,7 +583,7 @@ function model(data, feather) {
         Indicates whether the model is read only.
 
         @method isReadOnly
-        @param {Boolean} Read only flag
+        @param {Boolean} isReadyOnly Read only flag
         @return {Boolean}
     */
     that.isReadOnly = f.prop(feather.isReadOnly === true);
@@ -594,7 +624,8 @@ function model(data, feather) {
         Prevents other users from editing the record.
 
         @method lock
-        @return Promise
+        @param {Object} object Lock object
+        @return {Promise}
     */
     that.lock = function (lock) {
         state.send("lock", lock);
@@ -604,7 +635,7 @@ function model(data, feather) {
         Feather name of model.
 
         @property name
-        @type tring
+        @type String
     */
     that.name = feather.name || "Object";
 
@@ -640,22 +671,21 @@ function model(data, feather) {
         whether a record will be allowed to be deleted.
 
         @example
-            let contact,
-              catalog = require("catalog"),
-              model = require("model");
+            let catalog = f.catalog();
+            let model = catalog.store().factories().model;
 
-            transaction = function (data, feather) {
-              let shared = feather || catalog.getFeather("Transaction"),
-                that = model(data, shared),
-                deleteCheck function () {
-                  return !that.data.isPosted())
-                };
-              // Add a check
-              that.oncanDelete(deleteCheck);
+            function contact(data, feather) {
+                feather = feather || catalog.getFeather("Contact");
+                let that = model(data, feather);
+
+                function deleteCheck () => !that.data.isPosted();
+
+                // Add a check
+                that.onCanDelete(deleteCheck);
             }
 
         @method onCanDelete
-        @param {Function} Test function to execute when running canDelete
+        @param {Function} callback Test function to execute when running canDelete
         @chainable
         @return {Object}
     */
@@ -673,27 +703,33 @@ function model(data, feather) {
         traverse child properties.
 
         @example
-            let contact;
-            let catalog = require("catalog");
-            let model = require("model");
+            let catalog = f.catalog();
+            let model = catalog.store().factories().model;
             let msg;
+            let instance;
 
-            contact = function (data, feather) {
-              let shared = feather || catalog.getFeather("Contact");
-              let that = model(data, shared);
+            function contact(data, feather) {
+                feather = feather || catalog.getFeather("Contact");
+                let that = model(data, feather);
 
-              // Add a change event to a property
-              that.onChange("first", function (prop) {
-                msg = "First name changing from ";
-                msg += (prop.oldValue() || "nothing") + " to ";
-                msg += prop.newValue() + "!"
-                console.log(msg);
-              });
+                // Add a change event to a property
+                that.onChange("firstName", function (prop) {
+                    msg = (
+                        "First name changing from " +
+                        (prop.oldValue() || "nothing") + " to " +
+                        prop.newValue() + "!"
+                    );
+                    console.log(msg);
+                });
             }
 
+            instance = contact();
+            instance.data.firstName("Fred");
+            // Contact changing from nothing to Fred
+
         @method onChange
-        @param {String} Property name to call on cahnge
-        @param {Function} Callback function to call on change
+        @param {String} name Property name to call on cahnge
+        @param {Function} callback Callback function to call on change
         @chainable
         @return {Object}
     */
@@ -730,23 +766,26 @@ function model(data, feather) {
         traverse child properties.
 
         @example
-            let contact;
-            let catalog = require("catalog");
-            let model = require("model");
+            let instance;
+            let catalog = f.catalog();
+            let model = catalog.store().factories().model;
 
-            contact = function (data, feather) {
-              let shared = feather || catalog.getFeather("Contact");
-              let that = model(data, shared);
+            function contact(data, feather) {
+                feather = feather || catalog.getFeather("Contact");
+                let that = model(data, feather);
 
-              // Add a changed event to a property
-              that.onChanged("first", function (prop) {
-                console.log("First name is now " + prop() + "!");
-              });
+                // Add a changed event to a property
+                that.onChanged("firstName", function (prop) {
+                    console.log("First name is now " + prop() + "!");
+                });
             }
 
+            instance = contact();
+            instance.data.name("Aiden"); // First name is now Aiden!
+
         @method onChanged
-        @param {String} Property name to call on cahnge
-        @param {Function} Callback function to call on change
+        @param {String} name Property name to call on cahnge
+        @param {Function} callback Callback function to call on change
         @chainable
         @return {Object}
     */
@@ -780,21 +819,33 @@ function model(data, feather) {
         in and the error will be passed as an argument.
 
         @example
-            let contact,
-              catalog = require("catalog"),
-              model = require("model");
+            let instance;
+            let catalog = f.catalog();
+            let model = catalog.store().factories().model;
 
-            contact = function (data, feather) {
-              let shared = feather || catalog.getFeather("Contact"),
-                that = model(data, shared);
-              // Add an error handler
-              that.onError(function (err) {
-                console.log("Error->", err);
-              });
+            function contact(data, feather) {
+                feather = feather || catalog.getFeather("Contact");
+                let that = model(data, shared);
+
+                that.onValidate(function () {
+                    if (that.data.phone().length <> 12) {
+                        throw new Error("Phone number must be 12 characters");
+                    }
+                });
+
+                // Add an error handler
+                that.onError(function (err) {
+                    console.log("Error->", err);
+                });
             }
 
+            instance = contact();
+            instance.data.phone("555-1212");
+            instance.isValid(); // False
+            // Error->Phone number must be 12 characters
+
         @method onError
-        @param {Function} Callback to execute on error
+        @param {Function} callback Callback to execute on error
         @chainable
         @return {Object}
     */
@@ -809,7 +860,7 @@ function model(data, feather) {
         or in other words right after model data has been fetched and loaded.
 
         @method onLoad
-        @param {Function} Callback function to execute on load
+        @param {Function} callback Callback function to execute on load
         @chainable
         @return {Object}
     */
@@ -827,24 +878,28 @@ function model(data, feather) {
         `lastError`.
 
         @example
-            let contact,
-              catalog = require("catalog"),
-              model = require("model");
+            let instance;
+            let catalog = f.catalog();
+            let model = catalog.store().factories().model;
 
-            contact = function (data, feather) {
-              let shared = feather || catalog.getFeather("Contact"),
-                that = model(data, shared),
-                validator function () {
-                  if (!that.data.first()) {
-                    throw "First name must not be empty.";
-                  }
-                };
-              // Add a validator
-              that.onValidate(validator);
+            function contact(data, feather) {
+                feather = feather || catalog.getFeather("Contact");
+                let that = model(data, shared);
+
+                that.onValidate(function () {
+                    if (that.data.phone().length <> 12) {
+                        throw new Error("Phone number must be 12 characters");
+                    }
+                });
             }
 
+            instance = contact();
+            instance.data.phone("555-1212");
+            instance.isValid(); // False
+            instance.lastError(); // Phone number must be 12 characters
+
         @method onValidate
-        @param {Function} Callback to execute when validating
+        @param {Function} callback Callback to execute when validating
         @chainable
         @return {Object}
     */
@@ -857,7 +912,7 @@ function model(data, feather) {
     /**
         Returns parent object if applicable.
 
-        @method parant
+        @method parent
         @return {Object}
     */
     that.parent = f.prop();
@@ -866,8 +921,8 @@ function model(data, feather) {
         Returns a path to execute server requests.
 
         @method path
-        @param {String} Name
-        @param {String} Id (Optional)
+        @param {String} name Name
+        @param {String} [id] Id
         @return {String}
     */
     that.path = function (name, id) {
@@ -896,7 +951,7 @@ function model(data, feather) {
         Returns a promise with model.data as the value.
 
         @method save
-        @return {Object}
+        @return {Promise}
     */
     that.save = function () {
         return doSend("save");
@@ -906,7 +961,7 @@ function model(data, feather) {
         Send an event to all properties.
 
         @method sendToProperties
-        @param {String} Event name.
+        @param {String} str Event name.
         @chainable
         @return {Object}
     */
@@ -927,8 +982,9 @@ function model(data, feather) {
         other words deserialize an object.
 
         @method set
-        @param {Object} Data to set
-        @param {Boolean} Silence change events
+        @param {Object} data Data to set
+        @param {Boolean} [silent] Silence change events
+        @param {Boolean} [isLastFetched] Flag set from fetch
         @chainable
         @return {Object}
     */
@@ -971,9 +1027,10 @@ function model(data, feather) {
     };
 
     /**
-        Model state.
+        Model statechart.
 
         @method state
+        @param {Object} state Statechart
         @return {Object}
     */
     that.state = function (...args) {
@@ -989,7 +1046,7 @@ function model(data, feather) {
         name of a style.
 
         @method style
-        @param {String} Style name
+        @param {String} style Style name
         @return {String}
     */
     that.style = f.prop("");
@@ -1091,7 +1148,7 @@ function model(data, feather) {
         Unlock record. To be applied when notification of unlocked status.
 
         @method unlock
-        @return Promise
+        @return {Promise}
     */
     that.unlock = function () {
         state.send("unlock");

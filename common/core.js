@@ -28,6 +28,7 @@
         Featherbone global object.
 
         @class f
+        @static
     */
     const that = {
         PRECISION_DEFAULT: 18,
@@ -47,7 +48,7 @@
         /**
             Return a unique identifier string.
 
-            Moddified from https://github.com/google/closure-library
+            Modified from https://github.com/google/closure-library
             @author arv@google.com (Erik Arvidsson)
             http://www.apache.org/licenses/LICENSE-2.0
 

@@ -36,7 +36,6 @@
             x.pad(3, '-')  // "--9"
 
         @method pad
-        @param {Number} Number
         @param {Number} Width
         @param {String} Pad character, default 0
         @return {String}
@@ -71,7 +70,7 @@
     /**
         Subtract number from current number.
 
-        @method div
+        @method minus
         @param {Number) Subtrahend
         @chainable
         @return {Number)
@@ -83,7 +82,7 @@
     /**
         Add number to current number.
 
-        @method div
+        @method plus
         @param {Number) Addend
         @chainable
         @return {Number)
@@ -95,7 +94,7 @@
     /**
         Muliply by another number.
 
-        @method div
+        @method times
         @chainable
         @param {Number) Multiplier
         @return {Number)
