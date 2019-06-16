@@ -19,7 +19,7 @@
 const m = window.m;
 const datasource = {
     /**
-        @class datasource
+        @class Datasource
         @static
         @module Core
     */

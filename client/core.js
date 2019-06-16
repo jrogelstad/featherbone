@@ -363,7 +363,7 @@ f.catalog = function () {
 
     @method datasource
     @for f
-    @return {Object}
+    @return {Datasource}
 */
 f.datasource = function () {
     return datasource;
