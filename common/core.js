@@ -19,7 +19,16 @@
 /*global window, require, module*/
 (function () {
     "use strict";
+    /**
+        Core module
+        
+        @module Core
+    */
+    /**
+        Featherbone global object.
 
+        @class f
+    */
     const that = {
         PRECISION_DEFAULT: 18,
         SCALE_DEFAULT: 8,

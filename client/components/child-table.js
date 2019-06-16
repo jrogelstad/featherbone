@@ -21,17 +21,21 @@ import button from "./button.js";
 import catalog from "../models/catalog.js";
 import tableWidget from "./table-widget.js";
 
+/**
+    @class childTable
+*/
 const childTable = {};
 const m = window.m;
 
 /**
-  View model for child table.
+    View model for child table.
 
-  @param {Object} Options
-  @param {Array} [options.models] Array of child models
-  @param {String} [options.feather] Feather
-  @param {Array} [options.config] Column configuration
-  @param {String} [options.height] Table height setting (optional)
+    @method viewModel
+    @param {Object} Options
+    @param {Array} [options.models] Array of child models
+    @param {String} [options.feather] Feather
+    @param {Array} [options.config] Column configuration
+    @param {String} [options.height] Table height setting (optional)
 */
 childTable.viewModel = function (options) {
     let tableState;
@@ -217,7 +221,8 @@ catalog.register("viewModels", "childTable", childTable.viewModel);
 /**
   Child table component
 
-  @param {Object} View model
+  @property component
+  @type Object
 */
 childTable.component = {
     oninit: function (vnode) {

@@ -23,12 +23,13 @@ const sortDialog = {};
 const m = window.m;
 
 /**
-  View model for sort dialog.
+    View model for sort dialog.
 
-  @param {Object} Options
-  @param {Array} [options.attrs] Attributes
-  @param {Array} [options.list] Model list
-  @param {Function} [options.filter] Filter property
+    @method viewModel
+    @param {Object} Options
+    @param {Array} [options.attrs] Attributes
+    @param {Array} [options.list] Model list
+    @param {Function} [options.filter] Filter property
 */
 sortDialog.viewModel = function (options) {
     options = options || {};

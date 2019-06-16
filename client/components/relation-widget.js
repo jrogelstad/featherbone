@@ -19,6 +19,9 @@
 import f from "../core.js";
 import catalog from "../models/catalog.js";
 
+/**
+    @class relationWidget
+*/
 const relationWidget = {};
 const m = window.m;
 
@@ -37,17 +40,18 @@ function positionMenu(vnode) {
 }
 
 /**
-  @param {Object} Options
-  @param {Object} [options.parentViewModel] Parent view-model. Required
+    @method viewModel
+    @param {Object} Options
+    @param {Object} [options.parentViewModel] Parent view-model. Required
     property "relations" returning javascript object to attach relation
     view model to.
-  @param {String} [options.parentProperty] Name of the relation
+    @param {String} [options.parentProperty] Name of the relation
     in view model to attached to
-  @param {String} [options.valueProperty] Value property
-  @param {Object} [options.form] Form configuration
-  @param {Object} [options.list] (Search) List configuration
-  @param {Boolean} [options.isCell] Use style for cell in table
-  @param {Object} [options.filter] Filter object used for search
+    @param {String} [options.valueProperty] Value property
+    @param {Object} [options.form] Form configuration
+    @param {Object} [options.list] (Search) List configuration
+    @param {Boolean} [options.isCell] Use style for cell in table
+    @param {Object} [options.filter] Filter object used for search
 */
 relationWidget.viewModel = function (options) {
     let duplicate;
@@ -341,16 +345,20 @@ relationWidget.viewModel = function (options) {
 catalog.register("viewModels", "relationWidget", relationWidget.viewModel);
 
 /**
-  @param {Object} Options
-  @param {Object} [options.viewModel] Parent view-model. Must have
-    property "relations" returning javascript object to attach relation
-    view model to.
-  @param {String} [options.parentProperty] Name of the relation
-    in view model to attached to
-  @param {String} [options.valueProperty] Value property
-  @param {Boolean} [options.isCell] Use style for cell in table
+    @property component
 */
 relationWidget.component = {
+    /**
+        @method oninit
+        @param {Object} Options
+        @param {Object} [options.viewModel] Parent view-model. Must have
+        property "relations" returning javascript object to attach relation
+        view model to.
+        @param {String} [options.parentProperty] Name of the relation
+        in view model to attached to
+        @param {String} [options.valueProperty] Value property
+        @param {Boolean} [options.isCell] Use style for cell in table
+    */
     oninit: function (vnode) {
         let options = vnode.attrs;
         let parentProperty = options.parentProperty;

@@ -31,7 +31,7 @@ const m = window.m;
 /**
     Generate view model for button.
 
-    @method viemModel
+    @method viewModel
     @param {Object} Options
     @param {String} [options.label] Label
     @param {String} [options.icon] Icon name
@@ -260,7 +260,7 @@ catalog.register("viewModels", "button", button.viewModel);
 /**
     Button component
 
-    @attribute component
+    @property component
     @type Object
 */
 button.component = {

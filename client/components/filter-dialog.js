@@ -65,12 +65,13 @@ filterDialog.viewModel = function (options) {
     }
 
     /** @private
-      Helper function for building input elements
+        Helper function for building input elements
 
-      @param {Object} Arguments object
-      @param {Number} [obj.index] Index
-      @param {String} [obj.attr] Property
-      @param {Object} [obj.value] Value
+        @method buildInputComponent
+        @param {Object} Arguments object
+        @param {Number} [obj.index] Index
+        @param {String} [obj.attr] Property
+        @param {Object} [obj.value] Value
     */
     function buildInputComponent(obj) {
         let w;
