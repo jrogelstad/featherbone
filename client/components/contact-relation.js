@@ -26,7 +26,7 @@ import catalog from "../models/catalog.js";
 const contactRelation = {};
 const m = window.m;
 
-/**
+/*
 
     @method viewModel
     @param {Object} Options

@@ -742,7 +742,7 @@ function resize(vm, vnode) {
     }
 }
 
-/**
+/*
     @method viewModel
     @param {Object} Options
     @param {Array} [options.actions] Actions
@@ -1795,7 +1795,7 @@ tableWidget.viewModel = function (options) {
 catalog.register("viewModels", "tableWidget", tableWidget.viewModel);
 
 // Define table widget component
-/**
+/*
     @property component
     @type Object
 */

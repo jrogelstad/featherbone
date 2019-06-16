@@ -28,7 +28,7 @@ import State from "../state.js";
 const tableDialog = {};
 const m = window.m;
 
-/**
+/*
     View model for sort dialog.
 
     @method viewModel
@@ -371,7 +371,7 @@ tableDialog.viewModel = function (options) {
     return vm;
 };
 
-/**
+/*
     Table dialog component
 
     @property component

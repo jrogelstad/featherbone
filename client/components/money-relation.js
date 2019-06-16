@@ -190,7 +190,7 @@ moneyRelation.viewModel = function (options) {
     vm.effective = function () {
         return prop().effective;
     };
-    /**
+    /*
         Causes the currency conversion to be updated.
 
         @method fetchConversion

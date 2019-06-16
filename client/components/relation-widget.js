@@ -39,7 +39,7 @@ function positionMenu(vnode) {
     }
 }
 
-/**
+/*
     @method viewModel
     @param {Object} Options
     @param {Object} [options.parentViewModel] Parent view-model. Required
@@ -344,11 +344,11 @@ relationWidget.viewModel = function (options) {
 
 catalog.register("viewModels", "relationWidget", relationWidget.viewModel);
 
-/**
+/*
     @property component
 */
 relationWidget.component = {
-    /**
+    /*
         @method oninit
         @param {Object} Options
         @param {Object} [options.viewModel] Parent view-model. Must have

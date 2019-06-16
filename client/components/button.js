@@ -28,7 +28,7 @@ import State from "../state.js";
 const button = {};
 const m = window.m;
 
-/**
+/*
     Generate view model for button.
 
     @method viewModel
@@ -257,7 +257,7 @@ button.viewModel = function (options) {
 
 catalog.register("viewModels", "button", button.viewModel);
 
-/**
+/*
     Button component
 
     @property component

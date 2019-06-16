@@ -22,7 +22,7 @@ import filterDialog from "./filter-dialog.js";
 const sortDialog = {};
 const m = window.m;
 
-/**
+/*
     View model for sort dialog.
 
     @method viewModel

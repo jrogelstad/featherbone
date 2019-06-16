@@ -22,7 +22,7 @@ import State from "../state.js";
 const searchInput = {};
 const m = window.m;
 
-/**
+/*
 
     @method viewModel
     @param {Object} Options

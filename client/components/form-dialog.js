@@ -26,7 +26,7 @@ import formWidget from "./form-widget.js";
 const formDialog = {};
 const m = window.m;
 
-/**
+/*
     View model for form dialog.
 
     @method viewModel
@@ -121,7 +121,7 @@ formDialog.viewModel = function (options) {
     return vm;
 };
 
-/**
+/*
     Form dialog component
 
     @property component

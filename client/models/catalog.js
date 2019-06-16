@@ -29,11 +29,24 @@ store.feathers = f.prop({});
 function settings() {
     let state;
     let doFetch;
+    /**
+        @class Settings
+        @static
+    */
     let that = {};
 
+    /**
+        @method feathers
+        @static
+    */
     that.feathers = f.prop({});
 
     // Send event to fetch feather data from the server.
+    /**
+        @method fetch
+        @param {Boolean} merge
+        @return {Promise}
+    */
     that.fetch = function (merge) {
         return new Promise(function (resolve) {
             state.send("fetch", {
@@ -112,11 +125,16 @@ function settings() {
 /**
     Invoke catalog settings as an object.
 
-    @class catalog
+    @class catalogFactory
     @constructor
-    @returns {Object}
+    @returns {Catalog}
 */
 const catalog = (function () {
+    /**
+        @class Catalog
+        @extends Settings
+        @static
+    */
     let that = settings();
 
     /**
@@ -227,7 +245,7 @@ const catalog = (function () {
         @param {String} [options.action] Action name
         @param {String} [options.feather] Feather name
         @param {String} [options.id] Object id
-        @return {Object} Promise
+        @return {Promise} Promise will resolve to a boolean.
     */
     that.isAuthorized = function (opts) {
         return new Promise(function (resolve, reject) {
@@ -305,7 +323,7 @@ const catalog = (function () {
         @param {String} Feather name
         @param {Function} Model factory
         @param {Boolean} Flag whether to append list function to model
-        @return {Function} model
+        @return {createModel} model fatory
     */
     that.registerModel = function (name, model, createList) {
         model.static = model.static || f.prop({});
@@ -340,15 +358,20 @@ const catalog = (function () {
     that.feathers = store.feathers;
 
     /**
-      Current instance event key.
+        Current instance event key.
 
-      @method eventKey
-      @param {String} Event key
-      @return {String}
+        @method eventKey
+        @param {String} key Event key
+        @return {String}
     */
     that.eventKey = f.prop();
 
     // Expose global store data
+    /**
+        Store.
+        
+        @return {Object}
+    */
     that.store = function () {
         return store;
     };
