@@ -518,10 +518,6 @@ function createList(feather) {
     return ary;
 }
 
-// ..........................................................
-// PRIVATE
-//
-
 /**
     Return a function that when called will return an array of models
     based on the feather name passed. The function accepts an object
@@ -541,7 +537,7 @@ function createList(feather) {
     @class listFactory
     @constructor
     @param {String} feather Feather name
-    @return {List}
+    @return {Property} Property with a new List assigned to it.
 */
 function list(feather) {
     // Instantiate the list, optionally auto fetch
