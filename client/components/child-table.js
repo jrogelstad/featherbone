@@ -218,7 +218,7 @@ childTable.viewModel = function (options) {
 
 catalog.register("viewModels", "childTable", childTable.viewModel);
 
-/**
+/*
   Child table component
 
   @property component

@@ -27,7 +27,7 @@ import formWidget from "./form-widget.js";
 const settingsPage = {};
 const m = window.m;
 
-/**
+/*
     View model for settings page.
 
     @method viewModel
@@ -97,7 +97,7 @@ settingsPage.viewModel = function (options) {
     return vm;
 };
 
-/**
+/*
     Settings page component
 
     @property component

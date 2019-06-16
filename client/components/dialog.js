@@ -158,7 +158,7 @@ dialog.viewModel = function (options) {
 
 catalog.register("viewModels", "dialog", dialog.viewModel);
 
-/**
+/*
     Dialog component
 
     @property component

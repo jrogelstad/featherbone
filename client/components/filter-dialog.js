@@ -28,7 +28,7 @@ import tableDialog from "./table-dialog.js";
 const filterDialog = {};
 const m = window.m;
 
-/**
+/*
     View model for sort dialog.
 
     @method viewModel
@@ -64,7 +64,7 @@ filterDialog.viewModel = function (options) {
         return feather.properties[property];
     }
 
-    /** @private
+    /* @private
         Helper function for building input elements
 
         @method buildInputComponent
@@ -398,7 +398,7 @@ filterDialog.viewModel = function (options) {
     return vm;
 };
 
-/**
+/*
     Filter dialog component
 
     @property component
