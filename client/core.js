@@ -21,27 +21,6 @@ import datasource from "./datasource.js";
 import State from "./state.js";
 
 const m = window.m;
-/**
-    Factories
-
-    @property factories
-    @for f
-    @type Object
-*/
-/**
-    Models
-
-    @property models
-    @for f
-    @type Object
-*/
-/**
-    Components
-
-    @property components
-    @for f
-    @type Object
-*/
 const f = window.f;
 const console = window.console;
 const CodeMirror = window.CodeMirror;
@@ -1369,19 +1348,20 @@ f.getStyle = function (name) {
 };
 
 /**
-  Creates a property getter setter function with a default value.
-  Includes state.s
+    Creates a property getter setter function with a default value.
+    Includes state.s
 
-  @class prop
-  @namespace f
-  @param {Any} Initial
-  @param {Object} Formatter. Optional
-  @param {Any} [formatter.default] Function or value returned
+    @class prop
+    @static
+    @namespace f
+    @param {Any} Initial
+    @param {Object} Formatter. Optional
+    @param {Any} [formatter.default] Function or value returned
         by default.
-  @param {Function} [formatter.toType] Converts input to internal type.
-  @param {Function} [formatter.fromType] Formats internal
+    @param {Function} [formatter.toType] Converts input to internal type.
+    @param {Function} [formatter.fromType] Formats internal
         value for output.
-  @return {Function}
+    @return {Function}
 */
 f.prop = function (store, formatter) {
     formatter = formatter || {};
