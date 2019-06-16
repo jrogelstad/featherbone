@@ -21,17 +21,13 @@ import catalog from "../models/catalog.js";
 import State from "../state.js";
 import button from "./button.js";
 
-/**
-    @class dialog
-*/
 const dialog = {};
 const m = window.m;
 const dialogPolyfill = window.dialogPolyfill;
-
 /**
   View model for sort dialog.
 
-    @method viewModel
+    @class dialog
     @param {Object} Options
     @param {Array} [options.icon] Dialog icon
     @param {Array} [options.title] Dialog title

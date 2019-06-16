@@ -22,14 +22,25 @@ import State from "./state.js";
 
 const m = window.m;
 /**
-    Core module
-    
-    @module Core
+    Factories
+
+    @property factories
+    @for f
+    @type Object
 */
 /**
-    Featherbone global object.
+    Models
 
-    @class f
+    @property models
+    @for f
+    @type Object
+*/
+/**
+    Components
+
+    @property components
+    @for f
+    @type Object
 */
 const f = window.f;
 const console = window.console;
@@ -316,7 +327,8 @@ function isChild(p) {
     return p.type && typeof p.type === "object" && p.type.childOf;
 }
 
-/** @private
+/**
+    @private
     @method isChild
 */
 function isToOne(p) {
@@ -360,6 +372,7 @@ function resizeEditor(editor) {
     Return system catalog.
 
     @method catalog
+    @for f
     @return {Object}
 */
 f.catalog = function () {
@@ -370,6 +383,7 @@ f.catalog = function () {
     Return system datasource.
 
     @method datasource
+    @for f
     @return {Object}
 */
 f.datasource = function () {
@@ -380,6 +394,7 @@ f.datasource = function () {
     Return the matching currency object.
 
     @method getCurrency
+    @for f
     @param {String} Currency code
     @return {Object}
 */
@@ -402,7 +417,7 @@ f.getCurrency = function (code) {
     The form returned is not a form model,  but simply a regular
     javascript object.
 
-    @method getForm
+    @method getForm 
     @param {Object} Options
     @param {String} [options.form] Form id
     @param {String} [options.feather] Feather name
@@ -1171,7 +1186,7 @@ f.findRelationWidget = function (relation, isTop) {
     (i.e. "required") in the application before it is called.
 
     @method buildInputComponent
-    @param {Object} Options object
+    @param {Object} [options] Options object
     @param {Object} [options.model] Model
     @param {String} [options.key] Property key
     @param {Object} [options.viewModel] View Model
@@ -1357,7 +1372,8 @@ f.getStyle = function (name) {
   Creates a property getter setter function with a default value.
   Includes state.s
 
-  @method prop
+  @class prop
+  @namespace f
   @param {Any} Initial
   @param {Object} Formatter. Optional
   @param {Any} [formatter.default] Function or value returned
@@ -1475,7 +1491,8 @@ f.prop = function (store, formatter) {
     /**
         Getter setter for the new value in `changing` state.
 
-        @method newValue
+        @class newValue
+        @namespace f.prop
         @param {Any} New value
         @return {Any}
     */
@@ -1503,7 +1520,8 @@ f.prop = function (store, formatter) {
     /**
         Use when in `changing` state.
 
-        @method oldValue
+        @class oldValue
+        @namespace f.prop
         @return {Object}
     */
     p.oldValue = function () {
@@ -1518,6 +1536,7 @@ f.prop = function (store, formatter) {
     };
     /**
         @method state
+        @for f.prop
         @return {Object}
     */
     p.state = function () {
@@ -1592,6 +1611,7 @@ f.prop = function (store, formatter) {
     Helper function to resolve property dot notation.
 
     @method resolveAlias
+    @for f
     @param {Object} Feather
     @param {String} Attribute name
     @return {String}
@@ -1739,6 +1759,7 @@ appState.goto();
     and `Authenticating.`
 
     @method state
+    @for f
     @return {Object} statechart
 */
 f.state = function () {

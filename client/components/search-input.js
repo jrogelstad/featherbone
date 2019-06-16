@@ -23,10 +23,12 @@ const searchInput = {};
 const m = window.m;
 
 /**
-  @param {Object} Options
-  @param {Object} [options.style] Style
-  @param {String} [options.icon] Icon name
-  @param {Function} [options.onclick] On click function
+
+    @method viewModel
+    @param {Object} Options
+    @param {Object} [options.style] Style
+    @param {String} [options.icon] Icon name
+    @param {Function} [options.onclick] On click function
 */
 searchInput.viewModel = function (options) {
     options = options || {};

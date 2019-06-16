@@ -191,10 +191,11 @@ moneyRelation.viewModel = function (options) {
         return prop().effective;
     };
     /**
-      Causes the currency conversion to be updated.
+        Causes the currency conversion to be updated.
 
-      @param {String} 'From' currency code
-      @param {String} 'To' currency code
+        @method fetchConversion
+        @param {String} 'From' currency code
+        @param {String} 'To' currency code
     */
     vm.fetchConversion = function (fromCurr, toCurr) {
         return new Promise(function (resolve, reject) {
