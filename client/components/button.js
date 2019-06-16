@@ -20,7 +20,7 @@ import f from "../core.js";
 import catalog from "../models/catalog.js";
 import State from "../state.js";
 
-/**
+/*
     Button component
 
     @class button

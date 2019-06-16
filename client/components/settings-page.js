@@ -21,7 +21,7 @@ import button from "./button.js";
 import catalog from "../models/catalog.js";
 import formWidget from "./form-widget.js";
 
-/**
+/*
     @class settingsPage
 */
 const settingsPage = {};

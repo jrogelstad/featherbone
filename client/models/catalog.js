@@ -110,9 +110,11 @@ function settings() {
 }
 
 /**
-    Invoke catalog settings as an object
+    Invoke catalog settings as an object.
 
     @class catalog
+    @constructor
+    @returns {Object}
 */
 const catalog = (function () {
     let that = settings();

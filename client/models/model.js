@@ -266,7 +266,7 @@ function isToMany(p) {
     called a `feather`. Can be extended by modifying the return object
     directly.
 
-    @class model
+    @class modelFactory
     @constructor
     @param {Object} data Default data
     @param {Object} feather Feather specification
@@ -274,7 +274,7 @@ function isToMany(p) {
     @param {String} [feather.inherits] Parent feather name
     @param {Object} feather.properties Properties to set on the
       data object
-    @return {Object}
+    @return {Model}
 */
 function model(data, feather) {
     feather = (
@@ -284,7 +284,12 @@ function model(data, feather) {
     );
     feather.overloads = feather.overloads || {};
     feather.inherits = feather.inherits || "Object";
+    /**
+        Model instance.
 
+        @class Model
+        @static
+    */
     let that;
     let subcriptionId;
     let d;

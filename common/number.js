@@ -24,6 +24,8 @@
         Helper functions added to JavaScript `Number` prototype.
 
         @class Number
+        @constructor
+        @return {Number}
     */
 
     /**

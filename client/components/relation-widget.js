@@ -19,7 +19,7 @@
 import f from "../core.js";
 import catalog from "../models/catalog.js";
 
-/**
+/*
     @class relationWidget
 */
 const relationWidget = {};

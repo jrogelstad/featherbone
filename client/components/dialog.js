@@ -24,7 +24,7 @@ import button from "./button.js";
 const dialog = {};
 const m = window.m;
 const dialogPolyfill = window.dialogPolyfill;
-/**
+/*
   View model for sort dialog.
 
     @class dialog

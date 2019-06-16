@@ -20,7 +20,7 @@ import f from "../core.js";
 import relationWidget from "./relation-widget.js";
 import catalog from "../models/catalog.js";
 
-/**
+/*
     @class contactRelation
 */
 const contactRelation = {};

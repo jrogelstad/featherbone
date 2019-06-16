@@ -41,7 +41,7 @@ const dataListOption = {
 feathers = catalog.store().feathers();
 feathers.DataListOption = dataListOption;
 
-/**
+/*
     Model for creating data list options.
 
     @class dataListOptionModel

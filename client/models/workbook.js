@@ -214,7 +214,7 @@ function resolveConfig(config) {
     });
 }
 
-/**
+/*
     Model with special rest API handling for Workbook saves.
 
     @class workbook
@@ -384,7 +384,7 @@ function workbookModel(data) {
     return that;
 }
 
-/**
+/*
     Workbook configuration model.
 
     @class workbookChild

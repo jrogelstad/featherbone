@@ -30,6 +30,10 @@ const LIMIT = 20;
 // PRIVATE
 //
 
+/**
+    @class List
+    @static
+*/
 function createList(feather) {
     let state;
     let doFetch;
@@ -519,24 +523,25 @@ function createList(feather) {
 //
 
 /**
-  Return a function that when called will return an array of models
-  based on the feather name passed. The function accepts an object
-  supporting the following options:
+    Return a function that when called will return an array of models
+    based on the feather name passed. The function accepts an object
+    supporting the following options:
 
-    fetch: Boolean flags whether to automatically fetch a list of models.
-    subscribe: Boolean flags whether to subscribe to events.
-    filter: A filter object definition.
-    showDeleted: Boolean whether to include deleted records on fetch.
+        fetch: Boolean flags whether to automatically fetch a list of models.
+        subscribe: Boolean flags whether to subscribe to events.
+        filter: A filter object definition.
+        showDeleted: Boolean whether to include deleted records on fetch.
 
-  The model array includes support for the following three functions:
+    The model array includes support for the following three functions:
 
-    add(model): Adds the passed model to the array.
-    remove(model): Removes the passed model from the array.
-    fetch (filter): Requeries the server for new results.
+        add(model): Adds the passed model to the array.
+        remove(model): Removes the passed model from the array.
+        fetch (filter): Requeries the server for new results.
 
-  @class list
-  @param {String} Feather name
-  @return {Function}
+    @class listFactory
+    @constructor
+    @param {String} feather Feather name
+    @return {List}
 */
 function list(feather) {
     // Instantiate the list, optionally auto fetch
