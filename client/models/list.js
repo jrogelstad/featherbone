@@ -30,6 +30,9 @@ const LIMIT = 20;
 // PRIVATE
 //
 
+/**
+    @class List
+*/
 function createList(feather) {
     let state;
     let doFetch;
@@ -57,7 +60,6 @@ function createList(feather) {
         to server events on the model.
 
         @method add
-        @for list
         @param {Object} Model
         @param {Boolean} Subscribe flag.
     */
@@ -515,26 +517,6 @@ function createList(feather) {
     return ary;
 }
 
-/**
-    Return a function that when called will return an array of models
-    based on the feather name passed. The function accepts an object
-    supporting the following options:
-
-        fetch: Boolean flags whether to automatically fetch a list of models.
-        subscribe: Boolean flags whether to subscribe to events.
-        filter: A filter object definition.
-        showDeleted: Boolean whether to include deleted records on fetch.
-
-    The model array includes support for the following three functions:
-
-        add(model): Adds the passed model to the array.
-        remove(model): Removes the passed model from the array.
-        fetch (filter): Requeries the server for new results.
-
-    @class list
-    @constructor
-    @param {String} feather Feather name
-*/
 function list(feather) {
     // Instantiate the list, optionally auto fetch
     // and return a property that contains the array.
@@ -563,6 +545,27 @@ function list(feather) {
         return prop;
     };
 }
+
+/**
+    Return an array of models based on the feather name passed.
+    The function accepts an object supporting the following options:
+
+        fetch: Boolean flags whether to automatically fetch a list of models.
+        subscribe: Boolean flags whether to subscribe to events.
+        filter: A filter object definition.
+        showDeleted: Boolean whether to include deleted records on fetch.
+
+    The model array includes support for the following three functions:
+
+        add(model): Adds the passed model to the array.
+        remove(model): Removes the passed model from the array.
+        fetch (filter): Requeries the server for new results.
+
+    @method createList
+    @for f
+    @param {String} feather Feather name
+*/
+f.creatList = (feather) => list(feather)();
 
 catalog.register("factories", "list", list);
 
