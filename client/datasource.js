@@ -17,13 +17,11 @@
 */
 /*jslint browser*/
 const m = window.m;
+/**
+    @class Datasource
+    @static
+*/
 const datasource = {
-    /**
-        @class Datasource
-        @static
-        @module Core
-    */
-
     /**
         Returns the base url used to fetch and post data
 

@@ -266,7 +266,7 @@ function isToMany(p) {
     called a `feather`. Can be extended by modifying the return object
     directly.
 
-    @class modelFactory
+    @class model
     @constructor
     @param {Object} data Default data
     @param {Object} feather Feather specification
@@ -284,12 +284,7 @@ function model(data, feather) {
     );
     feather.overloads = feather.overloads || {};
     feather.inherits = feather.inherits || "Object";
-    /**
-        Model instance.
 
-        @class Model
-        @static
-    */
     let that;
     let subcriptionId;
     let d;
@@ -341,7 +336,6 @@ function model(data, feather) {
         @example
             let instance;
             let catalog = f.catalog();
-            let model = catalog.store().factories().model;
             let data = {
                 name: "foo"
             };
@@ -354,7 +348,7 @@ function model(data, feather) {
                 }
             }
 
-            instance = model(data, feather);
+            instance = f.model(data, feather);
             instance.data.name(); // foo
             instance.data.name("bar"); // bar
             instance.data.name(); // bar
@@ -677,11 +671,10 @@ function model(data, feather) {
 
         @example
             let catalog = f.catalog();
-            let model = catalog.store().factories().model;
 
             function contact(data, feather) {
                 feather = feather || catalog.getFeather("Contact");
-                let that = model(data, feather);
+                let that = f.model(data, feather);
 
                 function deleteCheck () => !that.data.isPosted();
 
@@ -709,13 +702,12 @@ function model(data, feather) {
 
         @example
             let catalog = f.catalog();
-            let model = catalog.store().factories().model;
             let msg;
             let instance;
 
             function contact(data, feather) {
                 feather = feather || catalog.getFeather("Contact");
-                let that = model(data, feather);
+                let that = f.model(data, feather);
 
                 // Add a change event to a property
                 that.onChange("firstName", function (prop) {
@@ -773,11 +765,10 @@ function model(data, feather) {
         @example
             let instance;
             let catalog = f.catalog();
-            let model = catalog.store().factories().model;
 
             function contact(data, feather) {
                 feather = feather || catalog.getFeather("Contact");
-                let that = model(data, feather);
+                let that = f.model(data, feather);
 
                 // Add a changed event to a property
                 that.onChanged("firstName", function (prop) {
@@ -826,11 +817,10 @@ function model(data, feather) {
         @example
             let instance;
             let catalog = f.catalog();
-            let model = catalog.store().factories().model;
 
             function contact(data, feather) {
                 feather = feather || catalog.getFeather("Contact");
-                let that = model(data, shared);
+                let that = f.model(data, shared);
 
                 that.onValidate(function () {
                     if (that.data.phone().length <> 12) {
@@ -885,11 +875,10 @@ function model(data, feather) {
         @example
             let instance;
             let catalog = f.catalog();
-            let model = catalog.store().factories().model;
 
             function contact(data, feather) {
                 feather = feather || catalog.getFeather("Contact");
-                let that = model(data, shared);
+                let that = f.model(data, shared);
 
                 that.onValidate(function () {
                     if (that.data.phone().length <> 12) {
@@ -1929,6 +1918,6 @@ function model(data, feather) {
 
 model.static = f.prop({});
 
-catalog.register("factories", "model", model);
+f.model = model;
 
 export default Object.freeze(model);
