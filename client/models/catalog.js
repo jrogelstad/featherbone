@@ -29,21 +29,18 @@ store.feathers = f.prop({});
 function settings() {
     let state;
     let doFetch;
-    /**
-        @class Settings
-        @static
-    */
     let that = {};
 
     /**
         @method feathers
-        @static
+        @for catalog
     */
     that.feathers = f.prop({});
 
     // Send event to fetch feather data from the server.
     /**
         @method fetch
+        @for catalog
         @param {Boolean} merge
         @return {Promise}
     */
@@ -125,16 +122,9 @@ function settings() {
 /**
     Invoke catalog settings as an object.
 
-    @class catalogFactory
-    @constructor
-    @returns {Catalog}
+    @class Catalog
 */
 const catalog = (function () {
-    /**
-        @class Catalog
-        @extends Settings
-        @static
-    */
     let that = settings();
 
     /**
@@ -323,7 +313,7 @@ const catalog = (function () {
         @param {String} Feather name
         @param {Function} Model factory
         @param {Boolean} Flag whether to append list function to model
-        @return {createModel} model fatory
+        @return {model} model factory
     */
     that.registerModel = function (name, model, createList) {
         model.static = model.static || f.prop({});

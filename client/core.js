@@ -352,7 +352,7 @@ function resizeEditor(editor) {
 
     @method catalog
     @for f
-    @return {Object}
+    @return {catalog}
 */
 f.catalog = function () {
     return catalog;
@@ -1351,7 +1351,8 @@ f.getStyle = function (name) {
     Creates a property getter setter function with a default value.
     Includes state.
 
-    @method prop
+    @class prop
+    @constructor
     @param {Any} store Initial
     @param {Object} [formatter] Formatter. Optional
     @param {Any} [formatter.default] Function or value returned
@@ -1359,7 +1360,7 @@ f.getStyle = function (name) {
     @param {Function} [formatter.toType] Converts input to internal type.
     @param {Function} [formatter.fromType] Formats internal
         value for output.
-    @return {Property}
+    @return {Function}
 */
 f.prop = function (store, formatter) {
     formatter = formatter || {};
@@ -1420,12 +1421,6 @@ f.prop = function (store, formatter) {
     });
 
     // Private function that will be returned
-    /**
-        Getter/Setter function with state.
-
-        @class Property
-        @static
-    */
     p = function (...args) {
         let value = args[0];
 
@@ -1472,9 +1467,9 @@ f.prop = function (store, formatter) {
         return alias;
     };
     /**
-        @property newValue
-        @for Property
-        @type Property.NewValue
+        @method newValue
+        @for prop
+        @type prop.newValue
     */
     p.newValue = function (...args) {
         if (args.length && p.state().current()[0] === "/Changing") {
@@ -1486,9 +1481,9 @@ f.prop = function (store, formatter) {
     /**
         Getter setter for the new value in `changing` state.
 
-        @class NewValue
+        @class newValue
         @constructor
-        @namespace Property
+        @namespace prop
         @param {Any} value Value
         @return {Any} value
     */
@@ -1509,9 +1504,9 @@ f.prop = function (store, formatter) {
     /**
         Use when in `changing` state.
 
-        @property oldValue
-        @type Property.OldValue
-        @for Property
+        @method oldValue
+        @type prop.oldValue
+        @for prop
     */
     p.oldValue = function () {
         return formatter.fromType(oldValue);
@@ -1519,8 +1514,8 @@ f.prop = function (store, formatter) {
     /**
         Getter setter for the old value in `changing` state.
 
-        @class OldValue
-        @namespace Property
+        @class oldValue
+        @namespace prop
         @constructor
         @param {Any} value Value
         @return {Any} value
@@ -1534,7 +1529,7 @@ f.prop = function (store, formatter) {
     };
     /**
         @method state
-        @for Property
+        @for prop
         @return {Object}
     */
     p.state = function () {

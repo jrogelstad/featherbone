@@ -30,10 +30,6 @@ const LIMIT = 20;
 // PRIVATE
 //
 
-/**
-    @class List
-    @static
-*/
 function createList(feather) {
     let state;
     let doFetch;
@@ -61,6 +57,7 @@ function createList(feather) {
         to server events on the model.
 
         @method add
+        @for list
         @param {Object} Model
         @param {Boolean} Subscribe flag.
     */
@@ -534,10 +531,9 @@ function createList(feather) {
         remove(model): Removes the passed model from the array.
         fetch (filter): Requeries the server for new results.
 
-    @class listFactory
+    @class list
     @constructor
     @param {String} feather Feather name
-    @return {Property} Property with a new List assigned to it.
 */
 function list(feather) {
     // Instantiate the list, optionally auto fetch

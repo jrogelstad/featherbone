@@ -916,10 +916,3 @@ document.documentElement.style.overflow = "hidden";
 window.onresize = function () {
     m.redraw(true);
 };
-
-// Expose some stuff globally for debugging purposes
-window.featherbone = {
-    global: f,
-    catalog: catalog,
-    workbooks: workbooks
-};
