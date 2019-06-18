@@ -1057,6 +1057,7 @@ function createUserAccount(obj) {
             password: obj.newRec.password,
             isInherits: false
         };
+        obj.newRec.password = "";
         resolve();
     });
 }
