@@ -71,7 +71,25 @@
 
                 // If database exists, initialize datasource
                 if (resp.rows.length === 1) {
-                    datasource.getCatalog().then(resolve);
+                    client.end().then(function () {
+                        // Check if this database has been initialized
+                        client = new Client({
+                            connectionString: conn + config.postgres.database
+                        });
+                        client.connect().then(function () {
+                            sql = (
+                                "SELECT * FROM pg_tables " +
+                                "WHERE tablename = '$settings';"
+                            );
+                            client.query(sql).then(function (resp) {
+                                if (resp.rows.length) {
+                                    datasource.getCatalog().then(resolve);
+                                    return;
+                                }
+                                resolve();
+                            }).catch(reject);
+                        });
+                    });
 
                 // Otherwise create database first
                 } else {
@@ -101,10 +119,10 @@
             conn += config.postgres.user + ":";
             conn += config.postgres.password + "@";
             conn += config.postgres.host + ":";
-            conn += config.postgres.port + "/" + "postgres";
+            conn += config.postgres.port + "/";
 
             client = new Client({
-                connectionString: conn
+                connectionString: conn + "postgres"
             });
 
             client.connect().then(callback).catch(reject);
