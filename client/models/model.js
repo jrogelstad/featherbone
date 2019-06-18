@@ -262,19 +262,10 @@ function isToMany(p) {
 }
 
 /**
-    A factory that returns a persisting object based on a definition
-    called a `feather`. Can be extended by modifying the return object
-    directly.
+    A data persistence object based on a definition defined by a `feather`. 
 
-    @class model
-    @constructor
-    @param {Object} data Default data
-    @param {Object} feather Feather specification
-    @param {String} feather.name Class name of the object
-    @param {String} [feather.inherits] Parent feather name
-    @param {Object} feather.properties Properties to set on the
-      data object
-    @return {Model}
+    @class Model
+    @static
 */
 function model(data, feather) {
     feather = (
@@ -1918,6 +1909,26 @@ function model(data, feather) {
 
 model.static = f.prop({});
 
-f.model = model;
+/**
+    @method createModel
+    @for f
+    @param {Object} data
+    @param {String | Object} [feather]
+    @return {Model}
+*/
+f.createModel = function (data, feather) {
+    let ret;
+
+    if (typeof feather === "string") {
+        ret = catalog.store().models()[feather.toCamelCase()];
+        
+        if (!ret) {
+            throw new Error("Model " + feather + " not registered.");
+        }
+        return ret;
+    }
+
+    return model(data, feather);
+}
 
 export default Object.freeze(model);
