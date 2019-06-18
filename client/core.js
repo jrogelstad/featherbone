@@ -1465,7 +1465,7 @@ f.prop = function (store, formatter) {
         if (value !== undefined) {
             isReadOnly = Boolean(value);
         }
-        return isReadOnly;
+        return isReadOnly || state.current()[0] !== "/Ready";
     };
     /**
       @param {Boolean} Is required
