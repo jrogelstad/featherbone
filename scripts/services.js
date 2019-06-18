@@ -1073,6 +1073,6 @@ f.datasource.registerFunction(
     "PATCH",
     "UserAccount",
     updateUserAccount,
-    f.datasource.TRIGGER_BEFORE
+    f.datasource.TRIGGER_AFTER
 );
 
