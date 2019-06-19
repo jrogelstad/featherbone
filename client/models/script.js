@@ -21,30 +21,30 @@ import model from "./model.js";
 
 function script(data, feather) {
     let that;
-    let annotation = "__annotation"; // Lint
 
     feather = feather || catalog.getFeather("Script");
     that = model(data, feather);
 
     that.addCalculated({
-        name: "marked",
-        description: "Lint markings",
+        name: "annotations",
+        description: "Lint annotations",
         type: "Array",
         function: f.prop()
     });
 
     that.onValidate(function () {
-        let marked = that.data.marked();
+        let annotations = that.data.annotations();
 
-        if (marked && marked.length) {
+        if (annotations && annotations.length) {
+            console.log(annotations);
             throw new Error(
-                "Script has " + marked.length +
+                "Script has " + annotations.length +
                 " lint violation" + (
-                    marked.length > 1
+                    annotations.length > 1
                     ? "s"
                     : ""
                 ) +
-                " starting on line " + (marked[0][annotation].from.line + 1)
+                " starting on line " + (annotations[0].from.line + 1)
             );
         }
     });

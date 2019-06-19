@@ -904,10 +904,11 @@ f.formats.script.editor = function (options) {
         );
 
         editor.on("change", m.redraw);
-        lint.options.onUpdateLinting = m.redraw;
-
-        // Let model reference lint markings
-        model.data.marked(editor.state.lint.marked);
+        lint.options.onUpdateLinting = function (annotations) {
+            // Let model reference lint annoations
+            model.data.annotations(annotations);
+            m.redraw();
+        };
 
         // Send changed text back to model
         editor.on("blur", function () {
