@@ -698,7 +698,7 @@ function doHandleForm(obj) {
                 if (attr === null) {
                     return;
                 }
- 
+
                 let prop = feather.properties[attr.attr];
                 let cpayload;
 
