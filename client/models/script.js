@@ -36,7 +36,6 @@ function script(data, feather) {
         let annotations = that.data.annotations();
 
         if (annotations && annotations.length) {
-            console.log(annotations);
             throw new Error(
                 "Script has " + annotations.length +
                 " lint violation" + (
