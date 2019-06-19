@@ -89,10 +89,14 @@
 
                         after = function (resp) {
                             resp.forEach(function (service) {
-                                new Function(
-                                    "f",
-                                    "\"use strict\";" + service.script
-                                )(f);
+                                try {
+                                    new Function(
+                                        "f",
+                                        "\"use strict\";" + service.script
+                                    )(f);
+                                } catch (e) {
+                                    reject(e);
+                                }
                             });
 
                             nextItem();
