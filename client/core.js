@@ -1760,4 +1760,4 @@ f.state = function () {
     return appState;
 };
 
-export default Object.freeze(f);
+export default f;

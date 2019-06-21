@@ -17,7 +17,6 @@
 */
 /*jslint browser*/
 import catalog from "./catalog.js";
-import model from "./model.js";
 import f from "../core.js";
 
 /*
@@ -32,8 +31,8 @@ function doc(data, feather) {
         data.owner = f.currentUser().name;
     }
     feather = feather || catalog.getFeather("Document");
-    let that = model(data, feather);
-    let d = that.data;
+    let model = f.createModel(data, feather);
+    let d = model.data;
 
     function handleReadOnly() {
         let user = f.currentUser();
@@ -44,9 +43,9 @@ function doc(data, feather) {
         );
     }
 
-    that.onLoad(handleReadOnly);
+    model.onLoad(handleReadOnly);
 
-    return that;
+    return model;
 }
 
 catalog.registerModel("Document", doc, true);

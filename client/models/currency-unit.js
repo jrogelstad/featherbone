@@ -16,22 +16,22 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import catalog from "./catalog.js";
-import model from "./model.js";
+import core from "../core.js";
 
 /*
   Currency Unit model
 */
 function currencyUnit(data, feather) {
     feather = feather || catalog.getFeather("CurrencyUnit");
-    let that = model(data, feather);
+    let model = f.createModel(data, feather);
 
-    that.onValidate(function () {
-        if (that.data.code().length > 4) {
+    model.onValidate(function () {
+        if (model.data.code().length > 4) {
             throw "code may not be more than 4 characters";
         }
     });
 
-    return that;
+    return model;
 }
 
 catalog.registerModel("CurrencyUnit", currencyUnit, true);

@@ -16,26 +16,26 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import catalog from "./catalog.js";
-import model from "./model.js";
+import core from "../core.js";
 
 /*
   Currency Conversion model
 */
 function currencyConversion(data, feather) {
     feather = feather || catalog.getFeather("CurrencyConversion");
-    let that = model(data, feather);
+    let model = f.createModel(data, feather);
 
-    that.onValidate(function () {
-        if (that.data.fromCurrency().id() === that.data.toCurrency().id()) {
+    model.onValidate(function () {
+        if (model.data.fromCurrency().id() === model.data.toCurrency().id()) {
             throw "'From' currency cannot be the same as 'to' currency.";
         }
 
-        if (that.data.ratio() < 0) {
+        if (model.data.ratio() < 0) {
             throw "The conversion ratio nust be a positive number.";
         }
     });
 
-    return that;
+    return model;
 }
 
 catalog.registerModel("CurrencyConversion", currencyConversion, true);

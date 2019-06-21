@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-import model from "./model.js";
+import core from "../core.js";
 import catalog from "./catalog.js";
 
 let feathers;
@@ -50,17 +50,17 @@ feathers.DataListOption = dataListOption;
     @return {Object}
 */
 function dataListOptionModel(data) {
-    let that;
+    let model;
 
     data = data || {};
-    that = model(data, catalog.getFeather("DataListOption"));
+    model = f.createModel(data, catalog.getFeather("DataListOption"));
 
-    that.state().resolve("/Ready/Fetched/Clean").event(
+    model.state().resolve("/Ready/Fetched/Clean").event(
         "changed",
-        () => that.state().goto("/Ready/Fetched/Dirty")
+        () => model.state().goto("/Ready/Fetched/Dirty")
     );
 
-    return that;
+    return model;
 }
 
 catalog.registerModel("DataListOption", dataListOptionModel);

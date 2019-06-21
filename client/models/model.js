@@ -262,12 +262,12 @@ function isToMany(p) {
 }
 
 /**
-    A data persistence object based on a definition defined by a `feather`. 
+    A data persistence object based on a definition defined by a `feather`.
 
     @class Model
     @static
 */
-function model(data, feather) {
+function createModel(data, feather) {
     feather = (
         feather
         ? f.copy(feather)
@@ -276,7 +276,7 @@ function model(data, feather) {
     feather.overloads = feather.overloads || {};
     feather.inherits = feather.inherits || "Object";
 
-    let that;
+    let model;
     let subcriptionId;
     let d;
     let doClear;
@@ -346,11 +346,11 @@ function model(data, feather) {
         @property data
         @type Object
     */
-    that = {
+    model = {
         data: {}
     };
 
-    d = that.data;
+    d = model.data;
 
     // ..........................................................
     // PUBLIC
@@ -371,7 +371,7 @@ function model(data, feather) {
         @chainable
         @return {Object}
     */
-    that.addCalculated = function (options) {
+    model.addCalculated = function (options) {
         let fn = options.function;
 
         fn.isCalculated = true;
@@ -398,7 +398,7 @@ function model(data, feather) {
         @method canSave
         @return {Boolean}
     */
-    that.canSave = function () {
+    model.canSave = function () {
         return state.resolve(state.current()[0]).canSave();
     };
 
@@ -408,7 +408,7 @@ function model(data, feather) {
         @method canUndo
         @return {Boolean}
     */
-    that.canUndo = function () {
+    model.canUndo = function () {
         return state.resolve(state.current()[0]).canUndo();
     };
 
@@ -419,7 +419,7 @@ function model(data, feather) {
         @method canUpdate
         @return {Boolean}
     */
-    that.canUpdate = () => canUpdate;
+    model.canUpdate = () => canUpdate;
 
     /**
         Check whether model can be deleted in its current state.
@@ -427,7 +427,7 @@ function model(data, feather) {
         @method canSave
         @return {Boolean}
     */
-    that.canDelete = function () {
+    model.canDelete = function () {
         return deleteChecks.every(function (check) {
             return check();
         });
@@ -440,14 +440,14 @@ function model(data, feather) {
 
         @method checkDelete
     */
-    that.checkDelete = function () {
+    model.checkDelete = function () {
         if (canDelete === undefined) {
-            that.onCanDelete(function () {
+            model.onCanDelete(function () {
                 return Boolean(canDelete);
             });
 
             catalog.isAuthorized({
-                id: that.id(),
+                id: model.id(),
                 action: "canDelete"
             }).then(function (resp) {
                 canDelete = resp;
@@ -464,11 +464,11 @@ function model(data, feather) {
 
         @method checkUpdate
     */
-    that.checkUpdate = function () {
-        let wasFrozen = that.isFrozen();
+    model.checkUpdate = function () {
+        let wasFrozen = model.isFrozen();
 
         if (canUpdate === undefined) {
-            if (that.isReadOnly()) {
+            if (model.isReadOnly()) {
                 canUpdate = false;
                 return;
             }
@@ -476,7 +476,7 @@ function model(data, feather) {
             if (!wasFrozen) {
                 doFreeze();
                 catalog.isAuthorized({
-                    id: that.id(),
+                    id: model.id(),
                     action: "canUpdate"
                 }).then(function (resp) {
                     canUpdate = resp;
@@ -495,7 +495,7 @@ function model(data, feather) {
 
         @method clear
     */
-    that.clear = function () {
+    model.clear = function () {
         state.send("clear");
     };
 
@@ -507,7 +507,7 @@ function model(data, feather) {
         @param {Boolean} autoSave Automatically commit. Default false.
         @return {Promise}
     */
-    that.delete = function (autoSave) {
+    model.delete = function (autoSave) {
         state.send("delete");
         if (autoSave) {
             return doSend("save");
@@ -524,7 +524,7 @@ function model(data, feather) {
         @method fetch
         @return {Promise}
     */
-    that.fetch = function () {
+    model.fetch = function () {
         return doSend("fetch");
     };
 
@@ -534,8 +534,8 @@ function model(data, feather) {
         @method id
         @return {String}
     */
-    that.id = function (...args) {
-        let prop = that.idProperty();
+    model.id = function (...args) {
+        let prop = model.idProperty();
 
         if (args.length) {
             return d[prop](args[0]);
@@ -552,7 +552,7 @@ function model(data, feather) {
         @param {String} property Id property
         @return {String}
     */
-    that.idProperty = f.prop("id");
+    model.idProperty = f.prop("id");
 
     /**
         Indicates if model is in  a frozen state.
@@ -560,7 +560,7 @@ function model(data, feather) {
         @method isFrozen
         @return {Boolen}
     */
-    that.isFrozen = function () {
+    model.isFrozen = function () {
         return isFrozen;
     };
 
@@ -571,7 +571,7 @@ function model(data, feather) {
         @default true
         @type boolean
     */
-    that.isModel = true;
+    model.isModel = true;
 
     /**
         Indicates whether the model is read only.
@@ -580,7 +580,7 @@ function model(data, feather) {
         @param {Boolean} isReadyOnly Read only flag
         @return {Boolean}
     */
-    that.isReadOnly = f.prop(feather.isReadOnly === true);
+    model.isReadOnly = f.prop(feather.isReadOnly === true);
 
     /**
         Returns whether the object is in a valid state to save.
@@ -589,7 +589,7 @@ function model(data, feather) {
         @method isValid
         @return {Boolean}
     */
-    that.isValid = function () {
+    model.isValid = function () {
         try {
             validators.forEach(function (validator) {
                 validator();
@@ -609,7 +609,7 @@ function model(data, feather) {
         @method lastError
         @return {String}
     */
-    that.lastError = function () {
+    model.lastError = function () {
         return lastError;
     };
 
@@ -621,7 +621,7 @@ function model(data, feather) {
         @param {Object} object Lock object
         @return {Promise}
     */
-    that.lock = function (lock) {
+    model.lock = function (lock) {
         state.send("lock", lock);
     };
 
@@ -631,7 +631,7 @@ function model(data, feather) {
         @property name
         @type String
     */
-    that.name = feather.name || "Object";
+    model.name = feather.name || "Object";
 
     /**
         Returns natural key property name.
@@ -639,7 +639,7 @@ function model(data, feather) {
         @method naturalKey
         @return {String}
     */
-    that.naturalKey = function () {
+    model.naturalKey = function () {
         if (naturalKey === undefined) {
             naturalKey = Object.keys(feather.properties).find(
                 function (key) {
@@ -656,7 +656,7 @@ function model(data, feather) {
             return "";
         }
 
-        return that.data[naturalKey]();
+        return model.data[naturalKey]();
     };
 
     /**
@@ -669,20 +669,20 @@ function model(data, feather) {
 
             function contact(data, feather) {
                 feather = feather || catalog.getFeather("Contact");
-                let that = f.model(data, feather);
+                let model = f.model(data, feather);
 
-                function deleteCheck () => !that.data.isPosted();
+                function deleteCheck () => !model.data.isPosted();
 
                 // Add a check
-                that.onCanDelete(deleteCheck);
+                model.onCanDelete(deleteCheck);
             }
 
         @method onCanDelete
-        @param {Function} callback Test function to execute when running canDelete
+        @param {Function} callback Test function
         @chainable
         @return {Object}
     */
-    that.onCanDelete = function (callback) {
+    model.onCanDelete = function (callback) {
         deleteChecks.push(callback);
 
         return this;
@@ -702,10 +702,10 @@ function model(data, feather) {
 
             function contact(data, feather) {
                 feather = feather || catalog.getFeather("Contact");
-                let that = f.model(data, feather);
+                let model = f.model(data, feather);
 
                 // Add a change event to a property
-                that.onChange("firstName", function (prop) {
+                model.onChange("firstName", function (prop) {
                     msg = (
                         "First name changing from " +
                         (prop.oldValue() || "nothing") + " to " +
@@ -725,7 +725,7 @@ function model(data, feather) {
         @chainable
         @return {Object}
     */
-    that.onChange = function (name, callback) {
+    model.onChange = function (name, callback) {
         let attr;
         let idx = name.indexOf(".");
 
@@ -763,10 +763,10 @@ function model(data, feather) {
 
             function contact(data, feather) {
                 feather = feather || catalog.getFeather("Contact");
-                let that = f.model(data, feather);
+                let model = f.model(data, feather);
 
                 // Add a changed event to a property
-                that.onChanged("firstName", function (prop) {
+                model.onChanged("firstName", function (prop) {
                     console.log("First name is now " + prop() + "!");
                 });
             }
@@ -780,7 +780,7 @@ function model(data, feather) {
         @chainable
         @return {Object}
     */
-    that.onChanged = function (name, callback) {
+    model.onChanged = function (name, callback) {
         let attr;
         let idx = name.indexOf(".");
 
@@ -815,16 +815,16 @@ function model(data, feather) {
 
             function contact(data, feather) {
                 feather = feather || catalog.getFeather("Contact");
-                let that = f.model(data, shared);
+                let model = f.model(data, shared);
 
-                that.onValidate(function () {
-                    if (that.data.phone().length <> 12) {
+                model.onValidate(function () {
+                    if (model.data.phone().length <> 12) {
                         throw new Error("Phone number must be 12 characters");
                     }
                 });
 
                 // Add an error handler
-                that.onError(function (err) {
+                model.onError(function (err) {
                     console.log("Error->", err);
                 });
             }
@@ -839,7 +839,7 @@ function model(data, feather) {
         @chainable
         @return {Object}
     */
-    that.onError = function (callback) {
+    model.onError = function (callback) {
         errHandlers.push(callback);
 
         return this;
@@ -854,8 +854,8 @@ function model(data, feather) {
         @chainable
         @return {Object}
     */
-    that.onLoad = function (callback) {
-        that.state().resolve("/Ready/Fetched/Clean").enter(callback);
+    model.onLoad = function (callback) {
+        model.state().resolve("/Ready/Fetched/Clean").enter(callback);
 
         return this;
     };
@@ -873,10 +873,10 @@ function model(data, feather) {
 
             function contact(data, feather) {
                 feather = feather || catalog.getFeather("Contact");
-                let that = f.model(data, shared);
+                let model = f.model(data, shared);
 
-                that.onValidate(function () {
-                    if (that.data.phone().length <> 12) {
+                model.onValidate(function () {
+                    if (model.data.phone().length <> 12) {
                         throw new Error("Phone number must be 12 characters");
                     }
                 });
@@ -892,7 +892,7 @@ function model(data, feather) {
         @chainable
         @return {Object}
     */
-    that.onValidate = function (callback) {
+    model.onValidate = function (callback) {
         validators.push(callback);
 
         return this;
@@ -904,7 +904,7 @@ function model(data, feather) {
         @method parent
         @return {Object}
     */
-    that.parent = f.prop();
+    model.parent = f.prop();
 
     /**
         Returns a path to execute server requests.
@@ -914,7 +914,7 @@ function model(data, feather) {
         @param {String} [id] Id
         @return {String}
     */
-    that.path = function (name, id) {
+    model.path = function (name, id) {
         let ret = "/data/" + name.toSpinalCase();
 
         if (id) {
@@ -930,7 +930,7 @@ function model(data, feather) {
         @property plural
         @type String
     */
-    that.plural = feather.plural;
+    model.plural = feather.plural;
 
     /**
         Send the save event to persist current data to the server.
@@ -942,7 +942,7 @@ function model(data, feather) {
         @method save
         @return {Promise}
     */
-    that.save = function () {
+    model.save = function () {
         return doSend("save");
     };
 
@@ -954,7 +954,7 @@ function model(data, feather) {
         @chainable
         @return {Object}
     */
-    that.sendToProperties = function (str) {
+    model.sendToProperties = function (str) {
         let keys = Object.keys(d);
 
         keys.forEach(function (key) {
@@ -977,10 +977,10 @@ function model(data, feather) {
         @chainable
         @return {Object}
     */
-    that.set = function (data, silent, islastFetched) {
+    model.set = function (data, silent, islastFetched) {
         data = data || {};
         let keys;
-        let climateChange = islastFetched && that.isFrozen();
+        let climateChange = islastFetched && model.isFrozen();
 
         if (islastFetched) {
             lastFetched = data;
@@ -995,7 +995,7 @@ function model(data, feather) {
 
             // Silence events if applicable
             if (silent) {
-                that.sendToProperties("silence");
+                model.sendToProperties("silence");
             }
 
             // Loop through each attribute and assign
@@ -1005,7 +1005,7 @@ function model(data, feather) {
                 }
             });
 
-            that.sendToProperties("report");
+            model.sendToProperties("report");
 
             if (climateChange) {
                 doFreeze();
@@ -1022,7 +1022,7 @@ function model(data, feather) {
         @param {Object} state Statechart
         @return {Object}
     */
-    that.state = function (...args) {
+    model.state = function (...args) {
         if (args.length) {
             state = args[0];
         }
@@ -1038,7 +1038,7 @@ function model(data, feather) {
         @param {String} style Style name
         @return {String}
     */
-    that.style = f.prop("");
+    model.style = f.prop("");
 
     /**
         Subscribe or unsubscribe model to external events. If no flag
@@ -1048,7 +1048,7 @@ function model(data, feather) {
         @param {Boolean} Flag whether or not to subscribe to events.
         @return {Boolean | String} False or subscription id.
     */
-    that.subscribe = function (...args) {
+    model.subscribe = function (...args) {
         let query;
         let url;
         let payload;
@@ -1065,14 +1065,14 @@ function model(data, feather) {
             subcriptionId = f.createId();
 
             query = Qs.stringify({
-                id: that.id(),
+                id: model.id(),
                 subscription: {
                     id: subcriptionId,
                     eventKey: catalog.eventKey()
                 }
             });
 
-            catalog.register("subscriptions", subcriptionId, [that]);
+            catalog.register("subscriptions", subcriptionId, [model]);
 
             url = "/do/subscribe/" + query;
             payload = {
@@ -1111,7 +1111,7 @@ function model(data, feather) {
         @method toJSON
         @return {Object}
     */
-    that.toJSON = function () {
+    model.toJSON = function () {
         let keys = Object.keys(d);
         let result = {};
 
@@ -1129,7 +1129,7 @@ function model(data, feather) {
 
         @method undo
     */
-    that.undo = function () {
+    model.undo = function () {
         state.send("undo");
     };
 
@@ -1139,7 +1139,7 @@ function model(data, feather) {
         @method unlock
         @return {Promise}
     */
-    that.unlock = function () {
+    model.unlock = function () {
         state.send("unlock");
     };
 
@@ -1148,7 +1148,7 @@ function model(data, feather) {
     //
 
     doClear = function (context) {
-        let keys = Object.keys(that.data);
+        let keys = Object.keys(model.data);
         let values = {};
 
         // Bail if event that sent us here doesn't want to clear
@@ -1164,8 +1164,8 @@ function model(data, feather) {
         }
 
         keys.forEach(function (key) {
-            if (!that.data[key].isCalculated) {
-                let value = that.data[key].default;
+            if (!model.data[key].isCalculated) {
+                let value = model.data[key].default;
 
                 values[key] = (
                     typeof value === "function"
@@ -1175,21 +1175,21 @@ function model(data, feather) {
             }
         });
 
-        that.set(values, true); // Uses silent option
+        model.set(values, true); // Uses silent option
     };
 
     doDelete = function (context) {
         let payload;
 
         function callback(result) {
-            that.set(result, true, true);
+            model.set(result, true, true);
             state.send("deleted");
             context.resolve(true);
         }
 
         payload = {
             method: "DELETE",
-            path: that.path(that.name, that.id()),
+            path: model.path(model.name, model.id()),
             data: {
                 eventKey: catalog.eventKey()
             }
@@ -1221,11 +1221,11 @@ function model(data, feather) {
     doFetch = function (context) {
         let payload = {
             method: "GET",
-            path: that.path(that.name, that.id())
+            path: model.path(model.name, model.id())
         };
 
         function callback(result) {
-            that.set(result, true, true);
+            model.set(result, true, true);
             state.send("fetched");
             context.resolve(d);
         }
@@ -1280,7 +1280,7 @@ function model(data, feather) {
         }
 
         lock = {
-            id: that.id(),
+            id: model.id(),
             eventKey: catalog.eventKey()
         };
         query = Qs.stringify(lock);
@@ -1308,7 +1308,7 @@ function model(data, feather) {
         }
 
         unlock = {
-            id: that.id(),
+            id: model.id(),
             eventKey: catalog.eventKey()
         };
         query = Qs.stringify(unlock);
@@ -1321,10 +1321,10 @@ function model(data, feather) {
     };
 
     doPatch = function (context) {
-        let patch = jsonpatch.compare(lastFetched, that.toJSON());
+        let patch = jsonpatch.compare(lastFetched, model.toJSON());
         let payload = {
             method: "PATCH",
-            path: that.path(that.name, that.id()),
+            path: model.path(model.name, model.id()),
             data: patch
         };
 
@@ -1333,12 +1333,12 @@ function model(data, feather) {
             jsonpatch.applyPatch(lastFetched, patch);
             // Update server side changes
             jsonpatch.applyPatch(lastFetched, result);
-            that.set(lastFetched, true);
+            model.set(lastFetched, true);
             state.send("fetched");
             context.resolve(d);
         }
 
-        if (that.isValid()) {
+        if (model.isValid()) {
             datasource.request(payload).then(
                 callback
             ).catch(
@@ -1348,21 +1348,21 @@ function model(data, feather) {
     };
 
     doPost = function (context) {
-        let cache = that.toJSON();
+        let cache = model.toJSON();
         let payload = {
             method: "POST",
-            path: that.path(that.name),
+            path: model.path(model.name),
             data: cache
         };
 
         function callback(result) {
             jsonpatch.applyPatch(cache, result);
-            that.set(cache, true, true);
+            model.set(cache, true, true);
             state.send("fetched");
             context.resolve(d);
         }
 
-        if (that.isValid()) {
+        if (model.isValid()) {
             datasource.request(payload).then(
                 callback
             ).catch(
@@ -1372,7 +1372,7 @@ function model(data, feather) {
     };
 
     doRevert = function () {
-        that.set(lastFetched, true);
+        model.set(lastFetched, true);
     };
 
     doSend = function (evt) {
@@ -1474,7 +1474,7 @@ function model(data, feather) {
 
                         // Special instantiation
                         if (cFeather) {
-                            result = model(value, cFeather);
+                            result = createModel(value, cFeather);
                         // Get regular model
                         } else {
                             result = catalog.store().models()[name](value);
@@ -1545,7 +1545,7 @@ function model(data, feather) {
 
                     // Create property
                     prop = f.prop(cArray, formatter);
-                    extendArray(that, prop, name, onChange, onChanged);
+                    extendArray(model, prop, name, onChange, onChanged);
                     prop(value);
                 }
 
@@ -1618,7 +1618,7 @@ function model(data, feather) {
             stateMap[key] = prop.state();
 
             // Report property changed event up to model
-            that.onChanged(key, function () {
+            model.onChanged(key, function () {
                 state.send("changed");
             });
 
@@ -1655,14 +1655,14 @@ function model(data, feather) {
                     this.goto("/Deleted");
                 });
                 this.canDelete = f.prop(true);
-                this.canSave = that.isValid;
+                this.canSave = model.isValid;
                 this.canUndo = f.prop(false);
             });
 
             this.state("Fetched", function () {
                 this.c = this.C; // Squelch jslint complaint
                 this.c(function () {
-                    if (that.isReadOnly()) {
+                    if (model.isReadOnly()) {
                         return "./ReadOnly";
                     }
                 });
@@ -1738,7 +1738,7 @@ function model(data, feather) {
                         });
                     });
                     this.canDelete = f.prop(false);
-                    this.canSave = that.isValid;
+                    this.canSave = model.isValid;
                     this.canUndo = f.prop(true);
                 });
             });
@@ -1857,7 +1857,7 @@ function model(data, feather) {
 
     // Add standard validator that checks required properties
     // and validates children
-    that.onValidate(function () {
+    model.onValidate(function () {
         let name;
         let keys = Object.keys(d);
 
@@ -1890,7 +1890,7 @@ function model(data, feather) {
 
 
     // Add standard check for 'canDelete'
-    that.onCanDelete(function () {
+    model.onCanDelete(function () {
         return state.resolve(state.current()[0]).canDelete();
     });
 
@@ -1899,11 +1899,11 @@ function model(data, feather) {
         context: {}
     });
 
-    return that;
+    return model;
 
 }
 
-model.static = f.prop({});
+createModel.static = f.prop({});
 
 /**
     @method createModel
@@ -1917,14 +1917,14 @@ f.createModel = function (data, feather) {
 
     if (typeof feather === "string") {
         ret = catalog.store().models()[feather.toCamelCase()];
-        
+
         if (!ret) {
             throw new Error("Model " + feather + " not registered.");
         }
         return ret;
     }
 
-    return model(data, feather);
-}
+    return createModel(data, feather);
+};
 
-export default Object.freeze(model);
+export default Object.freeze(createModel);

@@ -16,21 +16,21 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import catalog from "./catalog.js";
-import model from "./model.js";
+import core from "../core.js";
 
 function dataService(data, feather) {
-    let that;
+    let model;
 
     feather = feather || catalog.getFeather("DataService");
-    that = model(data, feather);
+    model = f.createModel(data, feather);
 
-    that.addCalculated({
+    model.addCalculated({
         name: "modules",
         type: "array",
         function: catalog.store().data().modules
     });
 
-    return that;
+    return model;
 }
 
 catalog.registerModel("DataService", dataService, true);
