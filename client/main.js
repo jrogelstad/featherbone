@@ -37,6 +37,7 @@ import accountMenu from "./components/account-menu.js";
 
 const m = window.m;
 const EventSource = window.EventSource;
+const console = window.console;
 
 let hash = window.location.hash.slice(window.location.hash.indexOf("/"));
 let feathers;
@@ -509,7 +510,11 @@ function initApp() {
     }());
 
     moduleData.forEach(function (module) {
-        new Function("f", "\"use strict\";" + module.script)(f);
+        try {
+            new Function("f", "\"use strict\";" + module.script)(f);
+        } catch (e) {
+            console.error(e);
+        }
     });
 
     // Propagate static functions to child classes
