@@ -17,15 +17,15 @@
 */
 /*jslint browser*/
 import catalog from "./catalog.js";
-import model from "./model.js";
+import f from "../core.js";
 
 /*
   Contact Model
 */
 function contact(data, feather) {
     feather = feather || catalog.getFeather("Contact");
-    let that = model(data, feather);
-    let d = that.data;
+    let model = f.createModel(data, feather);
+    let d = model.data;
 
     function handleName() {
         if (d.firstName()) {
@@ -35,12 +35,12 @@ function contact(data, feather) {
         }
     }
 
-    that.onChanged("firstName", handleName);
-    that.onChanged("lastName", handleName);
+    model.onChanged("firstName", handleName);
+    model.onChanged("lastName", handleName);
 
-    that.naturalKey = that.data.fullName;
+    model.naturalKey = model.data.fullName;
 
-    return that;
+    return model;
 }
 
 catalog.registerModel("Contact", contact, true);

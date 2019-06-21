@@ -16,35 +16,35 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import catalog from "./catalog.js";
-import model from "./model.js";
+import f from "../core.js";
 
 /*
   Currency Model
 */
 function currency(data, feather) {
     feather = feather || catalog.getFeather("Currency");
-    let that = model(data, feather);
+    let model = f.createModel(data, feather);
 
-    that.data.displayUnit.isReadOnly = function () {
-        return !that.data.hasDisplayUnit();
+    model.data.displayUnit.isReadOnly = function () {
+        return !model.data.hasDisplayUnit();
     };
 
-    that.data.displayUnit.isRequired = that.data.hasDisplayUnit;
+    model.data.displayUnit.isRequired = model.data.hasDisplayUnit;
 
-    that.onChanged("hasDisplayUnit", function (prop) {
+    model.onChanged("hasDisplayUnit", function (prop) {
         if (!prop()) {
-            that.data.displayUnit(null);
+            model.data.displayUnit(null);
         }
     });
 
-    that.onLoad(function () {
-        that.data.code.isReadOnly(true);
+    model.onLoad(function () {
+        model.data.code.isReadOnly(true);
     });
 
-    that.onValidate(function () {
+    model.onValidate(function () {
         let id;
-        let displayUnit = that.data.displayUnit();
-        let conversions = that.data.conversions().filter(
+        let displayUnit = model.data.displayUnit();
+        let conversions = model.data.conversions().filter(
             (item) => item.state().current()[0] !== "/Delete"
         );
 
@@ -59,12 +59,12 @@ function currency(data, feather) {
             }
         }
 
-        if (that.data.code().length > 4) {
+        if (model.data.code().length > 4) {
             throw "code may not be more than 4 characters";
         }
     });
 
-    return that;
+    return model;
 }
 
 catalog.registerModel("Currency", currency, true);
