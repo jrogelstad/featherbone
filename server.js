@@ -1215,7 +1215,11 @@
         // REGISTER MODULE SERVICES
         services.forEach(function (service) {
             console.log("Registering module service:", service.name);
-            new Function("f", "\"use strict\";" + service.script)(f);
+            try {
+                new Function("f", "\"use strict\";" + service.script)(f);
+            } catch (e) {
+                console.error(e);
+            }
         });
 
         // REGISTER MODULE ROUTES

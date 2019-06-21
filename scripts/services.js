@@ -53,6 +53,21 @@ function doUpsertFeather(obj) {
             return typeof p.type === "object" && p.type.childOf;
         }
 
+        // Some update checks
+        if (obj.oldRec && obj.newRec) {
+            if (obj.oldRec.name !== obj.newRec.name) {
+                throw new Error("Feather name cannot be changed");
+            }
+
+            if (obj.oldRec.plural !== obj.newRec.plural) {
+                throw new Error("Feather plural value cannot be changed");
+            }
+
+            if (obj.oldRec.inherits !== obj.newRec.inherits) {
+                throw new Error("Feather inherited value cannot be changed");
+            }
+        }
+
         delete feather.authorizations; // Process below
 
         // Save the feather in the catalog
@@ -683,7 +698,7 @@ function doHandleForm(obj) {
                 if (attr === null) {
                     return;
                 }
- 
+
                 let prop = feather.properties[attr.attr];
                 let cpayload;
 
@@ -1073,6 +1088,6 @@ f.datasource.registerFunction(
     "PATCH",
     "UserAccount",
     updateUserAccount,
-    f.datasource.TRIGGER_BEFORE
+    f.datasource.TRIGGER_AFTER
 );
 

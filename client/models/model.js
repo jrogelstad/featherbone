@@ -300,7 +300,6 @@ function model(data, feather) {
     let deleteChecks = [];
     let stateMap = {};
     let lastFetched = {};
-    let freezeCache = {};
     let onChange = {};
     let onChanged = {};
     let isFrozen = false;
@@ -469,6 +468,11 @@ function model(data, feather) {
         let wasFrozen = that.isFrozen();
 
         if (canUpdate === undefined) {
+            if (that.isReadOnly()) {
+                canUpdate = false;
+                return;
+            }
+
             if (!wasFrozen) {
                 doFreeze();
                 catalog.isAuthorized({
@@ -1249,9 +1253,6 @@ function model(data, feather) {
             }
 
             if (prop.state) {
-                freezeCache[key] = {};
-                freezeCache[key].isReadOnly = prop.isReadOnly();
-                prop.isReadOnly(true);
                 prop.state().send("disable");
             }
         });
@@ -1399,14 +1400,9 @@ function model(data, feather) {
 
             if (prop.state) {
                 prop.state().send("enable");
-                if (freezeCache[key] !== undefined) {
-                    prop.isReadOnly(freezeCache[key].isReadOnly);
-                    prop.state().send("enable");
-                }
             }
         });
 
-        freezeCache = {};
         isFrozen = false;
     };
 
