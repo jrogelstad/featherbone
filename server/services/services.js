@@ -40,7 +40,7 @@
             return new Promise(function (resolve, reject) {
                 let sql = (
                     "SELECT name, to_json(module), script " +
-                    "FROM \"_data_service\";"
+                    "FROM \"_data_service\" WHERE NOT is_deleted;"
                 );
                 let client = db.getClient(obj.client);
 
