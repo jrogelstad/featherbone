@@ -67,13 +67,13 @@ filterDialog.viewModel = function (options) {
     /* @private
         Helper function for building input elements
 
-        @method buildInputComponent
+        @method createEditor
         @param {Object} Arguments object
         @param {Number} [obj.index] Index
         @param {String} [obj.attr] Property
         @param {Object} [obj.value] Value
     */
-    function buildInputComponent(obj) {
+    function createEditor(obj) {
         let w;
         let component;
         let prop;
@@ -347,7 +347,7 @@ filterDialog.viewModel = function (options) {
                 ]),
                 m("td", {
                     class: "fb-filter-dialog-input-cell"
-                }, [buildInputComponent({
+                }, [createEditor({
                     index: item.index,
                     key: item.property,
                     value: item.value,

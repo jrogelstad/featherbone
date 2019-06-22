@@ -40,7 +40,7 @@ moneyRelation.viewModel = function (options) {
     let parent = options.parentViewModel;
     let store = catalog.store();
     let currencyList = store.data().currencies;
-    let currConvList = store.models().currencyConversion.list({
+    let currConvList = f.createList("CurrencyConversion", {
         fetch: false
     });
     let prop = parent.model().data[options.parentProperty];

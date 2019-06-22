@@ -760,10 +760,16 @@ f.formats.dataType.tableData = function (obj) {
 };
 
 f.formats.enum.tableData = function (obj) {
+    let found;
     if (typeof obj.prop.dataList[0] === "object") {
-        return obj.prop.dataList.find(function (item) {
+        found = obj.prop.dataList.find(function (item) {
             return item.value === obj.value;
-        }).label;
+        });
+        if (found) {
+            return found.label
+        } else {
+            return "invalid value " + obj.value;
+        };
     }
 
     return obj.value;
@@ -1173,17 +1179,14 @@ f.findRelationWidget = function (relation, isTop) {
 /**
     Factory for building input elements
 
-    Use of this function requires that "Checkbox" has been pre-registered,
-    (i.e. "required") in the application before it is called.
-
-    @method buildInputComponent
+    @method createEditor
     @param {Object} [options] Options object
     @param {Object} [options.model] Model
     @param {String} [options.key] Property key
     @param {Object} [options.viewModel] View Model
     @param {Array} [options.dataList] Array for input lists
 */
-f.buildInputComponent = function (obj) {
+f.createEditor = function (obj) {
     let w;
     let featherName;
     let key = obj.key;

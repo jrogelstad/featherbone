@@ -230,7 +230,7 @@ function createTableDataEditor(options, col) {
 
     cell = [
         m("td", tdOpts, [
-            f.buildInputComponent({
+            f.createEditor({
                 model: model,
                 key: col,
                 dataList: dataList,

@@ -243,7 +243,7 @@ function buildFieldset(vm, attrs) {
             class: "pure-control-group"
         }, [
             label,
-            f.buildInputComponent({
+            f.createEditor({
                 model: model,
                 key: key,
                 dataList: dataList,

@@ -33,14 +33,14 @@ function settings() {
 
     /**
         @method feathers
-        @for catalog
+        @for Catalog
     */
     that.feathers = createProperty({});
 
     // Send event to fetch feather data from the server.
     /**
         @method fetch
-        @for catalog
+        @for Catalog
         @param {Boolean} merge
         @return {Promise}
     */
@@ -354,6 +354,7 @@ const catalog = (function () {
     /**
         Store.
 
+        @method store
         @return {Object}
     */
     that.store = function () {
