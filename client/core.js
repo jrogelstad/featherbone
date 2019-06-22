@@ -134,9 +134,10 @@ function column(item) {
 
 /**
     @private
-    @method buildRelationWidgetFromFeather
+    @method createRelationWidgetFromFeather
+    @return {Object}
 */
-function buildRelationWidgetFromFeather(type, featherName) {
+function createRelationWidgetFromFeather(type, featherName) {
     let name = featherName + "$" + type.relation + "Relation";
     let widget = catalog.store().components()[name];
 
@@ -766,10 +767,10 @@ f.formats.enum.tableData = function (obj) {
             return item.value === obj.value;
         });
         if (found) {
-            return found.label
+            return found.label;
         } else {
             return "invalid value " + obj.value;
-        };
+        }
     }
 
     return obj.value;
@@ -1256,7 +1257,7 @@ f.createEditor = function (obj) {
 
         if (!w) {
             // Nothing specific, deduce from feather definition
-            w = buildRelationWidgetFromFeather(prop.type, featherName);
+            w = createRelationWidgetFromFeather(prop.type, featherName);
         }
 
         if (w) {
@@ -1289,10 +1290,14 @@ f.createEditor = function (obj) {
 };
 
 /**
-    @method buildRelationWidgetFromFeather
+    Build a relation widget from a feather definition
+
+    @method createRelationWidget
+    @param {Object} type Type from Property
+    @param {String} feather Parent feather name
     @return {Object}
 */
-f.buildRelationWidgetFromFeather = buildRelationWidgetFromFeather;
+f.createRealtionWidget = createRelationWidgetFromFeather;
 
 /**
   Returns the exact x, y coordinents of an HTML element.
