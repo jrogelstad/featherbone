@@ -119,7 +119,7 @@ filterDialog.viewModel = function (options) {
 
             if (!w) {
                 // Nothing specific, deduce from feather definition
-                w = f.buildRelationWidgetFromFeather(type, featherName);
+                w = f.createRelationWidget(type, featherName);
             }
 
             if (w) {
