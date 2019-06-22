@@ -17,7 +17,6 @@
 */
 /*jslint this*/
 import f from "../core.js";
-import model from "./model.js";
 import datasource from "../datasource.js";
 import catalog from "./catalog.js";
 
@@ -223,7 +222,7 @@ function resolveConfig(config) {
     return {Object}
 */
 function workbookModel(data) {
-    let that;
+    let model;
     let state;
     let substate;
     let doPut;
@@ -250,10 +249,10 @@ function workbookModel(data) {
     if (data.defaultConfig) {
         resolveConfig(data.defaultConfig);
     }
-    that = model(data, workbook);
-    that.idProperty("name");
+    model = f.createModel(data, workbook);
+    model.idProperty("name");
 
-    that.path = function (name, id) {
+    model.path = function (name, id) {
         let ret = "/" + name.toSpinalCase();
 
         if (id) {
@@ -262,8 +261,8 @@ function workbookModel(data) {
         return ret;
     };
 
-    that.getConfig = function () {
-        let d = that.data;
+    model.getConfig = function () {
+        let d = model.data;
         let profile;
 
         if (profileConfig) {
@@ -289,26 +288,26 @@ function workbookModel(data) {
         return d.defaultConfig();
     };
 
-    that.addCalculated({
+    model.addCalculated({
         name: "modules",
         type: "array",
         function: modules
     });
 
-    that.canUpdate = () => canUpdate;
+    model.canUpdate = () => canUpdate;
 
-    that.checkUpdate = function () {
-        if (that.state().current()[0] !== "/Ready/Fetched/Clean") {
+    model.checkUpdate = function () {
+        if (model.state().current()[0] !== "/Ready/Fetched/Clean") {
             return;
         }
 
         if (canUpdate === undefined) {
-            that.state().goto("/Ready/Fetched/ReadOnly");
-            that.isAuthorized("canUpdate").then(function (resp) {
+            model.state().goto("/Ready/Fetched/ReadOnly");
+            model.isAuthorized("canUpdate").then(function (resp) {
                 canUpdate = resp;
 
                 if (canUpdate) {
-                    that.state().goto("/Ready/Fetched/Clean");
+                    model.state().goto("/Ready/Fetched/Clean");
                 }
             });
         }
@@ -323,11 +322,11 @@ function workbookModel(data) {
         @param {String} Action name
         @return {Object} Promise
     */
-    that.isAuthorized = function (action) {
+    model.isAuthorized = function (action) {
         return new Promise(function (resolve, reject) {
             let payload = {
                 method: "GET",
-                path: "/workbook/is-authorized/" + that.id(),
+                path: "/workbook/is-authorized/" + model.id(),
                 data: {
                     action: action
                 }
@@ -342,25 +341,25 @@ function workbookModel(data) {
     //
 
     doPut = function (context) {
-        let cache = that.toJSON();
+        let cache = model.toJSON();
         let payload = {
             method: "PUT",
-            path: that.path(that.name, that.data.name()),
+            path: model.path(model.name, model.data.name()),
             data: cache
         };
 
         function callback() {
             state.send("fetched");
-            context.promise.resolve(that.data);
+            context.promise.resolve(model.data);
         }
 
-        if (that.isValid()) {
-            datasource.request(payload).then(callback).catch(that.error);
+        if (model.isValid()) {
+            datasource.request(payload).then(callback).catch(model.error);
         }
     };
 
     // Update statechart for modified behavior
-    state = that.state();
+    state = model.state();
     substate = state.resolve("/Busy/Saving");
     delete substate.substateMap.Posting;
     delete substate.substateMap.Patching;
@@ -377,11 +376,11 @@ function workbookModel(data) {
     substate = state.resolve("/Delete");
     substate.enters.shift();
 
-    that.onLoad(function () {
-        that.data.name.isReadOnly(true);
+    model.onLoad(function () {
+        model.data.name.isReadOnly(true);
     });
 
-    return that;
+    return model;
 }
 
 /*
@@ -393,15 +392,15 @@ function workbookModel(data) {
     return {Object}
 */
 function workbookChild(data) {
-    let that = model(data, workbookLocalConfig);
+    let model = f.createModel(data, workbookLocalConfig);
 
-    that.onChanged("feather", function (property) {
+    model.onChanged("feather", function (property) {
         let id;
         let forms;
         let invalid;
         let feather;
         let value = property.newValue();
-        let list = that.data.list();
+        let list = model.data.list();
         let columns = list.data.columns();
         let filter = list.data.filter();
         let sort = (
@@ -419,7 +418,7 @@ function workbookChild(data) {
         // the first available form.
         if (value) {
             forms = catalog.store().data().forms();
-            // Copy to new array that has regular filter method
+            // Copy to new array model has regular filter method
             forms = forms.slice(0, forms.length - 1);
             forms = forms.filter(
                 (form) => form.feather === value
@@ -473,28 +472,28 @@ function workbookChild(data) {
             });
         }
 
-        that.data.form(forms.find((row) => row.id === id));
+        model.data.form(forms.find((row) => row.id === id));
     });
 
-    that.onValidate(function () {
-        let list = that.data.list();
+    model.onValidate(function () {
+        let list = model.data.list();
 
         if (!list.data.columns().length) {
             throw "List must include at least one column.";
         }
     });
 
-    return that;
+    return model;
 }
 workbookChild.static = f.prop({});
 workbookChild.calculated = f.prop({});
 
 function workbookAuthorization(data) {
-    let that = model(data, workbookAuth);
+    let model = f.createModel(data, workbookAuth);
 
-    that.idProperty("role");
+    model.idProperty("role");
 
-    return that;
+    return model;
 }
 workbookAuthorization.static = f.prop({});
 workbookAuthorization.calculated = f.prop({});

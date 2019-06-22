@@ -16,18 +16,18 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import catalog from "./catalog.js";
-import model from "./model.js";
+import f from "../core.js";
 
 function featherOverload(data, spec) {
     spec = spec || catalog.getFeather("FeatherOverload");
     spec.properties.type.default = "";
     spec.properties.default.default = "";
 
-    let that;
+    let model;
     let d;
 
     function propertyNames() {
-        let parent = that.parent();
+        let parent = model.parent();
         let names = parent.data.properties().map((prop) => prop.data.name());
         let inherits = parent.data.inherits();
         let inheritFeather;
@@ -60,23 +60,23 @@ function featherOverload(data, spec) {
         d.dataList.isReadOnly(!d.overloadDataList());
     }
 
-    that = model(data, spec);
-    d = that.data;
+    model = f.createModel(data, spec);
+    d = model.data;
 
-    that.onChanged("overloadDescription", handleReadOnly);
-    that.onChanged("overloadDescription", function () {
+    model.onChanged("overloadDescription", handleReadOnly);
+    model.onChanged("overloadDescription", function () {
         if (!d.overloadDescription()) {
             d.description("");
         }
     });
-    that.onChanged("overloadAlias", handleReadOnly);
-    that.onChanged("overloadAlias", function () {
+    model.onChanged("overloadAlias", handleReadOnly);
+    model.onChanged("overloadAlias", function () {
         if (!d.overloadAlias()) {
             d.alias("");
         }
     });
-    that.onChanged("overloadType", handleReadOnly);
-    that.onChanged("overloadType", function () {
+    model.onChanged("overloadType", handleReadOnly);
+    model.onChanged("overloadType", function () {
         if (!d.overloadType()) {
             d.type("");
         } else {
@@ -85,22 +85,22 @@ function featherOverload(data, spec) {
             });
         }
     });
-    that.onChanged("overloadDefault", handleReadOnly);
-    that.onChanged("overloadDefault", function () {
+    model.onChanged("overloadDefault", handleReadOnly);
+    model.onChanged("overloadDefault", function () {
         if (!d.overloadDefault()) {
             d.default("");
         }
     });
-    that.onChanged("overloadDataList", handleReadOnly);
-    that.onChanged("overloadDataList", function () {
+    model.onChanged("overloadDataList", handleReadOnly);
+    model.onChanged("overloadDataList", function () {
         if (!d.overloadDataList()) {
             d.dataList("");
         }
     });
 
-    that.onLoad(handleReadOnly);
+    model.onLoad(handleReadOnly);
 
-    that.onValidate(function () {
+    model.onValidate(function () {
         let names = propertyNames().map((item) => item.value);
 
         if (names.indexOf(d.name()) === -1) {
@@ -132,13 +132,13 @@ function featherOverload(data, spec) {
     // PUBLIC
     //
 
-    that.addCalculated({
+    model.addCalculated({
         name: "propertyNames",
         type: "array",
         function: propertyNames
     });
 
-    return that;
+    return model;
 }
 
 catalog.registerModel("FeatherOverload", featherOverload);

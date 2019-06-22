@@ -16,7 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import catalog from "./catalog.js";
-import core from "../core.js";
+import f from "../core.js";
 
 function dataService(data, feather) {
     let model;

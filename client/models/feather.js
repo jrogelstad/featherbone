@@ -17,7 +17,7 @@
 */
 /*jslint browser*/
 import catalog from "./catalog.js";
-import model from "./model.js";
+import createModel from "./model.js";
 import list from "./list.js";
 
 const f = window.f;
@@ -35,13 +35,13 @@ function feather(data, spec) {
             }]
         };
     }
-    let that;
+    let model;
     let inheritedProperties = f.prop([]);
     let re = new RegExp(" ", "g");
 
     inheritedProperties().canAdd = f.prop(false);
 
-    that = model(data, spec);
+    model = createModel(data, spec);
 
     function featherList() {
         let feathers = catalog.store().feathers();
@@ -60,17 +60,17 @@ function feather(data, spec) {
     }
 
     function handleReadOnly() {
-        that.data.name.isReadOnly(true);
-        that.data.plural.isReadOnly(true);
-        that.data.inherits.isReadOnly(true);
+        model.data.name.isReadOnly(true);
+        model.data.plural.isReadOnly(true);
+        model.data.inherits.isReadOnly(true);
     }
 
     function handleReadOnlyProps() {
-        that.data.properties().forEach((prop) => prop.handleReadOnly());
+        model.data.properties().forEach((prop) => prop.handleReadOnly());
     }
 
     function calculateInherited() {
-        let parent = that.data.inherits();
+        let parent = model.data.inherits();
         let featherProperty;
         let props = inheritedProperties();
 
@@ -89,7 +89,7 @@ function feather(data, spec) {
                 prop.name = key;
                 instance = featherProperty(prop);
                 instance.state().goto("/Ready/Fetched/ReadOnly");
-                instance.parent(that);
+                instance.parent(model);
                 props.push(instance);
             });
         }
@@ -110,13 +110,13 @@ function feather(data, spec) {
         prop.newValue(value);
     }
 
-    that.addCalculated({
+    model.addCalculated({
         name: "feathers",
         type: "array",
         function: featherList
     });
 
-    that.addCalculated({
+    model.addCalculated({
         name: "inheritedProperties",
         type: {
             relation: "FeatherProperty",
@@ -126,39 +126,39 @@ function feather(data, spec) {
         function: inheritedProperties
     });
 
-    that.addCalculated({
+    model.addCalculated({
         name: "modules",
         type: "array",
         function: catalog.store().data().modules
     });
 
-    that.onChange("name", sanitize);
-    that.onChanged("name", function (prop) {
-        if (prop() && !that.data.plural()) {
-            that.data.plural(prop() + "s");
+    model.onChange("name", sanitize);
+    model.onChanged("name", function (prop) {
+        if (prop() && !model.data.plural()) {
+            model.data.plural(prop() + "s");
         }
     });
-    that.onChange("plural", sanitize);
+    model.onChange("plural", sanitize);
 
-    that.onChanged("properties", handleReadOnlyProps);
-    that.onChanged("properties.isNaturalKey", handleReadOnlyProps);
-    that.onChanged("properties.isLabelKey", handleReadOnlyProps);
-    that.onChanged("inherits", calculateInherited);
-    that.onLoad(calculateInherited);
-    that.onLoad(handleReadOnly);
+    model.onChanged("properties", handleReadOnlyProps);
+    model.onChanged("properties.isNaturalKey", handleReadOnlyProps);
+    model.onChanged("properties.isLabelKey", handleReadOnlyProps);
+    model.onChanged("inherits", calculateInherited);
+    model.onLoad(calculateInherited);
+    model.onLoad(handleReadOnly);
 
-    that.onValidate(function () {
+    model.onValidate(function () {
         let authRoles = [];
 
         if (
-            !that.data.authorizations().length &&
-            !that.data.isChild() &&
-            !that.data.properties().some(isChild)
+            !model.data.authorizations().length &&
+            !model.data.isChild() &&
+            !model.data.properties().some(isChild)
         ) {
             throw new Error("Feather must have at least one authorization.");
         }
 
-        that.data.authorizations().forEach(function (auth) {
+        model.data.authorizations().forEach(function (auth) {
             let role = auth.data.role();
 
             if (authRoles.indexOf(role) !== -1) {
@@ -171,7 +171,7 @@ function feather(data, spec) {
         });
     });
 
-    return that;
+    return model;
 }
 
 feather.list = list("Feather");

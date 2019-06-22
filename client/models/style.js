@@ -16,40 +16,40 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import catalog from "./catalog.js";
-import model from "./model.js";
+import f from "../core.js";
 
 /*
   Style Model
 */
 function style(data, feather) {
     feather = feather || catalog.getFeather("Style");
-    let that = model(data, feather);
-    let d = that.data;
+    let model = f.createModel(data, feather);
+    let d = model.data;
 
     function handleReadOnly() {
         d.color.isReadOnly(!d.hasColor());
         d.backgroundColor.isReadOnly(!d.hasBackgroundColor());
     }
 
-    that.onChange("name", function (prop) {
+    model.onChange("name", function (prop) {
         prop.newValue(prop.newValue().toUpperCase());
     });
 
-    that.onChanged("hasColor", handleReadOnly);
-    that.onChanged("hasBackgroundColor", handleReadOnly);
+    model.onChanged("hasColor", handleReadOnly);
+    model.onChanged("hasBackgroundColor", handleReadOnly);
 
-    that.onLoad(function () {
-        that.data.name.isReadOnly(true);
+    model.onLoad(function () {
+        model.data.name.isReadOnly(true);
         handleReadOnly();
     });
 
-    that.addCalculated({
+    model.addCalculated({
         name: "modules",
         type: "array",
         function: catalog.store().data().modules
     });
 
-    return that;
+    return model;
 }
 
 catalog.registerModel("Style", style, true);

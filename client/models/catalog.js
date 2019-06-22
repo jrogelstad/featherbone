@@ -359,7 +359,7 @@ const catalog = (function () {
     // Expose global store data
     /**
         Store.
-        
+
         @return {Object}
     */
     that.store = function () {
