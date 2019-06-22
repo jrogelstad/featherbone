@@ -16,6 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+import createProperty from "./property.js";
+import createModel from "./models/model.js";
+import createList from "./models/list.js";
 import catalog from "./models/catalog.js";
 import datasource from "./datasource.js";
 import State from "./state.js";
@@ -298,33 +301,6 @@ function buildRelationWidgetFromLayout(id) {
     return widget;
 }
 
-/** 
-    @private 
-    @method isChild
-*/
-function isChild(p) {
-    return p.type && typeof p.type === "object" && p.type.childOf;
-}
-
-/**
-    @private
-    @method isChild
-*/
-function isToOne(p) {
-    return (
-        p.type && typeof p.type === "object" &&
-        !p.type.childOf && !p.type.parentOf
-    );
-}
-
-/**
-    @private
-    @method isToMany
-*/
-function isToMany(p) {
-    return p.type && typeof p.type === "object" && p.type.parentOf;
-}
-
 // Resize according to surroundings
 /**
     @private
@@ -396,7 +372,7 @@ f.getCurrency = function (code) {
     The form returned is not a form model,  but simply a regular
     javascript object.
 
-    @method getForm 
+    @method getForm
     @param {Object} Options
     @param {String} [options.form] Form id
     @param {String} [options.feather] Feather name
@@ -614,6 +590,41 @@ f.baseCurrency = function (effective) {
     return currs.find(function (currency) {
         return currency.data.code() === current;
     });
+};
+
+/**
+    Return an array of models of the feather name passed.
+
+    @method createList
+    @param {String} feather Feather name
+    @param {Object} [options]
+    @param {Boolean} [options.fetch] Automatically fetch on creation
+    @param {Boolean} [options.subscribe] Subscribe to events
+    @param {Boolean} [options.showDeleted] Show deleted
+    @param {Object} [options.filter] Filter
+    @return {List}
+*/
+f.createList = (feather, options) => createList(feather)(options)();
+
+/**
+    @method createModel
+    @param {Object} data
+    @param {String | Object} [feather]
+    @return {Model}
+*/
+f.createModel = function (data, feather) {
+    let ret;
+
+    if (typeof feather === "string") {
+        ret = catalog.store().models()[feather.toCamelCase()];
+
+        if (!ret) {
+            throw new Error("Model " + feather + " not registered.");
+        }
+        return ret(data);
+    }
+
+    return createModel(data, feather);
 };
 
 /**
@@ -1285,7 +1296,7 @@ f.buildRelationWidgetFromFeather = buildRelationWidgetFromFeather;
 
   Thanks to:
   http://www.kirupa.com/html5/get_element_position_using_javascript.htm
-  
+
   @method getElementPosition
   @param {Object} Element
   @return {Object}
@@ -1352,8 +1363,7 @@ f.getStyle = function (name) {
     Creates a property getter setter function with a default value.
     Includes state.
 
-    @class prop
-    @constructor
+    @method prop
     @param {Any} store Initial
     @param {Object} [formatter] Formatter. Optional
     @param {Any} [formatter.default] Function or value returned
@@ -1361,245 +1371,9 @@ f.getStyle = function (name) {
     @param {Function} [formatter.toType] Converts input to internal type.
     @param {Function} [formatter.fromType] Formats internal
         value for output.
-    @return {Function}
+    @return {Property}
 */
-f.prop = function (store, formatter) {
-    formatter = formatter || {};
-
-    let newValue;
-    let oldValue;
-    let proposed;
-    let p;
-    let state;
-    let alias;
-    let isReadOnly = false;
-    let isRequired = false;
-
-    function defaultTransform(value) {
-        return value;
-    }
-
-    function revert() {
-        store = oldValue;
-    }
-
-    formatter.toType = formatter.toType || defaultTransform;
-    formatter.fromType = formatter.fromType || defaultTransform;
-
-    // Define state
-    state = State.define(function () {
-        this.state("Ready", function () {
-            this.event("change", function () {
-                this.goto("../Changing");
-            });
-            this.event("silence", function () {
-                this.goto("../Silent");
-            });
-            this.event("disable", function () {
-                this.goto("../Disabled");
-            });
-        });
-        this.state("Changing", function () {
-            this.event("changed", function () {
-                this.goto("../Ready");
-            });
-        });
-        this.state("Silent", function () {
-            this.event("report", function () {
-                this.goto("../Ready");
-            });
-            this.event("disable", function () {
-                this.goto("../Disabled");
-            });
-        });
-        this.state("Disabled", function () {
-            // Attempts to make changes from disabled mode revert back
-            this.event("changed", revert);
-            this.event("enable", function () {
-                this.goto("../Ready");
-            });
-        });
-    });
-
-    // Private function that will be returned
-    p = function (...args) {
-        let value = args[0];
-
-        if (args.length) {
-            if (p.state().current()[0] === "/Changing") {
-                return p.newValue(value);
-            }
-
-            proposed = formatter.toType(value);
-
-            if (proposed === store) {
-                return;
-            }
-
-            newValue = value;
-            oldValue = store;
-
-            p.state().send("change");
-            store = (
-                value === newValue
-                ? proposed
-                : formatter.toType(newValue)
-            );
-            p.state().send("changed");
-            newValue = undefined;
-            oldValue = undefined;
-            proposed = undefined;
-        }
-
-        return formatter.fromType(store);
-    };
-
-    /**
-        Alternate user friendly name for property.
-
-        @method alias
-        @param {String} Alias name
-        @return {String}
-    */
-    p.alias = function (...args) {
-        if (args.length) {
-            alias = args[0];
-        }
-        return alias;
-    };
-    /**
-        @method newValue
-        @for prop
-        @type prop.newValue
-    */
-    p.newValue = function (...args) {
-        if (args.length && p.state().current()[0] === "/Changing") {
-            newValue = args[0];
-        }
-
-        return newValue;
-    };
-    /**
-        Getter setter for the new value in `changing` state.
-
-        @class newValue
-        @constructor
-        @namespace prop
-        @param {Any} value Value
-        @return {Any} value
-    */
-    /**
-        @method toJSON
-        @return {Object}
-    */
-    p.newValue.toJSON = function () {
-        if (
-            typeof newValue === "object" && newValue !== null &&
-            typeof newValue.toJSON === "function"
-        ) {
-            return newValue.toJSON();
-        }
-
-        return formatter.toType(newValue);
-    };
-    /**
-        Use when in `changing` state.
-
-        @method oldValue
-        @type prop.oldValue
-        @for prop
-    */
-    p.oldValue = function () {
-        return formatter.fromType(oldValue);
-    };
-    /**
-        Getter setter for the old value in `changing` state.
-
-        @class oldValue
-        @namespace prop
-        @constructor
-        @param {Any} value Value
-        @return {Any} value
-    */
-    /**
-        @method toJSON
-        @return {Object}
-    */
-    p.oldValue.toJSON = function () {
-        return oldValue;
-    };
-    /**
-        @method state
-        @for prop
-        @return {Object}
-    */
-    p.state = function () {
-        return state;
-    };
-
-    /**
-        @method toJSON
-        @return {Object}
-    */
-    p.toJSON = function () {
-        if (
-            typeof store === "object" && store !== null &&
-            typeof store.toJSON === "function"
-        ) {
-            return store.toJSON();
-        }
-
-        return store;
-    };
-    /**
-        @method isReadOnly
-        @param {Boolean} Is read only
-        @return {Boolean}
-    */
-    p.isReadOnly = function (value) {
-        if (value !== undefined) {
-            isReadOnly = Boolean(value);
-        }
-        return isReadOnly || state.current()[0] !== "/Ready";
-    };
-    /**
-        @method isRequired
-        @param {Boolean} Is required
-        @return {Boolean}
-    */
-    p.isRequired = function (value) {
-        if (value !== undefined) {
-            isRequired = Boolean(value);
-        }
-        return isRequired;
-    };
-    /**
-        @method isToOne
-        @return {Boolean}
-    */
-    p.isToOne = function () {
-        return isToOne(p);
-    };
-    /**
-        @method isToMany
-        @return {Boolean}
-    */
-    p.isToMany = function () {
-        return isToMany(p);
-    };
-    /**
-        @method isChild
-        @return {Boolean}
-    */
-    p.isChild = function () {
-        return isChild(p);
-    };
-
-    store = formatter.toType(store);
-    state.goto();
-
-    return p;
-};
+f.prop = createProperty;
 
 /**
     Helper function to resolve property dot notation.
@@ -1760,4 +1534,4 @@ f.state = function () {
     return appState;
 };
 
-export default f;
+export default Object.freeze(f);

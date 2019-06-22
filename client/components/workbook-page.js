@@ -662,8 +662,7 @@ workbookPage.viewModel = function (options) {
             win.receiver = function (model) {
                 // If model came from other window now closed it's
                 // unstable, so rebuild it
-                let name = model.name.toCamelCase();
-                let nmodel = catalog.store().models()[name](model.toJSON());
+                let nmodel = f.createModel(model.toJSON(), model.name);
 
                 nmodel.state().goto("/Ready/Fetched/Clean");
                 nmodel.checkDelete();

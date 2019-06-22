@@ -764,7 +764,7 @@ tableWidget.viewModel = function (options) {
         : catalog.getFeather(options.feather)
     );
     let modelName = feather.name.toCamelCase();
-    let staticModel = catalog.store().models()[modelName];
+    let modelConstructor = catalog.store().models()[modelName];
     let offset = 0;
     let dlgSelectId = f.createId();
     let dlgSelectedId = f.createId();
@@ -1106,7 +1106,7 @@ tableWidget.viewModel = function (options) {
         menu = actions.map(function (action) {
             let opts;
             let actionIcon;
-            let method = staticModel.static()[action.method];
+            let method = modelConstructor.static()[action.method];
 
             action.id = action.id || f.createId();
 
@@ -1118,7 +1118,7 @@ tableWidget.viewModel = function (options) {
 
             if (
                 action.validator &&
-                !staticModel.static()[action.validator](selections)
+                !modelConstructor.static()[action.validator](selections)
             ) {
                 opts.class = "pure-menu-link pure-menu-disabled";
             } else {
@@ -1571,10 +1571,13 @@ tableWidget.viewModel = function (options) {
     vm.filter(f.copy(options.config.filter || {}));
     vm.filter().limit = vm.filter().limit || LIMIT;
     if (!options.models) {
-        vm.models = catalog.store().models()[modelName].list({
-            subscribe: options.subscribe,
-            filter: vm.filter()
-        });
+        vm.models(f.createList(
+            feather.name,
+            {
+                subscribe: options.subscribe,
+                filter: vm.filter()
+            }
+        ));
     }
 
     // Bind refresh to filter change event
@@ -1734,8 +1737,8 @@ tableWidget.viewModel = function (options) {
                     }
                 };
                 this.modelNew = function () {
-                    let name = vm.feather().name.toCamelCase();
-                    let model = catalog.store().models()[name]();
+                    let name = vm.feather().name;
+                    let model = f.createModel(undefined, name);
                     let input = vm.defaultFocus(model);
 
                     vm.models().add(model);

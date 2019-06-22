@@ -16,7 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
-import f from "../core.js";
+import createProperty from "../property.js";
 import State from "../state.js";
 import datasource from "../datasource.js";
 const store = {};
@@ -24,7 +24,7 @@ const auths = {};
 
 const m = window.m;
 
-store.feathers = f.prop({});
+store.feathers = createProperty({});
 
 function settings() {
     let state;
@@ -35,7 +35,7 @@ function settings() {
         @method feathers
         @for catalog
     */
-    that.feathers = f.prop({});
+    that.feathers = createProperty({});
 
     // Send event to fetch feather data from the server.
     /**
@@ -291,7 +291,7 @@ const catalog = (function () {
         let value = args[2];
 
         if (!store[property]) {
-            store[property] = f.prop({});
+            store[property] = createProperty({});
         }
         if (args.length > 1) {
             store[property]()[name] = value;
@@ -305,23 +305,17 @@ const catalog = (function () {
             object for holding static functions.
             * Adds a property "calculated" to the model factory which returns an
             object for storing calculated property definitions.
-            * Adds a list function to the model factory if `createList` is true.
             * Registers the model in the catalog
             * Freezes the model
 
         @method registerModel
         @param {String} Feather name
         @param {Function} Model factory
-        @param {Boolean} Flag whether to append list function to model
         @return {model} model factory
     */
-    that.registerModel = function (name, model, createList) {
-        model.static = model.static || f.prop({});
-        model.calculated = model.calculated || f.prop({});
-
-        if (createList) {
-            model.list = that.store().factories().list(name);
-        }
+    that.registerModel = function (name, model) {
+        model.static = model.static || createProperty({});
+        model.calculated = model.calculated || createProperty({});
 
         that.register("models", name.toCamelCase(), Object.freeze(model));
 
@@ -354,7 +348,7 @@ const catalog = (function () {
         @param {String} key Event key
         @return {String}
     */
-    that.eventKey = f.prop();
+    that.eventKey = createProperty();
 
     // Expose global store data
     /**

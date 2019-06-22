@@ -546,27 +546,6 @@ function list(feather) {
     };
 }
 
-/**
-    Return an array of models based on the feather name passed.
-    The function accepts an object supporting the following options:
-
-        fetch: Boolean flags whether to automatically fetch a list of models.
-        subscribe: Boolean flags whether to subscribe to events.
-        filter: A filter object definition.
-        showDeleted: Boolean whether to include deleted records on fetch.
-
-    The model array includes support for the following three functions:
-
-        add(model): Adds the passed model to the array.
-        remove(model): Removes the passed model from the array.
-        fetch (filter): Requeries the server for new results.
-
-    @method createList
-    @for f
-    @param {String} feather Feather name
-*/
-f.creatList = (feather) => list(feather)();
-
 catalog.register("factories", "list", list);
 
 export default Object.freeze(list);

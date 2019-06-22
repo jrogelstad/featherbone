@@ -93,7 +93,7 @@ childFormPage.viewModel = function (options) {
         vm.doChildOpen(idx + 1);
     };
     vm.doNew = function () {
-        let newInstance = catalog.store().models()[feather.toCamelCase()]();
+        let newInstance = f.createList(feather);
 
         ary.add(newInstance);
         vm.doChildOpen(ary.length - 1);
