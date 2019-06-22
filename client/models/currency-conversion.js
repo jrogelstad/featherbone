@@ -38,4 +38,4 @@ function currencyConversion(data, feather) {
     return model;
 }
 
-catalog.registerModel("CurrencyConversion", currencyConversion, true);
+catalog.registerModel("CurrencyConversion", currencyConversion);

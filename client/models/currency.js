@@ -67,4 +67,4 @@ function currency(data, feather) {
     return model;
 }
 
-catalog.registerModel("Currency", currency, true);
+catalog.registerModel("Currency", currency);

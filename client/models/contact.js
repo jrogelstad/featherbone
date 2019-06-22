@@ -43,4 +43,4 @@ function contact(data, feather) {
     return model;
 }
 
-catalog.registerModel("Contact", contact, true);
+catalog.registerModel("Contact", contact);

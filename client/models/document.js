@@ -48,4 +48,4 @@ function doc(data, feather) {
     return model;
 }
 
-catalog.registerModel("Document", doc, true);
+catalog.registerModel("Document", doc);

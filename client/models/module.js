@@ -108,4 +108,4 @@ module.static = f.prop({
     }
 });
 
-catalog.registerModel("Module", module, true);
+catalog.registerModel("Module", module);

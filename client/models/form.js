@@ -75,4 +75,4 @@ function form(data, feather) {
     return model;
 }
 
-catalog.registerModel("Form", form, true);
+catalog.registerModel("Form", form);

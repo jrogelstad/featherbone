@@ -40,4 +40,4 @@ function userAccount(data, feather) {
     return model;
 }
 
-catalog.registerModel("UserAccount", userAccount, true);
+catalog.registerModel("UserAccount", userAccount);
