@@ -76,7 +76,7 @@ childTable.viewModel = function (options) {
 
         if (!selection) {
             feather = options.feather.name.toCamelCase();
-            selection = catalog.store().models()[feather]();
+            selection = f.createList(feather);
             models.add(selection);
         }
 

@@ -70,7 +70,6 @@ relationWidget.viewModel = function (options) {
     );
     let inputValue = f.prop(current);
     let type = modelValue.type;
-    let modelName = type.relation.toCamelCase();
     let criteria = (
         options.filter
         ? options.filter.criteria || []
@@ -83,8 +82,7 @@ relationWidget.viewModel = function (options) {
         }],
         limit: 10
     };
-    let list = catalog.store().models()[modelName].list;
-    let modelList = list({
+    let modelList = f.createList(type.relation, {
         filter: filter
     });
     let configId = f.createId();
@@ -110,11 +108,7 @@ relationWidget.viewModel = function (options) {
 
     vm.listId = f.prop(f.createId());
     vm.fetch = function () {
-        list({
-            value: modelList(),
-            filter: filter,
-            merge: false
-        });
+        vm.models().fetch(filter, false);
     };
     vm.formConfig = f.prop(options.form);
     vm.id = f.prop(options.id);
@@ -149,7 +143,7 @@ relationWidget.viewModel = function (options) {
         return modelValue();
     };
     vm.models = function () {
-        return modelList();
+        return modelList;
     };
     vm.new = function () {
         m.route.set("/edit/:feather/:key", {
@@ -269,7 +263,7 @@ relationWidget.viewModel = function (options) {
 
         if (
             value.length <= inputVal.length ||
-            modelList().length === 10
+            modelList.length === 10
         ) {
             fetch = true;
         }

@@ -315,7 +315,6 @@ formWidget.viewModel = function (options) {
     let model;
     let modelState;
     let vm = {};
-    let models = catalog.store().models();
 
     vm.config = f.prop(options.config);
     vm.containerId = f.prop(options.containerId);
@@ -341,7 +340,10 @@ formWidget.viewModel = function (options) {
     if (typeof options.model === "object") {
         vm.model(options.model);
     } else {
-        model = vm.model(models[options.model]());
+        model = vm.model(f.createModel(
+            undefined,
+            options.model.toCamelCase(true)
+        ));
         if (options.id) {
             model.id(options.id);
             if (!options.isNew) {

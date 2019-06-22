@@ -21,7 +21,6 @@ import datasource from "./datasource.js";
 import model from "./models/model.js";
 import settings from "./models/settings.js";
 import catalog from "./models/catalog.js";
-import list from "./models/list.js";
 import State from "./state.js";
 import navigator from "./components/navigator-menu.js";
 import dialog from "./components/dialog.js";
@@ -284,11 +283,6 @@ function initPromises() {
                         return model(data, spec || f.copy(feather));
                     };
 
-                    // List instance
-                    if (feather.plural && !models[name].list) {
-                        models[name].list = list(feather.name);
-                    }
-
                     // Calculated properties
                     models[name].calculated = f.prop({});
 
@@ -329,20 +323,20 @@ function initPromises() {
                 // Load data as indicated
                 function fetchData() {
                     toFetch.forEach(function (feather) {
-                        let name = feather.name.toCamelCase();
-                        let ary = models[name].list({
+                        let list = f.createList(feather.name, {
                             subscribe: true,
                             fetch: false,
                             showDeleted: true
                         });
+                        let prop = f.prop(list);
 
                         catalog.register(
                             "data",
                             feather.plural.toCamelCase(),
-                            ary
+                            prop
                         );
-                        ary().defaultLimit(undefined);
-                        preFetch.push(ary);
+                        list.defaultLimit(undefined);
+                        preFetch.push(prop);
                     });
 
                     resolve();

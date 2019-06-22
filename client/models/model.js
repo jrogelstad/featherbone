@@ -1905,26 +1905,4 @@ function createModel(data, feather) {
 
 createModel.static = f.prop({});
 
-/**
-    @method createModel
-    @for f
-    @param {Object} data
-    @param {String | Object} [feather]
-    @return {Model}
-*/
-f.createModel = function (data, feather) {
-    let ret;
-
-    if (typeof feather === "string") {
-        ret = catalog.store().models()[feather.toCamelCase()];
-
-        if (!ret) {
-            throw new Error("Model " + feather + " not registered.");
-        }
-        return ret;
-    }
-
-    return createModel(data, feather);
-};
-
 export default Object.freeze(createModel);
