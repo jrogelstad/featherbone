@@ -33,4 +33,4 @@ function dataService(data, feather) {
     return model;
 }
 
-catalog.registerModel("DataService", dataService, true);
+catalog.registerModel("DataService", dataService);

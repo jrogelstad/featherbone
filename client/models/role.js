@@ -45,4 +45,4 @@ function role(data, feather) {
     return model;
 }
 
-catalog.registerModel("Role", role, true);
+catalog.registerModel("Role", role);

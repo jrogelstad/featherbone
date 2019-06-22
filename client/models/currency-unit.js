@@ -34,4 +34,4 @@ function currencyUnit(data, feather) {
     return model;
 }
 
-catalog.registerModel("CurrencyUnit", currencyUnit, true);
+catalog.registerModel("CurrencyUnit", currencyUnit);

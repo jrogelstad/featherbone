@@ -33,4 +33,4 @@ function route(data, feather) {
     return model;
 }
 
-catalog.registerModel("Route", route, true);
+catalog.registerModel("Route", route);

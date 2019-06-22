@@ -52,4 +52,4 @@ function style(data, feather) {
     return model;
 }
 
-catalog.registerModel("Style", style, true);
+catalog.registerModel("Style", style);

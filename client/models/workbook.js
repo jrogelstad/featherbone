@@ -498,7 +498,6 @@ function workbookAuthorization(data) {
 workbookAuthorization.static = f.prop({});
 workbookAuthorization.calculated = f.prop({});
 
-workbookModel.list = ("Workbook");
 workbookModel.static = f.prop({});
 workbookModel.calculated = f.prop({});
 
