@@ -1,5 +1,5 @@
 {
-    "name": "Featherbone",
+    "name": "Featherbone Client",
     "description": "Framework for building object relational database apps",
     "version": "0.1.0",
     "url": "https://github.com/jrogelstad/featherbone",
@@ -9,12 +9,8 @@
         "attributesEmit": "false",
         "selleck": "false",
         "paths": [
-            "./common",
-            "./client"
-        ],
-        "ignorePaths": [
-            "./client/components"
-        ],
-        "exclude": "server"
+            "../common",
+            "./"
+        ]
     }
 }
