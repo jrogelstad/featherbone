@@ -18,7 +18,6 @@
 /*jslint browser*/
 import f from "../core.js";
 import catalog from "./catalog.js";
-import model from "./model.js";
 import datasource from "../datasource.js";
 
 /*
@@ -26,13 +25,13 @@ import datasource from "../datasource.js";
 */
 function module(data, feather) {
     feather = feather || catalog.getFeather("Module");
-    let that = model(data, feather);
+    let model = f.createModel(data, feather);
 
-    that.onLoad(function () {
-        that.data.name.isReadOnly(true);
+    model.onLoad(function () {
+        model.data.name.isReadOnly(true);
     });
 
-    return that;
+    return model;
 }
 
 module.static = f.prop({

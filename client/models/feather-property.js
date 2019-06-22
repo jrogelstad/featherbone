@@ -17,14 +17,13 @@
 */
 import f from "../core.js";
 import catalog from "./catalog.js";
-import model from "./model.js";
 
 function featherProperty(data, spec) {
     spec = spec || catalog.getFeather("FeatherProperty");
     spec.properties.type.default = "string";
     spec.properties.default.default = "";
 
-    let that;
+    let model;
     let d;
     let types = {
         array: {
@@ -64,11 +63,11 @@ function featherProperty(data, spec) {
     // PUBLIC
     //
 
-    that = model(data, spec);
-    d = that.data;
+    model = f.createModel(data, spec);
+    d = model.data;
 
     function formats() {
-        let type = that.data.type();
+        let type = model.data.type();
         let ret = [];
 
         if (types[type] && types[type].formats.length) {
@@ -89,16 +88,16 @@ function featherProperty(data, spec) {
 
     function handleReadOnly() {
         let isNotNumber = d.type() !== "number";
-        let pd = that.parent().data;
+        let pd = model.parent().data;
         let parentHasNaturalKey = (
             pd.properties().some(
-                (prop) => prop !== that && prop.data.isNaturalKey()
+                (prop) => prop !== model && prop.data.isNaturalKey()
             ) ||
             pd.inheritedProperties().some((prop) => prop.data.isNaturalKey())
         );
         let parentHasLabelKey = (
             pd.properties().some(
-                (prop) => prop !== that && prop.data.isLabelKey()
+                (prop) => prop !== model && prop.data.isLabelKey()
             ) ||
             pd.inheritedProperties().some((prop) => prop.data.isLabelKey())
         );
@@ -124,20 +123,20 @@ function featherProperty(data, spec) {
         }
     }
 
-    that.addCalculated({
+    model.addCalculated({
         name: "formats",
         type: "array",
         function: formats
     });
 
-    that.onChange("name", function (prop) {
+    model.onChange("name", function (prop) {
         let re = new RegExp(" ", "g");
         let value = prop.newValue().toCamelCase().replace(re, "");
 
         prop.newValue(value);
     });
-    that.onChanged("type", handleReadOnly);
-    that.onChanged("type", function () {
+    model.onChanged("type", handleReadOnly);
+    model.onChanged("type", function () {
         let type = d.type();
 
         if (type === "number") {
@@ -161,20 +160,20 @@ function featherProperty(data, spec) {
         d.format.isReadOnly(formats().length === 0);
         d.format("");
     });
-    that.onChanged("isNaturalKey", handleReadOnly);
-    that.onChanged("isNaturalKey", function () {
+    model.onChanged("isNaturalKey", handleReadOnly);
+    model.onChanged("isNaturalKey", function () {
         if (d.isNaturalKey()) {
             d.isIndexed(false);
         }
     });
-    that.onChanged("isLabelKey", handleReadOnly);
+    model.onChanged("isLabelKey", handleReadOnly);
 
-    that.onLoad(handleReadOnly);
+    model.onLoad(handleReadOnly);
 
-    that.onValidate(function () {
-        let type = that.data.type();
-        let defaultValue = that.data.default();
-        let name = that.data.name();
+    model.onValidate(function () {
+        let type = model.data.type();
+        let defaultValue = model.data.default();
+        let name = model.data.name();
 
         if (typeof type !== "string") {
             if (!type.relation) {
@@ -225,11 +224,11 @@ function featherProperty(data, spec) {
         }
     });
 
-    that.handleReadOnly = handleReadOnly;
+    model.handleReadOnly = handleReadOnly;
 
-    that.data.default.toJSON = function () {
-        let type = that.data.type();
-        let defaultValue = that.data.default();
+    model.data.default.toJSON = function () {
+        let type = model.data.type();
+        let defaultValue = model.data.default();
 
         switch (type) {
         case "integer":
@@ -254,7 +253,7 @@ function featherProperty(data, spec) {
         }
     };
 
-    return that;
+    return model;
 }
 
 catalog.registerModel("FeatherProperty", featherProperty);

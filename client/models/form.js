@@ -17,16 +17,15 @@
 */
 import f from "../core.js";
 import catalog from "./catalog.js";
-import model from "./model.js";
 
 function form(data, feather) {
-    let that;
+    let model;
     let props;
 
     function properties() {
         if (!props) {
             let keys;
-            let formFeather = that.data.feather();
+            let formFeather = model.data.feather();
             let result = [];
 
             if (!formFeather) {
@@ -50,30 +49,30 @@ function form(data, feather) {
     }
 
     feather = feather || catalog.getFeather("Form");
-    that = model(data, feather);
+    model = f.createModel(data, feather);
 
-    that.addCalculated({
+    model.addCalculated({
         name: "feathers",
         type: "array",
         function: f.feathers
     });
 
-    that.addCalculated({
+    model.addCalculated({
         name: "modules",
         type: "array",
         function: catalog.store().data().modules
     });
 
-    that.addCalculated({
+    model.addCalculated({
         name: "properties",
         type: "array",
         function: properties
     });
 
-    that.onChanged("feather", handleProperties);
-    that.onLoad(handleProperties);
+    model.onChanged("feather", handleProperties);
+    model.onLoad(handleProperties);
 
-    return that;
+    return model;
 }
 
 catalog.registerModel("Form", form, true);

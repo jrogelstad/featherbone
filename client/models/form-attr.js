@@ -16,15 +16,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import catalog from "./catalog.js";
-import model from "./model.js";
+import f from "../core.js";
 
 function formAttr(data, feather) {
-    let that;
+    let model;
 
     function handleProp(name, validator) {
-        let attr = that.data.attr;
-        let formFeather = that.parent().data.feather();
-        let prop = that.data[name];
+        let attr = model.data.attr;
+        let formFeather = model.parent().data.feather();
+        let prop = model.data[name];
         let fprop;
         let readOnly;
 
@@ -43,7 +43,7 @@ function formAttr(data, feather) {
     }
 
     function handleColumns() {
-        let columns = that.data.columns();
+        let columns = model.data.columns();
 
         function validator(fprop) {
             return Boolean(
@@ -94,7 +94,7 @@ function formAttr(data, feather) {
 
     function properties() {
         let keys;
-        let formFeather = that.parent().data.feather();
+        let formFeather = model.parent().data.feather();
         let result = [];
 
         if (!formFeather) {
@@ -117,39 +117,39 @@ function formAttr(data, feather) {
     }
 
     feather = feather || catalog.getFeather("FormAttr");
-    that = model(data, feather);
+    model = f.createModel(data, feather);
 
-    that.addCalculated({
+    model.addCalculated({
         name: "properties",
         type: "array",
         function: properties
     });
 
-    that.onChanged("attr", handleColumns);
-    that.onChanged("attr", handleDataList);
-    that.onChanged("attr", handleDisableCurrency);
-    that.onChanged("attr", handleRelationWidget);
-    that.onLoad(handleColumns);
-    that.onLoad(handleDataList);
-    that.onLoad(handleDisableCurrency);
-    that.onLoad(handleRelationWidget);
+    model.onChanged("attr", handleColumns);
+    model.onChanged("attr", handleDataList);
+    model.onChanged("attr", handleDisableCurrency);
+    model.onChanged("attr", handleRelationWidget);
+    model.onLoad(handleColumns);
+    model.onLoad(handleDataList);
+    model.onLoad(handleDisableCurrency);
+    model.onLoad(handleRelationWidget);
 
-    that.data.columns().canAdd(false);
+    model.data.columns().canAdd(false);
 
-    that.onValidate(function () {
-        let found = that.parent().data.properties().find(
-            (p) => that.data.attr() === p.value
+    model.onValidate(function () {
+        let found = model.parent().data.properties().find(
+            (p) => model.data.attr() === p.value
         );
 
         if (!found) {
             throw (
-                "Attribute '" + that.data.attr() + "' not in feather '" +
-                that.parent().data.feather() + "'"
+                "Attribute '" + model.data.attr() + "' not in feather '" +
+                model.parent().data.feather() + "'"
             );
         }
     });
 
-    return that;
+    return model;
 }
 
 catalog.registerModel("FormAttr", formAttr);

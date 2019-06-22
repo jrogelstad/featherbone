@@ -17,23 +17,22 @@
 */
 import f from "../core.js";
 import catalog from "./catalog.js";
-import model from "./model.js";
 
 function script(data, feather) {
-    let that;
+    let model;
 
     feather = feather || catalog.getFeather("Script");
-    that = model(data, feather);
+    model = f.createModel(data, feather);
 
-    that.addCalculated({
+    model.addCalculated({
         name: "annotations",
         description: "Lint annotations",
         type: "Array",
         function: f.prop()
     });
 
-    that.onValidate(function () {
-        let annotations = that.data.annotations();
+    model.onValidate(function () {
+        let annotations = model.data.annotations();
 
         if (annotations && annotations.length) {
             throw new Error(
@@ -48,11 +47,11 @@ function script(data, feather) {
         }
     });
 
-    that.onLoad(function () {
-        that.data.name.isReadOnly(true);
+    model.onLoad(function () {
+        model.data.name.isReadOnly(true);
     });
 
-    return that;
+    return model;
 }
 
 catalog.registerModel("Script", script);

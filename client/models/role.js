@@ -16,33 +16,33 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import catalog from "./catalog.js";
-import model from "./model.js";
+import f from "../core.js";
 
 /*
   Role model
 */
 function role(data, feather) {
     feather = feather || catalog.getFeather("Role");
-    let that = model(data, feather);
+    let model = f.createModel(data, feather);
     let re = new RegExp(" ", "g");
 
-    that.onChange("name", function (prop) {
+    model.onChange("name", function (prop) {
         prop.newValue(prop.newValue().toLowerCase().replace(re, "_"));
     });
 
-    that.onLoad(function () {
-        that.data.name.isReadOnly(true);
+    model.onLoad(function () {
+        model.data.name.isReadOnly(true);
     });
 
-    that.onValidate(function () {
-        that.data.membership().forEach(function (item) {
+    model.onValidate(function () {
+        model.data.membership().forEach(function (item) {
             if (!item.data.role()) {
                 throw new Error("Role must be selected for membership");
             }
         });
     });
 
-    return that;
+    return model;
 }
 
 catalog.registerModel("Role", role, true);

@@ -16,7 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import catalog from "./catalog.js";
-import model from "./model.js";
+import f from "../core.js";
 
 /*
   User account model
@@ -31,13 +31,13 @@ function userAccount(data, feather) {
             }]
         };
     }
-    let that = model(data, feather);
+    let model = f.createModel(data, feather);
 
-    that.onLoad(function () {
-        that.data.name.isReadOnly(true);
+    model.onLoad(function () {
+        model.data.name.isReadOnly(true);
     });
 
-    return that;
+    return model;
 }
 
 catalog.registerModel("UserAccount", userAccount, true);

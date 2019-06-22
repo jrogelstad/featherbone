@@ -16,14 +16,14 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import catalog from "./catalog.js";
-import model from "./model.js";
+import f from "../core.js";
 
 /*
   Role Membership model
 */
 function roleMembership(data, feather) {
     feather = feather || catalog.getFeather("RoleMembership");
-    let that = model(data, feather);
+    let model = f.createModel(data, feather);
 
     function roleNames() {
         let roles = catalog.store().data().roles().slice();
@@ -46,13 +46,13 @@ function roleMembership(data, feather) {
         return result;
     }
 
-    that.addCalculated({
+    model.addCalculated({
         name: "roleNames",
         type: "array",
         function: roleNames
     });
 
-    return that;
+    return model;
 }
 
 catalog.registerModel("RoleMembership", roleMembership);

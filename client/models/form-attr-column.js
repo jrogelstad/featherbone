@@ -16,15 +16,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import catalog from "./catalog.js";
-import model from "./model.js";
+import f from "../core.js";
 
 function formAttrColumn(data, feather) {
-    let that;
+    let model;
     let stateClean;
 
     function getChildFeather() {
-        let formFeather = that.parent().parent().data.feather();
-        let parentAttr = that.parent().data.attr();
+        let formFeather = model.parent().parent().data.feather();
+        let parentAttr = model.parent().data.attr();
         let childFeather;
 
         if (!formFeather || !parentAttr) {
@@ -76,8 +76,8 @@ function formAttrColumn(data, feather) {
     }
 
     function handleProp(name, validator) {
-        let attr = that.data.attr;
-        let prop = that.data[name];
+        let attr = model.data.attr;
+        let prop = model.data[name];
         let childFeather = getChildFeather();
         let fprop;
         let readOnly;
@@ -135,30 +135,30 @@ function formAttrColumn(data, feather) {
     }
 
     feather = feather || catalog.getFeather("FormAttrColumn");
-    that = model(data, feather);
+    model = f.createModel(data, feather);
 
-    that.addCalculated({
+    model.addCalculated({
         name: "properties",
         type: "array",
         function: properties
     });
 
-    that.onChanged("attr", handleDataList);
-    that.onChanged("attr", handleShowCurrency);
-    stateClean = that.state().resolve("/Ready/Fetched/Clean");
+    model.onChanged("attr", handleDataList);
+    model.onChanged("attr", handleShowCurrency);
+    stateClean = model.state().resolve("/Ready/Fetched/Clean");
     stateClean.enter(handleDataList);
     stateClean.enter(handleShowCurrency);
 
-    that.onValidate(function () {
+    model.onValidate(function () {
         let childFeather;
 
-        if (!that.data.properties().some(
-            (p) => that.data.attr() === p.value
+        if (!model.data.properties().some(
+            (p) => model.data.attr() === p.value
         )) {
             childFeather = getChildFeather();
             if (childFeather) {
                 throw (
-                    "Attribute '" + that.data.attr() + "' not in feather '" +
+                    "Attribute '" + model.data.attr() + "' not in feather '" +
                     getChildFeather().name + "'"
                 );
             } else {
@@ -167,7 +167,7 @@ function formAttrColumn(data, feather) {
         }
     });
 
-    return that;
+    return model;
 }
 
 catalog.registerModel("FormAttrColumn", formAttrColumn);
