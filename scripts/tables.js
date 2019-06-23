@@ -268,7 +268,7 @@
                     isReadOnly: true
                 },
                 updatedBy: {
-                    description: "User who created the record",
+                    description: "User who last updated the record",
                     type: "string",
                     isReadOnly: true
                 },
