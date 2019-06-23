@@ -370,7 +370,7 @@ function createModel(data, feather) {
         __Type:__ `String`
 
         __Format:__ `DateTime`
-        
+
         __Read Only__
 
         @property data.created
@@ -381,7 +381,7 @@ function createModel(data, feather) {
         User who created the record.
 
         __Type:__ `String`
-        
+
         __Read Only__
 
         @property data.createdBy
@@ -392,7 +392,7 @@ function createModel(data, feather) {
         Flag whether object is soft deleted.
 
         __Type:__ `Boolean`
-        
+
         __Read Only__
 
         @property data.isDeleted
@@ -403,7 +403,7 @@ function createModel(data, feather) {
         Flag whether object is soft deleted.
 
         __Type:__ `Object`
-        
+
         __Read Only__
 
         @property data.lock
@@ -414,7 +414,7 @@ function createModel(data, feather) {
         Discriminates which inherited object type the object represents
 
         __Type:__ `String`
-        
+
         __Read Only__
 
         @property data.objectType
@@ -427,7 +427,7 @@ function createModel(data, feather) {
         __Type:__ `String`
 
         __Format:__ `DateTime`
-        
+
         __Read Only__
 
         @property data.updated
@@ -438,7 +438,7 @@ function createModel(data, feather) {
         User who last updated the record.
 
         __Type:__   `String`
-        
+
         __Read Only__
 
         @property data.updatedBy

@@ -69,7 +69,7 @@ function isToMany(p) {
         p.state().send("enable");
         p("bar") // bar
         p() // bar
- 
+
         // Respond to change events
         p.state().resolve("/Changing").enter(function () {
             let msg = (
