@@ -291,6 +291,14 @@ function workbookModel(data) {
         return d.defaultConfig();
     };
 
+    /**
+        Datalist array of available modules.
+
+        __Type:__ `Array`
+
+        @property data.modules
+        @type {Property}
+    */
     model.addCalculated({
         name: "modules",
         type: "array",
