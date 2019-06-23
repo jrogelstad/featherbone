@@ -53,19 +53,19 @@ function isToMany(p) {
 
         let p = f.prop();
 
-        p() // ""
-        p("foo") // "foo"
-        p() // "foo"
+        p() //
+        p("foo") // foo
+        p() // foo
 
         // Disable the property
         p.state().send("disable");
-        p("bar") // "foo"
-        p() // "foo"
+        p("bar") // foo
+        p() // foo
 
         // Enable the property
         p.state().send("enable");
-        p("bar") // "bar"
-        p() // "bar"
+        p("bar") // bar
+        p() // bar
  
         // Respond to change events
         p.state().resolve("/Changing").enter(function () {
@@ -77,6 +77,15 @@ function isToMany(p) {
         })
         p("Hello World"); // Value was "bar", will be "Hello World."
                           // Hello World
+
+        // Silence change events
+        p.send("silence");
+        p("Foo bar)" // Foo bar
+
+        // Enable change events again
+        p.send("report");
+        p("Moo") // Value was "Foo bar", will be "Moo."
+                 // Moo
     @class Property
 */
 function createProperty(store, formatter) {
