@@ -16,15 +16,28 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/*
+    @module ChildFormPage
+*/
 import f from "../core.js";
-import button from "./button.js";
-import catalog from "../models/catalog.js";
-import formWidget from "./form-widget.js";
-import dialog from "./dialog.js";
 
+const catalog = f.catalog();
 const childFormPage = {};
 const m = window.m;
 
+/**
+    Generate view model for child form page.
+
+    @class ChildFormPage
+    @constructor
+    @namespace ViewModels
+    @param {Object} options Options
+    @param {String} options.parentProperty
+    @param {String} [options.form]
+    @param {String} [options.index]
+    @param {Boolean} [options.isNew]
+    @param {Boolean} [options.create]
+*/
 childFormPage.viewModel = function (options) {
     if (!catalog.store().instances) {
         m.route.set("/home");
@@ -52,14 +65,38 @@ childFormPage.viewModel = function (options) {
     let pageIdx = options.index || 1;
     let isNew = options.create && options.isNew !== false;
 
-    // ..........................................................
-    // PUBLIC
-    //
-
+    /**
+        Done button view model.
+        @method buttonDone
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonDone = f.prop();
+    /**
+        Previous button view model.
+        @method buttonPrevious
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonPrevious = f.prop();
+    /**
+        Next button view model.
+        @method buttonNext
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonNext = f.prop();
+    /**
+        New button view model.
+        @method buttonNew
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonNew = f.prop();
+    /**
+        Open a detail record.
+        @method doChildOpen
+    */
     vm.doChildOpen = function (idx) {
         let target = ary[idx];
 
@@ -77,32 +114,63 @@ childFormPage.viewModel = function (options) {
             }
         });
     };
+    /**
+        @method doDone
+    */
     vm.doDone = function () {
         // Once we consciously leave, purge memoize
         delete instances[vm.model().id()];
         window.history.go(pageIdx * -1);
     };
+    /**
+        Navigate to previous model in parent.
+        @method doNext
+    */
     vm.doPrevious = function () {
         let idx = ary.indexOf(model);
 
         vm.doChildOpen(idx - 1);
     };
+    /**
+        Advance to next model in parent.
+        @method doNext
+    */
     vm.doNext = function () {
         let idx = ary.indexOf(model);
 
         vm.doChildOpen(idx + 1);
     };
+    /**
+        Create a new model and navigate to it.
+        @method doNew
+    */
     vm.doNew = function () {
         let newInstance = f.createList(feather);
 
         ary.add(newInstance);
         vm.doChildOpen(ary.length - 1);
     };
+    /**
+        @method formWidget
+        @param {ViewModels.FormWidget} widget
+        @return {ViewModels.FormWidget}
+    */
     vm.formWidget = f.prop();
+    /**
+        Data model.
+        @method model
+        @return {Model}
+    */
     vm.model = function () {
         return vm.formWidget().model();
     };
-    vm.sseErrorDialog = f.prop(dialog.viewModel({
+    /**
+        Dialog to report server side event errors.
+        @method sseErrorDialog
+        @param {ViewModels.Dialog} dialog
+        @return {ViewModels.Dialog}
+    */
+    vm.sseErrorDialog = f.prop(f.createViewModel("Dialog", {
         icon: "close",
         title: "Connection Error",
         message: (
@@ -114,12 +182,16 @@ childFormPage.viewModel = function (options) {
         }
     }));
     vm.sseErrorDialog().buttonCancel().hide();
+    /**
+        @method title
+        @return {String}
+    */
     vm.title = function () {
         return options.parentProperty.toName();
     };
 
     // Create form widget
-    vm.formWidget(formWidget.viewModel({
+    vm.formWidget(f.createViewModel("FormWidget", {
         isNew: isNew,
         model: model,
         id: options.key,
@@ -128,13 +200,13 @@ childFormPage.viewModel = function (options) {
     }));
 
     // Create button view models
-    vm.buttonDone(button.viewModel({
+    vm.buttonDone(f.createViewModel("Button", {
         onclick: vm.doDone,
         label: "&Done"
     }));
     vm.buttonDone().isPrimary(true);
 
-    vm.buttonPrevious(button.viewModel({
+    vm.buttonPrevious(f.createViewModel("Button", {
         onclick: vm.doPrevious,
         label: "&Previous",
         icon: "arrow-up",
@@ -145,7 +217,7 @@ childFormPage.viewModel = function (options) {
         vm.buttonPrevious().title("Current data is first record");
     }
 
-    vm.buttonNext(button.viewModel({
+    vm.buttonNext(f.createViewModel("Button", {
         onclick: vm.doNext,
         label: "&Next",
         icon: "arrow-down",
@@ -156,7 +228,7 @@ childFormPage.viewModel = function (options) {
         vm.buttonNext().title("Current data is last record");
     }
 
-    vm.buttonNew(button.viewModel({
+    vm.buttonNew(f.createViewModel("Button", {
         onclick: vm.doNew,
         label: "&New",
         icon: "plus-circle",
@@ -176,13 +248,40 @@ childFormPage.viewModel = function (options) {
 
 catalog.register("viewModels", "childFormPage", childFormPage.viewModel);
 
+/**
+    Child form page component
+
+    @class ChildFormPage
+    @static
+    @namespace Components
+*/
 childFormPage.component = {
+    /**
+        Pass either `vnode.attrs.viewModel` or `vnode.attrs` with options
+        to build view model.
+
+        @method oninit
+        @param {Object} vnode Virtual node
+        @param {Object} vnode.attrs
+        @param {Object} vnode.attrs Options
+        @param {String} vnode.attrs.viewModel
+        @param {String} vnode.attrs.parentProperty
+        @param {String} vnode.attrs.form
+        @param {String} vnode.attrs.index
+        @param {Boolean} vnode.attrs.isNew
+        @param {Boolean} vnode.attrs.create
+    */
     oninit: function (vnode) {
         this.viewModel = (
             vnode.attrs.viewModel || childFormPage.viewModel(vnode.attrs)
         );
     },
 
+    /**
+        @method view
+        @param {Object} vnode Virtual node
+        @return {Object} View
+    */
     view: function (vnode) {
         if (vnode.attrs.isInvalid) {
             return;
@@ -224,16 +323,16 @@ childFormPage.component = {
                 id: "toolbar",
                 class: "fb-toolbar"
             }, [
-                m(button.component, {
+                m(f.getComponent("Button"), {
                     viewModel: vm.buttonDone()
                 }),
-                m(button.component, {
+                m(f.getComponent("Button"), {
                     viewModel: vm.buttonPrevious()
                 }),
-                m(button.component, {
+                m(f.getComponent("Button"), {
                     viewModel: vm.buttonNext()
                 }),
-                m(button.component, {
+                m(f.getComponent("Button"), {
                     viewModel: vm.buttonNew()
                 })
             ]),
@@ -246,10 +345,10 @@ childFormPage.component = {
                 }),
                 m("label", vm.title())
             ]),
-            m(dialog.component, {
+            m(f.getComponent("Dialog"), {
                 viewModel: vm.sseErrorDialog()
             }),
-            m(formWidget.component, {
+            m(f.getComponent("FormWidget"), {
                 viewModel: vm.formWidget()
             })
         ]);
