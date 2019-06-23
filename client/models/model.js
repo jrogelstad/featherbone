@@ -16,6 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/**
+    @module Model
+*/
 import f from "../core.js";
 import datasource from "../datasource.js";
 import catalog from "./catalog.js";

@@ -16,29 +16,28 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/**
+    @module Button
+*/
 import f from "../core.js";
 import catalog from "../models/catalog.js";
 import State from "../state.js";
 
-/*
-    Button component
-
-    @class button
-*/
 const button = {};
 const m = window.m;
 
-/*
+/**
     Generate view model for button.
 
-    @method viewModel
-    @param {Object} Options
+    @class Button
+    @constructor
+    @namespace ViewModels
+    @param {Object} [options]
     @param {String} [options.label] Label
     @param {String} [options.icon] Icon name
     @param {Function} [options.onclick] On click function
     @param {String} [options.class] Class
     @param {Object} [options.style] Style
-    @return {Object}
 */
 button.viewModel = function (options) {
     options = options || {};
@@ -257,11 +256,12 @@ button.viewModel = function (options) {
 
 catalog.register("viewModels", "button", button.viewModel);
 
-/*
+/**
     Button component
 
-    @property component
-    @type Object
+    @class Button
+    @uses Component
+    @namespace Components
 */
 button.component = {
     oninit: function (vnode) {

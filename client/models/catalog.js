@@ -16,6 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/**
+    @module Catalog
+*/
 import createProperty from "../property.js";
 import State from "../state.js";
 import datasource from "../datasource.js";

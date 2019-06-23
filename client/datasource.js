@@ -16,6 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint browser*/
+/**
+    @module Datasource
+*/
 const m = window.m;
 /**
     @class Datasource
