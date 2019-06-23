@@ -16,6 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/**
+    @module List
+*/
 import f from "../core.js";
 import catalog from "./catalog.js";
 import State from "../state.js";
@@ -32,6 +35,7 @@ const LIMIT = 20;
 
 /**
     @class List
+    @static
 */
 function createList(feather) {
     let state;
@@ -60,7 +64,7 @@ function createList(feather) {
         to server events on the model.
 
         @method add
-        @param {Object} Model
+        @param {Model} Model
         @param {Boolean} Subscribe flag.
     */
     ary.add = function (model, subscribe) {
@@ -221,7 +225,7 @@ function createList(feather) {
         Remove a model from the list.
 
         @method remove
-        @param {Object} Model
+        @param {Model} Model
     */
     ary.remove = function (model) {
         let id = model.id();
@@ -264,7 +268,7 @@ function createList(feather) {
         Save dirty records in list. Returns a Promise.
 
         @method save
-        @return {Object}
+        @return {Promise}
     */
     ary.save = function () {
         return doSend("save");
@@ -274,7 +278,7 @@ function createList(feather) {
         List state.
 
         @method state
-        @return {Object}
+        @return {State}
     */
     ary.state = function () {
         return state;

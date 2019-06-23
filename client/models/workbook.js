@@ -24,6 +24,9 @@ let models;
 let feathers;
 let descr = "Parent of \"parent\" on \"WorkbookDefaultConfig\"";
 
+/**
+    @module Workbook
+*/
 const workbook = {
     name: "Workbook",
     plural: "Workbooks",
@@ -213,13 +216,13 @@ function resolveConfig(config) {
     });
 }
 
-/*
+/**
     Model with special rest API handling for Workbook saves.
 
-    @class workbook
-    @extends model
-    @param {Object} Default data
-    return {Object}
+    @class Workbook
+    @static
+    @namespace Feathers
+    @extends Model
 */
 function workbookModel(data) {
     let model;
@@ -382,14 +385,70 @@ function workbookModel(data) {
 
     return model;
 }
+/**
+    Workbook name.
 
-/*
-    Workbook configuration model.
+    __Type:__ `String`
 
-    @class workbookChild
-    @extends model
-    @param {Object} Default data
-    return {Object}
+    @property data.name
+    @type Property
+*/
+/**
+    Description.
+
+    __Type:__ `String`
+
+    @property data.description
+    @type Property
+*/
+/**
+    Icon.
+
+    __Type:__ `String`
+
+    @property data.icon
+    @type Property
+*/
+/**
+    Launch configuration.
+
+    __Type:__ `Object`
+
+    @property data.launchConfig
+    @type Property
+*/
+/**
+    Parent of `parent` on `WorkbookDefaultConfig`.
+
+    __Type:__ `WorkbookDefaultConfig`
+
+    @property data.defaultConfig
+    @type Property
+*/
+/**
+    Parent of `parent` on `WorkbookLocalConfig`.
+
+    __Type:__ `WorkboookLocalConfig`
+
+    @property data.localConfig
+    @type Property
+*/
+/**
+    Module.
+
+    __Type:__ `String`
+
+    @property data.module
+    @type Property
+*/
+
+/**
+    Workbook child configuration model.
+
+    @class WorkbookChild
+    @abstract
+    @static
+    @extends Model
 */
 function workbookChild(data) {
     let model = f.createModel(data, workbookLocalConfig);
@@ -487,7 +546,110 @@ function workbookChild(data) {
 }
 workbookChild.static = f.prop({});
 workbookChild.calculated = f.prop({});
+/**
+    Workbook parent.
 
+    __Type:__ `String`
+
+    @property data.parent
+    @type Property
+*/
+/**
+    Sheet name.
+
+    __Type:__ `String`
+
+    @property data.names
+    @type Property
+*/
+/**
+    Feather.
+
+    __Type:__ `String`
+
+    @property data.feather
+    @type Property
+*/
+/**
+    Form layout.
+
+    __Type:__ `String`
+
+    @property data.form
+    @type Property
+*/
+/**
+    List layout.
+
+    __Type:__ `Object`
+
+    @property data.list
+    @type Property
+*/
+/**
+    Zooom level.
+
+    __Type:__ `Integer`
+
+    @property data.zoom
+    @type Property
+*/
+/**
+    Parent of `parent` on `WorkbookLocalConfig`.
+
+    __Type:__ `WorkboookLocalConfig`
+
+    @property data.localConfig
+    @type Property
+*/
+/**
+    Module.
+
+    __Type:__ `String`
+
+    @property data.module
+    @type Property
+*/
+/**
+    Flags whether inline editing is allowed.
+
+    __Type:__ `Boolean`
+
+    @property data.isEditModeEnabled
+    @type Property
+*/
+/**
+    Open record in a new tab window.
+
+    __Type:__ `Boolean`
+
+    @property data.openInNewWindow
+    @type Property
+*/
+/**
+    Menu actions that can be performed on rows.
+
+    __Type:__ `Object`
+
+    @property data.actions
+    @type Property
+*/
+/**
+    @class WorkbookDefaultConfig
+    @extends Feathers.WorkbookChild
+*/
+/**
+    @class WorkbookLocalConfig
+    @extends Feathers.WorkbookChild
+*/
+
+/**
+    Workbook authorization definition.
+
+    @class WorkbookAuthorization
+    @static
+    @extends Model
+*/
 function workbookAuthorization(data) {
     let model = f.createModel(data, workbookAuth);
 
@@ -497,6 +659,38 @@ function workbookAuthorization(data) {
 }
 workbookAuthorization.static = f.prop({});
 workbookAuthorization.calculated = f.prop({});
+/**
+    Workbook parent.
+
+    __Type:__ `Feathers.Workbook`
+
+    @property data.parent
+    @type Property
+*/
+/**
+    Role.
+
+    __Type:__ `Feathers.Role`
+
+    @property data.Role
+    @type Property
+*/
+/**
+    User can read workbook.
+
+    __Type:__ `Boolean`
+
+    @property data.canRead
+    @type Property
+*/
+/**
+    User can update definition share workbook changes.
+
+    __Type:__ `Boolean`
+
+    @property data.canUpdate
+    @type Property
+*/
 
 workbookModel.static = f.prop({});
 workbookModel.calculated = f.prop({});

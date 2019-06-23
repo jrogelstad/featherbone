@@ -6,7 +6,9 @@
 
 /*jslint for, this, browser*/
 /*global console*/
-
+/**
+    @module State
+*/
 let slice = Array.prototype.slice;
 let trace;
 let exit;
@@ -748,6 +750,7 @@ State.prototype.C = function pState_C(f) {
 
 /**
     Returns an array of paths to all current leaf states.
+    @method
     @return {Array}
 */
 State.prototype.current = function pState_current() {

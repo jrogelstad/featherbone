@@ -17,12 +17,28 @@
 */
 
 /*jslint this, browser*/
+/**
+    @module Checkbox
+*/
 import f from "../core.js";
 import catalog from "../models/catalog.js";
 
 const checkbox = {};
 const m = window.m;
 
+/**
+    Generate view model for checkbox.
+
+    @class Checkbox
+    @constructor
+    @namespace ViewModels
+    @param {Object} [options] Options
+    @param {String} [options.label] Label
+    @param {String} [options.icon] Icon name
+    @param {Function} [options.onclick] On click function
+    @param {String} [options.class] Class
+    @param {Object} [options.style] Style
+*/
 checkbox.viewModel = function (options) {
     let vm = {};
 
@@ -32,7 +48,13 @@ checkbox.viewModel = function (options) {
     return vm;
 };
 
-// Define checkbox component
+/**
+    Checkbox component
+
+    @class Checkbox
+    @uses Component
+    @namespace Components
+*/
 checkbox.component = {
     oninit: function (vnode) {
         this.viewModel = checkbox.viewModel(vnode.attrs);
