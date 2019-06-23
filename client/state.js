@@ -506,14 +506,15 @@ function sendConcurrent(...ary) {
     The `State` constructor.
 
     Throws `Error` if both the `concurrent` and `H` options are set.
-    
+
     @class State
     @constructor
     @param {String} name A string containing the name of the state.
-    @param {Object} [opts] An object containing zero or more of the following keys (default:`null`).
+    @param {Object} [opts] An object containing zero or more of the following
+    keys (default:`null`).
     @param {Boolean} [opts.concurrent] Makes the state's substates concurrent.
-    @param {Boolean} [opts.H] Causes the state to keep track of its history state.
-    Set to `true` to track just the history of this state
+    @param {Boolean} [opts.H] Causes the state to keep track of its history
+    state. Set to `true` to track just the history of this state
     or `'*'` to track the history of all substates.
     @param {Function} [f] function to invoke in the context of the newly
     created state (default: `null`)
@@ -552,7 +553,7 @@ function State(name, opts, f) {
     }
 }
 
-/** 
+/**
     Convenience method for creating a new statechart. Simply creates a
     root state and invokes the given function in the context of that state.
 
@@ -565,10 +566,10 @@ function State(name, opts, f) {
     @class define
     @constructor
     @namespace State
-    @param {Object | Function} [opts] An object of options to pass the to the `State` constructor
-         or function object (default: `null`).
-    @param {Function} f A function object to invoke in the context of the newly created root
-        state (default: `null`).
+    @param {Object | Function} [opts] An object of options to pass the to
+    the `State` constructor or function object (default: `null`).
+    @param {Function} f A function object to invoke in the context of the
+    newly created root state (default: `null`).
     @return {State} Newly created root state.
 */
 State.define = function (...args) {
@@ -611,10 +612,13 @@ State.prototype.isRoot = function () {
     states instead of defining everything in one place.
 
     @method state
-    @param {String} name A string containing the name of the state or a `State` object.
-    @param {Object} [opts] opts An object of options to pass to the `State` constructor
+    @param {String} name A string containing the name of the state or a `State`
+    object.
+    @param {Object} [opts] opts An object of options to pass to the `State`
+    constructor
     (default: `null`).
-    @param {Function} [opts.f] A function to invoke in the context of the newly created state
+    @param {Function} [opts.f] A function to invoke in the context of the newly
+    created state
     (default: `null`).
 
     @example
@@ -689,6 +693,7 @@ State.prototype.exit = function pState_exit(f) {
     @param {Object} destStates The destination states.
     @param {Object} context The destination context.
     @return {State} The receiver.
+*/
 State.prototype.canExit = function ( /*destStates, context*/ ) {
     return true;
 };
@@ -772,7 +777,8 @@ State.prototype.current = function pState_current() {
     manner.
 
     @method each
-    @param {Function} f A function object, it will be invoked once for each state.
+    @param {Function} f A function object, it will be invoked once for each
+    state.
     @return {State} The receiver.
 */
 State.prototype.each = function pState_each(f) {
@@ -849,7 +855,7 @@ State.prototype.root = function pState_root() {
 /**
     Returns a string containing the full path from the root state to
     the receiver state. State paths are very similar to unix directory paths.
-    
+
     @example
         let r = new State("root");
         let a = new State("a");
@@ -889,10 +895,13 @@ State.prototype.path = function pState_path() {
     @method goto
     @param {String | Array} paths Zero or more strings representing destination
     state paths (default: `[]`).
-    @param {Object} [opts] An object containing zero or more of the following keys:
-    @param {Object} [opts.context] An object to pass along to the `exit` and `enter` methods
+    @param {Object} [opts] An object containing zero or more of the following
+    keys:
+    @param {Object} [opts.context] An object to pass along to the `exit` and
+    `enter` methods
     invoked during the actual transistion.
-    @param {Boolean} [opts.force] Forces `enter` methods to be called during the transition
+    @param {Boolean} [opts.force] Forces `enter` methods to be called during
+    the transition
     on states that are already current.
 
     @example
@@ -915,9 +924,10 @@ State.prototype.path = function pState_path() {
         sc.current();   // => ["/a/b"]
 
     @return {Boolean} `false` if transition failed.
-    @throws {Error} Throws an `Error` if called on a non-current non-root state or
-    multiple pivot states are found between the receiver
-    and destination states or if a destination path is not reachable from the receiver.
+    @throws {Error} Throws an `Error` if called on a non-current non-root
+    state or multiple pivot states are found between the receiver
+    and destination states or if a destination path is not reachable from
+    the receiver.
 */
 State.prototype.goto = function pState_goto(...args) {
     let root = this.root();
@@ -1005,8 +1015,10 @@ State.prototype.goto = function pState_goto(...args) {
 
     @method send
     @param {String} event The event name.
-    @param {Any} [args] Zero or more arguments that get passed on to the handler methods.
-    @return {Boolean} A boolean indicating whether or not the event was handled.
+    @param {Any} [args] Zero or more arguments that get passed on to the
+    handler methods.
+    @return {Boolean} A boolean indicating whether or not the event was
+    handled.
     @throws {Error} Throws `Error` if the state is not current.
 */
 State.prototype.send = function pState_send(...ary) {
