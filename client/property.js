@@ -46,9 +46,37 @@ function isToMany(p) {
 }
 
 /**
-    Creates a property getter setter function with a default value.
-    Includes state.
+    A get/set function.
+    Includes state handling for events.
 
+    __Example:__
+
+        let p = f.prop();
+
+        p() // ""
+        p("foo") // "foo"
+        p() // "foo"
+
+        // Disable the property
+        p.state().send("disable");
+        p("bar") // "foo"
+        p() // "foo"
+
+        // Enable the property
+        p.state().send("enable");
+        p("bar") // "bar"
+        p() // "bar"
+ 
+        // Respond to change events
+        p.state().resolve("/Changing").enter(function () {
+            let msg = (
+                "Value was \"" + p.oldValue() + "\", " +
+                "will be \"" + p.newValue() + ".\""
+            );
+            console.log(msg);
+        })
+        p("Hello World"); // Value was "bar", will be "Hello World."
+                          // Hello World
     @class Property
 */
 function createProperty(store, formatter) {
@@ -218,7 +246,7 @@ function createProperty(store, formatter) {
     /**
         @method state
         @for Property
-        @return {Object}
+        @return {State}
     */
     p.state = function () {
         return state;
@@ -240,7 +268,7 @@ function createProperty(store, formatter) {
     };
     /**
         @method isReadOnly
-        @param {Boolean} Is read only
+        @param {Boolean} value Is read only
         @return {Boolean}
     */
     p.isReadOnly = function (value) {
@@ -251,7 +279,7 @@ function createProperty(store, formatter) {
     };
     /**
         @method isRequired
-        @param {Boolean} Is required
+        @param {Boolean} value Is required
         @return {Boolean}
     */
     p.isRequired = function (value) {
