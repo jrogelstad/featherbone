@@ -342,12 +342,23 @@ catalog.register("viewModels", "button", button.viewModel);
     Button component
 
     @class Button
+    @static
     @namespace Components
 */
 button.component = {
     /**
+        Pass either `vnode.attrs.viewModel` or `vnode.attrs` with options
+        to build view model.
+
         @method oninit
-        @param {Object} vnode
+        @param {Object} vnode Virtual node
+        @param {Object} vnode.attrs
+        @param {Object} [vnode.attrs.viewModel]
+        @param {String} [vnode.attrs.label] Label
+        @param {String} [vnode.attrs.icon] Icon name
+        @param {Function} [vnode.attrs.onclick] On click function
+        @param {String} [vnode.attrs.class] Class
+        @param {Object} [vnode.attrs.style] Style
     */
     oninit: function (vnode) {
         let vm = vnode.attrs.viewModel || button.viewModel(vnode.attrs);
@@ -356,7 +367,7 @@ button.component = {
 
     /**
         @method view
-        @return {Object}
+        @return {Object} View
     */
     view: function () {
         let opts;

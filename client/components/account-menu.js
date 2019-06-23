@@ -16,15 +16,26 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/**
+    @module AccountMenu
+*/
 import f from "../core.js";
 import catalog from "../models/catalog.js";
 
 const m = window.m;
 const accountMenu = {};
 
+/**
+    @class AccountMenu
+    @namespace ViewModels
+    @constructor
+*/
 accountMenu.viewModel = function () {
     const vm = {};
 
+    /**
+        @method showMenuAccount
+    */
     vm.showMenuAccount = f.prop(false);
 
     return vm;
@@ -32,11 +43,23 @@ accountMenu.viewModel = function () {
 
 catalog.register("viewModels", "accountMenu", accountMenu.viewModel);
 
+/**
+    @class AccountMenu
+    @static
+    @namespace Components
+*/
 accountMenu.component = {
+    /**
+        @method oninit
+    */
     oninit: function () {
         this.viewModel = accountMenu.viewModel();
     },
 
+    /**
+        @method view
+        @return {Object} View
+    */
     view: function () {
         const vm = this.viewModel;
 
