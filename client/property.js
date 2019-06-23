@@ -204,16 +204,7 @@ function createProperty(store, formatter) {
         return newValue;
     };
     /**
-        Getter setter for the new value in `changing` state.
-
-        @class NewValue
-        @constructor
-        @namespace Property
-        @param {Any} value Value
-        @return {Any} value
-    */
-    /**
-        @method toJSON
+        @method newValue.toJSON
         @return {Object}
     */
     p.newValue.toJSON = function () {
@@ -237,16 +228,7 @@ function createProperty(store, formatter) {
         return formatter.fromType(oldValue);
     };
     /**
-        Getter setter for the old value in `changing` state.
-
-        @class OldValue
-        @namespace Property
-        @constructor
-        @param {Any} value Value
-        @return {Any} value
-    */
-    /**
-        @method toJSON
+        @method oldValue.toJSON
         @return {Object}
     */
     p.oldValue.toJSON = function () {
