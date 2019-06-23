@@ -16,22 +16,20 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint browser*/
-import f from "../core.js";
-import dialog from "./dialog.js";
-import formWidget from "./form-widget.js";
-
-/*
-    @class formDialog
+/**
+    @module FormDialog
 */
+import f from "../core.js";
+
+const catalog = f.catalog();
 const formDialog = {};
 const m = window.m;
 
-/*
-    View model for form dialog.
-
-    @method viewModel
-    @param {Object} Options
-    @return {Object}
+/**
+    @class FormDialog
+    @constructor
+    @extends ViewModels.Dialog
+    @namespace ViewModels
 */
 formDialog.viewModel = function (options) {
     let vm;
@@ -53,8 +51,18 @@ formDialog.viewModel = function (options) {
         });
     };
 
-    vm = dialog.viewModel(options);
+    vm = f.createViewModel("Dialog", options);
+    /**
+        @method formWidget
+        @param {ViewModels.FormWidget} [widget]
+        @return {ViewModels.FormWidget}
+    */
     vm.formWidget = f.prop();
+    /**
+        @method modelId
+        @param {String} [id]
+        @return {String}
+    */
     vm.modelId = f.prop(options.id);
     vm.okDisabled = function () {
         let w = vm.formWidget();
@@ -93,7 +101,7 @@ formDialog.viewModel = function (options) {
     substate = vm.state().resolve("/Display/Showing");
     substate.enter(function () {
         // Create dalog view models
-        vm.formWidget(formWidget.viewModel({
+        vm.formWidget(f.createViewModel("FormWidget", {
             model: options.model,
             config: options.config,
             id: vm.modelId(),
@@ -107,7 +115,7 @@ formDialog.viewModel = function (options) {
         delete vm.style().display;
     });
     substate.content = function () {
-        return m(formWidget.component, {
+        return m(f.getComponent("FormWidget"), {
             viewModel: vm.formWidget()
         });
     };
@@ -121,12 +129,18 @@ formDialog.viewModel = function (options) {
     return vm;
 };
 
-/*
+catalog.register("viewModels", "formDialog", formDialog.viewModel);
+
+/**
     Form dialog component
 
-    @property component
-    @type Object
+    @class FormDialog
+    @static
+    @uses Components.Dialog
+    @namespace Components
 */
-formDialog.component = dialog.component;
+formDialog.component = f.getComponent("Dialog");
+
+catalog.register("components", "formDialog", formDialog.component);
 
 export default Object.freeze(formDialog);

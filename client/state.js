@@ -689,7 +689,7 @@ State.prototype.exit = function pState_exit(f) {
     `destStates` and `context` are the destination states and context that
     will be transitioned to if the states can be exited.
 
-    @canExit
+    @method canExit
     @param {Object} destStates The destination states.
     @param {Object} context The destination context.
     @return {State} The receiver.

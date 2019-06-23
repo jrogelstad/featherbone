@@ -16,20 +16,51 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/**
+    @module AddressRelation
+*/
 import f from "../core.js";
-import catalog from "../models/catalog.js";
-import button from "./button.js";
-import formDialog from "./form-dialog.js";
 
+const catalog = f.catalog();
 const addressRelation = {};
 const m = window.m;
+/**
+    Generate view model for address relation.
 
+    @class AddressRelation
+    @constructor
+    @namespace ViewModels
+    @param {Object} options
+    @param {Object} options.parentViewModel
+    @param {String} options.parentProprety
+    @param {String} [options.id]
+    @param {Boolean} [options.isCell]
+    @param {String} [options.readonly]
+    @param {Object} [options.style]
+*/
 addressRelation.viewModel = function (options) {
     let vm = {};
     let parent = options.parentViewModel;
-
+    /**
+        Address dialog view model.
+        @method addressDialog
+        @param {ViewModels.FormDialog} formDialog
+        @return {ViewModels.FormDialog}
+    */
     vm.addressDialog = f.prop();
+    /**
+        Clear button view model.
+        @method buttonClear
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonClear = f.prop();
+    /**
+        Edit dialog content.
+        @method content
+        @param {Boolean} isCell
+        @return {Object} View
+    */
     vm.content = function (isCell) {
         let d;
         let content = "";
@@ -56,6 +87,10 @@ addressRelation.viewModel = function (options) {
 
         return content;
     };
+    /**
+        @method countries
+        @return {Array} Array of geographical country names
+    */
     vm.countries = function () {
         let countries = catalog.store().data().countries().map(
             function (model) {
@@ -67,10 +102,17 @@ addressRelation.viewModel = function (options) {
 
         return countries;
     };
+    /**
+        @method doClear
+    */
     vm.doClear = function () {
         vm.addressDialog().cancel();
         vm.model(null);
     };
+    /**
+        Show edit dialog.
+        @method doEdit
+    */
     vm.doEdit = function () {
         let value;
         let dmodel;
@@ -89,9 +131,27 @@ addressRelation.viewModel = function (options) {
             dmodel.state().goto("/Ready/Fetched/Clean");
         }
     };
+    /**
+        @method id
+        @param {String} id
+        @return {String}
+    */
     vm.id = f.prop(options.id || f.createId());
+    /**
+        @method isCell
+        @param {Boolean} flag
+        @return {Boolean}
+    */
     vm.isCell = f.prop(options.isCell);
+    /**
+        @method model
+        @return {Model} Parent model
+    */
     vm.model = parent.model().data[options.parentProperty];
+    /**
+        @method onkeydown
+        @param {Event} DOM event
+    */
     vm.onkeydown = function (e) {
         if (e.key === "Enter") { // Enter key
             vm.doEdit();
@@ -99,6 +159,10 @@ addressRelation.viewModel = function (options) {
             e.preventDefault();
         }
     };
+    /**
+        @method states
+        @return {Array} Array of geographical state names
+    */
     vm.states = function () {
         let states = catalog.store().data().states().map(function (model) {
             return model.data.code();
@@ -107,13 +171,18 @@ addressRelation.viewModel = function (options) {
         states.unshift("");
         return states;
     };
+    /**
+        @method style
+        @param {Object} style
+        @return {Object}
+    */
     vm.style = f.prop(options.style || {});
 
     // ..........................................................
     // PRIVATE
     //
 
-    vm.addressDialog(formDialog.viewModel({
+    vm.addressDialog(f.createViewModel("FormDialog", {
         title: "Address",
         model: "address",
         config: {
@@ -137,7 +206,7 @@ addressRelation.viewModel = function (options) {
         }
     }));
 
-    vm.buttonClear(button.viewModel({
+    vm.buttonClear(f.createViewModel("Button", {
         onclick: vm.doClear,
         label: "C&lear"
     }));
@@ -147,7 +216,25 @@ addressRelation.viewModel = function (options) {
     return vm;
 };
 
+/**
+    Address relation component
+
+    @class AddressRelation
+    @static
+    @namespace Components
+*/
 addressRelation.component = {
+    /**
+        @method oninit
+        @param {Object} vnode Virtual node
+        @param {Object} vnode.attrs
+        @param {Object} vnode.attrs.parentViewModel
+        @param {String} vnode.attrs.parentProprety
+        @param {String} [vnode.attrs.id]
+        @param {Boolean} [vnode.attrs.isCell]
+        @param {String} [vnode.attrs.readonly]
+        @param {Object} [vnode.attrs.style] Style
+    */
     oninit: function (vnode) {
         let options = vnode.attrs;
 
@@ -162,6 +249,11 @@ addressRelation.component = {
         });
     },
 
+    /**
+        @method view
+        @param {Object} vnode Virtual node
+        @return {Object} View
+    */
     view: function (vnode) {
         let ret;
         let vm = this.viewModel;
@@ -194,7 +286,7 @@ addressRelation.component = {
         ret = m("div", {
             style: style
         }, [
-            m(formDialog.component, {
+            m(f.getComponent("FormDialog"), {
                 viewModel: vm.addressDialog()
             }),
             m("textarea", options)

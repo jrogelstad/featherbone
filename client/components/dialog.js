@@ -16,23 +16,28 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/**
+    @module Dialog
+*/
 import f from "../core.js";
-import catalog from "../models/catalog.js";
-import State from "../state.js";
-import button from "./button.js";
 
+const catalog = f.catalog();
 const dialog = {};
 const m = window.m;
 const dialogPolyfill = window.dialogPolyfill;
-/*
-  View model for sort dialog.
+/**
+    View model for dialog.
 
-    @class dialog
-    @param {Object} Options
-    @param {Array} [options.icon] Dialog icon
-    @param {Array} [options.title] Dialog title
-    @param {Array} [options.message] Text message
-    @param {Function} [options.onclickOk] Function to execute on ok clicked
+    @class Dialog
+    @namespace ViewModels
+    @constructor
+    @param {Object} [options]
+    @param {String} [options.icon] Dialog icon
+    @param {String} [options.title] Dialog title
+    @param {String} [options.message] Text message
+    @param {Function} [options.onclickOk] Callback to execute on `Ok` clicked
+    @param {Function} [options.onclickCancel] Callback to execute on `Cancel`
+    clicked
 */
 dialog.viewModel = function (options) {
     options = options || {};
@@ -44,13 +49,45 @@ dialog.viewModel = function (options) {
     //
 
     vm = {};
+    /**
+        Ok button view model
+        @method buttonOk
+        @param {ViewModels.Button} [button]
+        @return {ViewModels.Button}
+    */
     vm.buttonOk = f.prop();
+    /**
+        Cancel button view model
+        @method buttonCancel
+        @param {ViewModels.Button} [button]
+        @return {ViewModels.Button}
+    */
     vm.buttonCancel = f.prop();
+    /**
+        Returns array of button view models on the dialog.
+        @method buttons
+        @return {Array}
+    */
     vm.buttons = f.prop([
         vm.buttonOk,
         vm.buttonCancel
     ]);
+    /**
+        @method icon
+        @param {String} [icon]
+        @return {String}
+    */
     vm.icon = f.prop(options.icon);
+    /**
+        Returns an object with ids for:
+        * dialag
+        * header
+        * buttonOk
+        * buttonCancel
+        * contents
+        @method ids
+        @return {Object}
+    */
     vm.ids = f.prop({
         dialog: options.id || f.createId(),
         header: f.createId(),
@@ -58,6 +95,10 @@ dialog.viewModel = function (options) {
         buttonCancel: f.createId(),
         content: f.createId()
     });
+    /**
+        Runs cancel function if any, then closes dialog.
+        @method cancel
+    */
     vm.cancel = function () {
         let doCancel = vm.onCancel();
         if (typeof doCancel === "function") {
@@ -65,11 +106,22 @@ dialog.viewModel = function (options) {
         }
         state.send("close");
     };
+    /**
+        Edit dialog content.
+        @method content
+        @param {Boolean} isCell
+        @return {Object} View
+    */
     vm.content = function () {
         return m("div", {
             id: vm.ids().content
         }, vm.message());
     };
+    /**
+        Determine whether cancel is shown.
+        @method displayCancel
+        @return {String} Style
+    */
     vm.displayCancel = function () {
         return (
             vm.onOk()
@@ -77,9 +129,30 @@ dialog.viewModel = function (options) {
             : "none"
         );
     };
+    /**
+        @method message
+        @param {String} message
+        @return {String}
+    */
     vm.message = f.prop(options.message || "Your message here");
+    /**
+        Function called on `Cancel` clicked.
+        @method onCancel
+        @param {Function} f
+        @return {Function}
+    */
     vm.onCancel = f.prop(options.onCancel);
+    /**
+        Function called on `Ok` clicked.
+        @method onOk
+        @param {Function} f
+        @return {Function}
+    */
     vm.onOk = f.prop(options.onOk);
+    /**
+        Call `Ok`.
+        @method ok
+    */
     vm.ok = function () {
         let doOk = vm.onOk();
         if (typeof doOk === "function") {
@@ -87,15 +160,44 @@ dialog.viewModel = function (options) {
         }
         state.send("close");
     };
+    /**
+        @method okDisabled
+        @param {Boolean} flag
+        @return {Boolean}
+    */
     vm.okDisabled = f.prop(false);
+    /**
+        @method okTitle
+        @param {String} title
+        @return {String}
+    */
     vm.okTitle = f.prop("");
+    /**
+        Show the dialog.
+        @method show
+    */
     vm.show = function () {
         state.send("show");
     };
+    /**
+        @method title
+        @param {String} title
+        @return {String}
+    */
     vm.title = f.prop(options.title || "");
+    /**
+        @method state
+        @param {String} title
+        @return {State}
+    */
     vm.state = function () {
         return state;
     };
+    /**
+        @method style
+        @param {Object} style
+        @return {Object}
+    */
     vm.style = f.prop({
         width: "450px"
     });
@@ -104,7 +206,7 @@ dialog.viewModel = function (options) {
     // PRIVATE
     //
 
-    vm.buttonOk(button.viewModel({
+    vm.buttonOk(f.createViewModel("Button", {
         onclick: vm.ok,
         label: "&Ok",
         class: "fb-dialog-button"
@@ -112,7 +214,7 @@ dialog.viewModel = function (options) {
     vm.buttonOk().id(vm.ids().buttonOk);
     vm.buttonOk().isPrimary(true);
 
-    vm.buttonCancel(button.viewModel({
+    vm.buttonCancel(f.createViewModel("Button", {
         onclick: vm.cancel,
         label: "&Cancel",
         class: "fb-dialog-button"
@@ -121,7 +223,7 @@ dialog.viewModel = function (options) {
     vm.buttonCancel().style = vm.displayCancel;
 
     // Statechart
-    state = State.define(function () {
+    state = f.State.define(function () {
         this.state("Display", function () {
             this.state("Closed", function () {
                 this.enter(function () {
@@ -158,13 +260,28 @@ dialog.viewModel = function (options) {
 
 catalog.register("viewModels", "dialog", dialog.viewModel);
 
-/*
+/**
     Dialog component
 
-    @property component
-    @type Object
+    @class Dialog
+    @statics
+    @namespace Components
 */
 dialog.component = {
+    /**
+        Pass either `vnode.attrs.viewModel` or `vnode.attrs` with options
+        to build view model.
+
+        @method oninit
+        @param {Object} vnode Virtual node
+        @param {Object} vnode.attrs
+        @param {Object} [vnode.attrs.viewModel]
+        @param {String} [vnode.attrs.title] Title
+        @param {String} [vnode.attrs.icon] Icon name
+        @param {Function} [vnode.attrs.onclickOk] On click `Ok` function
+        @param {Function} [vnode.attrs.onclickCancel] On click `Cancel` function
+        @param {String} [vnode.attrs.message] Message
+    */
     oninit: function (vnode) {
         this.viewModel = (
             vnode.attrs.viewModel ||
@@ -172,6 +289,10 @@ dialog.component = {
         );
     },
 
+    /**
+        @method view
+        @return {Object} View
+    */
     view: function () {
         let content;
         let vm = this.viewModel;
@@ -185,7 +306,7 @@ dialog.component = {
         vm.buttonOk().title(vm.okTitle());
 
         content = vm.buttons().map(function (buttonItem) {
-            return m(button.component, {
+            return m(f.getComponent("Button"), {
                 viewModel: buttonItem()
             });
         });

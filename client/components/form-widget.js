@@ -17,9 +17,8 @@
 */
 /*jslint this, browser*/
 import f from "../core.js";
-import catalog from "../models/catalog.js";
-import dialog from "./dialog.js";
 
+const catalog = f.catalog();
 const formWidget = {};
 const m = window.m;
 const console = window.console;
@@ -311,27 +310,95 @@ function buildGrid(grid, idx) {
     ]);
 }
 
+/**
+    @class FormWidget
+    @constructor
+    @namespace ViewModels
+    @param {Object} options
+    @param {Object} [options.config] Layout configuration
+    @param {String} [options.config.focus] Focus attribute
+    @param {String} [options.containerId]
+    @param {String} [options.isScrollable]
+    @param {Array} [options.outsideElementIds]
+*/
 formWidget.viewModel = function (options) {
     let model;
     let modelState;
     let vm = {};
 
+    /**
+        Layout configuration.
+        @method config
+        @param {Object} [config]
+        @return {Object}
+    */
     vm.config = f.prop(options.config);
+    /**
+        @method containerId
+        @param {String} [id]
+        @return {String}
+    */
     vm.containerId = f.prop(options.containerId);
-    vm.errorDialog = f.prop(dialog.viewModel({
+    /**
+        @method errorDialog
+        @param {ViewModels.Dialog} [dialog]
+        @return {ViewModels.Dialog}
+    */
+    vm.errorDialog = f.prop(f.createViewModel("Dialog", {
         icon: "exclamation-circle",
         title: "Error"
     }));
     vm.errorDialog().buttonCancel().hide();
+    /**
+        @method isScrollable
+        @param {Boolean} [flag]
+        @return {Boolean}
+    */
     vm.isScrollable = f.prop(options.isScrollable !== false);
+    /**
+        @method focusAttr
+        @param {String} [attr]
+        @return {String}
+    */
     vm.focusAttr = f.prop(options.config.focus);
+    /**
+        @method menuButtons
+        @param {Array} [buttons]
+        @return {Array}
+    */
     vm.menuButtons = f.prop({});
+    /**
+        @method selectedTab
+        @param {Integer} [index]
+        @return {Integer}
+    */
     vm.selectedTab = f.prop(1);
+    /**
+        @method model
+        @param {Model} [model]
+        @return {Model}
+    */
     vm.model = f.prop();
+    /**
+        @method outsideElementIds
+        @param {String} [id]
+        @return {String}
+    */
     vm.outsideElementIds = f.prop(options.outsideElementIds || []);
 
-    // Places to hang selector content between redraws
+    /**
+        Places to store relation content between redraws
+        @method relations
+        @param {Object} [relations]
+        @return {Object}
+    */
     vm.relations = f.prop({});
+    /**
+        Places to store selector components between redraws
+        @method selectComponents
+        @param {Object} [components]
+        @return {Object}
+    */
     vm.selectComponents = f.prop({});
 
     // ..........................................................
@@ -371,16 +438,39 @@ formWidget.viewModel = function (options) {
 
 catalog.register("viewModels", "formWidget", formWidget.viewModel);
 
+/**
+    @class FormWidget
+    @static
+    @namespace Components
+*/
 formWidget.component = {
+    /**
+        Pass either `vnode.attrs.viewModel` or `vnode.attrs` with options
+        to build view model.
+
+        @method oninit
+        @param {Object} vnode Virtual node
+        @param {Object} vnode.attrs
+        @param {Object} vnode.attrs.viewModel
+    */
     oninit: function (vnode) {
         this.viewModel = vnode.attrs.viewModel;
     },
 
+    /**
+        Makes sure subscriptions are ceased when done.
+        @method onremove
+    */
     onremove: function () {
         // Unsubscribe model when we're done here
         this.viewModel.model().subscribe(false);
     },
 
+    /**
+        @method view
+        @param {Object} vnode Virtual node
+        @return {Object} View
+    */
     view: function (vnode) {
         let vm = vnode.attrs.viewModel;
         let attrs = vm.config().attrs || [];
@@ -403,7 +493,7 @@ formWidget.component = {
         // Build pane content
         grids = grids.map(buildGrid.bind(vm));
 
-        grids.unshift(m(dialog.component, {
+        grids.unshift(m(f.getComponent("Dialog"), {
             viewModel: vm.errorDialog()
         }));
 

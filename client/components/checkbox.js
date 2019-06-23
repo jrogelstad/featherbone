@@ -21,8 +21,8 @@
     @module Checkbox
 */
 import f from "../core.js";
-import catalog from "../models/catalog.js";
 
+const catalog = f.catalog();
 const checkbox = {};
 const m = window.m;
 

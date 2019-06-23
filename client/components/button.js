@@ -20,9 +20,8 @@
     @module Button
 */
 import f from "../core.js";
-import catalog from "../models/catalog.js";
-import State from "../state.js";
 
+const catalog = f.catalog();
 const button = {};
 const m = window.m;
 
@@ -253,7 +252,7 @@ button.viewModel = function (options) {
     }
 
     // Define statechart
-    state = State.define({
+    state = f.State.define({
         concurrent: true
     }, function () {
         this.state("Mode", function () {
