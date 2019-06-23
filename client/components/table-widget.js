@@ -1738,7 +1738,7 @@ tableWidget.viewModel = function (options) {
                 };
                 this.modelNew = function () {
                     let name = vm.feather().name;
-                    let model = f.createModel(undefined, name);
+                    let model = f.createModel(name);
                     let input = vm.defaultFocus(model);
 
                     vm.models().add(model);

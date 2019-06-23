@@ -336,6 +336,18 @@ f.catalog = function () {
 };
 
 /**
+    Call the constructor for a registered view model.
+
+    @method createViewModel
+    @param {String} View model class name
+    @param {Object} [options] See class definition for options
+    @return {Object} View model
+*/
+f.createViewModel = function (name, options) {
+    return catalog.store().viewModels()[name.toCamelCase()](options);
+};
+
+/**
     Return system datasource.
 
     @method datasource
@@ -344,6 +356,17 @@ f.catalog = function () {
 */
 f.datasource = function () {
     return datasource;
+};
+
+/**
+    Get a registered component.
+
+    @method getComponent
+    @param {String} Component class name
+    @return {Object}
+*/
+f.getComponent = function (name) {
+    return catalog.store().comoponents()[name.toCamelCase()];
 };
 
 /**
@@ -608,24 +631,60 @@ f.baseCurrency = function (effective) {
 f.createList = (feather, options) => createList(feather)(options)();
 
 /**
+    Create a model instance with a specific feather definition. Use for
+    extending the Model class.
+    @example
+        let createMyModel = function (data, feather) {
+            // Assume here feather has been created
+            feather = feather || catalog.getFeather("MyModel");
+            let model = f.createModel(data, feather);
+
+            // Do something interesting that a feather can't do alone
+            model.onValidate(function () {
+                if (
+                    model.data.foo() === "" &&
+                    model.data.bar() === ""
+                ) {
+                    throw new Error("Either foo or bar must have a value");
+                };
+            });
+        });
+
+        catalog.registerModel("MyModel", createMyModel);
+
+        f.createModel("MyModel"); // Returns instance of MyModel
     @method createModel
-    @param {Object} data
-    @param {String | Object} [feather]
+    @param {Object} [data] Data
+    @param {Object} feather Feather definition
     @return {Model}
 */
-f.createModel = function (data, feather) {
-    let ret;
-
-    if (typeof feather === "string") {
-        ret = catalog.store().models()[feather.toCamelCase()];
-
-        if (!ret) {
-            throw new Error("Model " + feather + " not registered.");
+/**
+    Create a model instance based on the name of a registered feather.
+    @example
+        let data = {
+            firstName: "John",
+            lastName: "Doe"
         }
-        return ret(data);
+        let model = f.createModel("Contact", data);
+        model.save(); // Persists newly created contact
+    @method createModel
+    @param {String} feather Feather name
+    @param {Object} [data] Data
+    @return {Model}
+*/
+f.createModel = function (arg1, arg2) {
+    let model;
+
+    if (typeof arg1 === "string") {
+        model = catalog.store().models()[arg1.toCamelCase()];
+
+        if (!model) {
+            throw new Error("Model " + arg1 + " not registered.");
+        }
+        return model(arg2);
     }
 
-    return createModel(data, feather);
+    return createModel(arg1, arg2);
 };
 
 /**
