@@ -341,7 +341,6 @@ formWidget.viewModel = function (options) {
         vm.model(options.model);
     } else {
         model = vm.model(f.createModel(
-            undefined,
             options.model.toCamelCase(true)
         ));
         if (options.id) {

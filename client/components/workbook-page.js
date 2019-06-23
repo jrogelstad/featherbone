@@ -662,7 +662,7 @@ workbookPage.viewModel = function (options) {
             win.receiver = function (model) {
                 // If model came from other window now closed it's
                 // unstable, so rebuild it
-                let nmodel = f.createModel(model.toJSON(), model.name);
+                let nmodel = f.createModel(model.name, model.toJSON());
 
                 nmodel.state().goto("/Ready/Fetched/Clean");
                 nmodel.checkDelete();
