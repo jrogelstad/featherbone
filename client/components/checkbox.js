@@ -33,11 +33,7 @@ const m = window.m;
     @constructor
     @namespace ViewModels
     @param {Object} [options] Options
-    @param {String} [options.label] Label
-    @param {String} [options.icon] Icon name
-    @param {Function} [options.onclick] On click function
-    @param {String} [options.class] Class
-    @param {Object} [options.style] Style
+    @param {String} [options.id] Id
 */
 checkbox.viewModel = function (options) {
     let vm = {};
@@ -52,14 +48,42 @@ checkbox.viewModel = function (options) {
     Checkbox component
 
     @class Checkbox
-    @uses Component
+    @static
     @namespace Components
 */
 checkbox.component = {
+    /**
+        @method oninit
+        @param {Object} vnode Virtual node
+        @param {Object} vnode.attrs Options
+        @param {String} [vnode.attrs.id] Id
+        @param {String} [vnode.attrs.label] Label
+        @param {Function} [vnode.attrs.onclick] On click handler
+        @param {Function} [vnode.attrs.onCreate] On create handler
+        @param {Function} [vnode.attrs.onRemove] On remove handler
+        @param {Function} [vnode.attrs.value] Value
+        @param {Boolean} [vnode.attrs.title] Title
+        @param {Boolean} [vnode.attrs.readonly] Read only flag
+        @param {Object} [vnode.attrs.style] Style
+    */
     oninit: function (vnode) {
         this.viewModel = checkbox.viewModel(vnode.attrs);
     },
 
+    /**
+        @method view
+        @param {Object} vnode Virtual node
+        @param {Object} vnode.attrs Options
+        @param {String} [vnode.attrs.label] Label
+        @param {Function} [vnode.attrs.onclick] On click handler
+        @param {Function} [vnode.attrs.onCreate] On create handler
+        @param {Function} [vnode.attrs.onRemove] On remove handler
+        @param {Function} [vnode.attrs.value] Value
+        @param {Boolean} [vnode.attrs.title] Title
+        @param {Boolean} [vnode.attrs.readonly] Read only flag
+        @param {Object} [vnode.attrs.style] Style
+        @return {Object} View
+    */
     view: function (vnode) {
         let labelClass = "fb-checkbox-label";
         let vm = this.viewModel;
