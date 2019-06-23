@@ -226,6 +226,13 @@ function buildSelector(obj, opts) {
         selectComponents[id] = {};
     }
 
+    if (obj.dataList.length && obj.dataList[0].value) {
+        obj.dataList.unshift({
+            value: "",
+            label: ""
+        });
+    }
+
     selectComponents[id].value = value;
     selectComponents[id].readonly = opts.readonly;
     selectComponents[id].values = values;
