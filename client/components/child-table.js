@@ -16,25 +16,25 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
-import f from "../core.js";
-import button from "./button.js";
-import catalog from "../models/catalog.js";
-import tableWidget from "./table-widget.js";
-
-/*
-    @class childTable
+/**
+    @module ChildTable
 */
+import f from "../core.js";
+
+const catalog = f.catalog();
 const childTable = {};
 const m = window.m;
 
-/*
-    View model for child table.
+/**
+    View model for child table used inside forms to present editable lists.
 
-    @method viewModel
+    @class ChildTable
+    @namespace ViewModels
+    @constructor
     @param {Object} Options
-    @param {Array} [options.models] Array of child models
-    @param {String} [options.feather] Feather
-    @param {Array} [options.config] Column configuration
+    @param {Array} options.models List of child models
+    @param {String} options.feather Feather
+    @param {Array} options.config Column configuration
     @param {String} [options.height] Table height setting (optional)
 */
 childTable.viewModel = function (options) {
@@ -60,15 +60,49 @@ childTable.viewModel = function (options) {
         }
     }
 
-    // ..........................................................
-    // PUBLIC
-    //
-
+    /**
+        Add button view model.
+        @method buttonAdd
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonAdd = f.prop();
+
+    /**
+        Open button view model.
+        @method buttonOpen
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonOpen = f.prop();
+
+    /**
+        Remove button view model.
+        @method buttonDone
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonRemove = f.prop();
+
+    /**
+        Undo button view model.
+        @method buttonUndo
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonUndo = f.prop();
+
+    /**
+        @method childForm
+        @param {ViewModels.ChildFormPage} page
+        @return {ViewModels.ChildFormPage}
+    */
     vm.childForm = f.prop();
+
+    /**
+        Open the child form page.
+        @method doChildOpen
+    */
     vm.doChildOpen = function () {
         let selection = vm.tableWidget().selection();
         let models = vm.tableWidget().models();
@@ -94,8 +128,26 @@ childTable.viewModel = function (options) {
             });
         }
     };
+
+    /**
+        Table widget view model.
+        @method tableWidget
+        @param {ViewModels.TableWidget} widget
+        @return {ViewModels.TableWidget}
+    */
     vm.tableWidget = f.prop();
+
+    /**
+        Parent view model.
+        @method parentViewModel
+        @param {Object} viewModel
+        @return {Object} View model
+    */
     vm.parentViewModel = f.prop(options.parentViewModel);
+
+    /**
+        @method refresh
+    */
     vm.refresh = function () {
         vm.tableWidget().refresh();
     };
@@ -105,7 +157,7 @@ childTable.viewModel = function (options) {
     //
 
     // Create table widget view model
-    vm.tableWidget(tableWidget.viewModel({
+    vm.tableWidget(f.createViewModel("TableWidget", {
         config: options.config,
         models: options.models,
         feather: options.feather,
@@ -116,7 +168,7 @@ childTable.viewModel = function (options) {
     vm.tableWidget().isQuery(false);
 
     // Create button view models
-    vm.buttonAdd(button.viewModel({
+    vm.buttonAdd(f.createViewModel("Button", {
         onclick: vm.tableWidget().modelNew,
         title: "Insert",
         hotkey: "I",
@@ -127,7 +179,7 @@ childTable.viewModel = function (options) {
         }
     }));
 
-    vm.buttonRemove(button.viewModel({
+    vm.buttonRemove(f.createViewModel("Button", {
         onclick: vm.tableWidget().modelDelete,
         title: "Delete",
         hotkey: "D",
@@ -139,7 +191,7 @@ childTable.viewModel = function (options) {
     }));
     vm.buttonRemove().disable();
 
-    vm.buttonUndo(button.viewModel({
+    vm.buttonUndo(f.createViewModel("Button", {
         onclick: vm.tableWidget().undo,
         title: "Undo",
         hotkey: "U",
@@ -151,7 +203,7 @@ childTable.viewModel = function (options) {
     }));
     vm.buttonUndo().hide();
 
-    vm.buttonOpen(button.viewModel({
+    vm.buttonOpen(f.createViewModel("Button", {
         onclick: vm.doChildOpen,
         title: "Open",
         hotkey: "O",
@@ -218,13 +270,22 @@ childTable.viewModel = function (options) {
 
 catalog.register("viewModels", "childTable", childTable.viewModel);
 
-/*
+/**
   Child table component
 
-  @property component
-  @type Object
+  @class ChildTable
+  @static
+  @namespace Components
 */
 childTable.component = {
+    /**
+        @method oninit
+        @param {Object} vnode Virtual node
+        @param {Object} vnode.attrs
+        @param {Object} vnode.attrs.parentViewModel
+        @param {String} vnode.attrs.parentProprety
+        @param {String} [vnode.attrs.height] Height
+    */
     oninit: function (vnode) {
         let config;
         let overload;
@@ -268,23 +329,28 @@ childTable.component = {
         this.viewModel = relations[parentProperty];
     },
 
+    /**
+        @method view
+        @param {Object} vnode Virtual node
+        @return {Object} View
+    */
     view: function () {
         let vm = this.viewModel;
 
         return m("div", [
-            m(button.component, {
+            m(f.getComponent("Button"), {
                 viewModel: vm.buttonAdd()
             }),
-            m(button.component, {
+            m(f.getComponent("Button"), {
                 viewModel: vm.buttonRemove()
             }),
-            m(button.component, {
+            m(f.getComponent("Button"), {
                 viewModel: vm.buttonUndo()
             }),
-            m(button.component, {
+            m(f.getComponent("Button"), {
                 viewModel: vm.buttonOpen()
             }),
-            m(tableWidget.component, {
+            m(f.getComponent("TableWidget"), {
                 viewModel: vm.tableWidget()
             })
         ]);
