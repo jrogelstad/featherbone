@@ -16,12 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/**
+    @module AutoNumber
+*/
 import f from "../core.js";
-import catalog from "../models/catalog.js";
-import model from "../models/model.js";
-import button from "./button.js";
-import formDialog from "./form-dialog.js";
 
+const catalog = f.catalog();
 const autonumber = {};
 const m = window.m;
 
@@ -58,7 +58,7 @@ function autonumberModel() {
         }
     };
 
-    that = model(undefined, feather);
+    that = f.createModel(undefined, feather);
 
     that.onChange("sequence", function (prop) {
         let value = prop.newValue();
@@ -78,13 +78,47 @@ function autonumberModel() {
     return that;
 }
 
+/**
+    @class AutoNumber
+    @namespace ViewModels
+    @param {Object} options
+    @param {Object} options.parentViewModel
+    @param {String} options.parentProprety
+    @param {String} [options.id]
+    @param {String} [options.readonly]
+    @param {Object} [options.style]
+*/
 autonumber.viewModel = function (options) {
     let vm = {};
     let parent = options.parentViewModel;
 
+    /**
+        Edit dialog view model.
+        @method authonumberDialog
+        @param {ViewModels.FormDialog} formDialog
+        @return {ViewModels.FormDialog}
+    */
     vm.autonumberDialog = f.prop();
+    /**
+        Clear button view model.
+        @method buttonClear
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonClear = f.prop();
+    /**
+        Edit button view model.
+        @method buttonEdit
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonEdit = f.prop();
+    /**
+        Edit dialog content.
+        @method content
+        @param {Boolean} isCell
+        @return {Object} View
+    */
     vm.content = function () {
         let d = vm.model();
         let content = "";
@@ -98,10 +132,17 @@ autonumber.viewModel = function (options) {
 
         return content;
     };
+    /**
+        @method doClear
+    */
     vm.doClear = function () {
         vm.autonumberDialog().cancel();
         vm.model(null);
     };
+    /**
+        Show edit dialog.
+        @method doEdit
+    */
     vm.doEdit = function () {
         let value;
         let dmodel;
@@ -124,15 +165,29 @@ autonumber.viewModel = function (options) {
             dmodel.clear();
         }
     };
+    /**
+        @method id
+        @param {String} id
+        @return {String}
+    */
     vm.id = f.prop(options.id || f.createId());
+    /**
+        @method model
+        @return {Model} Parent model
+    */
     vm.model = parent.model().data[options.parentProperty];
+    /**
+        @method style
+        @param {Object} style
+        @return {Object}
+    */
     vm.style = f.prop(options.style || {});
 
     // ..........................................................
     // PRIVATE
     //
 
-    vm.autonumberDialog(formDialog.viewModel({
+    vm.autonumberDialog(f.createViewModel("FormDialog", {
         title: "Auto number",
         model: autonumberModel(),
         config: {
@@ -148,12 +203,12 @@ autonumber.viewModel = function (options) {
         }
     }));
 
-    vm.buttonClear(button.viewModel({
+    vm.buttonClear(f.createViewModel("Button", {
         onclick: vm.doClear,
         label: "C&lear"
     }));
 
-    vm.buttonEdit(button.viewModel({
+    vm.buttonEdit(f.createViewModel("Button", {
         onclick: vm.doEdit,
         title: "Edit autonumber details",
         icon: "edit",
@@ -165,7 +220,24 @@ autonumber.viewModel = function (options) {
     return vm;
 };
 
+/**
+    Auto number component
+
+    @class AutoNumber
+    @static
+    @namespace Components
+*/
 autonumber.component = {
+    /**
+        @method oninit
+        @param {Object} vnode Virtual node
+        @param {Object} vnode.attrs
+        @param {Object} vnode.attrs.parentViewModel
+        @param {String} vnode.attrs.parentProprety
+        @param {String} [vnode.attrs.id]
+        @param {String} [vnode.attrs.readonly]
+        @param {Object} [vnode.attrs.style] Style
+    */
     oninit: function (vnode) {
         let options = vnode.attrs;
 
@@ -179,6 +251,11 @@ autonumber.component = {
         });
     },
 
+    /**
+        @method view
+        @param {Object} vnode Virtual node
+        @return {Object} View
+    */
     view: function (vnode) {
         let ret;
         let vm = this.viewModel;
@@ -202,11 +279,11 @@ autonumber.component = {
         ret = m("div", {
             style: style
         }, [
-            m(formDialog.component, {
+            m(f.getComponent("Button"), {
                 viewModel: vm.autonumberDialog()
             }),
             m("input", options),
-            m(button.component, {
+            m(f.getComponent("Button"), {
                 viewModel: vm.buttonEdit()
             })
         ]);

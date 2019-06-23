@@ -16,6 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/**
+    @module Core
+*/
 import createProperty from "./property.js";
 import createModel from "./models/model.js";
 import createList from "./models/list.js";
@@ -373,7 +376,7 @@ f.datasource = function () {
     @return {Object}
 */
 f.getComponent = function (name) {
-    return catalog.store().comoponents()[name.toCamelCase()];
+    return catalog.store().components()[name.toCamelCase()];
 };
 
 /**
@@ -1607,5 +1610,12 @@ appState.goto();
 f.state = function () {
     return appState;
 };
+
+/**
+    State constructor.
+    @method State
+    @return {State}
+*/
+f.State = State;
 
 export default Object.freeze(f);
