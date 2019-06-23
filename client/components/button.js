@@ -54,30 +54,62 @@ button.viewModel = function (options) {
     //
 
     vm = {};
+    /**
+        @method activate
+    */
     vm.activate = function () {
         state.send("activate");
     };
+    /**
+        @method isDisabled
+        @return {Boolean}
+    */
     vm.isDisabled = function () {
         return mode().isDisabled();
     };
+    /**
+        @method deactivate
+    */
     vm.deactivate = function () {
         state.send("deactivate");
     };
+    /**
+        @method disable
+    */
     vm.disable = function () {
         state.send("disable");
     };
+    /**
+        @method enable
+    */
     vm.enable = function () {
         state.send("enable");
     };
+    /**
+        @method class
+        @return {String}
+    */
     vm.class = function () {
         return options.class + " " + mode().class();
     };
+    /**
+        @method hidden
+        @return {Boolean}
+    */
     vm.hidden = function () {
         return display().hidden();
     };
+    /**
+        @method hide
+    */
     vm.hide = function () {
         state.send("hide");
     };
+    /**
+        @method hotKey
+        @param {String} [key]
+        @return {String} key
+    */
     vm.hotKey = function (...args) {
         let title;
         let len;
@@ -98,8 +130,23 @@ button.viewModel = function (options) {
         }
         return hotkey;
     };
+    /**
+        @method icon
+        @param {String} [icon]
+        @return {String}
+    */
     vm.icon = f.prop(options.icon || "");
+    /**
+        @method id
+        @param {String} [id]
+        @return {String}
+    */
     vm.id = f.prop(f.createId());
+    /**
+        @method isPrimary
+        @param {Boolean} [flag]
+        @return {Boolean}
+    */
     vm.isPrimary = function (flag) {
         if (Boolean(flag)) {
             state.send("primaryOn");
@@ -109,6 +156,11 @@ button.viewModel = function (options) {
 
         return state.current()[1] === "Primary/On";
     };
+    /**
+        @method label
+        @param {String} [label]
+        @return {String}
+    */
     vm.label = function (...args) {
         let idx;
         let ary;
@@ -137,7 +189,17 @@ button.viewModel = function (options) {
         }
         return label;
     };
+    /**
+        @method onclick
+        @param {Function} [f]
+        @return {Function}
+    */
     vm.onclick = f.prop(options.onclick);
+    /**
+        @method onkeydown
+        @param {Function} [f]
+        @return {Function}
+    */
     vm.onkeydown = function (e) {
         let id;
 
@@ -147,18 +209,38 @@ button.viewModel = function (options) {
             document.getElementById(id).click();
         }
     };
+    /**
+        @method primaryClass
+        @return {String}
+    */
     vm.primaryClass = function () {
         return primary().class();
     };
+    /**
+        @method show
+    */
     vm.show = function () {
         state.send("show");
     };
+    /**
+        @method state
+        @return {State}
+    */
     vm.state = function () {
         return state;
     };
+    /**
+        @method style
+        @return {Object}
+    */
     vm.style = function () {
         return options.style || {};
     };
+    /**
+        @method title
+        @param {String} [title]
+        @return {String}
+    */
     vm.title = f.prop(options.title || "");
 
     // ..........................................................
@@ -260,15 +342,22 @@ catalog.register("viewModels", "button", button.viewModel);
     Button component
 
     @class Button
-    @uses Component
     @namespace Components
 */
 button.component = {
+    /**
+        @method oninit
+        @param {Object} vnode
+    */
     oninit: function (vnode) {
         let vm = vnode.attrs.viewModel || button.viewModel(vnode.attrs);
         this.viewModel = vm;
     },
 
+    /**
+        @method view
+        @return {Object}
+    */
     view: function () {
         let opts;
         let view;
