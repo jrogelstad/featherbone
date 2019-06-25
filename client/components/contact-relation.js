@@ -16,33 +16,34 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
-import f from "../core.js";
-import relationWidget from "./relation-widget.js";
-import catalog from "../models/catalog.js";
-
-/*
-    @class contactRelation
+/**
+    @module ContactRelation
 */
+import f from "../core.js";
+
+const catalog = f.catalog();
 const contactRelation = {};
 const m = window.m;
 
-/*
-
-    @method viewModel
-    @param {Object} Options
-    @param {Object} [options.parentViewModel] Parent view-model. Required
-    property "relations" returning javascript object to attach relation
+/**
+    @class ContactRelation
+    @extends ViewModels.RelationWidget
+    @constructor
+    @namespace ViewModels
+    @param {Object} options Options
+    @param {Object} options.parentViewModel Parent view-model. Requires
+    property `relations` returning javascript object to attach relation
     view model to.
-    @param {String} [options.parentProperty] Name of the relation
+    @param {String} options.parentProperty Name of the relation
     in view model to attached to
-    @param {String} [options.valueProperty] Value property
+    @param {String} options.valueProperty Value property
     @param {Object} [options.form] Form configuration
     @param {Object} [options.list] (Search) List configuration
     @param {Boolean} [options.isCell] Use style for cell in table
     @param {Object} [options.filter] Filter object used for search
 */
 contactRelation.viewModel = function (options) {
-    let vm = relationWidget.viewModel(options);
+    let vm = f.createViewModel("RelationWidget", options);
 
     vm.labels = function () {
         let phone;
@@ -152,6 +153,17 @@ contactRelation.viewModel = function (options) {
     return vm;
 };
 
+catalog.register(
+    "viewModels",
+    "contactRelation",
+    contactRelation.viewModel
+);
+
+/**
+    @class ContactRelation
+    @uses Components.RelationWidget
+    @namespace Components
+*/
 contactRelation.component = {
     oninit: function (vnode) {
         let list;
@@ -207,7 +219,7 @@ contactRelation.component = {
         }
         this.viewModel = relations[options.parentProperty];
     },
-    view: relationWidget.component.view,
+    view: f.getComponent("RelationWidget").view,
     labelProperty: f.prop("phone"),
     valueProperty: f.prop("fullName")
 };
