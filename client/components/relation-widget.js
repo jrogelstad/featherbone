@@ -16,12 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
-import f from "../core.js";
-import catalog from "../models/catalog.js";
-
-/*
-    @class relationWidget
+/**
+    @module RelationWidget
 */
+import f from "../core.js";
+
+const catalog = f.catalog();
 const relationWidget = {};
 const m = window.m;
 
@@ -39,15 +39,17 @@ function positionMenu(vnode) {
     }
 }
 
-/*
-    @method viewModel
-    @param {Object} Options
-    @param {Object} [options.parentViewModel] Parent view-model. Required
+/**
+    @class RelationWidget
+    @constructor
+    @namespace ViewModels
+    @param {Object} options
+    @param {Object} options.parentViewModel Parent view-model. Required
     property "relations" returning javascript object to attach relation
     view model to.
-    @param {String} [options.parentProperty] Name of the relation
+    @param {String} options.parentProperty Name of the relation
     in view model to attached to
-    @param {String} [options.valueProperty] Value property
+    @param {String} options.valueProperty Value property
     @param {Object} [options.form] Form configuration
     @param {Object} [options.list] (Search) List configuration
     @param {Boolean} [options.isCell] Use style for cell in table
@@ -106,15 +108,46 @@ relationWidget.viewModel = function (options) {
         updateValue.bind(null, parent.model().data[parentProperty])
     );
 
+    /**
+        @method listId
+        @param {String} id
+        @return {String}
+    */
     vm.listId = f.prop(f.createId());
+    /**
+        @method fetch
+    */
     vm.fetch = function () {
         vm.models().fetch(filter, false);
     };
-    vm.formConfig = f.prop(options.form);
+    /**
+        @method id
+        @param {String} id
+        @return {String}
+    */
     vm.id = f.prop(options.id);
+    /**
+        @method isCell
+        @param {Boolean} flag
+        @return {String}
+    */
     vm.isCell = f.prop(Boolean(options.isCell));
+    /**
+        @property isRelationWidget
+        @type Boolean
+        @default true
+    */
     vm.isRelationWidget = true;
+    /**
+        @method isReadOnly
+        @param {Boolean} flag
+        @return {Boolean}
+    */
     vm.isReadOnly = options.isReadOnly || f.prop(false);
+    /**
+        @method label
+        @return {String}
+    */
     vm.label = function () {
         let model = modelValue();
         return (
@@ -123,7 +156,16 @@ relationWidget.viewModel = function (options) {
             : ""
         );
     };
+    /**
+        @method labelProperty
+        @param {String} property
+        @return {String}
+    */
     vm.labelProperty = f.prop(options.labelProperty);
+    /**
+        @method labels
+        @return {Array}
+    */
     vm.labels = function () {
         return [
             m("div", {
@@ -139,12 +181,25 @@ relationWidget.viewModel = function (options) {
             }, vm.label())
         ];
     };
+    /**
+        @method model
+        @return {Model}
+    */
     vm.model = function () {
         return modelValue();
     };
+    /**
+        Array of models in selector list.
+        @method models
+        @return {Array}
+    */
     vm.models = function () {
         return modelList;
     };
+    /**
+        Create new record in form.
+        @method new
+    */
     vm.new = function () {
         m.route.set("/edit/:feather/:key", {
             feather: type.relation.toSpinalCase(),
@@ -156,6 +211,10 @@ relationWidget.viewModel = function (options) {
             }
         });
     };
+    /**
+        Open selected record in form.
+        @method open
+    */
     vm.open = function () {
         m.route.set("/edit/:feather/:key", {
             feather: type.relation.toSpinalCase(),
@@ -166,6 +225,11 @@ relationWidget.viewModel = function (options) {
             }
         });
     };
+    /**
+        Open searh page.
+        @method search
+        @param {Object} filter
+    */
     vm.search = function (filter) {
         let searchList = f.copy(options.list);
         searchList.filter = filter || options.filter || searchList.filter;
@@ -181,6 +245,11 @@ relationWidget.viewModel = function (options) {
             }
         });
     };
+    /**
+        Handler for auto-complete.
+        @method formConfig
+        @param {Any} value
+    */
     vm.onchange = function (value) {
         let currentModel;
         let currentValue = false;
@@ -238,6 +307,10 @@ relationWidget.viewModel = function (options) {
             vm.fetch();
         }
     };
+    /**
+        Handler for onfocus event.
+        @method onfocus
+    */
     vm.onfocus = function () {
         let value = modelValue();
 
@@ -249,6 +322,10 @@ relationWidget.viewModel = function (options) {
         );
         inputValue(value);
     };
+    /**
+        Handler for blur event.
+        @method onblur.
+    */
     vm.onblur = function () {
         hasFocus = false;
 
@@ -257,6 +334,10 @@ relationWidget.viewModel = function (options) {
         }
         duplicate = undefined;
     };
+    /**
+        Handler for oninput event.
+        @method oninput
+    */
     vm.oninput = function (value) {
         let fetch = false;
         let inputVal = inputValue() || "";
@@ -278,9 +359,18 @@ relationWidget.viewModel = function (options) {
             vm.fetch();
         }
     };
+    /**
+        Show menu on this event.
+        @method onmouseovermenu
+    */
     vm.onmouseovermenu = function () {
         vm.showMenu(true);
     };
+    /**
+        Hide menu on this event.
+        @method onmouseoutmenu.
+        @param {Object} event
+    */
     vm.onmouseoutmenu = function (ev) {
         if (
             !ev || !ev.toElement ||
@@ -292,10 +382,35 @@ relationWidget.viewModel = function (options) {
             vm.showMenu(false);
         }
     };
+    /**
+        @method parentProperty
+        @param {String} property
+        @return {String}
+    */
     vm.parentProperty = f.prop(options.parentProperty);
+    /**
+        @method parentViewModel
+        @param {Object} viewModel
+        @return {Object}
+    */
     vm.parantViewModel = f.prop(options.parentViewModel);
+    /**
+        @method showMenu
+        @param {Boolean} flag
+        @return {Boolean}
+    */
     vm.showMenu = f.prop(false);
+    /**
+        @method style
+        @param {Object} style
+        @return {Object}
+    */
     vm.style = f.prop({});
+    /**
+        @method formConfig
+        @param {Any} value
+        @return {Any}
+    */
     vm.value = function (...args) {
         let result;
         let value = args[0];
@@ -315,6 +430,11 @@ relationWidget.viewModel = function (options) {
         }
         return result.data[valueProperty]();
     };
+    /**
+        @method valueProperty
+        @param {String} property
+        @return {String}
+    */
     vm.valueProperty = f.prop(valueProperty);
 
     // Helper function for registering callbacks
@@ -338,19 +458,21 @@ relationWidget.viewModel = function (options) {
 
 catalog.register("viewModels", "relationWidget", relationWidget.viewModel);
 
-/*
-    @property component
+/**
+    @class RelationWidget
+    @static
+    @namespace Components
 */
 relationWidget.component = {
-    /*
+    /**
         @method oninit
-        @param {Object} Options
-        @param {Object} [options.viewModel] Parent view-model. Must have
+        @param {Object} options
+        @param {Object} options.viewModel Parent view-model. Must have
         property "relations" returning javascript object to attach relation
         view model to.
-        @param {String} [options.parentProperty] Name of the relation
+        @param {String} options.parentProperty Name of the relation
         in view model to attached to
-        @param {String} [options.valueProperty] Value property
+        @param {String} options.valueProperty Value property
         @param {Boolean} [options.isCell] Use style for cell in table
     */
     oninit: function (vnode) {
@@ -378,6 +500,11 @@ relationWidget.component = {
         this.viewModel = relations[parentProperty];
     },
 
+    /**
+        @method view
+        @param {Object} Virtual nodeName
+        @return {Object} View
+    */
     view: function (vnode) {
         let listOptions;
         let inputStyle;
