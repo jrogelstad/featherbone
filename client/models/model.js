@@ -572,6 +572,10 @@ function createModel(data, feather) {
                     id: model.id(),
                     action: "canUpdate"
                 }).then(function (resp) {
+                    if (model.isReadOnly()) {
+                        canUpdate = false;
+                        return;
+                    }
                     canUpdate = resp;
 
                     if (canUpdate && !wasFrozen) {
@@ -1785,8 +1789,14 @@ function createModel(data, feather) {
                     this.canUndo = f.prop(false);
                 });
                 this.state("ReadOnly", function () {
-                    this.enter(doFreeze);
-                    this.exit(doThaw);
+                    this.enter(function () {
+                        model.isReadOnly(true);
+                        doFreeze();
+                    });
+                    this.exit(function () {
+                        model.isReadOnly(false);
+                        doThaw();
+                    });
                     this.canDelete = f.prop(false);
                     this.canSave = f.prop(false);
                     this.canUndo = f.prop(false);
