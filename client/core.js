@@ -1366,7 +1366,7 @@ f.createEditor = function (obj) {
     @param {String} feather Parent feather name
     @return {Object}
 */
-f.createRealtionWidget = createRelationWidgetFromFeather;
+f.createRelationWidget = createRelationWidgetFromFeather;
 
 /**
   Returns the exact x, y coordinents of an HTML element.
