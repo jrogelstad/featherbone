@@ -875,74 +875,93 @@ function updateRole(obj) {
         let oldRec = obj.oldRec;
         let newRec = obj.newRec;
         let requests = [];
+        let superPayload = {
+            method: "GET",
+            name: "isSuperUser",
+            client: obj.client,
+            data: {
+                user: obj.client.currentUser()
+            }
+        };
 
         if (obj.oldRec.name !== obj.newRec.name) {
             throw new Error("Name cannot be changed");
         }
 
-        // compare old and new membership, where different grant or revoke
-        if (oldRec.membership.length < newRec.membership.length) {
-            oldRec.membership.length = newRec.membership.length;
-        }
-
-        // Revoke changed roles
-        while (n < oldRec.membership.length) {
-            if (
-                newRec.membership[n] === undefined ||
-                newRec.membership[n] === null || (
-                    oldRec.membership[n] !== undefined &&
-                    oldRec.membership[n] !== null &&
-                    oldRec.membership[n].role !== newRec.membership[n].role
-                )
-            ) {
-                requests.push(
-                    f.datasource.request(
-                        {
-                            method: "POST",
-                            name: "revokeMembership",
-                            data: {
-                                fromRole: oldRec.membership[n].role,
-                                toRole: oldRec.name
-                            },
-                            client: obj.client
-                        },
-                        true
-                    )
+        function handleMembership(userIsSuper) {
+            if (obj.oldRec.isSuper !== obj.newRec.isSuper && !userIsSuper) {
+                throw new Error(
+                    "You must have super user privileges to alter" +
+                    " super user status on a user account."
                 );
             }
-            n += 1;
-        }
 
-        // Grant changed roles
-        n = 0;
-        while (n < oldRec.membership.length) {
-            if (
-                oldRec.membership[n] === undefined ||
-                oldRec.membership[n] === null || (
-                    newRec.membership[n] !== undefined &&
-                    newRec.membership[n] !== null &&
-                    oldRec.membership[n].role !== newRec.membership[n].role
-                )
-            ) {
-                requests.push(
-                    f.datasource.request(
-                        {
-                            method: "POST",
-                            name: "grantMembership",
-                            data: {
-                                fromRole: newRec.membership[n].role,
-                                toRole: oldRec.name
-                            },
-                            client: obj.client
-                        },
-                        true
-                    )
-                );
+            // compare old and new membership, where different grant or revoke
+            if (oldRec.membership.length < newRec.membership.length) {
+                oldRec.membership.length = newRec.membership.length;
             }
-            n += 1;
+
+            // Revoke changed roles
+            while (n < oldRec.membership.length) {
+                if (
+                    newRec.membership[n] === undefined ||
+                    newRec.membership[n] === null || (
+                        oldRec.membership[n] !== undefined &&
+                        oldRec.membership[n] !== null &&
+                        oldRec.membership[n].role !== newRec.membership[n].role
+                    )
+                ) {
+                    requests.push(
+                        f.datasource.request(
+                            {
+                                method: "POST",
+                                name: "revokeMembership",
+                                data: {
+                                    fromRole: oldRec.membership[n].role,
+                                    toRole: oldRec.name
+                                },
+                                client: obj.client
+                            },
+                            true
+                        )
+                    );
+                }
+                n += 1;
+            }
+
+            // Grant changed roles
+            n = 0;
+            while (n < oldRec.membership.length) {
+                if (
+                    oldRec.membership[n] === undefined ||
+                    oldRec.membership[n] === null || (
+                        newRec.membership[n] !== undefined &&
+                        newRec.membership[n] !== null &&
+                        oldRec.membership[n].role !== newRec.membership[n].role
+                    )
+                ) {
+                    requests.push(
+                        f.datasource.request(
+                            {
+                                method: "POST",
+                                name: "grantMembership",
+                                data: {
+                                    fromRole: newRec.membership[n].role,
+                                    toRole: oldRec.name
+                                },
+                                client: obj.client
+                            },
+                            true
+                        )
+                    );
+                }
+                n += 1;
+            }
+
+            Promise.all(requests).then(resolve).catch(reject);
         }
 
-        Promise.all(requests).then(resolve).catch(reject);
+        f.datasource.request(superPayload).then(handleMembership).catch(reject);
     });
 }
 
@@ -959,14 +978,35 @@ function createRole(obj) {
             password: obj.newRec.password,
             isInherits: false
         };
-        let payload = {
+        let superPayload = {
+            method: "GET",
+            name: "isSuperUser",
+            client: obj.client,
+            data: {
+                user: obj.client.currentUser()
+            }
+        };
+        let rolePayload = {
             method: "POST",
             name: "createRole",
             client: obj.client,
             data: options
         };
 
-        function grant() {
+        function doCreateRole(userIsSuper) {
+            return new Promise(function (resolve, reject) {
+                if (obj.newRec.isSuper && !userIsSuper) {
+                    throw new Error(
+                        "You must have super user privileges to create" +
+                        " a super user."
+                    );
+                }
+
+                f.datasource.request(rolePayload).then(resolve).catch(reject);
+            });
+        }
+
+        function doGrant() {
             membership.forEach(function (item) {
                 let mpayload = {
                     method: "POST",
@@ -989,7 +1029,10 @@ function createRole(obj) {
             Promise.all(requests).then(resolve).catch(reject);
         }
 
-        f.datasource.request(payload, true).then(grant).catch(reject);
+        f.datasource.request(
+            superPayload,
+            true
+        ).then(doCreateRole).then(doGrant).catch(reject);
     });
 }
 
