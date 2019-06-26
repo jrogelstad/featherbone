@@ -33,6 +33,8 @@ function userAccount(data, feather) {
     }
     let model = f.createModel(data, feather);
 
+    model.data.isSuper.isReadOnly(!f.currentUser().isSuper);
+
     model.onLoad(function () {
         model.data.name.isReadOnly(true);
     });
