@@ -62,7 +62,13 @@ signInPage.component = {
                 }, "Password"),
                 m("input", {
                     id: "password",
-                    type: "password"
+                    type: "password",
+                    onkeydown: function (e) {
+                        if (e.which === 13) {
+                            f.state().send("authenticate");
+                            e.preventDefault();
+                        }
+                    }
                 })
             ]),
             m("div", {
