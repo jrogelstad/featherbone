@@ -261,6 +261,55 @@
         );
     }
 
+    function doPostUserAccount(req, res) {
+        let payload = {
+            name: "UserAccount",
+            method: "POST",
+            user: req.user.name,
+            eventKey: req.eventKey,
+            id: req.params.id,
+            data: req.body || {}
+        };
+        let log = f.copy(payload);
+        log.data.password = "****";
+
+        console.log(JSON.stringify(log, null, 2));
+        datasource.request(payload, req.user.isSuper).then(
+            function (data) {
+                respond.bind(res, data)();
+            }
+        ).catch(
+            error.bind(res)
+        );
+    }
+
+    function doPatchUserAccount(req, res) {
+        let payload = {
+            name: "UserAccount",
+            method: "PATCH",
+            user: req.user.name,
+            eventKey: req.eventKey,
+            id: req.params.id,
+            data: req.body || []
+        };
+        let log = f.copy(payload);
+        log.data.forEach(function (item) {
+            if (item.path === "/password") {
+                item.value = "****";
+            }
+        });
+        log.data.password = "****";
+
+        console.log(JSON.stringify(log, null, 2));
+        datasource.request(payload, req.user.isSuper).then(
+            function (data) {
+                respond.bind(res, data)();
+            }
+        ).catch(
+            error.bind(res)
+        );
+    }
+
     function doQueryRequest(req, res) {
         let payload = req.body || {};
 
@@ -391,7 +440,7 @@
         let keys;
         let catalog = settings.data.catalog.data;
 
-        keys = Object.keys(catalog);
+        keys = Object.keys(catalog).filter((key) => key !== "UserAccount");
         keys.forEach(registerDataRoute);
     }
 
@@ -1105,6 +1154,11 @@
         // REGISTER CORE ROUTES -------------------------------
         console.log("Registering core routes");
 
+        app.post("/data/user-accounts", doQueryRequest);
+        app.post("/data/user-account", doPostUserAccount);
+        app.get("/data/user-account/:id", doRequest);
+        app.patch("/data/user-account/:id", doPatchUserAccount);
+        app.delete("/data/user-account/:id", doRequest);
         app.get("/currency/base", doGetBaseCurrency);
         app.get("/currency/convert", doConvertCurrency);
         app.get("/do/is-authorized", doIsAuthorized);
