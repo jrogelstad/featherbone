@@ -68,8 +68,6 @@ function doUpsertFeather(obj) {
             }
         }
 
-        delete feather.authorizations; // Process below
-
         // Save the feather in the catalog
         feather.properties = {};
         exclusions.forEach(function (attr) {
@@ -120,7 +118,7 @@ function doUpsertFeather(obj) {
         });
 
         // On insert assign authorization to everyone if none specified
-        if (!obj.oldRec) {
+        if (!obj.oldRec && obj.newRec.authorizations === undefined) {
             obj.newRec.authorizations = obj.newRec.authorizations || [];
             if (
                 !obj.newRec.authorizations.length &&
@@ -128,7 +126,7 @@ function doUpsertFeather(obj) {
                 !obj.newRec.isChild
             ) {
                 obj.newRec.authorizations = defaultAuth;
-                feather.authorization = [{
+                feather.authorizations = [{
                     role: "everyone",
                     actions: {
                         canCreate: true,
@@ -138,9 +136,9 @@ function doUpsertFeather(obj) {
                     }
                 }];
             } else if (obj.newRec.authorizations.length) {
-                feather.authorization = [];
+                feather.authorizations = [];
                 obj.newRec.authorizations.forEach(function (auth) {
-                    feather.authorization.push({
+                    feather.authorizations.push({
                         role: auth.role,
                         actions: {
                             canCreate: auth.canCreate,
@@ -152,7 +150,7 @@ function doUpsertFeather(obj) {
                 });
             }
         // Handle authorization changes on update
-        } else {
+        } else if (obj.oldRec) {
             obj.oldRec.authorizations.forEach(function (auth) {
                 auths.push({
                     role: auth.role,
@@ -197,7 +195,7 @@ function doUpsertFeather(obj) {
                     });
                 }
             });
-            feather.authorization = auths;
+            feather.authorizations = auths;
         }
 
         payload = {
