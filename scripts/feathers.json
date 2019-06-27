@@ -4,7 +4,7 @@
         "module": "Core",
         "plural": "Documents",
         "description": "Base document class",
-        "authorization": false,
+        "authorizations": [],
         "properties": {
             "owner": {
                 "description": "Owner of the document",
@@ -24,7 +24,7 @@
         "module": "Core",
         "inherits": "Document",
         "description": "Object definitions",
-        "authorization": false,
+        "authorizations": [],
         "isReadOnly": false,
         "properties": {
             "name": {
@@ -47,11 +47,6 @@
                 "description": "Module",
                 "type": "string",
                 "isRequired": true
-            },
-            "authorization": {
-                "description": "Module",
-                "type": "object",
-                "default": null
             },
             "inherits": {
                 "description": "Inherits",
@@ -310,7 +305,7 @@
         "inherits": "Document",
         "isFetchOnStartup": true,
         "description": "User authorization role",
-        "authorization": false,
+        "authorizations": [],
         "properties": {
             "name": {
                 "description": "Name",
@@ -324,7 +319,7 @@
         "name": "RoleMembership",
         "module": "Core",
         "description": "Member reference to a parent role",
-        "authorization": false,
+        "authorizations": [],
         "properties": {
             "parent": {
                 "description": "Parent role",
@@ -344,7 +339,7 @@
         "module": "Core",
         "plural": "Logs",
         "description": "Logs all data changes",
-        "authorization": false,
+        "authorizations": [],
         "properties": {
             "objectId": {
                 "description": "Object change was performed against",
@@ -365,7 +360,7 @@
         "plural": "Scripts",
         "inherits": "Document",
         "description": "Script base class",
-        "authorization": false,
+        "authorizations": [],
         "properties": {
             "name": {
                 "description": "Name",
@@ -385,7 +380,7 @@
         "plural": "Modules",
         "inherits": "Script",
         "description": "Functional application module",
-        "authorization": false,
+        "authorizations": [],
         "properties": {
             "version": {
                 "description": "Software version",
@@ -397,7 +392,6 @@
     {
         "name": "ModuleDependency",
         "description": "Reference to module required for parent to operate",
-        "authorization": false,
         "properties": {
             "parent": {
                 "description": "Parent object",
@@ -426,7 +420,7 @@
         "plural": "DataServices",
         "inherits": "Script",
         "description": "Server business logic",
-        "authorization": false,
+        "authorizations": [],
         "properties": {
             "module": {
                 "description": "Module script belongs to",
@@ -438,7 +432,7 @@
         "name": "Honorific",
         "plural": "Honorifics",
         "module": "Core",
-        "authorization": false,
+        "authorizations": [],
         "inherits": "Document",
         "description": "Honorific",
         "properties": {
@@ -510,7 +504,7 @@
         "name": "Contact",
         "plural": "Contacts",
         "module": "Core",
-        "authorization": false,
+        "authorizations": [],
         "description": "Information about a person",
         "inherits": "Document",
         "properties": {
@@ -608,7 +602,7 @@
         "plural": "UserAccounts",
         "inherits": "Role",
         "module": "Core",
-        "authorization": false,
+        "authorizations": [],
         "description": "System users",
         "properties": {
             "password": {

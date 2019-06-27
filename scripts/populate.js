@@ -140,12 +140,8 @@ const f = require("../common/core");
             grantEveryoneGlobal = function () {
                 let req;
                 let reqRole;
-                let reqFeather;
-                let reqModule;
-                let reqDataService;
                 let reqHonorific;
                 let reqContact;
-                let reqUserAccount;
                 let promises = [];
 
                 req = function () {
@@ -154,7 +150,7 @@ const f = require("../common/core");
                         name: "saveAuthorization",
                         user: user,
                         data: {
-                            feather: "Role",
+                            feather: "Honorific",
                             role: "everyone",
                             actions: {
                                 canCreate: true,
@@ -167,27 +163,18 @@ const f = require("../common/core");
                     };
                 };
 
-                /* Grant everyone access to system objects */
-                reqRole = req();
-                promises.push(datasource.request(reqRole));
-                reqFeather = req();
-                reqFeather.data.feather = "Feather";
-                promises.push(datasource.request(reqFeather));
-                reqModule = req();
-                reqModule.data.feather = "Module";
-                promises.push(datasource.request(reqModule));
-                reqDataService = req();
-                reqDataService.data.feather = "DataService";
-                promises.push(datasource.request(reqDataService));
+                /* Grant everyone access to low security system objects */
                 reqHonorific = req();
-                reqHonorific.data.feather = "Honorific";
                 promises.push(datasource.request(reqHonorific));
                 reqContact = req();
                 reqContact.data.feather = "Contact";
                 promises.push(datasource.request(reqContact));
-                reqUserAccount = req();
-                reqUserAccount.data.feather = "UserAccount";
-                promises.push(datasource.request(reqUserAccount));
+                reqRole = req();
+                reqRole.data.feather = "Role";
+                reqRole.data.actions.canCreate = false;
+                reqRole.data.actions.canUpdate = false;
+                reqRole.data.actions.canDelete = false;
+                promises.push(datasource.request(reqRole));
 
                 Promise.all(promises).then(resolve).catch(reject);
             };

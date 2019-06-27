@@ -150,14 +150,6 @@ function feather(data, spec) {
     model.onValidate(function () {
         let authRoles = [];
 
-        if (
-            !model.data.authorizations().length &&
-            !model.data.isChild() &&
-            !model.data.properties().some(isChild)
-        ) {
-            throw new Error("Feather must have at least one authorization.");
-        }
-
         model.data.authorizations().forEach(function (auth) {
             let role = auth.data.role();
 

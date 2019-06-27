@@ -401,7 +401,7 @@ formPage.viewModel = function (options) {
     // Process feather auths after object authorization fetch
     function postProcess() {
         // Add in feather auths
-        let auths = catalog.getFeather(feather).authorization;
+        let auths = catalog.getFeather(feather).authorizations;
 
         auths.forEach(function (auth) {
             let actions = auth.actions;

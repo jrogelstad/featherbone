@@ -52,6 +52,7 @@
         "module": "Core",
         "inherits": "Layout",
         "description": "Form definitions",
+        "authorizations": [],
         "properties": {
             "focus": {
                 "description": "Attribute that receives first focus",
@@ -199,6 +200,15 @@
         "inherits": "Layout",
         "description": "Relation widget definitions",
         "isFetchOnStartup": true,
+        "authorizations": [{
+            "role": "everyone",
+            "actions": {
+                "canCreate": false,
+                "canRead": true,
+                "canUpdate": false,
+                "canDelete": false
+            }
+        }],
         "properties": {
             "form": {
                 "description": "Form relation",
@@ -251,6 +261,7 @@
         "module": "Core",
         "inherits": "Document",
         "description": "Route to expose post service to REST API",
+        "authorizations": [],
         "properties": {
             "module": {
                 "description": "Module route belongs to",
@@ -276,6 +287,15 @@
         "inherits": "Document",
         "description": "Custom presentation style definition",
         "isFetchOnStartup": true,
+        "authorizations": [{
+            "role": "everyone",
+            "actions": {
+                "canCreate": false,
+                "canRead": true,
+                "canUpdate": false,
+                "canDelete": false
+            }
+        }],
         "properties": {
             "name": {
                 "description": "Style name",
@@ -574,6 +594,15 @@
         "inherits": "Document",
         "description": "Base currency effectivity",
         "isFetchOnStartup": true,
+        "authorizations": [{
+            "role": "everyone",
+            "actions": {
+                "canCreate": false,
+                "canRead": true,
+                "canUpdate": false,
+                "canDelete": false
+            }
+        }],
         "properties": {
             "currency": {
                 "description": "Base currency",

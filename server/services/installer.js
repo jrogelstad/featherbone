@@ -191,8 +191,21 @@
                     // Map feather structure to table structure
                     feathers.forEach(function (feather) {
                         let keys = Object.keys(feather.properties || {});
+                        let auths = feather.authorizations;
                         let props = feather.properties;
                         let overloads = feather.overloads || {};
+
+                        if (auths) {
+                            feather.authorizations = auths.map(function (auth) {
+                                return {
+                                    role: auth.role,
+                                    canCreate: auth.actions.canCreate,
+                                    canRead: auth.actions.canRead,
+                                    canUpdate: auth.actions.canUpdate,
+                                    canDelete: auth.actions.canDelete
+                                };
+                            });
+                        }
 
                         feather.properties = keys.map(function (key) {
                             let prop = props[key];

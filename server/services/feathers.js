@@ -1245,7 +1245,7 @@
             @param {Object | Array} [payload.spec] Feather specification(s).
             @param {String} [payload.spec.name] Name
             @param {String} [payload.spec.description] Description
-            @param {Object | Array | Boolean} [payload.spec.authorization]
+            @param {Object | Array | Boolean} [payload.spec.authorizations]
                  Authorization spec. Defaults to grant all to everyone if
                  undefined. Pass false to grant no auth.
             @param {String} [payload.spec.properties] Feather properties
@@ -2143,8 +2143,8 @@
                         /* If no specific authoriztion this won't work */
                         if (
                             !isChild && !spec.isChild && (
-                                spec.authorization === undefined ||
-                                spec.authorization === null
+                                spec.authorizations === undefined ||
+                                spec.authorizations === null
                             )
                         ) {
                             throw new Error(
@@ -2154,10 +2154,10 @@
 
                         /* Set authorization */
                         if (
-                            Array.isArray(spec.authorization) &&
-                            spec.authorization.length
+                            Array.isArray(spec.authorizations) &&
+                            spec.authorizations.length
                         ) {
-                            spec.authorization.forEach(function (auth) {
+                            spec.authorizations.forEach(function (auth) {
                                 auth.feather = name;
                                 auth.isSilentError = true;
                                 requests.push(that.saveAuthorization({
