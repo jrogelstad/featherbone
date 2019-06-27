@@ -1,73 +1,73 @@
 <!doctype html>
-  <head>
+    <head>
     <title id="fb-title">Featherbone</title>
-    <link rel="icon" href="featherbone.png" title="quill by Gregor Cresnar from the Noun Project"
-    <a title="Balthazarn [CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0)], from Wikimedia Commons"
-       href="https://commons.wikimedia.org/wiki/File:Plume.svg">
-    </a>
-    <link rel="stylesheet" href="/node_modules/purecss/build/pure-min.css">
-    <link rel="stylesheet" href="/node_modules/purecss/build/grids-responsive-min.css">
-    <link rel="stylesheet" href="/css/featherbone.css">
-    <link rel="stylesheet" href="/node_modules/@fortawesome/fontawesome-free/css/all.css">
-    <link rel="stylesheet" type="text/css" href="/node_modules/dialog-polyfill/dialog-polyfill.css" />
-    <link rel="stylesheet" href="/node_modules/codemirror/lib/codemirror.css">
-    <link rel="stylesheet" href="/node_modules/codemirror/theme/neat.css">
-    <link rel="stylesheet" href="/node_modules/codemirror/addon/lint/lint.css">
-    <link rel="stylesheet" href="/node_modules/typeface-raleway/index.css">
-  </head>
-<html><body></body></html>
-<script src="/common/string.js"></script>
-<script src="/common/date.js"></script>
-<script src="/node_modules/event-source-polyfill/src/eventsource.js"></script>
-<script src="/node_modules/dialog-polyfill/dialog-polyfill.js"></script>
-<script src="/node_modules/mithril/mithril.js"></script>
-<script src="/node_modules/qs/dist/qs.js"></script>
-<script src="/node_modules/fast-json-patch/dist/fast-json-patch.js"></script>
-<script src="/node_modules/codemirror/lib/codemirror.js"></script>
-<script src="/node_modules/codemirror/mode/javascript/javascript.js"></script>
-<script src="/node_modules/codemirror/mode/css/css.js"></script>
-<script src="/node_modules/codemirror/addon/lint/lint.js"></script>
-<script src="/client/javascript-lint.js" type="module"</script>
-<script src="/node_modules/codemirror/addon/lint/css-lint.js"></script>
-<script src="/common/core.js"></script>
-<script src="/common/number.mjs" type="module"></script>
-<script src="/client/models/catalog.js" type="module"></script>
-<script src="/client/models/model.js" type="module"></script>
-<script src="/client/models/feather.js" type="module"></script>
-<script src="/client/models/feather-property.js" type="module"></script>
-<script src="/client/models/feather-overload.js" type="module"></script>
-<script src="/client/models/form.js" type="module"></script>
-<script src="/client/models/form-attr.js" type="module"></script>
-<script src="/client/models/form-attr-column.js" type="module"></script>
-<script src="/client/models/contact.js" type="module"></script>
-<script src="/client/models/currency.js" type="module"></script>
-<script src="/client/models/currency-conversion.js" type="module"></script>
-<script src="/client/models/currency-unit.js" type="module"></script>
-<script src="/client/models/data-service.js" type="module"></script>
-<script src="/client/models/module.js" type="module"></script>
-<script src="/client/models/role.js" type="module"></script>
-<script src="/client/models/role-membership.js" type="module"></script>
-<script src="/client/models/route.js" type="module"></script>
-<script src="/client/models/script.js" type="module"></script>
-<script src="/client/models/style.js" type="module"></script>
-<script src="/client/models/user-account.js" type="module"></script>
-<script src="/client/models/workbook.js" type="module"></script>
-<script src="/client/models/data-list-option.js" type="module"></script>
-<script src="/client/models/document.js" type="module"></script>
-<script src="/client/components/relation-widget.js" type="module"></script>
-<script src="/client/components/address-relation.js" type="module"></script>
-<script src="/client/components/autonumber.js" type="module"></script>
-<script src="/client/components/button.js" type="module"></script>
-<script src="/client/components/checkbox.js" type="module"></script>
-<script src="/client/components/child-form-page.js" type="module"></script>
-<script src="/client/components/child-table.js" type="module"></script>
-<script src="/client/components/contact-relation.js" type="module"></script>
-<script src="/client/components/dialog.js" type="module"></script>
-<script src="/client/components/form-dialog.js" type="module"></script>
-<script src="/client/components/form-widget.js" type="module"></script>
-<script src="/client/components/money-relation.js" type="module"></script>
-<script src="/client/components/data-list.js" type="module"></script>
-<script src="/client/components/data-type.js" type="module"></script>
-<script src="/client/main.js" type="module"></script>
-
-
+        <link rel="icon" href="featherbone.png" title="quill by Gregor Cresnar from the Noun Project">
+        <!--
+            title="Balthazarn [CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0)], from Wikimedia Commons"
+            href="https://commons.wikimedia.org/wiki/File:Plume.svg">
+        -->
+        <link rel="stylesheet" href="/node_modules/purecss/build/pure-min.css">
+        <link rel="stylesheet" href="/node_modules/purecss/build/grids-responsive-min.css">
+        <link rel="stylesheet" href="/css/featherbone.css">
+        <link rel="stylesheet" href="/node_modules/@fortawesome/fontawesome-free/css/all.css">
+        <link rel="stylesheet" type="text/css" href="/node_modules/dialog-polyfill/dialog-polyfill.css">
+        <link rel="stylesheet" href="/node_modules/codemirror/lib/codemirror.css">
+        <link rel="stylesheet" href="/node_modules/codemirror/theme/neat.css">
+        <link rel="stylesheet" href="/node_modules/codemirror/addon/lint/lint.css">
+        <link rel="stylesheet" href="/node_modules/typeface-raleway/index.css">
+    </head>
+    <body>
+        <script src="/common/string.js"></script>
+        <script src="/common/date.js"></script>
+        <script src="/node_modules/event-source-polyfill/src/eventsource.js"></script>
+        <script src="/node_modules/dialog-polyfill/dialog-polyfill.js"></script>
+        <script src="/node_modules/mithril/mithril.js"></script>
+        <script src="/node_modules/qs/dist/qs.js"></script>
+        <script src="/node_modules/fast-json-patch/dist/fast-json-patch.js"></script>
+        <script src="/node_modules/codemirror/lib/codemirror.js"></script>
+        <script src="/node_modules/codemirror/mode/javascript/javascript.js"></script>
+        <script src="/node_modules/codemirror/mode/css/css.js"></script>
+        <script src="/node_modules/codemirror/addon/lint/lint.js"></script>
+        <script src="/client/javascript-lint.js" type="module"></script>
+        <script src="/node_modules/codemirror/addon/lint/css-lint.js"></script>
+        <script src="/common/core.js"></script>
+        <script src="/common/number.mjs" type="module"></script>
+        <script src="/client/models/catalog.js" type="module"></script>
+        <script src="/client/models/model.js" type="module"></script>
+        <script src="/client/models/feather.js" type="module"></script>
+        <script src="/client/models/feather-property.js" type="module"></script>
+        <script src="/client/models/feather-overload.js" type="module"></script>
+        <script src="/client/models/form.js" type="module"></script>
+        <script src="/client/models/form-attr.js" type="module"></script>
+        <script src="/client/models/form-attr-column.js" type="module"></script>
+        <script src="/client/models/contact.js" type="module"></script>
+        <script src="/client/models/currency.js" type="module"></script>
+        <script src="/client/models/currency-conversion.js" type="module"></script>
+        <script src="/client/models/currency-unit.js" type="module"></script>
+        <script src="/client/models/data-service.js" type="module"></script>
+        <script src="/client/models/module.js" type="module"></script>
+        <script src="/client/models/role.js" type="module"></script>
+        <script src="/client/models/role-membership.js" type="module"></script>
+        <script src="/client/models/route.js" type="module"></script>
+        <script src="/client/models/script.js" type="module"></script>
+        <script src="/client/models/style.js" type="module"></script>
+        <script src="/client/models/user-account.js" type="module"></script>
+        <script src="/client/models/workbook.js" type="module"></script>
+        <script src="/client/models/data-list-option.js" type="module"></script>
+        <script src="/client/models/document.js" type="module"></script>
+        <script src="/client/components/relation-widget.js" type="module"></script>
+        <script src="/client/components/address-relation.js" type="module"></script>
+        <script src="/client/components/autonumber.js" type="module"></script>
+        <script src="/client/components/button.js" type="module"></script>
+        <script src="/client/components/checkbox.js" type="module"></script>
+        <script src="/client/components/child-form-page.js" type="module"></script>
+        <script src="/client/components/child-table.js" type="module"></script>
+        <script src="/client/components/contact-relation.js" type="module"></script>
+        <script src="/client/components/dialog.js" type="module"></script>
+        <script src="/client/components/form-dialog.js" type="module"></script>
+        <script src="/client/components/form-widget.js" type="module"></script>
+        <script src="/client/components/money-relation.js" type="module"></script>
+        <script src="/client/components/data-list.js" type="module"></script>
+        <script src="/client/components/data-type.js" type="module"></script>
+        <script src="/client/main.js" type="module"></script>
+    </body>
