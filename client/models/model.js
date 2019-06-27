@@ -19,11 +19,12 @@
 /**
     @module Model
 */
-import f from "../core.js";
+import createProperty from "../property.js";
 import datasource from "../datasource.js";
 import catalog from "./catalog.js";
 import State from "../state.js";
 
+const f = window.f;
 const jsonpatch = window.jsonpatch;
 const Qs = window.Qs;
 
@@ -137,7 +138,7 @@ function extendArray(model, prop, name, onChange, onChanged) {
         return result;
     };
 
-    ary.canAdd = f.prop(true);
+    ary.canAdd = createProperty(true);
 
     ary.clear = function () {
         prop.state().send("change");
@@ -468,17 +469,17 @@ function createModel(data, feather) {
         let fn = options.function;
 
         fn.isCalculated = true;
-        fn.isChild = f.prop(false);
-        fn.isParent = f.prop(false);
+        fn.isChild = createProperty(false);
+        fn.isParent = createProperty(false);
         fn.key = options.name;
         fn.description = options.description || "";
         fn.type = options.type || "string";
         fn.format = options.format;
-        fn.isRequired = f.prop(false);
-        fn.isReadOnly = f.prop(options.isReadOnly || false);
+        fn.isRequired = createProperty(false);
+        fn.isReadOnly = createProperty(options.isReadOnly || false);
         fn.isToMany = isToMany.bind(null, fn);
         fn.isToOne = isToOne.bind(null, fn);
-        fn.style = f.prop(options.style || "");
+        fn.style = createProperty(options.style || "");
         d[options.name] = fn;
 
         return this;
@@ -649,7 +650,7 @@ function createModel(data, feather) {
         @param {String} property Id property
         @return {String}
     */
-    model.idProperty = f.prop("id");
+    model.idProperty = createProperty("id");
 
     /**
         Indicates if model is in  a frozen state.
@@ -677,7 +678,7 @@ function createModel(data, feather) {
         @param {Boolean} isReadyOnly Read only flag
         @return {Boolean}
     */
-    model.isReadOnly = f.prop(feather.isReadOnly === true);
+    model.isReadOnly = createProperty(feather.isReadOnly === true);
 
     /**
         Returns whether the object is in a valid state to save.
@@ -1001,7 +1002,7 @@ function createModel(data, feather) {
         @method parent
         @return {Object}
     */
-    model.parent = f.prop();
+    model.parent = createProperty();
 
     /**
         Returns a path to execute server requests.
@@ -1135,7 +1136,7 @@ function createModel(data, feather) {
         @param {String} style Style name
         @return {String}
     */
-    model.style = f.prop("");
+    model.style = createProperty("");
 
     /**
         Subscribe or unsubscribe model to external events. If no flag
@@ -1611,7 +1612,7 @@ function createModel(data, feather) {
                     }
 
                     // Create property
-                    prop = f.prop(value, formatter);
+                    prop = createProperty(value, formatter);
 
                     // Define format for to-many
                 } else if (isToMany(p)) {
@@ -1641,7 +1642,7 @@ function createModel(data, feather) {
                     };
 
                     // Create property
-                    prop = f.prop(cArray, formatter);
+                    prop = createProperty(cArray, formatter);
                     extendArray(model, prop, name, onChange, onChanged);
                     prop(value);
                 }
@@ -1690,7 +1691,7 @@ function createModel(data, feather) {
                 }
 
                 // Create property
-                prop = f.prop(value, formatter);
+                prop = createProperty(value, formatter);
             }
 
             // Carry other property definitions forward
@@ -1709,7 +1710,7 @@ function createModel(data, feather) {
             prop.dataList = overload.dataList || p.dataList;
             prop.min = min;
             prop.max = max;
-            prop.style = f.prop("");
+            prop.style = createProperty("");
 
             // Add state to map for event helper functions
             stateMap[key] = prop.state();
@@ -1751,9 +1752,9 @@ function createModel(data, feather) {
                 this.event("delete", function () {
                     this.goto("/Deleted");
                 });
-                this.canDelete = f.prop(true);
+                this.canDelete = createProperty(true);
                 this.canSave = model.isValid;
-                this.canUndo = f.prop(false);
+                this.canUndo = createProperty(false);
             });
 
             this.state("Fetched", function () {
@@ -1784,9 +1785,9 @@ function createModel(data, feather) {
                             context: lock
                         });
                     });
-                    this.canDelete = f.prop(true);
-                    this.canSave = f.prop(false);
-                    this.canUndo = f.prop(false);
+                    this.canDelete = createProperty(true);
+                    this.canSave = createProperty(false);
+                    this.canUndo = createProperty(false);
                 });
                 this.state("ReadOnly", function () {
                     this.enter(function () {
@@ -1797,9 +1798,9 @@ function createModel(data, feather) {
                         model.isReadOnly(false);
                         doThaw();
                     });
-                    this.canDelete = f.prop(false);
-                    this.canSave = f.prop(false);
-                    this.canUndo = f.prop(false);
+                    this.canDelete = createProperty(false);
+                    this.canSave = createProperty(false);
+                    this.canUndo = createProperty(false);
                 });
 
                 this.state("Locking", function () {
@@ -1815,9 +1816,9 @@ function createModel(data, feather) {
                         }
                         this.goto("../Dirty");
                     });
-                    this.canDelete = f.prop(false);
-                    this.canSave = f.prop(false);
-                    this.canUndo = f.prop(true);
+                    this.canDelete = createProperty(false);
+                    this.canSave = createProperty(false);
+                    this.canUndo = createProperty(true);
                 });
 
                 this.state("Unlocking", function () {
@@ -1825,9 +1826,9 @@ function createModel(data, feather) {
                     this.event("unlocked", function () {
                         this.goto("../Clean");
                     });
-                    this.canDelete = f.prop(false);
-                    this.canSave = f.prop(false);
-                    this.canUndo = f.prop(false);
+                    this.canDelete = createProperty(false);
+                    this.canSave = createProperty(false);
+                    this.canUndo = createProperty(false);
                 });
 
                 this.state("Dirty", function () {
@@ -1840,9 +1841,9 @@ function createModel(data, feather) {
                             context: context
                         });
                     });
-                    this.canDelete = f.prop(false);
+                    this.canDelete = createProperty(false);
                     this.canSave = model.isValid;
-                    this.canUndo = f.prop(true);
+                    this.canUndo = createProperty(true);
                 });
             });
         });
@@ -1850,9 +1851,9 @@ function createModel(data, feather) {
         this.state("Busy", function () {
             this.state("Fetching", function () {
                 this.enter(doFetch);
-                this.canDelete = f.prop(false);
-                this.canSave = f.prop(false);
-                this.canUndo = f.prop(false);
+                this.canDelete = createProperty(false);
+                this.canSave = createProperty(false);
+                this.canUndo = createProperty(false);
                 this.event("fetched", function () {
                     this.goto("/Ready/Fetched");
                 });
@@ -1863,19 +1864,19 @@ function createModel(data, feather) {
                 });
                 this.state("Posting", function () {
                     this.enter(doPost);
-                    this.canDelete = f.prop(false);
-                    this.canSave = f.prop(false);
-                    this.canUndo = f.prop(false);
+                    this.canDelete = createProperty(false);
+                    this.canSave = createProperty(false);
+                    this.canUndo = createProperty(false);
                 });
                 this.state("Patching", function () {
                     this.enter(doPatch);
-                    this.canDelete = f.prop(false);
-                    this.canSave = f.prop(false);
-                    this.canUndo = f.prop(false);
+                    this.canDelete = createProperty(false);
+                    this.canSave = createProperty(false);
+                    this.canUndo = createProperty(false);
                 });
-                this.canDelete = f.prop(false);
-                this.canSave = f.prop(false);
-                this.canUndo = f.prop(false);
+                this.canDelete = createProperty(false);
+                this.canSave = createProperty(false);
+                this.canUndo = createProperty(false);
             });
             this.state("Deleting", function () {
                 this.enter(doDelete);
@@ -1883,9 +1884,9 @@ function createModel(data, feather) {
                 this.event("deleted", function () {
                     this.goto("/Deleted");
                 });
-                this.canDelete = f.prop(false);
-                this.canSave = f.prop(false);
-                this.canUndo = f.prop(false);
+                this.canDelete = createProperty(false);
+                this.canSave = createProperty(false);
+                this.canUndo = createProperty(false);
             });
             this.event("error", function () {
                 this.goto("/Ready", {
@@ -1910,9 +1911,9 @@ function createModel(data, feather) {
                 this.goto("/Ready");
             });
 
-            this.canDelete = f.prop(false);
-            this.canSave = f.prop(false);
-            this.canUndo = f.prop(false);
+            this.canDelete = createProperty(false);
+            this.canSave = createProperty(false);
+            this.canUndo = createProperty(false);
         });
 
         this.state("Delete", function () {
@@ -1932,18 +1933,18 @@ function createModel(data, feather) {
                 doThaw();
                 this.goto("/Ready");
             });
-            this.canDelete = f.prop(false);
-            this.canSave = f.prop(false);
-            this.canUndo = f.prop(true);
+            this.canDelete = createProperty(false);
+            this.canSave = createProperty(false);
+            this.canUndo = createProperty(true);
         });
 
         this.state("Deleted", function () {
             this.event("clear", function () {
                 this.goto("/Ready/New");
             });
-            this.canDelete = f.prop(false);
-            this.canSave = f.prop(false);
-            this.canUndo = f.prop(false);
+            this.canDelete = createProperty(false);
+            this.canSave = createProperty(false);
+            this.canUndo = createProperty(false);
         });
 
         this.state("Deleting", function () {
@@ -1952,9 +1953,9 @@ function createModel(data, feather) {
             this.event("deleted", function () {
                 this.goto("/Deleted");
             });
-            this.canDelete = f.prop(false);
-            this.canSave = f.prop(false);
-            this.canUndo = f.prop(false);
+            this.canDelete = createProperty(false);
+            this.canSave = createProperty(false);
+            this.canUndo = createProperty(false);
         });
     });
 
@@ -2006,6 +2007,6 @@ function createModel(data, feather) {
 
 }
 
-createModel.static = f.prop({});
+createModel.static = createProperty({});
 
 export default Object.freeze(createModel);
