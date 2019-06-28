@@ -201,11 +201,14 @@ button.viewModel = function (options) {
     */
     vm.onkeydown = function (e) {
         let id;
+        let b;
 
         if (e.altKey && e.which === vm.hotKey()) {
             id = vm.id();
+            b = document.getElementById(id);
+            b.focus();
+            b.click();
             e.preventDefault();
-            document.getElementById(id).click();
         }
     };
     /**
