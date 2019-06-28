@@ -96,12 +96,6 @@ function feather(data, spec) {
         handleReadOnlyProps();
     }
 
-    function isChild(p) {
-        let type = p.data.type();
-
-        return typeof type === "object" && type.childOf;
-    }
-
     function sanitize(prop) {
         let value = prop.newValue();
 
