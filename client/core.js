@@ -1567,6 +1567,7 @@ appState = State.define(function () {
                 method: "POST",
                 path: "/sign-out"
             });
+            location.reload();
         });
     });
     this.state("Authenticating", function () {
