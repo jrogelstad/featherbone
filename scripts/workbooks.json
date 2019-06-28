@@ -3,6 +3,7 @@
         "module": "Core",
         "description": "Setup definitions",
         "icon": "drafting-compass",
+        "authorizations": [],
         "defaultConfig": [{
                 "name": "Modules",
                 "feather": "Module",
@@ -202,6 +203,7 @@
         "module": "Core",
         "description": "Application administration",
         "icon": "tools",
+        "authorizations": [],
         "defaultConfig": [{
                 "name": "UserAccounts",
                 "feather": "UserAccount",
