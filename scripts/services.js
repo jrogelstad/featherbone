@@ -118,36 +118,38 @@ function doUpsertFeather(obj) {
         });
 
         // On insert assign authorization to everyone if none specified
-        if (!obj.oldRec && obj.newRec.authorizations === undefined) {
-            obj.newRec.authorizations = obj.newRec.authorizations || [];
-            if (
-                !obj.newRec.authorizations.length &&
-                !obj.newRec.properties.some(isChild) &&
-                !obj.newRec.isChild
-            ) {
-                obj.newRec.authorizations = defaultAuth;
-                feather.authorizations = [{
-                    role: "everyone",
-                    actions: {
-                        canCreate: true,
-                        canRead: true,
-                        canUpdate: true,
-                        canDelete: true
-                    }
-                }];
-            } else if (obj.newRec.authorizations.length) {
-                feather.authorizations = [];
+        if (!obj.oldRec) {
+            if (obj.newRec.authorizations === undefined) {
+                obj.newRec.authorizations = [];
+                if (
+                    !obj.newRec.properties.some(isChild) &&
+                    !obj.newRec.isChild
+                ) {
+                    obj.newRec.authorizations = defaultAuth;
+                    feather.authorizations = [{
+                        role: "everyone",
+                        actions: {
+                            canCreate: true,
+                            canRead: true,
+                            canUpdate: true,
+                            canDelete: true
+                        }
+                    }];
+                }
+            } else {
                 obj.newRec.authorizations.forEach(function (auth) {
-                    feather.authorizations.push({
+                    auths.push({
                         role: auth.role,
                         actions: {
-                            canCreate: auth.canCreate,
-                            canRead: auth.canRead,
-                            canUpdate: auth.canUpdate,
-                            canDelete: auth.canDelete
+                            canCreate: Boolean(auth.canCreate),
+                            canRead: Boolean(auth.canRead),
+                            canUpdate: Boolean(auth.canUpdate),
+                            canDelete: Boolean(auth.canDelete)
                         }
                     });
                 });
+
+                feather.authorizations = auths;
             }
         // Handle authorization changes on update
         } else if (obj.oldRec) {
