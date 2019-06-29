@@ -1213,7 +1213,8 @@
 
         /**
             Create or update a persistence class. This function is idempotent.
-            Subsequent saves will automatically drop properties no longer present.
+            Subsequent saves will automatically drop properties no longer
+            present.
 
             Example payload:
             {
