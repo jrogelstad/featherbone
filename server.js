@@ -788,7 +788,7 @@
         return authenticate(req, res, next);
     }
 
-    function doSignOut(req) {
+    function doSignOut(req, res) {
         // Notify all instances on same session
         Object.keys(eventSessions).forEach(function (key) {
             if (eventSessions[key].sessionID === req.sessionID) {
@@ -805,6 +805,7 @@
         });
         req.logout();
         req.session.destroy();
+        res.status(200).send();
     }
 
     function doGetProfile(req, res) {
