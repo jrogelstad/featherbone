@@ -60,8 +60,8 @@
 
         /**
             Subscribe to changes against objects with matching ids. If merge is
-            true then previous subscription objects continue to listen, otherwise
-            previous subscription unsubscribed to.
+            true then previous subscription objects continue to listen,
+            otherwise previous subscription unsubscribed to.
 
             @method subscribe
             @param {Object} Database client connection
