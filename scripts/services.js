@@ -606,10 +606,7 @@ function doCreateDocument(obj) {
             payload = {
                 method: "GET",
                 name: "isSuperUser",
-                client: obj.client,
-                data: {
-                    user: obj.client.currentUser()
-                }
+                client: obj.client
             };
 
             f.datasource.request(payload).then(callback).catch(reject);
@@ -646,10 +643,7 @@ function doUpdateDocument(obj) {
             payload = {
                 method: "GET",
                 name: "isSuperUser",
-                client: obj.client,
-                data: {
-                    user: obj.client.currentUser()
-                }
+                client: obj.client
             };
 
             f.datasource.request(payload).then(callback).catch(reject);
@@ -878,10 +872,7 @@ function updateRole(obj) {
         let superPayload = {
             method: "GET",
             name: "isSuperUser",
-            client: obj.client,
-            data: {
-                user: obj.client.currentUser()
-            }
+            client: obj.client
         };
 
         if (obj.oldRec.name !== obj.newRec.name) {
@@ -981,10 +972,7 @@ function createRole(obj) {
         let superPayload = {
             method: "GET",
             name: "isSuperUser",
-            client: obj.client,
-            data: {
-                user: obj.client.currentUser()
-            }
+            client: obj.client
         };
         let rolePayload = {
             method: "POST",
