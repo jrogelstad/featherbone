@@ -1566,7 +1566,7 @@ appState = State.define(function () {
             datasource.request({
                 method: "POST",
                 path: "/sign-out"
-            }).then(location.reload)
+            }).then(() => location.reload());
         });
     });
     this.state("Authenticating", function () {
