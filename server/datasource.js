@@ -1088,7 +1088,11 @@
                                 // Update children in array
                                 n = 0;
                                 oldRec[key].forEach(function (oldChild) {
-                                    overlay(newRec[key][n], oldChild);
+                                    if (newRec[key][n] !== undefined) {
+                                        overlay(newRec[key][n], oldChild);
+                                    } else {
+                                        newRec[key][n] = null;
+                                    }
                                     n += 1;
                                 });
                             } else if (newRec[key] === undefined) {

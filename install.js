@@ -48,6 +48,7 @@
                 user = config.postgres.user;
                 db.connect().then(function (resp) {
                     client = resp.client;
+                    client.currentUser = () => user;
                     resolve();
                 }).catch(reject);
             }
@@ -130,7 +131,7 @@
     }
 
     function install() {
-        return installer.install(datasource, client, dir, user);
+        return installer.install(datasource, client, dir, user, true);
     }
 
     function done() {

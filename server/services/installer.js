@@ -46,15 +46,17 @@
         let that = {};
 
         /**
-          Install a package in a specified directory.
+            Install a package in a specified directory.
 
-          @param {Object} Initialized datasource (catalog loaded)
-          @param {Object} Client
-          @param {String} Directory of manifest
-          @param {String} User name
-          @return {Object} Promise
+            @method install
+            @param {Object} Initialized datasource (catalog loaded)
+            @param {Object} Client
+            @param {String} Directory of manifest
+            @param {String} User name
+            @param {Boolean} isSuper Force as super user
+            @return {Object} Promise
         */
-        that.install = function (datasource, client, dir, user) {
+        that.install = function (datasource, client, dir, user, isSuper) {
             return new Promise(function (resolve, reject) {
                 let manifest;
                 let processFile;
@@ -109,7 +111,7 @@
                             client: client
                         };
 
-                        datasource.request(payload).then(
+                        datasource.request(payload, true).then(
                             after
                         ).catch(
                             rollback
@@ -125,7 +127,7 @@
                             payload.user = user;
                             payload.client = client;
                             b += 1;
-                            datasource.request(payload).then(
+                            datasource.request(payload, true).then(
                                 nextItem
                             ).catch(rollback);
                             return;
@@ -182,7 +184,7 @@
                             }
                         };
 
-                        datasource.request(payload).then(
+                        datasource.request(payload, true).then(
                             processFile
                         ).catch(rollback);
                         return;
@@ -306,7 +308,7 @@
                         }
                     };
 
-                    datasource.request(payload).then(
+                    datasource.request(payload, true).then(
                         processFile
                     ).catch(rollback);
                 }
@@ -468,14 +470,34 @@
                     });
                 };
 
-                fs.readFile(filename, "utf8", function (err, data) {
-                    if (err) {
-                        reject(err);
+                function doInstall(resp) {
+                    if (!resp) {
+                        throw new Error(
+                            "You must have superuser priviliges to " +
+                            "perform installations."
+                        );
                     }
 
-                    manifest = JSON.parse(data);
-                    client.query("BEGIN;").then(processFile);
-                });
+                    fs.readFile(filename, "utf8", function (err, data) {
+                        if (err) {
+                            reject(err);
+                        }
+
+                        manifest = JSON.parse(data);
+                        client.query("BEGIN;").then(processFile);
+                    });
+                }
+
+                if (isSuper) {
+                    doInstall(true);
+                    return;
+                }
+
+                f.datasource.request({
+                    method: "GET",
+                    name: "isSuperUser",
+                    client: client
+                }).then(doInstall).catch(reject);
             });
         };
 
@@ -590,7 +612,7 @@
                                     data: {
                                         name: found.pop().name
                                     }
-                                }).then(deleteFeather).catch(reject);
+                                }, true).then(deleteFeather).catch(reject);
                                 return;
                             }
 
@@ -613,7 +635,19 @@
                     }).catch(reject);
                 }
 
-                client.query(sql, [name]).then(callback).catch(reject);
+                f.datasource.request({
+                    method: "GET",
+                    name: "isSuperUser",
+                    client: client
+                }).then(function (isSuperUser) {
+                    if (!isSuperUser) {
+                        throw new Error(
+                            "You must have superuser priviliges to " +
+                            "uninstall packages."
+                        );
+                    }
+                    client.query(sql, [name]).then(callback).catch(reject);
+                }).catch(reject);
             });
         };
 
