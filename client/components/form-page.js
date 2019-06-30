@@ -16,16 +16,13 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/**
+    @module FormPage
+*/
 import f from "../core.js";
-import button from "./button.js";
-import catalog from "../models/catalog.js";
-import formWidget from "./form-widget.js";
-import dialog from "./dialog.js";
-import model from "../models/model.js";
-import datasource from "../datasource.js";
-import list from "../models/list.js";
-import tableWidget from "./table-widget.js";
 
+const catalog = f.catalog();
+const datasource = f.datasource();
 const authTable = {};
 const formPage = {};
 const m = window.m;
@@ -104,9 +101,103 @@ function resolveAction(value) {
     return value;
 }
 
-// Model for handling object authorization
+/**
+    Model for handling object authorization
+    @class ObjectAuthorization
+    @namespace Models
+    @static
+    @extends Model
+*/
+/**
+    Role name.
+
+    __Type:__ `String`
+
+    @property data.role
+    @type Property
+*/
+/**
+    Editor for can read feather.
+
+    __Type:__ `Boolean`
+
+    @property data.editorCanRead
+    @type Property
+*/
+/**
+    Editor for can update feather.
+
+    __Type:__ `Boolean`
+
+    @property data.editorCanUpdate
+    @type Property
+*/
+/**
+    Editor for can delete feather.
+
+    __Type:__ `Boolean`
+
+    @property data.editorCanDelete
+    @type Property
+*/
+/**
+    Role can read object.
+
+    __Type:__ `String`
+
+    @property data.canRead
+    @type Property
+*/
+/**
+    Role can update object.
+
+    __Type:__ `String`
+
+    @property data.canUpdate
+    @type Property
+*/
+/**
+    Role can delete object.
+
+    __Type:__ `String`
+
+    @property data.canDelete
+    @type Property
+*/
+/**
+    Has feather authorization.
+
+    __Type:__ `Boolean`
+
+    @property data.hasFeatherAuth
+    @type Property
+*/
+/**
+    Role can read feather.
+
+    __Type:__ `Boolean`
+
+    @property data.featherCanRead
+    @type Property
+*/
+/**
+    Role can update feather.
+
+    __Type:__ `Boolean`
+
+    @property data.featherCanUpdate
+    @type Property
+*/
+/**
+    Role can read feather.
+
+    __Type:__ `Boolean`
+
+    @property data.featherCanDelete
+    @type Property
+*/
 function authModel(data) {
-    let that = model(data, authFeather);
+    let that = f.createModel(data, authFeather);
     let d = that.data;
     let state;
 
@@ -253,7 +344,7 @@ authTable.viewModel = function (options) {
     vm.tableWidget = f.prop();
 
     // Create table widget view model
-    vm.tableWidget(tableWidget.viewModel({
+    vm.tableWidget(f.createViewModel("TableWidget", {
         models: options.models,
         config: {
             columns: [{
@@ -279,7 +370,7 @@ authTable.viewModel = function (options) {
     vm.tableWidget().isQuery(false);
 
     // Create button view models
-    vm.buttonAdd(button.viewModel({
+    vm.buttonAdd(f.createViewModel("Button", {
         onclick: vm.tableWidget().modelNew,
         title: "Insert",
         hotkey: "I",
@@ -290,7 +381,7 @@ authTable.viewModel = function (options) {
         }
     }));
 
-    vm.buttonRemove(button.viewModel({
+    vm.buttonRemove(f.createViewModel("Button", {
         onclick: vm.tableWidget().modelDelete,
         title: "Delete",
         hotkey: "D",
@@ -302,7 +393,7 @@ authTable.viewModel = function (options) {
     }));
     vm.buttonRemove().disable();
 
-    vm.buttonUndo(button.viewModel({
+    vm.buttonUndo(f.createViewModel("Button", {
         onclick: vm.tableWidget().undo,
         title: "Undo",
         hotkey: "U",
@@ -340,23 +431,31 @@ authTable.component = {
     },
 
     view: function () {
+        let btn = f.getComponent("Button");
+        let tw = f.getComponent("TableWidget");
+
         return m("div", [
-            m(button.component, {
+            m(btn, {
                 viewModel: this.viewModel.buttonAdd()
             }),
-            m(button.component, {
+            m(btn, {
                 viewModel: this.viewModel.buttonRemove()
             }),
-            m(button.component, {
+            m(btn, {
                 viewModel: this.viewModel.buttonUndo()
             }),
-            m(tableWidget.component, {
+            m(tw, {
                 viewModel: this.viewModel.tableWidget()
             })
         ]);
     }
 };
 
+/**
+    @class FormPage
+    @namespace ViewModels
+    @constructor
+*/
 formPage.viewModel = function (options) {
     // Handle options where opened as a new window
     if (window.options) {
@@ -379,9 +478,9 @@ formPage.viewModel = function (options) {
     let vm = {};
     let pageIdx = options.index || 1;
     let isNew = options.create && options.isNew !== false;
-    let authorizations = list("ObjectAuthorization")({fetch: false});
-    authorizations().checkUpdate = false;
-    let authViewModel = authTable.viewModel({models: authorizations()});
+    let authorizations = f.createList("ObjectAuthorization", {fetch: false});
+    authorizations.checkUpdate = false;
+    let authViewModel = authTable.viewModel({models: authorizations});
 
     // Helper function to pass back data to sending model
     function callReceiver() {
@@ -405,7 +504,7 @@ formPage.viewModel = function (options) {
 
         auths.forEach(function (auth) {
             let actions = auth.actions;
-            let found = authorizations().find(function (a) {
+            let found = authorizations.find(function (a) {
                 return a.data.role() === auth.role;
             });
 
@@ -430,13 +529,13 @@ formPage.viewModel = function (options) {
                     featherCanUpdate: actions.canUpdate,
                     featherCanDelete: actions.canDelete
                 });
-                authorizations().add(found);
+                authorizations.add(found);
             }
             found.state().goto("/Ready/Fetched/Clean");
         });
 
         // Sort
-        authorizations().sort(function (a, b) {
+        authorizations.sort(function (a, b) {
             if (a.data.role() < b.data.role()) {
                 return -1;
             }
@@ -455,12 +554,42 @@ formPage.viewModel = function (options) {
     // PUBLIC
     //
 
+    /**
+        @method buttonApply
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonApply = f.prop();
+    /**
+        @method buttonAuth
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonAuth = f.prop();
+    /**
+        @method buttonBack
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonBack = f.prop();
+    /**
+        @method buttonSave
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonSave = f.prop();
+    /**
+        @method buttonSaveAndNew
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonSaveAndNew = f.prop();
-    vm.confirmDialog = f.prop(dialog.viewModel({
+    /**
+        @method confirmDialog
+        @param {ViewModels.Dialog} dialog
+        @return {ViewModels.Dialog}
+    */
+    vm.confirmDialog = f.prop(f.createViewModel("Dialog", {
         icon: "question-circle",
         title: "Confirm close",
         message: ("You will lose changes you have made. Are you sure?"),
@@ -469,11 +598,17 @@ formPage.viewModel = function (options) {
             vm.doBack(true);
         }
     }));
+    /**
+        @method doApply
+    */
     vm.doApply = function () {
         vm.model().save().then(function () {
             callReceiver(false);
         });
     };
+    /**
+        @method doBack
+    */
     vm.doBack = function (force) {
         let instance = vm.model();
         let current = instance.state().current()[0];
@@ -505,6 +640,9 @@ formPage.viewModel = function (options) {
 
         window.history.go(pageIdx * -1);
     };
+    /**
+        @method doNew
+    */
     vm.doNew = function () {
         let opts = {
             feather: options.feather,
@@ -520,12 +658,18 @@ formPage.viewModel = function (options) {
         };
         m.route.set("/edit/:feather/:key", opts, state);
     };
+    /**
+        @method doSave
+    */
     vm.doSave = function () {
         vm.model().save().then(function () {
             callReceiver();
             vm.doBack();
         });
     };
+    /**
+        @method doSaveAndNew
+    */
     vm.doSaveAndNew = function () {
         vm.model().save().then(function () {
             callReceiver();
@@ -533,14 +677,19 @@ formPage.viewModel = function (options) {
             vm.doNew();
         });
     };
-    vm.editAuthDialog = f.prop(dialog.viewModel({
+    /**
+        @method editAuthDialog
+        @param {ViewModels.Dialog} dialog
+        @return {ViewModels.Dialog}
+    */
+    vm.editAuthDialog = f.prop(f.createViewModel("Dialog", {
         icon: "key",
         title: "Edit Authorizations",
         onOk: function () {
             let id = vm.model().id();
 
-            authorizations().forEach((a) => a.objectId(id));
-            authorizations().save();
+            authorizations.forEach((a) => a.objectId(id));
+            authorizations.save();
         }
     }));
     vm.editAuthDialog().content = function () {
@@ -548,19 +697,38 @@ formPage.viewModel = function (options) {
     };
     vm.editAuthDialog().style().width = "575px";
     vm.editAuthDialog().state().resolve("/Display/Showing").enter(function () {
-        authorizations().fetch({
+        authorizations.fetch({
             criteria: [{
                 property: "id",
                 value: vm.model().id()
             }]
         }, false).then(postProcess);
     });
+    /**
+        @method formWidget
+        @param {ViewModels.FormWidget} widget
+        @return {ViewModels.FormWidget}
+    */
     vm.formWidget = f.prop();
+    /**
+        @method isNew
+        @param {Boolean} flag
+        @return {Boolean}
+    */
     vm.isNew = f.prop(isNew);
+    /**
+        @method model
+        @return {Model}
+    */
     vm.model = function () {
         return vm.formWidget().model();
     };
-    vm.sseErrorDialog = f.prop(dialog.viewModel({
+    /**
+        @method buttonEdit
+        @param {ViewModels.Dialog} dialog
+        @return {ViewModels.Dialog}
+    */
+    vm.sseErrorDialog = f.prop(f.createViewModel("Dialog", {
         icon: "window-close",
         title: "Connection Error",
         message: (
@@ -572,9 +740,16 @@ formPage.viewModel = function (options) {
         }
     }));
     vm.sseErrorDialog().buttonCancel().hide();
+    /**
+        @method title
+        @return {String}
+    */
     vm.title = function () {
         return options.feather.toName();
     };
+    /**
+        @method toggleNew
+    */
     vm.toggleNew = function () {
         vm.buttonSaveAndNew().title("");
         if (!vm.model().canSave()) {
@@ -587,7 +762,7 @@ formPage.viewModel = function (options) {
     };
 
     // Create form widget
-    vm.formWidget(formWidget.viewModel({
+    vm.formWidget(f.createViewModel("FormWidget", {
         isNew: isNew,
         model: fmodel,
         id: options.key,
@@ -610,7 +785,7 @@ formPage.viewModel = function (options) {
     instances[vm.model().id()] = vm.model();
 
     // Create button view models
-    vm.buttonBack(button.viewModel({
+    vm.buttonBack(f.createViewModel("Button", {
         onclick: vm.doBack,
         label: (
             window.history.state === null
@@ -625,27 +800,27 @@ formPage.viewModel = function (options) {
         class: "fb-toolbar-button"
     }));
 
-    vm.buttonApply(button.viewModel({
+    vm.buttonApply(f.createViewModel("Button", {
         onclick: vm.doApply,
         label: "&Apply",
         class: "fb-toolbar-button"
     }));
 
-    vm.buttonAuth(button.viewModel({
+    vm.buttonAuth(f.createViewModel("Button", {
         onclick: vm.editAuthDialog().show,
         icon: "key",
         title: "Edit Authorizations",
         class: "fb-toolbar-button fb-toolbar-button-right"
     }));
 
-    vm.buttonSave(button.viewModel({
+    vm.buttonSave(f.createViewModel("Button", {
         onclick: vm.doSave,
         label: "&Save",
         icon: "cloud-upload-alt",
         class: "fb-toolbar-button"
     }));
 
-    vm.buttonSaveAndNew(button.viewModel({
+    vm.buttonSaveAndNew(f.createViewModel("Button", {
         onclick: vm.doSaveAndNew,
         label: "Save and &New",
         icon: "plus-circle",
@@ -685,13 +860,27 @@ formPage.viewModel = function (options) {
     return vm;
 };
 
+/**
+    @class FormPage
+    @static
+    @namespace Components
+*/
 formPage.component = {
+    /**
+        @method oninit
+        @param {Object} vnode Virtual nodeName
+        @param {Object} [vnode.attrs] Options
+        @param {Object} [vnode.attrs.viewModel] View model
+    */
     oninit: function (vnode) {
         this.viewModel = (
             vnode.attrs.viewModel || formPage.viewModel(vnode.attrs)
         );
     },
-
+    /**
+        Feather icon.
+        @method onupdate
+    */
     onupdate: function () {
         let key = (
             this.viewModel.isNew()
@@ -705,13 +894,19 @@ formPage.component = {
         );
         document.getElementById("fb-title").text = title;
     },
-
+    /**
+        @method view
+        @return {Object} view
+    */
     view: function () {
         let lock;
         let title;
         let vm = this.viewModel;
         let fmodel = vm.model();
         let icon = "file-alt";
+        let btn = f.getComponent("Button");
+        let dlg = f.getComponent("Dialog");
+        let fw = f.getComponent("FormWidget");
 
         vm.toggleNew();
         vm.buttonAuth().disable();
@@ -753,19 +948,19 @@ formPage.component = {
                 id: "toolbar",
                 class: "fb-toolbar"
             }, [
-                m(button.component, {
+                m(btn, {
                     viewModel: vm.buttonAuth()
                 }),
-                m(button.component, {
+                m(btn, {
                     viewModel: vm.buttonBack()
                 }),
-                m(button.component, {
+                m(btn, {
                     viewModel: vm.buttonApply()
                 }),
-                m(button.component, {
+                m(btn, {
                     viewModel: vm.buttonSave()
                 }),
-                m(button.component, {
+                m(btn, {
                     viewModel: vm.buttonSaveAndNew()
                 })
             ]),
@@ -779,16 +974,16 @@ formPage.component = {
                 }),
                 m("label", vm.title())
             ]),
-            m(dialog.component, {
+            m(dlg, {
                 viewModel: vm.confirmDialog()
             }),
-            m(dialog.component, {
+            m(dlg, {
                 viewModel: vm.sseErrorDialog()
             }),
-            m(dialog.component, {
+            m(dlg, {
                 viewModel: vm.editAuthDialog()
             }),
-            m(formWidget.component, {
+            m(fw, {
                 viewModel: vm.formWidget()
             })
         ]);

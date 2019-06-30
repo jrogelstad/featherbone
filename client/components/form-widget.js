@@ -16,6 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/**
+    @module FormWidget
+*/
 import f from "../core.js";
 
 const catalog = f.catalog();
