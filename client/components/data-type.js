@@ -16,11 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/**
+    @module DataType
+*/
 import f from "../core.js";
-import button from "./button.js";
-import catalog from "../models/catalog.js";
-import dialog from "./dialog.js";
 
+const catalog = f.catalog();
 const dataType = {};
 const listWidget = {};
 const m = window.m;
@@ -86,14 +87,51 @@ listWidget.component = {
     }
 };
 
+/**
+    View model editor for data type selction.
+    @class DataType
+    @constructor
+    @namespace ViewModels
+    @param {Object} options Options
+    @param {Object} options.parentViewModel
+    @param {String} options.parentProperty
+    @param {String} [options.id]
+    @param {Object} [options.isOverload]
+*/
 dataType.viewModel = function (options) {
     let vm = {};
     let parent = options.parentViewModel;
 
+    /**
+        @method buttonAdd
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonAdd = f.prop();
+    /**
+        @method buttonEdit
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonEdit = f.prop();
+    /**
+        @method buttonRemove
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonRemove = f.prop();
+    /**
+        Editor dialog view model.
+        @method dataTypeDialog
+        @param {ViewModels.Dialog} dialog
+        @return {ViewModels.Dialog}
+    */
     vm.dataTypeDialog = f.prop();
+    /**
+        Parent attribute, if applicable.
+        @method childOf
+        @return {String}
+    */
     vm.childOf = function () {
         let type = vm.prop();
 
@@ -103,6 +141,11 @@ dataType.viewModel = function (options) {
 
         return "";
     };
+    /**
+        Array of feather as key value objects for selector options.
+        @method feathers
+        @return {Array}
+    */
     vm.feathers = function () {
         let countries = catalog.store().data().countries().map(
             function (model) {
@@ -114,9 +157,29 @@ dataType.viewModel = function (options) {
 
         return countries;
     };
+    /**
+        @method id
+        @param {String} id
+        @return {String}
+    */
     vm.id = f.prop(options.id || f.createId());
+    /**
+        Flag special handling if overload instance in a feather.
+        @method isOverload
+        @param {Boolean} flag
+        @return {Boolean}
+    */
     vm.isOverload = f.prop(Boolean(options.isOverload));
+    /**
+        @method model
+        @return {Model}
+    */
     vm.model = parent.model().data[options.parentProperty];
+    /**
+        @method onchange
+        @param {Event} event,
+        @param {Boolean} showDialog
+    */
     vm.onchange = function (e, showDialog) {
         if (e.target.value === "relation") {
             vm.prop({});
@@ -143,6 +206,10 @@ dataType.viewModel = function (options) {
         vm.buttonAdd().disable();
         vm.buttonRemove().disable();
     };
+    /**
+        @method onchangeDialogChildOf
+        @param {Event} event
+    */
     vm.onchangeDialogChildOf = function (e) {
         let type = vm.prop();
 
@@ -164,9 +231,17 @@ dataType.viewModel = function (options) {
             vm.prop(type);
         }
     };
+    /**
+        @method onchangeDialogType
+        @param {Event} event
+    */
     vm.onchangeDialogType = function (e) {
         vm.onchange(e, false);
     };
+    /**
+        @method onchangeDialogRelation
+        @param {Event} event
+    */
     vm.onchangeDialogRelation = function (e) {
         let type = f.copy(vm.prop());
 
@@ -185,6 +260,10 @@ dataType.viewModel = function (options) {
             }
         }
     };
+    /**
+        Adds selected available properties to relation.
+        @method propertyAdd
+    */
     vm.propertyAdd = function () {
         let selected = vm.propsAvailableWidget().selected();
         let items = vm.propertiesSelected().slice();
@@ -194,6 +273,10 @@ dataType.viewModel = function (options) {
         vm.propsAvailableWidget().items(vm.propertiesAvailable());
         vm.propsSelectedWidget().items(items);
     };
+    /**
+        Removes selected relation properties from relation.
+        @method propertyRemove
+    */
     vm.propertyRemove = function () {
         let wSelected = vm.propsSelectedWidget().selected();
         let selected = vm.propertiesSelected().slice();
@@ -205,6 +288,10 @@ dataType.viewModel = function (options) {
         vm.propsAvailableWidget().items(vm.propertiesAvailable());
         vm.propsSelectedWidget().items(selected);
     };
+    /**
+        All potential properties for relation.
+        @method properties
+    */
     vm.properties = function () {
         let props = [];
         let feather;
@@ -217,6 +304,10 @@ dataType.viewModel = function (options) {
 
         return props;
     };
+    /**
+        Available properties for relation.
+        @method propertiesAvailable
+    */
     vm.propertiesAvailable = function () {
         let props = vm.properties().slice();
         let selected = vm.propertiesSelected() || [];
@@ -225,6 +316,10 @@ dataType.viewModel = function (options) {
             return selected.indexOf(p) === -1;
         });
     };
+    /**
+        Properties assigned to relation.
+        @method propertiesSelected
+    */
     vm.propertiesSelected = function (...args) {
         let type = vm.prop();
 
@@ -239,6 +334,11 @@ dataType.viewModel = function (options) {
 
         return [];
     };
+    /**
+        Feather used as relation type.
+        @method relation
+        @return {String}
+    */
     vm.relation = function () {
         let type = vm.prop();
 
@@ -248,10 +348,35 @@ dataType.viewModel = function (options) {
 
         return "";
     };
+    /**
+        @method style
+        @param {Object} style
+        @return {Object}
+    */
     vm.style = f.prop(options.style || {});
+    /**
+        Parent property.
+        @method prop
+        @param {Object} property
+        @return {Object}
+    */
     vm.prop = options.parentViewModel.model().data[options.parentProperty];
+    /**
+        @method propsAvailableWidget
+        @param {Object} View model
+        @return {Object}
+    */
     vm.propsAvailableWidget = f.prop();
+    /**
+        @method propsSelectedWidget
+        @param {Object} View model
+        @return {Object}
+    */
     vm.propsSelectedWidget = f.prop();
+    /**
+        @method type
+        @return {String}
+    */
     vm.type = function () {
         let type = vm.prop();
 
@@ -261,6 +386,12 @@ dataType.viewModel = function (options) {
 
         return type;
     };
+     /**
+        Array of available types.
+        @method types
+        @param {Array} types
+        @return {Array}
+    */
     vm.types = f.prop(Object.freeze([
         "array",
         "boolean",
@@ -270,6 +401,10 @@ dataType.viewModel = function (options) {
         "relation",
         "string"
     ]));
+    /**
+        Updates `prop` with selected value.
+        @method update
+    */
     vm.update = function () {
         let type = vm.type();
         let relation = vm.relation();
@@ -297,7 +432,7 @@ dataType.viewModel = function (options) {
     // PRIVATE
     //
 
-    vm.buttonAdd(button.viewModel({
+    vm.buttonAdd(f.createViewModel("Button", {
         onclick: vm.propertyAdd,
         title: "Add",
         icon: "arrow-alt-circle-right",
@@ -307,7 +442,7 @@ dataType.viewModel = function (options) {
         }
     }));
 
-    vm.buttonRemove(button.viewModel({
+    vm.buttonRemove(f.createViewModel("Button", {
         onclick: vm.propertyRemove,
         title: "Remove",
         icon: "arrow-alt-circle-left",
@@ -316,7 +451,7 @@ dataType.viewModel = function (options) {
         }
     }));
 
-    vm.dataTypeDialog(dialog.viewModel({
+    vm.dataTypeDialog(f.createViewModel("Dialog", {
         icon: "edit",
         title: (
             vm.isOverload()
@@ -333,6 +468,7 @@ dataType.viewModel = function (options) {
         let isNotFeather = !vm.relation();
         let propertiesSelected = vm.propertiesSelected() || [];
         let isOverload = vm.isOverload();
+        let btn = f.getComponent("Button");
 
         return m("div", [
             m("div", {
@@ -422,10 +558,10 @@ dataType.viewModel = function (options) {
                             marginTop: "36px"
                         }
                     }, [
-                        m(button.component, {
+                        m(btn, {
                             viewModel: vm.buttonAdd()
                         }),
-                        m(button.component, {
+                        m(btn, {
                             viewModel: vm.buttonRemove()
                         })
                     ]),
@@ -447,7 +583,7 @@ dataType.viewModel = function (options) {
     vm.dataTypeDialog().style().width = "450px";
     vm.dataTypeDialog().style().height = "450px";
 
-    vm.buttonEdit(button.viewModel({
+    vm.buttonEdit(f.createViewModel("Button", {
         onclick: vm.dataTypeDialog().show,
         title: "Edit relation details",
         icon: "edit",
@@ -467,7 +603,23 @@ dataType.viewModel = function (options) {
     return vm;
 };
 
+/**
+    Editor component for feather property type.
+    @class DataType
+    @static
+    @namespace Components
+*/
 dataType.component = {
+    /**
+        @method onint
+        @param {Object} vnode Virtual node
+        @param {Object} vnode.attrs Options
+        @param {Object} vnode.attrs.parentViewModel
+        @param {String} vnode.attrs.parentProperty
+        @param {String} [vnode.attrs.id]
+        @param {Boolean} [vnode.attrs.isOverload]
+        @param {Boolean} [vnode.attrs.readonly]
+    */
     oninit: function (vnode) {
         let options = vnode.attrs;
 
@@ -481,6 +633,10 @@ dataType.component = {
         });
     },
 
+    /**
+        @method view
+        @param {Object} vnode Virtual node
+    */
     view: function (vnode) {
         let vm = this.viewModel;
         let id = vm.id();
@@ -489,6 +645,7 @@ dataType.component = {
             vnode.attrs.readonly === true ||
             vm.isOverload()
         );
+        let btn = f.getComponent("Button");
 
         style.display = style.display || "inline-block";
 
@@ -502,7 +659,7 @@ dataType.component = {
         return m("div", {
             style: style
         }, [
-            m(dialog.component, {
+            m(f.getComponent("Dialog"), {
                 viewModel: vm.dataTypeDialog()
             }),
             m("select", {
@@ -525,7 +682,7 @@ dataType.component = {
                 }
                 return m("option", opts);
             })),
-            m(button.component, {
+            m(btn, {
                 viewModel: vm.buttonEdit()
             })
         ]);
