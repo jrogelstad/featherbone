@@ -369,7 +369,7 @@ relationWidget.viewModel = function (options) {
     /**
         Hide menu on this event.
         @method onmouseoutmenu.
-        @param {Object} event
+        @param {Event} event
     */
     vm.onmouseoutmenu = function (ev) {
         if (

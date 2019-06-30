@@ -1459,7 +1459,7 @@ tableWidget.viewModel = function (options) {
     };
     /**
         @method ondragover
-        @param {Object} event
+        @param {Event} event
     */
     vm.ondragover = function (ev) {
         ev.preventDefault();
@@ -1468,7 +1468,7 @@ tableWidget.viewModel = function (options) {
         @method ondragstart
         @param {Integer} index
         @param {String} type
-        @param {Object} event
+        @param {Event} event
     */
     vm.ondragstart = function (idx, type, ev) {
         vm.isDragging(true);
@@ -1490,7 +1490,7 @@ tableWidget.viewModel = function (options) {
         @param {Integer} toIndex
         @param {String} type
         @param {Array} ary
-        @param {Object} event
+        @param {Event} event
     */
     vm.ondrop = function (toIdx, type, ary, ev) {
         let moved;
@@ -1525,7 +1525,7 @@ tableWidget.viewModel = function (options) {
     };
     /**
         @method onkeydown
-        @param {Object} event
+        @param {Event} event
     */
     vm.onkeydown = function (e) {
         let id;
@@ -1555,7 +1555,7 @@ tableWidget.viewModel = function (options) {
     };
     /**
         @method onscroll
-        @param {Object} event
+        @param {Event} event
     */
     vm.onscroll = function (evt) {
         let ids = vm.ids();

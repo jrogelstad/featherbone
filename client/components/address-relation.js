@@ -150,7 +150,7 @@ addressRelation.viewModel = function (options) {
     vm.model = parent.model().data[options.parentProperty];
     /**
         @method onkeydown
-        @param {Event} DOM event
+        @param {Event} event
     */
     vm.onkeydown = function (e) {
         if (e.key === "Enter") { // Enter key
