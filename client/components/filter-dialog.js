@@ -16,28 +16,27 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
-import f from "../core.js";
-import catalog from "../models/catalog.js";
-import model from "../models/model.js";
-import checkbox from "./checkbox.js";
-import tableDialog from "./table-dialog.js";
-
-/*
-    @class filterDialog
+/**
+    @module FilterDialog
 */
+import f from "../core.js";
+
+const catalog = f.catalog();
 const filterDialog = {};
 const m = window.m;
 
-/*
-    View model for sort dialog.
+/**
+    View model for filter and sort dialog.
 
-    @method viewModel
-    @param {Object} Options
-    @param {Array} [options.propertyName] Filter property being modified
-    @param {Array} [options.attrs] Attributes
-    @param {Array} [options.list] Model list
-    @param {Function} [options.filter] Filter property
-    @return {Object}
+    @class FilterDialog
+    @constructor
+    @namespace ViewModels
+    @extends ViewModels.TableDialog
+    @param {Object} options
+    @param {Array} options.propertyName Filter property being modified
+    @param {Array} options.attrs Attributes
+    @param {Array} options.list Model list
+    @param {Function} options.filter Filter property
 */
 filterDialog.viewModel = function (options) {
     options = options || {};
@@ -64,14 +63,15 @@ filterDialog.viewModel = function (options) {
         return feather.properties[property];
     }
 
-    /* @private
+    /**
+        @private
         Helper function for building input elements
 
         @method createEditor
-        @param {Object} Arguments object
-        @param {Number} [obj.index] Index
-        @param {String} [obj.attr] Property
-        @param {Object} [obj.value] Value
+        @param {Object} obj Arguments object
+        @param {Number} obj.index Index
+        @param {String} obj.attr Property
+        @param {Object} obj.value Value
     */
     function createEditor(obj) {
         let w;
@@ -93,7 +93,7 @@ filterDialog.viewModel = function (options) {
         // Handle input types
         if (typeof type === "string") {
             if (type === "boolean") {
-                component = m(checkbox.component, {
+                component = m(f.getComponent("Checkbox"), {
                     value: value,
                     onclick: vm.itemChanged.bind(this, index, "value")
                 });
@@ -173,7 +173,12 @@ filterDialog.viewModel = function (options) {
     // PUBLIC
     //
 
-    vm = tableDialog.viewModel(options);
+    vm = f.createViewModel("TableDialog", options);
+
+    /**
+        @method addAttr
+        @param {String} attr Attribute
+    */
     vm.addAttr = function (attr) {
         if (!this.some(vm.hasAttr.bind(attr))) {
             this.push({
@@ -184,6 +189,11 @@ filterDialog.viewModel = function (options) {
             return true;
         }
     };
+    /**
+        Available attributes
+        @method attrs
+        @return {Array}
+    */
     vm.attrs = function () {
         let feather = vm.feather();
         let keys = Object.keys(feather.properties);
@@ -195,23 +205,52 @@ filterDialog.viewModel = function (options) {
             true
         ).sort();
     };
+     /**
+        @method data
+        @return {List}
+    */
     vm.data = function () {
         return vm.filter()[vm.propertyName()];
     };
+    /**
+        @method propertyChanged
+        @param {Integer} index
+        @param {Any} value
+    */
     vm.itemPropertyChanged = function (index, value) {
         vm.itemChanged(index, "property", value);
         vm.data()[index].value = getDefault(value);
         vm.data()[index].operator = "=";
     };
+    /**
+        @method feather
+        @param {Object} feather
+        @return {Object}
+    */
     vm.feather = f.prop(catalog.getFeather(
         options.feather.name,
         true,
         false
     ));
+    /**
+        @method filter
+        @param {Object} filter
+        @return {Object}
+    */
     vm.filter = f.prop();
+   /**
+        @method model
+        @return {Model}
+    */
     vm.model = function () {
         return store;
     };
+    /**
+        Legal operators for a given attribute.
+        @method operators
+        @param {String} attr
+        @return {Array}
+    */
     vm.operators = function (attr) {
         let ops;
         let prop;
@@ -266,8 +305,22 @@ filterDialog.viewModel = function (options) {
 
         return ops;
     };
+    /**
+        @method propertyName
+        @param {String} name
+        @return {String}
+    */
     vm.propertyName = f.prop(options.propertyName || "criteria");
+    /**
+        Cache of relation widget view models in use.
+        @method relations
+        @param {Object} obj
+        @return {Object}
+    */
     vm.relations = f.prop({});
+    /**
+        @method reset
+    */
     vm.reset = function () {
         let name = vm.propertyName();
         let filter = f.copy(options.filter());
@@ -279,11 +332,22 @@ filterDialog.viewModel = function (options) {
         }
         vm.selection(0);
     };
+    /**
+        Object with column, operator and value input element ids.
+        @method viewHeaderIds
+        @param {Object} obj
+        @return {Object}
+    */
     vm.viewHeaderIds = f.prop({
         column: f.createId(),
         operator: f.createId(),
         value: f.createId()
     });
+    /**
+        View containing table headers
+        @method viewHeaders
+        @return {Object} View
+    */
     vm.viewHeaders = function () {
         let ids = vm.viewHeaderIds();
         return [
@@ -301,6 +365,11 @@ filterDialog.viewModel = function (options) {
             }, "Value")
         ];
     };
+    /**
+        View containing row content.
+        @method viewRows
+        @return {Object} View
+    */
     vm.viewRows = function () {
         let view;
 
@@ -368,7 +437,7 @@ filterDialog.viewModel = function (options) {
     vm.style().width = "750px";
 
     // Build internal model for processing relations where applicable
-    store = model({}, vm.feather());
+    store = f.createModel({}, vm.feather());
     Object.keys(store.data).forEach(function (key) {
         if (store.data[key].isToOne()) {
             // If property updated, forward change
@@ -398,12 +467,17 @@ filterDialog.viewModel = function (options) {
     return vm;
 };
 
-/*
-    Filter dialog component
+catalog.register("viewModels", "filterDialog", filterDialog.viewModel);
 
-    @property component
-    @type object
+/**
+    Filter dialog component
+    @class FilterDialog
+    @namespace Components
+    @static
+    @uses Components.Dialog
 */
-filterDialog.component = tableDialog.component;
+filterDialog.component = f.getComponent("Dialog");
+
+catalog.register("components", "filterDialog", filterDialog.component);
 
 export default Object.freeze(filterDialog);
