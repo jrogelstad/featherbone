@@ -16,13 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/**
+    @Module DataList
+*/
 import f from "../core.js";
-import catalog from "../models/catalog.js";
-import list from "../models/list.js";
-import button from "./button.js";
-import dialog from "./dialog.js";
-import tableWidget from "./table-widget.js";
 
+const catalog = f.catalog();
 const dataList = {};
 const table = {};
 const m = window.m;
@@ -46,7 +45,7 @@ table.viewModel = function (options) {
     //
 
     // Create table widget view model
-    vm.tableWidget(tableWidget.viewModel({
+    vm.tableWidget(f.createViewModel("TableWidget", {
         config: {
             columns: [{
                 attr: "value"
@@ -62,7 +61,7 @@ table.viewModel = function (options) {
     vm.tableWidget().isQuery(false);
 
     // Create button view models
-    vm.buttonAdd(button.viewModel({
+    vm.buttonAdd(f.createViewModel("Button", {
         onclick: vm.tableWidget().modelNew,
         title: "Insert",
         hotkey: "I",
@@ -72,7 +71,7 @@ table.viewModel = function (options) {
         }
     }));
 
-    vm.buttonRemove(button.viewModel({
+    vm.buttonRemove(f.createViewModel("Button", {
         onclick: vm.tableWidget().modelDelete,
         title: "Delete",
         hotkey: "D",
@@ -83,7 +82,7 @@ table.viewModel = function (options) {
     }));
     vm.buttonRemove().disable();
 
-    vm.buttonUndo(button.viewModel({
+    vm.buttonUndo(f.createViewModel("Button", {
         onclick: vm.tableWidget().undo,
         title: "Undo",
         hotkey: "U",
@@ -123,31 +122,57 @@ table.component = {
 
     view: function () {
         let vm = this.viewModel;
+        let btn = f.getComponent("Button");
 
         return m("div", [
-            m(button.component, {
+            m(btn, {
                 viewModel: vm.buttonAdd()
             }),
-            m(button.component, {
+            m(btn, {
                 viewModel: vm.buttonRemove()
             }),
-            m(button.component, {
+            m(btn, {
                 viewModel: vm.buttonUndo()
             }),
-            m(tableWidget.component, {
+            m(btn, {
                 viewModel: vm.tableWidget()
             })
         ]);
     }
 };
 
+/**
+    View model editor for objects with type `DataList`.
+    @class DataList
+    @constructor
+    @namespace ViewModels
+    @param {Object} options Options
+    @param {Object} options.parentViewModel
+    @param {String} options.parentProperty
+    @param {String} [options.id]
+    @param {Object} [options.style]
+*/
 dataList.viewModel = function (options) {
     let vm = {};
     let parent = options.parentViewModel;
     let dlg;
 
+    /**
+        @method buttonEdit
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonEdit = f.prop();
+    /**
+        @method dataListDialog
+        @param {ViewModels.Dialog} dialog
+        @return {ViewModels.Dialog}
+    */
     vm.dataListDialog = f.prop();
+    /**
+        @method content
+        @return {Object} View
+    */
     vm.content = function () {
         let value = vm.prop() || [];
 
@@ -156,6 +181,10 @@ dataList.viewModel = function (options) {
             options: {}
         });
     };
+    /**
+        Open edit dialog.
+        @method doEdit
+    */
     vm.doEdit = function () {
         let models = vm.models();
         let dataListDialog = vm.dataListDialog();
@@ -186,17 +215,44 @@ dataList.viewModel = function (options) {
         dataListDialog.okDisabled(true);
         dataListDialog.show();
     };
+    /**
+        @method id
+        @param {String} id
+        @return {String}
+    */
     vm.id = f.prop(options.id || f.createId());
-    vm.models = list("DataListOption")({fetch: false});
+    /**
+        Array of key/value pair models.
+        @method models
+        @return {Array}
+    */
+    vm.models = f.createList("DataListOption", {fetch: false});
+    /**
+        Parent model property.
+        @method prop
+        @param {String} property
+        @return {String}
+    */
     vm.prop = parent.model().data[options.parentProperty];
+    /**
+        @method style
+        @param {Object} style
+        @return {Object}
+    */
     vm.style = f.prop(options.style || {});
+    /**
+        Table editor view model for dialog;
+        @method table
+        @param {Object} viewModel
+        @return {Object}
+    */
     vm.table = f.prop();
 
     // ..........................................................
     // PRIVATE
     //
 
-    vm.dataListDialog(dialog.viewModel({
+    vm.dataListDialog(f.createViewModel("Dialog", {
         icon: "edit",
         title: "Data list"
     }));
@@ -220,7 +276,7 @@ dataList.viewModel = function (options) {
         containterId: vm.dataListDialog().ids().dialog
     }));
 
-    vm.buttonEdit(button.viewModel({
+    vm.buttonEdit(f.createViewModel("Button", {
         onclick: vm.doEdit,
         title: "Edit relation details",
         icon: "edit",
@@ -230,7 +286,23 @@ dataList.viewModel = function (options) {
     return vm;
 };
 
+/**
+    Editor component for objects with format `DataList`.
+    @class DataList
+    @stactic
+    @namespace Components
+*/
 dataList.component = {
+    /**
+        @method onint
+        @param {Object} vnode Virtual node
+        @param {Object} vnode.attrs Options
+        @param {Object} vnode.attrs.parentViewModel
+        @param {String} vnode.attrs.parentProperty
+        @param {String} [vnode.attrs.id]
+        @param {Object} [vnode.attrs.style]
+        @param {Boolean} [vnode.attrs.readonly]
+    */
     oninit: function (vnode) {
         let options = vnode.attrs;
 
@@ -239,16 +311,21 @@ dataList.component = {
             parentViewModel: options.parentViewModel,
             parentProperty: options.parentProperty,
             id: options.id,
-            style: options.style,
-            readonly: options.readonly
+            style: options.style
         });
     },
 
+    /**
+        @method view
+        @param {Object} vnode Virtual node
+    */
     view: function (vnode) {
         let vm = this.viewModel;
         let style = vm.style();
         let readonly = vnode.attrs.readonly === true;
         let id = vm.id();
+        let btn = f.getComponent("Button");
+        let dlg = f.getComponent("Dialog");
 
         if (readonly) {
             vm.buttonEdit().disable();
@@ -262,7 +339,7 @@ dataList.component = {
         return m("div", {
             style: style
         }, [
-            m(dialog.component, {
+            m(dlg, {
                 viewModel: vm.dataListDialog()
             }),
             m("input", {
@@ -276,7 +353,7 @@ dataList.component = {
                 readonly: true,
                 title: vm.content()
             }),
-            m(button.component, {
+            m(btn, {
                 viewModel: vm.buttonEdit()
             })
         ]);

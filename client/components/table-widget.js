@@ -16,21 +16,21 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, for, browser*/
+/**
+    @module TableWidget
+*/
 let scrWidth;
 let inner;
 let widthNoScroll;
 let widthWithScroll;
 
 import f from "../core.js";
-import catalog from "../models/catalog.js";
-import dialog from "./dialog.js";
-import State from "../state.js";
-import checkbox from "./checkbox.js";
-import datasource from "../datasource.js";
 
 /*
     @class tableWidget
 */
+const catalog = f.catalog();
+const datasource = f.datasource();
 const tableWidget = {};
 const outer = document.createElement("div");
 const COL_WIDTH_DEFAULT = "150";
@@ -742,17 +742,19 @@ function resize(vm, vnode) {
     }
 }
 
-/*
-    @method viewModel
+/**
+    View model for viewing and editing model lists.
+    @class TableWidget
+    @constructor
+    @namespace ViewModels
     @param {Object} Options
     @param {Array} [options.actions] Actions
-    @param {Object|String} [options.feather] Feather
-    @param {Object} [options.config] Configuration
+    @param {Object|String} options.feather Feather
+    @param {Object} options.config Configuration
     @param {Array} [options.models] Array of models
     @param {String} [options.height] Fixed height. If none automatic
     @param {String} [options.containerId] Container id for automatic resize
     @param {String} [options.footerId] Footer id for automatic resize
-    @return {Object}
 */
 tableWidget.viewModel = function (options) {
     options = options || {};
@@ -930,6 +932,7 @@ tableWidget.viewModel = function (options) {
         let isOnlyVisible = f.prop(false);
         let isOnlySelected = f.prop(false);
         let format = f.prop("json");
+        let chkbox = f.getComponent("Checkbox");
 
         function error(err) {
             dlg.message(err.message);
@@ -1008,7 +1011,7 @@ tableWidget.viewModel = function (options) {
                     m("label", {
                         for: dlgSelectedId
                     }, "Only selected rows:"),
-                    m(checkbox.component, {
+                    m(chkbox, {
                         onclick: function (value) {
                             isOnlySelected(value);
                         },
@@ -1027,7 +1030,7 @@ tableWidget.viewModel = function (options) {
                     m("label", {
                         for: dlgVisibleId
                     }, "Only visible columns:"),
-                    m(checkbox.component, {
+                    m(chkbox, {
                         onclick: function (value) {
                             isOnlyVisible(value);
                         },
@@ -1097,6 +1100,10 @@ tableWidget.viewModel = function (options) {
     // PUBLIC
     //
 
+    /**
+        @method actions
+        @return {Array}
+    */
     vm.actions = function () {
         let menu;
         let actions = options.actions || [];
@@ -1171,9 +1178,20 @@ tableWidget.viewModel = function (options) {
 
         return menu;
     };
+    /**
+        Resolve the alias for an attribute in a column.
+        @method alias.
+        @param {String} attr
+        @return {String}
+    */
     vm.alias = function (attr) {
         return f.resolveAlias(vm.feather(), attr);
     };
+    /**
+        Array of displayed attributes.
+        @method attrs
+        @return {Array}
+    */
     vm.attrs = function () {
         let columns = vm.config().columns;
         let result = columns.map(function (column) {
@@ -1184,22 +1202,63 @@ tableWidget.viewModel = function (options) {
             attr: "id"
         }];
     };
+    /**
+        Whether can toggle row as selected.
+        @canToggle
+        @param {Boolean} flag
+        @return {Boolean}
+    */
     vm.canToggle = f.prop(true);
+    /**
+        CSS class.
+        @method class
+        @param {String} class
+        @return {String}
+    */
     vm.class = f.prop(options.class || "");
+    /**
+        @method isEditModeEnabled
+        @param {Boolean} flag
+        @return {Boolean}
+    */
     vm.isEditModeEnabled = f.prop(options.isEditModeEnabled !== false);
+    /**
+        Flag whether list is populated by query.
+        @method isQuery
+        @param {Boolean} flag
+        @return {Boolean}
+    */
     vm.isQuery = f.prop(true);
+    /**
+        Layout configuration.
+        @method config
+        @param {Object} object
+        @return {Object}
+    */
     vm.config = f.prop(options.config);
+    /**
+        Id of footer element below table if any. Used for rendering dimensions.
+        @method footerId
+        @param {String} id
+        @return {String}
+    */
     vm.footerId = f.prop(options.footerId);
-    vm.confirmDialog = f.prop(dialog.viewModel({
+    /**
+        Dialog for confirmation messages. Content changes depending on context.
+        @method confirmDialog
+        @param {ViewModels.Dialog} dialog
+        @return {ViewModels.Dialog}
+    */
+    vm.confirmDialog = f.prop(f.createViewModel("Dialog", {
         icon: "question-circle",
         title: "Confirmation"
     }));
     vm.confirmDialog().state().resolve("/Display/Closed").enter(doResetDialog);
-    /*
-      Return the id of the input element which can recive focus
-
-      @param {Object} Model to evaluate
-      @return {String}
+    /**
+        Return the id of the input element which should recieve focus.
+        @method defaultFocus
+        @param {Object} Model to evaluate
+        @return {String}
     */
     vm.defaultFocus = function (model) {
         let col = vm.attrs().find(function (attr) {
@@ -1212,22 +1271,56 @@ tableWidget.viewModel = function (options) {
             : undefined
         );
     };
-    vm.errorDialog = f.prop(dialog.viewModel({
+    /**
+        Dialog for error messages. Content changes depending on context.
+        @method errorDialog
+        @param {ViewModels.Dialog} dialog
+        @return {ViewModels.Dialog}
+    */
+    vm.errorDialog = f.prop(f.createViewModel("Dialog", {
         icon: "exclamation-triangle",
         title: "Error"
     }));
+    /**
+        @method feather
+        @param {Object} feather
+        @return {Object}
+    */
     vm.feather = f.prop(feather);
+    /**
+        @method filter
+        @param {Object} filter
+        @return {Object}
+    */
     vm.filter = f.prop();
+    /**
+        Form used for editing rows.
+        @method form
+        @return {Object}
+    */
     vm.form = function () {
         return f.getForm({
             form: vm.config().form,
             feather: feather.name
         });
     };
+    /**
+        @method formatInputId
+        @return {string}
+    */
     vm.formatInputId = function (col) {
         return "input" + col.toCamelCase(true);
     };
+    /**
+        Manually set stlye height if any.
+        @method height
+        @param {String} height
+        @return {String}
+    */
     vm.height = f.prop(options.height);
+    /**
+        @method goNextRow
+    */
     vm.goNextRow = function () {
         let list = vm.models();
         let ids = list.map(function (model) {
@@ -1244,6 +1337,9 @@ tableWidget.viewModel = function (options) {
             vm.select(list[idx]);
         }
     };
+    /**
+        @method goPrevRow
+    */
     vm.goPrevRow = function () {
         let list = vm.models();
         let model = vm.model();
@@ -1253,20 +1349,41 @@ tableWidget.viewModel = function (options) {
             vm.select(list[idx]);
         }
     };
+    /**
+        Object with table header table body ids.
+        @method ids
+        @param {Object} obj
+        @return {Object}
+    */
     vm.ids = f.prop({
         header: f.createId(),
         rows: f.createId()
     });
+    /**
+        @method isDragging
+        @param {Boolean} flag
+        @return {Boolean}
+    */
     vm.isDragging = f.prop(false);
+    /**
+        @method isScrolling
+        @param {Boolean} flag
+        @return {Boolean}
+    */
     vm.isScrolling = f.prop(false);
+    /**
+        @method isSelected
+        @param {Model} model
+        @return {Boolean}
+    */
     vm.isSelected = function (model) {
         return vm.selectionIds().indexOf(model.id()) > -1;
     };
-    /*
-      Return the name of the last attribute which can recive focus.
-
-      @param {Object} Model to evaluate
-      @returns {String}
+    /**
+        Return the name of the last attribute which can recive focus.
+        @method lastFocus
+        @param {Model} model
+        @returns {String}
     */
     vm.lastFocus = function (model) {
         let col;
@@ -1281,37 +1398,78 @@ tableWidget.viewModel = function (options) {
             : undefined
         );
     };
-    /*
-      Set or return the last model that was selected in the list.
-
-      @param {Object} Model selected
-      @returns {Object} Last model selected
+    /**
+        Set or return the last model that was selected in the list.
+        @method lastSelected
+        @param {Model} Model selected
+        @returns {Model} Last model selected
     */
     vm.lastSelected = f.prop();
+    /**
+        Current edit mode state.
+        @method mode
+        @return {String}
+    */
     vm.mode = function () {
         let state = vm.state();
         return state.resolve(state.current()[0]);
     };
+    /**
+        Currently selected model.
+        @method model
+        @return {Model}
+    */
     vm.model = function () {
         return vm.selection();
     };
+    /**
+        @method modelDelete
+    */
     vm.modelDelete = function () {
         return vm.mode().modelDelete();
     };
+    /**
+        @method modelNew
+    */
     vm.modelNew = function () {
         return vm.mode().modelNew();
     };
+    /**
+        Model list.
+        @method models
+        @param {List} list
+        @return {List}
+    */
     vm.models = f.prop(options.models);
+    /**
+        @method nextFocus
+        @param {String} attr
+        @return {String}
+    */
     vm.nextFocus = f.prop();
+    /**
+        @method ondblclick
+        @param {Model} model
+    */
     vm.ondblclick = function (model) {
         vm.select(model);
         if (options.ondblclick) {
             options.ondblclick();
         }
     };
+    /**
+        @method ondragover
+        @param {Object} event
+    */
     vm.ondragover = function (ev) {
         ev.preventDefault();
     };
+    /**
+        @method ondragstart
+        @param {Integer} index
+        @param {String} type
+        @param {Object} event
+    */
     vm.ondragstart = function (idx, type, ev) {
         vm.isDragging(true);
 
@@ -1327,6 +1485,13 @@ tableWidget.viewModel = function (options) {
 
         dataTransfer[type] = idx;
     };
+    /**
+        @method ondrop
+        @param {Integer} toIndex
+        @param {String} type
+        @param {Array} ary
+        @param {Object} event
+    */
     vm.ondrop = function (toIdx, type, ary, ev) {
         let moved;
         let column;
@@ -1358,6 +1523,10 @@ tableWidget.viewModel = function (options) {
 
         vm.isDragging(false);
     };
+    /**
+        @method onkeydown
+        @param {Object} event
+    */
     vm.onkeydown = function (e) {
         let id;
         let key = e.key || e.keyIdentifier;
@@ -1384,6 +1553,10 @@ tableWidget.viewModel = function (options) {
             break;
         }
     };
+    /**
+        @method onscroll
+        @param {Object} event
+    */
     vm.onscroll = function (evt) {
         let ids = vm.ids();
         let e = evt.srcElement;
@@ -1410,16 +1583,53 @@ tableWidget.viewModel = function (options) {
         // No need to redraw
         vm.isScrolling(true);
     };
+    /**
+        Rerun query.
+        @method refresh
+    */
     vm.refresh = function () {
         doFetch(true);
     };
+    /**
+        Cache of relation widgets for editing.
+        @method relations
+        @param {Object} obj
+        @return {Object}
+    */
     vm.relations = f.prop({});
+    /**
+        Cache of select components for editing.
+        @method selectComponents
+        @param {Object} obj
+        @return {Object}
+    */
     vm.selectComponents = f.prop({});
+    /**
+        Save edited models.
+        @method save
+    */
     vm.save = function () {
         vm.models().save();
     };
+    /**
+        @method scrollbarWidth
+        @param {Integr} width
+        @return {Integer}
+    */
     vm.scrollbarWidth = f.prop(scrWidth);
+    /**
+        Search string.
+        @method search
+        @param {String} str
+        @return {String}
+    */
     vm.search = options.search || f.prop("");
+    /**
+        Array of models to select
+        @method select
+        @param {Array} Models
+        @return {Array} Selected models
+    */
     vm.select = function (models) {
         let state;
         let selections = vm.selections();
@@ -1463,34 +1673,81 @@ tableWidget.viewModel = function (options) {
 
         return selections;
     };
+    /**
+        Current selection (edit mode).
+        @method selection
+        @return {Model}
+    */
     vm.selection = function () {
         return vm.selections()[0];
     };
+    /**
+        Array of selected model ids.
+        @method selectionIds
+        @return {Array}
+    */
     vm.selectionIds = function () {
         return vm.selections().map(function (selection) {
             return selection.id();
         });
     };
+    /**
+        Current model selections (view mode).
+        @method selections
+        @param {Array} Models
+        @return {Array} Models
+    */
     vm.selections = f.prop([]);
+    /**
+        CSS class of selected model.
+        @method selectedClass
+        @return {String}
+    */
     vm.selectedClass = function () {
         return vm.mode().selectedClass();
     };
+    /**
+        @method state
+        @param {State} state
+        @return {State}
+    */
     vm.state = f.prop();
+    /**
+        Go to edit mode.
+        @method toggleEdit
+    */
     vm.toggleEdit = function () {
         vm.state().send("edit");
     };
+    /**
+        Go to view mode.
+        @method toggleView
+    */
     vm.toggleView = function () {
         vm.state().send("view");
     };
+    /**
+        Change to either view or edit mode.
+        @method toggleMode
+    */
     vm.toggleMode = function () {
         vm.state().send("toggle");
     };
+    /**
+        @method toggleSelection
+        @param {Model} model
+        @param {String} id
+        @return {key} key
+    */
     vm.toggleSelection = function (model, id, optKey) {
         if (!vm.canToggle()) {
             return;
         }
         return vm.mode().toggleSelection(model, id, optKey);
     };
+    /**
+        @method undo
+    */
     vm.undo = function () {
         let selection = vm.selection();
 
@@ -1498,6 +1755,10 @@ tableWidget.viewModel = function (options) {
             selection.undo();
         }
     };
+    /**
+        @method unselect
+        @param {Array} Models
+    */
     vm.unselect = function (models) {
         let idx;
         let state;
@@ -1562,6 +1823,11 @@ tableWidget.viewModel = function (options) {
 
         vm.state().send("unselected");
     };
+    /**
+        @method zoom
+        @param {Integer} percent
+        @return {Integer}
+    */
     vm.zoom = f.prop(100);
 
     // ..........................................................
@@ -1587,7 +1853,7 @@ tableWidget.viewModel = function (options) {
     });
 
     // Create table widget statechart
-    vm.state(State.define({
+    vm.state(f.State.define({
         concurrent: true
     }, function () {
         this.state("Mode", function () {
@@ -1797,18 +2063,28 @@ tableWidget.viewModel = function (options) {
 
 catalog.register("viewModels", "tableWidget", tableWidget.viewModel);
 
-// Define table widget component
-/*
-    @property component
-    @type Object
+/**
+    @class TableWidget
+    @static
+    @namespace Components
 */
 tableWidget.component = {
 
+    /**
+        @method oninit
+        @param {Object} vnode Virtual node
+        @param {ViewModels.TableWidget} vnode.viewModel
+    */
     oninit: function (vnode) {
         vnode.attrs.viewModel.canToggle(true);
     },
 
-    // Block redrawing where unneccessary to improve performance
+    /**
+        Block redrawing where unneccessary to improve performance.
+        @method onbeforeupdate
+        @param {Object} vnode Virtual node
+        @param {ViewModels.TableWidget} vnode.viewModel
+    */
     onbeforeupdate: function (vnode) {
         let vm = vnode.attrs.viewModel;
         let isDragging = vm.isDragging();
@@ -1823,6 +2099,12 @@ tableWidget.component = {
         }
     },
 
+    /**
+        @method view
+        @param {Object} vnode Virtual node
+        @param {ViewModels.TableWidget} vnode.viewModel
+        @return {Object} View
+    */
     view: function (vnode) {
         let header;
         let rows;
@@ -1833,6 +2115,7 @@ tableWidget.component = {
         let sort = filter.sort || [];
         let zoom = vm.zoom() + "%";
         let feather = vm.feather();
+        let dlg = f.getComponent("Dialog");
 
         // Build header
         header = (function () {
@@ -1886,10 +2169,10 @@ tableWidget.component = {
         return m("div", {
             class: "pure-form " + vm.class()
         }, [
-            m(dialog.component, {
+            m(dlg, {
                 viewModel: vm.confirmDialog()
             }),
-            m(dialog.component, {
+            m(dlg, {
                 viewModel: vm.errorDialog()
             }),
             m("table", {
