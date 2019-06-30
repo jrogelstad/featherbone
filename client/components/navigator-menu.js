@@ -191,7 +191,7 @@ navigator.component = {
         @method oninit
         @param {Object} [vnode] Virtual node
         @param {Object} [vnode.attrs Options]
-        @param {Object} [vnode.attrs.viewModel]
+        @param {ViewModels.NavigatorMenu} [vnode.attrs.viewModel]
     */
     oninit: function (vnode) {
         let vm = vnode.attrs.viewModel || navigator.viewModel(vnode.attrs);

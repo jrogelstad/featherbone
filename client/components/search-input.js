@@ -16,16 +16,21 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/**
+    @module SearchInput
+*/
 import f from "../core.js";
-import State from "../state.js";
 
+const State = f.State;
+const catalog = f.catalog();
 const searchInput = {};
 const m = window.m;
 
-/*
-
-    @method viewModel
-    @param {Object} Options
+/**
+    @class SearchInput
+    @constructor
+    @namespace ViewModels
+    @param {Object} options
     @param {Object} [options.style] Style
     @param {String} [options.icon] Icon name
     @param {Function} [options.onclick] On click function
@@ -40,35 +45,86 @@ searchInput.viewModel = function (options) {
     //
 
     vm = {};
+
+    /**
+        Clear search box.
+        @method clear
+    */
     vm.clear = function () {
         vm.text("");
         vm.end();
     };
+    /**
+        Turn search off.
+        @method end
+    */
     vm.end = function () {
         state.send("end");
     };
+    /**
+        @method id
+        @param {String} id
+        @return {String}
+    */
     vm.id = f.prop(f.createId());
+    /**
+        @method onkeydown
+        @param {Event} event
+    */
     vm.onkeydown = function (e) {
         let key = e.key || e.keyIdentifier;
         if (key === "Enter") {
             vm.refresh();
         }
     };
+    /**
+        Excute refresh function passed in via options.
+        @method refresh
+    */
     vm.refresh = function () {
         if (options.refresh) {
             options.refresh();
         }
     };
+    /**
+        Turn search on.
+        @method start
+    */
     vm.start = function () {
         state.send("start");
     };
+
+    /**
+        Statechart.
+        @method state
+        @return {State}
+    */
     vm.state = function () {
         return state;
     };
+
+    /**
+        @method style
+        @param {Object} id
+        @return {Object}
+    */
     vm.style = function () {
         return state.resolve(state.current()[0]).style();
     };
+
+    /**
+        Search text
+        @method text
+        @param {String} text
+        @return {String}
+    */
     vm.text = f.prop();
+
+    /**
+        Search value (dependent on state).
+        @method value
+        @return {String}
+    */
     vm.value = function () {
         return state.resolve(state.current()[0]).value();
     };
@@ -127,14 +183,30 @@ searchInput.viewModel = function (options) {
     return vm;
 };
 
-// Define dialog component
+catalog.register("viewModels", "searchInput", searchInput.viewModel);
+
+/**
+    Search component.
+    @class SearchInput
+    @static
+    @namespace Components
+*/
 searchInput.component = {
+    /**
+        @method oninit
+        @param {Object} [vnode] Virtual node
+        @param {Object} [vnode.attrs Options]
+        @param {ViewModels.SearchInput} [vnode.attrs.viewModel]
+    */
     oninit: function (vnode) {
         this.viewModel = (
             vnode.attrs.viewModel || searchInput.viewModel(vnode.attrs)
         );
     },
-
+    /**
+        @method view
+        @return {Object} View
+    */
     view: function () {
         let vm = this.viewModel;
 
@@ -150,5 +222,7 @@ searchInput.component = {
         });
     }
 };
+
+catalog.register("components", "searchInupt", searchInput.component);
 
 export default Object.freeze(searchInput);
