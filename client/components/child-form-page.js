@@ -292,6 +292,7 @@ childFormPage.component = {
         let vm = this.viewModel;
         let model = vm.model();
         let icon = "file-alt";
+        let btn = f.getComponent("Button");
 
         if (model.isValid()) {
             switch (model.state().current()[0]) {
@@ -323,16 +324,16 @@ childFormPage.component = {
                 id: "toolbar",
                 class: "fb-toolbar"
             }, [
-                m(f.getComponent("Button"), {
+                m(btn, {
                     viewModel: vm.buttonDone()
                 }),
-                m(f.getComponent("Button"), {
+                m(btn, {
                     viewModel: vm.buttonPrevious()
                 }),
-                m(f.getComponent("Button"), {
+                m(btn, {
                     viewModel: vm.buttonNext()
                 }),
-                m(f.getComponent("Button"), {
+                m(btn, {
                     viewModel: vm.buttonNew()
                 })
             ]),

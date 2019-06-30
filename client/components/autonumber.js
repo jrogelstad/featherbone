@@ -279,7 +279,7 @@ autonumber.component = {
         ret = m("div", {
             style: style
         }, [
-            m(f.getComponent("Button"), {
+            m(f.getComponent("Dialog"), {
                 viewModel: vm.autonumberDialog()
             }),
             m("input", options),

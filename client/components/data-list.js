@@ -123,6 +123,7 @@ table.component = {
     view: function () {
         let vm = this.viewModel;
         let btn = f.getComponent("Button");
+        let tw = f.getComponent("TableWidget");
 
         return m("div", [
             m(btn, {
@@ -134,7 +135,7 @@ table.component = {
             m(btn, {
                 viewModel: vm.buttonUndo()
             }),
-            m(btn, {
+            m(tw, {
                 viewModel: vm.tableWidget()
             })
         ]);
@@ -226,7 +227,7 @@ dataList.viewModel = function (options) {
         @method models
         @return {Array}
     */
-    vm.models = f.createList("DataListOption", {fetch: false});
+    vm.models = f.prop(f.createList("DataListOption", {fetch: false}));
     /**
         Parent model property.
         @method prop
