@@ -16,34 +16,34 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
-import f from "../core.js";
-import button from "./button.js";
-import catalog from "../models/catalog.js";
-import dialog from "./dialog.js";
-import State from "../state.js";
-
-/*
-    @class tableDialog
+/**
+    @module TableDialog
 */
+import f from "../core.js";
+
+const catalog = f.catalog();
+const State = f.State;
 const tableDialog = {};
 const m = window.m;
 
-/*
+/**
     View model for sort dialog.
 
-    @method viewModel
-    @param {Object} Options
-    @param {Array} [options.propertyName] Filter property being modified
-    @param {Array} [options.attrs] Attributes
-    @param {Array} [options.list] Model list
-    @param {Array} [options.feather] Feather
-    @param {Function} [options.filter] Filter property
+    @class TableDialog
+    @constructor
+    @namespace ViewModels
+    @extends ViewModels.Dialog
+    @param {Object} options
+    @param {Array} options.propertyName Filter property being modified
+    @param {Array} options.attrs Attributes
+    @param {Array} options.list Model list
+    @param {Array} options.feather Feather
+    @param {Property} options.filter Filter property
 */
 tableDialog.viewModel = function (options) {
     options = options || {};
     let vm;
     let state;
-    let createButton;
     let buttonAdd;
     let buttonRemove;
     let buttonClear;
@@ -55,7 +55,10 @@ tableDialog.viewModel = function (options) {
     // PUBLIC
     //
 
-    vm = dialog.viewModel(options);
+    vm = f.createViewModel("Dialog", options);
+    /**
+        @method add
+    */
     vm.add = function () {
         let ary = vm.data();
         let attrs = vm.attrs();
@@ -70,6 +73,10 @@ tableDialog.viewModel = function (options) {
         buttonClear.enable();
         vm.scrollBottom(true);
     };
+    /**
+        @method addAttr
+        @param {String} attr Attribute
+    */
     vm.addAttr = function (attr) {
         if (!this.some(vm.hasAttr.bind(attr))) {
             this.push({
@@ -78,40 +85,74 @@ tableDialog.viewModel = function (options) {
             return true;
         }
     };
+    /**
+        @method buttonAdd
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonAdd = function () {
         return buttonAdd;
     };
+    /**
+        @method buttonClear
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonClear = function () {
         return buttonClear;
     };
+    /**
+        @method buttonDown
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonDown = function () {
         return buttonDown;
     };
+    /**
+        @method buttonRemove
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonRemove = function () {
         return buttonRemove;
     };
+    /**
+        @method buttonUp
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonUp = function () {
         return buttonUp;
     };
+    /**
+        @method clear
+    */
     vm.clear = function () {
         vm.data().length = 0;
         buttonClear.disable();
     };
+    /**
+        @method content
+        @return {Object} View
+    */
     vm.content = function () {
+        let btn = f.getComponent("Button");
+
         return [
-            m(button.component, {
+            m(btn, {
                 viewModel: vm.buttonAdd()
             }),
-            m(button.component, {
+            m(btn, {
                 viewModel: vm.buttonRemove()
             }),
-            m(button.component, {
+            m(btn, {
                 viewModel: vm.buttonClear()
             }),
-            m(button.component, {
+            m(btn, {
                 viewModel: vm.buttonDown()
             }),
-            m(button.component, {
+            m(btn, {
                 viewModel: vm.buttonUp()
             }),
             m("table", {
@@ -135,18 +176,37 @@ tableDialog.viewModel = function (options) {
             ])
         ];
     };
+    /**
+        Placeholder function.
+        @method data
+        @return {List}
+    */
     vm.data = function () {
         // Implement list here
         return;
     };
+    /**
+        @method isSelected
+        @return {Boolean}
+    */
     vm.isSelected = function () {
         return state.resolve(
             state.resolve("/Selection").current()[0]
         ).isSelected();
     };
+    /**
+        @method itemChanged
+        @param {Integer} index
+        @param {String} property
+        @param {Any} value
+    */
     vm.itemChanged = function (index, property, value) {
         vm.data()[index][property] = value;
     };
+    /**
+        @method items
+        @return {Array}
+    */
     vm.items = function () {
         let i = 0;
         let items = vm.data().map(function (item) {
@@ -158,10 +218,23 @@ tableDialog.viewModel = function (options) {
 
         return items;
     };
+     /**
+        @method hasAttr
+        @param {Object} item
+        @return {Boolean}
+    */
     vm.hasAttr = function (item) {
         return item.property === this;
     };
+    /**
+        @method list
+        @param {List} list
+        @return {List}
+    */
     vm.list = f.prop(options.list);
+    /**
+        @method moveDown
+    */
     vm.moveDown = function () {
         let ary = vm.data();
         let idx = vm.selection();
@@ -171,6 +244,9 @@ tableDialog.viewModel = function (options) {
         ary.splice(idx, 2, b, a);
         vm.selection(idx + 1);
     };
+    /**
+        @method moveUp
+    */
     vm.moveUp = function () {
         let ary = vm.data();
         let idx = vm.selection() - 1;
@@ -180,6 +256,9 @@ tableDialog.viewModel = function (options) {
         ary.splice(idx, 2, b, a);
         vm.selection(idx);
     };
+    /**
+        @method remove
+    */
     vm.remove = function () {
         let idx = selection();
         let ary = vm.data();
@@ -195,10 +274,22 @@ tableDialog.viewModel = function (options) {
         }
         buttonRemove.disable();
     };
+    /**
+        Placeholder function.
+        @method reset
+    */
     vm.reset = function () {
         // Reset code here
         return;
     };
+    /**
+        @method resolveProperties
+        @param {Object} feather
+        @param {Object} properties
+        @param {Array} ary
+        @param {String} prefix
+        @return {Array}
+    */
     vm.resolveProperties = function (feather, properties, ary, prefix) {
         prefix = prefix || "";
         let result = ary || [];
@@ -238,6 +329,11 @@ tableDialog.viewModel = function (options) {
 
         return result;
     };
+    /**
+        @method rowColor
+        @param {Integer} index
+        @return {String}
+    */
     vm.rowColor = function (index) {
         if (vm.selection() === index) {
             if (vm.isSelected()) {
@@ -247,15 +343,46 @@ tableDialog.viewModel = function (options) {
         }
         return "White";
     };
+    /**
+        @method title
+        @param {String} title
+        @return {String}
+    */
     vm.title = f.prop(options.title);
+    /**
+        Placeholder function.
+        @method viewHeaderIds
+        @return {Object}
+    */
     vm.viewHeaderIds = f.prop();
+    /**
+        Placeholder function.
+        @method viewHeaders
+        @return {Object} View
+    */
     vm.viewHeaders = function () {
         return;
     };
+    /**
+        Placeholder function.
+        @method viewRows
+        @return {Object} View
+    */
     vm.viewRows = function () {
         return;
     };
+    /**
+        @method scrollBottom
+        @param {Boolean} flag
+        @return {Boolean}
+    */
     vm.scrollBottom = f.prop(false);
+    /**
+        @method selection
+        @param {Integer} [index]
+        @param {Boolean} [select]
+        @return {Object} View
+    */
     vm.selection = function (...args) {
         let ary = vm.data();
         let index = args[0];
@@ -288,8 +415,7 @@ tableDialog.viewModel = function (options) {
     // PRIVATE
     //
 
-    createButton = button.viewModel;
-    buttonAdd = createButton({
+    buttonAdd = f.createViewModel("Button", {
         onclick: vm.add,
         label: "Add",
         icon: "plus-circle",
@@ -299,7 +425,7 @@ tableDialog.viewModel = function (options) {
         }
     });
 
-    buttonRemove = createButton({
+    buttonRemove = f.createViewModel("Button", {
         onclick: vm.remove,
         label: "Remove",
         icon: "trash",
@@ -309,7 +435,7 @@ tableDialog.viewModel = function (options) {
         }
     });
 
-    buttonClear = createButton({
+    buttonClear = f.createViewModel("Button", {
         onclick: vm.clear,
         title: "Clear",
         icon: "eraser",
@@ -319,7 +445,7 @@ tableDialog.viewModel = function (options) {
         }
     });
 
-    buttonUp = createButton({
+    buttonUp = f.createViewModel("Button", {
         onclick: vm.moveUp,
         icon: "chevron-up",
         title: "Move up",
@@ -330,7 +456,7 @@ tableDialog.viewModel = function (options) {
         }
     });
 
-    buttonDown = createButton({
+    buttonDown = f.createViewModel("Button", {
         onclick: vm.moveDown,
         icon: "chevron-down",
         title: "Move down",
@@ -371,12 +497,17 @@ tableDialog.viewModel = function (options) {
     return vm;
 };
 
-/*
-    Table dialog component
+catalog.register("viewModels", "tableDialog", tableDialog.viewModel);
 
-    @property component
-    @type Object
+/**
+    Table dialog component
+    @class TableDialog
+    @namespace Components
+    @static
+    @uses Components.Dialog
 */
-tableDialog.component = dialog.component;
+tableDialog.component = f.getComponent("Dialog");
+
+catalog.register("components", "tableDialog", tableDialog.component);
 
 export default Object.freeze(tableDialog);
