@@ -16,9 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/**
+    @module MoneyRelation
+*/
 import f from "../core.js";
-import catalog from "../models/catalog.js";
 
+const catalog = f.catalog();
 const moneyRelation = {};
 const m = window.m;
 
@@ -32,6 +35,18 @@ function selections(item) {
     return m("option", value);
 }
 
+/**
+    View model editor for properties with format `Money`.
+    @class MoneyRelation
+    @constructor
+    @namespace ViewModels
+    @param {Object} options Options
+    @param {Object} options.parentViewModel
+    @param {String} options.parentProperty
+    @param {Boolean} [options.isCell]
+    @param {Boolean} [options.showCurrency]
+    @param {Boolean} [options.disableCurrency]
+*/
 moneyRelation.viewModel = function (options) {
     let selector;
     let wasReadOnly;
@@ -88,11 +103,32 @@ moneyRelation.viewModel = function (options) {
         }
     });
 
+    /**
+        @method id
+        @param {String} id
+        @return {String}
+    */
     vm.id = f.prop(options.id);
+    /**
+        Layout for table cell.
+        @method isCell
+        @param {Boolean} flag
+        @return {Boolean}
+    */
     vm.isCell = f.prop(Boolean(options.isCell));
+    /**
+        @method label
+        @return {String}
+    */
     vm.label = function () {
         return f.baseCurrency(vm.effective()).data.code();
     };
+    /**
+        Amount in local currency.
+        @method amount
+        @param {Number} amount
+        @return {Number}
+    */
     vm.amount = function (...args) {
         let money;
 
@@ -104,6 +140,11 @@ moneyRelation.viewModel = function (options) {
 
         return prop().amount;
     };
+    /**
+        Amount in base currency.
+        @method baseAmount
+        @return {Number}
+    */
     vm.baseAmount = function () {
         let ret;
         let money;
@@ -133,7 +174,19 @@ moneyRelation.viewModel = function (options) {
 
         return f.formats.money.fromType(money).amount;
     };
+    /**
+        Currency conversion rate.
+        @method conversion
+        @param {Number} ratio
+        @return {Number}
+    */
     vm.conversion = f.prop();
+    /**
+        Currency code.
+        @method currency
+        @param {String} currency
+        @return {String}
+    */
     vm.currency = function (...args) {
         let money;
 
@@ -145,7 +198,18 @@ moneyRelation.viewModel = function (options) {
 
         return prop().currency;
     };
+    /**
+        Disable currency selector.
+        @method disableCurrency
+        @param {Boolean} flag
+        @return {Boolean}
+    */
     vm.disableCurrency = f.prop(Boolean(options.disableCurrency));
+    /**
+        Array of eligible currencies.
+        @method currencies
+        @return {Array}
+    */
     vm.currencies = function () {
         let ret;
         let curr = vm.currency();
@@ -187,10 +251,15 @@ moneyRelation.viewModel = function (options) {
 
         return ret;
     };
+    /**
+        Effective date.
+        @method effective
+        @return {String}
+    */
     vm.effective = function () {
         return prop().effective;
     };
-    /*
+    /**
         Causes the currency conversion to be updated.
 
         @method fetchConversion
@@ -231,15 +300,20 @@ moneyRelation.viewModel = function (options) {
                 limit: 1
             };
 
-            currConvList().fetch(filter, false).then(
+            currConvList.fetch(filter, false).then(
                 callback
             ).catch(
                 error
             );
         });
     };
-    // Selector is memoized to prevent constant rerendering
-    // that otherwise interferes with the relation widget autocompleter
+    /**
+        Selector is memoized to prevent constant rerendering
+        that otherwise interferes with the relation widget autocompleter
+        @method selector
+        @param {Object} vnode Virtual nodeName
+        @return {Object} Selector
+    */
     vm.selector = function (vnode) {
         let selectorStyle;
         let readonly = (
@@ -275,12 +349,35 @@ moneyRelation.viewModel = function (options) {
 
         return selector;
     };
+    /**
+        @method showCurrency
+        @param {Boolean} flag
+        @return {Boolean}
+    */
     vm.showCurrency = f.prop(options.showCurrency !== false);
 
     return vm;
 };
 
+/**
+    Editor component for properties with format `Money`.
+    @class MoneyRelation
+    @static
+    @namespace Components
+*/
 moneyRelation.component = {
+    /**
+        @method onint
+        @param {Object} vnode Virtual node
+        @param {Object} vnode.attrs Options
+        @param {Object} vnode.attrs.parentViewModel
+        @param {String} vnode.attrs.parentProperty
+        @param {String} [vnode.attrs.id]
+        @param {Boolean} [vnode.attrs.isCell]
+        @param {Boolean} [vnode.attrs.showCurrency]
+        @param {Boolean} [vnode.attrs.readonly]
+        @param {Boolean} [vnode.attrs.disableCurrency]
+    */
     oninit: function (vnode) {
         let options = vnode.attrs;
 
@@ -295,7 +392,10 @@ moneyRelation.component = {
             disableCurrency: options.disableCurrency
         });
     },
-
+    /**
+        @method view
+        @param {Object} vnode Virtual node
+    */
     view: function (vnode) {
         let currencyLabelStyle;
         let inputStyle;
