@@ -221,7 +221,7 @@ function resolveConfig(config) {
 
     @class Workbook
     @static
-    @namespace Feathers
+    @namespace Models
     @extends Model
 */
 function workbookModel(data) {
@@ -644,11 +644,11 @@ workbookChild.calculated = f.prop({});
 */
 /**
     @class WorkbookDefaultConfig
-    @extends Feathers.WorkbookChild
+    @extends Models.WorkbookChild
 */
 /**
     @class WorkbookLocalConfig
-    @extends Feathers.WorkbookChild
+    @extends Models.WorkbookChild
 */
 
 /**
@@ -670,7 +670,7 @@ workbookAuthorization.calculated = f.prop({});
 /**
     Workbook parent.
 
-    __Type:__ `Feathers.Workbook`
+    __Type:__ `Models.Workbook`
 
     @property data.parent
     @type Property
@@ -678,7 +678,7 @@ workbookAuthorization.calculated = f.prop({});
 /**
     Role.
 
-    __Type:__ `Feathers.Role`
+    __Type:__ `Models.Role`
 
     @property data.Role
     @type Property
