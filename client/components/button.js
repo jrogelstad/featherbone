@@ -196,8 +196,7 @@ button.viewModel = function (options) {
     vm.onclick = f.prop(options.onclick);
     /**
         @method onkeydown
-        @param {Function} [f]
-        @return {Function}
+        @param {Event} event
     */
     vm.onkeydown = function (e) {
         let id;

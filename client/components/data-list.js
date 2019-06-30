@@ -290,7 +290,7 @@ dataList.viewModel = function (options) {
 /**
     Editor component for objects with format `DataList`.
     @class DataList
-    @stactic
+    @static
     @namespace Components
 */
 dataList.component = {
