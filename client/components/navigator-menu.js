@@ -16,10 +16,13 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/**
+    @module NavigatorMenu
+*/
 import f from "../core.js";
-import catalog from "../models/catalog.js";
-import State from "../state.js";
 
+const catalog = f.catalog();
+const State = f.State;
 const selected = f.prop();
 const navigator = {};
 const m = window.m;
@@ -59,8 +62,13 @@ const state = State.define(function () {
 });
 state.goto();
 
-navigator.viewModel = function (options) {
-    options = options || {};
+/**
+    Menu navigator view model. Menu state is managed globally.
+    @class NavigatorMenu
+    @constructor
+    @namespace ViewModels
+*/
+navigator.viewModel = function () {
     let vm;
 
     // ..........................................................
@@ -69,10 +77,22 @@ navigator.viewModel = function (options) {
 
     vm = {};
 
+    /**
+        Workbook index.
+        @method workbooks
+        @return {Object}
+    */
     vm.workbooks = catalog.store().workbooks;
+    /**
+        @method goHome
+    */
     vm.goHome = function () {
         m.route.set("/home");
     };
+    /**
+        Go to selected workbook.
+        @method goto
+    */
     vm.goto = function () {
         let config = this.getConfig();
 
@@ -81,29 +101,75 @@ navigator.viewModel = function (options) {
             key: config[0].name.toSpinalCase()
         });
     };
+    /**
+        Menu name.
+        @method itemContent
+        @param {String} name
+        @return {String}
+    */
     vm.itemContent = function (value) {
         return state.resolve(state.current()[0]).content(value);
     };
+    /**
+        @method title
+        @param {String} title
+        @return {String}
+    */
     vm.itemTitle = function (value) {
         return state.resolve(state.current()[0]).title(value);
     };
+    /**
+        Menu currently hovered over.
+        @method mouseoverKey
+        @param {String} key
+        @return {String}
+    */
     vm.mouseoverKey = f.prop();
+    /**
+        @method mouseout
+    */
     vm.mouseout = function () {
         vm.mouseoverKey(undefined);
     };
+    /**
+        @method mouseover
+    */
     vm.mouseover = function () {
         vm.mouseoverKey(this);
     };
+    /**
+        Toggle collapsed or expanded.
+        @method toggle
+    */
     vm.toggle = function () {
         state.send("toggle");
     };
+    /**
+        @method classHeader
+        @return {String}
+    */
     vm.classHeader = function () {
         return state.resolve(state.current()[0]).classHeader;
     };
+    /**
+        @method classMenu
+        @return {String}
+    */
     vm.classMenu = function () {
         return state.resolve(state.current()[0]).classMenu;
     };
+    /**
+        @method selected
+        @param {String} name
+        @return {String}
+    */
     vm.selected = selected;
+    /**
+        Menu statechart.
+        @method state
+        @param {State} state
+        @return {State}
+    */
     vm.state = f.prop(state);
 
     // ..........................................................
@@ -113,13 +179,28 @@ navigator.viewModel = function (options) {
     return vm;
 };
 
-// Define navigator component
+catalog.register("viewModels", "navigatorMenu", navigator.viewModel);
+
+/**
+    @class NavigatorMenu
+    @static
+    @namespace Components
+*/
 navigator.component = {
+    /**
+        @method oninit
+        @param {Object} [vnode] Virtual node
+        @param {Object} [vnode.attrs Options]
+        @param {Object} [vnode.attrs.viewModel]
+    */
     oninit: function (vnode) {
         let vm = vnode.attrs.viewModel || navigator.viewModel(vnode.attrs);
         this.viewModel = vm;
     },
-
+    /**
+        @method view
+        @return {Object} View
+    */
     view: function () {
         let menuItems;
         let itemClass;
@@ -199,5 +280,7 @@ navigator.component = {
         ]);
     }
 };
+
+catalog.register("components", "navigatorMenu", navigator.component);
 
 export default Object.freeze(navigator);
