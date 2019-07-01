@@ -633,7 +633,6 @@ workbookPage.viewModel = function (options) {
         m.route.set("/settings/:settings", {
             settings: workbook.data.launchConfig().settings
         });
-        vm.showMenu(false);
     };
     vm.isDraggingTab = f.prop(false);
     vm.hasSettings = f.prop(

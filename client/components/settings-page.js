@@ -16,23 +16,23 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
-import f from "../core.js";
-import button from "./button.js";
-import catalog from "../models/catalog.js";
-import formWidget from "./form-widget.js";
-
-/*
-    @class settingsPage
+/**
+    @module SettingsPage
 */
+import f from "../core.js";
+
+const catalog = f.catalog();
 const settingsPage = {};
 const m = window.m;
 
-/*
+/**
     View model for settings page.
 
-    @method viewModel
-    @param {Object} Options
-    @return {Object}
+    @class SettingsPage
+    @constructor
+    @namespace ViewModels
+    @param {Object} options
+    @param {Object} options.settings
 */
 settingsPage.viewModel = function (options) {
     options = options || {};
@@ -57,7 +57,16 @@ settingsPage.viewModel = function (options) {
     // ..........................................................
     // PUBLIC
     //
+
+    /**
+        @method buttonDone
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonDone = f.prop();
+    /**
+        @method doDone
+    */
     vm.doDone = function () {
         if (model.canSave()) {
             vm.formWidget().model().save().then(function () {
@@ -68,15 +77,28 @@ settingsPage.viewModel = function (options) {
 
         window.history.back();
     };
-
-    vm.formWidget = f.prop(formWidget.viewModel({
+    /**
+        @method formWidget
+        @param {ViewModels.FormWidget} widget
+        @return {ViewModels.FormWidget}
+    */
+    vm.formWidget = f.prop(f.createViewModel("FormWidget", {
         model: model,
         id: options.settings,
         config: form,
         outsideElementIds: ["toolbar"]
     }));
 
+    /**
+        @method model
+        @param {Model} model
+        @return {Model}
+    */
     vm.model = f.prop(model);
+    /**
+        @method title
+        @return {String}
+    */
     vm.title = function () {
         return options.settings.toName();
     };
@@ -85,9 +107,10 @@ settingsPage.viewModel = function (options) {
     // PRIVATE
     //
 
-    vm.buttonDone(button.viewModel({
+    vm.buttonDone(f.createViewModel("Button", {
         onclick: vm.doDone,
-        label: "&Done"
+        label: "&Done",
+        class: "fb-toolbar-button"
     }));
 
     if (model.state().current()[0] === "/Ready/New") {
@@ -97,19 +120,31 @@ settingsPage.viewModel = function (options) {
     return vm;
 };
 
-/*
+/**
     Settings page component
 
-    @property component
-    @type Object
+    @class SettingsPage
+    @static
+    @namespace Components
 */
 settingsPage.component = {
+    /**
+        Must pass view model instance or settings to build one.
+        @method oninit
+        @param {Object} vnode Virtual node
+        @param {Object} vnode.attrs Options
+        @param {ViewModels.SettingsPage} [vnode.attrs.viewModel]
+        @param {Function} [vnode.attrs.settings]
+    */
     oninit: function (vnode) {
         this.viewModel = (
             vnode.attrs.viewModel || settingsPage.viewModel(vnode.attrs)
         );
     },
-
+    /**
+        @method view
+        @return {Object} View
+    */
     view: function () {
         let vm = this.viewModel;
 
@@ -119,7 +154,7 @@ settingsPage.component = {
                 id: "toolbar",
                 class: "fb-toolbar"
             }, [
-                m(button.component, {
+                m(f.getComponent("Button"), {
                     viewModel: vm.buttonDone()
                 })
             ]),
@@ -131,7 +166,7 @@ settingsPage.component = {
                 }),
                 m("label", vm.title())
             ]),
-            m(formWidget.component, {
+            m(f.getComponent("FormWidget"), {
                 viewModel: vm.formWidget()
             })
         ]);
