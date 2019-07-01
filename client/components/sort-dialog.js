@@ -16,17 +16,23 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/**
+    module SortDialog
+*/
 import f from "../core.js";
-import filterDialog from "./filter-dialog.js";
 
+const catalog = f.catalog();
 const sortDialog = {};
 const m = window.m;
 
-/*
+/**
     View model for sort dialog.
 
-    @method viewModel
-    @param {Object} Options
+    @class SortDialog
+    @constructor
+    @namespace ViewModels
+    @extends ViewModels.FilterDialog
+    @param {Object} options
     @param {Array} [options.attrs] Attributes
     @param {Array} [options.list] Model list
     @param {Function} [options.filter] Filter property
@@ -43,7 +49,7 @@ sortDialog.viewModel = function (options) {
     // PUBLIC
     //
 
-    vm = filterDialog.viewModel(options);
+    vm = f.createViewModel("FilterDialog", options);
     vm.addAttr = function (attr) {
         if (!this.some(vm.hasAttr.bind(attr))) {
             this.push({
@@ -148,6 +154,16 @@ sortDialog.viewModel = function (options) {
     return vm;
 };
 
-sortDialog.component = filterDialog.component;
+catalog.register("viewModels", "sortDialog", sortDialog.viewModel);
+
+/**
+    Sort dialog component
+    @class SortDialog
+    @namespace Components
+    @static
+    @uses Components.Dialog
+*/
+sortDialog.component = f.getComponent("Dialog");
+catalog.register("components", "sortDialog", sortDialog.component);
 
 export default Object.freeze(sortDialog);

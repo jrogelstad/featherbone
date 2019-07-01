@@ -31,9 +31,7 @@ const m = window.m;
     @constructor
     @namespace ViewModels
     @param {Object} options
-    @param {Object} [options.style] Style
-    @param {String} [options.icon] Icon name
-    @param {Function} [options.onclick] On click function
+    @param {Function} [options.refresh] Refresh function
 */
 searchInput.viewModel = function (options) {
     options = options || {};
@@ -197,6 +195,7 @@ searchInput.component = {
         @param {Object} [vnode] Virtual node
         @param {Object} [vnode.attrs Options]
         @param {ViewModels.SearchInput} [vnode.attrs.viewModel]
+        @param {Function} [vnode.attrs.refresh]
     */
     oninit: function (vnode) {
         this.viewModel = (
@@ -223,6 +222,6 @@ searchInput.component = {
     }
 };
 
-catalog.register("components", "searchInupt", searchInput.component);
+catalog.register("components", "searchInput", searchInput.component);
 
 export default Object.freeze(searchInput);
