@@ -455,6 +455,16 @@ authTable.component = {
     @class FormPage
     @namespace ViewModels
     @constructor
+    @param {Object} options
+    @param {String} options.feather Feather name
+    @param {String} [options.form] Form id
+    @param {Object} [options.config] Layout configuration
+    @param {String} [options.receiever] Receiver id to send back changes
+    @param {Boolean} [options.isNew]
+    @param {Boolean} [options.create]
+    @param {Integer} [options.index]
+    @param {String} [options.key]
+    @param {Boolean} [options.isNewWindow]
 */
 formPage.viewModel = function (options) {
     // Handle options where opened as a new window
@@ -867,10 +877,20 @@ formPage.viewModel = function (options) {
 */
 formPage.component = {
     /**
+        Must pass view model instance, or options to build one.
         @method oninit
         @param {Object} vnode Virtual nodeName
-        @param {Object} [vnode.attrs] Options
+        @param {Object} vnode.attrs Options
         @param {Object} [vnode.attrs.viewModel] View model
+        @param {String} [vnode.attrs.feather] Feather name
+        @param {String} [vnode.attrs.form] Form id
+        @param {Object} [vnode.attrs.config] Layout configuration
+        @param {String} [vnode.attrs.receiever] Receiver id to send back changes
+        @param {Boolean} [vnode.attrs.isNew]
+        @param {Boolean} [vnode.attrs.create]
+        @param {Integer} [vnode.attrs.index]
+        @param {String} [vnode.attrs.key]
+        @param {Boolean} [vnode.attrs.isNewWindow]
     */
     oninit: function (vnode) {
         this.viewModel = (

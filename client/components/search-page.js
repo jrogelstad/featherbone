@@ -16,17 +16,24 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/**
+    @module SearchPage
+*/
 import f from "../core.js";
-import button from "./button.js";
-import catalog from "../models/catalog.js";
-import filterDialog from "./filter-dialog.js";
-import sortDialog from "./sort-dialog.js";
-import searchInput from "./search-input.js";
-import tableWidget from "./table-widget.js";
 
+const catalog = f.catalog();
 const searchPage = {};
 const m = window.m;
 
+/**
+    @class SearchPage
+    @constructor
+    @namespace ViewModels
+    @param {Object} options
+    @param {String} options.feather Feather name
+    @param {Object} options.config Column configuration
+    @param {String} options.receiever Receiver id to send back selection
+*/
 searchPage.viewModel = function (options) {
     let vm = {};
     let feather = catalog.getFeather(options.feather.toCamelCase(true));
@@ -35,16 +42,51 @@ searchPage.viewModel = function (options) {
     // ..........................................................
     // PUBLIC
     //
-
+    /**
+        @method buttonBack
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonBack = f.prop();
+    /**
+        @method buttonSelect
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonSelect = f.prop();
+    /**
+        @method buttonClear
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonClear = f.prop();
+    /**
+        @method buttonFilter
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonFilter = f.prop();
+    /**
+        @method buttonRefresh
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonRefresh = f.prop();
+    /**
+        @method buttonSort
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonSort = f.prop();
+    /**
+        @method doBack
+    */
     vm.doBack = function () {
         window.history.back();
     };
+    /**
+        @method doSelect
+    */
     vm.doSelect = function () {
         let receivers;
         let selection;
@@ -59,10 +101,33 @@ searchPage.viewModel = function (options) {
         }
         vm.doBack();
     };
+    /**
+        @method filterDialog
+        @param {ViewModels.FilterDialog} dialog
+        @return {ViewModels.FilterDialog}
+    */
     vm.filterDialog = f.prop();
+    /**
+        @method sortDialog
+        @param {ViewModels.SortDialog} dialog
+        @return {ViewModels.SortDialog}
+    */
     vm.sortDialog = f.prop();
+    /**
+        @method searchInput
+        @param {ViewModels.SearchInput} input
+        @return {ViewModels.SearchInput}
+    */
     vm.searchInput = f.prop();
+    /**
+        @method tableWidget
+        @param {ViewModels.TableWidget} widget
+        @return {ViewModels.TableWidget}
+    */
     vm.tableWidget = f.prop();
+    /**
+        @method refresh
+    */
     vm.refresh = function () {
         vm.tableWidget().refresh();
     };
@@ -72,12 +137,12 @@ searchPage.viewModel = function (options) {
     //
 
     // Create search input view model
-    vm.searchInput(searchInput.viewModel({
+    vm.searchInput(f.createViewModel("SearchInput", {
         refresh: vm.refresh
     }));
 
     // Create table widget view model
-    vm.tableWidget(tableWidget.viewModel({
+    vm.tableWidget(f.createViewModel("TableWidget", {
         config: config,
         feather: options.feather.toCamelCase(true),
         search: vm.searchInput().value,
@@ -85,27 +150,27 @@ searchPage.viewModel = function (options) {
     }));
 
     // Create dalog view models
-    vm.filterDialog(filterDialog.viewModel({
+    vm.filterDialog(f.createViewModel("FilterDialog", {
         filter: vm.tableWidget().filter,
         list: vm.tableWidget().models(),
         feather: feather
     }));
 
-    vm.sortDialog(sortDialog.viewModel({
+    vm.sortDialog(f.createViewModel("SortDialog", {
         filter: vm.tableWidget().filter,
         list: vm.tableWidget().models(),
         feather: feather
     }));
 
     // Create button view models
-    vm.buttonBack(button.viewModel({
+    vm.buttonBack(f.createViewModel("Button", {
         onclick: vm.doBack,
         label: "&Back",
         icon: "arrow-left",
         class: "fb-toolbar-button"
     }));
 
-    vm.buttonSelect(button.viewModel({
+    vm.buttonSelect(f.createViewModel("Button", {
         onclick: vm.doSelect,
         label: "&Select",
         title: vm.selectTitle,
@@ -122,7 +187,7 @@ searchPage.viewModel = function (options) {
         return "";
     };
 
-    vm.buttonRefresh(button.viewModel({
+    vm.buttonRefresh(f.createViewModel("Button", {
         onclick: vm.refresh,
         title: "Refresh",
         hotkey: "R",
@@ -130,7 +195,7 @@ searchPage.viewModel = function (options) {
         class: "fb-toolbar-button"
     }));
 
-    vm.buttonClear(button.viewModel({
+    vm.buttonClear(f.createViewModel("Button", {
         onclick: vm.searchInput().clear,
         title: "Clear search",
         hotkey: "C",
@@ -141,7 +206,7 @@ searchPage.viewModel = function (options) {
         return !vm.searchInput().value();
     };
 
-    vm.buttonFilter(button.viewModel({
+    vm.buttonFilter(f.createViewModel("Button", {
         onclick: vm.filterDialog().show,
         title: "Filter",
         hotkey: "F",
@@ -149,7 +214,7 @@ searchPage.viewModel = function (options) {
         class: "fb-toolbar-button"
     }));
 
-    vm.buttonSort(button.viewModel({
+    vm.buttonSort(f.createViewModel("Button", {
         onclick: vm.sortDialog().show,
         title: "Sort",
         hotkey: "O",
@@ -157,30 +222,55 @@ searchPage.viewModel = function (options) {
         class: "fb-toolbar-button"
     }));
 
-    vm.buttonClear(button.viewModel({
-        onclick: vm.searchInput().clear,
-        title: "Clear search",
-        hotkey: "C",
-        icon: "eraser",
-        class: "fb-toolbar-button"
-    }));
-
     return vm;
 };
 
+catalog.register("viewModels", "searchPage", searchPage.viewModel);
+
+/**
+    Search component.
+    @class SearchPage
+    @static
+    @namespace Components
+*/
 searchPage.component = {
+    /**
+        Must pass view model instance or options to build one.
+        @method oninit
+        @param {Object} [vnode] Virtual node
+        @param {Object} [vnode.attrs Options]
+        @param {ViewModels.SearchInput} [vnode.attrs.viewModel]
+        @param {String} [vnode.attrs.feather] Feather name
+        @param {Object} [vnode.attrs.config] Column configuration
+        @param {String} [vnode.attrs.receiever] Receiver id to send back
+        selection
+    */
     oninit: function (vnode) {
         this.viewModel = (
             vnode.attrs.viewModel || searchPage.viewModel(vnode.attrs)
         );
     },
 
+    /**
+        Cleanup method.
+        @method onremove
+        @param {Object} [vnode] Virtual node
+    */
     onremove: function (vnode) {
         delete catalog.register("config")[vnode.attrs.config];
     },
 
+    /**
+        @method view
+        @return {Object} View
+    */
     view: function () {
         let vm = this.viewModel;
+        let btn = f.getComponent("Button");
+        let srch = f.getComponent("SearchInput");
+        let sdlg = f.getComponent("SortDialog");
+        let fdlg = f.getComponent("FilterDialog");
+        let tw = f.getComponent("TableWidget");
 
         // Build view
         return m("div", {
@@ -189,35 +279,35 @@ searchPage.component = {
             m("div", {
                 class: "fb-toolbar"
             }, [
-                m(button.component, {
+                m(btn, {
                     viewModel: vm.buttonBack()
                 }),
-                m(button.component, {
+                m(btn, {
                     viewModel: vm.buttonSelect()
                 }),
-                m(searchInput.component, {
+                m(srch, {
                     viewModel: vm.searchInput()
                 }),
-                m(button.component, {
+                m(btn, {
                     viewModel: vm.buttonRefresh()
                 }),
-                m(button.component, {
+                m(btn, {
                     viewModel: vm.buttonClear()
                 }),
-                m(button.component, {
+                m(btn, {
                     viewModel: vm.buttonSort()
                 }),
-                m(button.component, {
+                m(btn, {
                     viewModel: vm.buttonFilter()
                 })
             ]),
-            m(sortDialog.component, {
+            m(sdlg, {
                 viewModel: vm.sortDialog()
             }),
-            m(filterDialog.component, {
+            m(fdlg, {
                 viewModel: vm.filterDialog()
             }),
-            m(tableWidget.component, {
+            m(tw, {
                 viewModel: vm.tableWidget()
             })
         ]);
