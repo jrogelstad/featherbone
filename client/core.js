@@ -1145,8 +1145,8 @@ f.createModel = function (arg1, arg2) {
 /**
     Formats for data types.
 
-    @property formats
-    @type Object
+    @method formats
+    @return {Object}
 */
 f.formats = () => formats;
 /**
