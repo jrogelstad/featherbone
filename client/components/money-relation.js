@@ -172,7 +172,7 @@ moneyRelation.viewModel = function (options) {
             baseAmount: null
         };
 
-        return f.formats.money.fromType(money).amount;
+        return f.formats().money.fromType(money).amount;
     };
     /**
         Currency conversion rate.

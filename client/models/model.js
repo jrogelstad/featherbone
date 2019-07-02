@@ -1662,8 +1662,8 @@ function createModel(data, feather) {
                         });
                     };
                     toType = (
-                        f.formats[p.format]
-                        ? f.formats[p.format].toType
+                        f.formats()[p.format]
+                        ? f.formats()[p.format].toType
                         : f.types[p.type].toType
                     );
 
@@ -1675,7 +1675,7 @@ function createModel(data, feather) {
                     formatter.default = 0;
                 } else {
                     formatter = (
-                        f.formats[p.format] ||
+                        f.formats()[p.format] ||
                         f.types[p.type] || {}
                     );
                 }

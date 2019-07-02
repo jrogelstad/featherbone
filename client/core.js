@@ -41,6 +41,7 @@ const exclusions = [
     "objectType",
     "etag"
 ];
+const formats = {};
 
 let styles;
 
@@ -334,6 +335,532 @@ function resizeEditor(editor) {
     editor.setSize(null, window.innerHeight - yPosition - bottomHeight);
 }
 
+function input(type, options) {
+    let prop = options.prop;
+    let opts = {
+        class: options.class,
+        readonly: options.readonly,
+        id: options.id,
+        required: options.required,
+        style: options.style,
+        type: type,
+        onchange: (e) => prop(e.target.value),
+        oncreate: options.onCreate,
+        onremove: options.onRemove,
+        value: prop()
+    };
+
+    if (opts.class) {
+        opts.class = "fb-input " + opts.class;
+    } else {
+        opts.class = "fb-input";
+    }
+
+    return m("input", opts);
+}
+
+formats.integer = {
+    default: 0,
+    toType: (value) => parseInt(value, 10)
+};
+formats.string = {
+    default: "",
+    toType: (value) => value.toString()
+};
+formats.boolean = {
+    default: false,
+    toType: (value) => Boolean(value)
+};
+formats.date = {
+    toType: function (value) {
+        let month;
+        let ret = "";
+
+        if (
+            value &&
+            value.constructor.name === "Date"
+        ) {
+            month = value.getUTCMonth() + 1;
+            ret += value.getUTCFullYear() + "-";
+            ret += month.pad(2, "0") + "-";
+            ret += value.getUTCDate().pad(2, "0");
+        } else {
+            ret = value;
+        }
+        return ret;
+    },
+    default: () => f.today()
+};
+formats.dateTime = {
+    default: () => f.now(),
+    fromType: (value) => new Date(value).toLocalDateTime(),
+    toType: function (value) {
+        if (
+            value &&
+            value.constructor.name === "Date"
+        ) {
+            return new Date(value).toISOString();
+        }
+        return value;
+    }
+};
+formats.password = {
+    default: "",
+    fromType: () => "*****"
+};
+formats.tel = {
+    default: ""
+};
+formats.email = {
+    default: ""
+};
+formats.url = {
+    default: ""
+};
+formats.color = {
+    default: "#000000"
+};
+formats.textArea = {
+    default: ""
+};
+formats.script = {
+    default: ""
+};
+formats.money = {
+    default: () => f.money(),
+    fromType: function (value) {
+        let style;
+        let amount = value.amount || 0;
+        let currency = value.currency;
+        let curr = f.getCurrency(value.currency);
+        let hasDisplayUnit = curr.data.hasDisplayUnit();
+        let minorUnit = (
+            hasDisplayUnit
+            ? curr.data.displayUnit().data.minorUnit()
+            : curr.data.minorUnit()
+        );
+
+        style = {
+            minimumFractionDigits: minorUnit,
+            maximumFractionDigits: minorUnit
+        };
+
+        if (hasDisplayUnit) {
+            curr.data.conversions().some(function (conv) {
+                if (conv.data.toUnit().id() === curr.data.displayUnit().id()) {
+                    amount = amount.div(conv.data.ratio()).round(minorUnit);
+                    return true;
+                }
+            });
+
+            currency = curr.data.displayUnit().data.code();
+        }
+
+        return {
+            amount: amount.toLocaleString(undefined, style),
+            currency: currency,
+            effective: (
+                value.effective === null
+                ? null
+                : f.formats().dateTime.fromType(value.effective)
+            ),
+            baseAmount: (
+                value.baseAmount === null
+                ? null
+                : f.types.number.fromType(value.baseAmount)
+            )
+        };
+    },
+    toType: function (value) {
+        value = value || f.money();
+        let amount = f.types.number.toType(value.amount);
+        let currency = f.formats().string.toType(value.currency);
+        let curr = f.getCurrency(value.currency);
+
+        if (curr.data.hasDisplayUnit() && currency !== curr.data.code()) {
+            curr.data.conversions().some(function (conv) {
+                if (conv.data.toUnit().id() === curr.data.displayUnit().id()) {
+                    amount = amount.times(
+                        conv.data.ratio().round(curr.data.minorUnit())
+                    );
+                    return true;
+                }
+            });
+
+            currency = curr.data.code();
+        }
+
+        value = {
+            amount: amount,
+            currency: currency,
+            effective: (
+                value.effective === null
+                ? null
+                : f.formats().dateTime.toType(value.effective)
+            ),
+            baseAmount: (
+                value.baseAmount === null
+                ? null
+                : f.types.number.toType(value.baseAmount)
+            )
+        };
+
+        return Object.freeze(value);
+    }
+};
+formats.enum = {
+    default: ""
+};
+formats.lock = {};
+formats.dataType = {};
+formats.icon = {
+    default: ""
+};
+
+formats.autonumber = {};
+formats.autonumber.editor = function (options) {
+    return m(catalog.store().components().autonumber, options);
+};
+
+formats.autonumber.tableData = function (obj) {
+    let value = obj.value;
+    let content = value;
+    let title = value;
+
+    if (typeof value === "object" && value !== null) {
+        content = "relation: " + obj.value.relation;
+        title = content;
+    }
+
+    obj.options.title = title;
+
+    return content;
+};
+
+formats.color.editor = input.bind(null, "color");
+formats.color.tableData = function (obj) {
+    if (obj.value) {
+        return m("i", {
+            style: {
+                color: obj.value
+            },
+            class: "fa fa-square"
+        });
+    }
+};
+
+formats.date.editor = input.bind(null, "date");
+formats.date.tableData = function (obj) {
+    if (obj.value) {
+        // Turn into date adjusting time for
+        // current timezone
+        obj.value = new Date(obj.value + f.now().slice(10));
+        return obj.value.toLocaleDateString();
+    }
+};
+
+formats.dateTime.editor = input.bind(null, "datetime-local");
+formats.dateTime.tableData = function (obj) {
+    obj.value = (
+        obj.value
+        ? new Date(obj.value)
+        : ""
+    );
+
+    return (
+        obj.value
+        ? obj.value.toLocaleString()
+        : ""
+    );
+};
+
+formats.dataType.editor = function (options) {
+    return m(catalog.store().components().dataType, options);
+};
+
+formats.dataType.tableData = function (obj) {
+    let value = obj.value;
+    let content = value;
+    let title = value;
+
+    if (typeof value === "object" && value !== null) {
+        content = "relation: " + obj.value.relation;
+        title = content + "\n";
+        if (value.childOf) {
+            title += "child of: " + value.childOf;
+        } else if (value.parentOf) {
+            title += "parent of: " + value.parentOf;
+        } else {
+            title += "properties: " + value.properties.toString();
+        }
+    }
+
+    obj.options.title = title;
+
+    return content;
+};
+
+formats.enum.tableData = function (obj) {
+    let found;
+    if (typeof obj.prop.dataList[0] === "object") {
+        found = obj.prop.dataList.find(function (item) {
+            return item.value === obj.value;
+        });
+        if (found) {
+            return found.label;
+        } else {
+            return "invalid value " + obj.value;
+        }
+    }
+
+    return obj.value;
+};
+
+formats.icon.tableData = function (obj) {
+    if (obj.value) {
+        return m("i", {
+            class: "fa fa-" + obj.value
+        });
+    }
+};
+
+formats.money.editor = function (options) {
+    return m(catalog.store().components().moneyRelation, options);
+};
+formats.money.tableData = function (obj) {
+    let value = obj.value;
+    let options = obj.options;
+    let curr = f.getCurrency(value.currency);
+    let du;
+    let symbol;
+    let minorUnit = 2;
+    let content;
+
+    if (curr) {
+        if (curr.data.hasDisplayUnit()) {
+            du = curr.data.displayUnit();
+            symbol = du.data.symbol();
+            minorUnit = du.data.minorUnit();
+        } else {
+            symbol = curr.data.symbol();
+            minorUnit = curr.data.minorUnit();
+        }
+    }
+
+    content = value.amount.toLocaleString(
+        undefined,
+        {
+            minimumFractionDigits: minorUnit,
+            maximumFractionDigits: minorUnit
+        }
+    );
+
+    if (value.amount < 0) {
+        content = "(" + Math.abs(content) + ")";
+    }
+
+    options.style.textAlign = "right";
+
+    return symbol + content;
+};
+
+formats.overloadType = {};
+formats.overloadType.editor = function (options) {
+    options.isOverload = true;
+
+    return m(catalog.store().components().dataType, options);
+};
+formats.overloadType.tableData = function (obj) {
+    let value = obj.value;
+    let content = value;
+    let title = value;
+
+    if (typeof value === "object" && value !== null) {
+        content = "relation: " + obj.value.relation;
+        title = content;
+    }
+
+    obj.options.title = title;
+
+    return content;
+};
+
+formats.password.editor = input.bind(null, "password");
+
+formats.role = {};
+
+function roleNames() {
+    let roles = catalog.store().data().roles().slice();
+    let result;
+
+    result = roles.map((role) => role.data.name()).sort();
+    result = result.map(function (role) {
+        return {
+            value: role,
+            label: role
+        };
+    });
+    result.unshift({
+        value: "",
+        label: ""
+    });
+    return result;
+}
+
+function selectEditor(dataList, options) {
+    let obj = {
+        viewModel: options.parentViewModel,
+        dataList: dataList()
+    };
+    let opts = {
+        id: options.id,
+        prop: options.prop,
+        class: options.class,
+        readonly: options.readonly,
+        oncreate: options.onCreate,
+        onremove: options.onRemove,
+        style: options.style,
+        isCell: options.isCell
+    };
+    return buildSelector(obj, opts);
+}
+
+formats.role.editor = selectEditor.bind(null, roleNames);
+
+formats.tel.editor = input.bind(null, "tel");
+
+formats.textArea.editor = function (options) {
+    let prop = options.prop;
+    let opts = {
+        readonly: options.readonly,
+        id: options.id,
+        required: options.required,
+        style: options.style,
+        onchange: (e) => prop(e.target.value),
+        oncreate: options.onCreate,
+        onremove: options.onRemove,
+        value: prop(),
+        rows: options.rows || 4
+    };
+
+    return m("textarea", opts);
+};
+
+formats.script.editor = function (options) {
+    let prop = options.prop;
+    let model = options.model;
+    let opts = {
+        readonly: options.readonly,
+        id: options.id,
+        required: options.required,
+        onchange: (e) => prop(e.target.value),
+        value: prop()
+    };
+
+    opts.oncreate = function () {
+        let editor;
+        let lint;
+        let state = model.state();
+        let e = document.getElementById(options.id);
+        let config = {
+            value: prop(),
+            lineNumbers: true,
+            mode: {
+                name: "javascript",
+                json: true
+            },
+            theme: "neat",
+            indentUnit: 4,
+            extraKeys: {
+                Tab: function (cm) {
+                    cm.replaceSelection("    ", "end");
+                }
+            },
+            autoFocus: false,
+            gutters: ["CodeMirror-lint-markers"],
+            lint: true
+        };
+
+        editor = CodeMirror.fromTextArea(e, config);
+        lint = editor.state.lint;
+        lint.options.globals = ["f"];
+        resizeEditor(editor);
+
+        // Populate on fetch
+        state.resolve("/Ready/Fetched/Clean").enter(
+            function () {
+                function notify() {
+                    state.send("changed");
+                    m.redraw();
+                    editor.off("change", notify);
+                }
+                editor.setValue(prop());
+                editor.on("change", notify);
+            }
+        );
+
+        editor.on("change", m.redraw);
+        lint.options.onUpdateLinting = function (annotations) {
+            // Let model reference lint annoations
+            model.data.annotations(annotations);
+            m.redraw();
+        };
+
+        // Send changed text back to model
+        editor.on("blur", function () {
+            editor.save();
+            prop(e.value);
+            m.redraw();
+        });
+
+        this.editor = editor;
+    };
+
+    opts.onupdate = function () {
+        resizeEditor(this.editor);
+    };
+
+    return m("textarea", opts);
+};
+
+formats.url.editor = input.bind(null, "url");
+formats.url.tableData = function (obj) {
+    let url = (
+        obj.value.slice(0, 4) === "http"
+        ? obj.value
+        : "http://" + obj.value
+    );
+
+    return m("a", {
+        href: url,
+        target: "_blank",
+        onclick: function () {
+            obj.viewModel.canToggle(false);
+        }
+    }, obj.value);
+};
+
+formats.userAccount = {};
+function userAccountNames() {
+    let roles = catalog.store().data().roles().slice();
+    let result;
+
+    result = roles.filter((r) => r.data.objectType() === "UserAccount");
+    result = result.map((role) => role.data.name()).sort();
+    result = result.map(function (role) {
+        return {
+            value: role,
+            label: role
+        };
+    });
+    result.unshift({
+        value: "",
+        label: ""
+    });
+    return result;
+}
+formats.userAccount.editor = selectEditor.bind(null, userAccountNames);
+
 /**
     Return system catalog.
 
@@ -506,87 +1033,6 @@ f.findRoot = function (model) {
     );
 };
 
-f.formats.money.fromType = function (value) {
-    let style;
-    let amount = value.amount || 0;
-    let currency = value.currency;
-    let curr = f.getCurrency(value.currency);
-    let hasDisplayUnit = curr.data.hasDisplayUnit();
-    let minorUnit = (
-        hasDisplayUnit
-        ? curr.data.displayUnit().data.minorUnit()
-        : curr.data.minorUnit()
-    );
-
-    style = {
-        minimumFractionDigits: minorUnit,
-        maximumFractionDigits: minorUnit
-    };
-
-    if (hasDisplayUnit) {
-        curr.data.conversions().some(function (conv) {
-            if (conv.data.toUnit().id() === curr.data.displayUnit().id()) {
-                amount = amount.div(conv.data.ratio()).round(minorUnit);
-                return true;
-            }
-        });
-
-        currency = curr.data.displayUnit().data.code();
-    }
-
-    return {
-        amount: amount.toLocaleString(undefined, style),
-        currency: currency,
-        effective: (
-            value.effective === null
-            ? null
-            : f.formats.dateTime.fromType(value.effective)
-        ),
-        baseAmount: (
-            value.baseAmount === null
-            ? null
-            : f.types.number.fromType(value.baseAmount)
-        )
-    };
-};
-
-f.formats.money.toType = function (value) {
-    value = value || f.money();
-    let amount = f.types.number.toType(value.amount);
-    let currency = f.formats.string.toType(value.currency);
-    let curr = f.getCurrency(value.currency);
-
-    if (curr.data.hasDisplayUnit() && currency !== curr.data.code()) {
-        curr.data.conversions().some(function (conv) {
-            if (conv.data.toUnit().id() === curr.data.displayUnit().id()) {
-                amount = amount.times(
-                    conv.data.ratio().round(curr.data.minorUnit())
-                );
-                return true;
-            }
-        });
-
-        currency = curr.data.code();
-    }
-
-    value = {
-        amount: amount,
-        currency: currency,
-        effective: (
-            value.effective === null
-            ? null
-            : f.formats.dateTime.toType(value.effective)
-        ),
-        baseAmount: (
-            value.baseAmount === null
-            ? null
-            : f.types.number.toType(value.baseAmount)
-        )
-    };
-
-    return Object.freeze(value);
-};
-
 function byEffective(a, b) {
     let aEffect = a.data.effective();
     let bEffect = b.data.effective();
@@ -696,7 +1142,13 @@ f.createModel = function (arg1, arg2) {
 
     return createModel(arg1, arg2);
 };
+/**
+    Formats for data types.
 
+    @property formats
+    @type Object
+*/
+f.formats = () => formats;
 /**
     Return a money object.
 
@@ -717,384 +1169,6 @@ f.money = function (amount, currency, effective, baseAmount) {
 
     return ret;
 };
-
-function input(type, options) {
-    let prop = options.prop;
-    let opts = {
-        class: options.class,
-        readonly: options.readonly,
-        id: options.id,
-        required: options.required,
-        style: options.style,
-        type: type,
-        onchange: (e) => prop(e.target.value),
-        oncreate: options.onCreate,
-        onremove: options.onRemove,
-        value: prop()
-    };
-
-    if (opts.class) {
-        opts.class = "fb-input " + opts.class;
-    } else {
-        opts.class = "fb-input";
-    }
-
-    return m("input", opts);
-}
-
-f.formats.autonumber = {};
-
-f.formats.autonumber.editor = function (options) {
-    return m(catalog.store().components().autonumber, options);
-};
-
-f.formats.autonumber.tableData = function (obj) {
-    let value = obj.value;
-    let content = value;
-    let title = value;
-
-    if (typeof value === "object" && value !== null) {
-        content = "relation: " + obj.value.relation;
-        title = content;
-    }
-
-    obj.options.title = title;
-
-    return content;
-};
-
-f.formats.color.editor = input.bind(null, "color");
-
-f.formats.color.tableData = function (obj) {
-    if (obj.value) {
-        return m("i", {
-            style: {
-                color: obj.value
-            },
-            class: "fa fa-square"
-        });
-    }
-};
-
-f.formats.date.editor = input.bind(null, "date");
-
-f.formats.date.tableData = function (obj) {
-    if (obj.value) {
-        // Turn into date adjusting time for
-        // current timezone
-        obj.value = new Date(obj.value + f.now().slice(10));
-        return obj.value.toLocaleDateString();
-    }
-};
-
-f.formats.dateTime.editor = input.bind(null, "datetime-local");
-
-f.formats.dateTime.tableData = function (obj) {
-    obj.value = (
-        obj.value
-        ? new Date(obj.value)
-        : ""
-    );
-
-    return (
-        obj.value
-        ? obj.value.toLocaleString()
-        : ""
-    );
-};
-
-f.formats.dataType.editor = function (options) {
-    return m(catalog.store().components().dataType, options);
-};
-
-f.formats.dataType.tableData = function (obj) {
-    let value = obj.value;
-    let content = value;
-    let title = value;
-
-    if (typeof value === "object" && value !== null) {
-        content = "relation: " + obj.value.relation;
-        title = content + "\n";
-        if (value.childOf) {
-            title += "child of: " + value.childOf;
-        } else if (value.parentOf) {
-            title += "parent of: " + value.parentOf;
-        } else {
-            title += "properties: " + value.properties.toString();
-        }
-    }
-
-    obj.options.title = title;
-
-    return content;
-};
-
-f.formats.enum.tableData = function (obj) {
-    let found;
-    if (typeof obj.prop.dataList[0] === "object") {
-        found = obj.prop.dataList.find(function (item) {
-            return item.value === obj.value;
-        });
-        if (found) {
-            return found.label;
-        } else {
-            return "invalid value " + obj.value;
-        }
-    }
-
-    return obj.value;
-};
-
-f.formats.icon.tableData = function (obj) {
-    if (obj.value) {
-        return m("i", {
-            class: "fa fa-" + obj.value
-        });
-    }
-};
-
-f.formats.money.editor = function (options) {
-    return m(catalog.store().components().moneyRelation, options);
-};
-
-f.formats.money.tableData = function (obj) {
-    let value = obj.value;
-    let options = obj.options;
-    let curr = f.getCurrency(value.currency);
-    let du;
-    let symbol;
-    let minorUnit = 2;
-    let content;
-
-    if (curr) {
-        if (curr.data.hasDisplayUnit()) {
-            du = curr.data.displayUnit();
-            symbol = du.data.symbol();
-            minorUnit = du.data.minorUnit();
-        } else {
-            symbol = curr.data.symbol();
-            minorUnit = curr.data.minorUnit();
-        }
-    }
-
-    content = value.amount.toLocaleString(
-        undefined,
-        {
-            minimumFractionDigits: minorUnit,
-            maximumFractionDigits: minorUnit
-        }
-    );
-
-    if (value.amount < 0) {
-        content = "(" + Math.abs(content) + ")";
-    }
-
-    options.style.textAlign = "right";
-
-    return symbol + content;
-};
-
-f.formats.overloadType = {};
-
-f.formats.overloadType.editor = function (options) {
-    options.isOverload = true;
-
-    return m(catalog.store().components().dataType, options);
-};
-
-f.formats.overloadType.tableData = function (obj) {
-    let value = obj.value;
-    let content = value;
-    let title = value;
-
-    if (typeof value === "object" && value !== null) {
-        content = "relation: " + obj.value.relation;
-        title = content;
-    }
-
-    obj.options.title = title;
-
-    return content;
-};
-
-f.formats.password.editor = input.bind(null, "password");
-
-f.formats.role = {};
-
-function roleNames() {
-    let roles = catalog.store().data().roles().slice();
-    let result;
-
-    result = roles.map((role) => role.data.name()).sort();
-    result = result.map(function (role) {
-        return {
-            value: role,
-            label: role
-        };
-    });
-    result.unshift({
-        value: "",
-        label: ""
-    });
-    return result;
-}
-
-function selectEditor(dataList, options) {
-    let obj = {
-        viewModel: options.parentViewModel,
-        dataList: dataList()
-    };
-    let opts = {
-        id: options.id,
-        prop: options.prop,
-        class: options.class,
-        readonly: options.readonly,
-        oncreate: options.onCreate,
-        onremove: options.onRemove,
-        style: options.style,
-        isCell: options.isCell
-    };
-    return buildSelector(obj, opts);
-}
-
-f.formats.role.editor = selectEditor.bind(null, roleNames);
-
-f.formats.tel.editor = input.bind(null, "tel");
-
-f.formats.textArea.editor = function (options) {
-    let prop = options.prop;
-    let opts = {
-        readonly: options.readonly,
-        id: options.id,
-        required: options.required,
-        style: options.style,
-        onchange: (e) => prop(e.target.value),
-        oncreate: options.onCreate,
-        onremove: options.onRemove,
-        value: prop(),
-        rows: options.rows || 4
-    };
-
-    return m("textarea", opts);
-};
-
-f.formats.script.editor = function (options) {
-    let prop = options.prop;
-    let model = options.model;
-    let opts = {
-        readonly: options.readonly,
-        id: options.id,
-        required: options.required,
-        onchange: (e) => prop(e.target.value),
-        value: prop()
-    };
-
-    opts.oncreate = function () {
-        let editor;
-        let lint;
-        let state = model.state();
-        let e = document.getElementById(options.id);
-        let config = {
-            value: prop(),
-            lineNumbers: true,
-            mode: {
-                name: "javascript",
-                json: true
-            },
-            theme: "neat",
-            indentUnit: 4,
-            extraKeys: {
-                Tab: function (cm) {
-                    cm.replaceSelection("    ", "end");
-                }
-            },
-            autoFocus: false,
-            gutters: ["CodeMirror-lint-markers"],
-            lint: true
-        };
-
-        editor = CodeMirror.fromTextArea(e, config);
-        lint = editor.state.lint;
-        lint.options.globals = ["f"];
-        resizeEditor(editor);
-
-        // Populate on fetch
-        state.resolve("/Ready/Fetched/Clean").enter(
-            function () {
-                function notify() {
-                    state.send("changed");
-                    m.redraw();
-                    editor.off("change", notify);
-                }
-                editor.setValue(prop());
-                editor.on("change", notify);
-            }
-        );
-
-        editor.on("change", m.redraw);
-        lint.options.onUpdateLinting = function (annotations) {
-            // Let model reference lint annoations
-            model.data.annotations(annotations);
-            m.redraw();
-        };
-
-        // Send changed text back to model
-        editor.on("blur", function () {
-            editor.save();
-            prop(e.value);
-            m.redraw();
-        });
-
-        this.editor = editor;
-    };
-
-    opts.onupdate = function () {
-        resizeEditor(this.editor);
-    };
-
-    return m("textarea", opts);
-};
-
-f.formats.url.editor = input.bind(null, "url");
-
-f.formats.url.tableData = function (obj) {
-    let url = (
-        obj.value.slice(0, 4) === "http"
-        ? obj.value
-        : "http://" + obj.value
-    );
-
-    return m("a", {
-        href: url,
-        target: "_blank",
-        onclick: function () {
-            obj.viewModel.canToggle(false);
-        }
-    }, obj.value);
-};
-
-f.formats.userAccount = {};
-
-function userAccountNames() {
-    let roles = catalog.store().data().roles().slice();
-    let result;
-
-    result = roles.filter((r) => r.data.objectType() === "UserAccount");
-    result = result.map((role) => role.data.name()).sort();
-    result = result.map(function (role) {
-        return {
-            value: role,
-            label: role
-        };
-    });
-    result.unshift({
-        value: "",
-        label: ""
-    });
-    return result;
-}
-
-f.formats.userAccount.editor = selectEditor.bind(null, userAccountNames);
 
 f.types.address = {};
 f.types.address.tableData = function (obj) {
@@ -1285,8 +1359,8 @@ f.createEditor = function (obj) {
             return buildSelector(obj, obj.options);
         }
 
-        if (prop.format && f.formats[prop.format].editor) {
-            editor = f.formats[prop.format].editor;
+        if (prop.format && f.formats()[prop.format].editor) {
+            editor = f.formats()[prop.format].editor;
         } else if (f.types[prop.type] && f.types[prop.type].editor) {
             editor = f.types[prop.type].editor;
         } else {

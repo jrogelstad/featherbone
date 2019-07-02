@@ -350,8 +350,8 @@ function createTableDataView(options, col) {
                 }
             };
         }
-    } else if (prop.format && f.formats[prop.format].tableData) {
-        tableData = f.formats[prop.format].tableData;
+    } else if (prop.format && f.formats()[prop.format].tableData) {
+        tableData = f.formats()[prop.format].tableData;
     } else if (f.types[prop.type] && f.types[prop.type].tableData) {
         tableData = f.types[prop.type].tableData;
     } else {
