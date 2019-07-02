@@ -16,6 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/**
+   @module WorkbookPage
+*/
 import f from "../core.js";
 import icons from "../icons.js";
 
@@ -525,7 +528,15 @@ sheetConfigureDialog.viewModel = function (options) {
 
 sheetConfigureDialog.component = f.getComponent("TableDialog");
 
-// Define workbook view model
+/**
+    Define workbook view model
+    @class WorkbookPage
+    @constructor
+    @namespace ViewModels
+    @param {Object} options
+    @param {String} options.workbook name
+    @param {String} options.key worksheet name
+*/
 workbookPage.viewModel = function (options) {
     let listState;
     let tableState;
@@ -562,27 +573,97 @@ workbookPage.viewModel = function (options) {
     // PUBLIC
     //
 
+    /**
+        @method buttonClear
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonClear = f.prop();
+    /**
+        @method buttonDelete
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonDelete = f.prop();
+    /**
+        @method buttonEdit
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonEdit = f.prop();
+    /**
+        @method buttonFilter
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonFilter = f.prop();
+    /**
+        @method buttonNew
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonNew = f.prop();
+    /**
+        @method buttonRefresh
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonRefresh = f.prop();
+    /**
+        @method buttonSave
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonSave = f.prop();
+    /**
+        @method buttonSort
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonSort = f.prop();
+    /**
+        @method buttonUndo
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
     vm.buttonUndo = f.prop();
+    /**
+        Layout configuration.
+        @method config
+        @param {Object} config
+        @return {Object}
+    */
     vm.config = f.prop(config);
+    /**
+        @method confirmDialog
+        @param {ViewModels.Dialog} dialog
+        @return {ViewModels.Dialog}
+    */
     vm.confirmDialog = f.prop(f.createViewModel("Dialog", {
         icon: "question-circle",
         title: "Confirmation"
     }));
+    /**
+        Open worksheet configuration dialog.
+        @method configureSheet
+    */
     vm.configureSheet = function () {
         let dlg = vm.sheetConfigureDialog();
         dlg.onCancel(undefined);
         dlg.sheetId(sheetId);
         dlg.show();
     };
+    /**
+        @method footerId
+        @param {String} id
+        @return {String}
+    */
     vm.footerId = f.prop(f.createId());
+    /**
+        Drop event handler for deleting sheets.
+        @method deleteSheet
+        @param {Event} event
+    */
     vm.deleteSheet = function (ev) {
         let doDelete;
         let idx = ev.dataTransfer.getData("text") - 0;
@@ -609,24 +690,63 @@ workbookPage.viewModel = function (options) {
         confirmDialog.onOk(doDelete);
         confirmDialog.show();
     };
+    /**
+        Editor dialog for workbook.
+        @method editWorkbookDialog
+        @param {ViewModels.Dialog} dialog
+        @return {ViewModels.Dialog}
+    */
     vm.editWorkbookDialog = f.prop();
+    /**
+        @method filter
+        @param {Object} filter
+        @return {Object}
+    */
     vm.filter = f.prop();
+    /**
+        @method filterDialog
+        @param {ViewModels.FilterDialog} dialog
+        @return {ViewModels.FilterDialog}
+    */
     vm.filterDialog = f.prop();
+    /**
+        @method goHome
+    */
     vm.goHome = function () {
         m.route.set("/home");
     };
+    /**
+        @method goSignOut
+    */
     vm.goSignOut = function () {
         f.state().send("signOut");
     };
+    /**
+        @method goSettings
+    */
     vm.goSettings = function () {
         m.route.set("/settings/:settings", {
             settings: workbook.data.launchConfig().settings
         });
     };
+    /**
+        @method isDraggingTab
+        @param {Boolean} flag
+        @return {Boolean}
+    */
     vm.isDraggingTab = f.prop(false);
+    /**
+        @method hasSettings
+        @param {Boolean} flag
+        @return {Boolean}
+    */
     vm.hasSettings = f.prop(
         Boolean(workbook.data.launchConfig().settings)
     );
+    /**
+        Create a new model in form, tab or row depending on state.
+        @method modelNew
+    */
     vm.modelNew = function () {
         let form = vm.sheet().form || {};
         let url;
@@ -673,6 +793,10 @@ workbookPage.viewModel = function (options) {
             });
         }
     };
+    /**
+        Open model in form.
+        @method openModel
+    */
     vm.modelOpen = function () {
         let selection = vm.tableWidget().selection();
         let sheet = vm.sheet() || {};
@@ -709,7 +833,16 @@ workbookPage.viewModel = function (options) {
             });
         }
     };
+    /**
+        @method menu
+        @param {ViewModels.NavigatorMenu} navigator
+        @return {ViewModels.NavigatorMenu}
+    */
     vm.menu = f.prop(f.createViewModel("NavigatorMenu"));
+    /**
+        Add a new sheet to the workbook.
+        @method newSheet
+    */
     vm.newSheet = function () {
         let undo;
         let newSheet;
@@ -750,16 +883,34 @@ workbookPage.viewModel = function (options) {
         dialogSheetConfigure.onCancel(undo);
         dialogSheetConfigure.show();
     };
+    /**
+        @method ondragend
+    */
     vm.ondragend = function () {
         vm.isDraggingTab(false);
     };
+    /**
+        @method ondragover
+        @param {Event} event
+    */
     vm.ondragover = function (ev) {
         ev.preventDefault();
     };
+    /**
+        @method ondragstart
+        @param {Integer} index
+        @param {Event} event
+    */
     vm.ondragstart = function (idx, ev) {
         vm.isDraggingTab(true);
         ev.dataTransfer.setData("text", idx);
     };
+    /**
+        @method ondrop
+        @param {Integer} index
+        @param {Array} ary
+        @param {Event} event
+    */
     vm.ondrop = function (toIdx, ary, ev) {
         let moved;
         let fromIdx;
@@ -773,6 +924,11 @@ workbookPage.viewModel = function (options) {
         }
         vm.isDraggingTab(false);
     };
+    /**
+        Handle keyboard up and down keys.
+        @method onkeydown
+        @param {Event} event
+    */
     vm.onkeydown = function (ev) {
         let key = ev.key || ev.keyIdentifier;
 
@@ -787,9 +943,18 @@ workbookPage.viewModel = function (options) {
             break;
         }
     };
+    /**
+        Handle on click of actions menu.
+        @method onclickactions
+    */
     vm.onclickactions = function () {
         vm.showActions(true);
     };
+    /**
+        Hide actions menu if mouse out.
+        @method onmouseoutactions
+        @param {Event} event
+    */
     vm.onmouseoutactions = function (ev) {
         if (
             !ev || !ev.toElement || !ev.toElement.id ||
@@ -798,9 +963,18 @@ workbookPage.viewModel = function (options) {
             vm.showActions(false);
         }
     };
+    /**
+        Handle on click of workbook menu.
+        @method onclickmenu
+    */
     vm.onclickmenu = function () {
         vm.showMenu(!vm.showMenu());
     };
+    /**
+        Hide workbook menu if mouse out.
+        @method onmouseoutactions
+        @param {Event} event
+    */
     vm.onmouseoutmenu = function (ev) {
         if (
             !ev || !ev.toElement || !ev.toElement.id ||
@@ -809,13 +983,25 @@ workbookPage.viewModel = function (options) {
             vm.showMenu(false);
         }
     };
+    /**
+        Requery list.
+        @method refresh
+    */
     vm.refresh = function () {
         vm.tableWidget().refresh();
     };
+    /**
+        Revert selected model if dirty.
+        @method revert
+    */
     vm.revert = function () {
         saveProfile(workbook.data.name(), undefined, vm.confirmDialog());
         document.location.reload();
     };
+    /**
+        Save user workbook configuration to server.
+        @method saveProfile
+    */
     vm.saveProfile = function () {
         saveProfile(
             workbook.data.name(),
@@ -823,7 +1009,16 @@ workbookPage.viewModel = function (options) {
             vm.confirmDialog()
         );
     };
+    /**
+        @method searchInput
+        @param {ViewModels.SearchInput} input
+        @return {ViewModels.SearchInput}
+    */
     vm.searchInput = f.prop();
+    /**
+        Make user's model configuration the new default.
+        @method share
+    */
     vm.share = function () {
         let doShare;
         let confirmDialog = vm.confirmDialog();
@@ -842,6 +1037,14 @@ workbookPage.viewModel = function (options) {
         confirmDialog.onOk(doShare);
         confirmDialog.show();
     };
+    /**
+        Return sheet configuration. Passing `value` will set
+        the sheet to the configuration of `value`.
+        @method sheet
+        @param {Object | String} id
+        @param {Object} value
+        @return {Object} sheet
+    */
     vm.sheet = function (id, value) {
         let idx = 0;
 
@@ -871,25 +1074,62 @@ workbookPage.viewModel = function (options) {
 
         return currentSheet;
     };
+    /**
+        Return an array of sheet names.
+        @method sheets
+        @return {Array}
+    */
     vm.sheets = function () {
         return vm.config().map(function (sheet) {
             return sheet.name;
         });
     };
+    /**
+        @method sheetConfigureDialog
+        @param {ViewModels.Dialog} dialog
+        @return {ViewModels.Dialog}
+    */
     vm.sheetConfigureDialog = f.prop();
+    /**
+        @method showFilterDialog
+    */
     vm.showFilterDialog = function () {
         if (vm.tableWidget().models().canFilter()) {
             vm.filterDialog().show();
         }
     };
+    /**
+        @method showActions
+        @param {Boolean} flag
+        @return {Boolean}
+    */
     vm.showActions = f.prop(false);
+    /**
+        @method showMenu
+        @param {Boolean} flag
+        @return {Boolean}
+    */
     vm.showMenu = f.prop(false);
+    /**
+        @method showSortDialog
+    */
     vm.showSortDialog = function () {
         if (vm.tableWidget().models().canFilter()) {
             vm.sortDialog().show();
         }
     };
+    /**
+        @method sortDialog
+        @param {ViewModels.SortDialog} dialog
+        @return {ViewModels.SortDialog}
+    */
     vm.sortDialog = f.prop();
+    /**
+        Dialog for handling server side events.
+        @method sseDialog
+        @param {ViewModels.Dialog} dialog
+        @return {ViewModels.Dialog}
+    */
     vm.sseErrorDialog = f.prop(f.createViewModel("Dialog", {
         icon: "window-close",
         title: "Connection Error",
@@ -902,16 +1142,35 @@ workbookPage.viewModel = function (options) {
         }
     }));
     vm.sseErrorDialog().buttonCancel().hide();
+    /**
+        Navigate to sheet.
+        @method tabClicked
+        @param {String} name Sheet name
+    */
     vm.tabClicked = function (sheet) {
         m.route.set("/workbook/:workbook/:sheet", {
             workbook: workbook.data.name().toSpinalCase(),
             sheet: sheet.toSpinalCase()
         });
     };
+    /**
+        @method tableWidget
+        @param {ViewModels.TableWidget} widget
+        @return {ViewModels.TableWidget}
+    */
     vm.tableWidget = f.prop();
+    /**
+        @method workbook
+        @return {Models.Workbook} dialog
+    */
     vm.workbook = function () {
         return workbook;
     };
+    /**
+        @method zoom
+        @param {Integer} percent
+        @return {Integer}
+    */
     vm.zoom = function (value) {
         let w = vm.tableWidget();
         if (value !== undefined) {
@@ -1175,8 +1434,23 @@ workbookPage.viewModel = function (options) {
     return vm;
 };
 
-// Define workbook component
+/**
+    Define workbook component.
+    @class WorkbookPage
+    @static
+    @namespace Components
+*/
 workbookPage.component = {
+    /**
+        Must pass view model instance or options to build one.
+        @method oninit
+        @param {Object} [vnode] Virtual node
+        @param {Object} [vnode.attrs] Options
+        @param {String} [vnode.attrs.workbook] Workbook name
+        @param {Object} [vnode.attrs.key] Worksheet name
+        @param {String} [vnode.attrs.isInvalid] Passed if view model
+        was determined invalid. View will return nothing.
+    */
     oninit: function (vnode) {
         let workbook = vnode.attrs.workbook;
         let sheet = vnode.attrs.key;
@@ -1203,10 +1477,19 @@ workbookPage.component = {
         viewModels[workbook][sheet] = this.viewModel;
     },
 
+    /**
+        @method onupdate
+        @param {Object} vnode Virtual node
+    */
     onupdate: function (vnode) {
         this.viewModel.menu().selected(vnode.attrs.workbook);
     },
 
+    /**
+        @method view
+        @param {Object} vnode Virtual node
+        @return {Object} view
+    */
     view: function (vnode) {
         if (vnode.attrs.isInvalid) {
             return; // Nothing to see here folks...
