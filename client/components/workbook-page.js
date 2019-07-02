@@ -17,21 +17,10 @@
 */
 /*jslint this, browser*/
 import f from "../core.js";
-import button from "./button.js";
-import catalog from "../models/catalog.js";
-import dialog from "./dialog.js";
-import filterDialog from "./filter-dialog.js";
-import formDialog from "./form-dialog.js";
-import sortDialog from "./sort-dialog.js";
-import searchInput from "./search-input.js";
-import tableWidget from "./table-widget.js";
-import navigator from "./navigator-menu.js";
-import tableDialog from "./table-dialog.js";
-import checkbox from "./checkbox.js";
 import icons from "../icons.js";
-import accountMenu from "./account-menu.js";
-import datasource from "../datasource.js";
 
+const catalog = f.catalog();
+const datasource = f.datasource();
 const workbookPage = {};
 const sheetConfigureDialog = {};
 const m = window.m;
@@ -172,7 +161,7 @@ sheetConfigureDialog.viewModel = function (options) {
     // PUBLIC
     //
 
-    vm = tableDialog.viewModel(options);
+    vm = f.createViewModel("TableDialog", options);
     tableView = vm.content;
     vm.alias = function (attr) {
         let feather = catalog.getFeather(vm.model().data.feather());
@@ -277,7 +266,7 @@ sheetConfigureDialog.viewModel = function (options) {
                         m("label", {
                             for: openInNewWindowId
                         }, "Open in New Tab:"),
-                        m(checkbox.component, {
+                        m(f.getComponent("Checkbox"), {
                             id: openInNewWindowId,
                             value: d.openInNewWindow(),
                             onclick: d.openInNewWindow
@@ -534,7 +523,7 @@ sheetConfigureDialog.viewModel = function (options) {
     return vm;
 };
 
-sheetConfigureDialog.component = tableDialog.component;
+sheetConfigureDialog.component = f.getComponent("TableDialog");
 
 // Define workbook view model
 workbookPage.viewModel = function (options) {
@@ -583,7 +572,7 @@ workbookPage.viewModel = function (options) {
     vm.buttonSort = f.prop();
     vm.buttonUndo = f.prop();
     vm.config = f.prop(config);
-    vm.confirmDialog = f.prop(dialog.viewModel({
+    vm.confirmDialog = f.prop(f.createViewModel("Dialog", {
         icon: "question-circle",
         title: "Confirmation"
     }));
@@ -720,7 +709,7 @@ workbookPage.viewModel = function (options) {
             });
         }
     };
-    vm.menu = f.prop(navigator.viewModel());
+    vm.menu = f.prop(f.createViewModel("NavigatorMenu"));
     vm.newSheet = function () {
         let undo;
         let newSheet;
@@ -901,7 +890,7 @@ workbookPage.viewModel = function (options) {
         }
     };
     vm.sortDialog = f.prop();
-    vm.sseErrorDialog = f.prop(dialog.viewModel({
+    vm.sseErrorDialog = f.prop(f.createViewModel("Dialog", {
         icon: "window-close",
         title: "Connection Error",
         message: (
@@ -948,12 +937,12 @@ workbookPage.viewModel = function (options) {
     });
 
     // Create search widget view model
-    vm.searchInput(searchInput.viewModel({
+    vm.searchInput(f.createViewModel("SearchInput", {
         refresh: vm.refresh
     }));
 
     // Create table widget view model
-    vm.tableWidget(tableWidget.viewModel({
+    vm.tableWidget(f.createViewModel("TableWidget", {
         class: "fb-form-workbook",
         actions: vm.sheet().actions,
         config: vm.sheet().list,
@@ -973,13 +962,13 @@ workbookPage.viewModel = function (options) {
     });
 
     // Create dialog view models
-    vm.filterDialog(filterDialog.viewModel({
+    vm.filterDialog(f.createViewModel("FilterDialog", {
         filter: vm.tableWidget().filter,
         list: vm.tableWidget().models(),
         feather: feather
     }));
 
-    vm.editWorkbookDialog(formDialog.viewModel({
+    vm.editWorkbookDialog(f.createViewModel("FormDialog", {
         icon: "cogs",
         title: "Edit workbook",
         model: workbook,
@@ -988,7 +977,7 @@ workbookPage.viewModel = function (options) {
     vm.editWorkbookDialog().style().width = "475px";
 
     vm.editWorkbookDialog().buttons().push(
-        f.prop(button.viewModel({
+        f.prop(f.createViewModel("Button", {
             label: "Delete",
             onclick: function () {
                 let dlg = vm.confirmDialog();
@@ -1025,14 +1014,14 @@ workbookPage.viewModel = function (options) {
         sheetId: sheetId
     }));
 
-    vm.sortDialog(sortDialog.viewModel({
+    vm.sortDialog(f.createViewModel("SortDialog", {
         filter: vm.tableWidget().filter,
         list: vm.tableWidget().models(),
         feather: feather
     }));
 
     // Create button view models
-    vm.buttonEdit(button.viewModel({
+    vm.buttonEdit(f.createViewModel("Button", {
         onclick: vm.tableWidget().toggleMode,
         title: "Edit mode",
         hotkey: "E",
@@ -1043,7 +1032,7 @@ workbookPage.viewModel = function (options) {
         vm.buttonEdit().disable();
     }
 
-    vm.buttonSave(button.viewModel({
+    vm.buttonSave(f.createViewModel("Button", {
         onclick: vm.tableWidget().save,
         label: "&Save",
         icon: "cloud-upload-alt",
@@ -1051,14 +1040,14 @@ workbookPage.viewModel = function (options) {
     }));
     vm.buttonSave().hide();
 
-    vm.buttonNew(button.viewModel({
+    vm.buttonNew(f.createViewModel("Button", {
         onclick: vm.modelNew,
         label: "&New",
         icon: "plus-circle",
         class: "fb-toolbar-button"
     }));
 
-    vm.buttonDelete(button.viewModel({
+    vm.buttonDelete(f.createViewModel("Button", {
         onclick: vm.tableWidget().modelDelete,
         label: "&Delete",
         icon: "trash",
@@ -1072,7 +1061,7 @@ workbookPage.viewModel = function (options) {
         vm.buttonDelete().title("Table is read only");
     }
 
-    vm.buttonUndo(button.viewModel({
+    vm.buttonUndo(f.createViewModel("Button", {
         onclick: vm.tableWidget().undo,
         label: "&Undo",
         icon: "undo",
@@ -1080,7 +1069,7 @@ workbookPage.viewModel = function (options) {
     }));
     vm.buttonUndo().hide();
 
-    vm.buttonRefresh(button.viewModel({
+    vm.buttonRefresh(f.createViewModel("Button", {
         onclick: vm.refresh,
         title: "Refresh",
         hotkey: "R",
@@ -1088,7 +1077,7 @@ workbookPage.viewModel = function (options) {
         class: "fb-toolbar-button"
     }));
 
-    vm.buttonClear(button.viewModel({
+    vm.buttonClear(f.createViewModel("Button", {
         onclick: vm.searchInput().clear,
         title: "Clear search",
         hotkey: "C",
@@ -1097,7 +1086,7 @@ workbookPage.viewModel = function (options) {
     }));
     vm.buttonClear().disable();
 
-    vm.buttonSort(button.viewModel({
+    vm.buttonSort(f.createViewModel("Button", {
         onclick: vm.showSortDialog,
         icon: "sort",
         hotkey: "T",
@@ -1105,7 +1094,7 @@ workbookPage.viewModel = function (options) {
         class: "fb-toolbar-button"
     }));
 
-    vm.buttonFilter(button.viewModel({
+    vm.buttonFilter(f.createViewModel("Button", {
         onclick: vm.showFilterDialog,
         icon: "filter",
         hotkey: "F",
@@ -1231,6 +1220,15 @@ workbookPage.component = {
         let activeSheet = vm.sheet();
         let config = vm.config();
         let idx = 0;
+        let btn = f.getComponent("Button");
+        let srtdlg = f.getComponent("SortDialog");
+        let fltdlg = f.getComponent("FilterDialog");
+        let frmdlg = f.getComponent("FormDialog");
+        let srch = f.getComponent("SearchInput");
+        let tw = f.getComponent("TableWidget");
+        let dlg = f.getComponent("Dialog");
+        let nav = f.getComponent("NavigatorMenu");
+        let menu = f.getComponent("AccountMenu");
 
         if (vm.tableWidget().selections().some((s) => s.canDelete())) {
             vm.buttonDelete().enable();
@@ -1309,28 +1307,28 @@ workbookPage.component = {
                 document.getElementById("fb-title").text = title;
             }
         }, [
-            m(sortDialog.component, {
+            m(srtdlg, {
                 viewModel: vm.sortDialog()
             }),
-            m(sortDialog.component, {
+            m(fltdlg, {
                 viewModel: vm.filterDialog()
             }),
-            m(formDialog.component, {
+            m(frmdlg, {
                 viewModel: vm.editWorkbookDialog()
             }),
             m(sheetConfigureDialog.component, {
                 viewModel: vm.sheetConfigureDialog()
             }),
-            m(dialog.component, {
+            m(dlg, {
                 viewModel: vm.confirmDialog()
             }),
-            m(dialog.component, {
+            m(dlg, {
                 viewModel: vm.sseErrorDialog()
             }),
             m("div", {
                 class: "fb-navigator-menu-container"
             }, [
-                m(navigator.component, {
+                m(nav, {
                     viewModel: vm.menu()
                 }),
                 m("div", [
@@ -1339,19 +1337,19 @@ workbookPage.component = {
                         class: "fb-toolbar",
                         onkeydown: vm.onkeydown
                     }, [
-                        m(button.component, {
+                        m(btn, {
                             viewModel: vm.buttonEdit()
                         }),
-                        m(button.component, {
+                        m(btn, {
                             viewModel: vm.buttonSave()
                         }),
-                        m(button.component, {
+                        m(btn, {
                             viewModel: vm.buttonNew()
                         }),
-                        m(button.component, {
+                        m(btn, {
                             viewModel: vm.buttonDelete()
                         }),
-                        m(button.component, {
+                        m(btn, {
                             viewModel: vm.buttonUndo()
                         }),
                         m("div", {
@@ -1386,19 +1384,19 @@ workbookPage.component = {
                         m("div", {
                             class: "fb-toolbar-spacer"
                         }),
-                        m(button.component, {
+                        m(btn, {
                             viewModel: vm.buttonRefresh()
                         }),
-                        m(searchInput.component, {
+                        m(srch, {
                             viewModel: vm.searchInput()
                         }),
-                        m(button.component, {
+                        m(btn, {
                             viewModel: vm.buttonClear()
                         }),
-                        m(button.component, {
+                        m(btn, {
                             viewModel: vm.buttonSort()
                         }),
-                        m(button.component, {
+                        m(btn, {
                             viewModel: vm.buttonFilter()
                         }),
                         m("div", {
@@ -1496,9 +1494,9 @@ workbookPage.component = {
                                 })], "Settings")
                             ])
                         ]),
-                        m(accountMenu.component)
+                        m(menu)
                     ]),
-                    m(tableWidget.component, {
+                    m(tw, {
                         viewModel: vm.tableWidget()
                     }),
                     m("div", {
