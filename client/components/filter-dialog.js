@@ -148,10 +148,10 @@ filterDialog.viewModel = function (options) {
         }
 
         if (
-            format && f.formats[format] &&
-            f.formats[format].default
+            format && f.formats()[format] &&
+            f.formats()[format].default
         ) {
-            value = f.formats[format].default;
+            value = f.formats()[format].default;
         } else {
             value = f.types[type].default;
         }

@@ -17,11 +17,12 @@
 */
 /*jslint this, devel, bitwise, browser*/
 /*global window, require, module*/
+
 (function () {
     "use strict";
     /**
         Core module
-        
+
         @module Core
     */
     /**
@@ -68,114 +69,11 @@
 
         /**
             Objects for performing data manipulation.
-            
+
             @property models
             @type Object
         */
         models: {},
-
-        /**
-            Formats for data types.
-         
-            @property formats
-            @type Object
-        */
-        formats: {
-            integer: {
-                default: 0,
-                toType: function (value) {
-                    return parseInt(value, 10);
-                }
-            },
-            string: {
-                default: "",
-                toType: function (value) {
-                    return value.toString();
-                }
-            },
-            boolean: {
-                default: false,
-                toType: function (value) {
-                    return Boolean(value);
-                }
-            },
-            date: {
-                toType: function (value) {
-                    let month;
-                    let ret = "";
-
-                    if (
-                        value &&
-                        value.constructor.name === "Date"
-                    ) {
-                        month = value.getUTCMonth() + 1;
-                        ret += value.getUTCFullYear() + "-";
-                        ret += month.pad(2, "0") + "-";
-                        ret += value.getUTCDate().pad(2, "0");
-                    } else {
-                        ret = value;
-                    }
-                    return ret;
-                },
-                default: function () {
-                    return that.today();
-                }
-            },
-            dateTime: {
-                default: function () {
-                    return that.now();
-                },
-                fromType: function (value) {
-                    return new Date(value).toLocalDateTime();
-                },
-                toType: function (value) {
-                    if (
-                        value &&
-                        value.constructor.name === "Date"
-                    ) {
-                        return new Date(value).toISOString();
-                    }
-                    return value;
-                }
-            },
-            password: {
-                default: "",
-                fromType: function () {
-                    return "*****";
-                }
-            },
-            tel: {
-                default: ""
-            },
-            email: {
-                default: ""
-            },
-            url: {
-                default: ""
-            },
-            color: {
-                default: "#000000"
-            },
-            textArea: {
-                default: ""
-            },
-            script: {
-                default: ""
-            },
-            money: {
-                default: function () {
-                    return that.money();
-                }
-            },
-            enum: {
-                default: ""
-            },
-            lock: {},
-            dataType: {},
-            icon: {
-                default: ""
-            }
-        },
 
         /**
             Return a time in string format that is the current UTC time.
@@ -246,7 +144,7 @@
 
             @property types
             @type Object
-        */      
+        */
         types: {
             array: {
                 default: function () {
