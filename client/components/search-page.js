@@ -238,7 +238,7 @@ searchPage.component = {
         Must pass view model instance or options to build one.
         @method oninit
         @param {Object} [vnode] Virtual node
-        @param {Object} [vnode.attrs Options]
+        @param {Object} [vnode.attrs] Options
         @param {ViewModels.SearchInput} [vnode.attrs.viewModel]
         @param {String} [vnode.attrs.feather] Feather name
         @param {Object} [vnode.attrs.config] Column configuration
