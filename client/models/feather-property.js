@@ -25,39 +25,14 @@ function featherProperty(data, spec) {
 
     let model;
     let d;
-    let types = {
-        array: {
-            formats: []
-        },
-        boolean: {
-            formats: []
-        },
-        integer: {
-            formats: []
-        },
-        number: {
-            formats: []
-        },
-        string: {
-            formats: [
-                "color",
-                "date",
-                "dateTime",
-                "email",
-                "password",
-                "script",
-                "tel",
-                "textArea",
-                "url"
-            ]
-        },
-        object: {
-            formats: [
-                "dataType",
-                "money"
-            ]
-        }
-    };
+    let types = [
+        "array",
+        "boolean",
+        "integer",
+        "number",
+        "string",
+        "object"
+    ];
 
     // ..........................................................
     // PUBLIC
@@ -69,17 +44,17 @@ function featherProperty(data, spec) {
     function formats() {
         let type = model.data.type();
         let ret = [];
+        let formats = f.formats();
 
-        if (types[type] && types[type].formats.length) {
-            ret = types[type].formats.map(function (item) {
+        if (types.indexOf(type)) {
+            ret = Object.keys(formats).filter(
+                (key) => formats[key].type === type
+            );
+            ret = ret.map(function (key) {
                 return {
-                    value: item,
-                    label: item
+                    value: key,
+                    label: key
                 };
-            });
-            ret.unshift({
-                value: "",
-                label: ""
             });
         }
 

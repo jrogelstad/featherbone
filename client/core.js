@@ -359,19 +359,8 @@ function input(type, options) {
     return m("input", opts);
 }
 
-formats.integer = {
-    default: 0,
-    toType: (value) => parseInt(value, 10)
-};
-formats.string = {
-    default: "",
-    toType: (value) => value.toString()
-};
-formats.boolean = {
-    default: false,
-    toType: (value) => Boolean(value)
-};
 formats.date = {
+    type: "string",
     toType: function (value) {
         let month;
         let ret = "";
@@ -392,6 +381,7 @@ formats.date = {
     default: () => f.today()
 };
 formats.dateTime = {
+    type: "string",
     default: () => f.now(),
     fromType: (value) => new Date(value).toLocalDateTime(),
     toType: function (value) {
@@ -405,28 +395,36 @@ formats.dateTime = {
     }
 };
 formats.password = {
+    type: "string",
     default: "",
     fromType: () => "*****"
 };
 formats.tel = {
+    type: "string",
     default: ""
 };
 formats.email = {
+    type: "string",
     default: ""
 };
 formats.url = {
+    type: "string",
     default: ""
 };
 formats.color = {
+    type: "string",
     default: "#000000"
 };
 formats.textArea = {
+    type: "string",
     default: ""
 };
 formats.script = {
+    type: "string",
     default: ""
 };
 formats.money = {
+    type: "object",
     default: () => f.money(),
     fromType: function (value) {
         let style;
@@ -509,15 +507,23 @@ formats.money = {
     }
 };
 formats.enum = {
+    type: "string",
     default: ""
 };
-formats.lock = {};
-formats.dataType = {};
+formats.lock = {
+    type: "object"
+};
+formats.dataType = {
+    type: "object"
+};
 formats.icon = {
+    type: "string",
     default: ""
 };
 
-formats.autonumber = {};
+formats.autonumber = {
+    type: "object"
+};
 formats.autonumber.editor = function (options) {
     return m(catalog.store().components().autonumber, options);
 };
@@ -664,7 +670,9 @@ formats.money.tableData = function (obj) {
     return symbol + content;
 };
 
-formats.overloadType = {};
+formats.overloadType = {
+    type: "object"
+};
 formats.overloadType.editor = function (options) {
     options.isOverload = true;
 
@@ -687,7 +695,9 @@ formats.overloadType.tableData = function (obj) {
 
 formats.password.editor = input.bind(null, "password");
 
-formats.role = {};
+formats.role = {
+    type: "string"
+};
 
 function roleNames() {
     let roles = catalog.store().data().roles().slice();
@@ -783,7 +793,7 @@ formats.script.editor = function (options) {
 
         editor = CodeMirror.fromTextArea(e, config);
         lint = editor.state.lint;
-        lint.options.globals = ["f"];
+        lint.options.globals = ["f", "m"];
         resizeEditor(editor);
 
         // Populate on fetch
@@ -840,7 +850,9 @@ formats.url.tableData = function (obj) {
     }, obj.value);
 };
 
-formats.userAccount = {};
+formats.userAccount = {
+    type: "string"
+};
 function userAccountNames() {
     let roles = catalog.store().data().roles().slice();
     let result;
@@ -1143,7 +1155,44 @@ f.createModel = function (arg1, arg2) {
     return createModel(arg1, arg2);
 };
 /**
-    Formats for data types.
+    Formats for property data types used in a
+    {{#crossLink "Model"}}{{/crossLink}}.
+
+    Formats over-ride type handling when a specific format is referenced
+    on a {{#crossLink "Model"}}{{/crossLink}} property, such as an
+    alternative default value, or an editor
+    in the user interface. Wherever a format property is not explicitly defined
+    featherbone will fall back to the default handling for the type.
+
+    The following properties are supported on formats:
+    * **type**: JSON type format applies to.
+    * **default:** Default value or function.
+    * **fromType:** Function to convert a JSON type to another format in the
+    client. For example converting a string to a `Date` object.
+    * **toType:** Function to convert a value on the client to a JSON type for
+    example converting a `Date` object to a string.
+    * **tableData:** Function to convert property's value to Mithril view
+    content for a {{#crossLinkModule "TableWidget"}}{{/crossLinkModule}} cell.
+    For example process as a hyperlink, or present selected object properties on
+    an object value as a string.
+    * **editor:** Function to return Mithril hyperscript used for editing the
+    value in in the user interface.
+
+    @example
+        // Format a string type as an array
+        let format = {
+            type: "string",
+            default: [],
+            fromType: (value) = value.split(","),
+            toType: (value) => value.toString(),
+            editor: function () {
+                let c = // component code here...
+                let vm = // view model code here...
+                return m(c, {viewModel: vm});
+            }
+        };
+
+        f.formats().myFormat = format;
 
     @method formats
     @return {Object}
@@ -1220,6 +1269,8 @@ f.types.array.tableData = function (obj) {
     return content;
 };
 
+f.types.boolean.default = false;
+f.types.boolean.toType = (value) => Boolean(value);
 f.types.boolean.editor = function (options) {
     let prop = options.prop;
     let opts = {
@@ -1235,7 +1286,6 @@ f.types.boolean.editor = function (options) {
 
     return m(catalog.store().components().checkbox, opts);
 };
-
 f.types.boolean.tableData = function (obj) {
     if (obj.value) {
         return m("i", {
@@ -1289,11 +1339,10 @@ f.types.integer.editor = function (options) {
 
     return f.types.number.editor(options);
 };
-
 f.types.integer.tableData = f.types.number.tableData;
+f.types.integer.toType = (value) => parseInt(value, 10);
 
 f.types.string.editor = input.bind(null, "text");
-
 f.types.string.tableData = function (obj) {
     obj.options.title = obj.value;
 
