@@ -360,6 +360,7 @@
         "plural": "Scripts",
         "inherits": "Document",
         "description": "Script base class",
+        "module": "Core",
         "authorizations": [],
         "properties": {
             "name": {
@@ -379,6 +380,7 @@
         "name": "Module",
         "plural": "Modules",
         "inherits": "Script",
+        "module": "Core",
         "description": "Functional application module",
         "authorizations": [],
         "properties": {
@@ -391,6 +393,7 @@
     },
     {
         "name": "ModuleDependency",
+        "module": "Core",
         "description": "Reference to module required for parent to operate",
         "properties": {
             "parent": {
@@ -418,6 +421,7 @@
     {
         "name": "DataService",
         "plural": "DataServices",
+        "module": "Core",
         "inherits": "Script",
         "description": "Server business logic",
         "authorizations": [],

@@ -15,6 +15,9 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+/**
+    @module Core
+*/
 import catalog from "./catalog.js";
 import f from "../core.js";
 
@@ -24,6 +27,19 @@ function route(data, feather) {
     feather = feather || catalog.getFeather("Route");
     model = f.createModel(data, feather);
 
+    /**
+        Modules datalist.
+
+        __Type:__ `Array`
+
+        __Is Calculated__
+
+        __Read Only__
+
+        @property data.modules
+        @for Models.Route
+        @type Property
+    */
     model.addCalculated({
         name: "modules",
         type: "array",

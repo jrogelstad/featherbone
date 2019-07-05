@@ -109,14 +109,146 @@
         let that = {};
 
         /**
-            Build open api specification.
+            Build client api specification.
 
-            @method build
+            @method buildClientApi
             @param {Object} Datasource
             @param {String} Username
-            @return {Object} Promise
+            @return {Promise}
         */
-        that.build = function (datasource, username) {
+        that.buildClientApi = function (datasource, username) {
+            return new Promise(function (resolve, reject) {
+                let content = "";
+                let catalog;
+                let payload;
+                let keys;
+
+                function callback(resp) {
+                    let lastModule = "";
+                    catalog = resp;
+
+                    // Loop through each feather and append to api
+                    keys = Object.keys(catalog);
+                    keys.sort(function (a, b) {
+                        if (catalog[a].module === catalog[b].module) {
+                            return (
+                                a < b
+                                ? -1
+                                : 1
+                            );
+                        }
+
+                        return (
+                            catalog[a].module < catalog[b].module
+                            ? -1
+                            : 1
+                        );
+                    });
+
+                    keys.forEach(function (key) {
+                        let feather = f.copy(catalog[key]);
+                        let props = feather.properties || {};
+
+                        if (feather.module !== lastModule) {
+                            content += (
+                                "/**\n" +
+                                "    @module " + feather.module + "\n" +
+                                "*/\n"
+                            );
+                        }
+
+                        content += (
+                            "/**\n" +
+                            "    @class " + key + "\n" +
+                            "    @static\n" +
+                            "    @extends Models." +
+                            (feather.inherits || "Object") + "\n" +
+                            "    @namespace Models\n" +
+                            "*/\n"
+                        );
+
+                        Object.keys(props).forEach(function (p) {
+                            let prop = props[p];
+                            let readOnly = (
+                                prop.isReadOnly
+                                ? "    __Read Only__\n\n"
+                                : ""
+                            );
+                            let format = (
+                                prop.format
+                                ? "    __Format:__ " + prop.format + "\n\n"
+                                : ""
+                            );
+                            let type = (
+                                typeof prop.type === "object"
+                                ? (
+                                    "\n    __Type:__ " +
+                                    "{{#crossLink \"" +
+                                    prop.type.relation.toCamelCase(true) +
+                                    "\"}}{{/crossLink}}" +
+                                    "\n\n"
+                                )
+                                : (
+                                    "\n    __Type:__ `" +
+                                    prop.type.toCamelCase(true) + "`\n\n"
+                                )
+                            );
+                            content += (
+                                "/**\n" +
+                                "    " + prop.description + ".\n" +
+                                type + format + readOnly +
+                                "    @property data." + p + "\n" +
+                                "    @type Property" + (
+                                    feather.inherits || "Object"
+                                ) + "\n" +
+                                "    @namespace Models\n" +
+                                "*/\n"
+                            );
+                        });
+
+                        lastModule = catalog[key].module;
+                    });
+
+                    // Save api file
+                    fs.writeFile("./client/api.js", content, function (err) {
+                        if (err) {
+                            console.error(err);
+                            return;
+                        }
+                        resolve();
+                    });
+                }
+
+                // Real work starts here
+                console.log("Building Client API specification");
+
+                // Load the existing feather catalog from postgres
+                payload = {
+                    method: "GET",
+                    name: "getSettings",
+                    user: username,
+                    data: {
+                        name: "catalog"
+                    }
+                };
+
+                datasource.request(payload, true).then(
+                    callback
+                ).catch(
+                    reject
+                );
+            });
+        };
+
+        /**
+            Build open api specification.
+
+            @method buildRestApi
+            @param {Object} Datasource
+            @param {String} Username
+            @return {Promise}
+        */
+        that.buildRestApi = function (datasource, username) {
             return new Promise(function (resolve, reject) {
                 let api;
                 let catalog;
@@ -131,7 +263,7 @@
 
                     catalog = resp;
 
-                    // Loop through each feather and append to api api
+                    // Loop through each feather and append to api
                     keys = Object.keys(catalog);
                     keys.sort(function (a, b) {
                         return (
