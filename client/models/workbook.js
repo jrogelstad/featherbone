@@ -394,6 +394,14 @@ function workbookModel(data) {
     return model;
 }
 /**
+    Unique identifier.
+
+    __Type:__ `String`
+
+    @property data.id
+    @type Property
+*/
+/**
     Workbook name.
 
     __Type:__ `String`

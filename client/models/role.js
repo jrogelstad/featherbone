@@ -18,9 +18,6 @@
 import catalog from "./catalog.js";
 import f from "../core.js";
 
-/*
-  Role model
-*/
 function role(data, feather) {
     feather = feather || catalog.getFeather("Role");
     let model = f.createModel(data, feather);
@@ -46,3 +43,52 @@ function role(data, feather) {
 }
 
 catalog.registerModel("Role", role);
+
+function roleMembership(data, feather) {
+    feather = feather || catalog.getFeather("RoleMembership");
+    let model = f.createModel(data, feather);
+
+    function roleNames() {
+        let roles = catalog.store().data().roles().slice();
+        let result;
+
+        result = roles.filter(function (role) {
+            return role.data.objectType() !== "UserAccount";
+        });
+        result = result.map((role) => role.data.name()).sort();
+        result = result.map(function (role) {
+            return {
+                value: role,
+                label: role
+            };
+        });
+        result.unshift({
+            value: "",
+            label: ""
+        });
+        return result;
+    }
+
+    /**
+        Role names datalist.
+
+        __Type:__ `Array`
+
+        __Is Calculated__
+
+        __Read Only__
+
+        @property data.roleNames
+        @for Models.RoleMembership
+        @type Property
+    */
+    model.addCalculated({
+        name: "roleNames",
+        type: "array",
+        function: roleNames
+    });
+
+    return model;
+}
+
+catalog.registerModel("RoleMembership", roleMembership);
