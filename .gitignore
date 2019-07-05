@@ -48,3 +48,4 @@ node_modules
 files
 api.json
 client/out
+client/api.js

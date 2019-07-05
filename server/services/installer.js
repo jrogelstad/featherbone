@@ -410,7 +410,9 @@
                     if (!file) {
                         //console.log("COMMIT");
                         client.query("COMMIT;").then(
-                            api.build.bind(null, datasource, user)
+                            api.buildClientApi.bind(null, datasource, user)
+                        ).then(
+                            api.buildRestApi.bind(null, datasource, user)
                         ).then(complete).catch(reject);
 
                         return;

@@ -16,6 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint browser*/
+/**
+    @module Core
+*/
 import catalog from "./catalog.js";
 import createModel from "./model.js";
 import list from "./list.js";
@@ -113,7 +116,7 @@ function feather(data, spec) {
 
         __Read Only__
 
-        @property data.modules
+        @property data.feathers
         @for Models.Feather
         @type Property
     */
@@ -378,11 +381,11 @@ function featherProperty(data, spec) {
     function formats() {
         let type = model.data.type();
         let ret = [];
-        let formats = f.formats();
+        let fmts = f.formats();
 
         if (types.indexOf(type)) {
-            ret = Object.keys(formats).filter(
-                (key) => formats[key].type === type
+            ret = Object.keys(fmts).filter(
+                (key) => fmts[key].type === type
             );
             ret = ret.map(function (key) {
                 return {

@@ -15,6 +15,9 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+/**
+    @module Core
+*/
 import f from "../core.js";
 import catalog from "./catalog.js";
 
@@ -24,6 +27,19 @@ function script(data, feather) {
     feather = feather || catalog.getFeather("Script");
     model = f.createModel(data, feather);
 
+    /**
+        Lint errors.
+
+        __Type:__ `Array`
+
+        __Is Calculated__
+
+        __Read Only__
+
+        @property data.annotations
+        @for Models.Script
+        @type Property
+    */
     model.addCalculated({
         name: "annotations",
         description: "Lint annotations",

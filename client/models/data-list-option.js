@@ -15,6 +15,9 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+/**
+    @module DataList
+*/
 import f from "../core.js";
 import catalog from "./catalog.js";
 
@@ -41,6 +44,14 @@ const dataListOption = {
 feathers = catalog.store().feathers();
 feathers.DataListOption = dataListOption;
 
+/**
+    Options for data list.
+
+    @class DataListOption
+    @static
+    @namespace Models
+    @extends Model
+*/
 function dataListOptionModel(data) {
     let model;
 
@@ -54,6 +65,23 @@ function dataListOptionModel(data) {
 
     return model;
 }
+
+/**
+    Internal key.
+
+    __Type:__ `String`
+
+    @property data.value
+    @type Property
+*/
+/**
+    Display value.
+
+    __Type:__ `String`
+
+    @property data.label
+    @type Property
+*/
 
 catalog.registerModel("DataListOption", dataListOptionModel);
 
