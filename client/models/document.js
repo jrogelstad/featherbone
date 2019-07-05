@@ -19,9 +19,6 @@
 import catalog from "./catalog.js";
 import f from "../core.js";
 
-/*
-  Document Model
-*/
 function doc(data, feather) {
     if (data === undefined) {
         data = {

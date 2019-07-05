@@ -109,6 +109,14 @@ function resolveAction(value) {
     @extends Model
 */
 /**
+    Internal id.
+
+    __Type:__ `String`
+
+    @property data.id
+    @type Property
+*/
+/**
     Role name.
 
     __Type:__ `String`

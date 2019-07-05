@@ -20,9 +20,6 @@ import f from "../core.js";
 import catalog from "./catalog.js";
 import datasource from "../datasource.js";
 
-/*
-  Module Model
-*/
 function module(data, feather) {
     feather = feather || catalog.getFeather("Module");
     let model = f.createModel(data, feather);

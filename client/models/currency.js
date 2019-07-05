@@ -18,9 +18,6 @@
 import catalog from "./catalog.js";
 import f from "../core.js";
 
-/*
-  Currency Model
-*/
 function currency(data, feather) {
     feather = feather || catalog.getFeather("Currency");
     let model = f.createModel(data, feather);
@@ -68,3 +65,37 @@ function currency(data, feather) {
 }
 
 catalog.registerModel("Currency", currency);
+
+function currencyConversion(data, feather) {
+    feather = feather || catalog.getFeather("CurrencyConversion");
+    let model = f.createModel(data, feather);
+
+    model.onValidate(function () {
+        if (model.data.fromCurrency().id() === model.data.toCurrency().id()) {
+            throw "'From' currency cannot be the same as 'to' currency.";
+        }
+
+        if (model.data.ratio() < 0) {
+            throw "The conversion ratio nust be a positive number.";
+        }
+    });
+
+    return model;
+}
+
+catalog.registerModel("CurrencyConversion", currencyConversion);
+
+function currencyUnit(data, feather) {
+    feather = feather || catalog.getFeather("CurrencyUnit");
+    let model = f.createModel(data, feather);
+
+    model.onValidate(function () {
+        if (model.data.code().length > 4) {
+            throw "code may not be more than 4 characters";
+        }
+    });
+
+    return model;
+}
+
+catalog.registerModel("CurrencyUnit", currencyUnit);

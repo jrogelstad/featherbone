@@ -18,9 +18,6 @@
 import catalog from "./catalog.js";
 import f from "../core.js";
 
-/*
-  Style Model
-*/
 function style(data, feather) {
     feather = feather || catalog.getFeather("Style");
     let model = f.createModel(data, feather);

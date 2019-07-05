@@ -356,95 +356,6 @@ function createModel(data, feather) {
 
     d = model.data;
 
-    /**
-        Surrogate key.
-
-        __Type:__ `String`
-
-        @property data.id
-        @type Property
-    */
-
-    /**
-        Create time of the record.
-
-        __Type:__ `String`
-
-        __Format:__ `DateTime`
-
-        __Read Only__
-
-        @property data.created
-        @type Property
-    */
-
-    /**
-        User who created the record.
-
-        __Type:__ `String`
-
-        __Read Only__
-
-        @property data.createdBy
-        @type Property
-    */
-
-    /**
-        Flag whether object is soft deleted.
-
-        __Type:__ `Boolean`
-
-        __Read Only__
-
-        @property data.isDeleted
-        @type Property
-    */
-
-    /**
-        Flag whether object is soft deleted.
-
-        __Type:__ `Object`
-
-        __Read Only__
-
-        @property data.lock
-        @type Property
-    */
-
-    /**
-        Discriminates which inherited object type the object represents
-
-        __Type:__ `String`
-
-        __Read Only__
-
-        @property data.objectType
-        @type Property
-    */
-
-    /**
-        Last time the record was updated.
-
-        __Type:__ `String`
-
-        __Format:__ `DateTime`
-
-        __Read Only__
-
-        @property data.updated
-        @type Property
-    */
-
-    /**
-        User who last updated the record.
-
-        __Type:__   `String`
-
-        __Read Only__
-
-        @property data.updatedBy
-        @type Property
-    */
     // ..........................................................
     // PUBLIC
     //
@@ -2010,3 +1921,99 @@ function createModel(data, feather) {
 createModel.static = createProperty({});
 
 export default Object.freeze(createModel);
+
+/**
+    @class Object
+    @static
+    @namespace Models
+    @extends Model
+*/
+/**
+    Surrogate key.
+
+    __Type:__ `String`
+
+    @property data.id
+    @type Property
+*/
+
+/**
+    Create time of the record.
+
+    __Type:__ `String`
+
+    __Format:__ `DateTime`
+
+    __Read Only__
+
+    @property data.created
+    @type Property
+*/
+
+/**
+    User who created the record.
+
+    __Type:__ `String`
+
+    __Read Only__
+
+    @property data.createdBy
+    @type Property
+*/
+
+/**
+    Flag whether object is soft deleted.
+
+    __Type:__ `Boolean`
+
+    __Read Only__
+
+    @property data.isDeleted
+    @type Property
+*/
+
+/**
+    Flag whether object is soft deleted.
+
+    __Type:__ `Object`
+
+    __Read Only__
+
+    @property data.lock
+    @type Property
+*/
+
+/**
+    Discriminates which inherited object type the object represents
+
+    __Type:__ `String`
+
+    __Read Only__
+
+    @property data.objectType
+    @type Property
+*/
+
+/**
+    Last time the record was updated.
+
+    __Type:__ `String`
+
+    __Format:__ `DateTime`
+
+    __Read Only__
+
+    @property data.updated
+    @type Property
+*/
+
+/**
+    User who last updated the record.
+
+    __Type:__   `String`
+
+    __Read Only__
+
+    @property data.updatedBy
+    @type Property
+*/

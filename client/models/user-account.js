@@ -18,9 +18,6 @@
 import catalog from "./catalog.js";
 import f from "../core.js";
 
-/*
-  User account model
-*/
 function userAccount(data, feather) {
     feather = feather || catalog.getFeather("UserAccount");
     // New roles are always members of everyone

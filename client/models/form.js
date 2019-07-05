@@ -51,18 +51,57 @@ function form(data, feather) {
     feather = feather || catalog.getFeather("Form");
     model = f.createModel(data, feather);
 
+    /**
+        Feathers datalist.
+
+        __Type:__ `Array`
+
+        __Is Calculated__
+
+        __Read Only__
+
+        @property data.feathers
+        @for Models.Form
+        @type Property
+    */
     model.addCalculated({
         name: "feathers",
         type: "array",
         function: f.feathers
     });
 
+    /**
+        Modules datalist.
+
+        __Type:__ `Array`
+
+        __Is Calculated__
+
+        __Read Only__
+
+        @property data.modules
+        @for Models.Form
+        @type Property
+    */
     model.addCalculated({
         name: "modules",
         type: "array",
         function: catalog.store().data().modules
     });
 
+    /**
+        Feather properties datalist.
+
+        __Type:__ `Array`
+
+        __Is Calculated__
+
+        __Read Only__
+
+        @property data.properties
+        @for Models.Form
+        @type Property
+    */
     model.addCalculated({
         name: "properties",
         type: "array",
@@ -76,3 +115,319 @@ function form(data, feather) {
 }
 
 catalog.registerModel("Form", form);
+
+function formAttr(data, feather) {
+    let model;
+
+    function handleProp(name, validator) {
+        let attr = model.data.attr;
+        let formFeather = model.parent().data.feather();
+        let prop = model.data[name];
+        let fprop;
+        let readOnly;
+
+        if (!formFeather || !attr()) {
+            prop.isReadOnly(true);
+            return;
+        }
+
+        formFeather = catalog.getFeather(formFeather);
+        fprop = formFeather.properties[attr()];
+
+        readOnly = validator(fprop);
+        prop.isReadOnly(readOnly);
+
+        return readOnly;
+    }
+
+    function handleColumns() {
+        let columns = model.data.columns();
+
+        function validator(fprop) {
+            return Boolean(
+                !fprop || typeof fprop.type !== "object" ||
+                !fprop.type.parentOf
+            );
+        }
+
+        if (handleProp("columns", validator)) {
+            columns.canAdd(false);
+        } else {
+            columns.canAdd(true);
+        }
+    }
+
+    function handleDataList() {
+        function validator(fprop) {
+            return Boolean(
+                !fprop || typeof fprop.type === "object" ||
+                fprop.type === "boolean"
+            );
+        }
+
+        handleProp("dataList", validator);
+    }
+
+    function handleDisableCurrency() {
+        function validator(fprop) {
+            return Boolean(
+                !fprop || fprop.type !== "object" ||
+                fprop.format !== "money"
+            );
+        }
+
+        handleProp("disableCurrency", validator);
+    }
+
+    function handleRelationWidget() {
+        function validator(fprop) {
+            return Boolean(
+                !fprop || typeof fprop.type !== "object" ||
+                fprop.type.parentOf
+            );
+        }
+
+        handleProp("relationWidget", validator);
+    }
+
+    function properties() {
+        let keys;
+        let formFeather = model.parent().data.feather();
+        let result = [];
+
+        if (!formFeather) {
+            return result;
+        }
+        formFeather = catalog.getFeather(formFeather);
+        keys = Object.keys(formFeather.properties || []).sort();
+        result = keys.map(function (key) {
+            return {
+                value: key,
+                label: key
+            };
+        });
+        result.unshift({
+            value: "",
+            label: ""
+        });
+
+        return result;
+    }
+
+    feather = feather || catalog.getFeather("FormAttr");
+    model = f.createModel(data, feather);
+
+    /**
+        Feather properties datalist.
+
+        __Type:__ `Array`
+
+        __Is Calculated__
+
+        __Read Only__
+
+        @property data.properties
+        @for Models.FormAttr
+        @type Property
+    */
+    model.addCalculated({
+        name: "properties",
+        type: "array",
+        function: properties
+    });
+
+    model.onChanged("attr", handleColumns);
+    model.onChanged("attr", handleDataList);
+    model.onChanged("attr", handleDisableCurrency);
+    model.onChanged("attr", handleRelationWidget);
+    model.onLoad(handleColumns);
+    model.onLoad(handleDataList);
+    model.onLoad(handleDisableCurrency);
+    model.onLoad(handleRelationWidget);
+
+    model.data.columns().canAdd(false);
+
+    model.onValidate(function () {
+        let found = model.parent().data.properties().find(
+            (p) => model.data.attr() === p.value
+        );
+
+        if (!found) {
+            throw (
+                "Attribute '" + model.data.attr() + "' not in feather '" +
+                model.parent().data.feather() + "'"
+            );
+        }
+    });
+
+    return model;
+}
+
+catalog.registerModel("FormAttr", formAttr);
+
+function formAttrColumn(data, feather) {
+    let model;
+    let stateClean;
+
+    function getChildFeather() {
+        let formFeather = model.parent().parent().data.feather();
+        let parentAttr = model.parent().data.attr();
+        let childFeather;
+
+        if (!formFeather || !parentAttr) {
+            return;
+        }
+
+        formFeather = catalog.getFeather(formFeather);
+        childFeather = catalog.getFeather(
+            formFeather.properties[parentAttr].type.relation
+        );
+
+        return childFeather;
+    }
+
+    function resolveProperties(feather, properties, ary, prefix) {
+        prefix = prefix || "";
+        let result = ary || [];
+
+        properties.forEach(function (key) {
+            let rfeather;
+            let prop = feather.properties[key];
+            let isObject = typeof prop.type === "object";
+            let path = prefix + key;
+
+            if (isObject && prop.type.properties) {
+                rfeather = catalog.getFeather(prop.type.relation);
+                resolveProperties(
+                    rfeather,
+                    prop.type.properties,
+                    result,
+                    path + "."
+                );
+            }
+
+            if (
+                isObject && (
+                    prop.type.childOf ||
+                    prop.type.parentOf ||
+                    prop.type.isChild
+                )
+            ) {
+                return;
+            }
+
+            result.push(path);
+        });
+
+        return result;
+    }
+
+    function handleProp(name, validator) {
+        let attr = model.data.attr;
+        let prop = model.data[name];
+        let childFeather = getChildFeather();
+        let fprop;
+        let readOnly;
+
+        if (!attr() || !childFeather) {
+            prop.isReadOnly(true);
+            return;
+        }
+
+        fprop = childFeather.properties[attr()];
+
+        readOnly = validator(fprop);
+        prop.isReadOnly(readOnly);
+    }
+
+    function handleDataList() {
+        function validator(fprop) {
+            return Boolean(
+                !fprop || typeof fprop.type === "object" ||
+                fprop.type === "boolean"
+            );
+        }
+
+        handleProp("dataList", validator);
+    }
+
+    function handleShowCurrency() {
+        function validator(fprop) {
+            return Boolean(
+                !fprop || fprop.type !== "object" ||
+                fprop.format !== "money"
+            );
+        }
+
+        handleProp("showCurrency", validator);
+    }
+
+    function properties() {
+        let keys;
+        let childFeather = getChildFeather();
+        let result = [];
+
+        if (!childFeather) {
+            return result;
+        }
+
+        keys = Object.keys(childFeather.properties || []).sort();
+        keys = resolveProperties(childFeather, keys).sort();
+        return keys.map(function (key) {
+            return {
+                value: key,
+                label: key
+            };
+        });
+    }
+
+    feather = feather || catalog.getFeather("FormAttrColumn");
+    model = f.createModel(data, feather);
+
+    /**
+        Feather properties datalist.
+
+        __Type:__ `Array`
+
+        __Is Calculated__
+
+        __Read Only__
+
+        @property data.properties
+        @for Models.FormAttrColumn
+        @type Property
+    */
+    model.addCalculated({
+        name: "properties",
+        type: "array",
+        function: properties
+    });
+
+    model.onChanged("attr", handleDataList);
+    model.onChanged("attr", handleShowCurrency);
+    stateClean = model.state().resolve("/Ready/Fetched/Clean");
+    stateClean.enter(handleDataList);
+    stateClean.enter(handleShowCurrency);
+
+    model.onValidate(function () {
+        let childFeather;
+
+        if (!model.data.properties().some(
+            (p) => model.data.attr() === p.value
+        )) {
+            childFeather = getChildFeather();
+            if (childFeather) {
+                throw (
+                    "Attribute '" + model.data.attr() + "' not in feather '" +
+                    getChildFeather().name + "'"
+                );
+            } else {
+                throw "Feather must be selected to set attributes";
+            }
+        }
+    });
+
+    return model;
+}
+
+catalog.registerModel("FormAttrColumn", formAttrColumn);

@@ -104,12 +104,38 @@ function feather(data, spec) {
         prop.newValue(value);
     }
 
+    /**
+        Feathers datalist.
+
+        __Type:__ `Array`
+
+        __Is Calculated__
+
+        __Read Only__
+
+        @property data.modules
+        @for Models.Feather
+        @type Property
+    */
     model.addCalculated({
         name: "feathers",
         type: "array",
         function: featherList
     });
 
+    /**
+        Inherited properties child records.
+
+        __Type:__ `Array`
+
+        __Is Calculated__
+
+        __Read Only__
+
+        @property data.inheritedProperties
+        @for Models.Feather
+        @type Property
+    */
     model.addCalculated({
         name: "inheritedProperties",
         type: {
@@ -120,6 +146,19 @@ function feather(data, spec) {
         function: inheritedProperties
     });
 
+    /**
+        Modules datalist.
+
+        __Type:__ `Array`
+
+        __Is Calculated__
+
+        __Read Only__
+
+        @property data.modules
+        @for Models.Feather
+        @type Property
+    */
     model.addCalculated({
         name: "modules",
         type: "array",
@@ -175,4 +214,368 @@ feather.calculated = f.prop({
 
 catalog.register("models", "feather", feather);
 
+function featherOverload(data, spec) {
+    spec = spec || catalog.getFeather("FeatherOverload");
+    spec.properties.type.default = "";
+    spec.properties.default.default = "";
 
+    let model;
+    let d;
+
+    function propertyNames() {
+        let parent = model.parent();
+        let names = parent.data.properties().map((prop) => prop.data.name());
+        let inherits = parent.data.inherits();
+        let inheritFeather;
+
+        if (inherits) {
+            inheritFeather = catalog.getFeather(inherits);
+            names = names.concat(Object.keys(inheritFeather.properties));
+        }
+
+        names.sort();
+        names = names.map(function (name) {
+            return {
+                value: name,
+                label: name
+            };
+        });
+        names.unshift({
+            value: "",
+            label: ""
+        });
+
+        return names;
+    }
+
+    function handleReadOnly() {
+        d.description.isReadOnly(!d.overloadDescription());
+        d.alias.isReadOnly(!d.overloadAlias());
+        d.type.isReadOnly(!d.overloadType());
+        d.default.isReadOnly(!d.overloadDefault());
+        d.dataList.isReadOnly(!d.overloadDataList());
+    }
+
+    model = f.createModel(data, spec);
+    d = model.data;
+
+    model.onChanged("overloadDescription", handleReadOnly);
+    model.onChanged("overloadDescription", function () {
+        if (!d.overloadDescription()) {
+            d.description("");
+        }
+    });
+    model.onChanged("overloadAlias", handleReadOnly);
+    model.onChanged("overloadAlias", function () {
+        if (!d.overloadAlias()) {
+            d.alias("");
+        }
+    });
+    model.onChanged("overloadType", handleReadOnly);
+    model.onChanged("overloadType", function () {
+        if (!d.overloadType()) {
+            d.type("");
+        } else {
+            d.type({
+                type: "relation"
+            });
+        }
+    });
+    model.onChanged("overloadDefault", handleReadOnly);
+    model.onChanged("overloadDefault", function () {
+        if (!d.overloadDefault()) {
+            d.default("");
+        }
+    });
+    model.onChanged("overloadDataList", handleReadOnly);
+    model.onChanged("overloadDataList", function () {
+        if (!d.overloadDataList()) {
+            d.dataList("");
+        }
+    });
+
+    model.onLoad(handleReadOnly);
+
+    model.onValidate(function () {
+        let names = propertyNames().map((item) => item.value);
+
+        if (names.indexOf(d.name()) === -1) {
+            throw new Error(
+                "Property \"" + d.name() +
+                "\" referenced in overload does not exist on this feather."
+            );
+        }
+
+        if (d.overloadType()) {
+            if (!d.type().relation) {
+                throw new Error(
+                    "Feather name required on relation type \"" +
+                    d.name() + "\""
+                );
+            }
+        }
+
+        if (d.overloadDescription() && !d.description()) {
+            throw new Error("Overload description is empty");
+        }
+
+        if (d.overloadAlias() && !d.alias()) {
+            throw new Error("Overload alias is empty");
+        }
+    });
+
+    // ..........................................................
+    // PUBLIC
+    //
+
+    /**
+        Property names datalist.
+
+        __Type:__ `Array`
+
+        __Is Calculated__
+
+        __Read Only__
+
+        @property data.propertyNames
+        @for Models.FeatherOverload
+        @type Property
+    */
+    model.addCalculated({
+        name: "propertyNames",
+        type: "array",
+        function: propertyNames
+    });
+
+    return model;
+}
+
+catalog.registerModel("FeatherOverload", featherOverload);
+
+function featherProperty(data, spec) {
+    spec = spec || catalog.getFeather("FeatherProperty");
+    spec.properties.type.default = "string";
+    spec.properties.default.default = "";
+
+    let model;
+    let d;
+    let types = [
+        "array",
+        "boolean",
+        "integer",
+        "number",
+        "string",
+        "object"
+    ];
+
+    // ..........................................................
+    // PUBLIC
+    //
+
+    model = f.createModel(data, spec);
+    d = model.data;
+
+    function formats() {
+        let type = model.data.type();
+        let ret = [];
+        let formats = f.formats();
+
+        if (types.indexOf(type)) {
+            ret = Object.keys(formats).filter(
+                (key) => formats[key].type === type
+            );
+            ret = ret.map(function (key) {
+                return {
+                    value: key,
+                    label: key
+                };
+            });
+        }
+
+        return ret;
+    }
+
+    function handleReadOnly() {
+        let isNotNumber = d.type() !== "number";
+        let pd = model.parent().data;
+        let parentHasNaturalKey = (
+            pd.properties().some(
+                (prop) => prop !== model && prop.data.isNaturalKey()
+            ) ||
+            pd.inheritedProperties().some((prop) => prop.data.isNaturalKey())
+        );
+        let parentHasLabelKey = (
+            pd.properties().some(
+                (prop) => prop !== model && prop.data.isLabelKey()
+            ) ||
+            pd.inheritedProperties().some((prop) => prop.data.isLabelKey())
+        );
+        let type = d.type();
+
+        d.scale.isReadOnly(isNotNumber);
+        d.precision.isReadOnly(isNotNumber);
+        d.min.isReadOnly(isNotNumber);
+        d.max.isReadOnly(isNotNumber);
+        d.isNaturalKey.isReadOnly(d.isLabelKey() || parentHasNaturalKey);
+        d.isIndexed.isReadOnly(d.isNaturalKey());
+        d.isLabelKey.isReadOnly(d.isNaturalKey() || parentHasLabelKey);
+        d.autonumber.isReadOnly(!d.isNaturalKey());
+
+        if (
+            type === "array" ||
+            type === "object" ||
+            typeof type === "object"
+        ) {
+            d.default.isReadOnly(true);
+        } else {
+            d.default.isReadOnly(false);
+        }
+    }
+
+    /**
+        Formats datalist.
+
+        __Type:__ `Array`
+
+        __Is Calculated__
+
+        __Read Only__
+
+        @property data.formats
+        @for Models.FeatherProperty
+        @type Property
+    */
+    model.addCalculated({
+        name: "formats",
+        type: "array",
+        function: formats
+    });
+
+    model.onChange("name", function (prop) {
+        let re = new RegExp(" ", "g");
+        let value = prop.newValue().toCamelCase().replace(re, "");
+
+        prop.newValue(value);
+    });
+    model.onChanged("type", handleReadOnly);
+    model.onChanged("type", function () {
+        let type = d.type();
+
+        if (type === "number") {
+            d.scale(f.SCALE_DEFAULT);
+            d.precision(f.PRECISION_DEFAULT);
+        } else {
+            d.scale(-1);
+            d.precision(-1);
+            d.min(0);
+            d.max(0);
+        }
+
+        if (
+            type === "array" ||
+            type === "object" ||
+            typeof type === "object"
+        ) {
+            d.default("");
+        }
+
+        d.format.isReadOnly(formats().length === 0);
+        d.format("");
+    });
+    model.onChanged("isNaturalKey", handleReadOnly);
+    model.onChanged("isNaturalKey", function () {
+        if (d.isNaturalKey()) {
+            d.isIndexed(false);
+        }
+    });
+    model.onChanged("isLabelKey", handleReadOnly);
+
+    model.onLoad(handleReadOnly);
+
+    model.onValidate(function () {
+        let type = model.data.type();
+        let defaultValue = model.data.default();
+        let name = model.data.name();
+
+        if (typeof type !== "string") {
+            if (!type.relation) {
+                throw new Error(
+                    "Feather name required on relation type \"" +
+                    name + "\""
+                );
+            }
+
+            if (
+                !type.childOf &&
+                !type.parentOf && (
+                    !type.properties || !type.properties.length
+                )
+            ) {
+                throw new Error(
+                    "One or more properties required on relation type \"" +
+                    name + "\""
+                );
+            }
+        }
+
+        switch (type) {
+        case "integer":
+        case "number":
+            if (Number.isNaN(Number(defaultValue))) {
+                throw new Error(
+                    "Default for \"" + name +
+                    "\" must be a number or blank"
+                );
+            }
+            break;
+        case "boolean":
+            if (
+                defaultValue !== null &&
+                defaultValue !== "" &&
+                defaultValue !== true &&
+                defaultValue !== false &&
+                defaultValue.toLowerCase() !== "true" &&
+                defaultValue.toLowerCase() !== "false"
+            ) {
+                throw new Error(
+                    "Default for \"" + name +
+                    "\" must be  \"true\", \"false\" or blank"
+                );
+            }
+            break;
+        }
+    });
+
+    model.handleReadOnly = handleReadOnly;
+
+    model.data.default.toJSON = function () {
+        let type = model.data.type();
+        let defaultValue = model.data.default();
+
+        switch (type) {
+        case "integer":
+        case "number":
+            return Number(defaultValue);
+        case "boolean":
+            if (defaultValue === null || defaultValue === "") {
+                return null;
+            }
+
+            if (defaultValue === true || defaultValue === false) {
+                return defaultValue;
+            }
+
+            if (defaultValue.toLowerCase() === "true") {
+                return true;
+            }
+
+            return false;
+        default:
+            return defaultValue;
+        }
+    };
+
+    return model;
+}
+
+catalog.registerModel("FeatherProperty", featherProperty);
