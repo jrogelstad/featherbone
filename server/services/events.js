@@ -16,6 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint node*/
+/**
+    @module Events
+*/
 (function (exports) {
     "use strict";
 
@@ -26,6 +29,7 @@
         Event management services.
 
         @class Events
+        @constructor
     */
     exports.Events = function () {
         // ..........................................................
@@ -41,10 +45,10 @@
             Initialize listener.
 
             @method listen
-            @param {Object} Database client connection
-            @param {String} Channel (node server id)
-            @param {Function} Callback, responds to events
-            @return {Object} promise
+            @param {Object} client Database client connection
+            @param {String} channel Node server id
+            @param {Function} callback Responds to events
+            @return {Promise}
         */
         events.listen = function (client, channel, callback) {
             return new Promise(function (resolve, reject) {
@@ -64,17 +68,18 @@
             otherwise previous subscription unsubscribed to.
 
             @method subscribe
-            @param {Object} Database client connection
-            @param {Object} Subscription. If empty promise just resolves
+            @param {Object} client Database client connection
+            @param {Object} [subscription] If empty promise just resolves
                 without change.
-            @param {String} [subscription.nodeId] Node server id. Required.
-            @param {String} [subscription.eventKey] Client event key. Required.
-            @param {String} [subscription.id] Subscription id. Required.
+            @param {String} subscription.nodeId Node server id.
+            @param {String} subscription.eventKey Client event key.
+            @param {String} subscription.id Subscription id.
             @param {Boolean} [subscription.merge] Merge previous subscription.
                 Default false.
-            @param {Array} Ids to listen to
-            @param {String} Feather or table name to listen for inserts.
-            @return {Object} Promise
+            @param {Array} ids Ids to listen to
+            @param {String} tablename Feather or table name to listen for
+            inserts.
+            @return {Promise}
         */
         events.subscribe = function (client, subscription, ids, tablename) {
             return new Promise(function (resolve, reject) {
@@ -157,11 +162,11 @@
             Unsubscribe to event notifications by type.
 
             @method unsubscribe
-            @param {Object} Database client connection
-            @param {String} Id to unsubscribe to.
-            @param {String} Unsubscribe id is by 'subscription',
+            @param {Object} client Database client connection
+            @param {String} [id] Id to unsubscribe to.
+            @param {String} [type] Unsubscribe by 'subscription',
                 'instance' or 'node'. Default 'subscription'
-            @return {Object} Promise
+            @return {Promise}
         */
         events.unsubscribe = function (client, id, type) {
             return new Promise(function (resolve, reject) {

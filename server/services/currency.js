@@ -16,6 +16,33 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint node*/
+/**
+    @module Currency
+*/
+/**
+    @class Money
+    @static
+*/
+/**
+    @property currency
+    @type String
+*/
+/**
+    @property amount
+    @type Number
+*/
+/**
+    Conversion date
+    @property effective
+    @type String
+    @optional
+*/
+/**
+    Amount in base currency
+    @property baseAmmount
+    @type Number
+    @optional
+*/
 (function (exports) {
     "use strict";
 
@@ -181,6 +208,7 @@
         Currency conversion service.
 
         @class Currency
+        @constructor
     */
     exports.Currency = function () {
         // ..........................................................
@@ -197,7 +225,7 @@
             @param {String} [payload.data] Arguments.
             @param {String} [payload.data.effective] ISO formatted date.
                 Default today.
-            @return {Object} Promise
+            @return {Promise} Resolves to base currency record.
         */
         that.baseCurrency = function (obj) {
             return new Promise(function (resolve, reject) {
@@ -248,15 +276,15 @@
 
             @method convertCurrency
             @param {Object} [payload] Payload
-            @param {Object} [payload.client] Database client
-            @param {String} [payload.data] Arguments
+            @param {String | Object} [payload.client] Database client
+            @param {Object} [payload.data] Arguments
             @param {String} [payload.data.fromCurrency] Currency code from
             @param {Number} [payload.data.amount] Amount
-            @param {String} [payload.data.toCurrency] Target currency.
+            @param {String} [payload.data.toCurrency] Target currency code.
                 Default base.
             @param {String} [payload.data.effective] ISO formatted date.
                 Default today.
-            @return {Object} Promise
+            @return {Promise} Resolves to {{#crossLink "Money"}}{{/crossLink}}
         */
         that.convertCurrency = function (obj) {
             return new Promise(function (resolve, reject) {
