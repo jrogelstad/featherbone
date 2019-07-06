@@ -17,7 +17,7 @@
 */
 /*jslint this, browser*/
 /**
-    module SortDialog
+    @module SortDialog
 */
 import f from "../core.js";
 

@@ -462,7 +462,6 @@ function workbookModel(data) {
     Workbook child configuration model.
 
     @class WorkbookChild
-    @abstract
     @static
     @extends Model
 */
