@@ -16,6 +16,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint node, for*/
+/**
+    Create, read, update and delete methods for persisting data to the
+    database.
+    @module CRUD
+*/
 (function (exports) {
     "use strict";
 
@@ -40,7 +45,8 @@
         default.
 
         @method money
-        @return {Object} Promise
+        @for f
+        @return {Promise} Resolves to {{#crossLink "Money"}}{{/crossLink}}
     */
     f.money = function () {
         return new Promise(function (resolve, reject) {
@@ -81,13 +87,13 @@
             Perform soft delete on object records.
 
             @method doDelete
-            @param {Object} Request payload
-            @param {Object} [payload.id] Id of record to delete
-            @param {Object} [payload.client] Database client
-            @param {Function} [payload.isHard] Hard delete flag. Default false.
-            @param {Boolean} Request as child. Default false.
-            @param {Boolean} Request as super user. Default false.
-            @return {Object} Promise
+            @param {Object} payload Request payload
+            @param {String} payload.id Id of record to delete
+            @param {String | Object} payload.client Database client
+            @param {Boolean} [payload.isHard] Hard delete flag. Default false.
+            @param {Boolean} [isChild] Request as child. Default false.
+            @param {Boolean} [isSuperUser] Request as super user. Default false.
+            @return {Promise} Resolves `true` if successful
         */
         crud.doDelete = function (obj, isChild, isSuperUser) {
             return new Promise(function (resolve, reject) {
@@ -261,13 +267,14 @@
             Insert records for a passed object.
 
             @method doInsert
-            @param {Object} Request payload
-            @param {Object} [payload.name] Object type name
-            @param {Object} [payload.data] Data to insert
-            @param {Object} [payload.client] Database client
-            @param {Boolean} Request as child. Default false.
-            @param {Boolean} Request as super user. Default false.
-            @return {Object} Promise
+            @param {Object} payload Request payload
+            @param {String} payload.name Object type name
+            @param {Object} payload.data Data to insert
+            @param {String | Object} payload.client Database client
+            @param {Boolean} [isChild] Request as child. Default false.
+            @param {Boolean} [isSuperUser] Request as super user. Default false.
+            @return {Promise} Resolves to array of patches reporting back
+            differences between request and actual saved record result.
         */
         crud.doInsert = function (obj, isChild, isSuperUser) {
             return new Promise(function (resolve, reject) {
@@ -802,22 +809,23 @@
         };
 
         /**
-            Select records for an object or array of objects.
+            Select records for an object based on payload id or an
+            array of objects if no id provided.
 
             @method doSelect
-            @param {Object} Request payload
-            @param {Object} [payload.id] Id of record to select
-            @param {Object} [payload.name] Name of feather
+            @param {Object} payload Request payload
+            @param {String} [payload.id] Id of record to select
+            @param {String} payload.name Name of feather
             @param {Object} [payload.filter] Filter criteria of records to
             select
-            @param {Object} [payload.client] Database client
+            @param {String | Object} payload.client Database client
             @param {Boolean} [payload.showDeleted] include deleted records
             @param {Object} [payload.subscription] subscribe to events on
             results
             @param {Boolean} [payload.sanitize] sanitize result. Default true
-            @param {Boolean} Request as child. Default false.
-            @param {Boolean} Request as super user. Default false.
-            @return receiver
+            @param {Boolean} [isChild] Request as child. Default false.
+            @param {Boolean} [isSuperUser] Request as super user. Default false.
+            @return {Promise} Resolves to object or array.
         */
         crud.doSelect = function (obj, isChild, isSuperUser) {
             return new Promise(function (resolve, reject) {
@@ -1023,12 +1031,15 @@
             Update records based on patch definition.
 
             @method doUpdate
-            @param {Object} Request payload
-            @param {Object} [payload.id] Id of record to update
-            @param {Object} [payload.data] Patch to apply
-            @param {Object} [payload.client] Database client
-            @param {Boolean} Request as super user. Default false.
-            @return receiver
+            @param {Object} payload Request payload
+            @param {String} payload.id Id of record to update
+            @param {Object} payload.data Patch to apply
+            @param {String | Object} payload.client Database client
+            @param {Boolean} [isChild] Request as child. Default false.
+            @param {Boolean} [isSuperUser] Request as super user. Default
+            false.
+            @return {Promise} Resolves to array of patches reporting back
+            differences between request and actual saved record result.
         */
         crud.doUpdate = function (obj, isChild, isSuperUser) {
             return new Promise(function (resolve, reject) {
@@ -1603,12 +1614,12 @@
             Lock a record to prevent others from editing.
 
             @method lock
-            @param {Object} Database client connection
-            @param {String} Node id.
-            @param {String} Object id.
-            @param {String} User name.
-            @param {String} Session id.
-            @return {Object} Promise
+            @param {Object} client Database client connection id
+            @param {String} nodeId Node id.
+            @param {String} id Record id
+            @param {String} username
+            @param {String} eventKey
+            @return {Promise} Resolves to `true` if successful.
         */
         crud.lock = function (client, nodeid, id, username, eventkey) {
             return new Promise(function (resolve, reject) {
@@ -1706,16 +1717,16 @@
         };
 
         /**
-            Unlock object(s) by type.
+            Unlock object(s) by type. At least one criteria must be provided.
 
             @method unlock
-            @param {Object} Database client connection
-            @param {Object} Criteria for what to unlock.
+            @param {Object} client Database client connection id
+            @param {Object} criteria Criteria for what to unlock.
             @param {String} [criteria.id] Object id.
             @param {String} [criteria.username] User name.
-            @param {String} [criteria.eventKey] Session id.
+            @param {String} [criteria.eventKey] Browser instance key.
             @param {String} [criteria.nodeId] Node id.
-            @return {Object} Promise
+            @return {Promise} Resolves to array of ids unlocked.
         */
         crud.unlock = function (client, criteria) {
             return new Promise(function (resolve, reject) {

@@ -16,6 +16,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint node, devel*/
+/**
+    API file generator methods called during installation.
+    @module API
+*/
 (function (exports) {
     "use strict";
 
@@ -100,6 +104,7 @@
         Service for building Open API specification.
 
         @class API
+        @constructor
     */
     exports.API = function () {
         // ..........................................................
@@ -109,11 +114,11 @@
         let that = {};
 
         /**
-            Build client api specification.
+            Build client api specification. Creates api.js in client folder.
 
             @method buildClientApi
-            @param {Object} Datasource
-            @param {String} Username
+            @param {Object} datasource
+            @param {String} username
             @return {Promise}
         */
         that.buildClientApi = function (datasource, username) {
@@ -241,11 +246,11 @@
         };
 
         /**
-            Build open api specification.
+            Build open api specification. Creates api.json in the root folder.
 
             @method buildRestApi
-            @param {Object} Datasource
-            @param {String} Username
+            @param {Object} datasource
+            @param {String} username
             @return {Promise}
         */
         that.buildRestApi = function (datasource, username) {

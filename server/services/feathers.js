@@ -15,6 +15,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint node, this*/
+/**
+    @module Feathers
+*/
 (function (exports) {
     "use strict";
 
@@ -92,6 +95,7 @@
         "LIMIT",
         "LOCALTIME",
         "LOCALTIMESTAMP",
+        "MONEY",
         "NATURAL",
         "NOT",
         "NOTNULL",
@@ -135,6 +139,7 @@
         Feather management service.
 
         @class Feathers
+        @constructor
     */
     exports.Feathers = function () {
         // ..........................................................
@@ -532,12 +537,12 @@
             Remove a feather definition from the database.
 
             @method deleteFeather
-            @param {Object} Request payload
-            @param {Object} [payload.data] Payload data
-            @param {String | Array} [payload.data.name] Name(s) of
+            @param {Object} payload Request payload
+            @param {Object} payload.data Payload data
+            @param {String | Array} payload.data.name Name(s) of
                 feather(s) to delete
-            @param {Object} [payload.client] Database client
-            @return {Object} Promise
+            @param {String | Object} payload.client Database client
+            @return {Promise} Resolves to `true` if successful.
         */
         that.deleteFeather = function (obj) {
             return new Promise(function (resolve, reject) {
@@ -693,13 +698,13 @@
             Return a feather definition, including inherited properties.
 
             @method getFeather
-            @param {Object} Request payload
-            @param {Object} [payload.client] Database client
-            @param {Object} [payload.data] Data
-            @param {Object} [payload.data.name] Feather name
+            @param {Object} payload Request payload
+            @param {String | Object} payload.client Database client
+            @param {Object} payload.data Data
+            @param {Object} payload.data.name Feather name
             @param {Boolean} [payload.data.includeInherited] Include inherited
                 or not. Default = true.
-            @return {Object} Promise
+            @return {Promise} Reseloves to feather definition object.
         */
         that.getFeather = function (obj) {
             return new Promise(function (resolve, reject) {
@@ -778,21 +783,21 @@
 
         /**
             Check whether a user is authorized to perform an action on a
-            particular feather (class) or object. Returns a Promise.
+            particular feather (class) or object.
 
             Allowable actions: `canCreate`, `canRead`, `canUpdate`, `canDelete`
 
             `canCreate` will only check feather names.
 
             @method isAuthorized
-            @param {Object} Payload
-            @param {Object} [payload.data] Payload data
-            @param {String} [payload.data.action] Required
+            @param {Object} payload
+            @param {Object} payload.data Payload data
+            @param {String} payload.data.action
             @param {String} [payload.data.feather] Feather name
             @param {String} [payload.data.id] Object id
-            @param {String} [payload.data.user] User. Defaults to current user
-            @param {String} [payload.client] Database client
-            @return {Object}
+            @param {String} [payload.data.user] Defaults to current user
+            @param {String | Object} payload.client Database client
+            @return {Promise} Resolves to Boolean.
         */
         that.isAuthorized = function (obj) {
             return new Promise(function (resolve, reject) {
@@ -903,7 +908,8 @@
         };
 
         /**
-            Set authorazition for a particular authorization role.
+            Set authorazition for a particular authorization role. Must pass
+            data `id` or `feather`.
 
             @example
                 // Example payload
@@ -920,19 +926,19 @@
                 }
 
             @method saveAuthorization
-            @param {Object} Payload
-            @param {Object} [payload.data] Payload data
+            @param {Object} payload
+            @param {Object} payload.data Payload data
             @param {String} [payload.data.id] Object id (if record level)
             @param {String} [payload.data.feather] Feather
-            @param {String} [payload.data.role] Role
+            @param {String} payload.data.role Role
             @param {Boolean} [payload.data.isInternal] Not a feather
             @param {Boolean} [payload.data.isSilentError] Silence errors
-            @param {Object} [payload.data.actions] Required
+            @param {Object} payload.data.actions
             @param {Boolean} [payload.data.actions.canCreate]
             @param {Boolean} [payload.data.actions.canRead]
             @param {Boolean} [payload.data.actions.canUpdate]
             @param {Boolean} [payload.data.actions.canDelete]
-            @return {Object} Promise
+            @return {Promise}
         */
         that.saveAuthorization = function (obj) {
             return new Promise(function (resolve, reject) {
@@ -1216,53 +1222,54 @@
             Subsequent saves will automatically drop properties no longer
             present.
 
-            Example payload:
+            @example
+            // example payload:
             {
-             "name": "Contact",
-             "description": "Contact data about a person",
-             "inherits": "Object",
-             "properties": {
-               "fullName": {
-                 "description": "Full name",
-                 "type": "string"
-              },
-              "birthDate": {
-                "description": "Birth date",
-                "type": "date"
-              },
-              "isMarried": {
-                "description": "Marriage status",
-                "type": "boolean"
-              },
-              "dependents": {
-                "description": "Number of dependents",
-                "type": "number"
-              }
-            }
+                "name": "Contact",
+                "description": "Contact data about a person",
+                "inherits": "Object",
+                "properties": {
+                    "fullName": {
+                        "description": "Full name",
+                        "type": "string"
+                    },
+                    "birthDate": {
+                        "description": "Birth date",
+                        "type": "string"
+                        "format": "date"
+                    },
+                    "isMarried": {
+                        "description": "Marriage status",
+                        "type": "boolean"
+                    },
+                    "dependents": {
+                        "description": "Number of dependents",
+                        "type": "integer"
+                    }
+                }
             }
 
-            @param {Object} Payload
-            @param {Object} [payload.client] Database client.
+            @param {Object} payload
+            @param {String | Object} payload.client Database client.
             @param {Object | Array} [payload.spec] Feather specification(s).
-            @param {String} [payload.spec.name] Name
+            @param {String} payload.spec.name Name
             @param {String} [payload.spec.description] Description
             @param {Object | Array | Boolean} [payload.spec.authorizations]
-                 Authorization spec. Defaults to grant all to everyone if
-                 undefined. Pass false to grant no auth.
+            Authorization spec. Defaults to grant all to everyone if
+            undefined.
             @param {String} [payload.spec.properties] Feather properties
             @param {String} [payload.spec.properties.description]
-                 Description
+            Description
             @param {String} [spec.properties.default] Default value
-                 or function name.
-            @param {String | Object} [payload.spec.properties.type]
-                 Type. Standard types are string, boolean, number, date.
-                 Object is used
-                 for relation specs.
+            or function name.
+            @param {String | Object} payload.spec.properties.type
+            Type. Standard types are string, boolean, number, date.
+            Object is used for relation specs.
             @param {String} [payload.spec.properties.relation] Feather name of
-                relation.
+            relation.
             @param {String} [payload.spec.properties.childOf] Property name
                 on parent relation if one to many relation.
-            @return {Object} Promise
+            @return {Promise}
         */
         that.saveFeather = function (obj) {
             return new Promise(function (resolve, reject) {

@@ -1,0 +1,17 @@
+{
+    "name": "Featherbone Server",
+    "description": "Framework for building object relational database apps",
+    "version": "0.1.0",
+    "url": "https://github.com/jrogelstad/featherbone",
+    "logo": "../featherbone-server.png",
+    "options": {
+        "linkNatives": "true",        
+        "attributesEmit": "false",
+        "selleck": "false",
+        "paths": [
+            "../common",
+            "./services",
+            "./"
+        ]
+    }
+}
