@@ -234,8 +234,8 @@ filterDialog.viewModel = function (options) {
     ));
     /**
         @method filter
-        @param {Object} filter
-        @return {Object}
+        @param {Filter} filter
+        @return {Filter}
     */
     vm.filter = f.prop();
    /**

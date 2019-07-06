@@ -155,7 +155,7 @@ function createList(feather) {
         Fetch data. Returns a Promise.
 
         @method fetch
-        @param {Object} filter,
+        @param {Filter} filter,
         @param {Boolean} merge
         @return {Object}
     */
@@ -168,9 +168,9 @@ function createList(feather) {
     /**
         Filter to use when fetching.
 
-        @method Filter
-        @param {Object} Filter
-        @return {Object}
+        @method filter
+        @param {Filter} Filter
+        @return {Filter}
     */
     ary.filter = f.prop({});
 
