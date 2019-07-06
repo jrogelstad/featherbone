@@ -26,6 +26,88 @@
         @module Core
     */
     /**
+        JSON object that defines filter criteria that can be passed to the server to define
+        result sets to return in a query.
+
+        __Example__
+
+            // Filter to return records with
+            // * Age of 10, name starts with "T"
+            // * Sort by name ascending
+            // * Return records 60-90
+            let filter = {
+                criteria: [{
+                    property: "age"
+                    value: 10
+                }, {
+                    property: "name",
+                    operator: "~*",
+                    value: "^T"
+                ]
+                sort: [{
+                    property: "name"
+                }],
+                offset: 60,
+                limit: 30
+            }
+        @class Filter
+        @static
+    */
+    /**
+        Filter criteria that is array of objects with `property`, `value` and optional
+        `operator` which, if left out, defaults to `=`. Supported operators are:
+        * __=__: Equals
+        * __!=__: Not equals
+        * __~__: Matches, case sensitive
+        * __!~__: Not matches, case sensitive
+        * __~*__: Matches, regular expressions supported
+        * __!~*__: Not matches, regular expressions supported
+        * __>__: Greater than
+        * __<__: Less than,
+        * __>=__: Greater than or equals
+        * __<=__: Less than or equals
+        * __IN__: In array
+        
+        @example
+            // Criteria for age equals 10 and name starts with "T"
+            let criteria = [{
+                property: "age"
+                value: 10
+            }, {
+                property: "name",
+                operator: "~*",
+                value: "^T"
+            }];
+        @property criteria
+        @type Array
+    */
+    /**
+        Number of records to return.
+        @property limit
+        @type integer
+    */
+    /**
+        Offset number to start returning records for pagination.
+        @property offset
+        @type integer
+        @optional
+    */
+    /**
+        Filter sort that is array of objects with `property` and optional `order`
+        of `ASC` (ascending) or `DESC` (descending) which defaults to `ASC`.
+        @example
+            // Sort by age descending, name ascending
+            let sort = [{
+                property: "age",
+                order: "DESC"
+            }, {
+                property: "name"
+            }];
+        @property sort
+        @type Array
+        @optional
+    */
+    /**
         Featherbone global object.
 
         @class f

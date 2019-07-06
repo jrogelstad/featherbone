@@ -1289,8 +1289,8 @@ tableWidget.viewModel = function (options) {
     vm.feather = f.prop(feather);
     /**
         @method filter
-        @param {Object} filter
-        @return {Object}
+        @param {Filter} filter
+        @return {Filter}
     */
     vm.filter = f.prop();
     /**

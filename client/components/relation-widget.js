@@ -53,7 +53,7 @@ function positionMenu(vnode) {
     @param {Object} [options.form] Form configuration
     @param {Object} [options.list] (Search) List configuration
     @param {Boolean} [options.isCell] Use style for cell in table
-    @param {Object} [options.filter] Filter object used for search
+    @param {Filter} [options.filter] Filter object used for search
 */
 relationWidget.viewModel = function (options) {
     let duplicate;
