@@ -1204,7 +1204,7 @@ tableWidget.viewModel = function (options) {
     };
     /**
         Whether can toggle row as selected.
-        @canToggle
+        @method canToggle
         @param {Boolean} flag
         @return {Boolean}
     */
@@ -1383,7 +1383,7 @@ tableWidget.viewModel = function (options) {
         Return the name of the last attribute which can recive focus.
         @method lastFocus
         @param {Model} model
-        @returns {String}
+        @return {String}
     */
     vm.lastFocus = function (model) {
         let col;
@@ -1402,7 +1402,7 @@ tableWidget.viewModel = function (options) {
         Set or return the last model that was selected in the list.
         @method lastSelected
         @param {Model} Model selected
-        @returns {Model} Last model selected
+        @return {Model} Last model selected
     */
     vm.lastSelected = f.prop();
     /**

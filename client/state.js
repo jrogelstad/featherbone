@@ -1084,7 +1084,7 @@ State.prototype.isCurrent = function pState_isCurrent(path) {
 
     @method resolve
     @param {String} path The path to resolve or an array of path segments.
-    @returns {State} The `State` object the path represents if it can be
+    @return {State} The `State` object the path represents if it can be
     resolved and `null` otherwise.
 */
 State.prototype.resolve = function pState_resolve(path) {

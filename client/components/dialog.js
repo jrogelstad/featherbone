@@ -264,7 +264,7 @@ catalog.register("viewModels", "dialog", dialog.viewModel);
     Dialog component
 
     @class Dialog
-    @statics
+    @static
     @namespace Components
 */
 dialog.component = {
