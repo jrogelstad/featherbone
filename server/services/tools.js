@@ -16,6 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint node, this*/
+/**
+    @module Tools
+*/
 (function (exports) {
     "use strict";
 
@@ -38,12 +41,12 @@
     }
 
     /**
-      * Escape strings to prevent sql injection
+        Escape strings to prevent sql injection
         http://www.postgresql.org/docs/9.1/interactive/functions-string.html
-      *
-      * @param {String} A string with tokens to replace.
-      * @param {Array} Array of replacement strings.
-      * @return {String} Escaped string.
+        @method format
+        @for String
+        @param {Array} Array of replacement strings.
+        @return {String} Escaped string.
     */
     String.prototype.format = function (ary) {
         let params = [];
@@ -60,13 +63,32 @@
         return curry(format, ary)();
     };
 
+    /**
+        @class Tools
+        @constructor
+    */
     exports.Tools = function () {
 
         // ..........................................................
         // PUBLIC
         //
+        /**
+            @property PKCOL
+            @type String
+            @default "_pk"
+            @final
+        */
         tools.PKCOL = "_pk";
-
+        /**
+            Return a SQL clause that adds checks for use authorization to a
+            `WHERE` clause.
+            @method buildAuthSql
+            @param {String} action `canCreate`, `canRead`, `canUpdate` or
+            `canDelete`
+            @param {String} table
+            @param {Array} tokens
+            @return {String} SQL clause
+        */
         tools.buildAuthSql = function (action, table, tokens) {
             let actions;
             let i = 7;
@@ -132,6 +154,13 @@
             return sql;
         };
 
+        /**
+            Object with properties mapping to each type of data type format
+            requiring special support on the server side. Each format has a
+            database type and default value.
+            @property formats
+            @type Object
+        */
         tools.formats = {
             integer: {
                 type: "integer",
@@ -188,12 +217,13 @@
         };
 
         /**
-          Get the primary key for a given id.
-          @param {Object} Request payload
-          @param {Object} [payload.id] Id to resolve
-          @param {Object} [payload.client] Database client
-          @param {Boolean} Request as super user. Default false.
-          @return Promise
+            Get the primary key for a given id.
+            @method getKey
+            @param {Object} Request payload
+            @param {Object} payload.id Id to resolve
+            @param {Object} payload.client Database client
+            @param {Boolean} [flag] Request as super user. Default false.
+            @return {Promise}
         */
         tools.getKey = function (obj, isSuperUser) {
             return new Promise(function (resolve, reject) {
@@ -218,14 +248,16 @@
             });
         };
         /**
-          Get an array of primary keys for a given feather and filter criteria.
-          @param {Object} Request payload
-          @param {Object} [payload.name] Feather name
-          @param {Object} [payload.filter] Filter
-          @param {Boolean} [payload.showDeleted] Show deleted records
-          @param {Object} [payload.client] Database client
-          @param {Boolean} Request as super user. Default false.
-          @return Promise
+            Get an array of primary keys for a given feather and filter
+            criteria.
+            @method getKeys
+            @param {Object} payload Request payload
+            @param {Object} payload.name Feather name
+            @param {Filter} [payload.filter] Filter
+            @param {Boolean} [payload.showDeleted] Show deleted records
+            @param {Object} payload.client Database client
+            @param {Boolean} [flag] Request as super user. Default false.
+            @return {Promise}
         */
         tools.getKeys = function (obj, isSuperUser) {
             return new Promise(function (resolve, reject) {
@@ -368,7 +400,11 @@
                 }
             });
         };
-
+        /**
+            @method isChildFeather
+            @param {String} feather Feathe name
+            @return {Boolean}
+        */
         tools.isChildFeather = function (feather) {
             let props = feather.properties;
 
@@ -378,12 +414,13 @@
         };
 
         /**
-          Returns whether user is super user.
+            Returns whether user is super user.
 
-          @param {Object} Payload
-          @param {String} [payload.user] User. Defaults to current user
-          @param {String} [payload.client] Database client
-          @return Promise
+            @method isSuperUser
+            @param {Object} payload Request payload
+            @param {String} [payload.user] User. Defaults to current user
+            @param {Client} payload.client Database client
+            @return {Promise}
         */
         tools.isSuperUser = function (obj) {
             return new Promise(function (resolve, reject) {
@@ -411,12 +448,12 @@
         };
 
         /**
-          Returns authorizations for an object.
-
-          @param {Object} Payload
-          @param {String} [payload.client] Database client
-          @param {String} [payload.id] Object ID
-          @return Promise
+            Returns authorizations for an object.
+            @method getAuthorizations
+            @param {Object} payload Request payload
+            @param {Client} payload.client
+            @param {String} payload.id Object ID
+            @return Promise
         */
         tools.getAuthorizations = function (obj) {
             return new Promise(function (resolve, reject) {
@@ -434,9 +471,10 @@
         };
 
         /**
-          Clear out primmary keys and normalize data
-          @param {Object} Data to sanitize
-          @return {Object} Sanitized object
+            Clear out primmary keys and convert snake case to camel case.
+            @method sanitize
+            @param {Object} Data to sanitize
+            @return {Object} Sanitized object
         */
         tools.sanitize = function (obj) {
             let oldObj;
@@ -506,12 +544,13 @@
         };
 
         /**
-          Sets a user as super user or not.
-
-          @param {Object} Payload
-          @param {String} [payload.user] User
-          @param {Object} [payload.client] Database client
-          @return {Object} Promise
+            Sets a user as super user or not.
+            @method setSuperUser
+            @param {Object} Payload
+            @param {String} payload.user User
+            @param {Client} payload.client Database client
+            @param {Boolean} [payload.isSuper] Default true
+            @return {Promise}
         */
         tools.setSuperUser = function (obj, isSuper) {
             return new Promise(function (resolve, reject) {
@@ -590,6 +629,13 @@
             });
         };
 
+        /**
+            Returns an `ORDER BY` SQL clause based sort criteria.
+            @method processSort
+            @param {Array} sort
+            @param {Array} tokens
+            @return {String} SQL clause
+        */
         tools.processSort = function (sort, tokens) {
             let order;
             let part;
@@ -618,6 +664,13 @@
             return clause;
         };
 
+        /**
+            Infer name of relation primary key column.
+            @method relationColumn
+            @param {String} key Column name
+            @param {String} relation Feather name of relation
+            @return {String}
+        */
         tools.relationColumn = function (key, relation) {
             let ret;
 
@@ -627,6 +680,14 @@
             return ret;
         };
 
+        /**
+            Adds a token for a given column name to `tokens` and returns
+            "%I" as the place holder value for a SQL clause.
+            @method processSort
+            @param {String} column
+            @param {Array} tokens
+            @return {String}
+        */
         tools.resolvePath = function (col, tokens) {
             let prefix;
             let suffix;
@@ -645,6 +706,13 @@
             return "%I";
         };
 
+        /**
+            Object with properties mapping to each type of data type
+            to database equivilents. Each format has a database `type` and
+            `default` property.
+            @property types
+            @type Object
+        */
         tools.types = {
             object: {
                 type: "json",

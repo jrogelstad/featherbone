@@ -16,6 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint node eval*/
+/**
+    @module Installer
+*/
 (function (exports) {
     "use strict";
 
@@ -38,6 +41,10 @@
         return Buffer.from(str.toString(), "binary").toString("base64");
     }
 
+    /**
+        @class Installer
+        @constructor
+    */
     exports.Installer = function () {
         // ..........................................................
         // PUBLIC
@@ -49,12 +56,12 @@
             Install a package in a specified directory.
 
             @method install
-            @param {Object} Initialized datasource (catalog loaded)
-            @param {Object} Client
-            @param {String} Directory of manifest
-            @param {String} User name
-            @param {Boolean} isSuper Force as super user
-            @return {Object} Promise
+            @param {Object} datsource Initialized datasource (catalog loaded)
+            @param {Object} client
+            @param {String} dir Directory of manifest
+            @param {String} user User name
+            @param {Boolean} [isSuper] Force as super user
+            @return {Promise}
         */
         that.install = function (datasource, client, dir, user, isSuper) {
             return new Promise(function (resolve, reject) {
@@ -503,6 +510,16 @@
             });
         };
 
+        /**
+            Uninstall a module.
+
+            @method uninstall
+            @param {Object} payload
+            @param {String | Object} payload.client
+            @param {Object} payload.data
+            @param {String} payload.data.name Module name
+            @return {Promise}
+        */
         that.uninstall = function (obj) {
             return new Promise(function (resolve, reject) {
                 let client = db.getClient(obj.client);

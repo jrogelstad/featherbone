@@ -16,6 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint node*/
+/**
+    @module Packager
+*/
 (function (exports) {
     "use strict";
 
@@ -637,6 +640,10 @@
         // PUBLIC
         //
 
+        /**
+            @class Packager
+            @constructor
+        */
         let that = {};
 
         function addDependencies(client, manifest, zip, resp, user, folder) {
@@ -685,16 +692,14 @@
         }
 
         /**
-          Package a module.
+            Package a module and its submodules into a zip file.
 
-          @param {Object} Database client
-          @param {String} Module
-          @param {String} Username
-          @param {Object} Sub module
-          @param {Object} [sub.zip] Zip file to append
-          @param {String} [sub.folder] New folder for submodule
-          @param {Object} [sub.module] Module
-          @return {Object}
+            @method package
+            @param {Client} client Database client
+            @param {String} name Module name
+            @param {String} user User name
+            @param {Object} [sub] Sub module
+            @return {Promise}
         */
         that.package = function (client, name, user, sub) {
             sub = sub || {};

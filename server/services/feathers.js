@@ -541,7 +541,7 @@
             @param {Object} payload.data Payload data
             @param {String | Array} payload.data.name Name(s) of
                 feather(s) to delete
-            @param {String | Object} payload.client Database client
+            @param {Client} payload.client Database client
             @return {Promise} Resolves to `true` if successful.
         */
         that.deleteFeather = function (obj) {
@@ -699,7 +699,7 @@
 
             @method getFeather
             @param {Object} payload Request payload
-            @param {String | Object} payload.client Database client
+            @param {Client} payload.client Database client
             @param {Object} payload.data Data
             @param {Object} payload.data.name Feather name
             @param {Boolean} [payload.data.includeInherited] Include inherited
@@ -796,7 +796,7 @@
             @param {String} [payload.data.feather] Feather name
             @param {String} [payload.data.id] Object id
             @param {String} [payload.data.user] Defaults to current user
-            @param {String | Object} payload.client Database client
+            @param {Client} payload.client Database client
             @return {Promise} Resolves to Boolean.
         */
         that.isAuthorized = function (obj) {
@@ -927,6 +927,7 @@
 
             @method saveAuthorization
             @param {Object} payload
+            @param {Client} payload.client
             @param {Object} payload.data Payload data
             @param {String} [payload.data.id] Object id (if record level)
             @param {String} [payload.data.feather] Feather
@@ -1249,8 +1250,9 @@
                 }
             }
 
+            @method saveFeather
             @param {Object} payload
-            @param {String | Object} payload.client Database client.
+            @param {Client} payload.client Database client.
             @param {Object | Array} [payload.spec] Feather specification(s).
             @param {String} payload.spec.name Name
             @param {String} [payload.spec.description] Description

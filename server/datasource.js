@@ -16,6 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint node, this, devel*/
+/**
+    @module Datasource
+*/
 (function (exports) {
     "use strict";
 
@@ -62,7 +65,8 @@
     /**
         Server datasource class.
 
-        @class datasource
+        @class Datasource
+        @static
     */
     const that = {};
 
@@ -136,6 +140,7 @@
         @type Integer
         @static
         @final
+        @default 1
     */
     that.TRIGGER_BEFORE = TRIGGER_BEFORE;
 
@@ -144,14 +149,15 @@
         @type Integer
         @static
         @final
+        @default 2
     */
     that.TRIGGER_AFTER = TRIGGER_AFTER;
 
     /**
-        Fetch catalog. Returns Promise.
+        Fetch feather catalog.
 
         @method getCatalog
-        @return {Object}
+        @return {Promise}
     */
     that.getCatalog = function () {
         return new Promise(function (resolve, reject) {
@@ -173,10 +179,10 @@
     };
 
     /**
-        Fetch Services. Returns Promise.
+        Fetch array of all services.
 
         @method getServices
-        @return {Object}
+        @return {Promise}
     */
     that.getServices = function () {
         return new Promise(function (resolve, reject) {
@@ -195,10 +201,10 @@
     };
 
     /**
-        Fetch routes. Returns Promise.
+        Fetch array of all routes.
 
         @method getRoutes
-        @return {Object}
+        @return {Promise}
     */
     that.getRoutes = function () {
         return new Promise(function (resolve, reject) {
@@ -217,10 +223,13 @@
     };
 
     /**
-        Initialize listener. Returns Promise.
+        Initialize listener. Message is passed to callback.
+        Exposes {{#crossLink "Events/listen:method"}}{{/crossLink}}
+        via datasource.
 
         @method listen
-        @return {Object}
+        @param {Function} callback
+        @return {Promise}
     */
     that.listen = function (callback) {
         function doListen(resp) {
@@ -251,10 +260,14 @@
     };
 
     /**
-        Unsubcribe. Returns Promise.
+        Unsubcribe from object or by type.
+        Exposes {{#crossLink "Events/unsubscrib:method"}}{{/crossLink}}
+        via datasource.
 
         @method unsubscribe
-        @return {Object}
+        @param {String} id
+        @param {String} type
+        @return {Promise}
     */
     that.unsubscribe = function (id, type) {
         return new Promise(function (resolve, reject) {
@@ -291,13 +304,15 @@
     };
 
     /**
-        Lock record. Returns Promise.
+        Lock record. Resolves to `true` if successful.
+        Exposes {{#crossLink "CRUD/lock:method"}}{{/crossLink}}
+        via datasource.
 
-        @method
-        @param {String} Object id
-        @param {String} User name
-        @param {String} Session id
-        @return {Object}
+        @method lock
+        @param {String} id Object id
+        @param {String} user User name
+        @param {String} eventKey Browser instance event key
+        @return {Promise}
     */
     that.lock = function (id, username, eventkey) {
         return new Promise(function (resolve, reject) {
@@ -337,13 +352,15 @@
 
     /**
         Unlock one or more records.
+        Exposes {{#crossLink "CRUD/unlock:method"}}{{/crossLink}}
+        via datasource.
 
         @method unlock
-        @param {Object} Criteria for what to unlock
+        @param {Object} Criteria for what to unlock (at least one)
         @param {String} [criteria.id] Object id
         @param {String} [criteria.username] User name
         @param {String} [criteria.eventKey] Event key
-        @return {Object} Promise
+        @return {Promise}
     */
     that.unlock = function (criteria) {
         return new Promise(function (resolve, reject) {
@@ -380,6 +397,8 @@
 
     /**
         Install a module from a specified manifest file name.
+        Exposes {{#crossLink "Installer/install:method"}}{{/crossLink}}
+        via datasource.
 
         @method install
         @param {String} Manifest filename.
@@ -423,11 +442,13 @@
 
     /**
         Package a module.
+        Exposes {{#crossLink "Events/listen:method"}}{{/crossLink}}
+        via datasource.
 
         @method package
-        @param {String} Module name
-        @param {String} User name
-        @return {Object} Promise
+        @param {String} name Module name
+        @param {String} username User name
+        @return {Promise}
     */
     that.package = function (name, username) {
         return new Promise(function (resolve, reject) {
@@ -465,15 +486,16 @@
 
     /**
         Export data.
+        Exposes {{#crossLink "Exporter"}}{{/crossLink}} via datasource.
 
         @method export
         @param {String} Feather
-        @param {Array} Properties (Optional)
-        @param {String} Filter
-        @param {String} Diretory
-        @param {String} Format
-        @param {String} Username
-        @return {Object} Promise
+        @param {Array} [properties]
+        @param {Filter} filter
+        @param {String} dir Target directory
+        @param {String} format `json`, `ods` or `xlsx`
+        @param {String} username
+        @return {Promise}
     */
     that.export = function (
         feather,
@@ -529,13 +551,14 @@
 
     /**
         Import data.
+        Exposes {{#crossLink "Importer"}}{{/crossLink}} via datasource.
 
         @method import
-        @param {String} Feather
-        @param {String} Format
-        @param {String} Filename
-        @param {String} Username
-        @return {Object} Promise
+        @param {String} feather
+        @param {String} format `json`, `ods` or `xlsx`
+        @param {String} filename
+        @param {String} username
+        @return {Promise}
     */
     that.import = function (feather, format, filename, username) {
         return new Promise(function (resolve, reject) {
@@ -577,6 +600,7 @@
 
     /**
         Check user and password.
+        Exposes {{#crossLink "Importer"}}{{/crossLink}} via datasource.
 
         @method authenticate
         @param {String} Username
@@ -590,7 +614,7 @@
 
         @method deserializeUser
         @param {String} Username
-        @return {Object} Promise
+        @return {Promise} Promise
     */
     that.deserializeUser = db.deserializeUser;
 
@@ -1290,8 +1314,9 @@
         @param {String} Function name
         @param {String} Method. "GET", "POST", "PUT", "PATCH", or "DELETE"
         @param {Function} Function
-        @param {Number} Constant TRIGGER_BEFORE or TRIGGER_AFTER
-        @return receiver
+        @param {Integer} Constant TRIGGER_BEFORE or TRIGGER_AFTER
+        @return {Object} Receiver
+        @chainable
     */
     that.registerFunction = function (method, name, func, trigger) {
         if (trigger) {
@@ -1307,7 +1332,7 @@
 
     /**
         @method registeredFunctions
-        @return {Object} Object listing register functions
+        @return {Object} Object listing registered functions
     */
     that.registeredFunctions = function () {
         let keys = Object.keys(registered);
@@ -1321,7 +1346,8 @@
     };
 
     /**
-      @return {Object} Internal settings object maintained by service
+        @method settings
+        @return {Settings} Internal settings object maintained by service
     */
     that.settings = function () {
         return settings;
@@ -1352,7 +1378,6 @@
         @method postFunction
         @param {Object} Request
         @param {Object} Response
-        @return receiver
     */
     that.postFunction = function (req, res) {
         let payload;
