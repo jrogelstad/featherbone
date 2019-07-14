@@ -16,6 +16,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint node*/
+/**
+    PostgreSQL database connection handlers.
+    @module Database
+*/
 (function (exports) {
     "use strict";
 
@@ -35,6 +39,11 @@
         };
     }
 
+    /**
+        Class for managing database connectivity functions.
+        @class Database
+        @constructor
+    */
     exports.Database = function () {
         let cache;
         let pool;
@@ -58,6 +67,17 @@
         // ..........................................................
         // PUBLIC
         //
+        /**
+            Authenticates user against database credentials, and if successful
+            resolves to
+            {{#crossLink "User"}}{{/crossLink}}.
+            Note this function does not create a persistant client connection.
+            All actual client connections are handled by the service account.
+            @method authenticate
+            @param username
+            @param password
+            @return {Promise}
+        */
         that.authenticate = function (username, password) {
             return new Promise(function (resolve, reject) {
                 // Do connection
@@ -101,7 +121,89 @@
                 );
             });
         };
+        /**
+            Database connection object. This object is requested from a
+            connection pool and passed forward through all actions of a
+            transaction until it is completed. Featherbone automatically
+            handles connections and transactions, however it is important to
+            know that any service that makes a
+            {{#crossLink "Datasource/request:method"}}{{/crossLink}}
+            on another service needs to reference the
+            {{#crossLink "Client"}}{{/crossLink}} forwarded to it.
+            @class Connection
+            @static
+        */
+        /**
+            @property client
+            @type Client
+        */
+        /**
+            Called when transaction is completed.
+            @method done
+        */
+        /**
+            A Featherbone object which references a client connection created
+            by the node-postgres library
+            ({{#crossLinkRaw "https://node-postgres.com"}}{{/crossLink}})
+            for handling postgres connectivity.
+            It also contains several properties for keeping track of
+            transaction state and the user account making requests.
 
+            Use {{#crossLink "Database/getClient:method"}}{{/crossLink}} to
+            resolve to an actual node-postgres client connection and execute
+            SQL.
+            @class Client
+            @static
+        */
+        /**
+            Unique id to reference which node-postgres client to use in a
+            transaction.
+            @property clientId
+            @type string
+            @final
+        */
+        /**
+            Returns the user name of the user who made a request necessary for
+            Featherbone authorization.
+            @method currentUser
+            @return {String}
+        */
+        /**
+            Prevents recursive triggers from committing until all are done.
+            @method isTriggering
+            @param {Boolean} flag
+            @return {Boolean}
+        */
+        /**
+            Indicates whether client is currently wrapped in a transaction.
+            @method wrapped
+            @param {Boolean} flag
+            @return {Boolean}
+        */
+        /**
+            Resolves to a
+            {{#crossLink "Connection"}}{{/crossLink}} using
+            the configured postgres user account. If `referenceOnly`
+            is passed as `true` then the connection's client value is a
+            reference {{#crossLink "client"}}{{/crossLink}}, otherwise the
+            client is an actual client connection as documented here:
+            {{#crossLinkRaw "https://node-postgres.com/api/client"}}
+            {{/crossLink}}
+            The reference client client is necessary to prevent SQL injection
+            within a
+            {{#crossLink "datasource"}}{{/crossLink}}
+            {{#crossLink "datasource/request:method"}}{{/crossLink}} called by
+            services written in the web client and stored in the database,
+            where otherwise a "real" client is used to execute SQL statements
+            for hard coded services such as
+            {{#crossLink "CRUD"}}{{/crossLink}},
+            {{#crossLink "Events"}}{{/crossLink}} and
+            {{#crossLink "Installer"}}{{/crossLink}}.
+            @method connect
+            @for Database
+            @param {Boolean} referenceOnly
+            @return {Promise}
+        */
         that.connect = function (referenceOnly) {
             return new Promise(function (resolve, reject) {
                 let id = f.createId();
@@ -178,12 +280,32 @@
                 );
             });
         };
-
         /**
-          Return user data.
-
-          @param {String} User account or role name
-          @return {Object} User account info
+            @class User
+            @static
+        */
+        /**
+            @property name
+            @type String
+        */
+        /**
+            @property isSuper
+            @type String
+        */
+        /**
+            @property email
+            @type String
+        */
+        /**
+            @property phone
+            @type String
+        */
+        /**
+            Return user data.
+            @method deserializeUser
+            @for Database
+            @param {String} username User account or role name
+            @return {User} User account info
         */
         that.deserializeUser = function (username) {
             return new Promise(function (resolve, reject) {
@@ -217,8 +339,24 @@
             });
         };
 
+        /**
+            Resolve a reference client to an actual node-postgres client:
+            {{#crossLinkRaw "https://node-postgres.com/api/client"}}
+            {{/crossLink}} to execute SQL.
+            @method getClient
+            @param {Client} client
+            @return {Object}
+        */
         that.getClient = (ref) => clients[ref.clientId];
 
+        /**
+            Resolve to a node-postgres connection pool as documented here
+            {{#crossLinkRaw "https://node-postgres.com/api/pool"}}
+            {{/crossLink}} from which to request
+            client connections.
+            @method getPool
+            @return {Promise}
+        */
         that.getPool = function () {
             return new Promise(function (resolve, reject) {
                 if (pool) {

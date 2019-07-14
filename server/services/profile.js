@@ -16,6 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint node*/
+/**
+  @module Profile
+*/
 (function (exports) {
     "use strict";
 
@@ -29,6 +32,11 @@
     );
     conflictErr.statusCode = 409;
 
+    /**
+        User's local configuration settings such as column widths, zoom, etc.
+        @class Profile
+        @constructor
+    */
     exports.Profile = function () {
         // ..........................................................
         // PUBLIC
@@ -37,12 +45,12 @@
         let that = {};
 
         /**
-          Return user profile.
+            Resolves to user profile.
 
-          @param {Object} Request payload
-          @param {Object} [payload.client] Database client
-          @param {Object} [payload.role] Role
-          @return {Object} Promise
+            @param {Object} payload Request payload
+            @param {Client} payload.client Database client
+            @param {Object} payload.role Username
+            @return {Promise}
         */
         that.getProfile = function (obj) {
             return new Promise(function (resolve, reject) {
@@ -70,14 +78,15 @@
         };
 
         /**
-          Save a user profile.
+            Save a new user profile.
 
-          @param {Object} Request payload
-          @param {Object} [payload.client] Database client
-          @param {Function} [payload.client.currentUser] Current user
-          @param {String} [payload.etag] Version for optimistic locking
-          @param {Object} [payload.data] Profile data
-          @return {Object} Promise
+            @method saveProfile
+            @param {Object} payload Request payload
+            @param {Client} payload.client Database client
+            @param {Function} [payload.client.currentUser] Current user
+            @param {String} [payload.etag] Version for optimistic locking
+            @param {Object} [payload.data] Profile data
+            @return {Promise}
         */
         that.saveProfile = function (obj) {
             return new Promise(function (resolve, reject) {

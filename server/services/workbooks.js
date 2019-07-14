@@ -16,6 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint node*/
+/**
+    @module Workbooks
+*/
 (function (exports) {
     "use strict";
 
@@ -28,6 +31,10 @@
     const feathers = new Feathers();
     const tools = new Tools();
 
+    /**
+        @class Workbooks
+        @constructor
+    */
     exports.Workbooks = function () {
         // ..........................................................
         // PRIVATE
@@ -42,6 +49,7 @@
         /**
           Remove a workbook from the database.
 
+            @method deleteWorkbook
             @param {Object} Request payload
             @param {String} [payload.user] User name
             @param {Object} [payload.data] Payload data
@@ -80,6 +88,15 @@
             });
         };
 
+        /**
+            @method getWorkbook
+            @param {Object} payload
+            @param {String} payload.user
+            @param {Client} payload.client
+            @param {Object} payload.data
+            @param {String} payload.data.name Workbook name
+            @return {Promise}
+        */
         that.getWorkbook = function (obj) {
             return new Promise(function (resolve, reject) {
                 let err;
@@ -103,14 +120,15 @@
         };
 
         /**
-          Return a workbook definition(s). If name is passed in payload
-          only that workbook will be returned.
+            Resolve to workbook definition(s). If name is passed in payload
+            only that workbook will be returned.
 
-          @param {Object} Request payload
-          @param {Object} [payload.data] Workbook data
-          @param {Object} [payload.data.name] Workbook name
-          @param {Object} [payload.client] Database client
-          @return {Object} Promise
+            @method getWorkbooks
+            @param {Object} Request payload
+            @param {Object} [payload.data] Workbook data
+            @param {Object} [payload.data.name] Workbook name
+            @param {Object} [payload.client] Database client
+            @return {Promise}
         */
         that.getWorkbooks = function (obj) {
             return new Promise(function (resolve, reject) {
@@ -191,20 +209,21 @@
         };
 
         /**
-          Check whether a user is authorized to perform an action on a
-          particular feather (class) or object.
+            Check whether a user is authorized to perform an action on a
+            particular feather (class) or object.
 
-          Allowable actions: "canCreate", "canRead", "canUpdate", "canDelete"
+            Allowable actions: `canCreate`, `canRead`, `canUpdate", `canDelete`
 
-          "canCreate" will only check feather names.
+            `canCreate` will only check feather names.
 
-          @param {Object} Payload
-          @param {Object} [payload.data] Payload data
-          @param {String} [payload.data.action] Required
-          @param {String} [payload.data.name] Workbook name
-          @param {String} [payload.data.user] User.
-          @param {String} [payload.client] Database client
-          @return {Object} Promise
+            @method isAuthorized
+            @param {Object} Payload
+            @param {Object} payload.data Payload data
+            @param {String} payload.data.action
+            @param {String} payload.data.name Workbook name
+            @param {String} payload.data.user User.
+            @param {String} payload.client Database client
+            @return {Promise}
         */
         that.isAuthorized = function (obj) {
             return new Promise(function (resolve, reject) {
@@ -259,14 +278,16 @@
         };
 
         /**
-          Create or upate workbooks.
+            Create or upate workbooks.
 
-          @param {Object} Payload
-          @param {String} [payload.user] User name.
-          @param {Object} [payload.data] Workbook data.
-          @param {Object | Array} [payload.data.specs] Workbook specification.
-          @param {Object} [payload.client] Database client
-          @return {Object} Promise
+            @method saveWorkbook
+            @param {Object} Payload
+            @param {String} payload.user User name.
+            @param {Object} payload.data Workbook data.
+            @param {Object | Array} payload.data.specs Workbook
+            specification(s).
+            @param {Object} payload.client Database client
+            @return {Promise}
         */
         that.saveWorkbook = function (obj) {
             return new Promise(function (resolve, reject) {

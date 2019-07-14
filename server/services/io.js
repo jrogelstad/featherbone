@@ -16,6 +16,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint node, this*/
+/**
+    Import and export
+    @module IO
+*/
 (function (exports) {
     "use strict";
 
@@ -73,6 +77,10 @@
         });
     }
 
+    /**
+        @class Exporter
+        @constructor
+    */
     exports.Exporter = function () {
         // ..........................................................
         // PUBLIC
@@ -281,14 +289,15 @@
         }
 
         /**
-          Export as json.
+            Export as json.
 
-          @param {Object} Database client
-          @param {String} Feather name
-          @param {Array} Properties
-          @param {Object} Filter
-          @param {String} Target file directory
-          @return {String} Filename
+            @method json
+            @param {Object} client Database client
+            @param {String} feather Feather name
+            @param {Array} properties
+            @param {Object} filter
+            @param {String} dir Target file directory
+            @return {Promise} Resolves filename of exported data
         */
         that.json = function (client, feather, properties, filter, dir) {
             return new Promise(function (resolve, reject) {
@@ -324,14 +333,15 @@
         };
 
         /**
-          Export as Open Document spreadsheet.
+            Export as Open Document spreadsheet.
 
-          @param {Object} Database client
-          @param {String} Feather name
-          @param {Array} Properties
-          @param {Object} Filter
-          @param {String} Target file directory
-          @return {String} Filename
+            @method ods
+            @param {Object} Database client
+            @param {String} Feather name
+            @param {Array} Properties
+            @param {Object} Filter
+            @param {String} Target file directory
+            @return {String} Filename
         */
         that.ods = function (client, feather, properties, filter, dir) {
             return new Promise(function (resolve, reject) {
@@ -348,14 +358,15 @@
         };
 
         /**
-          Export as Excel spreadsheet.
+            Export as Excel spreadsheet.
 
-          @param {Object} Database client
-          @param {String} Feather name
-          @param {Array} Properties
-          @param {Object} Filter
-          @param {String} Target file directory
-          @return {String} Filename
+            @method xlsx
+            @param {Object} Database client
+            @param {String} Feather name
+            @param {Array} Properties
+            @param {Object} Filter
+            @param {String} Target file directory
+            @return {String} Filename
         */
         that.xlsx = function (client, feather, properties, filter, dir) {
             return new Promise(function (resolve, reject) {
@@ -374,6 +385,10 @@
         return that;
     };
 
+    /**
+        @class Importer
+        @constructor
+    */
     exports.Importer = function () {
         // ..........................................................
         // PUBLIC
@@ -382,13 +397,14 @@
         let that = {};
 
         /**
-          Import JSON file.
+            Import JSON file.
 
-          @param {Object} Datasource
-          @param {Object} Database client
-          @param {String} Feather name
-          @param {String} Source file
-          @return {Array} Error log
+            @method json
+            @param {Object} Datasource
+            @param {Object} Database client
+            @param {String} Feather name
+            @param {String} Source file
+            @return {Array} Error log
         */
         that.json = function (datasource, client, feather, filename) {
             return new Promise(function (resolve, reject) {
@@ -468,13 +484,14 @@
         };
 
         /**
-          Import Excel file.
+            Import Excel file.
 
-          @param {Object} Datasource
-          @param {Object} Database client
-          @param {String} Feather name
-          @param {String} Source file
-          @return {Array} Error log
+            @method xlsx
+            @param {Object} Datasource
+            @param {Object} Database client
+            @param {String} Feather name
+            @param {String} Source file
+            @return {Array} Error log
         */
         that.xlsx = function (datasource, client, feather, filename) {
             return new Promise(function (resolve, reject) {
@@ -628,13 +645,14 @@
         };
 
         /**
-          Import Open Document Spreadsheet file.
+            Import Open Document Spreadsheet file.
 
-          @param {Object} Datasource
-          @param {Object} Database client
-          @param {String} Feather name
-          @param {String} Source file
-          @return {Array} Error log
+            @method ods
+            @param {Object} Datasource
+            @param {Object} Database client
+            @param {String} Feather name
+            @param {String} Source file
+            @return {Array} Error log
         */
         that.ods = that.xlsx;
 
