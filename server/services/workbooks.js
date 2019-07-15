@@ -34,6 +34,7 @@
     /**
         @class Workbooks
         @constructor
+        @namespace Services
     */
     exports.Workbooks = function () {
         // ..........................................................
