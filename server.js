@@ -54,7 +54,21 @@
         "workbooks"
     ];
 
+    /**
+        @property datasource
+        @type Datasource
+        @for f
+        @final
+    */
     f.datasource = datasource;
+    /**
+        Fast json patch library per API documented here:
+        https://github.com/Starcounter-Jack/JSON-Patch#api
+        @property jsonpatch
+        @type Datasource
+        @for f
+        @final
+    */
     f.jsonpatch = require("fast-json-patch");
 
     let app = express();

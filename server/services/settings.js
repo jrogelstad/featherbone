@@ -13,6 +13,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint node*/
+/**
+    @module Settings
+*/
 (function (exports) {
     "use strict";
 
@@ -26,13 +29,15 @@
     // PRIVATE
     //
 
-    /*
-      Private. Check to see if an etag is current.
-      * @param {Object} Payload
-      * @param {String} [payload.id] Object id
-      * @param {String} [payload.etag] Object etag
-      * @param {Object} [payload.client] Database client
-      * @return Promise
+    /**
+        Check to see if an etag is current.
+        @private
+        @method checkEtag
+        @param {Object} payload
+        @param {String} payload.id Object id
+        @param {String} payload.etag Object etag
+        @param {Object} payload.client Database client
+        @return {Promise}
     */
     function checkEtag(obj) {
         return new Promise(function (resolve, reject) {
@@ -61,12 +66,14 @@
     settings.data = {};
 
     /**
-      Return settings data.
-      @param {Object} Request payload
-      @param {Object} [payload.data] Data
-      @param {String} [payload.data.name] Settings name
-      @param {Object} [payload.client] Database client
-      @return Promise
+        Return settings data.
+        @method getSettings
+        @for Settings
+        @param {Object} payload Request payload
+        @param {Object} payload.data Data
+        @param {String} payload.data.name Settings name
+        @param {Object} payload.client Database client
+        @return {Promise}
     */
     settings.getSettings = function (obj) {
         return new Promise(function (resolve, reject) {
@@ -132,10 +139,12 @@
     };
 
     /**
-      Return settings definition.
-      @param {Object} Request payload
-      @param {Object} [payload.client] Database client
-      @return Promise
+        Resolve settings definitions as array of objects.
+        @method getSettingsDefinition
+        @for Settings
+        @param {Object} Request payload
+        @param {Client} payload.client Database client
+        @return {Promise}
     */
     settings.getSettingsDefinition = function (obj) {
         return new Promise(function (resolve, reject) {
@@ -158,10 +167,13 @@
     };
 
     /**
-      Return settings definition, including etag.
-      @param {Object} Request payload
-      @param {Object} [payload.client] Database client
-      @return Promise
+        Resolves to object properties `definition` and `etag`.
+        @method getSettingsRow
+        @for Settings
+        @param {Object} payload Request payload
+        @param {Object} payload.client Database client
+        @param {String} payload.name Settings name
+        @return {Promise}
     */
     settings.getSettingsRow = function (obj) {
         return new Promise(function (resolve, reject) {
@@ -183,16 +195,16 @@
     };
 
     /**
-      Create or upate settings.
-
-      @param {Object} Payload
-      @param {String} [payload.data] Payload data
-      @param {String} [payload.data.name] Name of settings
-      @param {String} [payload.data.etag] Etag
-      @param {Object} [payload.data.data] Settings data
-      @param {Object} [payload.client] Database client
-      @param {Function} [payload.callback] Callback
-      @return {String}
+        Create or upate settings.
+        @method saveSettings
+        @for Settings
+        @param {Object} payload
+        @param {Object} payload.data Payload data
+        @param {String} payload.data.name Name of settings
+        @param {String} payload.data.etag Etag
+        @param {Object} payload.data.data Settings data
+        @param {Object} payload.client Database client
+        @return {Promise}
     */
     settings.saveSettings = function (obj) {
         return new Promise(function (resolve, reject) {
@@ -259,6 +271,11 @@
         });
     };
 
+    /**
+        @class Settings
+        @constructor
+        @namespace Services
+    */
     exports.Settings = function () {
         return settings;
     };

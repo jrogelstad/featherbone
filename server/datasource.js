@@ -224,7 +224,7 @@
 
     /**
         Initialize listener. Message is passed to callback.
-        Exposes {{#crossLink "Events/listen:method"}}{{/crossLink}}
+        Exposes {{#crossLink "Services.Events/listen:method"}}{{/crossLink}}
         via datasource.
 
         @method listen
@@ -261,7 +261,8 @@
 
     /**
         Unsubcribe from object or by type.
-        Exposes {{#crossLink "Events/unsubscrib:method"}}{{/crossLink}}
+        Exposes
+        {{#crossLink "Services.Events/unsubscribe:method"}}{{/crossLink}}
         via datasource.
 
         @method unsubscribe
@@ -305,7 +306,7 @@
 
     /**
         Lock record. Resolves to `true` if successful.
-        Exposes {{#crossLink "CRUD/lock:method"}}{{/crossLink}}
+        Exposes {{#crossLink "Services.CRUD/lock:method"}}{{/crossLink}}
         via datasource.
 
         @method lock
@@ -352,7 +353,7 @@
 
     /**
         Unlock one or more records.
-        Exposes {{#crossLink "CRUD/unlock:method"}}{{/crossLink}}
+        Exposes {{#crossLink "Services.CRUD/unlock:method"}}{{/crossLink}}
         via datasource.
 
         @method unlock
@@ -397,7 +398,7 @@
 
     /**
         Install a module from a specified manifest file name.
-        Exposes {{#crossLink "Installer/install:method"}}{{/crossLink}}
+        Exposes {{#crossLink "Services.Installer/install:method"}}{{/crossLink}}
         via datasource.
 
         @method install
@@ -442,7 +443,7 @@
 
     /**
         Package a module.
-        Exposes {{#crossLink "Events/listen:method"}}{{/crossLink}}
+        Exposes {{#crossLink "Services.Packager/package:method"}}{{/crossLink}}
         via datasource.
 
         @method package
@@ -486,7 +487,7 @@
 
     /**
         Export data.
-        Exposes {{#crossLink "Exporter"}}{{/crossLink}} via datasource.
+        Exposes {{#crossLink "Services.Exporter"}}{{/crossLink}} via datasource.
 
         @method export
         @param {String} Feather
@@ -551,7 +552,8 @@
 
     /**
         Import data.
-        Exposes {{#crossLink "Importer"}}{{/crossLink}} via datasource.
+        Exposes {{#crossLink "Services.Importer"}}{{/crossLink}} via
+        datasource.
 
         @method import
         @param {String} feather
@@ -600,7 +602,8 @@
 
     /**
         Check user and password.
-        Exposes {{#crossLink "Importer"}}{{/crossLink}} via datasource.
+        Exposes {{#crossLink "Database/authenticate:method"}}{{/crossLink}}
+        via datasource.
 
         @method authenticate
         @param {String} Username
@@ -611,6 +614,8 @@
 
     /**
         Lookup user information.
+        Exposes {{#crossLink "Database/serializeUser:method"}}{{/crossLink}}
+        via datasource.
 
         @method deserializeUser
         @param {String} Username
@@ -660,17 +665,17 @@
 
         @method request
         @param {Object} Payload
-        @param {String} [payload.name] Name of feather or function
-        @param {String} [payload.method] Method to perform: "GET", "POST",
-        "PUT", "PATCH" or "DELETE"
-        @param {String} [payload.id] Identifier for "GET", "PATCH" ond "DELETE"
-        @param {String} [payload.data] Data for "POST" and "PATCH" or functions
-        @param {Object} [payload.client] Database client. If undefined one will
-        be intialized by default and wrapped in a transaction if necessary.
-        @param {String} [payload.callback] Callback
-        @param {Boolean} Bypass authorization checks. Default = false.
-        @chainable
-        @return {Object}
+        @param {String} payload.name Name of feather or registered function
+        @param {String} payload.method Method to perform: `GET`, `POST`,
+        `PUT`, `PATCH` or `DELETE`
+        @param {String} [payload.id] Identifier for `GET`, `PATCH` and `DELETE`
+        @param {String} [payload.data] Required for `POST` and `PATCH`
+        calls
+        @param {Client} [payload.client] Database client. If undefined one
+        will be intialized by default and wrapped in a transaction if necessary.
+        @param {Boolean} [isSuperUser] Bypass authorization checks.
+        Default false.
+        @return {Promise}
     */
     that.request = function (obj, isSuperUser) {
         return new Promise(function (resolve, reject) {
@@ -1274,47 +1279,52 @@
         to use for executing queries.
 
         @example
-            let fn, callback, datasource = require(./datasource);
-
             // Create a function that updates something specific
+            // (Assumed to be executed within a data service script)
             fn = function (obj) {
-              let sql = "UPDATE foo SET bar = false WHERE id=$1;",
-                params = [obj.id];
-
-              obj.client.query(sql, params, function (err, resp) {
-                obj.callback(err, resp.rows);
-              })
+                let payload = {
+                    method: "PATCH",
+                    name: "Foo",
+                    client: obj.client,
+                    id: obj.id,
+                    data: [{
+                        op: "replace",
+                        path: "/status",
+                        value: "Closed"
+                    }]
+                };
+                return f.datasource.request(payload);
             }
 
             // Register the function
-            datasource.registerFunction("POST", "myUpdate", fn);
+            f.datasource.registerFunction("POST", "myUpdate", fn);
 
             // Define a callback to use when calling our function
-            callback = function (err, resp) {
-              if (err) {
-                console.error(err);
-                return;
-              }
+            function callback (resp) {
+                console.log("Query rows->", resp);
+            }
 
-              console.log("Query rows->", resp);
+            // Trap for errors
+            function error (err) {
+                console.error(err);
             }
 
             // Execute a request that calls our function and sends a response
             // via the callback
             datasource.request({
-              method: "GET",
+              method: "POST",
               name: "myUpdate",
-              callback: callback,
+              client: client,
               data: {
                 id: "HTJ28n"
               }
-            });
+            }).then(callback).catch(reject);
 
         @method registerFunction
-        @param {String} Function name
-        @param {String} Method. "GET", "POST", "PUT", "PATCH", or "DELETE"
-        @param {Function} Function
-        @param {Integer} Constant TRIGGER_BEFORE or TRIGGER_AFTER
+        @param {String} method `GET`, `POST`, `PUT`, `PATCH`, or `DELETE`
+        @param {String} name
+        @param {Function} callback
+        @param {Integer} [trigger]
         @return {Object} Receiver
         @chainable
     */

@@ -16,12 +16,21 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint node*/
+/**
+    @module Routes
+*/
 (function (exports) {
     "use strict";
 
     const {Database} = require("../database");
     const db = new Database();
 
+    /**
+        Routes define URLs for custom data service functions to be called.
+        @class Routes
+        @constructor
+        @namespace Services
+    */
     exports.Routes = function () {
         // ..........................................................
         // PUBLIC
@@ -30,11 +39,11 @@
         let that = {};
 
         /**
-          Return routes.
-
-          @param {Object} Request payload
-          @param {Object} [payload.client] Database client
-          @return {Object}
+            Fetch all routes from the database and resolve in promise.
+            @method getRoutes
+            @param {Object} payload Request payload
+            @param {Client} payload.client Database client
+            @return {Promise}
         */
         that.getRoutes = function (obj) {
             return new Promise(function (resolve, reject) {

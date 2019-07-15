@@ -42,8 +42,10 @@
     }
 
     /**
+        Install and uninstall packaged modules.
         @class Installer
         @constructor
+        @namespace Services
     */
     exports.Installer = function () {
         // ..........................................................

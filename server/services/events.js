@@ -30,6 +30,7 @@
 
         @class Events
         @constructor
+        @namespace Services
     */
     exports.Events = function () {
         // ..........................................................

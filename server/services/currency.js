@@ -209,6 +209,7 @@
 
         @class Currency
         @constructor
+        @namespace Services
     */
     exports.Currency = function () {
         // ..........................................................

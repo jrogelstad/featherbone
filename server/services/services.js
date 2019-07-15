@@ -22,6 +22,12 @@
     const {Database} = require("../database");
     const db = new Database();
 
+    /**
+        Custom data service scripts loaded from the database at run time.
+        @class Services
+        @constructor
+        @namespace Services
+    */
     exports.Services = function () {
         // ..........................................................
         // PUBLIC
@@ -30,11 +36,11 @@
         let that = {};
 
         /**
-          Return services.
-
-          @param {Object} Request payload
-          @param {Object} [payload.client] Database client
-          @return {Object}
+            Fetch all service scripts from the database and resolve in promise.
+            @method getServices
+            @param {Object} payload Request payload
+            @param {Client} payload.client Database client
+            @return {Promise}
         */
         that.getServices = function (obj) {
             return new Promise(function (resolve, reject) {

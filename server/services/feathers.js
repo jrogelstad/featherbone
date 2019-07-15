@@ -140,6 +140,7 @@
 
         @class Feathers
         @constructor
+        @namespace Services
     */
     exports.Feathers = function () {
         // ..........................................................
