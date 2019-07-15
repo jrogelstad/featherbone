@@ -66,6 +66,7 @@
     /**
         @class Tools
         @constructor
+        @namespace Services
     */
     exports.Tools = function () {
 
@@ -76,7 +77,7 @@
             @property PKCOL
             @type String
             @default "_pk"
-            @final
+            @static
         */
         tools.PKCOL = "_pk";
         /**
@@ -683,7 +684,7 @@
         /**
             Adds a token for a given column name to `tokens` and returns
             "%I" as the place holder value for a SQL clause.
-            @method processSort
+            @method resolvePath
             @param {String} column
             @param {Array} tokens
             @return {String}

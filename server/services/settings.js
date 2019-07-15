@@ -68,7 +68,7 @@
     /**
         Return settings data.
         @method getSettings
-        @for Settings
+        @for Services.Settings
         @param {Object} payload Request payload
         @param {Object} payload.data Data
         @param {String} payload.data.name Settings name
@@ -141,7 +141,7 @@
     /**
         Resolve settings definitions as array of objects.
         @method getSettingsDefinition
-        @for Settings
+        @for Services.Settings
         @param {Object} Request payload
         @param {Client} payload.client Database client
         @return {Promise}
@@ -169,7 +169,7 @@
     /**
         Resolves to object properties `definition` and `etag`.
         @method getSettingsRow
-        @for Settings
+        @for Services.Settings
         @param {Object} payload Request payload
         @param {Object} payload.client Database client
         @param {String} payload.name Settings name
@@ -197,7 +197,7 @@
     /**
         Create or upate settings.
         @method saveSettings
-        @for Settings
+        @for Services.Settings
         @param {Object} payload
         @param {Object} payload.data Payload data
         @param {String} payload.data.name Name of settings
