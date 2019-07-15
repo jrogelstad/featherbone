@@ -643,6 +643,7 @@
         /**
             @class Packager
             @constructor
+            @namespace Services
         */
         let that = {};
 

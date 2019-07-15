@@ -16,12 +16,20 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint node*/
+/**
+    @module Role
+*/
 (function (exports) {
     "use strict";
 
     const {Database} = require("../database");
     const db = new Database();
 
+    /**
+        @class Role
+        @constructor
+        @namespace Services
+    */
     exports.Role = function () {
         // ..........................................................
         // PUBLIC
@@ -30,14 +38,14 @@
         let that = {};
 
         /**
-          Update whether role can log in.
-
-          @param {Object} Payload
-          @param {Object} [payload.client]
-          @param {Object} [payload.data] Data
-          @param {String} [payload.data.name] Role name
-          @param {Boolean} [payload.data.isLogin] Is Login
-          @return {Object} Promise
+            Update whether role can log in.
+            @method changeLogin
+            @param {Object} Payload
+            @param {Client} [payload.client]
+            @param {Object} [payload.data] Data
+            @param {String} [payload.data.name] Role name
+            @param {Boolean} [payload.data.isLogin] Is Login
+            @return {Promise}
         */
         that.changeLogin = function (obj) {
             return new Promise(function (resolve, reject) {
@@ -63,14 +71,14 @@
         };
 
         /**
-          Update role password.
-
-          @param {Object} Payload
-          @param {Object} [payload.client]
-          @param {Object} [payload.data] Data
-          @param {String} [payload.data.name] Role name
-          @param {String} [payload.data.password] Password
-          @return {Object} Promise
+            Update role password.
+            @method changePassword
+            @param {Object} payload
+            @param {Client} payload.client
+            @param {Object} payload.data Data
+            @param {String} payload.data.name Role name
+            @param {String} payload.data.password Password
+            @return {Promise}
         */
         that.changePassword = function (obj) {
             return new Promise(function (resolve, reject) {
@@ -93,15 +101,16 @@
         };
 
         /**
-          Create role with password.
-
-          @param {Object} Payload
-          @param {Object} [payload.client]
-          @param {Object} [payload.data] Data
-          @param {String} [payload.data.name] Role name
-          @param {Boolean} [payload.data.isLogin] Is Login
-          @param {String} [payload.data.password] Password
-          @return {Object} Promise
+            Create role with password.
+            @method createRole
+            @param {Object} payload
+            @param {Client} payload.client
+            @param {Object} payload.data
+            @param {String} payload.data.name Role name
+            @param {String} payload.data.password Password
+            @param {Boolean} [payload.data.isLogin] Default false
+            @param {Boolean} [payload.data.isInherit] Default false
+            @return {Promise}
         */
         that.createRole = function (obj) {
             return new Promise(function (resolve, reject) {
@@ -145,13 +154,13 @@
         };
 
         /**
-          Drop role.
-
-          @param {Object} Payload
-          @param {Object} [payload.client]
-          @param {Object} [payload.data] Data
-          @param {String} [payload.data.name] Role name
-          @return {Object} Promise
+            Drop role.
+            @method drop
+            @param {Object} payload
+            @param {Client} payload.client
+            @param {Object} payload.data
+            @param {String} payload.data.name Role name
+            @return {Promise}
         */
         that.drop = function (obj) {
             return new Promise(function (resolve, reject) {
@@ -172,14 +181,14 @@
         };
 
         /**
-          Grant one user or role privileges to another role.
-
-          @param {Object} Payload
-          @param {Object} [payload.client]
-          @param {Object} [payload.data] Data
-          @param {String} [payload.data.fromRole] Child role
-          @param {Boolean} [payload.data.toRole] Parent role
-          @return {Object} Promise
+            Grant one user or role privileges to another role.
+            @method grantMembership
+            @param {Object} payload
+            @param {Client} payload.client
+            @param {Object} payload.data
+            @param {String} payload.data.fromRole
+            @param {Boolean} payload.data.toRole
+            @return {Promise}
         */
         that.grantMembership = function (obj) {
             return new Promise(function (resolve, reject) {
@@ -192,14 +201,14 @@
         };
 
         /**
-          Revoke one user or role privileges from another role.
-
-          @param {Object} Payload
-          @param {Object} [payload.client]
-          @param {Object} [payload.data] Data
-          @param {String} [payload.data.fromRole] Child role
-          @param {Boolean} [payload.data.toRole] Parent role
-          @return {Object} Promise
+            Revoke one user or role privileges from another role.
+            @method revokeMembership
+            @param {Object} payload
+            @param {Client} payload.client
+            @param {Object} payload.data
+            @param {String} payload.data.fromRole
+            @param {Boolean} payload.data.toRole
+            @return {Promise}
         */
         that.revokeMembership = function (obj) {
             return new Promise(function (resolve, reject) {

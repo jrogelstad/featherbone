@@ -105,6 +105,7 @@
 
         @class API
         @constructor
+        @namespace Services
     */
     exports.API = function () {
         // ..........................................................

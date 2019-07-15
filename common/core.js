@@ -150,14 +150,6 @@
         },
 
         /**
-            Objects for performing data manipulation.
-
-            @property models
-            @type Object
-        */
-        models: {},
-
-        /**
             Return a time in string format that is the current UTC time.
 
             @method now

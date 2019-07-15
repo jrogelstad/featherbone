@@ -71,6 +71,8 @@
         Services for create, read, update and delete actions.
 
         @class CRUD
+        @constructor
+        @namespace Services
     */
     exports.CRUD = function () {
         // ..........................................................

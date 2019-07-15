@@ -80,6 +80,7 @@
     /**
         @class Exporter
         @constructor
+        @namespace Services
     */
     exports.Exporter = function () {
         // ..........................................................
@@ -388,6 +389,7 @@
     /**
         @class Importer
         @constructor
+        @namespace Services
     */
     exports.Importer = function () {
         // ..........................................................

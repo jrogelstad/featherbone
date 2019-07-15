@@ -143,15 +143,15 @@
         */
         /**
             A Featherbone object which references a client connection created
-            by the node-postgres library
-            ({{#crossLinkRaw "https://node-postgres.com"}}{{/crossLink}})
+            by the <a href='https://node-postgres.com'>node-postgres</a> library
             for handling postgres connectivity.
             It also contains several properties for keeping track of
             transaction state and the user account making requests.
 
             Use {{#crossLink "Database/getClient:method"}}{{/crossLink}} to
-            resolve to an actual node-postgres client connection and execute
-            SQL.
+            resolve to an actual
+            <a href='https://node-postgres.com/api/client'>postgres client</a>
+            and execute SQL.
             @class Client
             @static
         */
@@ -186,19 +186,19 @@
             the configured postgres user account. If `referenceOnly`
             is passed as `true` then the connection's client value is a
             reference {{#crossLink "client"}}{{/crossLink}}, otherwise the
-            client is an actual client connection as documented here:
-            {{#crossLinkRaw "https://node-postgres.com/api/client"}}
-            {{/crossLink}}
-            The reference client client is necessary to prevent SQL injection
+            client is an actual
+            <a href='https://node-postgres.com/api/client'>postgres client</a>
+            connection.
+            The reference client is necessary to prevent SQL injection
             within a
             {{#crossLink "datasource"}}{{/crossLink}}
             {{#crossLink "datasource/request:method"}}{{/crossLink}} called by
             services written in the web client and stored in the database,
-            where otherwise a "real" client is used to execute SQL statements
-            for hard coded services such as
-            {{#crossLink "CRUD"}}{{/crossLink}},
-            {{#crossLink "Events"}}{{/crossLink}} and
-            {{#crossLink "Installer"}}{{/crossLink}}.
+            where otherwise a "real" postgres client is used to execute SQL
+            statements for hard coded services such as
+            {{#crossLink "Services.CRUD"}}{{/crossLink}},
+            {{#crossLink "Services.Events"}}{{/crossLink}} and
+            {{#crossLink "Services.Installer"}}{{/crossLink}}.
             @method connect
             @for Database
             @param {Boolean} referenceOnly
@@ -340,9 +340,10 @@
         };
 
         /**
-            Resolve a reference client to an actual node-postgres client:
-            {{#crossLinkRaw "https://node-postgres.com/api/client"}}
-            {{/crossLink}} to execute SQL.
+            Resolve a reference {{#crossLink "Client"}}{{/crossLink}}
+            to an actual
+            <a href='https://node-postgres.com/api/client'>postgres client</a>
+            to execute SQL.
             @method getClient
             @param {Client} client
             @return {Object}
@@ -350,10 +351,9 @@
         that.getClient = (ref) => clients[ref.clientId];
 
         /**
-            Resolve to a node-postgres connection pool as documented here
-            {{#crossLinkRaw "https://node-postgres.com/api/pool"}}
-            {{/crossLink}} from which to request
-            client connections.
+            Resolve to a
+            <a href='https://node-postgres.com/api/pool'>connection pool</a>
+            from which to request a connection.
             @method getPool
             @return {Promise}
         */
