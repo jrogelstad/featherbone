@@ -39,7 +39,7 @@
 
         /**
             Update whether role can log in.
-            @method changeLogin
+            @method changeRoleLogin
             @param {Object} Payload
             @param {Client} [payload.client]
             @param {Object} [payload.data] Data
@@ -47,7 +47,7 @@
             @param {Boolean} [payload.data.isLogin] Is Login
             @return {Promise}
         */
-        that.changeLogin = function (obj) {
+        that.changeRoleLogin = function (obj) {
             return new Promise(function (resolve, reject) {
                 let name = obj.data.name;
                 let sql = "ALTER ROLE %I " + (
@@ -72,7 +72,7 @@
 
         /**
             Update role password.
-            @method changePassword
+            @method changeRolePassword
             @param {Object} payload
             @param {Client} payload.client
             @param {Object} payload.data Data
@@ -80,7 +80,7 @@
             @param {String} payload.data.password Password
             @return {Promise}
         */
-        that.changePassword = function (obj) {
+        that.changeRolePassword = function (obj) {
             return new Promise(function (resolve, reject) {
                 let name = obj.data.name;
                 let pwd = obj.data.password;
@@ -155,14 +155,14 @@
 
         /**
             Drop role.
-            @method drop
+            @method dropRole
             @param {Object} payload
             @param {Client} payload.client
             @param {Object} payload.data
             @param {String} payload.data.name Role name
             @return {Promise}
         */
-        that.drop = function (obj) {
+        that.dropRole = function (obj) {
             return new Promise(function (resolve, reject) {
                 let name = obj.data.name;
                 let sql = "DROP ROLE %I;";

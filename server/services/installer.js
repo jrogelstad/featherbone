@@ -515,14 +515,14 @@
         /**
             Uninstall a module.
 
-            @method uninstall
+            @method deleteModule
             @param {Object} payload
             @param {String | Object} payload.client
             @param {Object} payload.data
             @param {String} payload.data.name Module name
             @return {Promise}
         */
-        that.uninstall = function (obj) {
+        that.deleteModule = function (obj) {
             return new Promise(function (resolve, reject) {
                 let client = db.getClient(obj.client);
                 let name = obj.data.name;

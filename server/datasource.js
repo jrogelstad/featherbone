@@ -613,18 +613,21 @@
     that.authenticate = db.authenticate;
 
     /**
-        Lookup user information.
-        Exposes {{#crossLink "Database/serializeUser:method"}}{{/crossLink}}
+        Resolves to {{#crossLink "User"}}{{/crossLink}} for passport
+        management. Exposes
+        {{#crossLink "Database/deserializeUser:method"}}{{/crossLink}}
         via datasource.
 
         @method deserializeUser
         @param {String} Username
-        @return {Promise} Promise
+        @return {Promise}
     */
     that.deserializeUser = db.deserializeUser;
 
     /**
-        Return a configured postgres pool.
+        Return a configured postgres pool. Exposes
+        {{#crossLink "Database/getPool:method"}}{{/crossLink}}
+        via datasource.
 
         @method getPool
         @return {Object} Promise
@@ -1265,39 +1268,126 @@
     };
 
     /**
-        Register a function that can be called by a method type. Use
-        this to expose function calls via `request`. As a rule, all
-        functions must accept an object as an argument whose properties
-        can be used to calculate the result. The object should be passed
-        as `data` on the request.
+        Register a function that can be called as a service by a
+        {{#crossLink "Datasource/request:method"}}{{/crossLink}}
+        so that data services can be made available to other data services
+        added via data service scripts. As a rule, all
+        functions must accept one {{#crossLink "Object"}}{{/crossLink}}
+        as an argument whose properties can be used as arguments within the
+        target function. The
+        {{#crossLink "Datasource/request:method"}}{{/crossLink}} will
+        automatically append its
+        {{#crossLink "Client"}}{{/crossLink}} 
+        to the object argument to use
+        for executing queries or other requests within the target function.
 
-        The object should include a callback to forward a response on
-        completion. The callback should accept an error as the first
-        argument and a response as the second.
+        The function should return a {{#crossLink "Promise"}}{{/crossLink}}
+        that resolves to the result of the function, if any.
 
-        The request will automatically append an active client to the object
-        to use for executing queries.
+        Function names should be camel case which distinquishes them from
+        {{#crossLinkModule "CRUD"}}{{/crossLinkModule}} requests
+        where a capitalized feather name is used.
+        
+        The following is list of functions that come pre-registered from hard
+        coded services:
+        * __GET__
+          * {{#crossLink "Services.Currency/baseCurrency:method"}}
+          {{/crossLink}}
+          * {{#crossLink "Services.Currency/convertCurrency:method"}}
+          {{/crossLink}}
+          * {{#crossLink "Services.Tools/getAuthorizations:method"}}
+          {{/crossLink}}
+          * {{#crossLink "Services.Feathers/getFeather:method"}}
+          {{/crossLink}}
+          * {{#crossLink "Services.Profile/getProfile:method"}}
+          {{/crossLink}}
+          * {{#crossLink "Services.Routes/getRoutes:method"}}
+          {{/crossLink}}
+          * {{#crossLink "Services.Services/getServices:method"}}
+          {{/crossLink}}
+          * {{#crossLink "Services.Settings/getSettings:method"}}
+          {{/crossLink}}
+          * {{#crossLink "Services.Settings/getSettingsRow:method"}}
+          {{/crossLink}}
+          * {{#crossLink "Services.Settings/getSettingsDefinition:method"}}
+          {{/crossLink}}
+          * {{#crossLink "Services.Workbooks/getWorkbook:method"}}
+          {{/crossLink}}
+          * {{#crossLink "Services.Workbooks/getWorkbooks:method"}}
+          {{/crossLink}}
+          * {{#crossLink "Services.Feathers/isAuthorized:method"}}
+          {{/crossLink}}
+          * {{#crossLink "Services.Tools/isSuperUser:method"}}
+          {{/crossLink}}
+          * {{#crossLink "Services.Workbooks/workbookIsAuthorized:method"}}
+          {{/crossLink}}
+        * __PUT__
+          * {{#crossLink "Services.Feathers/saveAuthorization:method"}}
+          {{/crossLink}}
+          * {{#crossLink "Services.Feathers/saveFeather:method"}}
+          {{/crossLink}}
+          * {{#crossLink "Services.Profile/saveProfile:method"}}
+          {{/crossLink}}
+          * {{#crossLink "Services.Settings/saveSettings:method"}}
+          {{/crossLink}}
+          * {{#crossLink "Services.Workbooks/saveWorkbook:method"}}
+          {{/crossLink}}
+        * __POST__
+          * {{#crossLink "Services.Role/changeRoleLogin:method"}}
+          {{/crossLink}}
+          * {{#crossLink "Services.Role/changeRolePassword:method"}}
+          {{/crossLink}}
+          * {{#crossLink "Services.Role/createRole:method"}}
+          {{/crossLink}}
+          * {{#crossLink "Services.Role/dropRole:method"}}
+          {{/crossLink}}
+          * {{#crossLink "Services.Role/grantMembership:method"}}
+          {{/crossLink}}
+          * {{#crossLink "Services.Role/revokeMembership:method"}}
+          {{/crossLink}}
+          * {{#crossLink "Services.Feathers/saveAuthorization:method"}}
+          {{/crossLink}}
+          * {{#crossLink "Services.Events/subscribe:method"}}
+          {{/crossLink}}
+          * {{#crossLink "Services.Events/unsubscribe:method"}}
+          {{/crossLink}}
+        * __PATCH__
+          * {{#crossLink "Services.Profile/patchProfile:method"}}
+          {{/crossLink}}
+        * __DELETE__
+          * {{#crossLink "Services.Feathers/deleteFeather:method"}}
+          {{/crossLink}}
+          * {{#crossLink "Services.Installer/deleteModule:method"}}
+          {{/crossLink}}
+          * {{#crossLink "Services.Workbooks/deleteWorkbook:method"}}
+          {{/crossLink}}
 
         @example
             // Create a function that updates something specific
             // (Assumed to be executed within a data service script)
-            fn = function (obj) {
-                let payload = {
-                    method: "PATCH",
-                    name: "Foo",
-                    client: obj.client,
-                    id: obj.id,
-                    data: [{
-                        op: "replace",
-                        path: "/status",
-                        value: "Closed"
-                    }]
-                };
-                return f.datasource.request(payload);
+            function fn (obj) { // Note the single object argument
+                return new Promise(function (resolve, reject) {
+                    function callback() {
+                        resolve(true); // Success results in boolean
+                    }
+
+                    // "f" is the global variable available in scripts
+                    f.datasource.request({
+                        method: "PATCH",
+                        name: "Foo", // Capitalized name indicates CRUD request
+                        client: obj.client, // Client is automatically included
+                        id: obj.id, // Id is unique argument for this function
+                        data: [{
+                            op: "replace",
+                            path: "/status",
+                            value: "Closed"
+                        }]
+                    }).then(callback).catch(reject);
+                });
             }
 
             // Register the function
-            f.datasource.registerFunction("POST", "myUpdate", fn);
+            f.datasource.registerFunction("POST", "closeFoo", fn);
 
             // Define a callback to use when calling our function
             function callback (resp) {
@@ -1312,13 +1402,12 @@
             // Execute a request that calls our function and sends a response
             // via the callback
             datasource.request({
-              method: "POST",
-              name: "myUpdate",
-              client: client,
-              data: {
-                id: "HTJ28n"
-              }
-            }).then(callback).catch(reject);
+                method: "POST",
+                name: "closeFoo",
+                data: {
+                    id: "HTJ28n"
+                }
+            }).then(callback).catch(error);
 
         @method registerFunction
         @param {String} method `GET`, `POST`, `PUT`, `PATCH`, or `DELETE`
@@ -1461,10 +1550,10 @@
     that.registerFunction("GET", "isSuperUser", tools.isSuperUser);
     that.registerFunction("GET", "getAuthorizations", tools.getAuthorizations);
     that.registerFunction("PATCH", "patchProfile", profile.patchProfile);
-    that.registerFunction("POST", "changeRoleLogin", role.changeLogin);
-    that.registerFunction("POST", "changeRolePassword", role.changePassword);
+    that.registerFunction("POST", "changeRoleLogin", role.changeRoleLogin);
+    that.registerFunction("POST", "changeRolePassword", role.changeRolePassword);
     that.registerFunction("POST", "createRole", role.createRole);
-    that.registerFunction("POST", "dropRole", role.drop);
+    that.registerFunction("POST", "dropRole", role.dropRole);
     that.registerFunction("POST", "grantMembership", role.grantMembership);
     that.registerFunction("POST", "revokeMembership", role.revokeMembership);
     that.registerFunction(
