@@ -217,7 +217,7 @@
 
             `canCreate` will only check feather names.
 
-            @method isAuthorized
+            @method workbookIsAuthorized
             @param {Object} Payload
             @param {Object} payload.data Payload data
             @param {String} payload.data.action
@@ -226,7 +226,7 @@
             @param {String} payload.client Database client
             @return {Promise}
         */
-        that.isAuthorized = function (obj) {
+        that.workbookIsAuthorized = function (obj) {
             return new Promise(function (resolve, reject) {
                 let sql;
                 let user = obj.data.user;

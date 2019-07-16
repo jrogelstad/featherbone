@@ -136,9 +136,10 @@
         /**
             @property client
             @type Client
+            @final
         */
         /**
-            Called when transaction is completed.
+            Called when transaction is completed and returns client to the pool.
             @method done
         */
         /**
@@ -163,8 +164,8 @@
             @final
         */
         /**
-            Returns the user name of the user who made a request necessary for
-            Featherbone authorization.
+            Returns the user name of the user who made a request. Necessary for
+            Featherbone authorization management.
             @method currentUser
             @return {String}
         */
@@ -281,6 +282,7 @@
             });
         };
         /**
+            Object defining a user on the server side for passport management.
             @class User
             @static
         */
@@ -290,7 +292,7 @@
         */
         /**
             @property isSuper
-            @type String
+            @type Boolean
         */
         /**
             @property email
