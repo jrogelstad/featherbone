@@ -1573,7 +1573,7 @@
     that.registerFunction("PUT", "saveSettings", settings.saveSettings);
     that.registerFunction("PUT", "saveWorkbook", workbooks.saveWorkbook);
     that.registerFunction("DELETE", "deleteFeather", feathers.deleteFeather);
-    that.registerFunction("DELETE", "deleteModule", installer.uninstall);
+    that.registerFunction("DELETE", "deleteModule", installer.deleteModule);
     that.registerFunction("DELETE", "deleteWorkbook", workbooks.deleteWorkbook);
 
 }(exports));
