@@ -359,6 +359,10 @@ function input(type, options) {
     return m("input", opts);
 }
 
+formats.string = {
+    default: "",
+    toType: (value) => value.toString()
+};
 formats.date = {
     type: "string",
     toType: function (value) {
