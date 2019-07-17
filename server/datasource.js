@@ -1452,74 +1452,6 @@
         return settings;
     };
 
-    /**
-        Helper to expose a registered function to the public API. Use by binding
-        the name of the registered function to be called. The function will
-        transform the data on a routed requset to the proper format to make a
-        `POST` request on the registered function.
-
-        @example
-            // Expose the example function described on `registerFunction` to a
-            // router.
-            (function (app, datasource) {
-              "strict";
-
-              // Register route to the public
-              var express = require("express");
-                router = express.Router(),
-                func = datasource.postFunction.bind("myUpdate");
-
-              router.route("/my-update").post(func);
-              app.use("/my-app", router);
-
-            }(app, datasource));
-
-        @method postFunction
-        @param {Object} Request
-        @param {Object} Response
-    */
-    that.postFunction = function (req, res) {
-        let payload;
-        let args = req.body;
-
-        function error(err) {
-            if (typeof err === "string") {
-                err = new Error(err);
-            }
-
-            if (!err.statusCode) {
-                err.statusCode = 500;
-            }
-
-            this.status(err.statusCode).json(err.message);
-        }
-
-        function callback(resp) {
-            if (resp === undefined) {
-                res.statusCode = 204;
-            }
-
-            // No caching... ever
-            res.setHeader(
-                "Cache-Control",
-                "no-cache, no-store,must-revalidate"
-            ); // HTTP 1.1.
-            res.setHeader("Pragma", "no-cache"); // HTTP 1.0.
-            res.setHeader("Expires", "0"); //
-            res.json(resp);
-        }
-
-        payload = {
-            method: "POST",
-            name: this,
-            user: req.user.name,
-            data: args
-        };
-
-        console.log(JSON.stringify(payload, null, 2));
-        that.request(payload).then(callback).catch(error.bind(res));
-    };
-
     // Set properties on exports
     Object.keys(that).forEach(function (key) {
         exports[key] = that[key];
@@ -1544,7 +1476,7 @@
     that.registerFunction(
         "GET",
         "workbookIsAuthorized",
-        workbooks.isAuthorized
+        workbooks.workbookIsAuthorized
     );
     that.registerFunction("GET", "isAuthorized", feathers.isAuthorized);
     that.registerFunction("GET", "isSuperUser", tools.isSuperUser);
