@@ -145,8 +145,8 @@
                             resolve(true);
                         });
                     } else {
-                        that.changeLogin(obj).then(
-                            that.changePassword.bind(null, obj)
+                        that.changeRoleLogin(obj).then(
+                            that.changeRolePassword.bind(null, obj)
                         ).then(resolve).catch(reject);
                     }
                 });
