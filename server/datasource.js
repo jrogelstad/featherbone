@@ -1364,7 +1364,7 @@
 
         @example
             // Create a function that updates something specific
-            // (Assumed to be executed within a data service script)
+            // (Assumed here to be executed within a data service script)
             function fn (obj) { // Note the single object argument
                 return new Promise(function (resolve, reject) {
                     function callback() {
@@ -1391,12 +1391,12 @@
 
             // Define a callback to use when calling our function
             function callback (resp) {
-                console.log("Query rows->", resp);
+                console.log("Response->", resp);
             }
 
             // Trap for errors
             function error (err) {
-                console.error(err);
+                console.error("Erorr->", err);
             }
 
             // Execute a request that calls our function and sends a response
@@ -1411,9 +1411,150 @@
 
         @method registerFunction
         @param {String} method `GET`, `POST`, `PUT`, `PATCH`, or `DELETE`
-        @param {String} name
-        @param {Function} callback
-        @param {Integer} [trigger]
+        @param {String} name Camel case function name
+        @param {Function} func
+        @return {Object} Receiver
+        @chainable
+    */
+    /**
+        When a trigger is included as an argument in `registerFunction`,
+        then the callback function is executed before or after a feather
+        {{#crossLinkModule "CRUD"}}{{/crossLinkModule}}
+        {{#crossLink "Datasource/request:method"}}{{/crossLink}}
+        according to the method and trigger type. The `method`
+        determines which feather
+        {{#crossLinkModule "CRUD"}}{{/crossLinkModule}}
+        method the {{#crossLink "Datasource/request:method"}}{{/crossLink}}
+        applies to, and the trigger determines whether the function is
+        executed before or after the
+        {{#crossLinkModule "CRUD"}}{{/crossLinkModule}}
+        request is processed. The function should take in one
+        {{#crossLink "Object"}}{{/crossLink}}
+        and return a {{#crossLink "Promise"}}{{/crossLink}}.
+
+        The following types of declarative business logic can be executed by
+        registered triggers:
+        * Validate values
+        * Change values before processig (`before` trigger only)
+        * Make data requests that create, update or delete other records.
+
+        The design is meant to work similar to database triggers, except that
+        object inheritence is honored so triggers will also be inherited by
+        feather sub classes. The function called in a trigger will take in an
+        object argument that includes the property `newRec` for `POST` and
+        `PATCH` requests, and `oldRec` for `PATCH` and `DELETE` calls. These
+        properties are objects that contain all the properties and values of the
+        record.
+
+        If some kind of invalid state is identified, simply throw an error and
+        the entire originating request transaction will be rolled back.
+        
+            let ds = f.datasource;
+
+            function (obj) {
+                return new Promise(function (resolve) {
+                    if (newRec.lowest >= newRec.highest) {
+                        throw new Error(
+                            "'Lowest' value must be less than 'highest'"
+                        );
+                    }
+
+                    resolve(); // Make sure to always resolve your promises!
+                });
+            }
+
+            // Apply on `POST` record creation...
+            ds.registerFunction("POST", "Foo", fn, ds.TRIGGER_BEFORE);
+
+        If properties on `newRec` are changed in a `before` trigger, those
+        properties will be what is committed, which provides a way to intercept
+        and change values on proposed requests.
+    
+            let ds = f.datasource;
+            
+            function (obj) {
+                return new Promise(function (resolve) {
+                    if (newRec.lowest >= newRec.highest) {
+                        newRec.highest = newRec.lowest + 1;
+                    }
+
+                    resolve();
+                });
+            }
+
+            // We can run this same logic on both `POST` and `PATCH`
+            ds.registerFunction("POST", "Foo", fn, ds.TRIGGER_BEFORE);
+            ds.registerFunction("PATCH", "Foo", fn, ds.TRIGGER_BEFORE);     
+        
+        If applicable, Properties can be compared between `oldRec` and `newRec`
+        to determine if changes have been proposed.
+
+            let ds = f.datasource;
+            
+            function (obj) {
+                return new Promise(function (resolve) {
+                    if (newRec.name !== oldRec.name) {
+                        throw new Error("Name cannot be changed");
+                    }
+
+                    resolve();
+                });
+            }
+
+            // Note this one applies only to `PATCH` updates
+            ds.registerFunction("PATCH", "Foo", fn, ds.TRIGGER_BEFORE); 
+
+        If other records will be changed as a consequence of a request, it is
+        a good practice to do this in an `after` trigger after all proposed
+        property changes, including default values, have already been
+        proceessed.
+
+            let ds = f.datasource;
+            
+            function (obj) {
+                return new Promise(function (resolve, reject) {
+                    let msg;
+
+                    // Create a log of some change. Note the updated
+                    // time and user aren't set until after the update
+                    // has been completed, so must use `after` trigger
+                    if (newRec.description !== oldRec.description) {
+                        msg = (
+                            "Description changed from '" +
+                            oldRec.description + "' to '" +
+                            newRec.description + "' by " +
+                            newRec.updatedBy + "."
+                        );
+                        fs.request({
+                            method: "POST",
+                            name: "FooLog",
+                            client: obj.client,
+                            data: {
+                                message: msg,
+                                logTime: newRec.updated
+                            }
+                        }).then(resolve).catch(reject);
+
+                        return;
+                    }
+
+                    resolve();
+                });
+            }
+
+            // Note this one applies only to `PATCH` updates
+            ds.registerFunction("PATCH", "Foo", fn, ds.TRIGGER_AFTER); 
+
+        Note any particular feather only supports one registered function per
+        method and trigger type.
+
+        @method registerFunction
+        @param {String} method `POST`, `PATCH`, or `DELETE`
+        @param {String} name Upper case feather name
+        @param {Function} func
+        @param {Integer} trigger {{#crossLink
+        "Datasource/TRIGGER_BEFORE:property"}}{{/crossLink}} or
+        {{#crossLink "Datasource/TRIGGER_AFTER:property"}}{{/crossLink}}
         @return {Object} Receiver
         @chainable
     */
