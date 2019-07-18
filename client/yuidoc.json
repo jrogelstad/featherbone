@@ -13,6 +13,7 @@
             "./models",
             "./components",
             "./"
-        ]
+        ],
+        "outdir": "../../featherbone-docs/api-client"
     }
 }

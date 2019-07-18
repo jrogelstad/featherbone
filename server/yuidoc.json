@@ -12,6 +12,7 @@
             "../common",
             "./services",
             "./"
-        ]
+        ],
+        "outdir": "../../featherbone-docs/api-server"
     }
 }
