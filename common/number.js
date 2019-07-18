@@ -24,7 +24,10 @@
 
     const Big = require("big.js");
     /**
-        Helper functions added to JavaScript `Number` prototype.
+        Helper functions added to JavaScript
+        <a href='https://developer.mozilla.org/
+        en-US/docs/Web/JavaScript/Reference/
+        Global_Objects/Number'>Number</a> prototype.
 
         @class Number
         @constructor

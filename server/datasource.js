@@ -646,25 +646,175 @@
     }
 
     /**
-        Service request.
+        This function is the gateway for all
+        {{#crossLinkModule "CRUD"}}{{/crossLinkModule}} requests and data
+        service function calls. {{#crossLink "Datasource"}}{{/crossLink}} is
+        attached to the `f` global variable in scripts to expose this
+        capability.
 
-        @example
-            // Example payload:
-            let payload = {
-                "name": "Contact",
-                "method": "POST",
-                "data": {
-                    "id": "1f8c8akkptfe",
-                    "created": "2015-04-26T12:57:57.896Z",
-                    "createdBy": "admin",
-                    "updated": "2015-04-26T12:57:57.896Z",
-                    "updatedBy": "admin",
-                    "fullName": "John Doe",
-                    "birthDate": "1970-01-01T00:00:00.000Z",
-                    "isMarried": true,
-                    "dependentes": 2
-                }
+        ### CRUD Methods
+        These requests include the capitalized feather as the `name` argument.
+        The following methods are supported:
+
+        #### POST (Create)
+        Use this method to insert new records. Any properties not included
+        will be populated by default values. The
+        {{#crossLink "Promise"}}{{/crossLink}} will resolve to a `PATCH` array
+        describing all changes made on the server side due to feather defaults
+        and changes caused by triggers. This `PATCH` can be applied by the
+        originating requestor to ensure its own copy of the record exactly
+        matches the server.The `id` will be checked for uniqueness, along with
+        any properties on the feather set for `isUnique` equals `true`.
+
+            let ds = f.datasource;
+
+            function callback (resp) {
+                console.log("PATCH->", resp);
             }
+
+            function error (err) {
+                console.error("ERROR->", err);
+            }
+
+            ds.request({
+                method: "POST",
+                name: "Contact",
+                data: {
+                    id: "m7akxiwvz22a",
+                    firstName: "Caleb",
+                    lastName: "Johnstone"
+                }
+            }).then(callback).catch(error);
+
+        If the code above is run twice an error will be thrown because of
+        a unique id violation, however, if the record id is included
+        in a `POST` request, the request will be treated as an "Upsert" call,
+        which is to say if a record with that id is not found it will be
+        inserted, if one is found the values included in the data will be
+        updated on the existing record. Post requests that include `id`
+        are therefore idempotent.
+
+            ...
+
+            ds.request({
+                method: "POST",
+                name: "Contact",
+                id: "m7akxiwvz22a", // Indicate upsert behavior
+                data: {
+                    firstName: "Caleb",
+                    lastName: "Johnstone"
+                }
+            }).then(callback).catch(error);
+
+        #### GET (Read)
+        Use `GET` to retreive one or more records.
+
+        Retreive one result by refering to the record id
+
+            ...
+
+            f.datasource.request({
+                method: "GET",
+                name: "Contact",
+                id: "m7akxiwvz22a"
+            }).then(callback).catch(error);
+
+        Excluding the `id` will return all records
+
+            ...
+
+            f.datasource.request({
+                method: "GET",
+                name: "Contact"
+            }).then(callback).catch(error);
+
+        Requests can be paginated so records are returned in small groups
+        using the {{#crossLink "Filter"}}{{/crossLink}} property.
+
+            ...
+
+            f.datasource.request({
+                method: "GET",
+                name: "Contact",
+                filter: {
+                    offset: 20, // Start page
+                    limit: 10   // Page length
+                }
+            }).then(callback).catch(error);
+
+        Of course filters can also logically limit and sort
+
+            ...
+
+            f.datasource.request({
+                method: "GET",
+                name: "Contact",
+                filter: {
+                    criteria: [{
+                        property: "lastName",
+                        operation: "equals",
+                        criteria: "Doe"
+                    }],
+                    sort: [{
+                        property: "firstName",
+                        order: "ASC"
+                    }]
+                }
+            }).then(callback).catch(error);
+
+        #### PATCH (Update)
+
+        Update records using `PATCH` where the `data` argument follows the
+        <a href='https://tools.ietf.org/html/rfc6902'>rfc 6092</a>
+        specification for JSON patch updates. As with `POST`, any property
+        values that are updated as a side effect or wind up with different
+        values than requested will be returned in a patch containing all
+        the differences.
+
+            ...
+
+            ds.request({
+                method: "PATCH",
+                name: "Contact",
+                id: "m7akxiwvz22a", // Which record to patch
+                data: [{
+                    op: "replace",
+                    path: "/firstName",
+                    value: "Joshua"
+                }]
+            }).then(callback).catch(error);
+
+        #### DELETE
+
+        Delete a record simply by referencing the `id`.
+
+            ...
+
+            ds.request({
+                method: "DELETE",
+                name: "Contact",
+                id: "m7akxiwvz22a"
+            }).then(callback).catch(error);
+
+        ### Calling Registered Functions
+
+        Requests can also call registered functions to run procedural logic.
+        They are differentiated from CRUD requests by use of a camel case
+        name argument. See
+        {{#crossLink "Datasource/registerFunction:method"}}{{/crossLink}}
+        for more information.
+
+            // Requesting currency conversion
+            ...
+
+            ds.request({
+                method: "POST",
+                name: "convertCurrency",
+                data: {
+                    fromCurrency: "EUR",
+                    amount: "100"
+                }
+            }).then(callback).catch(error);
 
         @method request
         @param {Object} Payload
@@ -674,6 +824,7 @@
         @param {String} [payload.id] Identifier for `GET`, `PATCH` and `DELETE`
         @param {String} [payload.data] Required for `POST` and `PATCH`
         calls
+        @param {Filter} [payload.filter] Filter for `GET` requests
         @param {Client} [payload.client] Database client. If undefined one
         will be intialized by default and wrapped in a transaction if necessary.
         @param {Boolean} [isSuperUser] Bypass authorization checks.
@@ -1277,7 +1428,7 @@
         target function. The
         {{#crossLink "Datasource/request:method"}}{{/crossLink}} will
         automatically append its
-        {{#crossLink "Client"}}{{/crossLink}} 
+        {{#crossLink "Client"}}{{/crossLink}}
         to the object argument to use
         for executing queries or other requests within the target function.
 
@@ -1287,7 +1438,7 @@
         Function names should be camel case which distinquishes them from
         {{#crossLinkModule "CRUD"}}{{/crossLinkModule}} requests
         where a capitalized feather name is used.
-        
+
         The following is list of functions that come pre-registered from hard
         coded services:
         * __GET__
@@ -1418,18 +1569,18 @@
     */
     /**
         When a trigger is included as an argument in `registerFunction`,
-        then the callback function is executed before or after a feather
+        then the registered function is executed before or after a feather
         {{#crossLinkModule "CRUD"}}{{/crossLinkModule}}
         {{#crossLink "Datasource/request:method"}}{{/crossLink}}
         according to the method and trigger type. The `method`
-        determines which feather
+        determines whether the function applies to a `POST`, `PATCH` or `DELETE`
         {{#crossLinkModule "CRUD"}}{{/crossLinkModule}}
-        method the {{#crossLink "Datasource/request:method"}}{{/crossLink}}
-        applies to, and the trigger determines whether the function is
+        {{#crossLink "Datasource/request:method"}}{{/crossLink}},
+        and the `trigger` determines whether the function is
         executed before or after the
         {{#crossLinkModule "CRUD"}}{{/crossLinkModule}}
-        request is processed. The function should take in one
-        {{#crossLink "Object"}}{{/crossLink}}
+        request is processed. The function must take in one
+        {{#crossLink "Object"}}{{/crossLink}} as its sole argument
         and return a {{#crossLink "Promise"}}{{/crossLink}}.
 
         The following types of declarative business logic can be executed by
@@ -1440,15 +1591,19 @@
 
         The design is meant to work similar to database triggers, except that
         object inheritence is honored so triggers will also be inherited by
-        feather sub classes. The function called in a trigger will take in an
-        object argument that includes the property `newRec` for `POST` and
-        `PATCH` requests, and `oldRec` for `PATCH` and `DELETE` calls. These
-        properties are objects that contain all the properties and values of the
-        record.
+        feather sub classes. Note this logic is declarative by definition, where
+        a change caused by one trigger can potentially cascade to many other
+        records which also have triggers.
 
-        If some kind of invalid state is identified, simply throw an error and
+        The function called in a trigger will be passed an
+        object argument that includes the property `newRec` for `POST` and
+        `PATCH` requests that contains new record properties that will be
+        committed, and `oldRec` for `PATCH` and `DELETE` calls that contains
+        the property values of the record before the request was made.
+
+        To handle an invalid request, simply throw an error and
         the entire originating request transaction will be rolled back.
-        
+
             let ds = f.datasource;
 
             function (obj) {
@@ -1466,12 +1621,12 @@
             // Apply on `POST` record creation...
             ds.registerFunction("POST", "Foo", fn, ds.TRIGGER_BEFORE);
 
-        If properties on `newRec` are changed in a `before` trigger, those
-        properties will be what is committed, which provides a way to intercept
+        If values on `newRec` are changed in a `before` trigger, those
+        values are what will be committed, which provides a way to intercept
         and change values on proposed requests.
-    
+
             let ds = f.datasource;
-            
+
             function (obj) {
                 return new Promise(function (resolve) {
                     if (newRec.lowest >= newRec.highest) {
@@ -1484,13 +1639,13 @@
 
             // We can run this same logic on both `POST` and `PATCH`
             ds.registerFunction("POST", "Foo", fn, ds.TRIGGER_BEFORE);
-            ds.registerFunction("PATCH", "Foo", fn, ds.TRIGGER_BEFORE);     
-        
+            ds.registerFunction("PATCH", "Foo", fn, ds.TRIGGER_BEFORE);
+
         If applicable, Properties can be compared between `oldRec` and `newRec`
         to determine if changes have been proposed.
 
             let ds = f.datasource;
-            
+
             function (obj) {
                 return new Promise(function (resolve) {
                     if (newRec.name !== oldRec.name) {
@@ -1502,7 +1657,7 @@
             }
 
             // Note this one applies only to `PATCH` updates
-            ds.registerFunction("PATCH", "Foo", fn, ds.TRIGGER_BEFORE); 
+            ds.registerFunction("PATCH", "Foo", fn, ds.TRIGGER_BEFORE);
 
         If other records will be changed as a consequence of a request, it is
         a good practice to do this in an `after` trigger after all proposed
@@ -1510,7 +1665,7 @@
         proceessed.
 
             let ds = f.datasource;
-            
+
             function (obj) {
                 return new Promise(function (resolve, reject) {
                     let msg;
@@ -1543,7 +1698,7 @@
             }
 
             // Note this one applies only to `PATCH` updates
-            ds.registerFunction("PATCH", "Foo", fn, ds.TRIGGER_AFTER); 
+            ds.registerFunction("PATCH", "Foo", fn, ds.TRIGGER_AFTER);
 
         Note any particular feather only supports one registered function per
         method and trigger type.
@@ -1624,7 +1779,11 @@
     that.registerFunction("GET", "getAuthorizations", tools.getAuthorizations);
     that.registerFunction("PATCH", "patchProfile", profile.patchProfile);
     that.registerFunction("POST", "changeRoleLogin", role.changeRoleLogin);
-    that.registerFunction("POST", "changeRolePassword", role.changeRolePassword);
+    that.registerFunction(
+        "POST",
+        "changeRolePassword",
+        role.changeRolePassword
+    );
     that.registerFunction("POST", "createRole", role.createRole);
     that.registerFunction("POST", "dropRole", role.dropRole);
     that.registerFunction("POST", "grantMembership", role.grantMembership);

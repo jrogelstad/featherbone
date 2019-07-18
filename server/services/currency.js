@@ -276,11 +276,11 @@
             currency amount.
 
             @method convertCurrency
-            @param {Object} [payload] Payload
-            @param {String | Object} [payload.client] Database client
-            @param {Object} [payload.data] Arguments
-            @param {String} [payload.data.fromCurrency] Currency code from
-            @param {Number} [payload.data.amount] Amount
+            @param {Object} payload Payload
+            @param {Client} payload.client Database client
+            @param {Object} payload.data Arguments
+            @param {String} payload.data.fromCurrency Currency code from
+            @param {Number} payload.data.amount Amount
             @param {String} [payload.data.toCurrency] Target currency code.
                 Default base.
             @param {String} [payload.data.effective] ISO formatted date.
