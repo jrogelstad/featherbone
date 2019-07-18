@@ -22,7 +22,10 @@
 (function () {
     "use strict";
     /**
-        Helper functions added to JavaScript `Date` prototype.
+        Helper functions added to JavaScript
+        <a href='https://developer.mozilla.org/
+        en-US/docs/Web/JavaScript/Reference/
+        Global_Objects/Date'>Date</a> prototype.
 
         @class Date
         @constructor

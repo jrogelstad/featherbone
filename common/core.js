@@ -26,8 +26,8 @@
         @module Core
     */
     /**
-        JSON object that defines filter criteria that can be passed to the server to define
-        result sets to return in a query.
+        JSON object that defines filter criteria that can be passed to the
+        server to define result sets to return in a query.
 
         __Example__
 
@@ -54,8 +54,9 @@
         @static
     */
     /**
-        Filter criteria that is array of objects with `property`, `value` and optional
-        `operator` which, if left out, defaults to `=`. Supported operators are:
+        Filter criteria that is array of objects with `property`, `value`
+        and optional `operator` which, if left out, defaults to `=`.
+        Supported operators are:
         * __=__: Equals
         * __!=__: Not equals
         * __~__: Matches, case sensitive
@@ -67,7 +68,7 @@
         * __>=__: Greater than or equals
         * __<=__: Less than or equals
         * __IN__: In array
-        
+
         @example
             // Criteria for age equals 10 and name starts with "T"
             let criteria = [{
@@ -93,8 +94,9 @@
         @optional
     */
     /**
-        Filter sort that is array of objects with `property` and optional `order`
-        of `ASC` (ascending) or `DESC` (descending) which defaults to `ASC`.
+        Filter sort that is array of objects with `property` and optional
+        `order` of `ASC` (ascending) or `DESC` (descending) which defaults
+        to `ASC`.
         @example
             // Sort by age descending, name ascending
             let sort = [{

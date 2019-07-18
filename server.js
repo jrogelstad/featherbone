@@ -1292,7 +1292,7 @@
         });
 
         // REGISTER MODULE ROUTES
-        function postify (req, res) {
+        function postify(req, res) {
             let payload = {
                 method: "POST",
                 name: this,
@@ -1308,7 +1308,7 @@
             ).catch(
                 error.bind(res)
             );
-        };
+        }
 
         routes.forEach(function (route) {
             let fullPath = "/" + route.module.toSpinalCase() + route.path;

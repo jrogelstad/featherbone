@@ -22,7 +22,10 @@
 (function () {
     "use strict";
     /**
-        Helper functions added to JavaScript `String` prototype.
+        Helper functions added to JavaScript
+        <a href='https://developer.mozilla.org/
+        en-US/docs/Web/JavaScript/Reference/
+        Global_Objects/String'>String</a> prototype.
 
         @class String
         @constructor
