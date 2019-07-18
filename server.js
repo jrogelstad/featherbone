@@ -30,7 +30,6 @@
     const f = require("./common/core");
     const qs = require("qs");
     const SSE = require("sse-nodejs");
-    const cors = require("cors");
     const AdmZip = require("adm-zip");
     const path = require("path");
     const passport = require("passport");
@@ -1149,9 +1148,6 @@
 
             next();
         });
-
-        // Relax CORS so API Doc (canary) can work
-        app.use(cors());
 
         // static pages
         app.get("/files/downloads/:sourcename", doGetDownload);
