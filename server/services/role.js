@@ -38,6 +38,47 @@
         let that = {};
 
         /**
+            Used for user to update their own password. Requires both
+            old password and new password.
+            @method changeOwnPassword
+            @param {Object} payload
+            @param {Client} payload.client
+            @param {Object} payload.data Data
+            @param {String} payload.data.name Role name
+            @param {String} payload.data.oldPassword Old password
+            @param {String} payload.data.newPassword New password
+            @return {Promise}
+        */
+        that.changeOwnPassword = function (obj) {
+            return new Promise(function (resolve, reject) {
+                function callback() {
+                    that.changeRolePassword({
+                        client: obj.client,
+                        data: {
+                            name: obj.data.name,
+                            password: obj.data.newPassword
+                        }
+                    }).then(resolve).catch(reject);
+                }
+
+                if (obj.data.oldPassword == obj.data.newPassword) {
+                    throw new Error(
+                        "New password can not be the same as old password"
+                    );
+                }
+
+                if (!obj.data.newPassword) {
+                    throw new Error("New password can not be blank");
+                }
+
+                db.authenticate(
+                    obj.data.name,
+                    obj.data.oldPassword
+                ).then(callback).catch(reject);
+            });
+        };
+
+        /**
             Update whether role can log in.
             @method changeRoleLogin
             @param {Object} Payload
