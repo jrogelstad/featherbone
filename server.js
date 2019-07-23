@@ -947,6 +947,24 @@
         );
     }
 
+    function doChangePassword(req, res) {
+        let payload = {
+            method: "POST",
+            name: "changeOwnPassword",
+            user: req.user.name,
+            data: {
+                name: req.user.name,
+                oldPassword: req.body.oldPassword,
+                newPassword: req.body.newPassword
+            }
+        };
+
+        console.log("Change password for " + req.user.name);
+        datasource.request(payload).then(respond.bind(res)).catch(
+            error.bind(res)
+        );
+    }
+
     // Listen for changes to feathers, update and broadcast to all
     function subscribeToFeathers() {
         return new Promise(function (resolve, reject) {
@@ -1174,6 +1192,7 @@
         app.get("/currency/convert", doConvertCurrency);
         app.get("/do/is-authorized", doIsAuthorized);
         app.post("/data/object-authorizations", doGetObjectAuthorizations);
+        app.post("/do/change-password/", doChangePassword);
         app.post("/do/save-authorization", doSaveAuthorization);
         app.post("/do/export/:format/:feather", doExport);
         app.post("/do/import/:format/:feather", doImport);

@@ -20,8 +20,8 @@
     @module AccountMenu
 */
 import f from "../core.js";
-import catalog from "../models/catalog.js";
 
+const catalog = f.catalog();
 const m = window.m;
 const accountMenu = {};
 
@@ -32,11 +32,147 @@ const accountMenu = {};
 */
 accountMenu.viewModel = function () {
     const vm = {};
+    let oldPwd = f.prop("");
+    let newPwd = f.prop("");
+    let cnfPwd = f.prop("");
+    let pwdView;
 
     /**
         @method showMenuAccount
+        @param {Boolean} flag
+        @return {Boolean}
     */
     vm.showMenuAccount = f.prop(false);
+     /**
+        @method changePasswordDialog
+        @param {ViewModels.Dialog} dialog
+        @return {ViewModels.Dialog}
+    */
+    vm.changePasswordDialog = f.prop();
+     /**
+        @method errorDialog
+        @param {ViewModels.Dialog} dialog
+        @return {ViewModels.Dialog}
+    */
+    vm.errorDialog = f.prop();
+
+    // ..........................................................
+    // PRIVATE
+    //
+    vm.changePasswordDialog(f.createViewModel("Dialog", {
+        title: "Change Password",
+        icon: "key",
+        onOk: function () {
+            m.request({
+                method: "POST",
+                url: "do/change-password",
+                data: {
+                    oldPassword: oldPwd(),
+                    newPassword: newPwd()
+                }
+            }).catch(function (err) {
+                vm.errorDialog().message(err.message);
+                vm.errorDialog().show();
+            });
+            oldPwd("");
+            newPwd("");
+            cnfPwd("");
+        },
+        onCancel: function () {
+            oldPwd("");
+            newPwd("");
+            cnfPwd("");
+        }
+    }));
+
+    pwdView = m("form", {
+        class: "pure-form pure-form-aligned",
+        id: "changePasswordDialogForm"
+    }, [
+        m("fieldset", [
+            m("div", {
+                class: "pure-control-group",
+                id: "changePasswordDialogGrp1"
+            }, [
+                m("label", {
+                    id: "oldPasswordLabel",
+                    for: "oldPassword"
+                }, "Old Password:"),
+                m("input", {
+                    type: "password",
+                    id: "oldPassword",
+                    value: oldPwd() ,
+                    onchange: (e) => oldPwd(e.target.value)
+                })
+            ]),
+            m("div", {
+                class: "pure-control-group",
+                id: "changePasswordDialogGrp2"
+            }, [
+                m("label", {
+                    for: "newPassword",
+                    id: "newPaswordLabel"
+                }, "New Password:"),
+                m("input", {
+                    type: "password",
+                    id: "newPassword",
+                    value: newPwd(),
+                    onchange: (e) => newPwd(e.target.value)
+                })
+            ]),
+            m("div", {
+                class: "pure-control-group",
+                id: "changePasswordDialogGrp3"
+            }, [
+                m("label", {
+                    for: "confirmPassword",
+                    id: "confirmPasswordLabel"
+                }, "Confirm Password:"),
+                m("input", {
+                    type: "password",
+                    id: "confirmPassword",
+                    value: cnfPwd(),
+                    onchange: (e) => cnfPwd(e.target.value)
+                })
+            ])
+        ])
+    ]);
+
+    vm.changePasswordDialog().content = () => pwdView;
+
+    vm.errorDialog(f.createViewModel("Dialog", {
+        title: "Error",
+        icon: "times"
+    }));
+
+    function validate() {
+        let dlg = vm.changePasswordDialog();
+        let msg;
+
+        dlg.okDisabled(true);
+
+        if (!oldPwd().length) {
+            msg = "Old password cannot be blank";
+        } else if (!newPwd().length) {
+            msg = "New password cannot be blank";
+        } else if (newPwd() !== cnfPwd()) {
+            msg = "New password is not the same as confirmed password";
+        } else if (newPwd() === oldPwd()) {
+            msg = "New password cannot be the same as old password";
+        }
+
+        if (msg) {
+            dlg.okTitle(msg);
+        } else {
+            dlg.okTitle("");
+            dlg.okDisabled(false);
+        }
+    }
+
+    // Validate when fields edited
+    oldPwd.state().resolve("/Changing").exit(validate);
+    newPwd.state().resolve("/Changing").exit(validate);
+    cnfPwd.state().resolve("/Changing").exit(validate);
 
     return vm;
 };
@@ -44,7 +180,7 @@ accountMenu.viewModel = function () {
 catalog.register("viewModels", "accountMenu", accountMenu.viewModel);
 
 /**
-    @class AccountMenu
+    @class AccountMenu  
     @static
     @namespace Components
 */
@@ -62,6 +198,8 @@ accountMenu.component = {
     */
     view: function () {
         const vm = this.viewModel;
+        const dlg = f.getComponent("Dialog");
+        const dlgState = vm.changePasswordDialog().state().current()[0];
 
         return m("div", {
             id: "nav-account-div",
@@ -70,7 +208,15 @@ accountMenu.component = {
                 "custom-restricted-width " +
                 "fb-menu fb-menu-setup"
             ),
-            onclick: vm.showMenuAccount.bind(null, true),
+            onclick: function (e) {
+                if (
+                    dlgState === "/Display/Closed" &&
+                    e.srcElement.nodeName !== "BUTTON" &&
+                    e.target.parentElement.nodeName !== "BUTTON"
+                ) {
+                    vm.showMenuAccount(true);
+                }
+            },
             onmouseout: function (ev) {
                 if (
                     !ev || !ev.toElement ||
@@ -83,6 +229,12 @@ accountMenu.component = {
                 }
             }
         }, [
+            m(dlg, {
+                viewModel: vm.changePasswordDialog()
+            }),
+            m(dlg, {
+                viewModel: vm.errorDialog()
+            }),
             m("span", {
                 id: "nav-account-button",
                 title: "Signed in as: " + (
@@ -124,8 +276,13 @@ accountMenu.component = {
                     class: (
                         "pure-menu-link "
                     ),
-                    title: "Change password"
-                    //onclick: vm.goSettings
+                    title: "Change password",
+                    onclick: function () {
+                        let dlg = vm.changePasswordDialog();
+
+                        dlg.okDisabled(true);
+                        dlg.show();
+                    }
                 }, [m("i", {
                     id: "nav-account-password-icon",
                     class: "fa fa-key fb-menu-list-icon"
@@ -137,10 +294,7 @@ accountMenu.component = {
                         "fb-menu-list-separator"
                     ),
                     title: "Sign out of application",
-                    onclick: function () {
-                        vm.showMenuAccount(false);
-                        f.state().send("signOut");
-                    }
+                    onclick: () => f.state().send("signOut")
                 }, [m("i", {
                     id: "nav-account-signout-icon",
                     class: (

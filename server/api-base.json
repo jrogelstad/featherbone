@@ -32,6 +32,10 @@
             "description": "Javascript client code module"
         },
         {
+            "name": "role",
+            "description": "Role functions"
+        },
+        {
             "name": "settings",
             "description": "Application settings"
         },
@@ -374,6 +378,51 @@
                                 }
                             }
                         }
+                    },
+                    "default": {
+                        "description": "Unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/do/change-password": {
+            "post": {
+                "summary": "User can change their own password",
+                "operationId": "doChangePassword",
+                "tags": [
+                    "role"
+                ],
+                "requestBody": {
+                    "content": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "oldPassword": {
+                                            "description": "Old password",
+                                            "type": "string"
+                                        },
+                                        "newPassword": {
+                                            "description": "New password",
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Request successful"
                     },
                     "default": {
                         "description": "Unexpected error",
