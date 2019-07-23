@@ -55,6 +55,64 @@ accountMenu.viewModel = function () {
         @return {ViewModels.Dialog}
     */
     vm.errorDialog = f.prop();
+    /**
+        Create content for change password dialog.
+        @method createContent
+    */
+    vm.createContent = function () {
+        pwdView = m("form", {
+            class: "pure-form pure-form-aligned",
+            id: "changePasswordDialogForm"
+        }, [
+            m("fieldset", [
+                m("div", {
+                    class: "pure-control-group",
+                    id: "changePasswordDialogGrp1"
+                }, [
+                    m("label", {
+                        id: "oldPasswordLabel",
+                        for: "oldPassword"
+                    }, "Old Password:"),
+                    m("input", {
+                        type: "password",
+                        id: "oldPassword",
+                        value: oldPwd(),
+                        onchange: (e) => oldPwd(e.target.value)
+                    })
+                ]),
+                m("div", {
+                    class: "pure-control-group",
+                    id: "changePasswordDialogGrp2"
+                }, [
+                    m("label", {
+                        for: "newPassword",
+                        id: "newPaswordLabel"
+                    }, "New Password:"),
+                    m("input", {
+                        type: "password",
+                        id: "newPassword",
+                        value: newPwd(),
+                        onchange: (e) => newPwd(e.target.value)
+                    })
+                ]),
+                m("div", {
+                    class: "pure-control-group",
+                    id: "changePasswordDialogGrp3"
+                }, [
+                    m("label", {
+                        for: "confirmPassword",
+                        id: "confirmPasswordLabel"
+                    }, "Confirm Password:"),
+                    m("input", {
+                        type: "password",
+                        id: "confirmPassword",
+                        value: cnfPwd(),
+                        onchange: (e) => cnfPwd(e.target.value)
+                    })
+                ])
+            ])
+        ]);
+    };
 
     // ..........................................................
     // PRIVATE
@@ -84,59 +142,6 @@ accountMenu.viewModel = function () {
             cnfPwd("");
         }
     }));
-
-    pwdView = m("form", {
-        class: "pure-form pure-form-aligned",
-        id: "changePasswordDialogForm"
-    }, [
-        m("fieldset", [
-            m("div", {
-                class: "pure-control-group",
-                id: "changePasswordDialogGrp1"
-            }, [
-                m("label", {
-                    id: "oldPasswordLabel",
-                    for: "oldPassword"
-                }, "Old Password:"),
-                m("input", {
-                    type: "password",
-                    id: "oldPassword",
-                    value: oldPwd() ,
-                    onchange: (e) => oldPwd(e.target.value)
-                })
-            ]),
-            m("div", {
-                class: "pure-control-group",
-                id: "changePasswordDialogGrp2"
-            }, [
-                m("label", {
-                    for: "newPassword",
-                    id: "newPaswordLabel"
-                }, "New Password:"),
-                m("input", {
-                    type: "password",
-                    id: "newPassword",
-                    value: newPwd(),
-                    onchange: (e) => newPwd(e.target.value)
-                })
-            ]),
-            m("div", {
-                class: "pure-control-group",
-                id: "changePasswordDialogGrp3"
-            }, [
-                m("label", {
-                    for: "confirmPassword",
-                    id: "confirmPasswordLabel"
-                }, "Confirm Password:"),
-                m("input", {
-                    type: "password",
-                    id: "confirmPassword",
-                    value: cnfPwd(),
-                    onchange: (e) => cnfPwd(e.target.value)
-                })
-            ])
-        ])
-    ]);
 
     vm.changePasswordDialog().content = () => pwdView;
 
@@ -180,7 +185,7 @@ accountMenu.viewModel = function () {
 catalog.register("viewModels", "accountMenu", accountMenu.viewModel);
 
 /**
-    @class AccountMenu  
+    @class AccountMenu
     @static
     @namespace Components
 */
@@ -278,10 +283,11 @@ accountMenu.component = {
                     ),
                     title: "Change password",
                     onclick: function () {
-                        let dlg = vm.changePasswordDialog();
+                        let cdlg = vm.changePasswordDialog();
 
-                        dlg.okDisabled(true);
-                        dlg.show();
+                        vm.createContent();
+                        cdlg.okDisabled(true);
+                        cdlg.show();
                     }
                 }, [m("i", {
                     id: "nav-account-password-icon",
