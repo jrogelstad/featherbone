@@ -401,19 +401,17 @@
                 ],
                 "requestBody": {
                     "content": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "oldPassword": {
-                                            "description": "Old password",
-                                            "type": "string"
-                                        },
-                                        "newPassword": {
-                                            "description": "New password",
-                                            "type": "string"
-                                        }
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "oldPassword": {
+                                        "description": "Old password",
+                                        "type": "string"
+                                    },
+                                    "newPassword": {
+                                        "description": "New password",
+                                        "type": "string"
                                     }
                                 }
                             }
