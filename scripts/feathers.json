@@ -630,6 +630,11 @@
                         "address"
                     ]
                 }
+            },
+            "isActive": {
+                "description": "Allow user to log in",
+                "type": "boolean",
+                "default": true
             }
         }
     }
