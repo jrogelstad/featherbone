@@ -1069,26 +1069,40 @@ function updateUserAccount(obj) {
     "use strict";
 
     return new Promise(function (resolve, reject) {
-        let payload = {
-            method: "POST",
-            name: "changeRolePassword",
-            client: obj.client,
-            data: {
-                name: obj.newRec.name.toLowerCase(),
-                password: obj.newRec.password
-            }
-        };
+        let requests = [];
 
         if (obj.newRec.password) {
             obj.newRec.password = "";
-            f.datasource.request(
-                payload,
+            requests.push(f.datasource.request(
+                {
+                    method: "POST",
+                    name: "changeRolePassword",
+                    client: obj.client,
+                    data: {
+                        name: obj.newRec.name.toLowerCase(),
+                        password: obj.newRec.password
+                    }
+                },
                 true
-            ).then(resolve).catch(reject);
-            return;
+            ));
         }
 
-        resolve();
+        if (obj.newRec.isActive !== obj.oldRec.isActive) {
+            requests.push(f.datasource.request(
+                {
+                    method: "POST",
+                    name: "changeRoleLogin",
+                    client: obj.client,
+                    data: {
+                        name: obj.newRec.name.toLowerCase(),
+                        isLogin: obj.newRec.isActive
+                    }
+                },
+                true
+            ));
+        }
+
+        Promise.all(requests).then(resolve).catch(reject);
     });
 }
 
@@ -1099,7 +1113,7 @@ function createUserAccount(obj) {
         // Forward user account based options for role
         obj.roleOptions = {
             name: obj.newRec.name.toLowerCase(),
-            isLogin: true,
+            isLogin: obj.newRec.isActive,
             password: obj.newRec.password,
             isInherits: false
         };

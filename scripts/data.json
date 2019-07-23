@@ -630,21 +630,36 @@
         ],
         "attrs": [
             {
-                "attr": "name"
+                "attr": "name",
+                "unit": 0,
+                "grid": 0
             },
             {
-                "attr": "password"
+                "attr": "password",
+                "unit": 0,
+                "grid": 0
             },
             {
-                "attr": "isSuper"
+                "attr": "isActive",
+                "unit": 0,
+                "grid": 0
+            },
+            {
+                "attr": "isSuper",
+                "unit": 0,
+                "grid": 0
             },
             {
                 "attr": "owner",
-                "unit": 1
+                "unit": 1,
+                "grid": 0
             },
             {
                 "attr": "contact",
-                "unit": 1
+                "unit": 1,
+                "grid": 0,
+                "showLabel": true,
+                "columns": []
             },
             {
                 "attr": "membership",
