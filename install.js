@@ -33,9 +33,43 @@
     const installer = new Installer();
     const config = new Config();
 
+    let conf;
     let client;
     let user;
-    let dir = path.resolve(__dirname, process.argv[2] || ".");
+    let argv = process.argv;
+    let thedir;
+    let dir;
+    let superuser;
+    let superpwd;
+
+    argv.forEach(function (arg) {
+        switch (arg) {
+        case "--dir":
+            thedir = argv[argv.indexOf("--dir") + 1];
+            break;
+        case "-D":
+            thedir = argv[argv.indexOf("-D") + 1];
+            break;
+        case "-U":
+            superuser = argv[argv.indexOf("-U") + 1];
+            break;
+        case "--username":
+            superuser = argv[argv.indexOf("--username") + 1];
+            break;
+        case "-W":
+            superpwd = argv[argv.indexOf("-W") + 1];
+            break;
+        case "--password":
+            superpwd = argv[argv.indexOf("--password") + 1];
+            break;
+        }
+    });
+
+    dir = path.resolve(__dirname, thedir || "."); 
+
+    if (superuser && superpwd === undefined) {
+        throw new Error("Password must be provided for user");
+    }
 
     function error(err) {
         console.error(err);
@@ -58,13 +92,12 @@
     }
 
     // Connect to postgres so we can inquire on db status
-    function start(config) {
+    function start(confresp) {
+        conf = confresp;
+
         return new Promise(function (resolve, reject) {
             let conn;
-            let sql = (
-                "SELECT datname FROM pg_database " +
-                "WHERE datistemplate = false AND datname = $1"
-            );
+            let sql;
 
             // Deal with database inquiry
             function handleDb(resp) {
@@ -75,7 +108,7 @@
                     client.end().then(function () {
                         // Check if this database has been initialized
                         client = new Client({
-                            connectionString: conn + config.postgres.database
+                            connectionString: conn + conf.postgres.database
                         });
                         client.connect().then(function () {
                             sql = (
@@ -95,14 +128,14 @@
                 // Otherwise create database first
                 } else {
                     msg = "Creating database \"";
-                    msg += config.postgres.database + "\"";
+                    msg += conf.postgres.database + "\"";
                     console.log(msg);
 
                     sql = "CREATE DATABASE %I;";
                     sql = format(
                         sql,
-                        config.postgres.database,
-                        config.postgres.user
+                        conf.postgres.database,
+                        conf.postgres.user
                     );
 
                     client.query(sql).then(resolve);
@@ -110,23 +143,72 @@
             }
 
             function callback() {
+                sql = (
+                    "SELECT datname FROM pg_database " +
+                    "WHERE datistemplate = false AND datname = $1"
+                );
+
                 client.query(
                     sql,
-                    [config.postgres.database]
+                    [conf.postgres.database]
                 ).then(handleDb).catch(reject);
             }
 
-            conn = "postgres://";
-            conn += config.postgres.user + ":";
-            conn += config.postgres.password + "@";
-            conn += config.postgres.host + ":";
-            conn += config.postgres.port + "/";
+            conn = (
+                "postgres://" +
+                (superuser || conf.postgres.user) + ":" +
+                (superpwd || conf.postgres.password) + "@" +
+                conf.postgres.host + ":" +
+                conf.postgres.port + "/"
+            );
 
-            client = new Client({
-                connectionString: conn + "postgres"
-            });
-
+            client = new Client({connectionString: conn + "postgres"});
             client.connect().then(callback).catch(reject);
+        });
+    }
+
+    function handleUser() {
+        return new Promise(function (resolve, reject) {
+            let sql;
+            let conn;
+
+            function grantUser() {
+                sql = (
+                    "GRANT SELECT ON pg_authid TO " +
+                    conf.postgres.user + ";"
+                );
+                client.query(sql).then(resolve).catch(reject);
+            }
+
+            function createUser() {
+                sql = (
+                    "CREATE USER " + conf.postgres.user + " WITH " +
+                    "LOGIN " +
+                    "NOSUPERUSER " +
+                    "CREATEROLE " +
+                    "INHERIT " +
+                    "NOREPLICATION " +
+                    "CONNECTION LIMIT -1 " +
+                    "PASSWORD '" + conf.postgres.password + "';"
+                );
+                client.query(sql).then(grantUser).catch(grantUser);
+            }
+
+            if (!superuser) {
+                resolve();
+                return;
+            }
+
+            conn = (
+                "postgres://" +
+                superuser + ":" +
+                superpwd + "@" +
+                conf.postgres.host + ":" +
+                conf.postgres.port + "/" + conf.postgres.database
+            );
+
+            client = new Client({connectionString: conn});
+            client.connect().then(createUser).catch(reject);
         });
     }
 
@@ -143,7 +225,9 @@
     config.read().then(
         start
     ).then(
-        connect // This time to database
+        handleUser
+    ).then(
+        connect // This time to database with service user
     ).then(
         install
     ).then(
