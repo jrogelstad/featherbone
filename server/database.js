@@ -295,6 +295,14 @@
             @type Boolean
         */
         /**
+            @property firstName
+            @type String
+        */
+        /**
+            @property lastName
+            @type String
+        */
+        /**
             @property email
             @type String
         */
@@ -312,8 +320,11 @@
         that.deserializeUser = function (username) {
             return new Promise(function (resolve, reject) {
                 const sql = (
-                    "SELECT name, is_super, contact.email AS email, " +
-                    "  contact.phone AS phone " +
+                    "SELECT name, is_super, " +
+                    "contact.first_name as first_name, " +
+                    "contact.last_name as last_name, " +
+                    "contact.email AS email, " +
+                    "contact.phone AS phone " +
                     "FROM user_account " +
                     "LEFT OUTER JOIN contact ON " +
                     "  (_contact_contact_pk = contact._pk) " +
@@ -332,7 +343,13 @@
 
                         row = resp.rows[0];
                         row.isSuper = row.is_super;
+                        row.firstName = row.first_name || "";
+                        row.lastName = row.last_name || "";
+                        row.email = row.email || "";
+                        row.phone = row.phone || "";
                         delete row.is_super;
+                        delete row.first_name;
+                        delete row.last_name;
                         // Send back result
                         resolve(row);
                         obj.done();

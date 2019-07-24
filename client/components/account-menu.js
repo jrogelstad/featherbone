@@ -35,7 +35,13 @@ accountMenu.viewModel = function () {
     let oldPwd = f.prop("");
     let newPwd = f.prop("");
     let cnfPwd = f.prop("");
+    let user = f.currentUser();
+    let firstName = f.prop(user.firstName);
+    let lastName = f.prop(user.lastName);
+    let phone = f.prop(user.phone);
+    let email = f.prop(user.email);
     let pwdView;
+    let infoView;
 
     /**
         @method showMenuAccount
@@ -50,6 +56,12 @@ accountMenu.viewModel = function () {
     */
     vm.changePasswordDialog = f.prop();
      /**
+        @method changePasswordDialog
+        @param {ViewModels.Dialog} dialog
+        @return {ViewModels.Dialog}
+    */
+    vm.changeUserInfoDialog = f.prop();
+     /**
         @method errorDialog
         @param {ViewModels.Dialog} dialog
         @return {ViewModels.Dialog}
@@ -57,9 +69,9 @@ accountMenu.viewModel = function () {
     vm.errorDialog = f.prop();
     /**
         Create content for change password dialog.
-        @method createContent
+        @method createPasswordContent
     */
-    vm.createContent = function () {
+    vm.createPasswordContent = function () {
         pwdView = m("form", {
             class: "pure-form pure-form-aligned",
             id: "changePasswordDialogForm"
@@ -114,6 +126,75 @@ accountMenu.viewModel = function () {
         ]);
     };
 
+    vm.createUserInfoContent = function () {
+        infoView = m("form", {
+            class: "pure-form pure-form-aligned",
+            id: "changeUserInfoDialogForm"
+        }, [
+            m("fieldset", [
+                m("div", {
+                    class: "pure-control-group",
+                    id: "changeUserInfoDialogGrp1"
+                }, [
+                    m("label", {
+                        id: "userInfoFirstNameLabel",
+                        for: "userInfoFirstName"
+                    }, "First Name:"),
+                    m("input", {
+                        id: "userInfoFirstName",
+                        value: firstName(),
+                        onchange: (e) => firstName(e.target.value)
+                    })
+                ]),
+                m("div", {
+                    class: "pure-control-group",
+                    id: "changeUserInfoDialogGrp2"
+                }, [
+                    m("label", {
+                        id: "userInfoLastNameLabel",
+                        for: "userInfoLastName"
+                    }, "Last Name:"),
+                    m("input", {
+                        id: "userInfoLastName",
+                        required: true,
+                        value: lastName(),
+                        onchange: (e) => lastName(e.target.value)
+                    })
+                ]),
+                m("div", {
+                    class: "pure-control-group",
+                    id: "changeUserInfoDialogGrp3"
+                }, [
+                    m("label", {
+                        id: "userInfoEmailLabel",
+                        for: "userInfoEmail"
+                    }, "Email:"),
+                    m("input", {
+                        type: "email",
+                        id: "userInfoEmail",
+                        value: email(),
+                        onchange: (e) => email(e.target.value)
+                    })
+                ]),
+                m("div", {
+                    class: "pure-control-group",
+                    id: "changeUserInfoDialogGrp3"
+                }, [
+                    m("label", {
+                        id: "userInfoPhoneLabel",
+                        for: "userInfoPhone"
+                    }, "Phone:"),
+                    m("input", {
+                        type: "tel",
+                        id: "userInfoPhone",
+                        value: phone(),
+                        onchange: (e) => phone(e.target.value)
+                    })
+                ])
+            ])
+        ]);
+    };
+
     // ..........................................................
     // PRIVATE
     //
@@ -145,12 +226,45 @@ accountMenu.viewModel = function () {
 
     vm.changePasswordDialog().content = () => pwdView;
 
+    vm.changeUserInfoDialog(f.createViewModel("Dialog", {
+        title: "Edit my contact information",
+        icon: "address-book",
+        onOk: function () {
+            m.request({
+                method: "POST",
+                url: "do/change-user-info",
+                data: {
+                    firstName: firstName(),
+                    lastName: lastName(),
+                    email: email(),
+                    phone: phone()
+                }
+            }).then(function () {
+                user.firstName = firstName();
+                user.lastName = lastName();
+                user.email = email();
+                user.phone = phone();
+            }).catch(function (err) {
+                vm.errorDialog().message(err.message);
+                vm.errorDialog().show();
+            });
+        },
+        onCancel: function () {
+            firstName(user.firstName);
+            lastName(user.lastName);
+            email(user.email);
+            phone(user.phone);
+        }
+    }));
+
+    vm.changeUserInfoDialog().content = () => infoView;
+
     vm.errorDialog(f.createViewModel("Dialog", {
         title: "Error",
         icon: "times"
     }));
 
-    function validate() {
+    function validatePassword() {
         let dlg = vm.changePasswordDialog();
         let msg;
 
@@ -175,9 +289,33 @@ accountMenu.viewModel = function () {
     }
 
     // Validate when fields edited
-    oldPwd.state().resolve("/Changing").exit(validate);
-    newPwd.state().resolve("/Changing").exit(validate);
-    cnfPwd.state().resolve("/Changing").exit(validate);
+    oldPwd.state().resolve("/Changing").exit(validatePassword);
+    newPwd.state().resolve("/Changing").exit(validatePassword);
+    cnfPwd.state().resolve("/Changing").exit(validatePassword);
+
+    function validateInfo() {
+        let dlg = vm.changeUserInfoDialog();
+        let msg;
+
+        dlg.okDisabled(true);
+
+        if (!lastName()) {
+            msg = "Last name cannot be blank";
+        }
+
+        if (msg) {
+            dlg.okTitle(msg);
+        } else {
+            dlg.okTitle("");
+            dlg.okDisabled(false);
+        }
+    }
+
+    // Validate when fields edited
+    firstName.state().resolve("/Changing").exit(validateInfo);
+    lastName.state().resolve("/Changing").exit(validateInfo);
+    email.state().resolve("/Changing").exit(validateInfo);
+    phone.state().resolve("/Changing").exit(validateInfo);
 
     return vm;
 };
@@ -238,6 +376,9 @@ accountMenu.component = {
                 viewModel: vm.changePasswordDialog()
             }),
             m(dlg, {
+                viewModel: vm.changeUserInfoDialog()
+            }),
+            m(dlg, {
                 viewModel: vm.errorDialog()
             }),
             m("span", {
@@ -267,8 +408,14 @@ accountMenu.component = {
                 m("li", {
                     id: "nav-account-myinfo",
                     class: "pure-menu-link",
-                    title: "Edit my contact information"
-                    //onclick: vm.revert
+                    title: "Edit my contact information",
+                    onclick: function () {
+                        let cdlg = vm.changeUserInfoDialog();
+
+                        vm.createUserInfoContent();
+                        cdlg.okDisabled(true);
+                        cdlg.show();
+                    }
                 }, [m("i", {
                     id: "nav-account-myinfo-icon",
                     class: (
@@ -285,7 +432,7 @@ accountMenu.component = {
                     onclick: function () {
                         let cdlg = vm.changePasswordDialog();
 
-                        vm.createContent();
+                        vm.createPasswordContent();
                         cdlg.okDisabled(true);
                         cdlg.show();
                     }
