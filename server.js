@@ -905,7 +905,6 @@
         );
     }
 
-
     function doSaveAuthorization(req, res) {
         let payload = {
             method: "POST",
@@ -961,6 +960,23 @@
 
         console.log("Change password for " + req.user.name);
         datasource.request(payload).then(respond.bind(res)).catch(
+            error.bind(res)
+        );
+    }
+
+    function doChangeUserInfo(req, res) {
+        let payload = {
+            name: req.user.name,
+            firstName: req.body.firstName,
+            lastName: req.body.lastName,
+            email: req.body.email,
+            phone: req.body.phone
+        };
+
+        console.log("Change User Info", JSON.stringify(payload, null, 2));
+        datasource.changeUserInfo(payload).then(
+            respond.bind(res)
+        ).catch(
             error.bind(res)
         );
     }
@@ -1193,6 +1209,7 @@
         app.get("/do/is-authorized", doIsAuthorized);
         app.post("/data/object-authorizations", doGetObjectAuthorizations);
         app.post("/do/change-password/", doChangePassword);
+        app.post("/do/change-user-info/", doChangeUserInfo);
         app.post("/do/save-authorization", doSaveAuthorization);
         app.post("/do/export/:format/:feather", doExport);
         app.post("/do/import/:format/:feather", doImport);

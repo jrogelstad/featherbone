@@ -154,6 +154,126 @@
     that.TRIGGER_AFTER = TRIGGER_AFTER;
 
     /**
+        Update user's own info.
+        @method changeUserInfo
+        @param {Object} payload
+        @param {String} payload.name Role name
+        @param {String} payload.firstName
+        @param {String} payload.lastName
+        @param {String} payload.email
+        @param {String} payload.phone
+        @return {Promise}
+    */
+    that.changeUserInfo = function (obj) {
+        let conn;
+
+        function begin(resp) {
+            return new Promise(function (resolve) {
+                let client = db.getClient(resp.client);
+
+                conn = resp;
+                client.query("BEGIN;").then(resolve);
+            });
+        }
+
+        function commit() {
+            return new Promise(function (resolve) {
+                let client = db.getClient(conn.client);
+                client.query("COMMIT;").then(resolve);
+            });
+        }
+
+        function doUpdate() {
+            return new Promise(function (resolve, reject) {
+                that.request({
+                    method: "GET",
+                    name: "UserAccount",
+                    user: obj.name,
+                    client: conn.client,
+                    filter: {
+                        criteria: [{
+                            property: "name",
+                            value: obj.name
+                        }]
+                    }
+                }, true).then(function (resp) {
+                    let userAccount = resp[0];
+                    let contactId = f.createId();
+
+                    if (!userAccount) {
+                        throw new Error(
+                            "User " + obj.name + " not found."
+                        );
+                    }
+
+                    if (userAccount.contact === null) {
+                        // Create contact and link to user account
+                        that.request({
+                            method: "POST",
+                            name: "Contact",
+                            user: obj.name,
+                            client: conn.client,
+                            data: {
+                                id: contactId,
+                                firstName: obj.firstName,
+                                lastName: obj.lastName,
+                                phone: obj.phone,
+                                email: obj.email
+                            }
+                        }, true).then(function () {
+                            debugger;
+                            that.request({
+                                method: "POST",
+                                name: "UserAccount",
+                                id: userAccount.id,
+                                user: obj.name,
+                                client: conn.client,
+                                data: {
+                                    contact: {
+                                        id: contactId
+                                    }
+                                }
+                            }, true).then(resolve).catch(reject);
+                        }).catch(reject);
+                    } else {
+                        debugger;
+                        // Update existing contact
+                        that.request({
+                            method: "POST",
+                            name: "Contact",
+                            id: userAccount.contact.id,
+                            user: obj.name,
+                            client: conn.client,
+                            data: {
+                                firstName: obj.firstName,
+                                lastName: obj.lastName,
+                                phone: obj.phone,
+                                email: obj.email
+                            }
+                        }, true).then(resolve).catch(reject);
+                    }
+                }).catch(reject);
+            });
+        }
+
+        return new Promise(function (resolve, reject) {
+            Promise.resolve().then(
+                db.connect.bind(null, true)
+            ).then(
+                begin
+            ).then(
+                doUpdate
+            ).then(
+                commit
+            ).then(
+                resolve
+            ).catch(
+                reject
+            );
+        });
+    };
+
+    /**
         Fetch feather catalog.
 
         @method getCatalog

@@ -435,6 +435,57 @@
                 }
             }
         },
+        "/do/change-user-info": {
+            "post": {
+                "summary": "User can change their own contact information",
+                "operationId": "doChangeUserInfo",
+                "tags": [
+                    "role"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "firstName": {
+                                        "description": "firstName",
+                                        "type": "string"
+                                    },
+                                    "lastName": {
+                                        "description": "lastName",
+                                        "type": "string"
+                                    },
+                                    "phone": {
+                                        "description": "phone",
+                                        "type": "string"
+                                    },
+                                    "email": {
+                                        "description": "email",
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Request successful"
+                    },
+                    "default": {
+                        "description": "Unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/do/lock": {
             "post": {
                 "summary": "Obtain a lock on an object for a instance",
