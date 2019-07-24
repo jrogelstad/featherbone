@@ -180,6 +180,16 @@
             return new Promise(function (resolve) {
                 let client = db.getClient(conn.client);
                 client.query("COMMIT;").then(resolve);
+                conn.done();
+            });
+        }
+
+        function rollback() {
+            return new Promise(function (resolve) {
+                let client = db.getClient(conn.client);
+                client.query("ROLLBACK;").then(resolve);
+                conn.done();
+                resolve();
             });
         }
 
@@ -268,7 +278,7 @@
             ).then(
                 resolve
             ).catch(
-                reject
+                rollback
             );
         });
     };
