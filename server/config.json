@@ -8,5 +8,6 @@
         "port": 5432,
         "user": "admin",
         "password": "password"
-    }
+    },
+    "npmModules": []
 }

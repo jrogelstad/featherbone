@@ -185,10 +185,18 @@
             function getConfig() {
                 return new Promise(function (resolve) {
                     config.read().then(function (resp) {
+                        let mods = resp.npmModules || [];
+
                         // Default 1 day.
                         sessionTimeout = resp.sessionTimeout || 86400000;
                         secret = resp.secret;
                         systemUser = resp.postgres.user;
+                        
+                        // Add npm modules specified
+                        mods.forEach(function (mod) {
+                            let name = mod.property || mod.require;
+                            f[name] = require(mod.require);
+                        });
                         resolve();
                     });
                 });
