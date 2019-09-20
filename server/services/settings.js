@@ -239,7 +239,7 @@
                         ) {
                             msg = "Settings for \"" + name;
                             msg += "\" changed by another user. Save failed.";
-                            obj.callback(msg);
+                            reject(msg);
                             return;
                         }
 
