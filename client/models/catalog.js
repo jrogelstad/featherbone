@@ -26,6 +26,7 @@ const store = {};
 const auths = {};
 
 const m = window.m;
+const Qs = window.Qs;
 
 store.feathers = createProperty({});
 
@@ -242,14 +243,14 @@ const catalog = (function () {
     */
     that.isAuthorized = function (opts) {
         return new Promise(function (resolve, reject) {
+            let query = Qs.stringify({
+                feather: opts.feather,
+                id: opts.id,
+                action: opts.action
+            });
             let payload = {
                 method: "GET",
-                path: "/do/is-authorized",
-                data: {
-                    feather: opts.feather,
-                    id: opts.id,
-                    action: opts.action
-                }
+                path: "/do/is-authorized?" + query
             };
 
             // Check if memozied

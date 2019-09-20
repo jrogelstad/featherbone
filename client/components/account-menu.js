@@ -205,7 +205,7 @@ accountMenu.viewModel = function () {
             m.request({
                 method: "POST",
                 url: "do/change-password",
-                data: {
+                body: {
                     oldPassword: oldPwd(),
                     newPassword: newPwd()
                 }
@@ -233,7 +233,7 @@ accountMenu.viewModel = function () {
             m.request({
                 method: "POST",
                 url: "do/change-user-info",
-                data: {
+                body: {
                     firstName: firstName(),
                     lastName: lastName(),
                     email: email(),

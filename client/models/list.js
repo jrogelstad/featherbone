@@ -419,7 +419,7 @@ function createList(feather) {
         payload = {
             method: "POST",
             url: url,
-            data: body
+            body: body
         };
 
         return m.request(payload).then(callback).catch(console.error);

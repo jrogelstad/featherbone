@@ -53,7 +53,7 @@ module.static = f.prop({
             payload = {
                 method: "POST",
                 path: "/module/install",
-                data: formData
+                body: formData
             };
 
             datasource.request(payload).then(viewModel.refresh).catch(error);

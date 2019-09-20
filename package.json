@@ -24,7 +24,7 @@
     "express-fileupload": "^1.0.0",
     "express-session": "^1.16.1",
     "fast-json-patch": "^2.0.7",
-    "mithril": "^1.1.6",
+    "mithril": "^2.0.4",
     "passport": "^0.4.0",
     "passport-local": "^1.0.0",
     "pg": "^7.7.1",
