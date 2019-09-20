@@ -352,7 +352,7 @@ function initPromises() {
         let payload = {
             method: "POST",
             path: "/data/forms",
-            data: {
+            body: {
                 subscription: {
                     id: formsSid,
                     eventKey: catalog.eventKey()
@@ -372,7 +372,7 @@ function initPromises() {
         let payload = {
             method: "POST",
             path: "/data/modules",
-            data: {
+            body: {
                 subscription: {
                     id: moduleSid,
                     eventKey: catalog.eventKey()

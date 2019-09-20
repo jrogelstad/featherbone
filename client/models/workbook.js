@@ -20,6 +20,8 @@ import f from "../core.js";
 import datasource from "../datasource.js";
 import catalog from "./catalog.js";
 
+const Qs = window.Qs;
+
 let models;
 let feathers;
 let descr = "Parent of \"parent\" on \"WorkbookDefaultConfig\"";
@@ -335,12 +337,12 @@ function workbookModel(data) {
     */
     model.isAuthorized = function (action) {
         return new Promise(function (resolve, reject) {
+            let query = Qs.stringify({
+                action: action
+            });
             let payload = {
                 method: "GET",
-                path: "/workbook/is-authorized/" + model.id(),
-                data: {
-                    action: action
-                }
+                path: "/workbook/is-authorized/" + model.id() + "?" + query
             };
 
             datasource.request(payload).then(resolve).catch(reject);

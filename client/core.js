@@ -1708,7 +1708,7 @@ appState = State.define(function () {
             datasource.request({
                 method: "POST",
                 path: "/sign-in",
-                data: {
+                body: {
                     username: context.username,
                     password: context.password
                 }

@@ -1199,7 +1199,7 @@ function createModel(data, feather) {
         payload = {
             method: "DELETE",
             path: model.path(model.name, model.id()),
-            data: {
+            body: {
                 eventKey: catalog.eventKey()
             }
         };
@@ -1334,7 +1334,7 @@ function createModel(data, feather) {
         let payload = {
             method: "PATCH",
             path: model.path(model.name, model.id()),
-            data: patch
+            body: patch
         };
 
         function callback(result) {
@@ -1361,7 +1361,7 @@ function createModel(data, feather) {
         let payload = {
             method: "POST",
             path: model.path(model.name),
-            data: cache
+            body: cache
         };
 
         function callback(result) {
