@@ -57,11 +57,12 @@ let sseErrorDialogViewModel;
 let models = catalog.store().models();
 let workbookModel = models.workbook;
 let initialized = false;
+let isSuper = false;
 
 const preFetch = [];
 const fetchRequests = [];
 
-function createRoutes(isSuper) {
+function createRoutes() {
     // Build home navigation page
     let home = {
         oninit: function (vnode) {
@@ -666,7 +667,7 @@ function initApp() {
         fetchRequests.push(ary().fetch({}));
     });
     Promise.all(fetchRequests).then(function () {
-        let isSuper = f.currentUser().isSuper;
+        isSuper = f.currentUser().isSuper;
 
         // Menu
         menu = navigator.viewModel();
