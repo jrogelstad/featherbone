@@ -145,6 +145,12 @@ relationWidget.viewModel = function (options) {
     */
     vm.isReadOnly = options.isReadOnly || f.prop(false);
     /**
+        @method key
+        @param {String} key
+        @return {String}
+    */
+    vm.key = f.prop(options.key);
+    /**
         @method label
         @return {String}
     */
@@ -492,6 +498,7 @@ relationWidget.component = {
                 filter: options.filter,
                 isCell: options.isCell,
                 id: options.id,
+                key: options.key,
                 isReadOnly: options.isReadOnly,
                 style: options.style
             });
@@ -630,7 +637,8 @@ relationWidget.component = {
 
         // Build the view
         return m("div", {
-            style: style
+            style: style,
+            key: vm.key()
         }, [
             m("input", {
                 style: inputStyle,

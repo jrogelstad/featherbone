@@ -142,6 +142,7 @@ function buildFieldset(vm, attrs) {
 
         labelOpts = {
             for: key,
+            key: key + "FormLabel",
             class: "fb-form-label",
             style: {},
             title: prop.description

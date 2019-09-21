@@ -341,6 +341,7 @@ function input(type, options) {
         class: options.class,
         readonly: options.readonly,
         id: options.id,
+        key: options.key,
         required: options.required,
         style: options.style,
         type: type,
@@ -728,6 +729,7 @@ function selectEditor(dataList, options) {
     };
     let opts = {
         id: options.id,
+        key: options.key,
         prop: options.prop,
         class: options.class,
         readonly: options.readonly,
@@ -1279,6 +1281,7 @@ f.types.boolean.editor = function (options) {
     let prop = options.prop;
     let opts = {
         id: options.id,
+        key: options.key,
         onCreate: options.onCreate,
         onRemove: options.onRemove,
         required: options.required,
@@ -1305,6 +1308,7 @@ f.types.number.editor = function (options) {
         class: options.class,
         readonly: options.readonly,
         id: options.id,
+        key: options.key,
         required: options.required,
         style: options.style,
         type: options.type || "text",
@@ -1425,6 +1429,7 @@ f.createEditor = function (obj) {
             readonly: obj.options.readonly,
             disableCurrency: obj.options.fCurrency,
             filter: obj.options.filter,
+            key: key,
             id: obj.options.id,
             isCell: obj.options.isCell,
             onCreate: obj.options.oncreate,
@@ -1466,6 +1471,7 @@ f.createEditor = function (obj) {
                 onCreate: obj.options.oncreate,
                 onRemove: obj.options.onremove,
                 id: obj.options.id,
+                key: key,
                 isReadOnly: prop.isReadOnly
             });
         }
@@ -1477,7 +1483,8 @@ f.createEditor = function (obj) {
             return m(w, {
                 parentViewModel: obj.viewModel,
                 parentProperty: key,
-                height: obj.options.height
+                height: obj.options.height,
+                key: key
             });
         }
     }

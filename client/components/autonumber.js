@@ -85,6 +85,7 @@ function autonumberModel() {
     @param {Object} options.parentViewModel
     @param {String} options.parentProprety
     @param {String} [options.id]
+    @param {String} [options.key]
     @param {String} [options.readonly]
     @param {Object} [options.style]
 */
@@ -171,6 +172,14 @@ autonumber.viewModel = function (options) {
         @return {String}
     */
     vm.id = f.prop(options.id || f.createId());
+
+    /**
+        @method key
+        @param {String} key
+        @return {String}
+    */
+    vm.key = f.prop(options.key || f.createId());
+
     /**
         @method model
         @return {Model} Parent model
@@ -262,6 +271,7 @@ autonumber.component = {
         let style = vm.style();
         let options = {
             id: vm.id(),
+            key: vm.key(),
             class: "fb-data-list-input",
             value: vm.content(),
             readonly: true
