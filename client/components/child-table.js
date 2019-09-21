@@ -32,6 +32,8 @@ const m = window.m;
     @namespace ViewModels
     @constructor
     @param {Object} Options
+    @param {Object} options.parentViewModel Parent view model
+    @param {String} options.parentProperty Parent property key
     @param {Array} options.models List of child models
     @param {String} options.feather Feather
     @param {Array} options.config Column configuration

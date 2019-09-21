@@ -42,6 +42,8 @@ function selections(item) {
     @namespace ViewModels
     @param {Object} options Options
     @param {Object} options.parentViewModel
+    @param {String} options.id
+    @param {String} options.key
     @param {String} options.parentProperty
     @param {Boolean} [options.isCell]
     @param {Boolean} [options.showCurrency]
@@ -109,6 +111,12 @@ moneyRelation.viewModel = function (options) {
         @return {String}
     */
     vm.id = f.prop(options.id);
+    /**
+        @method key
+        @param {String} key
+        @return {String}
+    */
+    vm.key = f.prop(options.key);
     /**
         Layout for table cell.
         @method isCell
@@ -386,6 +394,7 @@ moneyRelation.component = {
             parentViewModel: options.parentViewModel,
             parentProperty: options.parentProperty,
             id: options.id,
+            key: optoins.key,
             isCell: options.isCell,
             readonly: options.readonly,
             showCurrency: options.showCurrency,
@@ -405,6 +414,7 @@ moneyRelation.component = {
         let readonly = Boolean(
             vnode.attrs.readonly === true || vm.effective()
         );
+        let id = "A" + vm.id();
 
         displayStyle = {
             display: "inline-block"
@@ -445,7 +455,8 @@ moneyRelation.component = {
         }, [
             m("input", {
                 style: inputStyle,
-                id: "A" + vm.id(),
+                id: id,
+                key: key,
                 onchange: (e) => vm.amount(e.target.value),
                 value: vm.amount(),
                 readonly: readonly,
