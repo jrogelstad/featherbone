@@ -61,6 +61,88 @@ let initialized = false;
 const preFetch = [];
 const fetchRequests = [];
 
+function createRoutes(isSuper) {
+    // Build home navigation page
+    let home = {
+        oninit: function (vnode) {
+            Object.keys(workbooks).forEach(function (key) {
+                let workbook = workbooks[key];
+                let config = workbook.getConfig();
+
+                vnode["go" + workbook.data.name()] = function () {
+                    m.route.set("/workbook/:workbook/:key", {
+                        workbook: workbook.data.name().toSpinalCase(),
+                        key: config[0].name.toSpinalCase()
+                    });
+                };
+            });
+
+            menu.selected("home");
+        },
+        oncreate: function () {
+            document.getElementById("fb-title").text = "Featherbone";
+        },
+        onupdate: function () {
+            menu.selected("home");
+        },
+        view: function () {
+            return m("div", {
+                class: "fb-navigator-menu-container"
+            }, [
+                m(navigator.component, {
+                    viewModel: menu
+                }), [
+                    m(dialog.component, {
+                        viewModel: sseErrorDialogViewModel
+                    }),
+                    m(dialog.component, {
+                        viewModel: addWorkbookViewModel
+                    }),
+                    m("span", {
+                        class: "fb-toolbar fb-toolbar-home"
+                    }, [
+                        m("div", {
+                            class: "fb-header-home"
+                        }, "Home"),
+                        m(accountMenu.component),
+                        m("button", {
+                            class: (
+                                "pure-button fb-toolbar-button " +
+                                "fb-toolbar-button-home " + (
+                                    isSuper
+                                    ? ""
+                                    : "fb-button-disabled"
+                                )
+                            ),
+                            title: (
+                                isSuper
+                                ? "Add workbook"
+                                : "Must be a super user to add a workbook"
+                            ),
+                            onclick: addWorkbookViewModel.show,
+                            disabled: !isSuper
+                        }, [
+                            m("i", {
+                                class: "fa fa-plus fb-button-icon"
+                            })
+                        ])
+                    ])
+                ]
+            ]);
+        }
+    };
+
+    m.route(document.body, "/home", {
+        "/home": home,
+        "/workbook/:workbook/:key": workbookPage.component,
+        "/edit/:feather/:key": formPage.component,
+        "/traverse/:feather/:key": childFormPage.component,
+        "/search/:feather": searchPage.component,
+        "/settings/:settings": settingsPage.component,
+        "/sign-in": signInPage.component
+    });
+}
+
 // Global sse state handler, allows any page
 // to observe when we've got a sse connection problem,
 // presumably a disconnect
@@ -457,8 +539,6 @@ function initPromises() {
 }
 
 function initApp() {
-    let signIn = signInPage.component;
-    let home;
     let keys = Object.keys(feathers);
 
     initialized = true;
@@ -614,85 +694,7 @@ function initApp() {
         sseState.resolve("Error").enter(sseErrorDialogViewModel.show);
         sseErrorDialogViewModel.buttonCancel().hide();
 
-        // Build home navigation page
-        home = {
-            oninit: function (vnode) {
-                Object.keys(workbooks).forEach(function (key) {
-                    let workbook = workbooks[key];
-                    let config = workbook.getConfig();
-
-                    vnode["go" + workbook.data.name()] = function () {
-                        m.route.set("/workbook/:workbook/:key", {
-                            workbook: workbook.data.name().toSpinalCase(),
-                            key: config[0].name.toSpinalCase()
-                        });
-                    };
-                });
-
-                menu.selected("home");
-            },
-            oncreate: function () {
-                document.getElementById("fb-title").text = "Featherbone";
-            },
-            onupdate: function () {
-                menu.selected("home");
-            },
-            view: function () {
-                return m("div", {
-                    class: "fb-navigator-menu-container"
-                }, [
-                    m(navigator.component, {
-                        viewModel: menu
-                    }), [
-                        m(dialog.component, {
-                            viewModel: sseErrorDialogViewModel
-                        }),
-                        m(dialog.component, {
-                            viewModel: addWorkbookViewModel
-                        }),
-                        m("span", {
-                            class: "fb-toolbar fb-toolbar-home"
-                        }, [
-                            m("div", {
-                                class: "fb-header-home"
-                            }, "Home"),
-                            m(accountMenu.component),
-                            m("button", {
-                                class: (
-                                    "pure-button fb-toolbar-button " +
-                                    "fb-toolbar-button-home " + (
-                                        isSuper
-                                        ? ""
-                                        : "fb-button-disabled"
-                                    )
-                                ),
-                                title: (
-                                    isSuper
-                                    ? "Add workbook"
-                                    : "Must be a super user to add a workbook"
-                                ),
-                                onclick: addWorkbookViewModel.show,
-                                disabled: !isSuper
-                            }, [
-                                m("i", {
-                                    class: "fa fa-plus fb-button-icon"
-                                })
-                            ])
-                        ])
-                    ]
-                ]);
-            }
-        };
-
-        m.route(document.body, "/home", {
-            "/home": home,
-            "/workbook/:workbook/:key": workbookPage.component,
-            "/edit/:feather/:key": formPage.component,
-            "/traverse/:feather/:key": childFormPage.component,
-            "/search/:feather": searchPage.component,
-            "/settings/:settings": settingsPage.component,
-            "/sign-in": signIn
-        });
+        createRoutes(isSuper);
 
         if (hash === "/sign-in") {
             hash = "/home";
@@ -719,11 +721,7 @@ function start() {
 }
 
 function goSignIn() {
-    let signIn = signInPage.component;
-    m.route(document.body, "/sign-in", {
-        "/sign-in": signIn
-    });
-
+    createRoutes();
     f.state().resolve("/SignedIn").enter(start);
     f.state().send("signIn");
 }
