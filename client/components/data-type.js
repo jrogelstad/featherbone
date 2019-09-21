@@ -158,6 +158,12 @@ dataType.viewModel = function (options) {
         return countries;
     };
     /**
+        @method key
+        @param {String} key
+        @return {String}
+    */
+    vm.key = f.prop(options.key || f.createId());
+    /**
         @method id
         @param {String} id
         @return {String}
@@ -479,7 +485,6 @@ dataType.viewModel = function (options) {
                 }, "Type:"),
                 m("select", {
                     id: id,
-                    key: id,
                     value: vm.type(),
                     onchange: vm.onchangeDialogType,
                     readonly: isOverload,
@@ -500,7 +505,6 @@ dataType.viewModel = function (options) {
                 }, "Feather:"),
                 m("select", {
                     id: "dlgRelation",
-                    key: "dlgRelation",
                     value: vm.relation(),
                     onchange: vm.onchangeDialogRelation,
                     readonly: isNotRelation,
@@ -628,6 +632,7 @@ dataType.component = {
             parentViewModel: options.parentViewModel,
             parentProperty: options.parentProperty,
             id: options.id,
+            key: options.key,
             readonly: options.readonly,
             isOverload: options.isOverload
         });
@@ -657,14 +662,14 @@ dataType.component = {
 
         // Build the view
         return m("div", {
-            style: style
+            style: style,
+            key: vm.key()
         }, [
             m(f.getComponent("Dialog"), {
                 viewModel: vm.dataTypeDialog()
             }),
             m("select", {
                 id: id,
-                key: id,
                 onchange: vm.onchange,
                 oncreate: vnode.attrs.onCreate,
                 onremove: vnode.attrs.onRemove,

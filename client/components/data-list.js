@@ -217,6 +217,12 @@ dataList.viewModel = function (options) {
         dataListDialog.show();
     };
     /**
+        @method key
+        @param {String} key
+        @return {String}
+    */
+    vm.key = f.prop(options.key || f.createId());
+    /**
         @method id
         @param {String} id
         @return {String}
@@ -312,6 +318,7 @@ dataList.component = {
             parentViewModel: options.parentViewModel,
             parentProperty: options.parentProperty,
             id: options.id,
+            key: options.key,
             style: options.style
         });
     },
@@ -338,14 +345,14 @@ dataList.component = {
 
         // Build the view
         return m("div", {
-            style: style
+            style: style,
+            key: vm.key()
         }, [
             m(dlg, {
                 viewModel: vm.dataListDialog()
             }),
             m("input", {
                 id: id,
-                key: id,
                 class: "fb-data-list-input",
                 onchange: vm.onchange,
                 oncreate: vnode.attrs.onCreate,

@@ -271,7 +271,6 @@ autonumber.component = {
         let style = vm.style();
         let options = {
             id: vm.id(),
-            key: vm.key(),
             class: "fb-data-list-input",
             value: vm.content(),
             readonly: true
@@ -287,7 +286,8 @@ autonumber.component = {
 
         // Build the view
         ret = m("div", {
-            style: style
+            style: style,
+            key: vm.key()
         }, [
             m(f.getComponent("Dialog"), {
                 viewModel: vm.autonumberDialog()
