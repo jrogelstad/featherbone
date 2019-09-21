@@ -61,7 +61,7 @@
                     }).then(resolve).catch(reject);
                 }
 
-                if (obj.data.oldPassword == obj.data.newPassword) {
+                if (obj.data.oldPassword === obj.data.newPassword) {
                     throw new Error(
                         "New password can not be the same as old password"
                     );

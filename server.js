@@ -191,7 +191,7 @@
                         sessionTimeout = resp.sessionTimeout || 86400000;
                         secret = resp.secret;
                         systemUser = resp.postgres.user;
-                        
+
                         // Add npm modules specified
                         mods.forEach(function (mod) {
                             let name = mod.property || mod.require;
