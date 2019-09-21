@@ -394,7 +394,7 @@ moneyRelation.component = {
             parentViewModel: options.parentViewModel,
             parentProperty: options.parentProperty,
             id: options.id,
-            key: optoins.key,
+            key: options.key,
             isCell: options.isCell,
             readonly: options.readonly,
             showCurrency: options.showCurrency,
@@ -451,12 +451,12 @@ moneyRelation.component = {
 
         // Build the view
         return m("div", {
-            style: displayStyle
+            style: displayStyle,
+            key: vm.key()
         }, [
             m("input", {
                 style: inputStyle,
                 id: id,
-                key: key,
                 onchange: (e) => vm.amount(e.target.value),
                 value: vm.amount(),
                 readonly: readonly,
