@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/*jslint this*/
+/*jslint this, browser*/
 import f from "../core.js";
 import datasource from "../datasource.js";
 import catalog from "./catalog.js";

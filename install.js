@@ -65,7 +65,7 @@
         }
     });
 
-    dir = path.resolve(__dirname, thedir || "."); 
+    dir = path.resolve(__dirname, thedir || ".");
 
     if (superuser && superpwd === undefined) {
         throw new Error("Password must be provided for user");

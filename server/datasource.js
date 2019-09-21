@@ -266,7 +266,7 @@
             });
         }
 
-        return new Promise(function (resolve, reject) {
+        return new Promise(function (resolve) {
             Promise.resolve().then(
                 db.connect.bind(null, true)
             ).then(
