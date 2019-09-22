@@ -168,6 +168,14 @@
             let cols = ["%I"];
             let sql = "";
             let client = obj.client;
+            // Child view variables
+            let tProps;
+            let tArgs;
+            let tCols;
+            let tRel;
+            let vSql = "";
+            let childSql = "";
+            let i;
 
             afterGetFeather = function (resp) {
                 feather = resp;
@@ -226,6 +234,32 @@
 
                             if (props[key].type.properties) {
                                 view = "_" + parent + "$" + key.toSnakeCase();
+
+                                // Create child view
+                                tProps = props[key].type.properties;
+                                tCols = ["%I"];
+                                tArgs = [view, "_pk"];
+
+                                /* Always include "id" whether
+                                   specified or not */
+                                if (tProps.indexOf("id") === -1) {
+                                    tProps.unshift("id");
+                                }
+
+                                i = 0;
+                                while (i < tProps.length) {
+                                    tCols.push("%I");
+                                    tArgs.push(tProps[i].toSnakeCase());
+                                    i += 1;
+                                }
+
+                                tRel = "_" + props[key].type.relation.toSnakeCase();
+                                tArgs.push(tRel);
+                                vSql = "CREATE OR REPLACE VIEW %I AS SELECT ";
+                                vSql += tCols.join(",");
+                                vSql += " FROM %I ";
+                                vSql += "WHERE NOT is_deleted;";
+                                childSql += vSql.format(tArgs);
                             } else {
                                 view = "_";
                                 view += props[key].type.relation.toSnakeCase();
@@ -253,6 +287,7 @@
                     sql = sql.format(["_" + table]);
                 }
 
+                sql += childSql;
                 sql += "CREATE OR REPLACE VIEW %I AS SELECT " + cols.join(",");
                 sql += " FROM %I;";
                 sql = sql.format(args);
