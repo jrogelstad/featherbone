@@ -1475,7 +1475,7 @@
                                 typeof updRec[key] === "string" &&
                                 updRec[key].slice(0, 1) !== "["
                             ) {
-                                updRec[key] = "\"" + value + "\"";
+                                updRec[key] = "\"" + updRec[key] + "\"";
                             } else if (props[key].type === "array") {
                                 updRec[key] = JSON.stringify(updRec[key]);
                             }
