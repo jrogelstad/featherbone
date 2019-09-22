@@ -368,7 +368,7 @@
                     });
                 }
 
-                function defineSettings(settings) {
+                function defineSettings(settings, module) {
                     let sql;
                     let params = [settings.name, settings];
 
@@ -385,13 +385,14 @@
                             sql += "definition=$2 WHERE name=$1;";
                         } else {
                             params.push(user);
+                            params.push(module);
                             sql = (
                                 "INSERT INTO \"$settings\" " +
                                 "(name, definition, id, created, " +
                                 "created_by, updated, updated_by, " +
-                                "is_deleted) " +
+                                "is_deleted, module) " +
                                 "VALUES ($1, $2, $1, now(), $3, now(), $3, " +
-                                "false);"
+                                "false, $4);"
                             );
                         }
 
@@ -472,7 +473,7 @@
                             saveWorkbooks(JSON.parse(content));
                             break;
                         case "settings":
-                            defineSettings(JSON.parse(content));
+                            defineSettings(JSON.parse(content), module);
                             break;
                         default:
                             rollback("Unknown type.");
@@ -602,6 +603,10 @@
                         ),
                         client.query(
                             "DELETE FROM \"$workbook\" WHERE module=$1",
+                            [name]
+                        ),
+                        client.query(
+                            "DELETE FROM \"$settings\" WHERE module=$1",
                             [name]
                         ),
                         client.query(

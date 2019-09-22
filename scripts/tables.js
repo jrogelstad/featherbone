@@ -208,6 +208,7 @@
         "definition json," +
         "data json," +
         "etag text," +
+        "module text," +
         "CONSTRAINT settings_pkey PRIMARY KEY (_pk), " +
         "CONSTRAINT settings_id_key UNIQUE (id)) INHERITS (object);" +
         "COMMENT ON TABLE \"$settings\" IS " +
@@ -216,7 +217,11 @@
         "COMMENT ON COLUMN \"$settings\".definition IS " +
         "'Attribute types definition';" +
         "COMMENT ON COLUMN \"$settings\".data IS " +
-        "'Object containing settings';"
+        "'Object containing settings';" +
+        "COMMENT ON COLUMN \"$settings\".etag IS " +
+        "'Pessemistic lock key';" +
+        "COMMENT ON COLUMN \"$settings\".data IS " +
+        "'Module name';"
     );
 
     const createProfilesSql = (
