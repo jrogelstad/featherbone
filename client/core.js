@@ -750,6 +750,7 @@ formats.textArea.editor = function (options) {
     let opts = {
         readonly: options.readonly,
         id: options.id,
+        key: options.key,
         required: options.required,
         style: options.style,
         onchange: (e) => prop(e.target.value),
@@ -768,6 +769,7 @@ formats.script.editor = function (options) {
     let opts = {
         readonly: options.readonly,
         id: options.id,
+        key: options.key,
         required: options.required,
         onchange: (e) => prop(e.target.value),
         value: prop()
