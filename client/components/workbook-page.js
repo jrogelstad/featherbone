@@ -99,7 +99,7 @@ function saveProfile(name, config, dlg) {
             datasource.request({
                 method: "PATCH",
                 path: "/profile",
-                data: {
+                body: {
                     etag: oldProfile.etag,
                     patch: patch
                 }
@@ -117,7 +117,7 @@ function saveProfile(name, config, dlg) {
         datasource.request({
             method: "PUT",
             path: "/profile",
-            data: newProfile.data
+            body: newProfile.data
         }).then(callback);
     }
 }
