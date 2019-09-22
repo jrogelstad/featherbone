@@ -129,8 +129,7 @@ const home = {
         ]);
     }
 };
-const routes = {
-    "/home": home,
+let routes = {
     "/workbook/:workbook/:key": workbookPage.component,
     "/edit/:feather/:key": formPage.component,
     "/traverse/:feather/:key": childFormPage.component,
@@ -690,6 +689,7 @@ function initApp() {
         sseState.resolve("Error").enter(sseErrorDialogViewModel.show);
         sseErrorDialogViewModel.buttonCancel().hide();
 
+        routes["/home"] = home;
         m.route(document.body, "/home", routes);
 
         if (hash === "/sign-in") {
@@ -717,7 +717,7 @@ function start() {
 }
 
 function goSignIn() {
-    m.route(document.body, "/home", routes);
+    m.route(document.body, "/sign-in", routes);
     f.state().resolve("/SignedIn").enter(start);
     f.state().send("signIn");
 }
