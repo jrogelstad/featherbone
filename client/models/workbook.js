@@ -358,7 +358,7 @@ function workbookModel(data) {
         let payload = {
             method: "PUT",
             path: model.path(model.name, model.data.name()),
-            data: cache
+            body: cache
         };
 
         function callback() {
