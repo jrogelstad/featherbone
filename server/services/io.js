@@ -77,6 +77,12 @@
         });
     }
 
+    function commit(client) {
+        return new Promise(function (resolve) {
+            client.query("COMMIT;").then(resolve);
+        });
+    }
+
     /**
         @class Exporter
         @constructor
@@ -476,7 +482,9 @@
                         return;
                     }
 
-                    Promise.all(requests).then(writeLog).catch(function (err) {
+                    Promise.all(requests).then(
+                        commit.bind(null, client)
+                    ).then(writeLog).catch(function (err) {
                         fs.unlink(filename, reject.bind(null, err));
                     });
                 }
@@ -631,7 +639,9 @@
                 function callback() {
                     sheets[feather].forEach(doRequest);
 
-                    Promise.all(requests).then(writeLog).catch(reject);
+                    Promise.all(requests).then(
+                        commit.bind(null, client)
+                    ).then(writeLog).catch(reject);
                 }
 
                 getFeather(
