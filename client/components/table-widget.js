@@ -850,7 +850,7 @@ tableWidget.viewModel = function (options) {
             payload = {
                 method: "POST",
                 path: "/do/import/" + format + "/" + name,
-                data: formData
+                body: formData
             };
 
             datasource.request(payload).then(callback).catch(error);
@@ -967,7 +967,7 @@ tableWidget.viewModel = function (options) {
             payload = {
                 method: "POST",
                 url: url,
-                data: body
+                body: body
             };
 
             return m.request(payload).then(
