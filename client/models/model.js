@@ -389,7 +389,7 @@ function createModel(data, feather) {
         fn.type = options.type || "string";
         fn.format = options.format;
         fn.isRequired = createProperty(false);
-        fn.isReadOnly = createProperty(options.isReadOnly || false);
+        fn.isReadOnly = createProperty(options.isReadOnly || true);
         fn.isToMany = isToMany.bind(null, fn);
         fn.isToOne = isToOne.bind(null, fn);
         fn.style = createProperty(options.style || "");
