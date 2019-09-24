@@ -83,6 +83,12 @@
         });
     }
 
+    function rollback(client) {
+        return new Promise(function (resolve) {
+            client.query("ROLLBACK;").then(resolve);
+        });
+    }
+
     /**
         @class Exporter
         @constructor
@@ -485,7 +491,9 @@
                     Promise.all(requests).then(
                         commit.bind(null, client)
                     ).then(writeLog).catch(function (err) {
-                        fs.unlink(filename, reject.bind(null, err));
+			rollback().then(function () {
+                            fs.unlink(filename, reject.bind(null, err));
+                        });
                     });
                 }
 
@@ -649,8 +657,10 @@
                     feather,
                     localFeathers
                 ).then(callback).catch(function (err) {
-                    fs.unlink.bind(filename, function () {
-                        reject(err);
+                    rollback().then(function () {
+                        fs.unlink.bind(filename, function () {
+                            reject(err);
+                        });
                     });
                 });
             });
