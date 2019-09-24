@@ -586,6 +586,9 @@
                 let table;
                 let catalog;
                 let sql;
+                let sql1;
+                let sql2;
+                let sql3;
                 let rels;
                 let props;
                 let view;
@@ -616,27 +619,27 @@
                     }
 
                     // Drop table(s)
-                    sql = (
+                    sql1 = (
                         "DROP VIEW IF EXISTS %I; " +
                         "DROP TABLE IF EXISTS %I;" + sql
                     );
-                    sql = sql.format(["_" + table, table]);
-                    client.query(sql, function (err) {
+                    sql1 = sql1.format(["_" + table, table]);
+                    client.query(sql1, function (err) {
                         if (err) {
                             reject(err);
                             return;
                         }
 
-                        sql = "DELETE FROM \"$auth\" WHERE object_pk=";
-                        sql += "(SELECT _pk FROM \"$feather\" WHERE id=$1);";
-                        client.query(sql, [table], function (err) {
+                        sql2 = "DELETE FROM \"$auth\" WHERE object_pk=";
+                        sql2 += "(SELECT _pk FROM \"$feather\" WHERE id=$1);";
+                        client.query(sql2, [table], function (err) {
                             if (err) {
                                 reject(err);
                                 return;
                             }
 
-                            sql = "DELETE FROM \"$feather\" WHERE id=$1;";
-                            client.query(sql, [table], function (err) {
+                            sql3 = "DELETE FROM \"$feather\" WHERE id=$1;";
+                            client.query(sql3, [table], function (err) {
                                 if (err) {
                                     reject(err);
                                     return;
