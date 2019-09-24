@@ -378,7 +378,9 @@ function createModel(data, feather) {
     */
     model.addCalculated = function (options) {
         let fn = options.function;
+        let alias = () => options.name.toProperCase();
 
+        fn.alias = fn.alias || alias;
         fn.isCalculated = true;
         fn.isChild = createProperty(false);
         fn.isParent = createProperty(false);
