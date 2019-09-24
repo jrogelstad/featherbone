@@ -78,6 +78,7 @@
                 });
 
                 f.datasource = datasource;
+                client.currentUser(user);
 
                 function rollback(err) {
                     client.query("ROLLBACK;", function () {
