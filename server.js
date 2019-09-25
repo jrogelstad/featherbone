@@ -651,7 +651,9 @@
             datasource.install(
                 DIR,
                 req.user.name
-            ).then(cleanup);
+            ).then(cleanup).catch(
+                error.bind(res)
+            );
         });
     }
 

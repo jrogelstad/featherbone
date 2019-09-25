@@ -85,7 +85,7 @@
                         console.error(err);
                         //console.log("ROLLBACK");
                         console.error("Installation failed.");
-                        resolve();
+                        reject(err);
                     });
                 }
 
@@ -289,22 +289,46 @@
                 }
 
                 function saveService(name, module, script) {
-                    let id = btoa("ds" + name);
-                    let payload = {
-                        method: "POST",
+                    function callback(resp) {
+                        let id = btoa("ds" + name);
+                        let payload;
+ 
+                        if (resp.length) {
+                            id = resp[0].id;
+                        }
+
+                        payload = {
+                            method: "POST",
+                            name: "DataService",
+                            user: user,
+                            client: client,
+                            id: id,
+                            data: {
+                                name: name,
+                                module: module,
+                                script: script,
+                                owner: user
+                            }
+                        };
+
+                        runBatch([payload]);
+                    }
+
+                    datasource.request({
+                        method: "GET",
                         name: "DataService",
                         user: user,
                         client: client,
-                        id: id,
-                        data: {
-                            name: name,
-                            module: module,
-                            script: script,
-                            owner: user
+                        filter: {
+                            criteria: [{
+                                property: "name",
+                                value: name
+                            }, {
+                                property: "module",
+                                value: module
+                            }]
                         }
-                    };
-
-                    runBatch([payload]);
+                    }, true).then(callback).catch(rollback);
                 }
 
                 function saveWorkbooks(workbooks) {
@@ -451,35 +475,39 @@
 
                         console.log("Installing " + filename);
 
-                        switch (file.type) {
-                        case "install":
-                            install(filename);
-                            break;
-                        case "execute":
-                            execute(filename);
-                            break;
-                        case "module":
-                            saveModule(module, content, version, dependencies);
-                            break;
-                        case "service":
-                            saveService(file.name || name, module, content);
-                            break;
-                        case "feather":
-                            saveFeathers(JSON.parse(content), file.isSystem);
-                            break;
-                        case "batch":
-                            runBatch(JSON.parse(content));
-                            break;
-                        case "workbook":
-                            saveWorkbooks(JSON.parse(content));
-                            break;
-                        case "settings":
-                            defineSettings(JSON.parse(content), module);
-                            break;
-                        default:
-                            rollback("Unknown type.");
-                            return;
-                        }
+                        try {
+                            switch (file.type) {
+                            case "install":
+                                install(filename);
+                                break;
+                            case "execute":
+                                execute(filename);
+                                break;
+                            case "module":
+                                saveModule(module, content, version, dependencies);
+                                break;
+                            case "service":
+                                saveService(file.name || name, module, content);
+                                break;
+                            case "feather":
+                                saveFeathers(JSON.parse(content), file.isSystem);
+                                break;
+                            case "batch":
+                                runBatch(JSON.parse(content));
+                                break;
+                            case "workbook":
+                                saveWorkbooks(JSON.parse(content));
+                                break;
+                            case "settings":
+                                defineSettings(JSON.parse(content), module);
+                                break;
+                            default:
+                                rollback("Unknown type.");
+                                return;
+                            }
+                       } catch (e) {
+                           rollback(e);
+                       }
                     });
                 };
 
