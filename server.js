@@ -1042,7 +1042,7 @@
                         data: {
                             name: message.payload.data.name
                         }
-                    }).then(changeCallback).catch(reject);
+                    }, true).then(changeCallback).catch(reject);
                 } else if (message.payload.subscription.change === "delete") {
                      // Update all clients
                     Object.keys(eventSessions).forEach(function (key) {
@@ -1062,10 +1062,10 @@
 
                 // Update subscription
                 delete payload.client;
-                datasource.request(payload);
+                datasource.request(payload, true);
             };
 
-            datasource.request(payload).then(resolve).catch(reject);
+            datasource.request(payload, true).then(resolve).catch(reject);
         });
     }
 
@@ -1269,7 +1269,7 @@
                         user: systemUser,
                         id: message.payload.data.id
                     };
-                    datasource.request(payload).then(callback).catch(err);
+                    datasource.request(payload, true).then(callback).catch(err);
                     return;
                 }
 
