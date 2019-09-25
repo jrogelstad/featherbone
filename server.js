@@ -571,14 +571,13 @@
     }
 
     function doLock(req, res) {
-        let query = qs.parse(req.params.query);
         let username = req.user.name;
 
-        console.log("Lock", query.id);
+        console.log("Lock", req.body.id);
         datasource.lock(
-            query.id,
+            req.body.id,
             username,
-            query.eventKey
+            req.body.eventKey
         ).then(
             respond.bind(res)
         ).catch(
@@ -588,15 +587,14 @@
 
     function doUnlock(req, res) {
         let criteria;
-        let query = qs.parse(req.params.query);
         let username = req.user.name;
 
         criteria = {
-            id: query.id,
+            id: req.body.id,
             username: username
         };
 
-        console.log("Unlock", query.id);
+        console.log("Unlock", req.body.id);
         datasource.unlock(
             criteria
         ).then(
@@ -1223,8 +1221,8 @@
         app.post("/do/import/:format/:feather", doImport);
         app.post("/do/subscribe/:query", doSubscribe);
         app.post("/do/unsubscribe/:query", doUnsubscribe);
-        app.post("/do/lock/:query", doLock);
-        app.post("/do/unlock/:query", doUnlock);
+        app.post("/do/lock", doLock);
+        app.post("/do/unlock", doUnlock);
         app.get("/feather/:name", doGetFeather);
         app.post("/module/package/:name", doPackageModule);
         app.post("/module/install", doInstall);

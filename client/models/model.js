@@ -1273,7 +1273,6 @@ function createModel(data, feather) {
 
     doLock = function () {
         let lock;
-        let query;
         let payload;
 
         function callback() {
@@ -1294,10 +1293,11 @@ function createModel(data, feather) {
             id: model.id(),
             eventKey: catalog.eventKey()
         };
-        query = Qs.stringify(lock);
+
         payload = {
             method: "POST",
-            path: "/do/lock/" + query
+            path: "/do/lock",
+            body: lock
         };
 
         datasource.request(payload).then(callback).catch(error);
@@ -1305,7 +1305,6 @@ function createModel(data, feather) {
 
     doUnlock = function () {
         let unlock;
-        let query;
         let payload;
 
         function callback() {
@@ -1322,10 +1321,11 @@ function createModel(data, feather) {
             id: model.id(),
             eventKey: catalog.eventKey()
         };
-        query = Qs.stringify(unlock);
+ 
         payload = {
             method: "POST",
-            path: "/do/unlock/" + query
+            path: "/do/unlock",
+            body: unlock
         };
 
         datasource.request(payload).then(callback).catch(error);
