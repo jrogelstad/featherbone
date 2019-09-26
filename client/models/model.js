@@ -1321,7 +1321,7 @@ function createModel(data, feather) {
             id: model.id(),
             eventKey: catalog.eventKey()
         };
- 
+
         payload = {
             method: "POST",
             path: "/do/unlock",

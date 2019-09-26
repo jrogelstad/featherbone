@@ -253,7 +253,9 @@
                                     i += 1;
                                 }
 
-                                tRel = "_" + props[key].type.relation.toSnakeCase();
+                                tRel = (
+                                    "_" + props[key].type.relation.toSnakeCase()
+                                );
                                 tArgs.push(tRel);
                                 vSql = "CREATE OR REPLACE VIEW %I AS SELECT ";
                                 vSql += tCols.join(",");

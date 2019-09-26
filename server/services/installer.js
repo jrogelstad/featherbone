@@ -292,7 +292,7 @@
                     function callback(resp) {
                         let id = btoa("ds" + name);
                         let payload;
- 
+
                         if (resp.length) {
                             id = resp[0].id;
                         }
@@ -484,13 +484,21 @@
                                 execute(filename);
                                 break;
                             case "module":
-                                saveModule(module, content, version, dependencies);
+                                saveModule(
+                                    module,
+                                    content,
+                                    version,
+                                    dependencies
+                                );
                                 break;
                             case "service":
                                 saveService(file.name || name, module, content);
                                 break;
                             case "feather":
-                                saveFeathers(JSON.parse(content), file.isSystem);
+                                saveFeathers(
+                                    JSON.parse(content),
+                                    file.isSystem
+                                );
                                 break;
                             case "batch":
                                 runBatch(JSON.parse(content));
@@ -505,9 +513,9 @@
                                 rollback("Unknown type.");
                                 return;
                             }
-                       } catch (e) {
-                           rollback(e);
-                       }
+                        } catch (e) {
+                            rollback(e);
+                        }
                     });
                 };
 
