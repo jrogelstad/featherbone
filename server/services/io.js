@@ -491,7 +491,7 @@
                     Promise.all(requests).then(
                         commit.bind(null, client)
                     ).then(writeLog).catch(function (err) {
-			rollback().then(function () {
+                        rollback().then(function () {
                             fs.unlink(filename, reject.bind(null, err));
                         });
                     });
