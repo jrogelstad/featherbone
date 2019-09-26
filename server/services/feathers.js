@@ -1650,7 +1650,7 @@
                                     spec.properties && !spec.properties[key] &&
                                     !(
                                         typeof props[key].type === "object" &&
-                                        typeof props[key].type.parentOf
+                                        Boolean(props[key].type.parentOf)
                                     )
                                 ) {
                                     /* Drop views */
@@ -1669,7 +1669,7 @@
                                         // Drop associated view if applicable
                                         sql += "DROP VIEW %I;";
                                         viewName = "_" + table;
-                                        viewName += "_" + key.toSnakeCase();
+                                        viewName += "$" + key.toSnakeCase();
                                         tokens = tokens.concat([
                                             viewName,
                                             table,
