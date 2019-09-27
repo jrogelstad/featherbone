@@ -1238,6 +1238,9 @@ function createModel(data, feather) {
         function callback(result) {
             model.set(result, true, true);
             state.send("fetched");
+            if (result.lock) {
+                model.lock(result.lock);
+            }
             context.resolve(d);
         }
 
