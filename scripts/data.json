@@ -256,6 +256,11 @@
             "attr": "isChild",
             "grid": 5,
             "unit": 0
+        }, {
+            "attr": "isFetchOnStartup",
+            "label": "Fetch on Startup",
+            "grid": 5,
+            "unit": 0
         },
         {
             "attr": "owner",
