@@ -731,8 +731,8 @@ function resize(vm, vnode) {
             e.offsetTop - footer.offsetHeight - 1 + "px"
         );
     } else {
-        yPosition = f.getElementPosition(e).y;
-        height = window.innerHeight - yPosition - 47;
+        yPosition = f.getElementPosition(e.offsetParent).y;
+        height = window.innerHeight - yPosition - 82;
 
         if (height < 150) {
             height = 150;
