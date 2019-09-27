@@ -1684,7 +1684,7 @@
                                         type.properties
                                     ) {
                                         // Drop associated view if applicable
-                                        sql += "DROP VIEW %I;";
+                                        sql += "DROP VIEW IF EXISTS %I;";
                                         viewName = "_" + table;
                                         viewName += "$" + key.toSnakeCase();
                                         tokens = tokens.concat([
@@ -1723,7 +1723,7 @@
                                         changed = true;
                                     }
 
-                                    sql += "DROP VIEW %I;";
+                                    sql += "DROP VIEW IF EXISTS %I;";
                                     viewName = (
                                         "_" + table +
                                         "$" + key.toSnakeCase()
