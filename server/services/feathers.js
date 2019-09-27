@@ -1419,6 +1419,36 @@
                         let tRel;
                         let descr;
 
+                        function createRelationView() {
+                            tProps = type.properties;
+                            cols = ["%I"];
+                            name = "_" + table + "$";
+                            name += key.toSnakeCase();
+                            args = [name, "_pk"];
+
+                            /* Always include "id" whether
+                               specified or not */
+                            if (tProps.indexOf("id") === -1) {
+                                tProps.unshift("id");
+                            }
+
+                            i = 0;
+                            while (i < tProps.length) {
+                                cols.push("%I");
+                                args.push(tProps[i].toSnakeCase());
+                                i += 1;
+                            }
+
+                            tRel = "_";
+                            tRel += type.relation.toSnakeCase();
+                            args.push(tRel);
+                            vSql = "CREATE VIEW %I AS SELECT ";
+                            vSql += cols.join(",");
+                            vSql += " FROM %I ";
+                            vSql += "WHERE NOT is_deleted;";
+                            sql += vSql.format(args);
+                        }
+
                         type = (
                             typeof prop.type === "string"
                             ? tools.types[prop.type]
@@ -1504,32 +1534,7 @@
                                     tProps = type.properties;
 
                                     if (tProps) {
-                                        cols = ["%I"];
-                                        name = "_" + table + "$";
-                                        name += key.toSnakeCase();
-                                        args = [name, "_pk"];
-
-                                        /* Always include "id" whether
-                                           specified or not */
-                                        if (tProps.indexOf("id") === -1) {
-                                            tProps.unshift("id");
-                                        }
-
-                                        i = 0;
-                                        while (i < tProps.length) {
-                                            cols.push("%I");
-                                            args.push(tProps[i].toSnakeCase());
-                                            i += 1;
-                                        }
-
-                                        tRel = "_";
-                                        tRel += type.relation.toSnakeCase();
-                                        args.push(tRel);
-                                        vSql = "CREATE VIEW %I AS SELECT ";
-                                        vSql += cols.join(",");
-                                        vSql += " FROM %I ";
-                                        vSql += "WHERE NOT is_deleted;";
-                                        sql += vSql.format(args);
+                                        createRelationView();
                                     }
 
                                     /* Handle standard types */
@@ -1598,6 +1603,18 @@
                                         prop.description || ""
                                     ]);
                                 }
+                                // Always regenerate relation views in case
+                                // properties changed
+                            } else if (
+                                feather && feather.properties[key] &&
+                                typeof feather.properties[key].type === "object" &&
+                                !feather.properties[key].childOf &&
+                                !feather.properties[key].parentOf &&
+                                typeof type === "object" &&
+                                !type.childOf &&
+                                !type.parentOf
+                            ) {
+                                createRelationView();
                             }
                         } else {
                             err = "Invalid type \"" + prop.type;
@@ -1692,6 +1709,26 @@
                                         parent = catalog[type.relation];
                                         delete parent.properties[type.childOf];
                                     }
+                                    // Always drop/recreate relation views in case
+                                    // properites changed
+                                } else if (
+                                    (
+                                        typeof props[key].type === "object" &&
+                                        !Boolean(props[key].type.parentOf) &&
+                                        !Boolean(props[key].type.childOf)
+                                    )
+                                ) {
+                                    if (!changed) {
+                                        sql += dropSql;
+                                        changed = true;
+                                    }
+
+                                    sql += "DROP VIEW %I;";
+                                    viewName = (
+                                        "_" + table +
+                                        "$" + key.toSnakeCase()
+                                    );
+                                    tokens.push(viewName);
 
                                     // Parent properties need to be added back
                                     // into spec so not lost
@@ -1699,7 +1736,7 @@
                                     spec.properties &&
                                     !spec.properties[key] && (
                                         typeof props[key].type === "object" &&
-                                        typeof props[key].type.parentOf
+                                        props[key].type.parentOf
                                     )
                                 ) {
                                     spec.properties[key] = props[key];
