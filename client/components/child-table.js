@@ -111,8 +111,8 @@ childTable.viewModel = function (options) {
         let feather;
 
         if (!selection) {
-            feather = options.feather.name.toCamelCase();
-            selection = f.createList(feather);
+            feather = options.feather.name;
+            selection = f.createModel(feather);
             models.add(selection);
         }
 
