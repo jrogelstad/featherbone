@@ -1710,7 +1710,7 @@
                                         delete parent.properties[type.childOf];
                                     }
                                     // Always drop/recreate relation views in case
-                                    // properites changed
+                                    // properties changed
                                 } else if (
                                     (
                                         typeof props[key].type === "object" &&
