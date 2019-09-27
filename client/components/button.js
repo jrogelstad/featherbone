@@ -205,9 +205,13 @@ button.viewModel = function (options) {
         if (e.altKey && e.which === vm.hotKey()) {
             id = vm.id();
             b = document.getElementById(id);
-            b.focus();
-            b.click();
-            e.preventDefault();
+
+            // Only fire if in visible content 
+            if (b.offsetParent) {
+                b.focus();
+                b.click();
+                e.preventDefault();
+            }
         }
     };
     /**
