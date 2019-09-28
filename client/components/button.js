@@ -206,7 +206,7 @@ button.viewModel = function (options) {
             id = vm.id();
             b = document.getElementById(id);
 
-            // Only fire if in visible content 
+            // Only fire if in visible content
             if (b.offsetParent) {
                 b.focus();
                 b.click();

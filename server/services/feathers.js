@@ -1414,10 +1414,15 @@
                     function handleProps(key) {
                         let vSql;
                         let prop = props[key];
+                        let fProp;
                         let pProps;
                         let tProps;
                         let tRel;
                         let descr;
+
+                        if (feather && feather.properties) {
+                            fProp = feather.properties[key];
+                        }
 
                         function createRelationView() {
                             tProps = type.properties;
@@ -1456,7 +1461,7 @@
                         );
 
                         if (type && key !== spec.discriminator) {
-                            if (!feather || !feather.properties[key]) {
+                            if (!feather || !fProp) {
 
                                 /* Drop views */
                                 if (feather && !changed) {
@@ -1607,10 +1612,10 @@
                                 // Always regenerate relation views in case
                                 // properties changed
                             } else if (
-                                feather && feather.properties[key] &&
-                                typeof feather.properties[key].type === "object" &&
-                                !feather.properties[key].childOf &&
-                                !feather.properties[key].parentOf &&
+                                fProp &&
+                                typeof fProp.type === "object" &&
+                                !fProp.childOf &&
+                                !fProp.parentOf &&
                                 typeof type === "object" &&
                                 !type.childOf &&
                                 !type.parentOf
@@ -1710,14 +1715,12 @@
                                         parent = catalog[type.relation];
                                         delete parent.properties[type.childOf];
                                     }
-                                    // Always drop/recreate relation views in case
-                                    // properties changed
+                                    // Always drop/recreate relation views in
+                                    // case properties changed
                                 } else if (
-                                    (
-                                        typeof props[key].type === "object" &&
-                                        !Boolean(props[key].type.parentOf) &&
-                                        !Boolean(props[key].type.childOf)
-                                    )
+                                    typeof props[key].type === "object" &&
+                                    !Boolean(props[key].type.parentOf) &&
+                                    !Boolean(props[key].type.childOf)
                                 ) {
                                     if (!changed) {
                                         sql += dropSql;
