@@ -1531,9 +1531,10 @@
                                         return false;
                                     }
 
-                                    tProps = type.properties;
-
-                                    if (tProps) {
+                                    if (
+                                        typeof prop.type === "object" &&
+                                        !prop.type.childOf
+                                    ) {
                                         createRelationView();
                                     }
 
