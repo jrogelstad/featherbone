@@ -2139,6 +2139,14 @@ tableWidget.component = {
 
             // End cap on header for scrollbar
             ths.push(m("th", {
+                ondragover: vm.ondragover,
+                draggable: true,
+                ondrop: vm.ondrop.bind(
+                    null,
+                    config.columns.length,
+                    "column",
+                    config.columns
+                ),
                 style: {
                     minWidth: vm.scrollbarWidth() + "px",
                     maxWidth: vm.scrollbarWidth() + "px"
@@ -2179,6 +2187,14 @@ tableWidget.component = {
                 class: "pure-table fb-table"
             }, [
                 m("thead", {
+                    ondragover: vm.ondragover,
+                    draggable: true,
+                    ondrop: vm.ondrop.bind(
+                        null,
+                        config.columns.length,
+                        "column",
+                        config.columns
+                    ),
                     id: ids.header,
                     class: "fb-table-header"
                 }, [header]),
