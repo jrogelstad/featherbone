@@ -144,11 +144,19 @@ sheetConfigureDialog.viewModel = function (options) {
         let id = vm.sheetId();
         let sheet = vm.model().toJSON();
         let tw = options.parentViewModel.tableWidget();
+        let isEditModeEnabled = vm.model().data.isEditModeEnabled();
+        let buttonEdit = options.parentViewModel.buttonEdit();
 
         vm.sheet(id, sheet);
         // If we updated current sheet (not new), update list
         if (vm.sheet().id === id) {
             tw.config(sheet.list);
+        }
+        tw.isEditModeEnabled(isEditModeEnabled);
+        if (isEditModeEnabled) {
+            buttonEdit.enable();
+        } else {
+            buttonEdit.disable();
         }
         vm.state().send("close");
         saveProfile(
@@ -164,6 +172,7 @@ sheetConfigureDialog.viewModel = function (options) {
     // PUBLIC
     //
 
+    // Sheet configuration dialog
     vm = f.createViewModel("TableDialog", options);
     tableView = vm.content;
     vm.alias = function (attr) {
@@ -203,6 +212,7 @@ sheetConfigureDialog.viewModel = function (options) {
         let nameId = ids.name;
         let featherId = ids.feather;
         let openInNewWindowId = ids.openInNewWindow;
+        let isEditModeEnabledId = ids.isEditModeEnabled;
         let formId = ids.form;
 
         feathers = vm.feathers().map(function (feather) {
@@ -291,6 +301,18 @@ sheetConfigureDialog.viewModel = function (options) {
                                 minWidth: "215px"
                             }
                         }, forms)
+                    ]),
+                    m("div", {
+                        class: "pure-control-group"
+                    }, [
+                        m("label", {
+                            for: isEditModeEnabledId
+                        }, "Enable edit mode"),
+                        m(f.getComponent("Checkbox"), {
+                            id: isEditModeEnabledId,
+                            value: d.isEditModeEnabled(),
+                            onclick: d.isEditModeEnabled
+                        })
                     ])
                 ]),
                 m("div", {
@@ -519,6 +541,7 @@ sheetConfigureDialog.viewModel = function (options) {
     vm.ids().name = f.createId();
     vm.ids().feather = f.createId();
     vm.ids().openInNewWindow = f.createId();
+    vm.ids().isEditModeEnabled = f.createId();
     vm.ids().form = f.createId();
     vm.style().width = "510px";
     vm.reset();

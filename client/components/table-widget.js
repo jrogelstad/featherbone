@@ -772,6 +772,7 @@ tableWidget.viewModel = function (options) {
     let dlgSelectedId = f.createId();
     let dlgVisibleId = f.createId();
     let vm = {};
+    let isEditModeEnabled = f.prop(options.isEditModeEnabled !== false);
 
     function doDownload(target, source) {
         let element = document.createElement("a");
@@ -1221,7 +1222,14 @@ tableWidget.viewModel = function (options) {
         @param {Boolean} flag
         @return {Boolean}
     */
-    vm.isEditModeEnabled = f.prop(options.isEditModeEnabled !== false);
+    vm.isEditModeEnabled = function (...args) {
+        let enable = args[0];
+        if (enable === false) {
+            vm.toggleView();
+        }
+
+        return isEditModeEnabled(...args);
+    };
     /**
         Flag whether list is populated by query.
         @method isQuery
