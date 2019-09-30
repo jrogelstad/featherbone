@@ -820,6 +820,8 @@
             @param {String} payload.name Name of feather
             @param {Object} [payload.filter] Filter criteria of records to
             select
+            @param {Array} [payload.properties] Array of properties to include.
+            If not specified, all properties will be returned.
             @param {String | Object} payload.client Database client
             @param {Boolean} [payload.showDeleted] include deleted records
             @param {Object} [payload.subscription] subscribe to events on
@@ -850,12 +852,35 @@
                 };
 
                 afterGetFeather = function (feather) {
+                    let attrs = [];
+
                     if (!feather.name) {
                         reject("Feather \"" + obj.name + "\" not found.");
                         return;
                     }
 
                     table = "_" + feather.name.toSnakeCase();
+
+                    // Strip dot notation. Just fetch whole relation
+                    if (obj.properties) {
+                        obj.properties = obj.properties.map(function (p) {
+                            let i = p.indexOf(".");
+                            let ret = p;
+
+                            if (i !== -1) {
+                                ret = p.slice(0, i);
+                                if (attrs.indexOf(ret) !== -1) {
+                                    ret = undefined;
+                                }
+                                attrs.push(ret);
+                            }
+                            attrs.push(ret);
+                            return ret;
+                        }).filter(function(p) {
+                            return p !== undefined;
+                        });
+                    }
+
                     keys = obj.properties || Object.keys(
                         feather.properties
                     );

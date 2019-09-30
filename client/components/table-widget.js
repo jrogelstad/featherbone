@@ -1059,11 +1059,27 @@ tableWidget.viewModel = function (options) {
         dlg.show();
     }
 
+    function setProperties () {
+        let list = vm.models();
+        let props;
+
+        if (!vm.isEditModeEnabled()) {
+            props = vm.config().columns.map((col) => col.attr);
+            if (props.indexOf("id") === -1) {
+                props.unshift("id");
+            }
+            list.properties(props);
+        } else {
+            list.properties(undefined);
+        }
+    }
+
     function doFetch(refresh) {
         if (refresh) {
             offset = 0;
         }
 
+        setProperties();
         vm.models().fetch(getFilter(offset), refresh !== true);
     }
 
@@ -1226,6 +1242,10 @@ tableWidget.viewModel = function (options) {
         let enable = args[0];
         if (enable === false) {
             vm.toggleView();
+        }
+
+        if (enable !== undefined) {
+            vm.models().isEditable(enable);
         }
 
         return isEditModeEnabled(...args);
@@ -1848,10 +1868,14 @@ tableWidget.viewModel = function (options) {
         vm.models(f.createList(
             feather.name,
             {
+                fetch: false,
                 subscribe: options.subscribe,
-                filter: vm.filter()
+                filter: vm.filter(),
+                isEditable: vm.isEditModeEnabled(),
             }
         ));
+        setProperties();
+        vm.models().fetch();
     }
 
     // Bind refresh to filter change event
