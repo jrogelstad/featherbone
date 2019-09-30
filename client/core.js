@@ -1101,6 +1101,7 @@ f.baseCurrency = function (effective) {
     @param {Boolean} [options.fetch] Automatically fetch on creation
     @param {Boolean} [options.subscribe] Subscribe to events
     @param {Boolean} [options.showDeleted] Show deleted
+    @param {Boolean} [options.isEditable] Models are editable (default true)
     @param {Object} [options.filter] Filter
     @return {List}
 */

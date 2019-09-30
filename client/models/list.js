@@ -136,6 +136,8 @@ function createList(feather) {
         If turned on perform `checkUpdate` on all fetched
         models, or any newly fetched models. Do this if
         models are going to be edited.
+        
+        Note: only functions when `isEditable` is true.
 
         @method checkUpdate
         @param {Boolean} Enable or disable checking
@@ -155,8 +157,9 @@ function createList(feather) {
         Fetch data. Returns a Promise.
 
         @method fetch
-        @param {Filter} filter,
+        @param {Filter} filter
         @param {Boolean} merge
+        @param {Array} properties
         @return {Object}
     */
     ary.fetch = function (filter, merge) {
@@ -191,6 +194,20 @@ function createList(feather) {
         @return {Object}
     */
     ary.index = f.prop({});
+
+    /**
+        Flag whether data will be editable. If false
+        models in list will be instantiated generically
+        meaning no model specific business logic will 
+        be applied. It enables queries on specific
+        properties, all of which improves performance.
+        Models will also be set as read only.
+
+        @method properties
+        @param {Boolean} flag
+        @return {Array}
+    */
+    ary.isEditable = f.prop(true);
 
     /**
         Model factory for creating new model instances.
@@ -379,19 +396,74 @@ function createList(feather) {
         }
 
         function callback(data) {
+            let feather;
+            let attrs;
+            let props = {};
+            let cache = [];
+
             if (!merge) {
                 ary.reset();
             }
 
-            data.forEach(function (item) {
-                let model = models[name](item);
+            if (ary.isEditable()) {
+                data.forEach(function (item) {
+                    let model = models[name](item);
 
-                model.state().goto("/Ready/Fetched");
-                if (isCheckUpdates) {
-                    model.checkUpdate();
+                    model.state().goto("/Ready/Fetched");
+                    if (isCheckUpdates) {
+                        model.checkUpdate();
+                    }
+                    ary.add(model);
+                });
+            } else {
+                feather = catalog.getFeather(name.toCamelCase(true));
+
+                // Strip dot notation
+                if (body.properties) {
+                    body.properties = body.properties.map(function (p) {
+                        let i = p.indexOf(".");
+                        let ret = p;
+
+                        if (i !== -1) {
+                            ret = p.slice(0, i);
+                            if (cache.indexOf(ret) !== -1) {
+                                ret = undefined;
+                            }
+                            cache.push(ret);
+                        }
+                        cache.push(ret);
+                        return ret;
+                    }).filter(function(p) {
+                        return p !== undefined;
+                    });
                 }
-                ary.add(model);
-            });
+
+                attrs = (
+                    body.properties || Object.keys(feather.properties)
+                );
+
+                attrs.forEach(function (attr) {
+                    let prop = feather.properties[attr];
+
+                    props[attr] = {
+                        type: prop.type,
+                        format: prop.format
+                    };
+                });
+
+                props["isDeleted"] = {type: "Boolean"};
+                props["objectType"] = {
+                    type: "string",
+                    default: name.toCamelCase(true)
+                }
+                
+                data.forEach(function (item) {
+                    let model = f.createModel(item, {properties: props});
+
+                    model.state().goto("/Ready/Fetched/ReadOnly");
+                    ary.add(model);
+                });               
+            }
 
             state.send("fetched");
             context.resolve(ary);
@@ -539,6 +611,7 @@ function list(feather) {
 
         ary.showDeleted(options.showDeleted === true);
         ary.subscribe(options.subscribe === true);
+        ary.isEditable(options.isEditable !== false);
 
         if (options.fetch !== false) {
             ary.fetch(options.filter, options.merge);
