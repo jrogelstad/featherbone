@@ -883,7 +883,12 @@
 
                     keys = obj.properties || Object.keys(
                         feather.properties
-                    );
+                    ).filter(function (key) {
+                        return (
+                            typeof feather.properties[key].type !== "object" ||
+                            feather.properties[key].type.childOf === undefined
+                        );
+                    });
 
                     /* Validate */
                     if (!isChild && feather.isChild && !isSuperUser) {
