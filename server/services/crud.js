@@ -128,10 +128,12 @@
                 afterGetFeather = function (feather) {
                     props = feather.properties;
 
+                    /*
                     if (!isChild && feather.isChild) {
                         reject("Can not directly delete a child class");
                         return;
                     }
+                    */
 
                     if (isSuperUser === false) {
                         feathers.isAuthorized({
@@ -891,10 +893,12 @@
                     });
 
                     /* Validate */
+                    /*
                     if (!isChild && feather.isChild && !isSuperUser) {
                         reject("Can not query directly on a child class");
                         return;
                     }
+                    */
 
                     keys.forEach(function (key) {
                         tokens.push("%I");
@@ -1155,10 +1159,12 @@
                     props = feather.properties;
 
                     /* Validate */
+                    /*
                     if (!isChild && feather.isChild) {
                         reject("Can not directly update a child class");
                         return;
                     }
+                    */
 
                     if (isSuperUser === false) {
                         feathers.isAuthorized({
