@@ -813,7 +813,7 @@ evstart.onmessage = function (event) {
                     if (
                         instance.state().current()[0] !== patching && (
                             !data.etag || (
-                                data.etag &&
+                                data.etag && instance.data.etag &&
                                 data.etag !== instance.data.etag()
                             )
                         )
