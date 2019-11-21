@@ -83,11 +83,14 @@ function feather(data, spec) {
             props.length = 0;
 
             Object.keys(parent.properties).forEach(function (key) {
-                let prop = parent.properties[key];
+                let prop = f.copy(parent.properties[key]);
                 let instance;
 
                 if (prop.default === undefined) {
                     prop.default = "";
+                }
+                if (!prop.inheritedFrom) {
+                    prop.inheritedFrom = parent;
                 }
                 prop.name = key;
                 instance = featherProperty(prop);
