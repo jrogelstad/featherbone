@@ -90,7 +90,11 @@ function feather(data, spec) {
                     prop.default = "";
                 }
                 if (!prop.inheritedFrom) {
-                    prop.inheritedFrom = parent;
+                    prop.inheritedFrom = (
+                        typeof parent === "object"
+                        ? parent.name
+                        : parent
+                    );
                 }
                 prop.name = key;
                 instance = featherProperty(prop);
