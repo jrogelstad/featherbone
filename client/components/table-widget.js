@@ -1875,7 +1875,7 @@ tableWidget.viewModel = function (options) {
             }
         ));
         setProperties();
-        vm.models().fetch();
+        doFetch();
     }
 
     // Bind refresh to filter change event
