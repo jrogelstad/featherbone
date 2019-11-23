@@ -1059,7 +1059,7 @@ tableWidget.viewModel = function (options) {
         dlg.show();
     }
 
-    function setProperties () {
+    function setProperties() {
         let list = vm.models();
         let props;
 

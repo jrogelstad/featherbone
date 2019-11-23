@@ -136,7 +136,7 @@ function createList(feather) {
         If turned on perform `checkUpdate` on all fetched
         models, or any newly fetched models. Do this if
         models are going to be edited.
-        
+
         Note: only functions when `isEditable` is true.
 
         @method checkUpdate
@@ -198,7 +198,7 @@ function createList(feather) {
     /**
         Flag whether data will be editable. If false
         models in list will be instantiated generically
-        meaning no model specific business logic will 
+        meaning no model specific business logic will
         be applied. It enables queries on specific
         properties, all of which improves performance.
         Models will also be set as read only.
@@ -396,7 +396,7 @@ function createList(feather) {
         }
 
         function callback(data) {
-            let feather;
+            let cfeather;
             let attrs;
             let props = {};
             let cache = [];
@@ -416,7 +416,7 @@ function createList(feather) {
                     ary.add(model);
                 });
             } else {
-                feather = catalog.getFeather(name.toCamelCase(true));
+                cfeather = catalog.getFeather(name.toCamelCase(true));
 
                 // Strip dot notation
                 if (body.properties) {
@@ -433,17 +433,17 @@ function createList(feather) {
                         }
                         cache.push(ret);
                         return ret;
-                    }).filter(function(p) {
+                    }).filter(function (p) {
                         return p !== undefined;
                     });
                 }
 
                 attrs = (
-                    body.properties || Object.keys(feather.properties)
+                    body.properties || Object.keys(cfeather.properties)
                 );
 
                 attrs.forEach(function (attr) {
-                    let prop = feather.properties[attr];
+                    let prop = cfeather.properties[attr];
 
                     props[attr] = {
                         type: prop.type,
@@ -451,18 +451,18 @@ function createList(feather) {
                     };
                 });
 
-                props["isDeleted"] = {type: "Boolean"};
-                props["objectType"] = {
+                props.isDeleted = {type: "Boolean"};
+                props.objectType = {
                     type: "string",
                     default: name.toCamelCase(true)
-                }
-                
+                };
+
                 data.forEach(function (item) {
                     let model = f.createModel(item, {properties: props});
 
                     model.state().goto("/Ready/Fetched/ReadOnly");
                     ary.add(model);
-                });               
+                });
             }
 
             state.send("fetched");
