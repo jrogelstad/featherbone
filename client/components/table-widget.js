@@ -1244,6 +1244,10 @@ tableWidget.viewModel = function (options) {
             vm.toggleView();
         }
 
+        if (enable !== undefined) {
+            vm.models().isEditable(enable);
+        }
+
         return isEditModeEnabled(...args);
     };
     /**
@@ -1866,6 +1870,7 @@ tableWidget.viewModel = function (options) {
             {
                 fetch: false,
                 subscribe: options.subscribe,
+                isEditable: vm.isEditModeEnabled(),
                 filter: vm.filter()
             }
         ));
