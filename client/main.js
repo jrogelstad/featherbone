@@ -725,10 +725,10 @@ function goSignIn() {
 // Listen for events
 evstart = new EventSource("/sse");
 evstart.onmessage = function (event) {
-    let data;
+    let edata;
 
     function listen() {
-        let evsubscr = new EventSource("/sse/" + data.eventKey);
+        let evsubscr = new EventSource("/sse/" + edata.eventKey);
 
         evsubscr.onmessage = function (event) {
             let instance;
@@ -737,6 +737,7 @@ evstart.onmessage = function (event) {
             let subscriptionId;
             let change;
             let patching = "/Busy/Saving/Patching";
+            let data;
 
             // Ignore heartbeats
             if (event.data === "") {
@@ -881,11 +882,11 @@ evstart.onmessage = function (event) {
     }
 
     if (event.data) {
-        data = JSON.parse(event.data);
+        edata = JSON.parse(event.data);
         catalog.register("subscriptions");
 
         // Listen for event changes for this instance
-        catalog.eventKey(data.eventKey);
+        catalog.eventKey(edata.eventKey);
 
         // Initiate event listener with key on sign in
         f.state().resolve("/SignedIn").enter(listen);
@@ -893,8 +894,8 @@ evstart.onmessage = function (event) {
         // Done with startup event
         evstart.close();
 
-        if (data.authorized) {
-            f.currentUser(data.authorized);
+        if (edata.authorized) {
+            f.currentUser(edata.authorized);
             f.state().send("preauthorized");
             start();
         } else {
