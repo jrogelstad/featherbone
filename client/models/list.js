@@ -460,7 +460,7 @@ function createList(feather) {
                 data.forEach(function (item) {
                     let model = f.createModel(item, {properties: props});
 
-                    model.state().goto("/Ready/Fetched/ReadOnly");
+                    model.state().goto("/Ready/Fetched");
                     ary.add(model);
                 });
             }
