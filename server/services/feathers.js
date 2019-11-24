@@ -303,8 +303,9 @@
                         }
 
                         obj.callback(null, true);
-                        return;
                     });
+
+                    return;
                 }
 
                 // Otherwise send the sql back
@@ -320,182 +321,130 @@
         }
 
         function propagateViews(obj) {
-            let cprops;
-            let catalog;
-            let afterGetCatalog;
-            let afterCreateView;
-            let name = obj.name;
-            let statements = obj.statements || [];
-            let level = obj.level || 0;
-            let sql = "";
-            let client = obj.client;
+            return new Promise(function (resolve, reject) {
+                let sql = (
+                    "SELECT viewname FROM pg_views " +
+                    "WHERE schemaname = 'public' AND viewname LIKE '_%';"
+                );
+                let keys = [];
 
-            afterGetCatalog = function (resp) {
-                catalog = resp;
-                createView({
-                    name: name,
-                    client: client,
-                    callback: afterCreateView,
-                    dropFirst: true,
-                    execute: false
-                });
-            };
+                function createDropSql(row) {
+                    let stmt = "DROP VIEW IF EXISTS %I CASCADE";
 
-            afterCreateView = function (err, resp) {
-                let keys;
-                let next;
-                let propagateUp;
-                let functions = [];
-                let i = 0;
-
-                if (err) {
-                    obj.callback(err);
-                    return;
+                    return stmt.format([row.viewname]);
                 }
 
-                statements.push({
-                    level: level,
-                    sql: resp
-                });
-
-                // Callback to process functions sequentially
-                next = function (err, resp) {
-                    let o;
-
-                    if (err) {
-                        obj.callback(err);
-                        return;
-                    }
-
-                    // Responses that are result of createView get appended
-                    if (typeof resp === "string") {
-                        statements.push({
-                            level: level,
-                            sql: resp
-                        });
-                    }
-
-                    // Iterate to next function to build statement
-                    o = functions[i];
-                    i += 1;
-
-                    if (o) {
-                        o.func(o.payload);
-                        return;
-                    }
-
-                    // Only top level will actually execute statements
-                    if (level > 0) {
-                        obj.callback(null, true);
-                        return;
-                    }
-
-                    // If here then ready to execute
-                    // Sort by level
-                    statements.sort(function (a, b) {
-                        if (a.level === b.level || a.level < b.level) {
-                            return 0;
-                        }
-                        return 1;
+                function getViews() {
+                    return new Promise(function (resolve, reject) {
+                        obj.client.query(sql).then(resolve).catch(reject);
                     });
+                }
 
-                    statements.forEach(function (statement) {
-                        sql += statement.sql;
+                function deleteViews(resp) {
+                    return new Promise(function (resolve, reject) {
+                        sql = resp.rows.map(createDropSql).join(";");
+
+                        obj.client.query(sql).then(resolve).catch(reject);
                     });
+                }
 
-                    client.query(sql, function (err) {
-                        if (err) {
-                            obj.callback(err);
-                            return;
-                        }
-
-                        obj.callback(null, true);
-                    });
-                };
-
-                // Build object to propagate relations */
-                keys = Object.keys(catalog);
-                keys.forEach(function (key) {
-                    let ckeys;
-
-                    cprops = catalog[key].properties;
-                    ckeys = Object.keys(cprops);
-
-                    ckeys.forEach(function (ckey) {
-                        if (
-                            cprops.hasOwnProperty(ckey) &&
-                            typeof cprops[ckey].type === "object" &&
-                            cprops[ckey].type.relation === name &&
-                            !cprops[ckey].type.childOf &&
-                            !cprops[ckey].type.parentOf
-                        ) {
-                            functions.push({
-                                func: propagateViews,
-                                payload: {
-                                    name: key,
-                                    client: client,
-                                    callback: next,
-                                    statements: statements,
-                                    level: level + 1
-                                }
-                            });
-                        }
-                    });
-                });
-
-                /* Propagate down */
-                keys = Object.keys(catalog);
-                keys.forEach(function (key) {
-                    if (catalog[key].inherits === name) {
-                        functions.push({
-                            func: propagateViews,
-                            payload: {
-                                name: key,
-                                client: client,
-                                callback: next,
-                                statements: statements,
-                                level: level + 1
+                function getCatalog() {
+                    return new Promise(function (resolve, reject) {
+                        settings.getSettings({
+                            client: obj.client,
+                            data: {
+                                name: "catalog"
                             }
-                        });
-                    }
-                });
+                        }).then(resolve).catch(reject);
+                    });
+                }
 
-                /* Propagate up */
-                propagateUp = function (name, plevel) {
-                    let pkeys;
-                    let props;
+                function createViews(resp) {
+                    return new Promise(function (resolve, reject) {
+                        let feathers = f.copy(resp);
+                        let deps = Object.keys(feathers);
+                        let found;
 
-                    plevel = plevel - 1;
-                    props = catalog[name].properties;
-                    pkeys = Object.keys(props);
-                    pkeys.forEach(function (key) {
-                        let type = props[key].type;
-                        if (typeof type === "object" && type.childOf) {
-                            functions.push({
-                                func: createView,
-                                payload: {
-                                    name: type.relation,
-                                    client: client,
-                                    callback: next,
-                                    execute: false
+                        function nextView(err) {
+                            if (err) {
+                                reject(err);
+                                return;
+                            }
+
+                            if (keys.length) {
+                                createView({
+                                    client: obj.client,
+                                    name: keys.shift(),
+                                    dropFirst: true,
+                                    callback: nextView
+                                });
+
+                                return;
+                            }
+
+                            resolve();
+                        }
+
+                        // Establish dependencies
+                        deps.forEach(function (dep) {
+                            let fthr = feathers[dep];
+                            let pkeys = Object.keys(fthr.properties);
+
+                            if (dep === "Object") {
+                                fthr.dependencies = [];
+                                return;
+                            }
+
+                            fthr.dependencies = [
+                                fthr.inherits || "Object"
+                            ];
+
+                            pkeys.forEach(function (pkey) {
+                                let prop = fthr.properties[pkey];
+
+                                if (
+                                    typeof prop.type === "object" &&
+                                    !prop.type.childOf
+                                ) {
+                                    fthr.dependencies.push(prop.type.relation);
                                 }
                             });
-                            propagateUp(type.relation, plevel);
+                        });
+
+                        // Now build key array based on dependency order
+                        function keyExists(item) {
+                            return keys.indexOf(item) !== -1;
                         }
+
+                        function candidate(name) {
+                            return feathers[name].dependencies.every(
+                                keyExists
+                            );
+                        }
+
+                        while (deps.length) {
+                            found = deps.find(candidate);
+                            keys.push(found);
+                            deps.splice(deps.indexOf(found), 1);
+                        }
+
+                        // Now create views
+                        nextView();
                     });
-                };
-
-                propagateUp(name, level);
-
-                next();
-            };
-
-            settings.getSettings({
-                client: client,
-                data: {
-                    name: "catalog"
                 }
-            }).then(afterGetCatalog).catch(obj.callback);
+
+                Promise.resolve().then(
+                    getViews
+                ).then(
+                    deleteViews
+                ).then(
+                    getCatalog
+                ).then(
+                    createViews
+                ).then(
+                    resolve
+                ).catch(reject);
+            });
         }
 
         function getParentKey(obj) {
@@ -792,7 +741,7 @@
                         result[key] = catalog[name][key];
                     });
 
-                    /* Want inherited properites before class properties */
+                    /* Want inherited properties before class properties */
                     if (
                         obj.data.includeInherited !== false &&
                         name !== "Object"
@@ -1447,7 +1396,7 @@
                             tRel = "_";
                             tRel += type.relation.toSnakeCase();
                             args.push(tRel);
-                            vSql = "CREATE VIEW %I AS SELECT ";
+                            vSql = "CREATE OR REPLACE VIEW %I AS SELECT ";
                             vSql += cols.join(",");
                             vSql += " FROM %I ";
                             vSql += "WHERE NOT is_deleted;";
@@ -1722,17 +1671,7 @@
                                     !Boolean(props[key].type.parentOf) &&
                                     !Boolean(props[key].type.childOf)
                                 ) {
-                                    if (!changed) {
-                                        sql += dropSql;
-                                        changed = true;
-                                    }
-
-                                    sql += "DROP VIEW IF EXISTS %I;";
-                                    viewName = (
-                                        "_" + table +
-                                        "$" + key.toSnakeCase()
-                                    );
-                                    tokens.push(viewName);
+                                    changed = true;
 
                                     // Parent properties need to be added back
                                     // into spec so not lost
@@ -2215,22 +2154,16 @@
                         if (changed) {
                             propagateViews({
                                 name: name,
-                                client: client,
-                                callback: afterPropagateViews
-                            });
+                                client: client
+                            }).then(afterPropagateViews).catch(reject);
                             return;
                         }
 
                         afterPropagateViews();
                     };
 
-                    afterPropagateViews = function (err) {
+                    afterPropagateViews = function () {
                         let requests = [];
-
-                        if (err) {
-                            reject(err);
-                            return;
-                        }
 
                         /* If no specific authoriztion this won't work */
                         if (

@@ -878,7 +878,7 @@
                             }
                             attrs.push(ret);
                             return ret;
-                        }).filter(function(p) {
+                        }).filter(function (p) {
                             return p !== undefined;
                         });
                     }
