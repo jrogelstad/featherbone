@@ -172,11 +172,12 @@
     }
 
     function addFeathers(manifest, zip, resp, folder) {
-        let content;
+        let content = [];
+        let feathers = tools.sanitize(resp.rows);
         let filename = folder + "feathers.json";
+        let found;
 
-        content = tools.sanitize(resp.rows);
-        content.forEach(function (feather) {
+        feathers.forEach(function (feather) {
             let props = {};
 
             feather.properties.forEach(function (prop) {
@@ -331,112 +332,52 @@
             }
         });
 
-        // Determine feather's full inheritence dependencies
-        function resolveDependencies(feather, dependencies) {
-            dependencies = dependencies || feather.dependencies;
+        // Establish dependencies
+        feathers.forEach(function (fthr) {
+            let pkeys = Object.keys(fthr.properties || {});
 
-            feather.dependencies.forEach(function (dependency) {
-                let parent = content.find(
-                    (feather) => feather.name === dependency
-                );
+            if (fthr.name === "Object") {
+                fthr.dependencies = [];
+                return;
+            }
 
-                if (parent) {
-                    parent.dependencies.forEach(
-                        (pDepencency) => dependencies.push(pDepencency)
-                    );
+            fthr.dependencies = [];
 
-                    resolveDependencies(parent, dependencies);
+            if (feathers.some((fez) => fez.name === fthr.inherits)) {
+                fthr.dependencies.push(fthr.inherits);
+            }
+
+            pkeys.forEach(function (pkey) {
+                let prop = fthr.properties[pkey];
+                let rel = prop.type.relation;
+
+                if (
+                    typeof prop.type === "object" &&
+                    !prop.type.parentOf &&
+                    feathers.some((fez) => fez.name === rel)
+                ) {
+                    fthr.dependencies.push(rel);
                 }
             });
+        });
+
+        // Now build content array based on dependency order
+        function contentExists(dep) {
+            return content.find((fthr) => fthr.name === dep);
         }
 
-        // Process feathers, start by sorting alpha and relation
-        // dependencies, then inheritence
-        content.sort(function (a, b) {
-            function withB(key) {
-                let p = a.properties[key];
+        function candidate(feather) {
+            return feather.dependencies.every(
+                contentExists
+            );
+        }
 
-                return (
-                    typeof p.type === "object" &&
-                    p.type.relation === b.name
-                );
-            }
-
-            function withA(key) {
-                let p = b.properties[key];
-
-                return (
-                    typeof p.type === "object" &&
-                    p.type.relation === a.name
-                );
-            }
-
-            if (
-                a.properties &&
-                Object.keys(a.properties).some(withB)
-            ) {
-                return 1;
-            }
-
-            if (
-                b.properties &&
-                Object.keys(b.properties).some(withA)
-            ) {
-                return -1;
-            }
-
-            if (a.name > b.name) {
-                return 1;
-            }
-
-            return -1;
-        });
-        content.forEach((feather) => resolveDependencies(feather));
-        content = (function () {
-            let feather;
-            let idx;
-            let ret = [];
-            let outsider = [];
-
-            // See if every feather instance is already
-            // accounted for
-            function top(instance) {
-                return instance.dependencies.every(function (dep) {
-                    return (
-                        ret.some((added) => added.name === dep) ||
-                        outsider.indexOf(dep) > -1
-                    );
-                });
-            }
-
-            // Discount parents from other packages
-            content.forEach(function (feather) {
-                let parent = feather.inherits;
-
-                function isParent(instance) {
-                    return instance.name === parent;
-                }
-
-                if (!content.some(isParent)) {
-                    outsider.push(feather.inherits);
-                }
-            });
-
-            while (content.length) {
-                feather = content.find(top);
-
-                ret.push(feather);
-                idx = content.indexOf(feather);
-                content.splice(idx, 1);
-            }
-
-            return ret;
-        }());
-
-        // Now can remove dependency info
-        content.forEach(function (feather) {
-            delete feather.dependencies;
-        });
+        while (feathers.length) {
+            found = feathers.find(candidate);
+            delete found.dependencies;
+            content.push(found);
+            feathers.splice(feathers.indexOf(found), 1);
+        }
 
         if (content.length) {
             content = JSON.stringify(content, null, 4);
