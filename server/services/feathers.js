@@ -1657,7 +1657,9 @@
                                         ]);
                                     }
 
-                                    sql += "ALTER TABLE %I DROP COLUMN %I CASCADE;";
+                                    sql += (
+                                        "ALTER TABLE %I DROP COLUMN %I CASCADE;"
+                                    );
 
                                     // Unrelate parent if applicable
                                     if (type.childOf) {
