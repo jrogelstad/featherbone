@@ -25,6 +25,7 @@ import createList from "./models/list.js";
 import catalog from "./models/catalog.js";
 import datasource from "./datasource.js";
 import State from "./state.js";
+import icons from "./icons.js";
 
 const m = window.m;
 const f = window.f;
@@ -626,6 +627,23 @@ formats.enum.tableData = function (obj) {
 
     return obj.value;
 };
+
+function iconNames() {
+    let result = f.copy(icons);
+    result = result.map(function (icon) {
+        return {
+            value: icon,
+            label: icon
+        };
+    });
+    result.unshift({
+        value: "",
+        label: ""
+    });
+    return result;
+}
+
+formats.icon.editor = selectEditor.bind(null, iconNames);
 
 formats.icon.tableData = function (obj) {
     if (obj.value) {
