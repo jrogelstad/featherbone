@@ -456,6 +456,7 @@ function createList(feather) {
                     type: "string",
                     default: name.toCamelCase(true)
                 };
+                props.lock = {};
 
                 data.forEach(function (item) {
                     let model = f.createModel(item, {properties: props});
