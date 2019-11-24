@@ -30,7 +30,6 @@ import childFormPage from "./components/child-form-page.js";
 import searchPage from "./components/search-page.js";
 import settingsPage from "./components/settings-page.js";
 import workbookPage from "./components/workbook-page.js";
-import icons from "./icons.js";
 import signInPage from "./components/sign-in-page.js";
 import accountMenu from "./components/account-menu.js";
 
@@ -183,8 +182,8 @@ const workbookSpec = {
         icon: {
             description: "Menu icon",
             type: "string",
+            format: "icon",
             default: "folder",
-            dataList: icons,
             isRequired: true
         },
         feather: {
