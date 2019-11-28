@@ -193,6 +193,12 @@ function feather(data, spec) {
     model.onValidate(function () {
         let authRoles = [];
 
+	if (model.data.name() === model.data.plural()) {
+                throw new Error(
+                    "Name and plural may not be the same"
+                );
+        }
+
         model.data.authorizations().forEach(function (auth) {
             let role = auth.data.role();
 
@@ -202,6 +208,7 @@ function feather(data, spec) {
                     "' must only be in one authorization per feather."
                 );
             }
+           
             authRoles.push(role);
         });
     });
