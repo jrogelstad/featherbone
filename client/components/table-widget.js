@@ -842,7 +842,7 @@ tableWidget.viewModel = function (options) {
                 (key) => feathers[key].plural === name
             )) {
                 error(new Error(
-                    "Unrecognized data type name \"" + feather + "\""
+                    "Unrecognized data type name \"" + name + "\""
                 ));
                 return;
             }
