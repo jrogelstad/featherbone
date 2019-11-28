@@ -662,7 +662,7 @@
                     let payload;
 
                     if (!sheets[feather].length) {
-                        commit(client).then(writeLog);
+                        commit(client).then(writeLog).then(resolve);
                         return;
                     }
 
