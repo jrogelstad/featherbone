@@ -520,9 +520,16 @@
             return new Promise(function (resolve, reject) {
                 let requests = [];
                 let log = [];
-                let wb = XLSX.readFile(filename);
+                let wb;
                 let sheets = {};
                 let localFeathers = {};
+
+		try {
+	            wb = XLSX.readFile(filename);
+                } catch (e) {
+                    reject(e);
+                    return;
+                }
 
                 wb.SheetNames.forEach(function (name) {
                     sheets[name] = XLSX.utils.sheet_to_json(
@@ -650,6 +657,14 @@
                 }
 
                 function callback() {
+                    if (!sheets[feather]) {
+                        reject(
+                            "Expected sheet " +
+                            feather + "not present in workbook"
+                        );
+                        return;
+                    }
+
                     sheets[feather].forEach(doRequest);
 
                     Promise.all(requests).then(
