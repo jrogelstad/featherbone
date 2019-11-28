@@ -523,9 +523,10 @@
                 let wb;
                 let sheets = {};
                 let localFeathers = {};
+                let next;
 
-		try {
-	            wb = XLSX.readFile(filename);
+                try {
+                    wb = XLSX.readFile(filename);
                 } catch (e) {
                     reject(e);
                     return;
@@ -546,6 +547,7 @@
                             statusCode: err.statusCode
                         }
                     });
+                    next();
                 }
 
                 function buildRow(feather, row) {
@@ -555,9 +557,10 @@
                     let id = row.Id;
 
                     if (!id) {
-                        throw new Error(
+                        reject(
                             "Id is required for \"" + feather + "\""
                         );
+                        return;
                     }
 
                     try {
@@ -615,45 +618,31 @@
                     return ret;
                 }
 
-                function doRequest(row) {
-                    let payload = {
-                        client: client,
-                        method: "POST",
-                        name: feather,
-                        id: row.Id,
-                        data: buildRow(feather, row)
-                    };
-
-                    requests.push(
-                        datasource.request(payload).catch(
-                            error.bind(payload)
-                        )
-                    );
-                }
-
                 function writeLog() {
-                    let logname;
+                    return new Promise(function (resolve) {
+                        let logname;
 
-                    if (log.length) {
-                        logname = "./files/downloads/" + f.createId() + ".json";
-                        fs.appendFile(
-                            logname,
-                            JSON.stringify(log, null, 4),
-                            function (err) {
-                                if (err) {
-                                    reject(err);
-                                    return;
+                        if (log.length) {
+                            logname = "./files/downloads/" + f.createId() + ".json";
+                            fs.appendFile(
+                                logname,
+                                JSON.stringify(log, null, 4),
+                                function (err) {
+                                    if (err) {
+                                        reject(err);
+                                        return;
+                                    }
+
+                                    fs.unlink(filename, function () {
+                                        resolve(logname);
+                                    });
                                 }
+                            );
+                            return;
+                        }
 
-                                fs.unlink(filename, function () {
-                                    resolve(logname);
-                                });
-                            }
-                        );
-                        return;
-                    }
-
-                    fs.unlink(filename, resolve);
+                        fs.unlink(filename, resolve);
+                    });
                 }
 
                 function callback() {
@@ -665,11 +654,31 @@
                         return;
                     }
 
-                    sheets[feather].forEach(doRequest);
+                    next();
+                }
 
-                    Promise.all(requests).then(
-                        commit.bind(null, client)
-                    ).then(writeLog).catch(reject);
+                next = function () {
+                    let row;
+                    let payload;
+
+                    if (!sheets[feather].length) {
+                        commit(client).then(writeLog);
+                        return;
+                    }
+
+                    row = sheets[feather].shift();
+                    payload = {
+                        client: client,
+                        method: "POST",
+                        name: feather,
+                        id: row.Id,
+                        data: buildRow(feather, row)
+                    };
+
+                    console.log("adding row", row.Id);
+                    datasource.request(payload).then(next).catch(
+                        error.bind(payload)
+                    );
                 }
 
                 getFeather(
@@ -677,7 +686,7 @@
                     feather,
                     localFeathers
                 ).then(callback).catch(function (err) {
-                    rollback().then(function () {
+                    rollback(client).then(function () {
                         fs.unlink.bind(filename, function () {
                             reject(err);
                         });
