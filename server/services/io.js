@@ -142,7 +142,7 @@
                 function callback(resp) {
                     writeFile(filename, resp, format, client, feather).then(
                         () => resolve(filename)
-                    );
+                    ).catch(reject);
                 }
 
                 crud.doSelect(
@@ -268,7 +268,6 @@
                             }
                         });
 
-                        type = d[0].objectType;
                         if (!sheets[type]) {
                             sheets[type] = d;
                         } else {
@@ -289,7 +288,13 @@
                         XLSX.utils.book_append_sheet(wb, ws, key);
                     }
 
-                    XLSX.writeFile(wb, filename, {bookType: format});
+                    try {
+                        XLSX.writeFile(wb, filename, {bookType: format});
+                    } catch (e) {
+                        reject(e);
+                        return;
+                    }
+
                     resolve();
                 }
 
