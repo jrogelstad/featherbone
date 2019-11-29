@@ -809,11 +809,13 @@ tableWidget.viewModel = function (options) {
         }
 
         function error(err) {
-            dlg.message(err.message);
-            dlg.title("Error");
-            dlg.icon("window-close");
-            dlg.buttonCancel().hide();
-            dlg.show();
+            if (err.response !== null) {
+                dlg.message(err.message);
+                dlg.title("Error");
+                dlg.icon("window-close");
+                dlg.buttonCancel().hide();
+                dlg.show();
+            }
         }
 
         function processFile() {
