@@ -280,7 +280,7 @@
                         data.push({
                             name: "Feather",
                             method: "POST",
-                            id: feather.name,
+                            id: feather.id || feather.name,
                             data: feather
                         });
                     });

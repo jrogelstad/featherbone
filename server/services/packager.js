@@ -673,7 +673,7 @@
 
                 // Feathers
                 sql = (
-                    "SELECT name, description, plural, \"module\", " +
+                    "SELECT id, name, description, plural, \"module\", " +
                     "\"inherits\", is_system, is_child, " +
                     "is_fetch_on_startup, is_read_only, " +
                     "to_json(properties) AS properties, " +
