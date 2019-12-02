@@ -232,6 +232,11 @@
                         return;
                     }
 
+                    afterLog();
+                    return;
+
+                    // Won't get here as code above prevents it
+                    // TODO add flag in feather to make optional
                     if (isChild || obj.isHard) {
                         afterLog();
                         return;
@@ -777,7 +782,11 @@
 
                 afterDoSelect = function (resp) {
                     result = resp;
+                    afterLog();
+                    return;
 
+                    // Won't get here because of above
+                    // TODO: make logging optional
                     /* Handle change log */
                     crud.doInsert({
                         name: "Log",
@@ -1595,6 +1604,11 @@
                 afterSelectUpdated = function (resp) {
                     result = resp;
 
+                    doUnlock();
+                    return;
+
+                    // Won't get here because of above
+                    // TODO: Make logging optional
                     // Handle change log
                     if (updRec) {
                         crud.doInsert({
