@@ -90,8 +90,8 @@
 
             @method doDelete
             @param {Object} payload Request payload
-            @param {String} payload.id Id of record to delete
-            @param {String | Object} payload.client Database client
+            @param {String} [payload.id] Id of record to delete
+            @param {String | Object} [payload.client] Database client
             @param {Boolean} [payload.isHard] Hard delete flag. Default false.
             @param {Boolean} [isChild] Request as child. Default false.
             @param {Boolean} [isSuperUser] Request as super user. Default false.
