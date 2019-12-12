@@ -152,6 +152,21 @@
         },
 
         /**
+            Return Date object that accepts a ISO formatted "YYYY-MM-DD" string
+            as the argument.
+
+            @method ISODate
+            @param {String}
+            @return {Date}
+        */
+        ISODateToDate: function (str) {
+            let year = str.slice(0, 4);
+            let month = str.slice(5, 7) - 1;
+            let day = str.slice(8, 10);
+            return new Date(year, month, day);
+        },
+
+        /**
             Return a time in string format that is the current UTC time.
 
             @method now
