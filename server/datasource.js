@@ -1355,6 +1355,30 @@
                 });
             }
 
+            function resolveType() {
+                return new Promise(function (resolve, reject) {
+                    let payload = {
+                        id: obj.id,
+                        name: obj.name,
+                        client: client,
+                        properties: ["objectType"]
+                    };
+
+                    function callback(resp) {
+                        if (resp) {
+                            obj.name = resp.objectType;
+                        }
+                        resolve(obj.name);
+                    }
+
+                    crud.doSelect(payload, false, isSuperUser).then(
+                        callback
+                    ).catch(
+                        reject
+                    );
+                });      
+            }
+
             // Determine with POST with id is insert or update
             function doUpsert() {
                 return new Promise(function (resolve, reject) {
@@ -1416,6 +1440,7 @@
 
                     function callback(resp) {
                         if (resp) {
+                            obj.name = resp.objectType;
                             overlay(obj.data, resp);
                             obj.method = "PATCH";
                             obj.data = jsonpatch.compare(
@@ -1484,6 +1509,25 @@
                                     rollback(err, reject);
                                 }
                             );
+                        } else if (
+                            obj.method === "DELETE" || obj.method === "PATCH"
+                        ) {
+                            if (!isExternalClient) {
+                                wrap = true;
+                            }
+
+                            begin().then(
+                                resolveType // Make sure biz logic applied!
+                            ).then(
+                                doTraverseBefore
+                            ).then(
+                                resolve
+                            ).catch(
+                                function (err) {
+                                    rollback(err, reject);
+                                }
+                            );
+                        // Must be post new
                         } else {
                             if (!isExternalClient) {
                                 wrap = true;
