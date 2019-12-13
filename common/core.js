@@ -159,7 +159,7 @@
             @param {String}
             @return {Date}
         */
-        ISODateToDate: function (str) {
+        isoDateToDate: function (str) {
             let year = str.slice(0, 4);
             let month = str.slice(5, 7) - 1;
             let day = str.slice(8, 10);
