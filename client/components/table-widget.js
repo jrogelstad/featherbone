@@ -979,10 +979,6 @@ tableWidget.viewModel = function (options) {
         }
 
         dlg.content = function () {
-            let dots = vm.config().columns.some(
-                (col) => col.attr.indexOf(".") > -1
-            );
-
             return m("div", {
                 class: "pure-form pure-form-aligned"
             }, [
@@ -998,14 +994,14 @@ tableWidget.viewModel = function (options) {
                         value: format()
                     }, [
                         m("option", {
-                            value: "json"
-                        }, "JavaScript Object Notation (json)"),
+                            value: "xlsx"
+                        }, "Excel 2007+ XML Format (xlsx)"),
                         m("option", {
                             value: "ods"
                         }, "Open Document Spreadsheet (ods)"),
                         m("option", {
-                            value: "xlsx"
-                        }, "Excel 2007+ XML Format (xlsx)")
+                            value: "json"
+                        }, "JavaScript Object Notation (json)")
                     ])
                 ]),
                 m("div", {
@@ -1037,16 +1033,7 @@ tableWidget.viewModel = function (options) {
                         onclick: function (value) {
                             isOnlyVisible(value);
                         },
-                        value: isOnlyVisible(),
-                        readonly: dots,
-                        title: (
-                            dots
-                            ? (
-                                "Cannot export configured columns " +
-                                "referencing relations"
-                            )
-                            : ""
-                        )
+                        value: isOnlyVisible()
                     })
                 ])
             ]);
