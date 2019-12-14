@@ -623,7 +623,10 @@
                         let logname;
 
                         if (log.length) {
-                            logname = "./files/downloads/" + f.createId() + ".json";
+                            logname = (
+                                "./files/downloads/" +
+                                f.createId() + ".json"
+                            );
                             fs.appendFile(
                                 logname,
                                 JSON.stringify(log, null, 4),
@@ -677,7 +680,7 @@
 
                     console.log("adding row", row.Id);
                     datasource.request(payload).then(next).catch(
-                        error.bind(payload)
+                        error.bind(payload);
                     );
                 }
 

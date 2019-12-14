@@ -1376,7 +1376,7 @@
                     ).catch(
                         reject
                     );
-                });      
+                });
             }
 
             // Determine with POST with id is insert or update
