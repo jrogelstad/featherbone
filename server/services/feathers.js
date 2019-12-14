@@ -135,6 +135,8 @@
         "WITH"
     ];
 
+    let disablePropagateViews = false;
+
     /**
         Feather management service.
 
@@ -448,6 +450,12 @@
                     });
                 }
 
+                // Bail out if this turned off
+                if (disablePropagateViews) {
+                    resolve();
+                    return;
+                }
+
                 Promise.resolve().then(
                     getViews
                 ).then(
@@ -700,6 +708,18 @@
         };
 
         /**
+            Disable propagation of views during feather creation. This
+            prevents running into shared memory violitions when doing mass
+            updates via installation.
+
+            @method disablePropagation
+            @param {Boolean}
+        */
+        that.disablePropagation = function (flag) {
+            disablePropagateViews = Boolean(flag);
+        };
+
+        /**
             Return a feather definition, including inherited properties.
 
             @method getFeather
@@ -909,6 +929,19 @@
                     client: client,
                     user: obj.data.user
                 }).then(callback).catch(reject);
+            });
+        };
+
+        /**
+            Delete and repropagate all views.
+
+            @method propagateViews
+            @param {Object} client
+            @return {Promise}
+        */
+        that.propagateViews = function (c) {
+            return propagateViews({
+                client: c
             });
         };
 
@@ -2170,7 +2203,6 @@
                         changed = changed || !feather;
                         if (changed) {
                             propagateViews({
-                                name: name,
                                 client: client
                             }).then(afterPropagateViews).catch(reject);
                             return;
