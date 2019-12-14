@@ -308,8 +308,10 @@
                     return;
                 }
 
-                // Otherwise send the sql back
-                obj.callback(null, sql);
+                // Deferred execution deprecated, throw error
+                obj.callback(
+                    "Deferred execution of view creation is unspported"
+                );
             };
 
             that.getFeather({
@@ -342,9 +344,22 @@
 
                 function deleteViews(resp) {
                     return new Promise(function (resolve, reject) {
-                        sql = resp.rows.map(createDropSql).join(";");
+                        let stmts = resp.rows.map(createDropSql);
 
-                        obj.client.query(sql).then(resolve).catch(reject);
+                        // Run drops one by one
+                        function next() {
+                            let stmt;
+
+                            if (!stmts.length) {
+                                resolve();
+                                return;
+                            }
+
+                            stmt = stmts.shift();
+                            obj.client.query(stmt).then(next).catch(reject);
+                        }
+
+                        next();
                     });
                 }
 
