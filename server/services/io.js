@@ -518,7 +518,6 @@
         */
         that.xlsx = function (datasource, client, feather, filename) {
             return new Promise(function (resolve, reject) {
-                let requests = [];
                 let log = [];
                 let wb;
                 let sheets = {};
@@ -680,9 +679,9 @@
 
                     console.log("adding row", row.Id);
                     datasource.request(payload).then(next).catch(
-                        error.bind(payload);
+                        error.bind(payload)
                     );
-                }
+                };
 
                 getFeather(
                     client,
