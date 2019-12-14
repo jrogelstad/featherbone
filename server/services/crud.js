@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/*jslint node, for*/
+/*jslint node, for, devel*/
 /**
     Create, read, update and delete methods for persisting data to the
     database.
@@ -97,7 +97,7 @@
             @param {Boolean} [isSuperUser] Request as super user. Default false.
             @return {Promise} Resolves `true` if successful
         */
-        crud.doDelete = function (obj, isChild, isSuperUser) {
+        crud.doDelete = function (obj, ignore, isSuperUser) {
             return new Promise(function (resolve, reject) {
                 let oldRec;
                 let keys;
@@ -224,8 +224,6 @@
 
                 // Handle change log
                 afterDelete = function () {
-                    let now = f.now();
-
                     // Move on only after all callbacks report back
                     c += 1;
                     if (c < clen) {
@@ -237,6 +235,7 @@
 
                     // Won't get here as code above prevents it
                     // TODO add flag in feather to make optional
+                    /*
                     if (isChild || obj.isHard) {
                         afterLog();
                         return;
@@ -255,6 +254,7 @@
                         },
                         client: client
                     }, true).then(afterLog).catch(reject);
+                    */
                 };
 
                 afterLog = function () {
@@ -788,6 +788,7 @@
                     // Won't get here because of above
                     // TODO: make logging optional
                     /* Handle change log */
+                    /*
                     crud.doInsert({
                         name: "Log",
                         data: {
@@ -801,6 +802,7 @@
                         },
                         client: client
                     }, true).then(afterLog).catch(reject);
+                    */
                 };
 
                 afterLog = function () {
@@ -842,7 +844,7 @@
             @param {Boolean} [isSuperUser] Request as super user. Default false.
             @return {Promise} Resolves to object or array.
         */
-        crud.doSelect = function (obj, isChild, isSuperUser) {
+        crud.doSelect = function (obj, ignore, isSuperUser) {
             return new Promise(function (resolve, reject) {
                 let sql;
                 let table;
@@ -1609,6 +1611,7 @@
                     // Won't get here because of above
                     // TODO: Make logging optional
                     // Handle change log
+                    /*
                     if (updRec) {
                         crud.doInsert({
                             name: "Log",
@@ -1629,6 +1632,7 @@
                         return;
                     }
                     doUnlock();
+                    */
                 };
 
                 doUnlock = function () {
