@@ -76,6 +76,7 @@
                     dir: dir,
                     base: MANIFEST
                 });
+                let installedFeathers = false;
 
                 f.datasource = datasource;
                 client.currentUser(user);
@@ -181,6 +182,8 @@
                 function saveFeathers(feathers, isSystem) {
                     let payload;
                     let data = [];
+
+                    installedFeathers = true;
 
                     // System feathers don't get to be tables
                     if (isSystem) {
@@ -367,6 +370,7 @@
                     let subdir = path.parse(filename).dir;
                     let n = i;
 
+                    feathers.disablePropagation(true);
                     fs.readFile(subfilepath, "utf8", function (err, data) {
                         if (err) {
                             console.error(err);
@@ -438,13 +442,34 @@
                         resolve();
                     }
 
+                    // We deferred propagating views on every feather
+                    // to avoid running out of shared memory, so follow
+                    // up on that now
+                    function handleFeathers() {
+                        return new Promise(function (resolve, reject) {
+                            feathers.disablePropagation(false);
+                            if (installedFeathers) {
+                                feathers.propagateViews(client).then(
+                                    resolve
+                                ).catch(reject);
+                                return;
+                            }
+
+                            resolve();
+                        });
+                    }
+
                     file = manifest.files[i];
                     i += 1;
 
                     // If we've processed all the files, wrap this up
                     if (!file) {
                         //console.log("COMMIT");
-                        client.query("COMMIT;").then(
+                        handleFeathers().then(function () {
+                            return new Promise(function (resolve) {
+                                client.query("COMMIT;").then(resolve);
+                            });
+                        }).then(
                             api.buildClientApi.bind(null, datasource, user)
                         ).then(
                             api.buildRestApi.bind(null, datasource, user)
