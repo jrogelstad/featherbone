@@ -1421,36 +1421,6 @@
                             fProp = feather.properties[key];
                         }
 
-                        function createRelationView() {
-                            tProps = type.properties;
-                            cols = ["%I"];
-                            name = "_" + table + "$";
-                            name += key.toSnakeCase();
-                            args = [name, "_pk"];
-
-                            /* Always include "id" whether
-                               specified or not */
-                            if (tProps.indexOf("id") === -1) {
-                                tProps.unshift("id");
-                            }
-
-                            i = 0;
-                            while (i < tProps.length) {
-                                cols.push("%I");
-                                args.push(tProps[i].toSnakeCase());
-                                i += 1;
-                            }
-
-                            tRel = "_";
-                            tRel += type.relation.toSnakeCase();
-                            args.push(tRel);
-                            vSql = "CREATE OR REPLACE VIEW %I AS SELECT ";
-                            vSql += cols.join(",");
-                            vSql += " FROM %I ";
-                            vSql += "WHERE NOT is_deleted;";
-                            sql += vSql.format(args);
-                        }
-
                         type = (
                             typeof prop.type === "string"
                             ? tools.types[prop.type]
@@ -1533,13 +1503,6 @@
                                         return false;
                                     }
 
-                                    if (
-                                        typeof prop.type === "object" &&
-                                        !prop.type.childOf
-                                    ) {
-                                        createRelationView();
-                                    }
-
                                     /* Handle standard types */
                                 } else {
                                     if (prop.format) {
@@ -1608,16 +1571,6 @@
                                 }
                                 // Always regenerate relation views in case
                                 // properties changed
-                            } else if (
-                                fProp &&
-                                typeof fProp.type === "object" &&
-                                !fProp.childOf &&
-                                !fProp.parentOf &&
-                                typeof type === "object" &&
-                                !type.childOf &&
-                                !type.parentOf
-                            ) {
-                                createRelationView();
                             }
                         } else {
                             err = "Invalid type \"" + prop.type;
@@ -1687,7 +1640,7 @@
                                         type.properties
                                     ) {
                                         // Drop associated view if applicable
-                                        sql += "DROP VIEW IF EXISTS %I;";
+                                        sql += "DROP VIEW IF EXISTS %I CASCADE;";
                                         viewName = "_" + table;
                                         viewName += "$" + key.toSnakeCase();
                                         tokens = tokens.concat([
