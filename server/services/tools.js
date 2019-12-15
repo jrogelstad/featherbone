@@ -205,7 +205,8 @@
             },
             money: {
                 type: "mono",
-                default: "money()"
+                // Hack because promises tough to deal with
+                default: null
             },
             lock: {
                 type: "lock",
