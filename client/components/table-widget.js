@@ -932,9 +932,9 @@ tableWidget.viewModel = function (options) {
 
     function doExport() {
         let dlg = vm.confirmDialog();
-        let isOnlyVisible = f.prop(false);
+        let isOnlyVisible = f.prop(true);
         let isOnlySelected = f.prop(false);
-        let format = f.prop("json");
+        let format = f.prop("xlsx");
         let chkbox = f.getComponent("Checkbox");
 
         function error(err) {
