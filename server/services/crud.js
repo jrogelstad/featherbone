@@ -1259,6 +1259,7 @@
                     // Capture changes from original request
                     if (obj.cache) {
                         cacheRec = f.copy(oldRec);
+                        jsonpatch.applyPatch(cacheRec, obj.cache);
                     }
 
                     if (!patches.length) {
