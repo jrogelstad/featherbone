@@ -986,11 +986,6 @@
                 : false
             );
 
-            // Cache original request that may get changed by triggers
-            if (obj.data) {
-                obj.cache = Object.freeze(f.copy(obj.data));
-            }
-
             function begin() {
                 return new Promise(function (resolve, reject) {
                     if (!client.wrapped()) {
@@ -1439,15 +1434,23 @@
                     }
 
                     function callback(resp) {
+                        let patch;
+
                         if (resp) {
-                            obj.name = resp.objectType;
-                            overlay(obj.data, resp);
-                            obj.method = "PATCH";
-                            obj.data = jsonpatch.compare(
+                            patch = jsonpatch.compare(
                                 resp,
                                 obj.data
                             );
+                            obj.name = resp.objectType;
+                            overlay(obj.data, resp);
+                            obj.method = "PATCH";
+                            obj.data = patch;
+                            obj.cache = Object.freeze(f.copy(patch));
                         } else {
+                            // Cache original request that may get changed by triggers
+                            if (obj.data) {
+                                obj.cache = Object.freeze(f.copy(obj.data));
+                            }
                             obj.data.id = obj.id;
                         }
 
@@ -1512,6 +1515,11 @@
                         } else if (
                             obj.method === "DELETE" || obj.method === "PATCH"
                         ) {
+                            // Cache original request that may get changed by triggers
+                            if (obj.data) {
+                                obj.cache = Object.freeze(f.copy(obj.data));
+                            }
+
                             if (!isExternalClient) {
                                 wrap = true;
                             }
@@ -1529,6 +1537,11 @@
                             );
                         // Must be post new
                         } else {
+                            // Cache original request that may get changed by triggers
+                            if (obj.data) {
+                                obj.cache = Object.freeze(f.copy(obj.data));
+                            }
+
                             if (!isExternalClient) {
                                 wrap = true;
                             }
