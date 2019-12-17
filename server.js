@@ -1185,6 +1185,7 @@
                 clearTimeout(sessions[req.sessionID]);
             }
             if (req.user) {
+                req.user.mode = mode;
                 sessions[req.sessionID] = setTimeout(function () {
                     console.log("Session " + req.sessionID + " timed out");
                     doSignOut(req, res);
@@ -1285,7 +1286,6 @@
                 let crier = new SSE(res);
                 let eventKey = f.createId();
 
-                req.user.mode = mode;
                 crier.send({
                     eventKey: eventKey,
                     authorized: req.user
