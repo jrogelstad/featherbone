@@ -75,7 +75,8 @@
     let routes = [];
     let eventSessions = {};
     let sessions = {};
-    let port = process.env.PORT || 10001;
+    let port;
+    let mode;
     let settings = datasource.settings();
     let dir = "./files";
     let pgPool;
@@ -191,6 +192,8 @@
                         sessionTimeout = resp.sessionTimeout || 86400000;
                         secret = resp.secret;
                         systemUser = resp.postgres.user;
+                        mode = resp.mode || "prod";
+                        port = resp.port || 10001;
 
                         // Add npm modules specified
                         mods.forEach(function (mod) {
@@ -1282,6 +1285,7 @@
                 let crier = new SSE(res);
                 let eventKey = f.createId();
 
+                req.user.mode = mode;
                 crier.send({
                     eventKey: eventKey,
                     authorized: req.user

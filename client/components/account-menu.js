@@ -343,6 +343,19 @@ accountMenu.component = {
         const vm = this.viewModel;
         const dlg = f.getComponent("Dialog");
         const dlgState = vm.changePasswordDialog().state().current()[0];
+        let menuButtonClass = (
+            "pure-button " +
+            "fa fa-user-circle " +
+            "fb-menu-button"
+        );
+
+        switch (f.currentUser().mode) {
+        case "test":
+            menuButtonClass += " fb-menu-button-test";
+            break;
+        case "dev":
+            menuButtonClass += " fb-menu-button-dev";
+        }
 
         return m("div", {
             id: "nav-account-div",
@@ -388,11 +401,7 @@ accountMenu.component = {
                     ? f.currentUser().name
                     : ""
                 ),
-                class: (
-                    "pure-button " +
-                    "fa fa-user-circle " +
-                    "fb-menu-button"
-                )
+                class: menuButtonClass
             }),
             m("ul", {
                 id: "nav-account-list",

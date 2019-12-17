@@ -591,6 +591,18 @@ workbookPage.viewModel = function (options) {
     let sheetId = the_sheet.id;
     let receiverKey = f.createId();
     let vm = {};
+    let toolbarButtonClass = "fb-toolbar-button";
+    let formWorkbookClass = "fb-form-workbook";
+
+    switch (f.currentUser().mode) {
+    case "test":
+        toolbarButtonClass += " fb-toolbar-button-test";
+        formWorkbookClass += " fb-form-workbook-test";
+        break;
+    case "dev":
+        toolbarButtonClass += " fb-toolbar-button-dev";
+        formWorkbookClass += " fb-form-workbook-dev";
+    }
 
     // ..........................................................
     // PUBLIC
@@ -1225,7 +1237,7 @@ workbookPage.viewModel = function (options) {
 
     // Create table widget view model
     vm.tableWidget(f.createViewModel("TableWidget", {
-        class: "fb-form-workbook",
+        class: formWorkbookClass,
         actions: vm.sheet().actions,
         config: vm.sheet().list,
         isEditModeEnabled: vm.sheet().isEditModeEnabled,
@@ -1308,7 +1320,7 @@ workbookPage.viewModel = function (options) {
         title: "Edit mode",
         hotkey: "E",
         icon: "edit",
-        class: "fb-toolbar-button"
+        class: toolbarButtonClass
     }));
     if (!vm.tableWidget().isEditModeEnabled()) {
         vm.buttonEdit().disable();
@@ -1318,7 +1330,7 @@ workbookPage.viewModel = function (options) {
         onclick: vm.tableWidget().save,
         label: "&Save",
         icon: "cloud-upload-alt",
-        class: "fb-toolbar-button"
+        class: toolbarButtonClass
     }));
     vm.buttonSave().hide();
 
@@ -1326,14 +1338,14 @@ workbookPage.viewModel = function (options) {
         onclick: vm.modelNew,
         label: "&New",
         icon: "plus-circle",
-        class: "fb-toolbar-button"
+        class: toolbarButtonClass
     }));
 
     vm.buttonDelete(f.createViewModel("Button", {
         onclick: vm.tableWidget().modelDelete,
         label: "&Delete",
         icon: "trash",
-        class: "fb-toolbar-button"
+        class: toolbarButtonClass
     }));
     vm.buttonDelete().disable();
 
@@ -1347,7 +1359,7 @@ workbookPage.viewModel = function (options) {
         onclick: vm.tableWidget().undo,
         label: "&Undo",
         icon: "undo",
-        class: "fb-toolbar-button"
+        class: toolbarButtonClass
     }));
     vm.buttonUndo().hide();
 
@@ -1356,7 +1368,7 @@ workbookPage.viewModel = function (options) {
         title: "Refresh",
         hotkey: "R",
         icon: "sync",
-        class: "fb-toolbar-button"
+        class: toolbarButtonClass
     }));
 
     vm.buttonClear(f.createViewModel("Button", {
@@ -1364,7 +1376,7 @@ workbookPage.viewModel = function (options) {
         title: "Clear search",
         hotkey: "C",
         icon: "eraser",
-        class: "fb-toolbar-button"
+        class: toolbarButtonClass
     }));
     vm.buttonClear().disable();
 
@@ -1373,7 +1385,7 @@ workbookPage.viewModel = function (options) {
         icon: "sort",
         hotkey: "T",
         title: "Sort results",
-        class: "fb-toolbar-button"
+        class: toolbarButtonClass
     }));
 
     vm.buttonFilter(f.createViewModel("Button", {
@@ -1381,7 +1393,7 @@ workbookPage.viewModel = function (options) {
         icon: "filter",
         hotkey: "F",
         title: "Filter results",
-        class: "fb-toolbar-button"
+        class: toolbarButtonClass
     }));
 
     // Bind button states to list statechart events
@@ -1535,6 +1547,18 @@ workbookPage.component = {
         let dlg = f.getComponent("Dialog");
         let nav = f.getComponent("NavigatorMenu");
         let menu = f.getComponent("AccountMenu");
+        let toolbarClass = "fb-toolbar";
+        let menuButtonClass = "fb-menu-button";
+
+        switch (f.currentUser().mode) {
+        case "test":
+            toolbarClass += " fb-toolbar-test";
+            menuButtonClass += " fb-menu-button-test";
+            break;
+        case "dev":
+            toolbarClass += " fb-toolbar-dev";
+            menuButtonClass += " fb-menu-button-dev";
+        }
 
         if (vm.tableWidget().selections().some((s) => s.canDelete())) {
             vm.buttonDelete().enable();
@@ -1640,7 +1664,7 @@ workbookPage.component = {
                 m("div", [
                     m("div", {
                         id: "toolbar",
-                        class: "fb-toolbar",
+                        class: toolbarClass,
                         onkeydown: vm.onkeydown
                     }, [
                         m(btn, {
@@ -1673,7 +1697,7 @@ workbookPage.component = {
                                 class: (
                                     "pure-button " +
                                     "fa fa-bolt " +
-                                    "fb-menu-button"
+                                    menuButtonClass
                                 )
                             }),
                             m("ul", {
@@ -1720,7 +1744,7 @@ workbookPage.component = {
                                 class: (
                                     "pure-button " +
                                     "fa fa-list " +
-                                    "fb-menu-button"
+                                    menuButtonClass
                                 )
                             }),
                             m("ul", {
