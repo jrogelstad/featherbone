@@ -1437,12 +1437,12 @@
                         let patch;
 
                         if (resp) {
+                            obj.name = resp.objectType;
+                            overlay(obj.data, resp);
                             patch = jsonpatch.compare(
                                 resp,
                                 obj.data
                             );
-                            obj.name = resp.objectType;
-                            overlay(obj.data, resp);
                             obj.method = "PATCH";
                             obj.data = patch;
                             obj.cache = Object.freeze(f.copy(patch));
