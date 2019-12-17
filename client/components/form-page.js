@@ -499,6 +499,15 @@ formPage.viewModel = function (options) {
     let authorizations = f.createList("ObjectAuthorization", {fetch: false});
     authorizations.checkUpdate = false;
     let authViewModel = authTable.viewModel({models: authorizations});
+    let toolbarButtonClass = "fb-toolbar-button";
+
+    switch (f.currentUser().mode) {
+    case "test":
+        toolbarButtonClass += " fb-toolbar-button-test";
+        break;
+    case "dev":
+        toolbarButtonClass += " fb-toolbar-button-dev";
+    }
 
     // Helper function to pass back data to sending model
     function callReceiver() {
@@ -815,34 +824,34 @@ formPage.viewModel = function (options) {
             ? ""
             : "arrow-left"
         ),
-        class: "fb-toolbar-button"
+        class: toolbarButtonClass
     }));
 
     vm.buttonApply(f.createViewModel("Button", {
         onclick: vm.doApply,
         label: "&Apply",
-        class: "fb-toolbar-button"
+        class: toolbarButtonClass
     }));
 
     vm.buttonAuth(f.createViewModel("Button", {
         onclick: vm.editAuthDialog().show,
         icon: "key",
         title: "Edit Authorizations",
-        class: "fb-toolbar-button fb-toolbar-button-right"
+        class: toolbarButtonClass + " fb-toolbar-button-right"
     }));
 
     vm.buttonSave(f.createViewModel("Button", {
         onclick: vm.doSave,
         label: "&Save",
         icon: "cloud-upload-alt",
-        class: "fb-toolbar-button"
+        class: toolbarButtonClass
     }));
 
     vm.buttonSaveAndNew(f.createViewModel("Button", {
         onclick: vm.doSaveAndNew,
         label: "Save and &New",
         icon: "plus-circle",
-        class: "fb-toolbar-button"
+        class: toolbarButtonClass
     }));
     if (catalog.getFeather(feather).isReadOnly) {
         vm.buttonSaveAndNew().label("&New");
@@ -935,6 +944,15 @@ formPage.component = {
         let btn = f.getComponent("Button");
         let dlg = f.getComponent("Dialog");
         let fw = f.getComponent("FormWidget");
+        let toolbarClass = "fb-toolbar";
+
+        switch (f.currentUser().mode) {
+        case "test":
+            toolbarClass += " fb-toolbar-test";
+            break;
+        case "dev":
+            toolbarClass += " fb-toolbar-dev";
+        }
 
         vm.toggleNew();
         vm.buttonAuth().disable();
@@ -974,7 +992,7 @@ formPage.component = {
         return m("div", [
             m("div", {
                 id: "toolbar",
-                class: "fb-toolbar"
+                class: toolbarClass
             }, [
                 m(btn, {
                     viewModel: vm.buttonAuth()

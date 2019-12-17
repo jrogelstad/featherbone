@@ -9,5 +9,7 @@
         "user": "admin",
         "password": "password"
     },
+    "port": 10001,
+    "mode": "prod",
     "npmModules": []
 }

@@ -83,6 +83,19 @@ const home = {
         menu.selected("home");
     },
     view: function () {
+        let toolbarClass = "fb-toolbar";
+        let toolbarButtonClass = "fb-toolbar-button";
+
+        switch (f.currentUser().mode) {
+        case "test":
+            toolbarClass += " fb-toolbar-test";
+            toolbarButtonClass = " fb-toolbar-button-test";
+            break;
+        case "dev":
+            toolbarClass += " fb-toolbar-dev";
+            toolbarButtonClass = " fb-toolbar-button-dev";
+        }
+
         return m("div", {
             class: "fb-navigator-menu-container"
         }, [
@@ -96,7 +109,7 @@ const home = {
                     viewModel: addWorkbookViewModel
                 }),
                 m("span", {
-                    class: "fb-toolbar fb-toolbar-home"
+                    class: toolbarClass + " fb-toolbar-home"
                 }, [
                     m("div", {
                         class: "fb-header-home"
@@ -104,8 +117,8 @@ const home = {
                     m(accountMenu.component),
                     m("button", {
                         class: (
-                            "pure-button fb-toolbar-button " +
-                            "fb-toolbar-button-home " + (
+                            toolbarButtonClass +
+                            " fb-toolbar-button-home " + (
                                 isSuper
                                 ? ""
                                 : "fb-button-disabled"

@@ -288,6 +288,14 @@ a.pure-button-selected {
   background-color: #3F51B5;
 }
 
+.fb-form-workbook-test {
+  background-color: Green;
+}
+
+.fb-form-workbook-dev {
+  background-color: OrangeRed;
+}
+
 .fb-form-content {
   overflow: auto;
   position: absolute;
@@ -453,6 +461,14 @@ a.pure-button-selected {
   min-height: 34px;
 }
 
+.fb-menu-button-test {
+  background-color: Green;
+}
+
+.fb-menu-button-dev {
+  background-color: OrangeRed;
+}
+
 .fb-menu-list {
   background-color: White;
   position: absolute;
@@ -574,15 +590,32 @@ a.pure-button-selected {
   border-color: darkslateblue;
 }
 
+.fb-toolbar-dev {
+  background-color: OrangeRed;
+}
+
+.fb-toolbar-test {
+  background-color: Green;
+}
+
 .fb-toolbar-home {
     display: inline;
     position: relative;
     width: 100%;
+    color: white;
 }
 
 .fb-toolbar-button {
   background-color: #3F51B5;
   color: white;
+}
+
+.fb-toolbar-button-test {
+  background-color: Green;
+}
+
+.fb-toolbar-button-dev {
+  background-color: OrangeRed;
 }
 
 .fb-toolbar-button-right {
