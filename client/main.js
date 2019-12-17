@@ -734,9 +734,19 @@ function goSignIn() {
     f.state().send("signIn");
 }
 
-// Listen for events
-evstart = new EventSource("/sse");
-evstart.onmessage = function (event) {
+// Connect
+function connect() {
+    return new Promise(function (resolve) {
+        let payload = {
+            method: "POST",
+            path: "/connect"
+        };
+
+        datasource.request(payload).then(resolve);
+    });
+}
+
+connect().then(function (resp) {
     let edata;
 
     function listen() {
@@ -893,8 +903,8 @@ evstart.onmessage = function (event) {
         };
     }
 
-    if (event.data) {
-        edata = JSON.parse(event.data);
+    if (resp.data) {
+        edata = resp.data;
         catalog.register("subscriptions");
 
         // Listen for event changes for this instance
@@ -903,10 +913,7 @@ evstart.onmessage = function (event) {
         // Initiate event listener with key on sign in
         f.state().resolve("/SignedIn").enter(listen);
 
-        // Done with startup event
-        evstart.close();
-
-        if (edata.authorized) {
+        if (resp.data.authorized) {
             f.currentUser(edata.authorized);
             f.state().send("preauthorized");
             start();
@@ -914,7 +921,7 @@ evstart.onmessage = function (event) {
             goSignIn();
         }
     }
-};
+});
 
 // Let displays handle their own overflow locally
 document.documentElement.style.overflow = "hidden";

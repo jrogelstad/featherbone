@@ -992,6 +992,15 @@
         );
     }
 
+    function doConnect(req, res) {
+        respond.bind(res)({
+            data: {
+                eventKey: f.createId(),
+                authorized: req.user
+            }
+        });
+    }
+
     // Listen for changes to feathers, update and broadcast to all
     function subscribeToFeathers() {
         return new Promise(function (resolve, reject) {
@@ -1211,6 +1220,7 @@
         // REGISTER CORE ROUTES -------------------------------
         console.log("Registering core routes");
 
+        app.post("/connect", doConnect);
         app.post("/data/user-accounts", doQueryRequest);
         app.post("/data/user-account", doPostUserAccount);
         app.get("/data/user-account/:id", doRequest);
@@ -1282,20 +1292,6 @@
         }
 
         function handleEvents() {
-            app.get("/sse", function (req, res) {
-                let crier = new SSE(res);
-                let eventKey = f.createId();
-
-                crier.send({
-                    eventKey: eventKey,
-                    authorized: req.user
-                });
-
-                crier.disconnect(function () {
-                    console.log("Client startup done.");
-                });
-            });
-
             // Instantiate address for instance
             app.get("/sse/:eventKey", function (req, res) {
                 let eventKey = req.params.eventKey;
