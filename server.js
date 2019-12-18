@@ -336,8 +336,12 @@
 
     function doQueryRequest(req, res) {
         let payload = req.body || {};
+        let name = resolveName(req.url);
+        let isSuper = (
+            req.user.isSuper || name === "Form" || name === "Module"
+        );
 
-        payload.name = resolveName(req.url);
+        payload.name = name;
         payload.method = "GET"; // Internally this is a select statement
         payload.user = req.user.name;
         payload.filter = payload.filter || {};
@@ -353,7 +357,7 @@
         payload.filter.offset = payload.filter.offset || 0;
 
         console.log(JSON.stringify(payload, null, 2));
-        datasource.request(payload, req.user.isSuper).then(
+        datasource.request(payload, isSuper).then(
             function (data) {
                 respond.bind(res, data)();
             }
