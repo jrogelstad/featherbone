@@ -338,7 +338,10 @@
         let payload = req.body || {};
         let name = resolveName(req.url);
         let isSuper = (
-            req.user.isSuper || name === "Form" || name === "Module"
+            req.user.isSuper ||
+            name === "Form" ||
+            name === "Module" ||
+            name === "Role"
         );
 
         payload.name = name;

@@ -24,7 +24,7 @@ function doc(data, feather) {
         data = {
             owner: f.currentUser().name
         };
-    } else if (data.owener === undefined) {
+    } else if (data.owner === undefined) {
         data.owner = f.currentUser().name;
     }
     feather = feather || catalog.getFeather("Document");
