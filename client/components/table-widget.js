@@ -34,7 +34,7 @@ const datasource = f.datasource();
 const tableWidget = {};
 const outer = document.createElement("div");
 const COL_WIDTH_DEFAULT = "150";
-const LIMIT = 30;
+const LIMIT = 50;
 const ROW_COUNT = 2;
 const m = window.m;
 
