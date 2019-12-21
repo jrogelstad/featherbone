@@ -35,8 +35,8 @@ const dialogPolyfill = window.dialogPolyfill;
     @param {String} [options.icon] Dialog icon
     @param {String} [options.title] Dialog title
     @param {String} [options.message] Text message
-    @param {Function} [options.onclickOk] Callback to execute on `Ok` clicked
-    @param {Function} [options.onclickCancel] Callback to execute on `Cancel`
+    @param {Function} [options.onOk] Callback to execute on `Ok` clicked
+    @param {Function} [options.onCancel] Callback to execute on `Cancel`
     clicked
 */
 dialog.viewModel = function (options) {
@@ -278,8 +278,8 @@ dialog.component = {
         @param {Object} [vnode.attrs.viewModel]
         @param {String} [vnode.attrs.title] Title
         @param {String} [vnode.attrs.icon] Icon name
-        @param {Function} [vnode.attrs.onclickOk] On click `Ok` function
-        @param {Function} [vnode.attrs.onclickCancel] On click `Cancel` function
+        @param {Function} [vnode.attrs.onOk] On click `Ok` function
+        @param {Function} [vnode.attrs.onCancel] On click `Cancel` function
         @param {String} [vnode.attrs.message] Message
     */
     oninit: function (vnode) {

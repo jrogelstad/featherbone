@@ -42,6 +42,7 @@ filterDialog.viewModel = function (options) {
     options = options || {};
     let vm;
     let store;
+    let monkeyPatch = options.onOk;
 
     function resolveProperty(feather, property) {
         let prefix;
@@ -165,6 +166,9 @@ filterDialog.viewModel = function (options) {
 
     options.onOk = function () {
         options.filter(vm.filter());
+        if (monkeyPatch) {
+            monkeyPatch();
+        }
     };
     options.title = options.title || "Filter";
     options.icon = options.icon || "filter";

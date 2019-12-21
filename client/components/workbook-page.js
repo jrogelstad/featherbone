@@ -1259,7 +1259,8 @@ workbookPage.viewModel = function (options) {
     vm.filterDialog(f.createViewModel("FilterDialog", {
         filter: vm.tableWidget().filter,
         list: vm.tableWidget().models(),
-        feather: feather
+        feather: feather,
+        onOk: vm.saveProfile
     }));
 
     vm.editWorkbookDialog(f.createViewModel("FormDialog", {
@@ -1311,7 +1312,8 @@ workbookPage.viewModel = function (options) {
     vm.sortDialog(f.createViewModel("SortDialog", {
         filter: vm.tableWidget().filter,
         list: vm.tableWidget().models(),
-        feather: feather
+        feather: feather,
+        onOk: vm.saveProfile
     }));
 
     // Create button view models
