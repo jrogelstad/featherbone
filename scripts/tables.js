@@ -251,7 +251,8 @@
                     type: "string",
                     default: "createId()",
                     isRequired: true,
-                    isReadOnly: true
+                    isReadOnly: true,
+                    isAlwaysLoad: true
                 },
                 created: {
                     description: "Create time of the record",
@@ -280,13 +281,15 @@
                 isDeleted: {
                     description: "Indicates the record is no longer active",
                     type: "boolean",
-                    isReadOnly: true
+                    isReadOnly: true,
+                    isAlwaysLoad: true
                 },
                 lock: {
                     description: "Record lock information",
                     type: "object",
                     format: "lock",
-                    isReadOnly: true
+                    isReadOnly: true,
+                    isAlwaysLoad: true
                 },
                 objectType: {
                     description: (
@@ -294,7 +297,8 @@
                         "object represents"
                     ),
                     type: "string",
-                    isReadOnly: true
+                    isReadOnly: true,
+                    isAlwaysLoad: true
                 }
             }
         }

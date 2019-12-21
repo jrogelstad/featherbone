@@ -69,7 +69,9 @@ function feather(data, spec) {
     }
 
     function handleReadOnlyProps() {
-        model.data.properties().forEach((prop) => prop.handleReadOnly());
+		if (spec.properties.properties) {
+			model.data.properties().forEach((prop) => prop.handleReadOnly());
+        }
     }
 
     function calculateInherited() {
@@ -183,23 +185,31 @@ function feather(data, spec) {
     });
     model.onChange("plural", sanitize);
 
-    model.onChanged("properties", handleReadOnlyProps);
-    model.onChanged("properties.isNaturalKey", handleReadOnlyProps);
-    model.onChanged("properties.isLabelKey", handleReadOnlyProps);
+    if (spec.properties.properties) {
+		model.onChanged("properties", handleReadOnlyProps);
+		model.onChanged("properties.isNaturalKey", handleReadOnlyProps);
+		model.onChanged("properties.isLabelKey", handleReadOnlyProps);
+	}
+
     model.onChanged("inherits", calculateInherited);
-    model.onLoad(calculateInherited);
+	model.onLoad(calculateInherited);
     model.onLoad(handleReadOnly);
 
     model.onValidate(function () {
         let authRoles = [];
+		let auths = (
+			model.data.authorizations
+			? model.data.authorizations()
+			: []
+        );
 
-	if (model.data.name() === model.data.plural()) {
+        if (model.data.name() === model.data.plural()) {
                 throw new Error(
                     "Name and plural may not be the same"
                 );
         }
 
-        model.data.authorizations().forEach(function (auth) {
+        auths.forEach(function (auth) {
             let role = auth.data.role();
 
             if (authRoles.indexOf(role) !== -1) {

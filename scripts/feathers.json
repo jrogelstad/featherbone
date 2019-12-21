@@ -10,7 +10,8 @@
                 "description": "Owner of the document",
                 "type": "string",
                 "format": "userAccount",
-                "isRequired": true
+                "isRequired": true,
+                "isAlwaysLoad": true
             },
             "etag": {
                 "description": "Optimistic locking key",
@@ -31,7 +32,8 @@
                 "description": "Name",
                 "type": "string",
                 "isNaturalKey": true,
-                "isRequired": true
+                "isRequired": true,
+				"isAlwaysLoad": true
             },
             "description": {
                 "description": "Description",
@@ -41,7 +43,8 @@
             "plural": {
                 "description": "Plural",
                 "type": "string",
-                "isRequired": false
+                "isRequired": false,
+				"isAlwaysLoad": true
             },
             "module": {
                 "description": "Module",
@@ -188,6 +191,11 @@
             },
             "isIndexed": {
                 "description": "Flag whether to index property",
+                "type": "boolean",
+                "default": false
+            },
+            "isAlwaysLoad": {
+                "description": "Always load this attribute, even on non-editable models",
                 "type": "boolean",
                 "default": false
             }
