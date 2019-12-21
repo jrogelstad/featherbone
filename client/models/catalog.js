@@ -218,6 +218,7 @@ const catalog = (function () {
                 calculated = fmodel.calculated();
                 Object.keys(calculated).forEach(function (key) {
                     resultProps[key] = calculated[key];
+                    resultProps[key].isCalculated = true;
                 });
             }
         }

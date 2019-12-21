@@ -322,6 +322,9 @@
         }, {
             "attr": "max",
             "unit": 2
+        }, {
+            "attr": "isAlwaysLoad",
+            "unit": 1
         }]
     }
 }, {

@@ -385,6 +385,7 @@ function createList(feather) {
         let subid = ary.subscribe();
         let body = {};
         let merge = true;
+        let cfeather = catalog.getFeather(name.toCamelCase(true));
 
         // Undo any edited rows
         ary.forEach(function (model) {
@@ -396,7 +397,6 @@ function createList(feather) {
         }
 
         function callback(data) {
-            let cfeather;
             let attrs;
             let props = {};
             let cache = [];
@@ -416,8 +416,6 @@ function createList(feather) {
                     ary.add(model);
                 });
             } else {
-                cfeather = catalog.getFeather(name.toCamelCase(true));
-
                 // Strip dot notation
                 if (body.properties) {
                     body.properties = body.properties.map(function (p) {
@@ -442,24 +440,17 @@ function createList(feather) {
                     body.properties || Object.keys(cfeather.properties)
                 );
 
-                attrs.forEach(function (attr) {
+                Object.keys(cfeather.properties).forEach(function (attr) {
                     let prop = cfeather.properties[attr];
 
-                    props[attr] = {
-                        type: prop.type,
-                        format: prop.format
-                    };
+                    if (prop.isAlwaysLoad || attrs.indexOf(attr) > -1) {
+                        props[attr] = prop;
+                    }
                 });
 
-                props.isDeleted = {type: "Boolean"};
-                props.objectType = {
-                    type: "string",
-                    default: name.toCamelCase(true)
-                };
-                props.lock = {};
-
+                cfeather.properties = props;
                 data.forEach(function (item) {
-                    let model = f.createModel(item, {properties: props});
+                    let model = models[name](item, cfeather);
 
                     model.state().goto("/Ready/Fetched");
                     ary.add(model);
@@ -472,6 +463,15 @@ function createList(feather) {
 
         if (ary.properties()) {
             body.properties = ary.properties();
+            // Make sure required properties are included
+            Object.keys(cfeather.properties).forEach(function (key) {
+                if (
+                    cfeather.properties[key].isAlwaysLoad &&
+                    body.properties.indexOf(key) === -1
+                ) {
+                    body.properties.push(key);
+                }
+            });
         }
 
         if (ary.filter()) {
