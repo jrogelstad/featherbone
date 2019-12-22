@@ -146,6 +146,10 @@ const workbookList = {
         filter: {
             description: "Filter",
             type: "object"
+        },
+        aggregates: {
+            description: "Aggregates",
+            type: "object"
         }
     }
 };
