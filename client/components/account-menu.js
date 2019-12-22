@@ -355,6 +355,7 @@ accountMenu.component = {
             break;
         case "dev":
             menuButtonClass += " fb-menu-button-dev";
+            break;
         }
 
         return m("div", {
