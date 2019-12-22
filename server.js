@@ -369,6 +369,20 @@
         );
     }
 
+    function doAggregation(req, res) {
+        let payload = {
+            method: "POST",
+            name: "doAggregation",
+            user: req.user.name,
+            data: req.body
+        };
+
+        console.log(JSON.stringify(payload, null, 2));
+        datasource.request(payload).then(respond.bind(res)).catch(
+            error.bind(res)
+        );
+    }
+
     function doGetMethod(fn, req, res) {
         let payload = {
             method: "GET",
@@ -1236,6 +1250,7 @@
         app.get("/currency/base", doGetBaseCurrency);
         app.get("/currency/convert", doConvertCurrency);
         app.get("/do/is-authorized", doIsAuthorized);
+        app.post("/do/aggregation/", doAggregation);
         app.post("/data/object-authorizations", doGetObjectAuthorizations);
         app.post("/do/change-password/", doChangePassword);
         app.post("/do/change-user-info/", doChangeUserInfo);
