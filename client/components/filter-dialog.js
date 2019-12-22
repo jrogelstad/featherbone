@@ -337,6 +337,14 @@ filterDialog.viewModel = function (options) {
         vm.selection(0);
     };
     /**
+        Get property based on property string.
+        @method resolveProperty
+        @param {Object} feather
+        @param {String} property
+        @return {Object}
+    */
+    vm.resolveProperty = resolveProperty;
+    /**
         Object with column, operator and value input element ids.
         @method viewHeaderIds
         @param {Object} obj

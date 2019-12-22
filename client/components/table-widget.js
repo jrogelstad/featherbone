@@ -1188,6 +1188,12 @@ tableWidget.viewModel = function (options) {
         return menu;
     };
     /**
+        @method aggregates
+        @param {Array} aggregates
+        @return {Array}
+    */
+    vm.aggregates = f.prop();
+    /**
         Resolve the alias for an attribute in a column.
         @method alias.
         @param {String} attr
@@ -1855,6 +1861,7 @@ tableWidget.viewModel = function (options) {
     //
 
     vm.filter(f.copy(options.config.filter || {}));
+    vm.aggregates(f.copy(options.config.aggregates || []));
     vm.filter().limit = vm.filter().limit || LIMIT;
     if (!options.models) {
         vm.models(f.createList(

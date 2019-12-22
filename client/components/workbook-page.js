@@ -609,6 +609,18 @@ workbookPage.viewModel = function (options) {
     //
 
     /**
+        @method aggregateDialog
+        @param {ViewModels.TableDialog} dialog
+        @return {ViewModels.TableDialog}
+    */
+    vm.aggregateDialog = f.prop();
+    /**
+        @method buttonAggregate
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
+    vm.buttonAggregate = f.prop();
+    /**
         @method buttonClear
         @param {ViewModels.Button} button
         @return {ViewModels.Button}
@@ -1263,6 +1275,13 @@ workbookPage.viewModel = function (options) {
         onOk: vm.saveProfile
     }));
 
+    vm.filterDialog(f.createViewModel("FilterDialog", {
+        filter: vm.tableWidget().filter,
+        list: vm.tableWidget().models(),
+        feather: feather,
+        onOk: vm.saveProfile
+    }));
+
     vm.editWorkbookDialog(f.createViewModel("FormDialog", {
         icon: "cogs",
         title: "Edit workbook",
@@ -1307,6 +1326,13 @@ workbookPage.viewModel = function (options) {
     vm.sheetConfigureDialog(sheetConfigureDialog.viewModel({
         parentViewModel: vm,
         sheetId: sheetId
+    }));
+
+    vm.aggregateDialog(f.createViewModel("AggregateDialog", {
+        aggregates: vm.tableWidget().aggregates,
+        list: vm.tableWidget().models(),
+        feather: feather,
+        onOk: vm.saveProfile
     }));
 
     vm.sortDialog(f.createViewModel("SortDialog", {
@@ -1395,6 +1421,12 @@ workbookPage.viewModel = function (options) {
         icon: "filter",
         hotkey: "F",
         title: "Filter results",
+        class: toolbarButtonClass
+    }));
+
+    vm.buttonAggregate(f.createViewModel("Button", {
+        onclick: vm.aggregateDialog().show,
+        icon: "calculator",
         class: toolbarButtonClass
     }));
 
@@ -1544,6 +1576,7 @@ workbookPage.component = {
         let srtdlg = f.getComponent("SortDialog");
         let fltdlg = f.getComponent("FilterDialog");
         let frmdlg = f.getComponent("FormDialog");
+        let aggdlg = f.getComponent("AggregateDialog");
         let srch = f.getComponent("SearchInput");
         let tw = f.getComponent("TableWidget");
         let dlg = f.getComponent("Dialog");
@@ -1645,6 +1678,9 @@ workbookPage.component = {
             m(fltdlg, {
                 viewModel: vm.filterDialog()
             }),
+            m(aggdlg, {
+                viewModel: vm.aggregateDialog()
+            }),
             m(frmdlg, {
                 viewModel: vm.editWorkbookDialog()
             }),
@@ -1730,6 +1766,9 @@ workbookPage.component = {
                         }),
                         m(btn, {
                             viewModel: vm.buttonFilter()
+                        }),
+                        m(btn, {
+                            viewModel: vm.buttonAggregate()
                         }),
                         m("div", {
                             id: "nav-menu-div",
