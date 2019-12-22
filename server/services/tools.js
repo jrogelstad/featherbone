@@ -262,24 +262,12 @@
             @return {Promise}
         */
         tools.getKeys = function (obj, isSuperUser) {
-            return new Promise(function (resolve, reject) {
-                let part;
-                let op;
-                let err;
-                let or;
-                let name = obj.name;
-                let filter = obj.filter;
-                let table = name.toSnakeCase();
-                let clause = "NOT is_deleted";
-                let sql = "SELECT _pk FROM %I WHERE ";
-                let tokens = ["_" + table];
-                let criteria = false;
-                let sort = [];
-                let params = [];
-                let parts = [];
-                let p = 1;
+			return new Promise(function (resolve, reject) {
+				let sql = "SELECT _pk FROM %I";
+				
+				sql += tools.buildWhere(obj, isSuperUser);
 
-                function callback(resp) {
+				function callback(resp) {
                     let keys = resp.rows.map(function (rec) {
                         return rec[tools.PKCOL];
                     });
@@ -287,121 +275,138 @@
                     resolve(keys);
                 }
 
-                try {
-                    if (obj.showDeleted) {
-                        clause = "true";
-                    }
+			    obj.client.query(sql, params).then(callback).catch(reject);
+			});
+		};
 
-                    sql += clause;
+		tools.buildWhere = function (obj, isSuperUser) {
+			let part;
+			let op;
+			let err;
+			let or;
+			let name = obj.name;
+			let filter = obj.filter;
+			let table = name.toSnakeCase();
+			let clause = "NOT is_deleted";
+			let sql = " WHERE ";
+			let tokens = ["_" + table];
+			let criteria = false;
+			let sort = [];
+			let params = [];
+			let parts = [];
+			let p = 1;
 
-                    if (filter) {
-                        criteria = filter.criteria || [];
-                        sort = filter.sort || [];
-                    }
+			if (obj.showDeleted) {
+				clause = "true";
+			}
 
-                    // Add authorization criteria
-                    if (isSuperUser === false) {
-                        sql += tools.buildAuthSql("canRead", table, tokens);
+			sql += clause;
 
-                        params.push(obj.client.currentUser());
-                        p += 1;
-                    }
+			if (filter) {
+				criteria = filter.criteria || [];
+				sort = filter.sort || [];
+			}
 
-                    // Process filter
-                    if (filter) {
-                        // Process criteria
-                        criteria.forEach(function (where) {
-                            op = where.operator || "=";
+			// Add authorization criteria
+			if (isSuperUser === false) {
+				sql += tools.buildAuthSql("canRead", table, tokens);
 
-                            if (ops.indexOf(op) === -1) {
-                                err = "Unknown operator \"" + op + "\"";
-                                throw err;
-                            }
+				params.push(obj.client.currentUser());
+				p += 1;
+			}
 
-                            // Value "IN" array ("Andy" IN ["Ann","Andy"])
-                            // Whether "Andy"="Ann" OR "Andy"="Andy"
-                            if (op === "IN") {
-                                part = [];
-                                where.value.forEach(function (val) {
-                                    params.push(val);
-                                    part.push("$" + p);
-                                    p += 1;
-                                });
-                                part = tools.resolvePath(
-                                    where.property,
-                                    tokens
-                                ) + " IN (" + part.join(",") + ")";
+			// Process filter
+			if (filter) {
+				// Process criteria
+				criteria.forEach(function (where) {
+					op = where.operator || "=";
 
-                            // Property "OR" array compared to value
-                            // (["name","email"]="Andy")
-                            // Whether "name"="Andy" OR "email"="Andy"
-                            } else if (Array.isArray(where.property)) {
-                                or = [];
-                                where.property.forEach(function (prop) {
-                                    params.push(where.value);
-                                    or.push(tools.resolvePath(
-                                        prop,
-                                        tokens
-                                    ) + " " + op + " $" + p);
-                                    p += 1;
-                                });
-                                part = "(" + or.join(" OR ") + ")";
+					if (ops.indexOf(op) === -1) {
+						err = "Unknown operator \"" + op + "\"";
+						throw err;
+					}
 
-                            // Regular comparison ("name"="Andy")
-                            } else if (
-                                typeof where.value === "object" &&
-                                !where.value.id
-                            ) {
-                                part = tools.resolvePath(
-                                    where.property,
-                                    tokens
-                                ) + " IS NULL";
-                            } else {
-                                if (typeof where.value === "object") {
-                                    where.property = where.property + ".id";
-                                    where.value = where.value.id;
-                                }
-                                params.push(where.value);
-                                part = tools.resolvePath(
-                                    where.property,
-                                    tokens
-                                ) + " " + op + " $" + p;
-                                p += 1;
-                            }
-                            parts.push(part);
-                        });
+					// Value "IN" array ("Andy" IN ["Ann","Andy"])
+					// Whether "Andy"="Ann" OR "Andy"="Andy"
+					if (op === "IN") {
+						part = [];
+						where.value.forEach(function (val) {
+							params.push(val);
+							part.push("$" + p);
+							p += 1;
+						});
+						part = tools.resolvePath(
+							where.property,
+							tokens
+						) + " IN (" + part.join(",") + ")";
 
-                        if (parts.length) {
-                            sql += " AND " + parts.join(" AND ");
-                        }
-                    }
+					// Property "OR" array compared to value
+					// (["name","email"]="Andy")
+					// Whether "name"="Andy" OR "email"="Andy"
+					} else if (Array.isArray(where.property)) {
+						or = [];
+						where.property.forEach(function (prop) {
+							params.push(where.value);
+							or.push(tools.resolvePath(
+								prop,
+								tokens
+							) + " " + op + " $" + p);
+							p += 1;
+						});
+						part = "(" + or.join(" OR ") + ")";
+
+					// Regular comparison ("name"="Andy")
+					} else if (
+						typeof where.value === "object" &&
+						!where.value.id
+					) {
+						part = tools.resolvePath(
+							where.property,
+							tokens
+						) + " IS NULL";
+					} else {
+						if (typeof where.value === "object") {
+							where.property = where.property + ".id";
+							where.value = where.value.id;
+						}
+						params.push(where.value);
+						part = tools.resolvePath(
+							where.property,
+							tokens
+						) + " " + op + " $" + p;
+						p += 1;
+					}
+					parts.push(part);
+				});
+
+				if (parts.length) {
+					sql += " AND " + parts.join(" AND ");
+				}
+			}
 
 
-                    // Process sort
-                    sql += tools.processSort(sort, tokens);
+			// Process sort
+			sql += tools.processSort(sort, tokens);
 
-                    if (filter) {
-                        // Process offset and limit
-                        if (filter.offset) {
-                            sql += " OFFSET $" + p;
-                            p += 1;
-                            params.push(filter.offset);
-                        }
+			if (filter) {
+				// Process offset and limit
+				if (filter.offset) {
+					sql += " OFFSET $" + p;
+					p += 1;
+					params.push(filter.offset);
+				}
 
-                        if (filter.limit) {
-                            sql += " LIMIT $" + p;
-                            params.push(filter.limit);
-                        }
-                    }
+				if (filter.limit) {
+					sql += " LIMIT $" + p;
+					params.push(filter.limit);
+				}
+			}
 
-                    sql = sql.format(tokens);
+			sql = sql.format(tokens);
 
-                    obj.client.query(sql, params).then(callback).catch(reject);
-                } catch (e) {
-                    reject(e);
-                }
-            });
+			return sql;
         };
+
         /**
             @method isChildFeather
             @param {String} feather Feathe name
