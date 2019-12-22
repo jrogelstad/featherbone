@@ -86,6 +86,110 @@
         //
 
         /**
+            Return aggregations of numeric values. Supported aggergations are:
+            `SUM`, `AVG`, `COUNT`, `MIN` and `MAX`.
+
+            @example
+            f.datasourceRequest({
+                method: "POST",
+                name: "doAggregate",
+                data: {
+                    name: "Sales",
+                    aggregations: [{
+                            method: "COUNT",
+                            property: "orderNumber",
+                            alias: "orderCount"
+                        }, {
+                            method: "SUM",
+                            property: "amount.amount",
+                            alias: "amount"
+                        }
+                    ],
+                    filter: {
+                        criteria: [{
+                            property: "customer.number"
+                            value: "C0231"
+                        }]
+                    }
+                }
+            });
+
+            @method doSelect
+            @param {Object} payload Request payload
+            @param {String} payload.name Name of feather
+            @param {Object} [payload.filter] Filter criteria of records to
+            select
+            @param {Array} [payload.aggregations] Array of aggregations.
+            If not specified, all properties will be returned.
+            @param {String | Object} payload.client Database client
+            @param {Boolean} [ignore] Ignore this parameter.
+            @param {Boolean} [isSuperUser] Request as super user. Default false.
+            @return {Promise} Resolves to object.
+        */
+        crud.doAggregation = function (obj, ignore, isSuperUser) {
+            return new Promise(function (resolve, reject) {
+                let sql;
+                let table;
+                let tokens = [];
+                let client = db.getClient(obj.client);
+                let methods = ["SUM", "COUNT", "AVG", "MIN", "MAX"];
+                let params = [];
+
+                function toCols(agg) {
+                    let prop = tools.resolvePath(agg.properties, tokens);
+                    let ret = agg.method.toUpperCase() + "(" + prop + ")";
+                    if (agg.alias) {
+                        tokens.push(agg.alias.toSnakeCase());
+                        ret += " AS L%";
+                    }
+                }
+
+                function callback(resp) {
+                    resolve(tools.sanitize(resp.row[0]));
+                }
+
+                function afterGetFeather(feather) {
+                    if (!feather.name) {
+                        reject("Feather \"" + obj.name + "\" not found.");
+                        return;
+                    }
+
+                    table = "_" + feather.name.toSnakeCase();
+
+                    tokens.push(table);
+                    sql = (
+                        "SELECT to_json((" +
+                        obj.data.aggergations.map(toCols).toString(",") +
+                        ")) AS result FROM %I"
+                    );
+                    sql += tools.buildFilter(obj, params, isSuperUser);
+                    sql = sql.format(tokens);
+
+                    client.query(sql, params).then(callback).catch(reject);
+                }
+
+                // Validate
+                obj.aggergations.forEach(function (agg) {
+                    if (methods.indexOf(agg.method) === -1) {
+                        throw (
+                            "Aggregation method " + agg.method +
+                            " is unsupported"
+                        );
+                    }
+                });
+
+                // Kick off query by getting feather, the rest falls through
+                // callbacks
+                feathers.getFeather({
+                    client: client,
+                    data: {
+                        name: obj.data.name
+                    }
+                }).then(afterGetFeather).catch(reject);
+            });
+        };
+
+        /**
             Perform soft delete on object records.
 
             @method doDelete
