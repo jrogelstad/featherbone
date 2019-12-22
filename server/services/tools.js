@@ -156,6 +156,145 @@
         };
 
         /**
+            Return a sql `WHERE` clause based on filter criteria in payload.
+            @method buildWhere
+            @param {Object} payload Request payload
+            @param {Object} payload.name Feather name
+            @param {Filter} [payload.filter] Filter
+            @param {Boolean} [payload.showDeleted] Show deleted records
+            @param {Object} payload.client Database client
+            @param {Array} [params] Parameters used for the sql query
+            @param {Boolean} [flag] Request as super user. Default false.
+            @return {Promise}
+        */
+        tools.buildWhere = function (obj, params, isSuperUser) {
+            let part;
+            let op;
+            let err;
+            let or;
+            let name = obj.name;
+            let filter = obj.filter;
+            let table = name.toSnakeCase();
+            let clause = "NOT is_deleted";
+            let sql = " WHERE ";
+            let tokens = [];
+            let criteria = false;
+            let sort = [];
+            let parts = [];
+            let p = 1;
+
+            if (obj.showDeleted) {
+                clause = "true";
+            }
+
+            sql += clause;
+
+            if (filter) {
+                criteria = filter.criteria || [];
+                sort = filter.sort || [];
+            }
+
+            // Add authorization criteria
+            if (isSuperUser === false) {
+                sql += tools.buildAuthSql("canRead", table, tokens);
+
+                params.push(obj.client.currentUser());
+                p += 1;
+            }
+
+            // Process filter
+            if (filter) {
+                // Process criteria
+                criteria.forEach(function (where) {
+                    op = where.operator || "=";
+
+                    if (ops.indexOf(op) === -1) {
+                        err = "Unknown operator \"" + op + "\"";
+                        throw err;
+                    }
+
+                    // Value "IN" array ("Andy" IN ["Ann","Andy"])
+                    // Whether "Andy"="Ann" OR "Andy"="Andy"
+                    if (op === "IN") {
+                        part = [];
+                        where.value.forEach(function (val) {
+                            params.push(val);
+                            part.push("$" + p);
+                            p += 1;
+                        });
+                        part = tools.resolvePath(
+                            where.property,
+                            tokens
+                        ) + " IN (" + part.join(",") + ")";
+
+                    // Property "OR" array compared to value
+                    // (["name","email"]="Andy")
+                    // Whether "name"="Andy" OR "email"="Andy"
+                    } else if (Array.isArray(where.property)) {
+                        or = [];
+                        where.property.forEach(function (prop) {
+                            params.push(where.value);
+                            or.push(tools.resolvePath(
+                                prop,
+                                tokens
+                            ) + " " + op + " $" + p);
+                            p += 1;
+                        });
+                        part = "(" + or.join(" OR ") + ")";
+
+                    // Regular comparison ("name"="Andy")
+                    } else if (
+                        typeof where.value === "object" &&
+                        !where.value.id
+                    ) {
+                        part = tools.resolvePath(
+                            where.property,
+                            tokens
+                        ) + " IS NULL";
+                    } else {
+                        if (typeof where.value === "object") {
+                            where.property = where.property + ".id";
+                            where.value = where.value.id;
+                        }
+                        params.push(where.value);
+                        part = tools.resolvePath(
+                            where.property,
+                            tokens
+                        ) + " " + op + " $" + p;
+                        p += 1;
+                    }
+                    parts.push(part);
+                });
+
+                if (parts.length) {
+                    sql += " AND " + parts.join(" AND ");
+                }
+            }
+
+
+            // Process sort
+            sql += tools.processSort(sort, tokens);
+
+            if (filter) {
+                // Process offset and limit
+                if (filter.offset) {
+                    sql += " OFFSET $" + p;
+                    p += 1;
+                    params.push(filter.offset);
+                }
+
+                if (filter.limit) {
+                    sql += " LIMIT $" + p;
+                    params.push(filter.limit);
+                }
+            }
+
+            sql = sql.format(tokens);
+
+            return sql;
+        };
+
+        /**
             Object with properties mapping to each type of data type format
             requiring special support on the server side. Each format has a
             database type and default value.
@@ -262,12 +401,14 @@
             @return {Promise}
         */
         tools.getKeys = function (obj, isSuperUser) {
-			return new Promise(function (resolve, reject) {
-				let sql = "SELECT _pk FROM %I";
-				
-				sql += tools.buildWhere(obj, isSuperUser);
+            return new Promise(function (resolve, reject) {
+                let sql = "SELECT _pk FROM %I";
+                let params = [];
 
-				function callback(resp) {
+                sql = sql.format(["_" + obj.name.toSnakeCase()]);
+                sql += tools.buildWhere(obj, params, isSuperUser);
+
+                function callback(resp) {
                     let keys = resp.rows.map(function (rec) {
                         return rec[tools.PKCOL];
                     });
@@ -275,136 +416,8 @@
                     resolve(keys);
                 }
 
-			    obj.client.query(sql, params).then(callback).catch(reject);
-			});
-		};
-
-		tools.buildWhere = function (obj, isSuperUser) {
-			let part;
-			let op;
-			let err;
-			let or;
-			let name = obj.name;
-			let filter = obj.filter;
-			let table = name.toSnakeCase();
-			let clause = "NOT is_deleted";
-			let sql = " WHERE ";
-			let tokens = ["_" + table];
-			let criteria = false;
-			let sort = [];
-			let params = [];
-			let parts = [];
-			let p = 1;
-
-			if (obj.showDeleted) {
-				clause = "true";
-			}
-
-			sql += clause;
-
-			if (filter) {
-				criteria = filter.criteria || [];
-				sort = filter.sort || [];
-			}
-
-			// Add authorization criteria
-			if (isSuperUser === false) {
-				sql += tools.buildAuthSql("canRead", table, tokens);
-
-				params.push(obj.client.currentUser());
-				p += 1;
-			}
-
-			// Process filter
-			if (filter) {
-				// Process criteria
-				criteria.forEach(function (where) {
-					op = where.operator || "=";
-
-					if (ops.indexOf(op) === -1) {
-						err = "Unknown operator \"" + op + "\"";
-						throw err;
-					}
-
-					// Value "IN" array ("Andy" IN ["Ann","Andy"])
-					// Whether "Andy"="Ann" OR "Andy"="Andy"
-					if (op === "IN") {
-						part = [];
-						where.value.forEach(function (val) {
-							params.push(val);
-							part.push("$" + p);
-							p += 1;
-						});
-						part = tools.resolvePath(
-							where.property,
-							tokens
-						) + " IN (" + part.join(",") + ")";
-
-					// Property "OR" array compared to value
-					// (["name","email"]="Andy")
-					// Whether "name"="Andy" OR "email"="Andy"
-					} else if (Array.isArray(where.property)) {
-						or = [];
-						where.property.forEach(function (prop) {
-							params.push(where.value);
-							or.push(tools.resolvePath(
-								prop,
-								tokens
-							) + " " + op + " $" + p);
-							p += 1;
-						});
-						part = "(" + or.join(" OR ") + ")";
-
-					// Regular comparison ("name"="Andy")
-					} else if (
-						typeof where.value === "object" &&
-						!where.value.id
-					) {
-						part = tools.resolvePath(
-							where.property,
-							tokens
-						) + " IS NULL";
-					} else {
-						if (typeof where.value === "object") {
-							where.property = where.property + ".id";
-							where.value = where.value.id;
-						}
-						params.push(where.value);
-						part = tools.resolvePath(
-							where.property,
-							tokens
-						) + " " + op + " $" + p;
-						p += 1;
-					}
-					parts.push(part);
-				});
-
-				if (parts.length) {
-					sql += " AND " + parts.join(" AND ");
-				}
-			}
-
-
-			// Process sort
-			sql += tools.processSort(sort, tokens);
-
-			if (filter) {
-				// Process offset and limit
-				if (filter.offset) {
-					sql += " OFFSET $" + p;
-					p += 1;
-					params.push(filter.offset);
-				}
-
-				if (filter.limit) {
-					sql += " LIMIT $" + p;
-					params.push(filter.limit);
-				}
-			}
-
-			sql = sql.format(tokens);
-
-			return sql;
+                obj.client.query(sql, params).then(callback).catch(reject);
+            });
         };
 
         /**
