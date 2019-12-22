@@ -507,6 +507,7 @@ formPage.viewModel = function (options) {
         break;
     case "dev":
         toolbarButtonClass += " fb-toolbar-button-dev";
+        break;
     }
 
     // Helper function to pass back data to sending model
@@ -952,6 +953,7 @@ formPage.component = {
             break;
         case "dev":
             toolbarClass += " fb-toolbar-dev";
+            break;
         }
 
         vm.toggleNew();

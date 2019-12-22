@@ -415,11 +415,11 @@ filterDialog.viewModel = function (options) {
                     class: "fb-filter-dialog-operator"
                 }, [
                     m("select", {
-						id: "filter_op_" + item.index,
-						oncreate: function (vnode) {
-							let e = document.getElementById(vnode.dom.id);
-							e.value = item.operator || "=";
-						},
+                        id: "filter_op_" + item.index,
+                        oncreate: function (vnode) {
+                            let e = document.getElementById(vnode.dom.id);
+                            e.value = item.operator || "=";
+                        },
                         onchange: (e) => vm.itemChanged.bind(
                             this,
                             item.index,
