@@ -2213,12 +2213,6 @@ tableWidget.component = {
                 m("thead", {
                     ondragover: vm.ondragover,
                     draggable: true,
-                    ondrop: vm.ondrop.bind(
-                        null,
-                        config.columns.length,
-                        "column",
-                        config.columns
-                    ),
                     id: ids.header,
                     class: "fb-table-header"
                 }, [header]),
