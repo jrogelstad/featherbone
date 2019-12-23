@@ -774,6 +774,8 @@ tableWidget.viewModel = function (options) {
     let vm = {};
     let isEditModeEnabled = f.prop(options.isEditModeEnabled !== false);
 
+    options.config.aggregates = options.config.aggregates || [];
+
     function doDownload(target, source) {
         let element = document.createElement("a");
 
@@ -1192,7 +1194,14 @@ tableWidget.viewModel = function (options) {
         @param {Array} aggregates
         @return {Array}
     */
-    vm.aggregates = f.prop();
+    vm.aggregates = function (ary) {
+        if (ary) {
+            options.config.aggregates.length = 0;
+            ary.forEach((i) => options.config.aggregates.push(i));
+        }
+
+        return options.config.aggregates;
+    };
     /**
         Resolve the alias for an attribute in a column.
         @method alias.
@@ -1861,7 +1870,7 @@ tableWidget.viewModel = function (options) {
     //
 
     vm.filter(f.copy(options.config.filter || {}));
-    vm.aggregates(f.copy(options.config.aggregates || []));
+    vm.aggregates(f.copy(options.config.aggregates));
     vm.filter().limit = vm.filter().limit || LIMIT;
     if (!options.models) {
         vm.models(f.createList(
