@@ -182,6 +182,11 @@ aggregateDialog.viewModel = function (options) {
     vm.viewRows = function () {
         let view;
 
+        function resetSelector(vnode) {
+            let e = document.getElementById(vnode.dom.id);
+            e.value = item.method || "COUNT";
+        }
+
         view = vm.items().map(function (item) {
             let row;
             let methods = vm.methods(item.property);
@@ -203,12 +208,18 @@ aggregateDialog.viewModel = function (options) {
                         maxWidth: "175px"
                     },
                     value: item.property,
-                    onchange: (e) =>
-                    vm.itemChanged.bind(
-                        this,
-                        item.index,
-                        "property"
-                    )(e.target.value)
+                    onchange: function (e) {
+                        vm.itemChanged.bind(
+                            null,
+                            item.index,
+                            "property"
+                        )(e.target.value);
+                        vm.itemChanged.bind(
+                            null,
+                            item.index,
+                            "method"
+                        )("COUNT");
+                    }
                 }, vm.attrs().map(function (attr) {
                     return m("option", {
                         value: attr
@@ -227,10 +238,8 @@ aggregateDialog.viewModel = function (options) {
                         },
                         value: item.method || "COUNT",
                         id: "agg_fn_" + item.index,
-                        oncreate: function (vnode) {
-                            let e = document.getElementById(vnode.dom.id);
-                            e.value = item.method || "COUNT";
-                        },
+                        oncreate: resetSelector,
+                        onupdate: resetSelector,
                         onchange: (e) =>
                         vm.itemChanged.bind(
                             this,
