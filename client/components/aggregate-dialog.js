@@ -40,35 +40,87 @@ const m = window.m;
 aggregateDialog.viewModel = function (options) {
     options = options || {};
     let vm;
+    let monkeyPatch = options.onOk;
 
     options.propertyName = "sort";
     options.title = options.title || "Aggregate";
     options.icon = options.icon || "calculator";
+    options.aggregates;
+
+    function resolveProperty(feather, property) {
+        let prefix;
+        let suffix;
+        let rel;
+        let idx = property.indexOf(".");
+
+        if (idx > -1) {
+            prefix = property.slice(0, idx);
+            suffix = property.slice(idx + 1, property.length);
+            rel = (
+                feather.properties[prefix].type.relation ||
+                feather.properties[prefix].format.toProperCase()
+            );
+            feather = catalog.getFeather(rel);
+            return resolveProperty(feather, suffix);
+        }
+
+        return feather.properties[property];
+    }
 
     // ..........................................................
     // PUBLIC
     //
 
-    options.filter = options.aggregates;
-    vm = f.createViewModel("FilterDialog", options);
+    options.onOk = function () {
+        options.aggregates(vm.data());
+        if (monkeyPatch) {
+            monkeyPatch();
+        }
+    };
+    vm = f.createViewModel("TableDialog", options);
     vm.addAttr = function (attr) {
         if (!this.some(vm.hasAttr.bind(attr))) {
             this.push({
-                property: attr
+                property: attr,
+                method: "COUNT"
             });
             return true;
         }
     };
      /**
+        Available attributes
+        @method attrs
+        @return {Array}
+    */
+    vm.attrs = function () {
+        let feather = vm.feather();
+        let keys = Object.keys(feather.properties);
+        return vm.resolveProperties(
+            feather,
+            keys,
+            undefined,
+            undefined,
+            true
+        ).sort();
+    };
+     /**
         @method data
         @return {List}
     */
-    vm.data = function () {
-        return options.aggregates();
-    };
+    vm.data = f.prop([]);
+    /**
+        @method feather
+        @param {Object} feather
+        @return {Object}
+    */
+    vm.feather = f.prop(catalog.getFeather(
+        options.feather.name,
+        true,
+        false
+    ));
     vm.viewHeaderIds = f.prop({
         column: f.createId(),
-        func: f.createId()
+        method: f.createId()
     });
     vm.viewHeaders = function () {
         let ids = vm.viewHeaderIds();
@@ -94,36 +146,45 @@ aggregateDialog.viewModel = function (options) {
         @param {String} attr
         @return {Array}
     */
-    vm.funcs = function (attr) {
+    vm.methods = function (attr) {
         let prop;
-        let format;
         let feather = vm.feather();
-        let funcs = ["SUM", "AVG", "COUNT", "MIN", "MAX"];
+        let methods = ["SUM", "AVG", "COUNT", "MIN", "MAX"];
 
         if (attr) {
-            prop = vm.resolveProperty(feather, attr);
+            prop = resolveProperty(feather, attr);
 
             if (
                 prop.type !== "number" &&
                 prop.type !== "integer"
             ) {
-                funcs = ["COUNT"];
-                
+                methods = ["COUNT"];
+
                 if (prop.type === "string") {
-                    funcs.push("MIN");
-                    funcs.push("MAX");
+                    methods.push("MIN");
+                    methods.push("MAX");
                 }
             }
         }
 
-        return funcs;
+        return methods;
+    };
+    vm.reset = function () {
+        let aggregates = f.copy(options.aggregates());
+
+        aggregates = aggregates || [];
+        vm.data(aggregates);
+        if (!aggregates.length) {
+            vm.add();
+        }
+        vm.selection(0);
     };
     vm.viewRows = function () {
         let view;
 
         view = vm.items().map(function (item) {
             let row;
-            let funcs = vm.funcs(item.property);
+            let methods = vm.methods(item.property);
 
             row = m("tr", {
                 onclick: vm.selection.bind(this, item.index, true),
@@ -164,18 +225,23 @@ aggregateDialog.viewModel = function (options) {
                             minWidth: "175px",
                             maxWidth: "175px"
                         },
-                        value: item.func || "COUNT",
+                        value: item.method || "COUNT",
+                        id: "agg_fn_" + item.index,
+                        oncreate: function (vnode) {
+                            let e = document.getElementById(vnode.dom.id);
+                            e.value = item.method || "COUNT";
+                        },
                         onchange: (e) =>
                         vm.itemChanged.bind(
                             this,
                             item.index,
-                            "func"
+                            "method"
                         )(e.target.value)
-                    }, Object.keys(funcs).map(function (func) {
+                    }, methods.map(function (method) {
                         return m("option", {
-                            value: func
-                        }, funcs[func]);
-                    }), item.func || "COUNT")
+                            value: method
+                        }, method);
+                    }), item.method || "COUNT")
                 ])
             ]);
 
@@ -184,6 +250,8 @@ aggregateDialog.viewModel = function (options) {
 
         return view;
     };
+
+    vm.reset();
 
     vm.style().width = "460px";
 

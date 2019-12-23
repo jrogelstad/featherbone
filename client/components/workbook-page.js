@@ -602,6 +602,7 @@ workbookPage.viewModel = function (options) {
     case "dev":
         toolbarButtonClass += " fb-toolbar-button-dev";
         formWorkbookClass += " fb-form-workbook-dev";
+        break;
     }
 
     // ..........................................................
@@ -1275,13 +1276,6 @@ workbookPage.viewModel = function (options) {
         onOk: vm.saveProfile
     }));
 
-    vm.filterDialog(f.createViewModel("FilterDialog", {
-        filter: vm.tableWidget().filter,
-        list: vm.tableWidget().models(),
-        feather: feather,
-        onOk: vm.saveProfile
-    }));
-
     vm.editWorkbookDialog(f.createViewModel("FormDialog", {
         icon: "cogs",
         title: "Edit workbook",
@@ -1593,6 +1587,7 @@ workbookPage.component = {
         case "dev":
             toolbarClass += " fb-toolbar-dev";
             menuButtonClass += " fb-menu-button-dev";
+            break;
         }
 
         if (vm.tableWidget().selections().some((s) => s.canDelete())) {
