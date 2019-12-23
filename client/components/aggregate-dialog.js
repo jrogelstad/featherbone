@@ -45,7 +45,6 @@ aggregateDialog.viewModel = function (options) {
     options.propertyName = "sort";
     options.title = options.title || "Aggregate";
     options.icon = options.icon || "calculator";
-    options.aggregates;
 
     function resolveProperty(feather, property) {
         let prefix;
@@ -182,7 +181,7 @@ aggregateDialog.viewModel = function (options) {
     vm.viewRows = function () {
         let view;
 
-        function resetSelector(vnode) {
+        function resetSelector(item, vnode) {
             let e = document.getElementById(vnode.dom.id);
             e.value = item.method || "COUNT";
         }
@@ -238,8 +237,8 @@ aggregateDialog.viewModel = function (options) {
                         },
                         value: item.method || "COUNT",
                         id: "agg_fn_" + item.index,
-                        oncreate: resetSelector,
-                        onupdate: resetSelector,
+                        oncreate: resetSelector.bind(null, item),
+                        onupdate: resetSelector.bind(null, item),
                         onchange: (e) =>
                         vm.itemChanged.bind(
                             this,
