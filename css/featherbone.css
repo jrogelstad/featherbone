@@ -101,6 +101,14 @@ a.pure-button-selected {
   cursor: move;
 }
 
+.fb-column-footer {
+  background-color: white;
+  white-space: nowrap;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  text-align: right;
+}
+
 .fb-column-sort-icon {
   float: right;
   color: Grey;
@@ -577,10 +585,22 @@ a.pure-button-selected {
   background-color: white;
 }
 
+.fb-table-body-with-footer {
+  overflow-x: hidden;
+}
+
 .fb-table-header {
   display: inline-block;
   width: 100%;
   overflow: hidden;
+}
+
+.fb-table-footer {
+  display: inline-block;
+  width: 100%;
+  overflow-x: auto;
+  border-top-style: solid;
+  border-top-color: black;
 }
 
 .fb-toolbar {

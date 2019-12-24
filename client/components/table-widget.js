@@ -710,13 +710,55 @@ function createTableRow(options, model) {
     return row;
 }
 
+function createTableFooter(options) {
+    let fview;
+    let config = options.config;
+    let vm = options.vm;
+    let zoom = options.zoom;
+    let columnWidth = (
+        config.columns[options.idx].width || COL_WIDTH_DEFAULT
+    );
+
+    columnWidth -= 6;
+
+    fview = [
+        m("th", {
+            class: "fb-column-footer",
+            style: {
+                minWidth: columnWidth + "px",
+                maxWidth: columnWidth + "px",
+                fontSize: zoom
+            }
+        }, "1,000"),
+        m("th", {
+            class: (
+                "fb-column-spacer fb-column-header-grabber " +
+                "fb-column-footer"
+            ),
+            style: {
+                fontSize: zoom
+            }
+        })
+    ];
+
+    options.idx += 1;
+
+    return fview;
+}
+
 // Resize according to surroundings
 function resize(vm, vnode) {
-    let footer;
+    let pageFooter;
     let yPosition;
     let e = document.getElementById(vnode.dom.id);
     let id = vm.footerId();
     let height = vm.height();
+    let tableFooter = document.getElementById(vm.ids().footer);
+    let tfootHeight = (
+        tableFooter
+        ? tableFooter.offsetHeight
+        : 0
+    );
 
     if (height) {
         e.style.height = height;
@@ -724,11 +766,11 @@ function resize(vm, vnode) {
     }
 
     if (id) {
-        footer = document.getElementById(id);
+        pageFooter = document.getElementById(id);
         e.style.height = (
             window.innerHeight -
             f.getElementPosition(e.parentElement).y -
-            e.offsetTop - footer.offsetHeight - 1 + "px"
+            e.offsetTop - pageFooter.offsetHeight - tfootHeight - 1 + "px"
         );
     } else {
         yPosition = f.getElementPosition(e.offsetParent).y;
@@ -1392,7 +1434,8 @@ tableWidget.viewModel = function (options) {
     */
     vm.ids = f.prop({
         header: f.createId(),
-        rows: f.createId()
+        rows: f.createId(),
+        footer: f.createId()
     });
     /**
         @method isDragging
@@ -1614,6 +1657,22 @@ tableWidget.viewModel = function (options) {
 
         // Sync header position with table body position
         header.scrollLeft = rows.scrollLeft;
+
+        // No need to redraw
+        vm.isScrolling(true);
+    };
+
+    /**
+        @method onscrollFooter
+        @param {Event} event
+    */
+    vm.onscrollFooter = function () {
+        let ids = vm.ids();
+        let rows = document.getElementById(ids.rows);
+        let footer = document.getElementById(ids.footer);
+
+        // Sync body position with footer position
+        rows.scrollLeft = footer.scrollLeft;
 
         // No need to redraw
         vm.isScrolling(true);
@@ -2148,6 +2207,7 @@ tableWidget.component = {
     view: function (vnode) {
         let header;
         let rows;
+        let footer;
         let vm = vnode.attrs.viewModel;
         let ids = vm.ids();
         let config = vm.config();
@@ -2156,6 +2216,8 @@ tableWidget.component = {
         let zoom = vm.zoom() + "%";
         let feather = vm.feather();
         let dlg = f.getComponent("Dialog");
+        let aggs = vm.aggregates();
+        let tableBodyClass = "fb-table-body";
 
         // Build header
         header = (function () {
@@ -2214,6 +2276,44 @@ tableWidget.component = {
             }));
         }
 
+        // Build footer
+        if (aggs.length) {
+            tableBodyClass += " fb-table-body-with-footer";
+            footer = (function () {
+                let tfs = config.columns.map(createTableFooter.bind(null, {
+                    config: config,
+                    idx: 0,
+                    vm: vm,
+                    zoom: zoom
+                }));
+
+                // Front cap header navigation
+                tfs.unshift(m("th", {
+                    class: "fb-column-footer",
+                    style: {
+                        minWidth: "25px",
+                        fontSize: zoom
+                    }
+                }));
+
+                // End cap on header for scrollbar
+                tfs.push(m("th", {
+                    class: "fb-column-footer",
+                    style: {
+                        width: "100%"
+                    }
+                }));
+
+                return m("tfoot", tfs);
+            }());
+            
+            footer = m("tfoot", {
+                id: ids.footer,
+                onscroll: vm.onscrollFooter,
+                class: "fb-table-footer"
+            }, [footer]);
+        }
+
         return m("div", {
             class: "pure-form " + vm.class()
         }, [
@@ -2234,7 +2334,7 @@ tableWidget.component = {
                 }, [header]),
                 m("tbody", {
                     id: ids.rows,
-                    class: "fb-table-body",
+                    class: tableBodyClass,
                     onscroll: vm.onscroll,
                     oncreate: function (vnode) {
                         // Key down handler for up down movement
@@ -2251,7 +2351,8 @@ tableWidget.component = {
                             e.removeEventListener("keydown", vm.onkeydown);
                         }
                     }
-                }, rows)
+                }, rows),
+                footer
             ])
         ]);
     }
