@@ -140,7 +140,7 @@
                     name: obj.data.name,
                     filter: obj.data.filter,
                     client: obj.client
-                }
+                };
 
                 function toCols(agg) {
                     let attr = agg.property;
@@ -176,7 +176,7 @@
                     );
                     tokens.push(table);
                     sql += tools.buildWhere(data, params, isSuperUser);
-                    sql += ") AS data;"
+                    sql += ") AS data;";
                     sql = sql.format(tokens);
 
                     client.query(sql, params).then(callback).catch(reject);

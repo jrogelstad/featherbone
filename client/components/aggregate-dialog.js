@@ -208,16 +208,10 @@ aggregateDialog.viewModel = function (options) {
                     },
                     value: item.property,
                     onchange: function (e) {
-                        vm.itemChanged.bind(
-                            null,
-                            item.index,
-                            "property"
-                        )(e.target.value);
-                        vm.itemChanged.bind(
-                            null,
-                            item.index,
-                            "method"
-                        )("COUNT");
+                        let i = item.index;
+                        let v = e.target.value;
+                        vm.itemChanged(i, "property", v);
+                        vm.itemChanged(i, "method", "COUNT");
                     }
                 }, vm.attrs().map(function (attr) {
                     return m("option", {
