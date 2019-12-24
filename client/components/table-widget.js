@@ -760,7 +760,11 @@ function createTableFooter(options, col) {
         if (agg && agg.method === "COUNT") {
             tableData = f.types.integer.tableData;
         } else {
-            if (prop.type === "string") {
+            if (prop.format === "date") {
+                tableData = f.formats().date.tableData;
+            } else if (prop.format == "dateTime") {
+                tableData = f.formats().dateTime.tableData;
+            } else if (prop.type === "string") {
                 tableData = f.types.string.tableData;
             } else if (prop.format === "money") {
                 tableData = f.formats().money.tableData;
