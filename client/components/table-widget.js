@@ -710,14 +710,63 @@ function createTableRow(options, model) {
     return row;
 }
 
-function createTableFooter(options) {
+function resolveFeatherProp(feather, attr) {
+    let prefix;
+    let suffix;
+
+    let idx = attr.indexOf(".");
+
+    if (idx > -1) {
+        prefix = attr.slice(0, idx);
+        suffix = attr.slice(idx + 1, attr.length);
+        feather = catalog.getFeather(
+            feather.properties[prefix].type.relation
+        );
+        return f.resolveFeatherProp(feather, suffix);
+    }
+
+    return feather.properties[attr];
+}
+
+function createTableFooter(options, col) {
     let fview;
     let config = options.config;
     let vm = options.vm;
+    let values = vm.aggregateValues();
     let zoom = options.zoom;
     let columnWidth = (
         config.columns[options.idx].width || COL_WIDTH_DEFAULT
     );
+    let value = values[col.attr] || "";
+    let prop;
+    let agg;
+    let tableData;
+    let content = "";
+
+    if (value !== "") {
+        agg = vm.aggregates().find((a) => a.property === col);
+        if (agg && agg.method === "COUNT") {
+            tableData = f.types.integer.tableData;
+        } else {
+            prop = resolveFeatherProp(options.feather, col.attr);
+
+            if (prop.type === "string") {
+                tableData = f.types.string.tableData;
+            } else if (prop.format === "money") {
+                tableData = f.formats().money.tableData;
+            } else {
+                tableData = f.types.number.tableData;
+            }
+        }
+
+        content = tableData({
+            options: {
+                title: "",
+                style: {}
+            },
+            value: value
+        });
+    }
 
     columnWidth -= 6;
 
@@ -729,7 +778,7 @@ function createTableFooter(options) {
                 maxWidth: columnWidth + "px",
                 fontSize: zoom
             }
-        }, "1,000"),
+        }, content),
         m("th", {
             class: (
                 "fb-column-spacer fb-column-header-grabber " +
@@ -1930,6 +1979,14 @@ tableWidget.viewModel = function (options) {
 
     vm.filter(f.copy(options.config.filter || {}));
     vm.aggregates(f.copy(options.config.aggregates));
+    vm.aggregateValues = f.prop({
+        salesAmount: {
+            currency: "USD",
+            amount: 130123.12
+        },
+        quantity: 34129,
+        number: 543
+    });
     vm.filter().limit = vm.filter().limit || LIMIT;
     if (!options.models) {
         vm.models(f.createList(
@@ -2282,6 +2339,7 @@ tableWidget.component = {
             footer = (function () {
                 let tfs = config.columns.map(createTableFooter.bind(null, {
                     config: config,
+                    feather: feather,
                     idx: 0,
                     vm: vm,
                     zoom: zoom
@@ -2306,7 +2364,7 @@ tableWidget.component = {
 
                 return m("tfoot", tfs);
             }());
-            
+
             footer = m("tfoot", {
                 id: ids.footer,
                 onscroll: vm.onscrollFooter,
