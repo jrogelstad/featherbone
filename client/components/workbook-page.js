@@ -1424,6 +1424,7 @@ workbookPage.viewModel = function (options) {
     vm.buttonAggregate(f.createViewModel("Button", {
         onclick: vm.aggregateDialog().show,
         icon: "calculator",
+        title: "Calulate sum, count and other aggregations",
         class: toolbarButtonClass
     }));
 
