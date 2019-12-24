@@ -2418,14 +2418,6 @@ tableWidget.component = {
                     }
                 }, "-"));
 
-                // End cap on header for scrollbar
-                tfs.push(m("th", {
-                    class: "fb-column-footer",
-                    style: {
-                        width: "100%"
-                    }
-                }));
-
                 return m("tfoot", tfs);
             }());
 
