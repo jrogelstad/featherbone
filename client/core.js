@@ -1707,7 +1707,7 @@ appState = State.define(function () {
             });
         });
         this.enter(function () {
-            f.currentUser(undefined);
+            f.currentUser({});
             m.route.set("/sign-in");
         });
         this.message = message;

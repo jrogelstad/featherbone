@@ -827,6 +827,7 @@
                 return;
             }
 
+            req.user.mode = mode;
             res.json(req.user);
         }
 
