@@ -147,9 +147,15 @@
                     let prop = tools.resolvePath(agg.property, tokens);
                     let ret = agg.method.toUpperCase() + "(" + prop + ")";
                     let idx = attr.indexOf(".");
+                    let comp;
+
                     if (idx === -1) {
                         subt.push(attr.toSnakeCase());
                     } else {
+                        comp = attr.slice(0, idx).toSnakeCase();
+                        if (subt.indexOf(comp) !== -1) {
+                            return ret; // Column already included;
+                        }
                         subt.push(attr.slice(0, idx).toSnakeCase());
                     }
                     sub.push("%I");
