@@ -557,6 +557,7 @@ a.pure-button-selected {
 .fb-table {
   table-layout: fixed;
   width: 100%;
+  background-color: white;
 }
 
 .fb-table-cell-edit {
