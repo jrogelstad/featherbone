@@ -1360,7 +1360,6 @@
                     let adds = [];
                     let args = [];
                     let fns = [];
-                    let cols = [];
                     let unique = [];
                     let indices = [];
                     let i = 0;
@@ -1409,12 +1408,9 @@
                     }
 
                     function handleProps(key) {
-                        let vSql;
                         let prop = props[key];
                         let fProp;
                         let pProps;
-                        let tProps;
-                        let tRel;
                         let descr;
 
                         if (feather && feather.properties) {
@@ -1618,7 +1614,6 @@
                             props = feather.properties;
                             keys = Object.keys(props);
                             keys.forEach(function (key) {
-                                let viewName;
                                 if (
                                     spec.properties && !spec.properties[key] &&
                                     !(
@@ -1639,12 +1634,7 @@
                                         typeof type === "object" &&
                                         type.properties
                                     ) {
-                                        // Drop associated view if applicable
-                                        sql += "DROP VIEW IF EXISTS %I CASCADE;";
-                                        viewName = "_" + table;
-                                        viewName += "$" + key.toSnakeCase();
                                         tokens = tokens.concat([
-                                            viewName,
                                             table,
                                             tools.relationColumn(
                                                 key,
