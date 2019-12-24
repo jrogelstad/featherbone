@@ -1447,7 +1447,8 @@
                             obj.data = patch;
                             obj.cache = Object.freeze(f.copy(patch));
                         } else {
-                            // Cache original request that may get changed by triggers
+                            // Cache original request that may get changed
+                            // by triggers
                             if (obj.data) {
                                 obj.cache = Object.freeze(f.copy(obj.data));
                             }
@@ -1515,7 +1516,8 @@
                         } else if (
                             obj.method === "DELETE" || obj.method === "PATCH"
                         ) {
-                            // Cache original request that may get changed by triggers
+                            // Cache original request that may get changed by
+                            // triggers
                             if (obj.data) {
                                 obj.cache = Object.freeze(f.copy(obj.data));
                             }
@@ -1537,7 +1539,8 @@
                             );
                         // Must be post new
                         } else {
-                            // Cache original request that may get changed by triggers
+                            // Cache original request that may get changed by
+                            // triggers
                             if (obj.data) {
                                 obj.cache = Object.freeze(f.copy(obj.data));
                             }
