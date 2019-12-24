@@ -722,7 +722,7 @@ function resolveFeatherProp(feather, attr) {
         feather = catalog.getFeather(
             feather.properties[prefix].type.relation
         );
-        return f.resolveFeatherProp(feather, suffix);
+        return resolveFeatherProp(feather, suffix);
     }
 
     return feather.properties[attr];
@@ -732,7 +732,7 @@ function createTableFooter(options, col) {
     let fview;
     let config = options.config;
     let vm = options.vm;
-    let values = vm.aggregateValues();
+    let values = vm.aggregateValues() || {};
     let zoom = options.zoom;
     let columnWidth = (
         config.columns[options.idx].width || COL_WIDTH_DEFAULT
@@ -1166,6 +1166,49 @@ tableWidget.viewModel = function (options) {
 
         setProperties();
         vm.models().fetch(getFilter(offset), refresh !== true);
+    }
+
+    function doFetchAggregates() {
+            let url;
+            let payload;
+            let body = {
+                name: vm.feather().name,
+                aggregations: vm.aggregates(),
+                filter: f.copy(getFilter())
+            };
+
+            // Map keys back to something readable
+            function callback (resp) {
+                let aggs = {};
+                let i = 0;
+                let props = vm.aggregates().map((a) => a.property);
+                let keys = Object.keys(resp.result);
+
+                props.forEach(function (p) {
+                    aggs[p] = resp.result[keys[i]];
+                    i += 1;
+                });
+                console.log(resp);
+                vm.aggregateValues(aggs);
+            }
+
+            // If nothing to calculate, bail
+            if (!body.aggregations.length) {
+                return;
+            }
+
+            delete body.filter.limit;
+            delete body.filter.sort;
+            delete body.filter.offset;
+
+            url = "/do/aggregate";
+            payload = {
+                method: "POST",
+                url: url,
+                body: body
+            };
+
+            return m.request(payload).then(callback);
     }
 
     // Dialog gets modified by actions, so reset after any useage
@@ -1732,6 +1775,7 @@ tableWidget.viewModel = function (options) {
     */
     vm.refresh = function () {
         doFetch(true);
+        doFetchAggregates();
     };
     /**
         Cache of relation widgets for editing.
@@ -1979,14 +2023,7 @@ tableWidget.viewModel = function (options) {
 
     vm.filter(f.copy(options.config.filter || {}));
     vm.aggregates(f.copy(options.config.aggregates));
-    vm.aggregateValues = f.prop({
-        salesAmount: {
-            currency: "USD",
-            amount: 130123.12
-        },
-        quantity: 34129,
-        number: 543
-    });
+    vm.aggregateValues = f.prop();
     vm.filter().limit = vm.filter().limit || LIMIT;
     if (!options.models) {
         vm.models(f.createList(
