@@ -148,7 +148,7 @@ aggregateDialog.viewModel = function (options) {
     vm.methods = function (attr) {
         let prop;
         let feather = vm.feather();
-        let methods = ["SUM", "AVG", "COUNT", "MIN", "MAX"];
+        let methods = ["AVG", "COUNT", "MAX", "MIN", "SUM"];
 
         if (attr) {
             prop = resolveProperty(feather, attr);
