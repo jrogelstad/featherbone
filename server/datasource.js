@@ -1671,7 +1671,7 @@
           * {{#crossLink "Services.Workbooks/saveWorkbook:method"}}
           {{/crossLink}}
         * __POST__
-          * {{#crossLink "Services.Crud/doAggregation:method"}}
+          * {{#crossLink "Services.Crud/doAggregate:method"}}
           {{/crossLink}}
           * {{#crossLink "Services.Role/changeOwnPassword:method"}}
           {{/crossLink}}
@@ -1977,7 +1977,7 @@
         role.changeRolePassword
     );
     that.registerFunction("POST", "createRole", role.createRole);
-    that.registerFunction("POST", "doAggregateion", crud.doAggregation);
+    that.registerFunction("POST", "doAggregate", crud.doAggregate);
     that.registerFunction("POST", "dropRole", role.dropRole);
     that.registerFunction("POST", "grantMembership", role.grantMembership);
     that.registerFunction("POST", "revokeMembership", role.revokeMembership);

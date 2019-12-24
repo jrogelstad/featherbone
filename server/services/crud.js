@@ -114,7 +114,7 @@
                 }
             });
 
-            @method doSelect
+            @method doAggregate
             @param {Object} payload Request payload
             @param {String} payload.name Name of feather
             @param {Object} [payload.filter] Filter criteria of records to
@@ -126,7 +126,7 @@
             @param {Boolean} [isSuperUser] Request as super user. Default false.
             @return {Promise} Resolves to object.
         */
-        crud.doAggregation = function (obj, ignore, isSuperUser) {
+        crud.doAggregate = function (obj, ignore, isSuperUser) {
             return new Promise(function (resolve, reject) {
                 let sql;
                 let table;
@@ -134,18 +134,30 @@
                 let client = db.getClient(obj.client);
                 let methods = ["SUM", "COUNT", "AVG", "MIN", "MAX"];
                 let params = [];
+                let sub = [];
+                let subt = [];
+                let data = {
+                    name: obj.data.name,
+                    filter: obj.data.filter,
+                    client: obj.client
+                }
 
                 function toCols(agg) {
-                    let prop = tools.resolvePath(agg.properties, tokens);
+                    let attr = agg.property;
+                    let prop = tools.resolvePath(agg.property, tokens);
                     let ret = agg.method.toUpperCase() + "(" + prop + ")";
-                    if (agg.alias) {
-                        tokens.push(agg.alias.toSnakeCase());
-                        ret += " AS L%";
+                    let idx = attr.indexOf(".");
+                    if (idx === -1) {
+                        subt.push(attr.toSnakeCase());
+                    } else {
+                        subt.push(attr.slice(0, idx).toSnakeCase());
                     }
+                    sub.push("%I");
+                    return ret;
                 }
 
                 function callback(resp) {
-                    resolve(tools.sanitize(resp.row[0]));
+                    resolve(tools.sanitize(resp.rows[0]));
                 }
 
                 function afterGetFeather(feather) {
@@ -156,20 +168,22 @@
 
                     table = "_" + feather.name.toSnakeCase();
 
-                    tokens.push(table);
                     sql = (
                         "SELECT to_json((" +
-                        obj.data.aggergations.map(toCols).toString(",") +
-                        ")) AS result FROM %I"
+                        obj.data.aggregations.map(toCols).toString(",") +
+                        ")) AS result FROM (" +
+                        "SELECT " + sub.toString(",").format(subt) + " FROM %I"
                     );
-                    sql += tools.buildFilter(obj, params, isSuperUser);
+                    tokens.push(table);
+                    sql += tools.buildWhere(data, params, isSuperUser);
+                    sql += ") AS data;"
                     sql = sql.format(tokens);
 
                     client.query(sql, params).then(callback).catch(reject);
                 }
 
                 // Validate
-                obj.aggergations.forEach(function (agg) {
+                obj.data.aggregations.forEach(function (agg) {
                     if (methods.indexOf(agg.method) === -1) {
                         throw (
                             "Aggregation method " + agg.method +
