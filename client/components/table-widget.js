@@ -819,7 +819,7 @@ function resize(vm, vnode) {
     let tableFooter = document.getElementById(vm.ids().footer);
     let tfootHeight = (
         tableFooter
-        ? tableFooter.offsetHeight
+        ? tableFooter.offsetHeight + 1
         : 0
     );
 
