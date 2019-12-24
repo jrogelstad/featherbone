@@ -1326,7 +1326,10 @@ workbookPage.viewModel = function (options) {
         aggregates: vm.tableWidget().aggregates,
         list: vm.tableWidget().models(),
         feather: feather,
-        onOk: vm.saveProfile
+        onOk: function () {
+            vm.refresh();
+            vm.saveProfile();
+        }
     }));
 
     vm.sortDialog(f.createViewModel("SortDialog", {

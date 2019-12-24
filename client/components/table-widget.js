@@ -718,6 +718,9 @@ function resolveFeatherProp(feather, attr) {
 
     if (idx > -1) {
         prefix = attr.slice(0, idx);
+        if (feather.properties[prefix].format === "money") {
+            return feather.properties[prefix];
+        }
         suffix = attr.slice(idx + 1, attr.length);
         feather = catalog.getFeather(
             feather.properties[prefix].type.relation
@@ -737,19 +740,26 @@ function createTableFooter(options, col) {
     let columnWidth = (
         config.columns[options.idx].width || COL_WIDTH_DEFAULT
     );
-    let value = values[col.attr] || "";
-    let prop;
-    let agg;
+    let value;
+    let prop = resolveFeatherProp(options.feather, col.attr);
+    let agg = vm.aggregates().find((a) => a.property === col.attr);
     let tableData;
     let content = "";
+    let attr = col.attr;
+
+    if (
+        prop.format === "money" &&
+        !(agg && agg.method === "COUNT")
+    ) {
+        attr += ".amount";
+    }
+
+    value = values[attr] || "";
 
     if (value !== "") {
-        agg = vm.aggregates().find((a) => a.property === col);
         if (agg && agg.method === "COUNT") {
             tableData = f.types.integer.tableData;
         } else {
-            prop = resolveFeatherProp(options.feather, col.attr);
-
             if (prop.type === "string") {
                 tableData = f.types.string.tableData;
             } else if (prop.format === "money") {
@@ -1159,56 +1169,68 @@ tableWidget.viewModel = function (options) {
         }
     }
 
+    function doFetchAggregates() {
+        let url;
+        let payload;
+        let aggregates = vm.aggregates();
+        let body = {
+            name: vm.feather().name,
+            aggregations: aggregates,
+            filter: f.copy(getFilter())
+        };
+
+        // Map keys back to something readable
+        function callback(resp) {
+            let aggs = {};
+            let i = 0;
+            let props = aggregates.map((a) => a.property);
+            let keys = Object.keys(resp.result);
+
+            props.forEach(function (p) {
+                let val = resp.result[keys[i]] || 0;
+                let prop = resolveFeatherProp(vm.feather(), p);
+
+                if (
+                    prop.format === "money" &&
+                    aggregates[i].method !== "COUNT"
+                ) {
+                    val = f.money(val); // Hack, what if mixed currency?
+                }
+                aggs[p] = val;
+
+                i += 1;
+            });
+
+            vm.aggregateValues(aggs);
+        }
+
+        // If nothing to calculate, bail
+        if (!body.aggregations.length) {
+            return;
+        }
+
+        delete body.filter.limit;
+        delete body.filter.sort;
+        delete body.filter.offset;
+
+        url = "/do/aggregate";
+        payload = {
+            method: "POST",
+            url: url,
+            body: body
+        };
+
+        return m.request(payload).then(callback);
+    }
+
     function doFetch(refresh) {
         if (refresh) {
+            doFetchAggregates();
             offset = 0;
         }
 
         setProperties();
         vm.models().fetch(getFilter(offset), refresh !== true);
-    }
-
-    function doFetchAggregates() {
-            let url;
-            let payload;
-            let body = {
-                name: vm.feather().name,
-                aggregations: vm.aggregates(),
-                filter: f.copy(getFilter())
-            };
-
-            // Map keys back to something readable
-            function callback (resp) {
-                let aggs = {};
-                let i = 0;
-                let props = vm.aggregates().map((a) => a.property);
-                let keys = Object.keys(resp.result);
-
-                props.forEach(function (p) {
-                    aggs[p] = resp.result[keys[i]];
-                    i += 1;
-                });
-                console.log(resp);
-                vm.aggregateValues(aggs);
-            }
-
-            // If nothing to calculate, bail
-            if (!body.aggregations.length) {
-                return;
-            }
-
-            delete body.filter.limit;
-            delete body.filter.sort;
-            delete body.filter.offset;
-
-            url = "/do/aggregate";
-            payload = {
-                method: "POST",
-                url: url,
-                body: body
-            };
-
-            return m.request(payload).then(callback);
     }
 
     // Dialog gets modified by actions, so reset after any useage
@@ -1775,7 +1797,6 @@ tableWidget.viewModel = function (options) {
     */
     vm.refresh = function () {
         doFetch(true);
-        doFetchAggregates();
     };
     /**
         Cache of relation widgets for editing.
@@ -2037,6 +2058,7 @@ tableWidget.viewModel = function (options) {
         ));
         setProperties();
         doFetch();
+        doFetchAggregates();
     }
 
     // Bind refresh to filter change event
