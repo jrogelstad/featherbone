@@ -2387,9 +2387,10 @@ tableWidget.component = {
                     class: "fb-column-footer",
                     style: {
                         minWidth: "25px",
-                        fontSize: zoom
+                        fontSize: zoom,
+                        color: "White" // Hack to get default height
                     }
-                }));
+                }, "-"));
 
                 // End cap on header for scrollbar
                 tfs.push(m("th", {
