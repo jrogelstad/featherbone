@@ -1198,6 +1198,11 @@ tableWidget.viewModel = function (options) {
             let keys;
             let values = resp.result;
 
+            if (values === null) {
+                vm.aggregateValues({});
+				return;
+	        }
+
             // Format consistently whether one or many
             if (typeof values === "number") {
                 values = {
