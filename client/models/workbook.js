@@ -149,7 +149,7 @@ const workbookList = {
         },
         aggregates: {
             description: "Aggregates",
-            type: "object"
+            type: "array"
         }
     }
 };
