@@ -34,8 +34,9 @@ const datasource = f.datasource();
 const tableWidget = {};
 const outer = document.createElement("div");
 const COL_WIDTH_DEFAULT = "150";
-const LIMIT = 50;
+const LIMIT = 20;
 const ROW_COUNT = 2;
+const FETCH_MAX = 3;
 const m = window.m;
 
 // Calculate scroll bar width
@@ -882,6 +883,7 @@ tableWidget.viewModel = function (options) {
     let dlgVisibleId = f.createId();
     let vm = {};
     let isEditModeEnabled = f.prop(options.isEditModeEnabled !== false);
+    let fetchCount = 0;
 
     options.config.aggregates = options.config.aggregates || [];
 
@@ -983,6 +985,7 @@ tableWidget.viewModel = function (options) {
         let filter = f.copy(vm.filter());
 
         filter.offset = p || 0;
+        filter.limit = LIMIT;
 
         // Recursively resolve type
         function formatOf(feather, property) {
@@ -1245,10 +1248,20 @@ tableWidget.viewModel = function (options) {
         if (refresh) {
             doFetchAggregates();
             offset = 0;
+            fetchCount = 0;
         }
 
+        fetchCount += 1;
         setProperties();
-        vm.models().fetch(getFilter(offset), refresh !== true);
+        vm.models().fetch(
+            getFilter(offset),
+            refresh !== true
+        ).then(function () {
+            if (fetchCount < FETCH_MAX) {
+                offset += LIMIT;
+                doFetch();
+            }
+        });
     }
 
     // Dialog gets modified by actions, so reset after any useage
