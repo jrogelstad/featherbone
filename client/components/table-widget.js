@@ -754,7 +754,11 @@ function createTableFooter(options, col) {
         attr += ".amount";
     }
 
-    value = values[attr] || "";
+    if (values[attr] !== undefined && values[attr] !== null) {
+        value = values[attr];
+    } else {
+        value = "";
+    }
 
     if (value !== "") {
         if (agg && agg.method === "COUNT") {
