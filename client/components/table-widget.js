@@ -1192,10 +1192,20 @@ tableWidget.viewModel = function (options) {
             let aggs = {};
             let i = 0;
             let props = aggregates.map((a) => a.property);
-            let keys = Object.keys(resp.result);
+            let keys;
+            let values = resp.result;
+
+            // Format consistently whether one or many
+            if (typeof values === "number") {
+                values = {
+                    f1: values
+                };
+            }
+
+            keys = Object.keys(values);
 
             props.forEach(function (p) {
-                let val = resp.result[keys[i]] || 0;
+                let val = values[keys[i]] || 0;
                 let prop = resolveFeatherProp(vm.feather(), p);
 
                 if (
