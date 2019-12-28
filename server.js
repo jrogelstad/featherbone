@@ -197,7 +197,15 @@
 
                         // Add npm modules specified
                         mods.forEach(function (mod) {
-                            let name = mod.property || mod.require;
+                            let name;
+                            if (mod.properties) {
+                                mod.properties.forEach(function (p) {
+                                    f[p.property] = require(mod.require)[p.export];
+                                });
+                                return;
+                            }
+
+                            name = mod.require;
                             f[name] = require(mod.require);
                         });
                         resolve();
