@@ -989,7 +989,7 @@
             function begin() {
                 return new Promise(function (resolve, reject) {
                     if (!client.wrapped()) {
-                        db.getClient(client).query("BEGIN;").then(function () {
+						crud.begin({client: client}).then(function () {
                             client.wrapped(true);
                             resolve();
                         }).catch(reject);
@@ -1082,17 +1082,17 @@
 
                     if (client.wrapped()) {
                         //console.log("COMMIT->", obj.name, obj.method);
-                        db.getClient(client).query("COMMIT;", function (err) {
+                        crud.commit({client: client}).then(function () {
                             client.currentUser(undefined);
                             client.wrapped(false);
-                            if (err) {
-                                reject(error(err));
-                                return;
-                            }
 
                             //console.log("COMMITED");
                             resolve(resp);
-                        });
+                        }).catch(function (err) {
+							client.currentUser(undefined);
+                            client.wrapped(false);
+                            reject(error(err));
+						});
                         return;
                     }
 
@@ -1110,7 +1110,7 @@
                 //console.log("ROLLBACK->", obj.name, obj.method);
 
                 if (client.wrapped()) {
-                    db.getClient(client).query("ROLLBACK;", function () {
+                    crud.rollback({client: client}).then(function () {
                         //console.log("ROLLED BACK");
                         client.currentUser(undefined);
                         client.wrapped(false);
@@ -1692,6 +1692,8 @@
           {{/crossLink}}
           * {{#crossLink "Services.Feathers/saveAuthorization:method"}}
           {{/crossLink}}
+	      * {{#crossLink "Services.Crud/savePoint:method"}}
+          {{/crossLink}}
           * {{#crossLink "Services.Events/subscribe:method"}}
           {{/crossLink}}
           * {{#crossLink "Services.Events/unsubscribe:method"}}
@@ -1989,6 +1991,7 @@
         "saveAuthorization",
         feathers.saveAuthorization
     );
+	that.registerFunction("POST", "savePoint", crud.savePoint);
     that.registerFunction("POST", "subscribe", subscribe);
     that.registerFunction("POST", "unsubscribe", unsubscribe);
     that.registerFunction(
