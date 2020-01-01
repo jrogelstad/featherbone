@@ -53,7 +53,8 @@
         "isNaturalKey",
         "isLabelKey",
         "dataList",
-        "isIndexed"
+        "isIndexed",
+		"isAlwaysLoad"
     ];
 
     const tools = new Tools();
@@ -252,6 +253,10 @@
 
                 if (prop.dataList === null) {
                     delete prop.dataList;
+                }
+
+                if (prop.isAlwaysLoad === false) {
+                    delete prop.isAlwaysLoad;
                 }
 
                 if (
