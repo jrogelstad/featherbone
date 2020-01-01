@@ -80,16 +80,16 @@
         //
 
         const crud = {};
-		let savepoint = false;
+        let savepoint = false;
 
         // ..........................................................
         // PUBLIC
         //
         /**
-		    Begin a transaction block.
+            Begin a transaction block.
 
             @method begin
-			@param {Object} payload Request payload
+            @param {Object} payload Request payload
             @param {String | Object} payload.client Database client
             @return {Promise}
         */
@@ -97,14 +97,14 @@
             return new Promise(function (resolve, reject) {
                 let client = db.getClient(obj.client);
                 client.query("BEGIN;").then(resolve).catch(reject);
-		    });
+            });
         };
 
         /**
-		    Commit a transaction block.
+            Commit a transaction block.
 
             @method begin
-			@param {Object} payload Request payload
+            @param {Object} payload Request payload
             @param {String | Object} payload.client Database client
             @return {Promise}
         */
@@ -112,48 +112,50 @@
             return new Promise(function (resolve, reject) {
                 let client = db.getClient(obj.client);
                 client.query("COMMIT;").then(resolve).catch(reject);
-		    });
+            });
         };
 
         /**
-		    Create a savepoint. Rollbacks will rollback to this point.
+            Create a savepoint. Rollbacks will rollback to this point.
 
             @method savePoint
-			@param {Object} payload Request payload
+            @param {Object} payload Request payload
             @param {String | Object} payload.client Database client
             @return {Promise}
         */
         crud.savePoint = function (obj) {
             return new Promise(function (resolve, reject) {
                 let client = db.getClient(obj.client);
-				savepoint = true;
-                client.query("SAVEPOINT last_savepoint;").then(resolve).catch(reject);
-		    });
+                savepoint = true;
+                client.query(
+                    "SAVEPOINT last_savepoint;"
+                ).then(resolve).catch(reject);
+            });
         };
 
         /**
-		    Rollback to the last savepoint.
+            Rollback to the last savepoint.
 
             @method begin
-			@param {Object} payload Request payload
+            @param {Object} payload Request payload
             @param {String | Object} payload.client Database client
-			@param {Object} payload.data Data options
-			@param {Boolean} payload.data.toSavePoint
-			Whether to rollback to last savepoint. Default true.
+            @param {Object} payload.data Data options
+            @param {Boolean} payload.data.toSavePoint
+            Whether to rollback to last savepoint. Default true.
             @return {Promise}
         */
         crud.rollback = function (obj) {
             return new Promise(function (resolve, reject) {
                 let client = db.getClient(obj.client);
-				let sql = "ROLLBACK";
-				if (savepoint &&
-				    (!obj.data || obj.data.savePoint !== false)
-				) {
-					sql += " TO SAVEPOINT last_savepoint; COMMIT;";
-					savepoint = false;
-				}
+                let sql = "ROLLBACK";
+                if (savepoint && (
+                    !obj.data || obj.data.savePoint !== false
+                )) {
+                    sql += " TO SAVEPOINT last_savepoint; COMMIT;";
+                    savepoint = false;
+                }
                 client.query(sql).then(resolve).catch(reject);
-		    });
+            });
         };
         /**
             Return aggregations of numeric values. Supported aggergations are:
