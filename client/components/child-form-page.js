@@ -64,6 +64,16 @@ childFormPage.viewModel = function (options) {
     let vm = {};
     let pageIdx = options.index || 1;
     let isNew = options.create && options.isNew !== false;
+    let toolbarButtonClass = "fb-toolbar-button";
+
+    switch (f.currentUser().mode) {
+    case "test":
+        toolbarButtonClass += " fb-toolbar-button-test";
+        break;
+    case "dev":
+        toolbarButtonClass += " fb-toolbar-button-dev";
+        break;
+    }
 
     /**
         Done button view model.
@@ -202,15 +212,15 @@ childFormPage.viewModel = function (options) {
     // Create button view models
     vm.buttonDone(f.createViewModel("Button", {
         onclick: vm.doDone,
-        label: "&Done"
+        label: "&Done",
+        class: toolbarButtonClass
     }));
-    vm.buttonDone().isPrimary(true);
 
     vm.buttonPrevious(f.createViewModel("Button", {
         onclick: vm.doPrevious,
         label: "&Previous",
         icon: "arrow-up",
-        class: "fb-toolbar-button"
+        class: toolbarButtonClass
     }));
     if (ary.indexOf(model) === 0) {
         vm.buttonPrevious().disable();
@@ -221,7 +231,7 @@ childFormPage.viewModel = function (options) {
         onclick: vm.doNext,
         label: "&Next",
         icon: "arrow-down",
-        class: "fb-toolbar-button"
+        class: toolbarButtonClass
     }));
     if (ary.indexOf(model) === ary.length - 1) {
         vm.buttonNext().disable();
@@ -232,7 +242,7 @@ childFormPage.viewModel = function (options) {
         onclick: vm.doNew,
         label: "&New",
         icon: "plus-circle",
-        class: "fb-toolbar-button"
+        class: toolbarButtonClass
     }));
     if (f.findRoot(model).state().current()[0] === "/Ready/Fetched/ReadOnly") {
         vm.buttonNew().disable();
@@ -293,6 +303,16 @@ childFormPage.component = {
         let model = vm.model();
         let icon = "file-alt";
         let btn = f.getComponent("Button");
+        let toolbarClass = "fb-toolbar";
+
+        switch (f.currentUser().mode) {
+        case "test":
+            toolbarClass += " fb-toolbar-test";
+            break;
+        case "dev":
+            toolbarClass += " fb-toolbar-dev";
+            break;
+        }
 
         if (model.isValid()) {
             switch (model.state().current()[0]) {
@@ -322,7 +342,7 @@ childFormPage.component = {
         return m("div", [
             m("div", {
                 id: "toolbar",
-                class: "fb-toolbar"
+                class: toolbarClass
             }, [
                 m(btn, {
                     viewModel: vm.buttonDone()
