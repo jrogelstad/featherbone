@@ -515,10 +515,7 @@
                         return;
                     }
 
-                    tools.getKey({
-                        name: cParent.toSnakeCase(),
-                        client: client
-                    }).then(done).catch(reject);
+                    resolve();
                 };
 
                 done = function (err, resp) {
