@@ -25,8 +25,10 @@
     const MANIFEST = "manifest.json";
 
     const {API} = require("./api");
+    const {Config} = require("../config");
     const {Database} = require("../database");
     const {Feathers} = require("./feathers");
+    const config = new Config();
     const fs = require("fs");
     const path = require("path");
     const f = require("../../common/core");
@@ -80,6 +82,33 @@
 
                 f.datasource = datasource;
                 client.currentUser(user);
+                
+                function registerNpmModules() {
+                    return new Promise(function (resolve) {
+                        config.read().then(function (resp) {
+                            let mods = resp.npmModules || [];
+
+                            // Add npm modules specified
+                            mods.forEach(function (mod) {
+                                try {
+                                    let name;
+                                    if (mod.properties) {
+                                        mod.properties.forEach(function (p) {
+                                            f[p.property] = require(mod.require)[p.export];
+                                        });
+                                        return;
+                                    }
+
+                                    name = mod.require;
+                                    f[name] = require(mod.require);
+                                } catch (e) {
+                                    console.log("Unable to load npm module->", mod);
+                                }
+                            });
+                            resolve();
+                        });
+                    });
+                }
 
                 function rollback(err) {
                     client.query("ROLLBACK;", function () {
@@ -563,7 +592,9 @@
                 }
 
                 if (isSuper) {
-                    doInstall(true);
+                    registerNpmModules().then(
+                        doInstall.bind(null, true)
+                    );
                     return;
                 }
 
@@ -571,7 +602,7 @@
                     method: "GET",
                     name: "isSuperUser",
                     client: client
-                }).then(doInstall).catch(reject);
+                }).then(registerNpmModules).then(doInstall).catch(reject);
             });
         };
 
