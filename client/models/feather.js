@@ -281,6 +281,7 @@ function featherOverload(data, spec) {
         d.type.isReadOnly(!d.overloadType());
         d.default.isReadOnly(!d.overloadDefault());
         d.dataList.isReadOnly(!d.overloadDataList());
+        d.autonumber.isReadOnly(!d.overloadAutonumber());
     }
 
     model = f.createModel(data, spec);
@@ -320,6 +321,12 @@ function featherOverload(data, spec) {
             d.dataList("");
         }
     });
+    model.onChanged("overloadAutonumber", handleReadOnly);
+    model.onChanged("overloadAutonumber", function () {
+        if (!d.overloadAutonumber()) {
+            d.autonumber(null);
+        }
+    });
 
     model.onLoad(handleReadOnly);
 
@@ -349,7 +356,13 @@ function featherOverload(data, spec) {
         if (d.overloadAlias() && !d.alias()) {
             throw new Error("Overload alias is empty");
         }
+
+        if (d.overloadAutonumber() && !d.autonumber()) {
+            throw new Error("Overload auto number sequence is not defined");
+        }
     });
+
+    handleReadOnly();
 
     // ..........................................................
     // PUBLIC

@@ -33,7 +33,7 @@
                 "type": "string",
                 "isNaturalKey": true,
                 "isRequired": true,
-				"isAlwaysLoad": true
+                "isAlwaysLoad": true
             },
             "description": {
                 "description": "Description",
@@ -44,7 +44,7 @@
                 "description": "Plural",
                 "type": "string",
                 "isRequired": false,
-				"isAlwaysLoad": true
+                "isAlwaysLoad": true
             },
             "module": {
                 "description": "Module",
@@ -151,7 +151,8 @@
                 "description": "Type",
                 "type": "object",
                 "format": "autonumber",
-                "isRequired": false
+                "isRequired": false,
+                "default": null
             },
             "isReadOnly": {
                 "description": "Ready only flag",
@@ -263,6 +264,16 @@
             "dataList": {
                 "description": "Over loaded list of available values for this feather",
                 "type": "array"
+            },
+            "overloadAutonumber": {
+                "description": "Flag whether to overload autonumber behavior",
+                "type": "boolean",
+                "default": false
+            },
+            "autonumber": {
+                "description": "Over loaded autonumber sequence to use",
+                "type": "object",
+                "format": "autonumber"
             }
         }
     },

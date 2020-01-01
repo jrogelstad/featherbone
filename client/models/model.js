@@ -1444,6 +1444,7 @@ function createModel(data, feather) {
             let type = p.type;
             let value = data[key];
             let formatter = {};
+            let isAutoNumber = overload.autonumber || p.autonumber;
 
             p.default = overload.default || p.default;
             alias = alias.toName();
@@ -1619,8 +1620,8 @@ function createModel(data, feather) {
             }
             prop.format = p.format;
             prop.default = defaultValue;
-            prop.isRequired(p.isRequired);
-            prop.isReadOnly(p.isReadOnly);
+            prop.isRequired(p.isRequired && !isAutoNumber);
+            prop.isReadOnly(p.isReadOnly || isAutoNumber);
             prop.isCalculated = false;
             prop.alias(alias);
             prop.dataList = overload.dataList || p.dataList;

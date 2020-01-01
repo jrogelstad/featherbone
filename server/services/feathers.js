@@ -475,7 +475,6 @@
                 let cParent;
                 let afterGetChildFeather;
                 let afterGetParentFeather;
-                let done;
                 let client = obj.client;
 
                 afterGetChildFeather = function (resp) {
@@ -516,15 +515,6 @@
                     }
 
                     resolve();
-                };
-
-                done = function (err, resp) {
-                    if (err) {
-                        reject(err);
-                        return;
-                    }
-
-                    resolve(resp);
                 };
 
                 that.getFeather({
@@ -1577,6 +1567,8 @@
                     }
 
                     afterGetCatalog = function (resp) {
+                        let overloads;
+
                         catalog = resp;
 
                         dropSql = createDropSql(spec.name);
@@ -1686,12 +1678,23 @@
                             ]);
                         }
 
+                        /* Handle autonumber overloads */
+                        overloads = spec.overloads || {};
+                        Object.keys(overloads).forEach(function (key) {
+                            let o = overloads[key];
+
+                            if (o.autonumber) {
+                                autonumber = o.autonumber;
+                                autonumber.key = key;
+                            }
+                        });
+
                         /* Add columns */
                         spec.properties = spec.properties || {};
                         props = spec.properties;
                         keys = Object.keys(props).filter(function (item) {
                             let prop = props[item];
-                            if (prop.autonumber) {
+                            if (prop.autonumber && !autonumber) {
                                 autonumber = prop.autonumber;
                                 autonumber.key = item;
                             }
