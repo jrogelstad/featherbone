@@ -114,6 +114,10 @@ function doUpsertFeather(obj) {
                 overload.dataList = o.dataList;
             }
 
+            if (o.overloadAutonumber) {
+                overload.autonumber = o.autonumber;
+            }
+
             feather.overloads[o.name] = overload;
         });
 
@@ -701,6 +705,11 @@ function doHandleForm(obj) {
                         let cfeather = resp;
 
                         attr.columns.forEach(function (col) {
+                            // Ignore deletes
+                            if (col == undefined || col === null) {
+                                return;
+                            }
+
                             let cprop;
                             let isRef = col.attr.indexOf(".") !== -1;
 
@@ -710,7 +719,7 @@ function doHandleForm(obj) {
 
                             if (!isRef && !cprop) {
                                 throw new Error(
-                                    "Invalid column '" + attr.attr + "'"
+                                    "Invalid column '" + col.attr + "'"
                                 );
                             }
 

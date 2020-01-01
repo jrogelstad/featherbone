@@ -359,6 +359,10 @@
             "attr": "overloadDefault"
         }, {
             "attr": "default"
+        }, {
+            "attr": "overloadAutonumber"
+        }, {
+            "attr": "autonumber"
         }]
     }
 }, {

@@ -531,15 +531,26 @@
                 };
 
                 afterGetFeather = function (resp) {
+                    let ovr;
+
                     if (!resp) {
                         reject("Class \"" + name + "\" not found");
                         return;
                     }
 
                     feather = resp;
-                    props = feather.properties;
+                    props = f.copy(feather.properties);
                     fkeys = Object.keys(props);
                     dkeys = Object.keys(data);
+                    ovr = feather.overloads || {};
+                    // Take overload autonumber into account
+                    Object.keys(ovr).some(function (key) {
+                        if (ovr[key].autonumber) {
+                            props[key].autonumber = ovr[key].autonumber;
+                            return true;
+                        }
+                        return false;
+                    });
 
                     /* Validate properties are valid */
                     len = dkeys.length;
@@ -767,9 +778,7 @@
 
                             // Handle autonumber
                             if (
-                                prop.autonumber && (
-                                    value === undefined || prop.isReadOnly
-                                )
+                                prop.autonumber
                             ) {
                                 callback = function (err, resp) {
                                     let seq = resp.rows[0].seq - 0;
