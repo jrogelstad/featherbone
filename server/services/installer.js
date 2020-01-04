@@ -83,7 +83,7 @@
                 f.datasource = datasource;
                 client.currentUser(user);
                 
-                function registerNpmModules() {
+                function registerNpmModules(isSuper) {
                     return new Promise(function (resolve) {
                         config.read().then(function (resp) {
                             let mods = resp.npmModules || [];
@@ -105,7 +105,7 @@
                                     console.log("Unable to load npm module->", mod);
                                 }
                             });
-                            resolve();
+                            resolve(isSuper);
                         });
                     });
                 }
@@ -576,7 +576,7 @@
                 function doInstall(resp) {
                     if (!resp) {
                         throw new Error(
-                            "You must have superuser priviliges to " +
+                            "You must have superuser privileges to " +
                             "perform installations."
                         );
                     }
@@ -592,9 +592,7 @@
                 }
 
                 if (isSuper) {
-                    registerNpmModules().then(
-                        doInstall.bind(null, true)
-                    );
+                    registerNpmModules(true).then(doInstall);
                     return;
                 }
 
