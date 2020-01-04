@@ -135,10 +135,12 @@ function formAttr(data, feather) {
         }
 
         formFeather = catalog.getFeather(formFeather);
-        fprop = formFeather.properties[attr()];
+        if (formFeather) {
+            fprop = formFeather.properties[attr()];
 
-        readOnly = validator(fprop);
-        prop.isReadOnly(readOnly);
+            readOnly = validator(fprop);
+            prop.isReadOnly(readOnly);
+        }
 
         return readOnly;
     }
