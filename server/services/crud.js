@@ -582,8 +582,8 @@
                         data.id = f.createId();
                     }
 
-                    Object.keys(feather.properties).some(function (key) {
-                        let fp = feather.properties[key];
+                    Object.keys(props).some(function (key) {
+                        let fp = props[key];
 
                         if (fp.isNaturalKey && !fp.autonumber) {
                             unique = {

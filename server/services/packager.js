@@ -298,7 +298,11 @@
                     overload.dataList = o.dataList;
                 }
 
-                props[overload.name] = overload;
+                if (o.overloadAutonumber) {
+                    overload.autonumber = o.autonumber;
+                }
+
+                props[o.name] = overload;
             });
 
             if (Object.keys(props).length) {
