@@ -422,7 +422,9 @@
 
                                 row = resp.rows[0];
                                 if (row) {
-                                    oldAuth = row.authorizations;
+                                    if (authorizations !== false) {
+                                        oldAuth = row.authorizations;
+                                    }
 
                                     // Update workbook
                                     sql = (
