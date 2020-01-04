@@ -339,9 +339,26 @@
                                 canUpdate: true,
                                 canDelete: null
                             }];
-                        } else {
-                           // Auths are local. Don't change anything
-                           authorizations = [];
+                        }
+
+                        if (oldAuth) {
+                            // Clear old auths in case of deletions
+                            oldAuth.forEach(function (auth) {
+                                auths.push({
+                                    client: client,
+                                    data: {
+                                        id: id,
+                                        role: auth.f1,
+                                        isInternal: true,
+                                        actions: {
+                                            canCreate: false,
+                                            canRead: false,
+                                            canUpdate: false,
+                                            canDelete: false
+                                        }
+                                    }
+                                });
+                            });
                         }
 
                         // Set new authorizations
