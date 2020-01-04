@@ -330,17 +330,6 @@
                             return;
                         }
 
-                        // If no specific authorization, make one
-                        if (authorizations === undefined) {
-                            authorizations = [{
-                                role: "everyone",
-                                canCreate: null,
-                                canRead: true,
-                                canUpdate: true,
-                                canDelete: null
-                            }];
-                        }
-
                         if (oldAuth) {
                             // Clear old auths in case of deletions
                             oldAuth.forEach(function (auth) {
@@ -433,7 +422,9 @@
 
                                 row = resp.rows[0];
                                 if (row) {
-                                    oldAuth = row.authorizations;
+                                    if (authorizations !== false) {
+                                        oldAuth = row.authorizations;
+                                    }
 
                                     // Update workbook
                                     sql = (

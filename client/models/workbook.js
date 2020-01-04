@@ -160,6 +160,11 @@ const workbookAuth = {
     description: "Workbook authorization definition",
     isSystem: true,
     properties: {
+        id: {
+            description: "Unique id",
+            type: "string",
+            default: "createId()"
+        },
         isDeleted: {
             description: "Boilerplate",
             type: "boolean",
@@ -672,11 +677,7 @@ workbookChild.calculated = f.prop({});
     @extends Model
 */
 function workbookAuthorization(data) {
-    let model = f.createModel(data, workbookAuth);
-
-    model.idProperty("role");
-
-    return model;
+    return f.createModel(data, workbookAuth);
 }
 workbookAuthorization.static = f.prop({});
 workbookAuthorization.calculated = f.prop({});

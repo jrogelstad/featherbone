@@ -374,6 +374,8 @@
                         }
                     };
 
+                    // Disable authorization updates
+                    workbooks.forEach((wb) => wb.authorizations = false);
                     datasource.request(payload, true).then(
                         processFile
                     ).catch(rollback);
