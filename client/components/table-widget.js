@@ -101,6 +101,7 @@ function createTableDataEditor(options, col) {
 
     inputOpts = {
         id: id,
+        key: id,
         onclick: vm.toggleSelection.bind(this, model, id),
         value: prop(),
         style: {
@@ -278,10 +279,12 @@ function createTableDataView(options, col) {
         : ""
     );
     let relation;
+    let id = options.model.id() + "-" + options.idx;
 
     columnWidth -= 6;
 
     tdOpts = {
+        key: id + "-data",
         onclick: function (ev) {
             let optKey;
             if (ev.shiftKey) {
@@ -372,6 +375,7 @@ function createTableDataView(options, col) {
         // This exists to force exact alignment
         // with header on all browsers
         m("td", {
+            key: id + "-spcr",
             class: "fb-column-spacer",
             style: {
                 fontSize: zoom
@@ -569,7 +573,7 @@ function createTableRow(options, model) {
             model: model,
             onclick: onclick,
             vm: vm,
-            zoom: zoom
+            zoom: zoom,
         }));
 
         rowOpts = {
