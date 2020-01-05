@@ -72,6 +72,23 @@ function handleStyle(style, tdOpts) {
     }
 }
 
+function normalizeDataList(dataList, model) {
+    if (dataList) {
+        // If reference a property, get the property
+        if (typeof dataList === "string") {
+            dataList = model.data[dataList]();
+
+        // Must reference a simple array, transform
+        } else if (typeof dataList[0] !== "object") {
+            dataList = dataList.map(function (item) {
+                return {value: item, label: item};
+            });
+        }
+    }
+
+    return dataList;
+}
+
 function createTableDataEditor(options, col) {
     let config = options.config;
     let defaultFocusId = options.defaultFocusId;
@@ -89,7 +106,7 @@ function createTableDataEditor(options, col) {
     let id = vm.formatInputId(col);
     let item = config.columns[options.idx];
     let columnWidth = item.width || COL_WIDTH_DEFAULT;
-    let dataList = item.dataList || prop.dataList;
+    let dataList = normalizeDataList(item.dataList || prop.dataList, model);
     let cfilter = item.filter;
     let style = (
         prop.style
@@ -204,19 +221,6 @@ function createTableDataEditor(options, col) {
 
     handleStyle(style, tdOpts);
 
-    if (dataList) {
-        // If reference a property, get the property
-        if (typeof dataList === "string") {
-            dataList = model.data[dataList]();
-
-        // Must referencoe a simple array, transform
-        } else if (typeof dataList[0] !== "object") {
-            dataList = dataList.map(function (item) {
-                return {value: item, label: item};
-            });
-        }
-    }
-
     columnSpacerClass = (
         "fb-column-spacer " + tdOpts.class
     );
@@ -279,7 +283,9 @@ function createTableDataView(options, col) {
         : ""
     );
     let relation;
-    let id = options.model.id() + "-" + options.idx;
+    let id = model.id() + "-" + options.idx;
+    let item = config.columns[options.idx];
+    let dataList = normalizeDataList(item.dataList || prop.dataList, model);
 
     columnWidth -= 6;
 
@@ -360,6 +366,10 @@ function createTableDataView(options, col) {
         tableData = f.types[prop.type].tableData;
     } else {
         tableData = (obj) => obj.value;
+    }
+
+    if (dataList) {
+        value = (dataList.find((i) => i.value === value) || {}).label;
     }
 
     content = tableData({
