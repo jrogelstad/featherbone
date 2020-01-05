@@ -284,6 +284,14 @@
     };
 
     /**
+        Read configuration settings.
+
+        @method config
+        @return {Promise}
+    */
+    that.config = config.read;
+
+    /**
         Fetch feather catalog.
 
         @method getCatalog
