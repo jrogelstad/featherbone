@@ -306,6 +306,14 @@
                                 row.dataList = null;
                             }
 
+                            if (overload.autonumber !== undefined) {
+                                row.overloadAutonumber = true;
+                                row.autonumber = overload.autonumber;
+                            } else {
+                                row.overloadAutonumber = false;
+                                row.autonumber = null;
+                            }
+
                             return row;
                         });
 
