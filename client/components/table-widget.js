@@ -645,11 +645,19 @@ function createTableRow(options, model) {
     }
 
     // Front cap header navigation
-    onclick = vm.toggleSelection.bind(
-        this,
-        model,
-        defaultFocusId
-    );
+    onclick = function (ev) {
+        let optKey;
+        if (ev.shiftKey) {
+            optKey = "shiftKey";
+        } else if (ev.ctrlKey) {
+            optKey = "ctrlKey";
+        }
+        vm.toggleSelection(
+            model,
+            defaultFocusId,
+            optKey
+        );
+    };
     iconStyle = {
         fontSize: zoom,
         minWidth: "25px"
