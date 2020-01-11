@@ -182,6 +182,7 @@
             let sort = [];
             let parts = [];
             let p = 1;
+            let curr = 0;
 
             if (obj.showDeleted) {
                 clause = "true";
@@ -290,6 +291,14 @@
             }
 
             sql = sql.format(tokens);
+
+            // Escape backslashes
+            while (curr < params.length) {
+                if (typeof params[curr] === "string") {
+                    params[curr] = params[curr].replace(/\\/g, "\\\\");
+                }
+                curr += 1;
+            };
 
             return sql;
         };
