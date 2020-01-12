@@ -40,8 +40,8 @@ const state = State.define(function () {
         this.content = function (value) {
             return value;
         };
-        this.title = function () {
-            return undefined;
+        this.title = function (value) {
+            return value;
         };
     });
     this.state("Collapsed", function () {
@@ -210,6 +210,7 @@ navigator.component = {
 
         function items(key) {
             let name = workbooks[key].data.name();
+            let desc = workbooks[key].data.description();
 
             itemClass = "pure-menu-item fb-navigator-item";
 
@@ -224,7 +225,7 @@ navigator.component = {
                 onclick: vm.goto.bind(workbooks[key]),
                 onmouseover: vm.mouseover.bind(key),
                 onmouseout: vm.mouseout,
-                title: vm.itemTitle(name)
+                title: vm.itemTitle(desc)
             }, [
                 m("i", {
                     class: (
