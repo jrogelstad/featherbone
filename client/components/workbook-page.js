@@ -46,6 +46,9 @@ const editWorkbookConfig = {
         dataList: icons,
         grid: 1
     }, {
+        attr: "sequence",
+        grid: 1
+    }, {
         attr: "module",
         dataList: "modules",
         grid: 1
