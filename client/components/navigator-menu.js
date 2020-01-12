@@ -206,6 +206,7 @@ navigator.component = {
         let itemClass;
         let vm = this.viewModel;
         let workbooks = vm.workbooks();
+        let keys;
 
         function items(key) {
             let name = workbooks[key].data.name();
@@ -235,7 +236,12 @@ navigator.component = {
             ], vm.itemContent(name));
         }
 
-        menuItems = Object.keys(workbooks).map(items);
+        keys = Object.keys(workbooks).sort(function (a, b) {
+            let aVal = workbooks[a].data.sequence() || 0;
+            let bVal = workbooks[b].data.sequence() || 0;
+            return aVal - bVal;
+        });
+        menuItems = keys.map(items);
 
         itemClass = "pure-menu-item fb-navigator-item";
         if (vm.selected() === "home") {

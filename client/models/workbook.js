@@ -52,6 +52,14 @@ const workbook = {
             type: "string",
             default: "folder"
         },
+        sequence: {
+            description: "Presentation order",
+            type: "integer"
+        },
+        actions: {
+            description: "Menu actions",
+            type: "array"
+        },
         launchConfig: {
             description: "Launch configuration",
             type: "object"
@@ -127,7 +135,7 @@ const workbookDefaultConifg = {
             default: false
         },
         actions: {
-            description: "Menu actions that can be performed on rows",
+            description: "Menu actions that can be performed",
             type: "object",
             default: []
         }
