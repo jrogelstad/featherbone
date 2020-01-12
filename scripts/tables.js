@@ -175,6 +175,8 @@
         "default_config json," +
         "local_config json," +
         "module text," +
+        "sequence smallint," +
+        "actions json," +
         "CONSTRAINT workbook_pkey PRIMARY KEY (_pk), " +
         "CONSTRAINT workbook_id_key UNIQUE (id)) INHERITS (object);" +
         "COMMENT ON TABLE \"$workbook\" IS " +
@@ -188,7 +190,11 @@
         "'Default configuration';" +
         "COMMENT ON COLUMN \"$workbook\".local_config IS " +
         "'Local configuration';" +
-        "COMMENT ON COLUMN \"$workbook\".module IS 'Module reference';"
+        "COMMENT ON COLUMN \"$workbook\".module IS 'Module reference';" +
+        "COMMENT ON COLUMN \"$workbook\".sequence IS " +
+        "'Presentation order';" +
+        "COMMENT ON COLUMN \"$workbook\".actions IS " +
+        "'Menu action definition';"
     );
 
     const createSessionSql = (
