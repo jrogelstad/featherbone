@@ -58,7 +58,7 @@ const workbook = {
         },
         actions: {
             description: "Menu actions",
-            type: "array"
+            type: "object"
         },
         launchConfig: {
             description: "Launch configuration",
