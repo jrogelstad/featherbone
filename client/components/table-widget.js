@@ -315,7 +315,7 @@ function createTableDataView(options, col) {
     handleStyle(style, tdOpts);
 
     // Build cell
-    if (typeof format === "object" && d[col]()) {
+    if (typeof format === "object" && prop()) {
         relation = prop.type.relation.toCamelCase();
         if (f.types[relation] && f.types[relation].tableData) {
             tableData = f.types[relation].tableData;
@@ -334,14 +334,14 @@ function createTableDataView(options, col) {
                 );
 
                 if (rel) {
-                    value = d[col]().data[rel]();
+                    value = prop().data[rel]();
 
                     url = (
                         window.location.protocol + "//" +
                         window.location.hostname + ":" +
                         window.location.port + "#!/edit/" +
                         prop.type.relation.toSnakeCase() +
-                        "/" + d[col]().id()
+                        "/" + prop().id()
                     );
 
                     return m("a", {
@@ -351,7 +351,7 @@ function createTableDataView(options, col) {
                             e.preventDefault();
                             m.route.set("/edit/:feather/:key", {
                                 feather: prop.type.relation.toSnakeCase(),
-                                key: d[col]().id()
+                                key: prop().id()
                             }, {
                                 state: {}
                             });
