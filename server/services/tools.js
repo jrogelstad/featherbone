@@ -292,14 +292,6 @@
 
             sql = sql.format(tokens);
 
-            // Escape backslashes
-            while (curr < params.length) {
-                if (typeof params[curr] === "string") {
-                    params[curr] = params[curr].replace(/\\/g, "\\\\");
-                }
-                curr += 1;
-            };
-
             return sql;
         };
 
