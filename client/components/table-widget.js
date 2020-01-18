@@ -1085,10 +1085,19 @@ tableWidget.viewModel = function (options) {
             let url;
             let payload;
             let body = {};
-            let plural = vm.feather().plural || vm.feather().name;
+            let fspec = vm.feather();
+            let plural = fspec.plural || fspec.name;
+
+            function notCalculated(p) {
+                return (
+                    p.indexOf(".") !== -1 || // path ok
+                    !fspec.properties[p].isCalculated
+                );
+            }  
 
             if (isOnlyVisible()) {
                 body.properties = vm.config().columns.map((col) => col.attr);
+                body.properties = body.properties.filter(notCalculated);
             }
 
             body.filter = getFilter();
