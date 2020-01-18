@@ -182,7 +182,6 @@
             let sort = [];
             let parts = [];
             let p = 1;
-            let curr = 0;
 
             if (obj.showDeleted) {
                 clause = "true";
