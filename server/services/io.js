@@ -31,8 +31,17 @@
     const crud = new CRUD();
     const feathers = new Feathers();
 
-    function getFeather(client, name, localFeathers) {
+    function getFeather(client, name, localFeathers, idx) {
         return new Promise(function (resolve, reject) {
+            idx = idx || [];
+
+            // avoid infinite loops
+            if (idx.indexOf(name) !== -1) {
+                resolve();
+                return;
+            }
+            idx.push(name);
+
             function getChildFeathers(resp) {
                 let frequests = [];
                 let props = resp.properties;
@@ -51,7 +60,8 @@
                                 getFeather(
                                     client,
                                     type.relation,
-                                    localFeathers
+                                    localFeathers,
+                                    idx
                                 )
                             );
                         }
@@ -307,29 +317,73 @@
                         return value[attr];
                     }
 
+                    function resolveProperty(key, fthr) {
+                        let idx = key.indexOf(".");
+                        let attr;
+                        let rel;
+
+                        if (idx !== -1) {
+                            attr = key.slice(0, idx);
+                            rel = fthr.properties[attr].type.relation;
+                            fthr = localFeathers[rel];
+                            key = key.slice(idx + 1, key.length);
+                            return resolveProperty(key, fthr);
+                        }
+
+                        return fthr.properties[key];
+                    }
+
+                    function resolveValue(key, o) {
+                        let idx = key.indexOf(".");
+                        let attr;
+                        let rel;
+
+                        if (!o) {
+                            return null;
+                        }
+
+                        if (idx !== -1) {
+                            attr = key.slice(0, idx);
+                            key = key.slice(idx + 1, key.length);
+                            o = o[attr];
+                            return resolveValue(key, o);
+                        }
+
+                        return o[key];
+                    }
+
                     if (d.length) {
                         d.forEach(function (row) {
+                            let nrow = {};
+
                             props.forEach(function (key) {
-                                let prop = cfeather.properties[key];
+                                let prop = resolveProperty(key, cfeather);
+                                let value = resolveValue(key, row);
+
+                                if (key.indexOf(".") !== -1) {
+                                    key = key.replace(/\./g, "_").toCamelCase(true);
+                                }
 
                                 if (
                                     prop.type === "object" &&
                                     prop.format === "money"
                                 ) {
-                                    row[key] = row[key].amount;
+                                    nrow[key] = value.amount;
                                 } else if (
                                     typeof prop.type === "object"
                                 ) {
-                                    row[key] = naturalKey(
+                                    nrow[key] = naturalKey(
                                         prop.type.relation,
-                                        row[key]
+                                        value
                                     );
+                                } else {
+                                    nrow[key] = value;
                                 }
                             });
 
                             tmp = {};
-                            Object.keys(row).forEach(
-                                doRename.bind(null, row, tmp)
+                            Object.keys(nrow).forEach(
+                                doRename.bind(null, nrow, tmp)
                             );
                             d[c] = tmp;
                             c += 1;
