@@ -45,9 +45,7 @@
                         let type = props[key].type;
 
                         if (
-                            typeof type === "object" && (
-                                type.parentOf || type.isChild
-                            )
+                            typeof type === "object"
                         ) {
                             frequests.push(
                                 getFeather(
@@ -128,6 +126,11 @@
             return new Promise(function (resolve, reject) {
                 let id = f.createId();
                 let filename = dir + id + "." + format;
+                let props = (
+                    properties
+                    ? f.copy(properties)
+                    : undefined
+                );
                 let payload = {
                     client: client,
                     name: feather,
@@ -140,7 +143,14 @@
                 }
 
                 function callback(resp) {
-                    writeFile(filename, resp, format, client, feather).then(
+                    writeFile(
+                        filename,
+                        resp,
+                        format,
+                        client,
+                        feather,
+                        props
+                    ).then(
                         () => resolve(filename)
                     ).catch(reject);
                 }
@@ -153,7 +163,14 @@
             });
         }
 
-        function writeWorkbook(filename, data, format, client, feather) {
+        function writeWorkbook(
+            filename,
+            data,
+            format,
+            client,
+            feather,
+            props
+        ) {
             return new Promise(function (resolve, reject) {
                 let wb = XLSX.utils.book_new();
                 let sheets = {};
@@ -162,22 +179,23 @@
                 let key;
                 let ws;
 
+                function doRename(data, tmp, key) {
+                    if (
+                        key === "objectType" ||
+                        key === "isDeleted" ||
+                        key === "lock"
+                    ) {
+                        tmp[key] = data[key];
+                    } else {
+                        tmp[key.toName()] = data[key];
+                    }
+                }
+
                 function toSheets(d, rename, feather) {
-                    let type;
+                    let cfeather = localFeathers[feather];
+                    let name = feather;
                     let tmp;
                     let c = 0;
-
-                    function doRename(data, key) {
-                        if (
-                            key === "objectType" ||
-                            key === "isDeleted" ||
-                            key === "lock"
-                        ) {
-                            tmp[key] = data[key];
-                        } else {
-                            tmp[key.toName()] = data[key];
-                        }
-                    }
 
                     if (d.length) {
                         d.forEach(function (row) {
@@ -185,12 +203,10 @@
                             let pval = row.id;
                             let rel;
                             let prop;
-                            let cfeather;
 
                             Object.keys(row).forEach(function (key) {
                                 let n;
 
-                                cfeather = localFeathers[feather];
                                 prop = cfeather.properties[
                                     key.replace(" ", "").toCamelCase()
                                 ];
@@ -261,23 +277,78 @@
                             if (rename !== false) {
                                 tmp = {};
                                 Object.keys(row).forEach(
-                                    doRename.bind(null, row)
+                                    doRename.bind(null, row, tmp)
                                 );
                                 d[c] = tmp;
                                 c += 1;
                             }
                         });
 
-                        if (!sheets[type]) {
-                            sheets[type] = d;
+                        if (!sheets[name]) {
+                            sheets[name] = d;
                         } else {
-                            sheets[type] = sheets[type].concat(d);
+                            sheets[name] = sheets[name].concat(d);
+                        }
+                    }
+                }
+
+                function toSheetsPartial(d, feather) {
+                    let cfeather = localFeathers[feather];
+                    let name = feather;
+                    let tmp;
+                    let c = 0;
+
+                    function naturalKey(rel, value) {
+                        let fthr = localFeathers[rel];
+                        let kys = Object.keys(fthr.properties);
+                        let attr = kys.find(function (key) {
+                            return fthr.properties[key].isNaturalKey;
+                        });
+                        return value[attr];
+                    }
+
+                    if (d.length) {
+                        d.forEach(function (row) {
+                            props.forEach(function (key) {
+                                let prop = cfeather.properties[key];
+
+                                if (
+                                    prop.type === "object" &&
+                                    prop.format === "money"
+                                ) {
+                                    row[key] = row[key].amount;
+                                } else if (
+                                    typeof prop.type === "object"
+                                ) {
+                                    row[key] = naturalKey(
+                                        prop.type.relation,
+                                        row[key]
+                                    );
+                                }
+                            });
+
+                            tmp = {};
+                            Object.keys(row).forEach(
+                                doRename.bind(null, row, tmp)
+                            );
+                            d[c] = tmp;
+                            c += 1;
+                        });
+
+                        if (!sheets[name]) {
+                            sheets[name] = d;
+                        } else {
+                            sheets[name] = sheets[name].concat(d);
                         }
                     }
                 }
 
                 function callback() {
-                    toSheets(data, true, feather);
+                    if (props) {
+                        toSheetsPartial(data, feather);
+                    } else {
+                        toSheets(data, true, feather);
+                    }
 
                     // Add worksheets in reverse order
                     keys = Object.keys(sheets);
