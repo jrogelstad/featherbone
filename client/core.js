@@ -1415,6 +1415,8 @@ f.createEditor = function (obj) {
     let isPath = key.indexOf(".") !== -1;
     let prop = f.resolveProperty(obj.model, key);
     let editor;
+    let rel;
+    let keys;
 
     obj.options.id = obj.options.id || key;
 
@@ -1437,6 +1439,18 @@ f.createEditor = function (obj) {
             return buildSelector(obj, obj.options);
         }
 
+        // If relation, use feather natural key to
+        // find value to display
+        if (prop.type.relation) {
+            rel = catalog.getFeather(prop.type.relation);
+            keys = Object.keys(rel.properties);
+            rel = (
+                keys.find((key) => rel.properties[key].isNaturalKey) ||
+                keys.find((key) => rel.properties[key].isLabelKey)
+            );
+            prop = prop().data[rel];
+        }
+
         if (prop.format && f.formats()[prop.format].editor) {
             editor = f.formats()[prop.format].editor;
         } else if (f.types[prop.type] && f.types[prop.type].editor) {
@@ -1447,7 +1461,7 @@ f.createEditor = function (obj) {
 
         return editor({
             class: obj.options.class,
-            readonly: obj.options.readonly,
+            readonly: obj.options.readonly || isPath,
             disableCurrency: obj.options.fCurrency,
             filter: obj.options.filter,
             key: key,
