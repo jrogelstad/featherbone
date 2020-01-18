@@ -54,7 +54,7 @@
         "isLabelKey",
         "dataList",
         "isIndexed",
-		"isAlwaysLoad"
+        "isAlwaysLoad"
     ];
 
     const tools = new Tools();

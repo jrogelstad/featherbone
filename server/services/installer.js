@@ -82,7 +82,7 @@
 
                 f.datasource = datasource;
                 client.currentUser(user);
-                
+
                 function registerNpmModules(isSuper) {
                     return new Promise(function (resolve) {
                         config.read().then(function (resp) {
@@ -94,15 +94,20 @@
                                     let name;
                                     if (mod.properties) {
                                         mod.properties.forEach(function (p) {
-                                            f[p.property] = require(mod.require)[p.export];
+                                            f[p.property] = require(
+                                                mod.require
+                                            )[p.export];
                                         });
                                         return;
                                     }
 
                                     name = mod.require;
                                     f[name] = require(mod.require);
-                                } catch (e) {
-                                    console.log("Unable to load npm module->", mod);
+                                } catch {
+                                    console.log(
+                                        "Unable to load npm module->",
+                                        mod
+                                    );
                                 }
                             });
                             resolve(isSuper);
@@ -383,7 +388,9 @@
                     };
 
                     // Disable authorization updates
-                    workbooks.forEach((wb) => wb.authorizations = false);
+                    workbooks.forEach(function (wb) {
+                        wb.authorizations = false;
+                    });
                     datasource.request(payload, true).then(
                         processFile
                     ).catch(rollback);
