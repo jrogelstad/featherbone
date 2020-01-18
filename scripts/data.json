@@ -261,6 +261,10 @@
             "label": "Fetch on Startup",
             "grid": 5,
             "unit": 0
+        }, {
+            "attr": "isReadOnly",
+            "grid": 5,
+            "unit": 0
         },
         {
             "attr": "owner",
