@@ -60,7 +60,7 @@ moneyRelation.viewModel = function (options) {
     let currConvList = f.createList("CurrencyConversion", {
         fetch: false
     });
-    let prop = parent.model().data[options.parentProperty];
+    let prop = f.resolveProperty(parent.model(), options.parentProperty);
 
     // Bind to property state change to update conversion ratio if
     // applicable
