@@ -189,12 +189,13 @@
                 let key;
                 let ws;
 
-                function doRename(data, tmp, key) {
+                function doRename(data, tmp, partial, key) {
                     if (
+                        !partial && (
                         key === "objectType" ||
                         key === "isDeleted" ||
                         key === "lock"
-                    ) {
+                    )) {
                         tmp[key] = data[key];
                     } else {
                         tmp[key.toName()] = data[key];
@@ -287,7 +288,7 @@
                             if (rename !== false) {
                                 tmp = {};
                                 Object.keys(row).forEach(
-                                    doRename.bind(null, row, tmp)
+                                    doRename.bind(null, row, tmp, false)
                                 );
                                 d[c] = tmp;
                                 c += 1;
@@ -383,7 +384,7 @@
 
                             tmp = {};
                             Object.keys(nrow).forEach(
-                                doRename.bind(null, nrow, tmp)
+                                doRename.bind(null, nrow, tmp, true)
                             );
                             d[c] = tmp;
                             c += 1;
