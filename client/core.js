@@ -1441,7 +1441,7 @@ f.createEditor = function (obj) {
 
         // If relation, use feather natural key to
         // find value to display
-        if (prop.type.relation) {
+        if (prop.type && prop.type.relation) {
             rel = catalog.getFeather(prop.type.relation);
             keys = Object.keys(rel.properties);
             rel = (
