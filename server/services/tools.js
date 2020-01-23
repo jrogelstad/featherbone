@@ -213,6 +213,11 @@
                         throw err;
                     }
 
+                    // Escape backslash on regex operations
+                    if (op.indexOf("~") > -1) {
+                        where.value = where.value.replace(/\\/g, "\\\\");
+                    }
+
                     // Value "IN" array ("Andy" IN ["Ann","Andy"])
                     // Whether "Andy"="Ann" OR "Andy"="Andy"
                     if (op === "IN") {
