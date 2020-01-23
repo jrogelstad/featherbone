@@ -260,7 +260,7 @@ relationWidget.viewModel = function (options) {
         let currentModel;
         let currentValue = false;
         let models = vm.models();
-        let regexp = new RegExp("^" + value, "i");
+        let regexp = new RegExp("^" + value.replace(/\\/g, "\\\\"), "i");
 
         function count(counter, model) {
             let mValue = model.data[valueProperty]();
