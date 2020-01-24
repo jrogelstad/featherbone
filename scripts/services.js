@@ -1079,8 +1079,9 @@ function updateUserAccount(obj) {
 
     return new Promise(function (resolve, reject) {
         let requests = [];
+        let password = obj.newRec.password;
 
-        if (obj.newRec.password) {
+        if (password) {
             obj.newRec.password = "";
             requests.push(f.datasource.request(
                 {
@@ -1089,7 +1090,7 @@ function updateUserAccount(obj) {
                     client: obj.client,
                     data: {
                         name: obj.newRec.name.toLowerCase(),
-                        password: obj.newRec.password
+                        password: password
                     }
                 },
                 true
@@ -1142,6 +1143,6 @@ f.datasource.registerFunction(
     "PATCH",
     "UserAccount",
     updateUserAccount,
-    f.datasource.TRIGGER_AFTER
+    f.datasource.TRIGGER_BEFORE
 );
 
