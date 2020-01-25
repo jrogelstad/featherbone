@@ -265,7 +265,6 @@ function createTableDataView(options, col) {
     let config = options.config;
     let zoom = options.zoom;
     let onclick = options.onclick;
-    let d = options.d;
     let url;
     let cell;
     let content;
@@ -369,7 +368,8 @@ function createTableDataView(options, col) {
     }
 
     if (dataList) {
-        value = (dataList.find((i) => i.value === value) || {}).label;
+        value = dataList.find((i) => i.value === value) || {};
+        value = value.label;
     }
 
     content = tableData({
@@ -583,7 +583,7 @@ function createTableRow(options, model) {
             model: model,
             onclick: onclick,
             vm: vm,
-            zoom: zoom,
+            zoom: zoom
         }));
 
         rowOpts = {
@@ -789,7 +789,7 @@ function createTableFooter(options, col) {
         } else {
             if (prop.format === "date") {
                 tableData = f.formats().date.tableData;
-            } else if (prop.format == "dateTime") {
+            } else if (prop.format === "dateTime") {
                 tableData = f.formats().dateTime.tableData;
             } else if (prop.type === "string") {
                 tableData = f.types.string.tableData;
@@ -1093,7 +1093,7 @@ tableWidget.viewModel = function (options) {
                     p.indexOf(".") !== -1 || // path ok
                     !fspec.properties[p].isCalculated
                 );
-            }  
+            }
 
             if (isOnlyVisible()) {
                 body.properties = vm.config().columns.map((col) => col.attr);
@@ -1231,8 +1231,8 @@ tableWidget.viewModel = function (options) {
 
             if (values === null) {
                 vm.aggregateValues({});
-				return;
-	        }
+                return;
+            }
 
             // Format consistently whether one or many
             if (typeof values === "number") {

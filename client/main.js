@@ -48,7 +48,6 @@ let moduleData;
 let moduleSid = f.createId();
 let workbookData;
 let loadWorkbooks;
-let evstart;
 let menu;
 let workbooks = catalog.register("workbooks");
 let addWorkbookViewModel;
@@ -94,6 +93,7 @@ const home = {
         case "dev":
             toolbarClass += " fb-toolbar-dev";
             toolbarButtonClass = " fb-toolbar-button-dev";
+            break;
         }
 
         return m("div", {

@@ -643,6 +643,25 @@ function iconNames() {
     return result;
 }
 
+function selectEditor(dataList, options) {
+    let obj = {
+        viewModel: options.parentViewModel,
+        dataList: dataList()
+    };
+    let opts = {
+        id: options.id,
+        key: options.key,
+        prop: options.prop,
+        class: options.class,
+        readonly: options.readonly,
+        oncreate: options.onCreate,
+        onremove: options.onRemove,
+        style: options.style,
+        isCell: options.isCell
+    };
+    return buildSelector(obj, opts);
+}
+
 formats.icon.editor = selectEditor.bind(null, iconNames);
 
 formats.icon.tableData = function (obj) {
@@ -738,25 +757,6 @@ function roleNames() {
         label: ""
     });
     return result;
-}
-
-function selectEditor(dataList, options) {
-    let obj = {
-        viewModel: options.parentViewModel,
-        dataList: dataList()
-    };
-    let opts = {
-        id: options.id,
-        key: options.key,
-        prop: options.prop,
-        class: options.class,
-        readonly: options.readonly,
-        oncreate: options.onCreate,
-        onremove: options.onRemove,
-        style: options.style,
-        isCell: options.isCell
-    };
-    return buildSelector(obj, opts);
 }
 
 formats.role.editor = selectEditor.bind(null, roleNames);

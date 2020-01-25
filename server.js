@@ -200,7 +200,9 @@
                             let name;
                             if (mod.properties) {
                                 mod.properties.forEach(function (p) {
-                                    f[p.property] = require(mod.require)[p.export];
+                                    f[p.property] = require(
+                                        mod.require
+                                    )[p.export];
                                 });
                                 return;
                             }
