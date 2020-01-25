@@ -997,7 +997,7 @@
             function begin() {
                 return new Promise(function (resolve, reject) {
                     if (!client.wrapped()) {
-						crud.begin({client: client}).then(function () {
+                        crud.begin({client: client}).then(function () {
                             client.wrapped(true);
                             resolve();
                         }).catch(reject);
@@ -1097,10 +1097,10 @@
                             //console.log("COMMITED");
                             resolve(resp);
                         }).catch(function (err) {
-							client.currentUser(undefined);
+                            client.currentUser(undefined);
                             client.wrapped(false);
                             reject(error(err));
-						});
+                        });
                         return;
                     }
 
@@ -1700,7 +1700,7 @@
           {{/crossLink}}
           * {{#crossLink "Services.Feathers/saveAuthorization:method"}}
           {{/crossLink}}
-	      * {{#crossLink "Services.Crud/savePoint:method"}}
+          * {{#crossLink "Services.Crud/savePoint:method"}}
           {{/crossLink}}
           * {{#crossLink "Services.Events/subscribe:method"}}
           {{/crossLink}}
@@ -1999,7 +1999,7 @@
         "saveAuthorization",
         feathers.saveAuthorization
     );
-	that.registerFunction("POST", "savePoint", crud.savePoint);
+    that.registerFunction("POST", "savePoint", crud.savePoint);
     that.registerFunction("POST", "subscribe", subscribe);
     that.registerFunction("POST", "unsubscribe", unsubscribe);
     that.registerFunction(

@@ -706,7 +706,7 @@ function doHandleForm(obj) {
 
                         attr.columns.forEach(function (col) {
                             // Ignore deletes
-                            if (col == undefined || col === null) {
+                            if (col === undefined || col === null) {
                                 return;
                             }
 

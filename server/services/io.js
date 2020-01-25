@@ -192,10 +192,11 @@
                 function doRename(data, tmp, partial, key) {
                     if (
                         !partial && (
-                        key === "objectType" ||
-                        key === "isDeleted" ||
-                        key === "lock"
-                    )) {
+                            key === "objectType" ||
+                            key === "isDeleted" ||
+                            key === "lock"
+                        )
+                    ) {
                         tmp[key] = data[key];
                     } else {
                         tmp[key.toName()] = data[key];
@@ -337,7 +338,6 @@
                     function resolveValue(key, o) {
                         let idx = key.indexOf(".");
                         let attr;
-                        let rel;
 
                         if (!o) {
                             return null;
