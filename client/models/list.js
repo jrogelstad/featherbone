@@ -475,11 +475,17 @@ function createList(feather) {
         }
 
         if (ary.filter()) {
-            body.filter = ary.filter();
+            body.filter = f.copy(ary.filter());
             body.filter.limit = body.filter.limit || ary.defaultLimit();
         }
 
+        if (body.filter && body.filter.showDeleted !== undefined) {
+            ary.showDeleted(body.filter.showDeleted);
+            delete body.filter.showDeleted;
+        }
+
         body.showDeleted = ary.showDeleted();
+
         if (subid) {
             body.subscription = {
                 id: subid,

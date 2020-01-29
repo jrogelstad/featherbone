@@ -43,6 +43,14 @@ filterDialog.viewModel = function (options) {
     let vm;
     let store;
     let monkeyPatch = options.onOk;
+    let showDeletedButton = f.prop(f.createViewModel("Button", {
+        label: "Show Deleted",
+        icon: "far fa-square",
+        onclick: function () {
+            vm.filter().showDeleted = !Boolean(vm.filter().showDeleted);
+        },
+        class: "fb-button-checkbox fb-icon-button"
+    }));
 
     function resolveProperty(feather, property) {
         let prefix;
@@ -378,6 +386,12 @@ filterDialog.viewModel = function (options) {
     vm.viewRows = function () {
         let view;
 
+        if (vm.filter().showDeleted) {
+            showDeletedButton().icon("check-square");
+        } else {
+            showDeletedButton().icon("far fa-square");
+        }
+
         view = vm.items().map(function (item) {
             let row;
             let operators = vm.operators(item.property);
@@ -472,6 +486,9 @@ filterDialog.viewModel = function (options) {
             });
         }
     });
+
+    vm.buttons().push(showDeletedButton);
+
     vm.reset();
 
     return vm;

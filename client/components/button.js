@@ -384,6 +384,11 @@ button.component = {
         let title = vm.title();
         let icon = vm.icon();
         let label = vm.label();
+        let pre = "fa fa-";
+
+        if (icon.slice(0,2) === "fa") {
+            pre = "";
+        };
 
         opts = {
             id: vm.id(),
@@ -417,7 +422,7 @@ button.component = {
 
         if (icon) {
             iconView = [m("i", {
-                class: "fa fa-" + icon + " fb-button-icon"
+                class: pre + icon + " fb-button-icon"
             })];
         }
 
