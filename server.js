@@ -360,7 +360,9 @@
         payload.filter = payload.filter || {};
 
         if (payload.showDeleted) {
-            payload.showDeleted = payload.showDeleted === "true";
+            payload.showDeleted = (
+                payload.showDeleted === "true" || payload.showDeleted === true
+            );
         }
 
         if (payload.subscription !== undefined) {

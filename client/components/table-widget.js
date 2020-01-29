@@ -723,7 +723,9 @@ function createTableRow(options, model) {
     rowOpts.key = model.id();
 
     if (d.isDeleted()) {
-        row = m("del", m("tr", rowOpts, tds));
+        row = m("del", {
+            key: f.createId()
+        }, m("tr", rowOpts, tds));
     } else {
         row = m("tr", rowOpts, tds);
     }

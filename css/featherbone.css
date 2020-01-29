@@ -47,6 +47,25 @@ a.pure-button-selected {
     pointer-events: auto !important;
 }
 
+.fb-button-checkbox {
+    float: right;
+    background: white;
+}
+
+.fb-button-checkbox:hover {
+    background: white;
+}
+
+.fb-button-checkbox:active {
+    box-shadow: none;
+    background: white;
+}
+
+.fb-button-checkbox:focus {
+    box-shadow: none;
+    background: white;
+}
+
 .fb-button-delete {
     background: red;
     color: white;
