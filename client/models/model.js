@@ -1170,6 +1170,7 @@ function createModel(data, feather) {
         // If first entry here with user data, clear for next time and bail
         if (data) {
             context.clear = false;
+            lastFetched = data;
             data = undefined;
             return;
         }
