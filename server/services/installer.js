@@ -390,6 +390,7 @@
                     // Disable authorization updates
                     workbooks.forEach(function (wb) {
                         wb.authorizations = false;
+                        wb.localConfig = [];
                     });
                     datasource.request(payload, true).then(
                         processFile
