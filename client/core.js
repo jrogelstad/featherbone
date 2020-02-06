@@ -745,7 +745,8 @@ function roleNames() {
     let roles = catalog.store().data().roles().slice();
     let result;
 
-    result = roles.map((role) => role.data.name()).sort();
+    result = roles.filter((r) => !r.data.isDeleted());		
+    result = result.map((role) => role.data.name()).sort();
     result = result.map(function (role) {
         return {
             value: role,
@@ -883,7 +884,9 @@ function userAccountNames() {
     let roles = catalog.store().data().roles().slice();
     let result;
 
-    result = roles.filter((r) => r.data.objectType() === "UserAccount");
+    result = roles.filter((r) => (
+        r.data.objectType() === "UserAccount" && !r.data.isDeleted()
+    ));		
     result = result.map((role) => role.data.name()).sort();
     result = result.map(function (role) {
         return {
