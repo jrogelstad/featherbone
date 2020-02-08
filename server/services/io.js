@@ -369,7 +369,11 @@
                                     prop.type === "object" &&
                                     prop.format === "money"
                                 ) {
-                                    nrow[key] = value.amount;
+                                    nrow[key] = (
+                                        value
+                                        ? value.amount
+                                        : 0
+                                    );
                                 } else if (
                                     typeof prop.type === "object"
                                 ) {
