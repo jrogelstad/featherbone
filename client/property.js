@@ -19,7 +19,92 @@
 /**
     @module Property
 */
-import State from "./state.js";
+/**
+    @private
+    @method enter
+*/
+function enter(fn) {
+    this.enters.push(fn);
+    return this;
+}
+
+/**
+    @private
+    @method exit
+*/
+function exit(fn) {
+    this.exits.push(fn);
+    return this;
+}
+
+/**
+    @private
+    @method defineState
+*/
+function defineState() {
+    let state;
+    let subs;
+    let current;
+
+    function goto(str) {
+        let name = str.slice(3);
+        current.exits.forEach((e) => e());
+        current = state.substateMap[name];
+        current.enters.forEach((e) => e());
+    }
+
+    subs = {
+        Ready: {
+            events: {
+                change: goto.bind(null, "../Changing"),
+                silence: goto.bind(null, "../Silent"),
+                disable: goto.bind(null, "../Disabled")
+            }
+        },
+        Changing: {
+            events: {
+                changed: goto.bind(null, "../Ready")
+            }
+        },
+        Silent: {
+            events: {
+                report: goto.bind(null, "../Ready")
+            }
+        },
+        Disabled: {
+            events: {
+                enable: goto.bind(null, "../Ready")
+            }
+        }
+    };
+
+    Object.keys(subs).forEach(function (key) {
+        subs[key].name = key;
+        subs[key].enters = [];
+        subs[key].exits = [];
+        subs[key].enter = enter.bind(subs[key]);
+        subs[key].exit = exit.bind(subs[key]);
+    });
+
+    state = {
+        current: function () {
+            return ["/" + current.name];
+        },
+        resolve: function (n) {
+            return subs[n.slice(1)];
+        },
+        send: function (name) {
+            if (current.events[name]) {
+                current.events[name]();
+            }
+        },
+        substateMap: subs
+    };
+
+    current = state.substateMap.Ready;
+
+    return state;
+}
 
 /**
     @private
@@ -115,39 +200,8 @@ function createProperty(store, formatter) {
     formatter.fromType = formatter.fromType || defaultTransform;
 
     // Define state
-    state = State.define(function () {
-        this.state("Ready", function () {
-            this.event("change", function () {
-                this.goto("../Changing");
-            });
-            this.event("silence", function () {
-                this.goto("../Silent");
-            });
-            this.event("disable", function () {
-                this.goto("../Disabled");
-            });
-        });
-        this.state("Changing", function () {
-            this.event("changed", function () {
-                this.goto("../Ready");
-            });
-        });
-        this.state("Silent", function () {
-            this.event("report", function () {
-                this.goto("../Ready");
-            });
-            this.event("disable", function () {
-                this.goto("../Disabled");
-            });
-        });
-        this.state("Disabled", function () {
-            // Attempts to make changes from disabled mode revert back
-            this.event("changed", revert);
-            this.event("enable", function () {
-                this.goto("../Ready");
-            });
-        });
-    });
+    state = defineState();
+    state.substateMap.Disabled.events.changed = revert;
 
     // Private function that will be returned
     p = function (...args) {
@@ -305,7 +359,6 @@ function createProperty(store, formatter) {
     };
 
     store = formatter.toType(store);
-    state.goto();
 
     return p;
 }
