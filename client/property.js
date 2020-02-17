@@ -42,6 +42,7 @@ function goto(str) {
     let current = this.resolve(this.current()[0]);
     current.exits.forEach((e) => e());
     this.current("/" + name);
+    current = this.resolve("/" + name);
     current.enters.forEach((e) => e());
 }
 
