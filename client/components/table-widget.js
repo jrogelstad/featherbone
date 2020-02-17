@@ -1197,11 +1197,24 @@ tableWidget.viewModel = function (options) {
 
     function setProperties() {
         let list = vm.models();
-        let props;
+        let attrs;
+        let props = [];
         let fp = vm.feather().properties;
 
         if (!vm.isEditModeEnabled()) {
-            props = vm.config().columns.map((col) => col.attr);
+            attrs = vm.config().columns.map((col) => col.attr);
+            // Purge dot notation
+            attrs.forEach(function (a) {
+                let i = a.indexOf(".");
+
+                if (i !== -1) {
+                    a = a.slice(0, i);
+                }
+
+                if (props.indexOf(a) === -1) {
+                    props.push(a);
+                 }
+            });
             // Exclude calculated columns
             props = props.filter((p) => fp[p] && !fp[p].isCalculated);
             if (props.indexOf("id") === -1) {
