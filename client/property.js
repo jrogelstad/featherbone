@@ -37,44 +37,61 @@ function exit(fn) {
     return this;
 }
 
+function goto(str) {
+    let name = str.slice(3);
+    let current = this.resolve(this.current()[0]);
+    current.exits.forEach((e) => e());
+    this.current("/" + name);
+    current.enters.forEach((e) => e());
+}
+
 /**
     @private
     @method defineState
 */
 function defineState() {
     let state;
-    let subs;
+    let subs = {};
     let current;
 
-    function goto(str) {
-        let name = str.slice(3);
-        current.exits.forEach((e) => e());
-        current = state.substateMap[name];
-        current.enters.forEach((e) => e());
-    }
+    state = {
+        current: function (...args) {
+            if (args.length) {
+                current = state.resolve(args[0]);
+            }
+            return ["/" + current.name];
+        },
+        resolve: function (n) {
+            return subs[n.slice(1)];
+        },
+        send: function (name) {
+            if (current.events[name]) {
+                current.events[name]();
+            }
+        },
+        substateMap: subs,
+    };
 
-    subs = {
-        Ready: {
-            events: {
-                change: goto.bind(null, "../Changing"),
-                silence: goto.bind(null, "../Silent"),
-                disable: goto.bind(null, "../Disabled")
-            }
-        },
-        Changing: {
-            events: {
-                changed: goto.bind(null, "../Ready")
-            }
-        },
-        Silent: {
-            events: {
-                report: goto.bind(null, "../Ready")
-            }
-        },
-        Disabled: {
-            events: {
-                enable: goto.bind(null, "../Ready")
-            }
+    subs.Ready = {
+        events: {
+            change: goto.bind(state, "../Changing"),
+            silence: goto.bind(state, "../Silent"),
+            disable: goto.bind(state, "../Disabled")
+        }
+    };
+    subs.Changing = {
+        events: {
+            changed: goto.bind(state, "../Ready")
+        }
+    };
+    subs.Silent = {
+        events: {
+            report: goto.bind(state, "../Ready")
+        }
+    };
+    subs.Disabled = {
+        events: {
+            enable: goto.bind(state, "../Ready")
         }
     };
 
@@ -86,22 +103,7 @@ function defineState() {
         subs[key].exit = exit.bind(subs[key]);
     });
 
-    state = {
-        current: function () {
-            return ["/" + current.name];
-        },
-        resolve: function (n) {
-            return subs[n.slice(1)];
-        },
-        send: function (name) {
-            if (current.events[name]) {
-                current.events[name]();
-            }
-        },
-        substateMap: subs
-    };
-
-    current = state.substateMap.Ready;
+    state.current("/Ready");
 
     return state;
 }
@@ -131,6 +133,14 @@ function isToOne(p) {
 */
 function isToMany(p) {
     return p.type && typeof p.type === "object" && p.type.parentOf;
+}
+
+/**
+   @private
+   @method defaultTransform
+*/
+function defaultTransform(value) {
+    return value;
 }
 
 /**
@@ -187,10 +197,6 @@ function createProperty(store, formatter) {
     let alias;
     let isReadOnly = false;
     let isRequired = false;
-
-    function defaultTransform(value) {
-        return value;
-    }
 
     function revert() {
         store = oldValue;
@@ -296,9 +302,7 @@ function createProperty(store, formatter) {
         @for Property
         @return {State}
     */
-    p.state = function () {
-        return state;
-    };
+    p.state = () => state;
 
     /**
         @method toJSON
@@ -340,23 +344,19 @@ function createProperty(store, formatter) {
         @method isToOne
         @return {Boolean}
     */
-    p.isToOne = function () {
-        return isToOne(p);
-    };
+    p.isToOne = isToOne.bind(null, p);
+
     /**
         @method isToMany
         @return {Boolean}
     */
-    p.isToMany = function () {
-        return isToMany(p);
-    };
+    p.isToMany = isToMany.bind(null, p);
+
     /**
         @method isChild
         @return {Boolean}
     */
-    p.isChild = function () {
-        return isChild(p);
-    };
+    p.isChild = isChild.bind(null, p);
 
     store = formatter.toType(store);
 
