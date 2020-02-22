@@ -234,7 +234,7 @@ aggregateDialog.viewModel = function (options) {
                         oncreate: resetSelector.bind(null, item),
                         onupdate: resetSelector.bind(null, item),
                         onchange: (e) =>
-                        vm.itemChanged.bind(
+                                vm.itemChanged.bind(
                             this,
                             item.index,
                             "method"
