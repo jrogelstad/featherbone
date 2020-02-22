@@ -862,7 +862,7 @@ function resize(vm, vnode) {
         e.style.height = (
             window.innerHeight -
             f.getElementPosition(e.parentElement).y -
-            e.offsetTop - pageFooter.offsetHeight - tfootHeight - 1 + "px"
+            e.offsetTop - pageFooter.offsetHeight - tfootHeight - 2 + "px"
         );
     } else {
         yPosition = f.getElementPosition(e.offsetParent).y;
