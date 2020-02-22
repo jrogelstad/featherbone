@@ -207,6 +207,13 @@
                 // Process criteria
                 criteria.forEach(function (where) {
                     op = where.operator || "=";
+                    let yr;
+                    let mo;
+                    let da;
+                    let dw;
+                    let today;
+                    let d1;
+                    let d2;
 
                     if (ops.indexOf(op) === -1) {
                         err = "Unknown operator \"" + op + "\"";
@@ -218,9 +225,152 @@
                         where.value = where.value.replace(/\\/g, "\\\\");
                     }
 
+                    // Handle date options
+                    if (op === "IS") {
+                        today = f.today();
+                        yr = today.slice(0, 4) - 0;
+                        mo = today.slice(5, 7) - 1;
+                        da = today.slice(8, 10) - 0;
+                        dw = f.parseDate(today).getDay();
+                        part = tools.resolvePath(
+                            where.property,
+                            tokens
+                        );
+
+                        switch (where.value) {
+                        case "TODAY":
+                            part += "='" + today + "'";
+                            break;
+                        case "ON_OR_BEFORE_TODAY":
+                            part += "<='" + today + "'";
+                            break;
+                        case "ON_OR_AFTER_TODAY":
+                            part += ">='" + today + "'";
+                            break;
+                        case "THIS_WEEK":
+                            d1 = new Date(yr, mo, da - dw);
+                            d2 = new Date(yr, mo, da + 7 - dw);
+                            part += (
+                                " BETWEEN '" + d1.toLocalDate() +
+                                "' AND '" + d2.toLocalDate() + "'"
+                            );
+                            break;
+                        case "ON_OR_BEFORE_THIS_WEEK":
+                            d1 = new Date(yr, mo, da + 7 - dw);
+                            part += (
+                                " <= '" + d1.toLocalDate() + "'"
+                            );
+                            break;
+                        case "ON_OR_AFTER_THIS_WEEK":
+                            d1 = new Date(yr, mo, da - dw);
+                            part += (
+                                " >= '" + d1.toLocalDate() + "'"
+                            );
+                            break;
+                        case "THIS_MONTH":
+                            d1 = new Date(yr, mo, 1);
+                            d2 = new Date(yr, mo + 1, 0);
+                            part += (
+                                " BETWEEN '" + d1.toLocalDate() +
+                                "' AND '" + d2.toLocalDate() + "'"
+                            );
+                            break;
+                        case "ON_OR_BEFORE_THIS_MONTH":
+                            d1 = new Date(yr, mo + 1, 0);
+                            part += (
+                                " <= '" + d1.toLocalDate() + "'"
+                            );
+                            break;
+                        case "ON_OR_AFTER_THIS_MONTH":
+                            d1 = new Date(yr, mo, 1);
+                            part += (
+                                " >= '" + d1.toLocalDate() + "'"
+                            );
+                            break;
+                        case "THIS_YEAR":
+                            part += (
+                                " BETWEEN '" + yr + "-01-01' AND '" +
+                                yr + "-12-31'"
+                            );
+                            break;
+                        case "ON_OR_BEFORE_THIS_YEAR":
+                            part += (
+                                " <= '" + yr + "-12-31'"
+                            );
+                            break;
+                        case "ON_OR_AFTER_THIS_YEAR":
+                            part += (
+                                " >= '" + yr + "-01-01'"
+                            );
+                            break;
+                        case "YESTERDAY":
+                            d1 = new Date(yr, mo, da - 1);
+                            part += (
+                                " = '" + d1.toLocalDate() + "'"
+                            );
+                            break;
+                        case "LAST_WEEK":
+                            d1 = new Date(yr, mo, da - dw - 7);
+                            d2 = new Date(yr, mo, da - dw - 1);
+                            part += (
+                                " BETWEEN '" + d1.toLocalDate() +
+                                "' AND '" + d2.toLocalDate() + "'"
+                            );
+                            break;
+                        case "LAST_MONTH":
+                            d1 = new Date(yr, mo - 1, 1);
+                            d2 = new Date(yr, mo, 0);
+                            part += (
+                                " BETWEEN '" + d1.toLocalDate() +
+                                "' AND '" + d2.toLocalDate() + "'"
+                            );
+                            break;
+                        case "LAST_YEAR":
+                            yr = yr - 1;
+                            part += (
+                                " BETWEEN '" + yr + "-01-01' AND '" +
+                                yr + "-12-31'"
+                            );
+                            break;
+                        case "TOMORROW":
+                            d1 = new Date(yr, mo, da + 1);
+                            part += (
+                                " = '" + d1.toLocalDate() + "'"
+                            );
+                            break;
+                        case "NEXT_WEEK":
+                            d1 = new Date(yr, mo, da - dw + 7);
+                            d2 = new Date(yr, mo, da - dw + 13);
+                            part += (
+                                " BETWEEN '" + d1.toLocalDate() +
+                                "' AND '" + d2.toLocalDate() + "'"
+                            );
+                            break;
+                        case "NEXT_MONTH":
+                            d1 = new Date(yr, mo + 1, 1);
+                            d2 = new Date(yr, mo + 2, 0);
+                            part += (
+                                " BETWEEN '" + d1.toLocalDate() +
+                                "' AND '" + d2.toLocalDate() + "'"
+                            );
+                            break;
+                        case "NEXT_YEAR":
+                            yr = yr + 1;
+                            part += (
+                                " BETWEEN '" + yr + "-01-01' AND '" +
+                                yr + "-12-31'"
+                            );
+                            break;
+                        default:
+                            throw new Error(
+                                "Value " + where.value +
+                                " for date operator 'IS' unknown"
+                            );
+                        }
+
                     // Value "IN" array ("Andy" IN ["Ann","Andy"])
                     // Whether "Andy"="Ann" OR "Andy"="Andy"
-                    if (op === "IN") {
+                    } else if (op === "IN") {
                         part = [];
                         where.value.forEach(function (val) {
                             params.push(val);
