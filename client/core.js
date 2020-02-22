@@ -676,13 +676,14 @@ formats.money.editor = function (options) {
     return m(catalog.store().components().moneyRelation, options);
 };
 formats.money.tableData = function (obj) {
-    let value = obj.value;
+    let value = f.copy(f.formats().money.toType(obj.value));
     let options = obj.options;
     let curr = f.getCurrency(value.currency);
     let du;
     let symbol;
     let minorUnit = 2;
     let content;
+	let isNegative = false;
 
     if (curr) {
         if (curr.data.hasDisplayUnit()) {
@@ -695,6 +696,11 @@ formats.money.tableData = function (obj) {
         }
     }
 
+    if (value.amount < 0) {
+		isNegative = true;
+        value.amount = Math.abs(value.amount);
+    }
+
     content = value.amount.toLocaleString(
         undefined,
         {
@@ -703,13 +709,16 @@ formats.money.tableData = function (obj) {
         }
     );
 
-    if (value.amount < 0) {
-        content = "(" + Math.abs(content) + ")";
+    content = symbol + content;
+
+    if (isNegative) {
+        content = "(" + content + ")";
+		options.style.color = "red";
     }
 
     options.style.textAlign = "right";
 
-    return symbol + content;
+    return content;
 };
 
 formats.overloadType = {
