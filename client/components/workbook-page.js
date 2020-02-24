@@ -505,7 +505,7 @@ sheetConfigureDialog.viewModel = function (options) {
                         maxWidth: "165px"
                     },
                     onchange: (e) =>
-                    vm.itemChanged.bind(
+                            vm.itemChanged.bind(
                         this,
                         item.index,
                         "attr"
@@ -523,7 +523,7 @@ sheetConfigureDialog.viewModel = function (options) {
                 }, m("input", {
                     value: item.label || vm.alias(item.attr),
                     onchange: (e) =>
-                    vm.itemChanged.bind(
+                            vm.itemChanged.bind(
                         this,
                         item.index,
                         "label"

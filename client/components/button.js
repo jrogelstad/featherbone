@@ -386,9 +386,9 @@ button.component = {
         let label = vm.label();
         let pre = "fa fa-";
 
-        if (icon.slice(0,2) === "fa") {
+        if (icon.slice(0, 2) === "fa") {
             pre = "";
-        };
+        }
 
         opts = {
             id: vm.id(),

@@ -151,6 +151,29 @@
             return result;
         },
 
+        dateOptions: [
+            "TODAY",
+            "ON_OR_BEFORE_TODAY",
+            "ON_OR_AFTER_TODAY",
+            "THIS_WEEK",
+            "ON_OR_BEFORE_THIS_WEEK",
+            "ON_OR_AFTER_THIS_WEEK",
+            "THIS_MONTH",
+            "ON_OR_BEFORE_THIS_MONTH",
+            "ON_OR_AFTER_THIS_MONTH",
+            "THIS_YEAR",
+            "ON_OR_BEFORE_THIS_YEAR",
+            "ON_OR_AFTER_THIS_YEAR",
+            "YESTERDAY",
+            "LAST_WEEK",
+            "LAST_MONTH",
+            "LAST_YEAR",
+            "TOMORROW",
+            "NEXT_WEEK",
+            "NEXT_MONTH",
+            "NEXT_YEAR"
+        ],
+
         /**
             Return Date object that accepts a ISO formatted "YYYY-MM-DD" string
             as the argument.
@@ -193,7 +216,8 @@
             "<": "less than",
             ">=": "greater than or equals",
             "<=": "less than or equals",
-            IN: "in list"
+            IN: "in list",
+            IS: "is"
         },
 
         /**
@@ -227,7 +251,7 @@
             @return {String}
         */
         startOfTime: function () {
-            return "1970-01-01";
+            return "1969-12-31";
         },
 
         /**

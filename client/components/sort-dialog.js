@@ -104,7 +104,7 @@ sortDialog.viewModel = function (options) {
                     },
                     value: item.property,
                     onchange: (e) =>
-                    vm.itemChanged.bind(
+                            vm.itemChanged.bind(
                         this,
                         item.index,
                         "property"
@@ -127,7 +127,7 @@ sortDialog.viewModel = function (options) {
                         },
                         value: item.order || "ASC",
                         onchange: (e) =>
-                        vm.itemChanged.bind(
+                                vm.itemChanged.bind(
                             this,
                             item.index,
                             "order"

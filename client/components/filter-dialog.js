@@ -92,8 +92,13 @@ filterDialog.viewModel = function (options) {
         let attr = obj.key;
         let value = obj.value;
         let index = obj.index;
-        let opts = {};
         let featherName;
+        let op = obj.operator;
+        let id = "fltr_value_editor_" + attr + index;
+        let opts = {
+            id: id,
+            key: id
+        };
 
         prop = resolveProperty(feather, attr);
         type = prop.type;
@@ -106,6 +111,29 @@ filterDialog.viewModel = function (options) {
                     value: value,
                     onclick: vm.itemChanged.bind(this, index, "value")
                 });
+            } else if (
+                (format === "date" || format === "dateTime") &&
+                op === "IS"
+            ) {
+                if (f.dateOptions.indexOf(value) === -1) {
+                    value = "TODAY";
+                }
+
+                component = m("select", {
+                    id: id,
+                    key: id,
+                    onchange: (e) => vm.itemChanged.bind(
+                        this,
+                        index,
+                        "value"
+                    )(e.target.value),
+                    value: value
+                }, f.dateOptions.map(function (item) {
+                    return m("option", {
+                        value: item,
+                        key: id + "$" + item
+                    }, item.toLowerCase().toCamelCase(true).toProperCase());
+                }));
             } else {
                 opts.type = f.inputMap[format];
                 opts.onchange = (e) => vm.itemChanged.bind(
@@ -276,13 +304,17 @@ filterDialog.viewModel = function (options) {
             format = prop.format || prop.type;
 
             switch (format) {
-            case "integer":
-            case "number":
             case "date":
             case "dateTime":
+                delete ops["~*"];
+                delete ops["!~*"];
+                break;
+            case "integer":
+            case "number":
             case "money":
                 delete ops["~*"];
                 delete ops["!~*"];
+                delete ops.IS;
                 break;
             case "boolean":
                 delete ops["~*"];
@@ -291,6 +323,7 @@ filterDialog.viewModel = function (options) {
                 delete ops["<"];
                 delete ops[">="];
                 delete ops["<="];
+                delete ops.IS;
                 break;
             case "string":
             case "password":
@@ -299,6 +332,7 @@ filterDialog.viewModel = function (options) {
                 delete ops["<"];
                 delete ops[">="];
                 delete ops["<="];
+                delete ops.IS;
                 break;
             default:
                 delete ops["~*"];
@@ -307,6 +341,7 @@ filterDialog.viewModel = function (options) {
                 delete ops["<"];
                 delete ops[">="];
                 delete ops["<="];
+                delete ops.IS;
             }
         }
 
@@ -409,7 +444,7 @@ filterDialog.viewModel = function (options) {
                     },
                     value: item.property,
                     onchange: (e) =>
-                    vm.itemPropertyChanged.bind(
+                            vm.itemPropertyChanged.bind(
                         this,
                         item.index
                     )(e.target.value)
@@ -444,6 +479,7 @@ filterDialog.viewModel = function (options) {
                     index: item.index,
                     key: item.property,
                     value: item.value,
+                    operator: item.operator,
                     class: "fb-filter-dialog-input"
                 })])
             ]);
