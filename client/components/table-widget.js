@@ -1213,7 +1213,7 @@ tableWidget.viewModel = function (options) {
 
                 if (props.indexOf(a) === -1) {
                     props.push(a);
-                 }
+                }
             });
             // Exclude calculated columns
             props = props.filter((p) => fp[p] && !fp[p].isCalculated);
