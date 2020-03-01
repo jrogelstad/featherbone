@@ -1233,17 +1233,7 @@
                             );
                         });
                     } else {
-                        // Handle subscription
-                        events.unsubscribe(
-                            client,
-                            subscription.id
-                        ).then(
-                            function () {
-                                resolve([]);
-                            }
-                        ).catch(
-                            reject
-                        );
+                        resolve([]);
                     }
                 };
 
