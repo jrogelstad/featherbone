@@ -366,7 +366,10 @@
         }
 
         if (payload.subscription !== undefined) {
-            payload.subscription.merge = payload.subscription.merge === "true";
+            payload.subscription.merge = (
+				payload.subscription.merge === "true" ||
+				payload.subscription.merge === true
+		    )
         }
 
         payload.filter.offset = payload.filter.offset || 0;
