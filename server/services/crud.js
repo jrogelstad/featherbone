@@ -103,7 +103,7 @@
         /**
             Commit a transaction block.
 
-            @method begin
+            @method commit
             @param {Object} payload Request payload
             @param {String | Object} payload.client Database client
             @return {Promise}
@@ -136,7 +136,7 @@
         /**
             Rollback to the last savepoint.
 
-            @method begin
+            @method rollback
             @param {Object} payload Request payload
             @param {String | Object} payload.client Database client
             @param {Object} payload.data Data options

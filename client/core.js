@@ -1143,7 +1143,7 @@ f.createList = (feather, options) => createList(feather)(options)();
     @example
         let createMyModel = function (data, feather) {
             // Assume here feather has been created
-            feather = feather || catalog.getFeather("MyModel");
+            feather = feather || f.catalog().getFeather("MyModel");
             let model = f.createModel(data, feather);
 
             // Do something interesting that a feather can't do alone
@@ -1157,7 +1157,7 @@ f.createList = (feather, options) => createList(feather)(options)();
             });
         });
 
-        catalog.registerModel("MyModel", createMyModel);
+        f.catalog().registerModel("MyModel", createMyModel);
 
         f.createModel("MyModel"); // Returns instance of MyModel
     @method createModel
