@@ -773,7 +773,7 @@ function createTableFooter(options, col) {
     let attr = col.attr;
 
     if (
-        prop.format === "money" &&
+        prop && prop.format === "money" &&
         !(agg && agg.method === "COUNT")
     ) {
         attr += ".amount";
