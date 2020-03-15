@@ -53,7 +53,10 @@ function roleMembership(data, feather) {
         let result;
 
         result = roles.filter(function (role) {
-            return role.data.objectType() !== "UserAccount";
+            return (
+				role.data.objectType() !== "UserAccount" &&
+				!role.data.isDeleted()
+			);
         });
         result = result.map((role) => role.data.name()).sort();
         result = result.map(function (role) {
