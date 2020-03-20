@@ -542,12 +542,14 @@
             },
             "firstName": {
                 "description": "First name",
-                "type": "string"
+                "type": "string",
+                "isAlwaysLoad": true
             },
             "lastName": {
                 "description": "Last name",
                 "type": "string",
-                "isRequired": true
+                "isRequired": true,
+                "isAlwaysLoad": true
             },
             "fullName": {
                 "description": "Name",
