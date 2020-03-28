@@ -403,6 +403,7 @@ function createModel(data, feather) {
         fn.isToMany = isToMany.bind(null, fn);
         fn.isToOne = isToOne.bind(null, fn);
         fn.style = simpleProp(options.style || "");
+        fn.title = simpleProp(options.title || "");
         d[options.name] = fn;
 
         return this;

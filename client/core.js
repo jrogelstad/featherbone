@@ -667,7 +667,8 @@ formats.icon.editor = selectEditor.bind(null, iconNames);
 formats.icon.tableData = function (obj) {
     if (obj.value) {
         return m("i", {
-            class: "fa fa-" + obj.value
+            class: "fa fa-" + obj.value,
+            title: obj.title
         });
     }
 };
