@@ -869,7 +869,9 @@ formats.script.editor = function (options) {
     return m("textarea", opts);
 };
 
-formats.url.editor = input.bind(null, "url");
+formats.url.editor = function (options) {
+    return m(catalog.store().components().urlWidget, options);
+};
 formats.url.tableData = function (obj) {
     let url = (
         obj.value.slice(0, 4) === "http"
