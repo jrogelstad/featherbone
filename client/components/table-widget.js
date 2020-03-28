@@ -285,6 +285,11 @@ function createTableDataView(options, col) {
     let id = model.id() + "-" + options.idx;
     let item = config.columns[options.idx];
     let dataList = normalizeDataList(item.dataList || prop.dataList, model);
+    let otitle = (
+        prop.title
+        ? prop.title()
+        : ""
+    );
 
     columnWidth -= 6;
 
@@ -377,7 +382,8 @@ function createTableDataView(options, col) {
         options: tdOpts,
         viewModel: vm,
         prop: prop,
-        onclick: onclick
+        onclick: onclick,
+        title: otitle
     });
 
     cell = [
