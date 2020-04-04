@@ -1370,6 +1370,21 @@ tableWidget.viewModel = function (options) {
             let actionIcon;
             let method = modelConstructor.static()[action.method];
 
+            if (!method) {
+               method = function (viewModel) {
+                   let dialog = viewModel.confirmDialog();
+                   dialog.message(
+                       "No method \"" + action.method +
+                       "\" found on model \"" + modelName + "\""
+                   );
+                   dialog.title("Error");
+                   dialog.icon("exclamation-triangle");
+                   dialog.onOk(undefined);
+                   dialog.buttonCancel().hide();
+                   dialog.show();
+               }
+            }
+
             action.id = action.id || f.createId();
 
             opts = {
