@@ -99,6 +99,7 @@ filterDialog.viewModel = function (options) {
             id: id,
             key: id
         };
+        let setToday = false;
 
         prop = resolveProperty(feather, attr);
         type = prop.type;
@@ -117,6 +118,7 @@ filterDialog.viewModel = function (options) {
             ) {
                 if (f.dateOptions.indexOf(value) === -1) {
                     value = "TODAY";
+                    setToday = true;	
                 }
 
                 component = m("select", {
@@ -134,6 +136,14 @@ filterDialog.viewModel = function (options) {
                         key: id + "$" + item
                     }, item.toLowerCase().toCamelCase(true).toProperCase());
                 }));
+
+                if (setToday) {
+                    vm.itemChanged.bind(
+                        this,
+                        index,
+                        "value"
+                    )(value);
+                }
             } else {
                 opts.type = f.inputMap[format];
                 opts.onchange = (e) => vm.itemChanged.bind(
