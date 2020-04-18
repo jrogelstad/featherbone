@@ -241,6 +241,9 @@
                         case "TODAY":
                             part += "='" + today + "'";
                             break;
+                        case "BEFORE_TODAY":
+                            part += "<'" + today + "'";
+                            break;
                         case "ON_OR_BEFORE_TODAY":
                             part += "<='" + today + "'";
                             break;
