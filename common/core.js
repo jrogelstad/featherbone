@@ -153,6 +153,7 @@
 
         dateOptions: [
             "TODAY",
+            "BEFORE_TODAY",
             "ON_OR_BEFORE_TODAY",
             "ON_OR_AFTER_TODAY",
             "THIS_WEEK",
