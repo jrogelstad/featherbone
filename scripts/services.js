@@ -715,12 +715,9 @@ function doHandleForm(obj) {
 
                             if (!isRef) {
                                 cprop = cfeather.properties[col.attr];
-                            }
-
-                            if (!isRef && !cprop) {
-                                throw new Error(
-                                    "Invalid column '" + col.attr + "'"
-                                );
+                                if (!cprop) {
+                                    isRef = true; // Calculated prop
+                                }
                             }
 
                             if (
