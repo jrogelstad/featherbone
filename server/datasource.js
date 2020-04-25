@@ -1186,7 +1186,7 @@
                     obj.client = theClient;
                     transactions = (
                         trigger
-                        ? registered[obj.method][name][trigger]
+                        ? registered[obj.method][name][trigger].slice()
                         : [registered[obj.method][name]]
                     );
 
