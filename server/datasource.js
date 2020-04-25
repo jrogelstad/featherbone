@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2019  John Rogelstad
+    Copyright (C) 2020  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -772,13 +772,13 @@
     */
     that.getPool = db.getPool;
 
-    function getOld(client, obj) {
+    function getOld(theClient, obj) {
         return new Promise(function (resolve, reject) {
             that.request({
                 method: "GET",
                 name: obj.name,
                 id: obj.id,
-                client: client
+                client: theClient
             }, true).then(resolve).catch(reject);
         });
     }
@@ -977,7 +977,7 @@
                 : isSuperUser
             );
 
-            let client;
+            let theClient;
             let done;
             let transaction;
             let isChild;
@@ -996,9 +996,9 @@
 
             function begin() {
                 return new Promise(function (resolve, reject) {
-                    if (!client.wrapped()) {
-                        crud.begin({client: client}).then(function () {
-                            client.wrapped(true);
+                    if (!theClient.wrapped()) {
+                        crud.begin({client: theClient}).then(function () {
+                            theClient.wrapped(true);
                             resolve();
                         }).catch(reject);
                         return;
@@ -1031,12 +1031,12 @@
                         case "PATCH":
                             obj.newRec = f.copy(obj.data);
                             begin().then(
-                                getOld.bind(null, client, obj)
+                                getOld.bind(null, theClient, obj)
                             ).then(setRecs).catch(reject);
                             break;
                         case "DELETE":
                             begin().then(
-                                getOld.bind(null, client, obj)
+                                getOld.bind(null, theClient, obj)
                             ).then(setRec).catch(reject);
                             break;
                         default:
@@ -1046,7 +1046,7 @@
                         return;
                     }
 
-                    client.isTriggering(true);
+                    theClient.isTriggering(true);
 
                     resolve();
                 });
@@ -1055,7 +1055,7 @@
             function close(resp) {
                 return new Promise(function (resolve) {
                     //console.log("CLOSING");
-                    client.currentUser(undefined);
+                    theClient.currentUser(undefined);
                     done();
                     resolve(resp);
                 });
@@ -1088,17 +1088,17 @@
                         return;
                     }
 
-                    if (client.wrapped()) {
+                    if (theClient.wrapped()) {
                         //console.log("COMMIT->", obj.name, obj.method);
-                        crud.commit({client: client}).then(function () {
-                            client.currentUser(undefined);
-                            client.wrapped(false);
+                        crud.commit({client: theClient}).then(function () {
+                            theClient.currentUser(undefined);
+                            theClient.wrapped(false);
 
                             //console.log("COMMITED");
                             resolve(resp);
                         }).catch(function (err) {
-                            client.currentUser(undefined);
-                            client.wrapped(false);
+                            theClient.currentUser(undefined);
+                            theClient.wrapped(false);
                             reject(error(err));
                         });
                         return;
@@ -1117,11 +1117,11 @@
 
                 //console.log("ROLLBACK->", obj.name, obj.method);
 
-                if (client.wrapped()) {
-                    crud.rollback({client: client}).then(function () {
+                if (theClient.wrapped()) {
+                    crud.rollback({client: theClient}).then(function () {
                         //console.log("ROLLED BACK");
-                        client.currentUser(undefined);
-                        client.wrapped(false);
+                        theClient.currentUser(undefined);
+                        theClient.wrapped(false);
                         callback(error(err));
                         return;
                     });
@@ -1161,23 +1161,36 @@
             function doMethod(name, trigger) {
                 // console.log("METHOD->", obj.name, obj.method, name);
                 return new Promise(function (resolve, reject) {
+                    let transactions;
+
+                    function next(resp) {
+                        if (!transactions.length) {
+                            resolve(resp);
+                            return;
+                        }
+
+                        transaction = transactions.shift();
+
+                        Promise.resolve().then(
+                            doExecute
+                        ).then(
+                            next
+                        ).catch(
+                            reject
+                        );
+                    }
+
                     wrap = !obj.client && obj.method !== "GET";
                     obj.data = obj.data || {};
                     obj.data.id = obj.data.id || obj.id;
-                    obj.client = client;
-                    transaction = (
+                    obj.client = theClient;
+                    transactions = (
                         trigger
                         ? registered[obj.method][name][trigger]
-                        : registered[obj.method][name]
+                        : [registered[obj.method][name]]
                     );
 
-                    Promise.resolve().then(
-                        doExecute
-                    ).then(
-                        resolve
-                    ).catch(
-                        reject
-                    );
+                    next();
                 });
             }
 
@@ -1185,7 +1198,7 @@
                 // console.log("CLEAR_TRIGGER->", obj.name, obj.method);
                 return new Promise(function (resolve) {
                     if (!isTriggering) {
-                        client.isTriggering(false);
+                        theClient.isTriggering(false);
                     }
 
                     resolve();
@@ -1249,7 +1262,7 @@
             function doQuery() {
                 // console.log("QUERY->", obj.name, obj.method);
                 return new Promise(function (resolve, reject) {
-                    obj.client = client;
+                    obj.client = theClient;
                     isChild = false;
 
                     switch (obj.method) {
@@ -1363,7 +1376,7 @@
                     let payload = {
                         id: obj.id,
                         name: obj.name,
-                        client: client,
+                        client: theClient,
                         properties: ["objectType"]
                     };
 
@@ -1478,7 +1491,7 @@
                 if (!isExternalClient) {
                     // Disallow SQL calls directly from db services by
                     // making client simply a reference object.
-                    client = resp.client;
+                    theClient = resp.client;
                     done = resp.done;
                 }
 
@@ -1486,14 +1499,14 @@
                 return new Promise(function (resolve, reject) {
                     let msg;
 
-                    if (!client.currentUser() && !obj.user) {
+                    if (!theClient.currentUser() && !obj.user) {
                         msg = "User undefined. " + obj.method + " " + obj.name;
                         reject(msg);
                         return;
                     }
 
-                    if (!client.currentUser()) {
-                        client.currentUser(obj.user);
+                    if (!theClient.currentUser()) {
+                        theClient.currentUser(obj.user);
                     }
 
                     if (obj.subscription) {
@@ -1504,8 +1517,8 @@
                     if (catalog[obj.name]) {
                         if (obj.method === "GET") {
                             doQuery().then(function (resp) {
-                                if (!client.wrapped()) {
-                                    client.currentUser(undefined);
+                                if (!theClient.wrapped()) {
+                                    theClient.currentUser(undefined);
                                 }
                                 resolve(resp);
                             }).catch(reject);
@@ -1591,7 +1604,7 @@
 
             if (obj.client) {
                 isExternalClient = true;
-                client = obj.client;
+                theClient = obj.client;
                 Promise.resolve().then(
                     doRequest
                 ).then(
@@ -1904,8 +1917,8 @@
             // Note this one applies only to `PATCH` updates
             ds.registerFunction("PATCH", "Foo", fn, ds.TRIGGER_AFTER);
 
-        Note any particular feather only supports one registered function per
-        method and trigger type.
+        Note it is possible to register multiple triggers against the
+        same method and trigger type. Registering triggers is additive.
 
         @method registerFunction
         @param {String} method `POST`, `PATCH`, or `DELETE`
@@ -1922,7 +1935,10 @@
             if (!registered[method][name]) {
                 registered[method][name] = {};
             }
-            registered[method][name][trigger] = func;
+            if (!registered[method][name][trigger]) {
+                registered[method][name][trigger] = [];
+            }
+            registered[method][name][trigger].push(func);
         } else {
             registered[method][name] = func;
         }
