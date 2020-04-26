@@ -1,6 +1,6 @@
 ﻿/**
     Framework for building object relational database apps
-    Copyright (C) 2019  John Rogelstad
+    Copyright (C) 2020  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -375,7 +375,7 @@ a.pure-button-selected {
 
 .fb-group-tab-form {
   position: relative;
-  top: -37px;
+  top: -38px;
 }
 
 .fb-group-tab-active {
@@ -390,6 +390,7 @@ a.pure-button-selected {
   border-bottom-color: white;
   border-bottom-style: solid;
   border-bottom-width: 2px;
+  top: -37px;
 }
 
 .fb-group-tab-middle {
