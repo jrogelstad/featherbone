@@ -27,7 +27,7 @@ const m = window.m;
 
 function selections(item) {
     let value = (
-        item.data.hasDisplayUnit()
+        item.data.displayUnit()
         ? item.data.displayUnit().data.code()
         : item.data.code()
     );
@@ -230,7 +230,7 @@ moneyRelation.viewModel = function (options) {
             return (
                 !item.data.isDeleted() ||
                 curr === item.data.code() || (
-                    item.data.hasDisplayUnit() &&
+                    item.data.displayUnit() &&
                     curr === item.data.displayUnit().data.code()
                 )
             );
@@ -240,12 +240,12 @@ moneyRelation.viewModel = function (options) {
 
         ret.sort(function (a, b) {
             let attrA = (
-                a.data.hasDisplayUnit()
+                a.data.displayUnit()
                 ? a.data.displayUnit().data.code()
                 : a.data.code()
             );
             let attrB = (
-                b.data.hasDisplayUnit()
+                b.data.displayUnit()
                 ? b.data.displayUnit().data.code()
                 : b.data.code()
             );
