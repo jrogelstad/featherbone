@@ -191,6 +191,71 @@
         },
 
         /**
+            Difference in calendar days between two dates
+			excluding weekends.
+
+            @method newWorkDays
+            @param {Date|String} Start date
+			@param {Date|String} End date
+            @return {Integer}
+        */
+		netWorkDays: function (startDate, endDate) {
+			"use strict";
+
+			startDate = (
+				typeof startDate === "object"
+				? startDate
+				: f.parseDate(startDate)
+			);
+
+			endDate = (
+				typeof endDate === "object"
+				? endDate
+				: f.parseDate(endDate)
+			);
+
+			if (endDate > startDate) {
+				let days = Math.ceil(
+					(
+						endDate.setHours(23, 59, 59, 999) -
+						startDate.setHours(0, 0, 0, 1)
+					) /
+					(86400 * 1000)
+				);
+				let weeks = Math.floor(
+					Math.ceil(
+						(
+							endDate.setHours(23, 59, 59, 999) -
+							startDate.setHours(0, 0, 0, 1)
+						) /
+						(86400 * 1000)
+					) / 7
+				);
+
+				days = days - (weeks * 2);
+				days = (
+					startDate.getDay() - endDate.getDay() > 1
+					? days - 2
+					: days
+				);
+				days = (
+					(startDate.getDay() === 0 && endDate.getDay() !== 6)
+					? days - 1
+					: days
+				);
+				days = (
+					(endDate.getDay() === 6 && startDate.getDay() !== 0)
+					? days - 1
+					: days
+				);
+
+				return days;
+			}
+
+			return null;
+		},
+
+        /**
             Return a time in string format that is the current UTC time.
 
             @method now
