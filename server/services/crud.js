@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2019  John Rogelstad
+    Copyright (C) 2020  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -1179,7 +1179,6 @@
                         ? obj.filter.sort || []
                         : []
                     );
-                    let subscription = obj.subscription || {};
                     let i = 0;
 
                     if (keys.length) {

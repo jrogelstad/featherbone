@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2019  John Rogelstad
+    Copyright (C) 2020  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -1371,18 +1371,18 @@ tableWidget.viewModel = function (options) {
             let method = modelConstructor.static()[action.method];
 
             if (!method) {
-               method = function (viewModel) {
-                   let dialog = viewModel.confirmDialog();
-                   dialog.message(
-                       "No method \"" + action.method +
-                       "\" found on model \"" + modelName + "\""
-                   );
-                   dialog.title("Error");
-                   dialog.icon("exclamation-triangle");
-                   dialog.onOk(undefined);
-                   dialog.buttonCancel().hide();
-                   dialog.show();
-               }
+                method = function (viewModel) {
+                    let dialog = viewModel.confirmDialog();
+                    dialog.message(
+                        "No method \"" + action.method +
+                        "\" found on model \"" + modelName + "\""
+                    );
+                    dialog.title("Error");
+                    dialog.icon("exclamation-triangle");
+                    dialog.onOk(undefined);
+                    dialog.buttonCancel().hide();
+                    dialog.show();
+                };
             }
 
             action.id = action.id || f.createId();

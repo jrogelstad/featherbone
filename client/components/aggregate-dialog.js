@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2019  John Rogelstad
+    Copyright (C) 2020  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -234,7 +234,7 @@ aggregateDialog.viewModel = function (options) {
                         oncreate: resetSelector.bind(null, item),
                         onupdate: resetSelector.bind(null, item),
                         onchange: (e) =>
-                                vm.itemChanged.bind(
+                        vm.itemChanged.bind(
                             this,
                             item.index,
                             "method"

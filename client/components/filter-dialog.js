@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2019  John Rogelstad
+    Copyright (C) 2020  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -118,7 +118,7 @@ filterDialog.viewModel = function (options) {
             ) {
                 if (f.dateOptions.indexOf(value) === -1) {
                     value = "TODAY";
-                    setToday = true;	
+                    setToday = true;
                 }
 
                 component = m("select", {
@@ -454,7 +454,7 @@ filterDialog.viewModel = function (options) {
                     },
                     value: item.property,
                     onchange: (e) =>
-                            vm.itemPropertyChanged.bind(
+                    vm.itemPropertyChanged.bind(
                         this,
                         item.index
                     )(e.target.value)

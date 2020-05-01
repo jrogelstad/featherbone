@@ -49,13 +49,13 @@ urlWidget.viewModel = function (options) {
         Open URL in browser
         @method doOpen
     */
-    vm.doOpen = function() {
+    vm.doOpen = function () {
         let url = options.parentViewModel.model().data[
             options.parentProperty
         ]();
 
         window.open(url);
-    }
+    };
 
     /**
         @method id

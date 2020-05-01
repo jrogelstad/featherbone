@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2019  John Rogelstad
+    Copyright (C) 2020  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -54,9 +54,9 @@ function roleMembership(data, feather) {
 
         result = roles.filter(function (role) {
             return (
-				role.data.objectType() !== "UserAccount" &&
-				!role.data.isDeleted()
-			);
+                role.data.objectType() !== "UserAccount" &&
+                !role.data.isDeleted()
+            );
         });
         result = result.map((role) => role.data.name()).sort();
         result = result.map(function (role) {

@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2019  John Rogelstad
+    Copyright (C) 2020  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -662,7 +662,7 @@ formats.money.tableData = function (obj) {
     let symbol;
     let minorUnit = 2;
     let content;
-	let isNegative = false;
+    let isNegative = false;
 
     if (curr) {
         if (curr.data.hasDisplayUnit()) {
@@ -676,7 +676,7 @@ formats.money.tableData = function (obj) {
     }
 
     if (value.amount < 0) {
-		isNegative = true;
+        isNegative = true;
         value.amount = Math.abs(value.amount);
     }
 
@@ -692,7 +692,7 @@ formats.money.tableData = function (obj) {
 
     if (isNegative) {
         content = "(" + content + ")";
-		options.style.color = "red";
+        options.style.color = "red";
     }
 
     options.style.textAlign = "right";
@@ -733,7 +733,7 @@ function roleNames() {
     let roles = catalog.store().data().roles().slice();
     let result;
 
-    result = roles.filter((r) => !r.data.isDeleted());		
+    result = roles.filter((r) => !r.data.isDeleted());
     result = result.map((role) => role.data.name()).sort();
     result = result.map(function (role) {
         return {
@@ -871,7 +871,7 @@ function userAccountNames() {
 
     result = roles.filter((r) => (
         r.data.objectType() === "UserAccount" && !r.data.isDeleted()
-    ));		
+    ));
     result = result.map((role) => role.data.name()).sort();
     result = result.map(function (role) {
         return {
