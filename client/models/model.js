@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2019  John Rogelstad
+    Copyright (C) 2020  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -34,14 +34,14 @@ const store = catalog.store();
 // PRIVATE
 //
 
-function simpleProp (store) {
+function simpleProp(store) {
     return function (...args) {
         if (args.length) {
             store = args[0];
         }
-        
+
         return store;
-    }
+    };
 }
 
 /**
@@ -1714,7 +1714,7 @@ function createModel(data, feather) {
                             context: lock
                         });
                     });
-                    this.canDelete = () =>  true;
+                    this.canDelete = () => true;
                     this.canSave = () => false;
                     this.canUndo = () => false;
                 });
