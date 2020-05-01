@@ -314,28 +314,6 @@ function buildRelationWidgetFromLayout(id) {
     return widget;
 }
 
-// Resize according to surroundings
-/**
-    @private
-    @method resizeEditor
-*/
-function resizeEditor(editor) {
-    let containerHeight;
-    let bottomHeight;
-    let yPosition;
-    let e = editor.getWrapperElement();
-
-    yPosition = f.getElementPosition(e).y;
-    containerHeight = (
-        document.body.offsetHeight +
-        f.getElementPosition(document.body).y
-    );
-    bottomHeight = (
-        containerHeight - yPosition - e.offsetHeight
-    );
-    editor.setSize(null, window.innerHeight - yPosition - bottomHeight);
-}
-
 function input(type, options) {
     let prop = options.prop;
     let opts = {
@@ -831,7 +809,6 @@ formats.script.editor = function (options) {
         editor = CodeMirror.fromTextArea(e, config);
         lint = editor.state.lint;
         lint.options.globals = ["f", "m"];
-        resizeEditor(editor);
 
         // Populate on fetch
         state.resolve("/Ready/Fetched/Clean").enter(
@@ -861,10 +838,6 @@ formats.script.editor = function (options) {
         });
 
         this.editor = editor;
-    };
-
-    opts.onupdate = function () {
-        resizeEditor(this.editor);
     };
 
     return m("textarea", opts);
