@@ -30,8 +30,8 @@
     "pg-format": "^1.0.4",
     "purecss": "^1.0.0",
     "qs": "^6.6.0",
-    "sse-nodejs": "^0.1.0",
     "typeface-raleway": "0.0.54",
+    "ws": "^7.2.5",
     "xlsx": "^0.14.1"
   }
 }
