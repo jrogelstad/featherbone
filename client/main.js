@@ -34,6 +34,7 @@ import signInPage from "./components/sign-in-page.js";
 import accountMenu from "./components/account-menu.js";
 
 const m = window.m;
+const WebSocket = window.WebSocket;
 const console = window.console;
 
 let hash = window.location.hash.slice(window.location.hash.indexOf("/"));
