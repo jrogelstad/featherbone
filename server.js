@@ -29,7 +29,6 @@
     const bodyParser = require("body-parser");
     const f = require("./common/core");
     const qs = require("qs");
-    const SSE = require("sse-nodejs");
     const AdmZip = require("adm-zip");
     const path = require("path");
     const passport = require("passport");
@@ -40,6 +39,8 @@
     });
     const {Config} = require("./server/config");
     const config = new Config();
+    const WebSocket = require("ws");
+    const wss = new WebSocket.Server({port: 7070});
     const check = [
         "data",
         "do",
@@ -74,6 +75,7 @@
     let services = [];
     let routes = [];
     let eventSessions = {};
+    let eventKeys = {};
     let sessions = {};
     let port;
     let mode;
@@ -81,7 +83,7 @@
     let dir = "./files";
     let pgPool;
     let sessionTimeout;
-    let secret;
+    let thesecret;
     let systemUser;
 
     // Make sure file directories exist
@@ -190,7 +192,7 @@
 
                         // Default 1 day.
                         sessionTimeout = resp.sessionTimeout || 86400000;
-                        secret = resp.secret;
+                        thesecret = resp.secret;
                         systemUser = resp.postgres.user;
                         mode = resp.mode || "prod";
                         port = resp.port || 10001;
@@ -626,11 +628,11 @@
 
     function doUnlock(req, res) {
         let criteria;
-        let username = req.user.name;
+        let usr = req.user.name;
 
         criteria = {
             id: req.body.id,
-            username: username
+            username: usr
         };
 
         console.log("Unlock", req.body.id);
@@ -1030,9 +1032,14 @@
     }
 
     function doConnect(req, res) {
+        let key = f.createId();
+        eventKeys[key] = {
+            sessionID: req.sessionID
+        };
+
         respond.bind(res)({
             data: {
-                eventKey: f.createId(),
+                eventKey: key,
                 authorized: req.user
             }
         });
@@ -1042,14 +1049,14 @@
     function subscribeToFeathers() {
         return new Promise(function (resolve, reject) {
             let sid = f.createId();
-            let eventKey = f.createId();
+            let eKey = f.createId();
             let payload = {
                 name: "Feather",
                 method: "GET",
                 user: systemUser,
                 subscription: {
                     id: sid,
-                    eventKey: eventKey
+                    eventKey: eKey
                 }
             };
 
@@ -1071,7 +1078,7 @@
             }
 
             // Response function in case a feather changes
-            eventSessions[eventKey] = function (message) {
+            eventSessions[eKey] = function (message) {
                 let name;
 
                 if (
@@ -1199,7 +1206,7 @@
                 pool: pgPool,
                 tableName: "$session"
             }),
-            secret: secret,
+            secret: thesecret,
             resave: true,
             rolling: true,
             saveUninitialized: false,
@@ -1330,30 +1337,42 @@
         }
 
         function handleEvents() {
-            // Instantiate address for instance
-            app.get("/sse/:eventKey", function (req, res) {
-                let eventKey = req.params.eventKey;
-                let sessCrier = new SSE(res, {
-                    heartbeat: 10
+            // Instantiate event key for web socket connection
+            wss.on("connection", function connection(ws) {
+                let eKey;
+
+                ws.on("message", function incoming(key) {
+                    let sessionID;
+
+                    eKey = key;
+
+                    if (eventKeys[key]) {
+                        sessionID = eventKeys[key].sessionID;
+                    } else {
+                        ws.send("Invalid event key " + key);
+                        return;
+                    }
+
+                    eventSessions[eKey] = function (message) {
+                        let data = JSON.stringify({
+                            message: message.payload
+                        });
+                        ws.send(data);
+                    };
+                    eventSessions[eKey].sessionID = sessionID;
+
+                    console.log("Listening for events " + eKey);
                 });
 
-                eventSessions[eventKey] = function (message) {
-                    sessCrier.send({
-                        message: message.payload
-                    });
-                };
-                eventSessions[eventKey].sessionID = req.sessionID;
-
-                sessCrier.disconnect(function () {
-                    delete eventSessions[eventKey];
-                    datasource.unsubscribe(eventKey, "instance");
+                ws.on("close", function close() {
+                    delete eventSessions[eKey];
+                    datasource.unsubscribe(eKey, "instance");
                     datasource.unlock({
-                        eventKey: eventKey
+                        eventKey: eKey
                     });
-                    console.log("Closed instance " + eventKey);
-                });
 
-                console.log("Listening for events " + eventKey);
+                    console.log("Closed instance " + eKey);
+                });
             });
         }
 

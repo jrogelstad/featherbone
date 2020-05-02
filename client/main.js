@@ -34,7 +34,6 @@ import signInPage from "./components/sign-in-page.js";
 import accountMenu from "./components/account-menu.js";
 
 const m = window.m;
-const EventSource = window.EventSource;
 const console = window.console;
 
 let hash = window.location.hash.slice(window.location.hash.indexOf("/"));
@@ -750,8 +749,15 @@ connect().then(function (resp) {
     let edata;
 
     function listen() {
-        let evsubscr = new EventSource("/sse/" + edata.eventKey);
+        const wsurl = "ws://" + window.location.hostname + ":7070";
+        const evsubscr = new WebSocket(wsurl);
 
+        // Connection opened
+        evsubscr.onopen = function () {
+            evsubscr.send(edata.eventKey);
+        };
+
+        // Listen for messages
         evsubscr.onmessage = function (event) {
             let instance;
             let ary;
@@ -761,12 +767,12 @@ connect().then(function (resp) {
             let patching = "/Busy/Saving/Patching";
             let data;
 
-            // Ignore heartbeats
-            if (event.data === "") {
+            try {
+                payload = JSON.parse(event.data);
+            } catch (ignore) {
+                console.log(event.data);
                 return;
             }
-
-            payload = JSON.parse(event.data);
             change = payload.message.subscription.change;
 
             if (change === "signedOut") {
@@ -898,7 +904,7 @@ connect().then(function (resp) {
 
         // Houston, we've got a problem.
         // Report it to state handler.
-        evsubscr.onerror = function (e) {
+        evsubscr.onclose = function (e) {
             sseState.send("error", e);
         };
     }
