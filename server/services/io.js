@@ -377,10 +377,12 @@
                                 } else if (
                                     typeof prop.type === "object"
                                 ) {
-                                    nrow[key] = naturalKey(
-                                        prop.type.relation,
-                                        value
-                                    );
+                                    if (value) {
+                                        nrow[key] = naturalKey(
+                                            prop.type.relation,
+                                            value
+                                        );
+                                    }
                                 } else {
                                     nrow[key] = value;
                                 }
