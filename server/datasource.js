@@ -1211,6 +1211,11 @@
                     let feather = settings.data.catalog.data[name];
                     let parent = feather.inherits || "Object";
 
+					if (obj.noTrigger) {
+						commit().then(resolve).catch(reject);
+						return;
+					}
+
                     function doTrigger() {
                         if (name === "Object") {
                             Promise.resolve().then(
@@ -1307,6 +1312,11 @@
                 return new Promise(function (resolve, reject) {
                     let feather = settings.data.catalog.data[name];
                     let parent = feather.inherits || "Object";
+
+					if (obj.noTrigger) {
+						doQuery().then(resolve).catch(reject);
+						return;
+					}
 
                     function doTrigger() {
                         if (name === "Object") {
