@@ -95,6 +95,22 @@ childTable.viewModel = function (options) {
     vm.buttonUndo = f.prop();
 
     /**
+        Remove button view model.
+        @method buttonUp
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
+    vm.buttonUp = f.prop();
+
+    /**
+        Down button view model.
+        @method buttonDown
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
+    vm.buttonDown = f.prop();
+
+    /**
         @method childForm
         @param {ViewModels.ChildFormPage} page
         @return {ViewModels.ChildFormPage}
@@ -129,6 +145,45 @@ childTable.viewModel = function (options) {
                 }
             });
         }
+    };
+
+    /**
+        @method moveDown
+    */
+    vm.moveDown = function () {
+        let tw = vm.tableWidget();
+        let ary = tw.models();
+        let a = tw.selection();
+        let aId = a.id();
+        let idx = ary.indexOf(a);
+        let b = ary[idx + 1];
+        let bId = b.id();
+
+        // Ids need to stay in the same
+        // place in array
+        a.set({id: bId}, true);
+        b.set({id: aId}, true);
+        ary.splice(idx, 2, b, a);
+        tw.selection(b);
+    };
+    /**
+        @method moveUp
+    */
+    vm.moveUp = function () {
+        let tw = vm.tableWidget();
+        let ary = tw.models();
+        let b = tw.selection();
+        let bId = b.id();
+        let idx = ary.indexOf(b) - 1;
+        let a = ary[idx];
+        let aId = a.id();
+
+        // Ids need to stay in the same
+        // place in array
+        a.set({id: bId}, true);
+        b.set({id: aId}, true);
+        ary.splice(idx, 2, b, a);
+        tw.selection(b);
     };
 
     /**
@@ -216,6 +271,28 @@ childTable.viewModel = function (options) {
         }
     }));
 
+    vm.buttonUp(f.createViewModel("Button", {
+        onclick: vm.moveUp,
+        icon: "chevron-up",
+        title: "Move up",
+        class: "fb-icon-button",
+        style: {
+            backgroundColor: "white",
+            float: "right"
+        }
+    }));
+
+    vm.buttonDown(f.createViewModel("Button", {
+        onclick: vm.moveDown,
+        icon: "chevron-down",
+        title: "Move down",
+        class: "fb-icon-button",
+        style: {
+            backgroundColor: "white",
+            float: "right"
+        }
+    }));
+
     // Bind buttons to table widget state change events
     tableState = vm.tableWidget().state();
     tableState.resolve("/Selection/Off").enter(function () {
@@ -266,6 +343,11 @@ childTable.viewModel = function (options) {
     root.state().resolve("/Locked").exit(toggleCanAdd);
     canAdd.state().resolve("/Changing").exit(toggleCanAdd);
     toggleCanAdd();
+
+    // No child form button if inside a dialog container
+    if (vm.parentViewModel().containerId()) {
+        vm.buttonOpen().style().display = "none";
+    }
 
     return vm;
 };
@@ -338,19 +420,45 @@ childTable.component = {
     */
     view: function () {
         let vm = this.viewModel;
+        let btn = f.getComponent("Button");
+        let sel = vm.tableWidget().selection();
+        let ary = vm.tableWidget().models();
+        let index = ary.indexOf(sel);
+        let buttonUp = vm.buttonUp();
+        let buttonDown = vm.buttonDown();
+ 
+        buttonUp.disable();
+        buttonDown.disable(); 
+
+        if (sel) {
+            if (ary.length > 1) {
+                if (index < ary.length - 1) {
+                    buttonDown.enable();
+                }
+                if (index > 0) {
+                    buttonUp.enable();
+                }
+            }
+        }
 
         return m("div", [
-            m(f.getComponent("Button"), {
+            m(btn, {
                 viewModel: vm.buttonAdd()
             }),
-            m(f.getComponent("Button"), {
+            m(btn, {
                 viewModel: vm.buttonRemove()
             }),
-            m(f.getComponent("Button"), {
+            m(btn, {
                 viewModel: vm.buttonUndo()
             }),
-            m(f.getComponent("Button"), {
+            m(btn, {
                 viewModel: vm.buttonOpen()
+            }),
+            m(btn, {
+                viewModel: vm.buttonDown()
+            }),
+            m(btn, {
+                viewModel: vm.buttonUp()
             }),
             m(f.getComponent("TableWidget"), {
                 viewModel: vm.tableWidget()
