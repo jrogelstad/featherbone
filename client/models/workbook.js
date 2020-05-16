@@ -764,10 +764,17 @@ const worksheet = {
             type: "boolean"
         },
         columns: {
-            description: "Parent of \"parent\" on \"WorkbookAuthorization\"",
+            description: "Parent of \"parent\" on \"WorksheetColumn\"",
             type: {
                 parentOf: "parent",
                 relation: "WorksheetColumn"
+            }
+        },
+        actions: {
+            description: "Parent of \"parent\" on \"WorksheetAction\"",
+            type: {
+                parentOf: "parent",
+                relation: "WorksheetAction"
             }
         }
     }
@@ -792,8 +799,33 @@ const worksheetColumn = {
     }
 };
 
+const worksheetAction = {
+    description: "Worksheet action",
+    isSystem: true,
+    properties: {
+        name: {
+            description: "Name",
+            type: "string"
+        },
+        title: {
+            description: "Title",
+            type: "string"
+        },
+        icon: {
+            description: "Icon name",
+            type: "string",
+            format: "icon"
+        },
+        method: {
+            description: "Column label",
+            type: "string"
+        }
+    }
+};
+
 feathers.Worksheet = worksheet;
 feathers.WorksheetColumn = worksheetColumn;
+feathers.WorksheetAction = worksheetAction;
 
 function worksheetModel(data) {
     let model = f.createModel(data, worksheet);

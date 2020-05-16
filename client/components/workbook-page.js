@@ -75,6 +75,8 @@ const editSheetConfig = {
         name: "Sheet"
     }, {
         name: "Columns"
+    }, {
+        name: "Actions"
     }],
     attrs: [{
         attr: "name",
@@ -104,6 +106,24 @@ const editSheetConfig = {
             width: 165
         }, {
             attr: "label",
+            width: 165
+        }]
+    }, {
+        attr: "actions",
+        showLabel: false,
+        height: "139px",
+        grid: 3,
+        columns: [{
+            attr: "name",
+            width: 165
+        }, {
+            attr: "title",
+            width: 165
+        }, {
+            attr: "icon",
+            width: 165
+        }, {
+            attr: "method",
             width: 165
         }]
     }]
@@ -318,6 +338,7 @@ workbookPage.viewModel = function (options) {
             form: sheet.feather || "",
             isEditModeEnabled: sheet.isEditModeEnabled,
             openInNewWindow: sheet.openInNewWindow,
+            actions: sheet.actions,
             columns: sheet.list.columns
         };
 
@@ -337,6 +358,7 @@ workbookPage.viewModel = function (options) {
             sheet.isEditModeEnabled = data.isEditModeEnabled;
             sheet.openInNewWindow = data.openInNewWindow;
             sheet.list.columns.length = 0;
+            sheet.actions.length = 0;
             data.columns.forEach(function (d) {
                 if (d === undefined) { // Deleted
                     return;
@@ -345,6 +367,17 @@ workbookPage.viewModel = function (options) {
                     attr: d.attr,
                     label: d.label,
                     width: d.width
+                });
+            });
+            data.actions.forEach(function (d) {
+                if (d === undefined) { // Deleted
+                    return;
+                }
+                sheet.list.columns.push({
+                    name: d.name,
+                    title: d.title,
+                    icon: d.icon,
+                    method: d.method
                 });
             });
 
