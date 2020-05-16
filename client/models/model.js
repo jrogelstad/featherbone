@@ -157,6 +157,66 @@ function extendArray(model, prop, name, onChange, onChanged) {
         prop.state().send("changed");
     };
 
+    ary.moveDown = function (a) {
+        let idx = ary.indexOf(a);
+        let b;
+        let aId;
+        let bId;
+        let aData;
+        let bData;
+
+        // Make sure we skip past removed
+        while (!b && idx < ary.length) {
+            idx += 1;
+            b = ary[idx];
+        }
+
+        if (idx > ary.length) {
+            return;
+        }
+
+        aId = a.id();
+        bId = b.id();
+        aData = b.toJSON();
+        aData.id = aId;
+        bData = a.toJSON();
+        bData.id = bId;
+        prop.state().send("change");
+        a.set(aData, true);
+        b.set(bData, true);
+        prop.state().send("changed");
+    };
+
+    ary.moveUp = function (b) {
+        let idx = ary.indexOf(b);
+        let a;
+        let aId;
+        let bId;
+        let aData;
+        let bData;
+
+        // Make sure we skip past removed
+        while (!a && idx >= 0) {
+            idx -= 1;
+            a = ary[idx];
+        }
+
+        if (idx < 0) {
+            return;
+        }
+
+        aId = a.id();
+        bId = b.id();
+        aData = b.toJSON();
+        aData.id = aId;
+        bData = a.toJSON();
+        bData.id = bId;
+        prop.state().send("change");
+        a.set(aData, true);
+        b.set(bData, true);
+        prop.state().send("changed");
+    };
+
     ary.remove = function (value) {
         let result;
         let idx;

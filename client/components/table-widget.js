@@ -2316,7 +2316,11 @@ tableWidget.viewModel = function (options) {
                     let prevState = selection.state().current()[0];
 
                     selection.delete();
-                    if (prevState === "/Ready/New") {
+                    if (
+                        prevState === "/Ready/New" ||
+                        // Hack: Dialog always remove real time
+                        options.containerId
+                    ) {
                         vm.models().remove(selection);
                     }
                 };
