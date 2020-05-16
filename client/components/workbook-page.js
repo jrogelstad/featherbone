@@ -336,7 +336,17 @@ workbookPage.viewModel = function (options) {
             sheet.form = data.form;
             sheet.isEditModeEnabled = data.isEditModeEnabled;
             sheet.openInNewWindow = data.openInNewWindow;
-            sheet.columns = data.columns;
+            sheet.list.columns.length = 0;
+            data.columns.forEach(function (d) {
+                if (d === undefined) { // Deleted
+                    return;
+                }
+                sheet.list.columns.push({
+                    attr: d.attr,
+                    label: d.label,
+                    width: d.width
+                });
+            });
 
             if (data.isEditModeEnabled) {
                 vm.buttonEdit().enable();

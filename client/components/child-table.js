@@ -152,38 +152,34 @@ childTable.viewModel = function (options) {
     */
     vm.moveDown = function () {
         let tw = vm.tableWidget();
-        let ary = tw.models();
-        let a = tw.selection();
-        let aId = a.id();
-        let idx = ary.indexOf(a);
-        let b = ary[idx + 1];
-        let bId = b.id();
+        let sel = tw.selection();
+        let models = tw.models();
+        let idx = models.indexOf(sel);
+        let mod;
 
-        // Ids need to stay in the same
-        // place in array
-        a.set({id: bId}, true);
-        b.set({id: aId}, true);
-        ary.splice(idx, 2, b, a);
-        tw.selection(b);
+        tw.models().moveDown(sel);
+        while (!mod && idx < models.length) {
+            idx += 1;
+            mod = models[idx];
+        }
+        tw.select(mod);
     };
     /**
         @method moveUp
     */
     vm.moveUp = function () {
         let tw = vm.tableWidget();
-        let ary = tw.models();
-        let b = tw.selection();
-        let bId = b.id();
-        let idx = ary.indexOf(b) - 1;
-        let a = ary[idx];
-        let aId = a.id();
+        let sel = tw.selection();
+        let models = tw.models();
+        let idx = models.indexOf(sel);
+        let mod;
 
-        // Ids need to stay in the same
-        // place in array
-        a.set({id: bId}, true);
-        b.set({id: aId}, true);
-        ary.splice(idx, 2, b, a);
-        tw.selection(b);
+        tw.models().moveUp(sel);
+        while (!mod && idx >= 0) {
+            idx -= 1;
+            mod = models[idx];
+        }
+        tw.select(models[idx]);
     };
 
     /**
