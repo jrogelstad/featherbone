@@ -220,7 +220,6 @@ dialog.viewModel = function (options) {
         class: "fb-dialog-button"
     }));
     vm.buttonCancel().id(vm.ids().buttonCancel);
-    vm.buttonCancel().style = vm.displayCancel;
 
     // Statechart
     state = f.State.define(function () {

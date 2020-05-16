@@ -25,7 +25,6 @@ import icons from "../icons.js";
 const catalog = f.catalog();
 const datasource = f.datasource();
 const workbookPage = {};
-const sheetConfigureDialog = {};
 const m = window.m;
 const console = window.console;
 const jsonpatch = window.jsonpatch;
@@ -67,6 +66,45 @@ const editWorkbookConfig = {
             label: "Update",
             attr: "canUpdate",
             width: 60
+        }]
+    }]
+};
+
+const editSheetConfig = {
+    tabs: [{
+        name: "Sheet"
+    }, {
+        name: "Columns"
+    }],
+    attrs: [{
+        attr: "name",
+        grid: 1
+    }, {
+        attr: "feather",
+        grid: 1
+    }, {
+        attr: "openInNewWindow",
+        label: "Open in new tab",
+        grid: 1
+    }, {
+        attr: "form",
+        grid: 1
+    }, {
+        attr: "isEditModeEnabled",
+        label: "Enable edit mode",
+        grid: 1
+    }, {
+        attr: "columns",
+        showLabel: false,
+        height: "139px",
+        grid: 2,
+        columns: [{
+            attr: "attr",
+            label: "Column",
+            width: 165
+        }, {
+            attr: "label",
+            width: 165
         }]
     }]
 };
@@ -125,435 +163,6 @@ function saveProfile(name, config, dlg) {
     }
 }
 
-// View model for worksheet configuration.
-sheetConfigureDialog.viewModel = function (options) {
-    options = options || {};
-    let vm;
-    let tableView;
-    let createModel = catalog.store().models().workbookLocalConfig;
-    let cache = f.copy(options.parentViewModel.sheet());
-    let sheetButtonClass;
-    let listButtonClass;
-    let sheetTabClass;
-    let listTabClass;
-    let buttonClass = (
-        "pure-button " +
-        "fb-group-tab "
-    );
-    let activeClass = buttonClass + " fb-group-tab-active";
-    let workbook = options.parentViewModel.workbook();
-
-    options.onOk = function () {
-        let id = vm.sheetId();
-        let sheet = vm.model().toJSON();
-        let tw = options.parentViewModel.tableWidget();
-        let isEditModeEnabled = vm.model().data.isEditModeEnabled();
-        let buttonEdit = options.parentViewModel.buttonEdit();
-
-        vm.sheet(id, sheet);
-        // If we updated current sheet (not new), update list
-        if (vm.sheet().id === id) {
-            tw.config(sheet.list);
-        }
-        tw.isEditModeEnabled(isEditModeEnabled);
-        if (isEditModeEnabled) {
-            buttonEdit.enable();
-        } else {
-            buttonEdit.disable();
-        }
-        vm.state().send("close");
-        saveProfile(
-            workbook.data.name(),
-            options.parentViewModel.config(),
-            options.parentViewModel.confirmDialog()
-        );
-    };
-    options.icon = "table";
-    options.title = "Configure worksheet";
-
-    // ..........................................................
-    // PUBLIC
-    //
-
-    // Sheet configuration dialog
-    vm = f.createViewModel("TableDialog", options);
-    tableView = vm.content;
-    vm.alias = function (attr) {
-        let feather = catalog.getFeather(vm.model().data.feather());
-
-        return f.resolveAlias(feather, attr);
-    };
-    vm.addAttr = function (attr) {
-        if (!this.some(vm.hasAttr.bind(attr))) {
-            this.push({
-                attr: attr
-            });
-            return true;
-        }
-    };
-    vm.attrs = function () {
-        let model = vm.model();
-        let feather = catalog.getFeather(model.data.feather());
-        let keys = (
-            feather
-            ? Object.keys(feather.properties)
-            : false
-        );
-
-        return (
-            keys
-            ? vm.resolveProperties(feather, keys).sort()
-            : []
-        );
-    };
-    vm.config = options.parentViewModel.config;
-    vm.content = function () {
-        let feathers;
-        let forms;
-        let d = vm.model().data;
-        let ids = vm.ids();
-        let nameId = ids.name;
-        let featherId = ids.feather;
-        let openInNewWindowId = ids.openInNewWindow;
-        let isEditModeEnabledId = ids.isEditModeEnabled;
-        let formId = ids.form;
-
-        feathers = vm.feathers().map(function (feather) {
-            return m("option", feather);
-        });
-
-        forms = vm.forms().map(function (form) {
-            return m("option", form);
-        });
-
-        return m("div", {
-            class: "pure-form pure-form-aligned fb-sheet-configure-content"
-        }, [
-            m("div", {
-                class: "fb-sheet-configure-tabs"
-            }, [
-                m("button", {
-                    id: "sheetButton",
-                    class: sheetButtonClass,
-                    onclick: vm.toggleTab
-                }, "Sheet"),
-                m("button", {
-                    id: "listButton",
-                    class: listButtonClass,
-                    onclick: vm.toggleTab
-                }, "Columns")
-            ]),
-            m("div", {
-                class: "fb-sheet-configure-group-box"
-            }, [
-                m("div", {
-                    class: sheetTabClass
-                }, [
-                    m("div", {
-                        class: "pure-control-group"
-                    }, [
-                        m("label", {
-                            for: nameId
-                        }, "Name:"),
-                        m("input", {
-                            id: nameId,
-                            value: d.name(),
-                            required: true,
-                            oninput: (e) => d.name(e.target.value),
-                            autofocus: true
-                        })
-                    ]),
-                    m("div", {
-                        class: "pure-control-group"
-                    }, [
-                        m("label", {
-                            for: featherId
-                        }, "Feather:"),
-                        m("select", {
-                            id: featherId,
-                            value: d.feather(),
-                            required: true,
-                            oninput: (e) => d.feather(e.target.value)
-                        }, feathers)
-                    ]),
-                    m("div", {
-                        class: "pure-control-group"
-                    }, [
-                        m("label", {
-                            for: openInNewWindowId
-                        }, "Open in New Tab:"),
-                        m(f.getComponent("Checkbox"), {
-                            id: openInNewWindowId,
-                            value: d.openInNewWindow(),
-                            onclick: d.openInNewWindow
-                        })
-                    ]),
-                    m("div", {
-                        class: "pure-control-group"
-                    }, [
-                        m("label", {
-                            for: formId
-                        }, "Form:"),
-                        m("select", {
-                            id: formId,
-                            value: vm.form(),
-                            required: true,
-                            oninput: (e) => vm.form(e.target.value),
-                            disabled: forms.length === 0,
-                            style: {
-                                minWidth: "215px"
-                            }
-                        }, forms)
-                    ]),
-                    m("div", {
-                        class: "pure-control-group"
-                    }, [
-                        m("label", {
-                            for: isEditModeEnabledId
-                        }, "Enable edit mode"),
-                        m(f.getComponent("Checkbox"), {
-                            id: isEditModeEnabledId,
-                            value: d.isEditModeEnabled(),
-                            onclick: d.isEditModeEnabled
-                        })
-                    ])
-                ]),
-                m("div", {
-                    class: listTabClass
-                }, [
-                    tableView()
-                ])
-            ])
-        ]);
-    };
-    vm.data = function () {
-        return vm.model().data.list().data.columns();
-    };
-    vm.hasAttr = function (item) {
-        return item.attr === this;
-    };
-    vm.feathers = function () {
-        let feathers = catalog.store().feathers();
-        let result = Object.keys(feathers).filter(function (name) {
-            return !feathers[name].isChild && !feathers[name].isSystem;
-        }).sort();
-
-        return result;
-    };
-    vm.form = function (...args) {
-        let forms;
-        let form;
-        let name = args[0];
-        let store = catalog.store();
-        let prop = vm.model().data.form;
-
-        if (args.length) {
-            forms = store.data().forms();
-            form = forms.find(function (row) {
-                return row.name === name;
-            });
-            prop(store.models().form(form));
-        }
-        return (
-            prop()
-            ? prop().data.name()
-            : ""
-        );
-    };
-    vm.forms = function () {
-        let result;
-        let forms = catalog.store().data().forms();
-        let feather = vm.model().data.feather();
-
-        // Only forms that have matching feather
-        result = forms.filter(function (form) {
-            return form.feather === feather;
-        });
-
-        // Just return names
-        result = result.map(function (form) {
-            return form.name;
-        }).sort();
-
-        return result;
-    };
-    vm.model = f.prop();
-    vm.okDisabled = function () {
-        return !vm.model().isValid();
-    };
-    vm.okTitle = function () {
-        return vm.model().lastError();
-    };
-    vm.sheetId = f.prop(options.sheetId);
-    vm.relations = f.prop({});
-    vm.reset = function () {
-        let model;
-        let id = vm.sheetId();
-
-        // Setup local model
-        cache = f.copy(vm.sheet(id));
-        model = createModel(cache);
-        model.onChanged("form", m.redraw);
-        vm.model(model);
-        if (!cache.list.columns.length) {
-            vm.add();
-        }
-        vm.selection(0);
-
-        // Set button orientation
-        sheetButtonClass = activeClass;
-        listButtonClass = buttonClass;
-        sheetTabClass = "";
-        listTabClass = "fb-tabbed-panes-hidden";
-    };
-    vm.resolveProperties = function (feather, properties, ary, prefix) {
-        prefix = prefix || "";
-        let result = ary || [];
-
-        properties.forEach(function (key) {
-            let rfeather;
-            let prop = feather.properties[key];
-            let isObject = typeof prop.type === "object";
-            let path = prefix + key;
-
-            if (isObject && prop.type.properties) {
-                rfeather = catalog.getFeather(prop.type.relation);
-                vm.resolveProperties(
-                    rfeather,
-                    prop.type.properties,
-                    result,
-                    path + "."
-                );
-            }
-
-            if (
-                isObject && (
-                    prop.type.childOf ||
-                    prop.type.parentOf ||
-                    prop.type.isChild
-                )
-            ) {
-                return;
-            }
-
-            result.push(path);
-        });
-
-        return result;
-    };
-    vm.sheet = options.parentViewModel.sheet;
-    vm.toggleTab = function () {
-        if (sheetTabClass) {
-            sheetButtonClass = activeClass;
-            listButtonClass = buttonClass;
-            sheetTabClass = "";
-            listTabClass = "fb-tabbed-panes-hidden";
-        } else {
-            sheetButtonClass = buttonClass;
-            listButtonClass = activeClass;
-            sheetTabClass = "fb-tabbed-panes-hidden";
-            listTabClass = "";
-        }
-
-        document.getElementById("sheetButton").blur();
-        document.getElementById("listButton").blur();
-    };
-    vm.workbook = options.parentViewModel.workbook;
-    vm.viewHeaderIds = f.prop({
-        column: f.createId(),
-        label: f.createId()
-    });
-    vm.viewHeaders = function () {
-        let ids = vm.viewHeaderIds();
-
-        return [
-            m("th", {
-                style: {
-                    minWidth: "165px"
-                },
-                id: ids.column
-            }, "Column"),
-            m("th", {
-                style: {
-                    minWidth: "220px"
-                },
-                id: ids.label
-            }, "Label")
-        ];
-    };
-    vm.viewRows = function () {
-        let view;
-
-        view = vm.items().map(function (item) {
-            let row;
-
-            row = m("tr", {
-                onclick: vm.selection.bind(this, item.index, true),
-                style: {
-                    backgroundColor: vm.rowColor(item.index)
-                }
-            }, [
-                m("td", {
-                    style: {
-                        minWidth: "165px",
-                        maxWidth: "165px"
-                    }
-                }, m("select", {
-                    id: "scdSelect" + item.index,
-                    value: item.attr,
-                    style: {
-                        maxWidth: "165px"
-                    },
-                    onchange: (e) =>
-                    vm.itemChanged.bind(
-                        this,
-                        item.index,
-                        "attr"
-                    )(e.target.value)
-                }, vm.attrs().map(function (attr) {
-                    return m("option", {
-                        value: attr
-                    }, attr.toName());
-                }))),
-                m("td", {
-                    style: {
-                        minWidth: "220px",
-                        maxWidth: "220px"
-                    }
-                }, m("input", {
-                    value: item.label || vm.alias(item.attr),
-                    onchange: (e) =>
-                    vm.itemChanged.bind(
-                        this,
-                        item.index,
-                        "label"
-                    )(e.target.value)
-                }))
-            ]);
-
-            return row;
-        });
-
-        return view;
-    };
-
-    // ..........................................................
-    // PRIVATE
-    //
-
-    vm.ids().name = f.createId();
-    vm.ids().feather = f.createId();
-    vm.ids().openInNewWindow = f.createId();
-    vm.ids().isEditModeEnabled = f.createId();
-    vm.ids().form = f.createId();
-    vm.style().width = "510px";
-    vm.reset();
-
-    return vm;
-};
-
-sheetConfigureDialog.component = f.getComponent("TableDialog");
-
 /**
     Define workbook view model
     @class WorkbookPage
@@ -596,6 +205,7 @@ workbookPage.viewModel = function (options) {
     let vm = {};
     let toolbarButtonClass = "fb-toolbar-button";
     let formWorkbookClass = "fb-form-workbook";
+    let sheetEditModel = f.createModel("Worksheet");
 
     switch (f.currentUser().mode) {
     case "test":
@@ -700,8 +310,42 @@ workbookPage.viewModel = function (options) {
     */
     vm.configureSheet = function () {
         let dlg = vm.sheetConfigureDialog();
-        dlg.onCancel(undefined);
-        dlg.sheetId(sheetId);
+        let sheet = vm.sheet();
+        let data = {
+            id: sheet.id,
+            name: sheet.name,
+            feather: sheet.feather,
+            form: sheet.feather || "",
+            isEditModeEnabled: sheet.isEditModeEnabled,
+            openInNewWindow: sheet.openInNewWindow,
+            columns: sheet.list.columns
+        };
+
+        sheetEditModel.set(data, true, true);
+        sheetEditModel.state().send("fetched");
+        vm.sheetConfigureDialog().onCancel(function () {
+            sheetEditModel.state().send("clear");
+        });
+        vm.sheetConfigureDialog().onOk = function () {
+            data = sheetEditModel.toJSON();
+            sheetEditModel.state().send("clear");
+
+            // Update sheet with new values
+            sheet.name = data.name;
+            sheet.feather = data.feather;
+            sheet.form = data.form;
+            sheet.isEditModeEnabled = data.isEditModeEnabled;
+            sheet.openInNewWindow = data.openInNewWindow;
+            sheet.columns = data.columns;
+
+            if (data.isEditModeEnabled) {
+                vm.buttonEdit().enable();
+            } else {
+                vm.buttonEdit().disable();
+            }
+
+            vm.saveProfile();
+        };
         dlg.show();
     };
     /**
@@ -1320,10 +964,13 @@ workbookPage.viewModel = function (options) {
         );
     }
 
-    vm.sheetConfigureDialog(sheetConfigureDialog.viewModel({
-        parentViewModel: vm,
-        sheetId: sheetId
+    vm.sheetConfigureDialog(f.createViewModel("FormDialog", {
+        icon: "table",
+        title: "Configure worksheet",
+        model: sheetEditModel,
+        config: editSheetConfig
     }));
+    vm.sheetConfigureDialog().style().width = "520px";
 
     vm.aggregateDialog(f.createViewModel("AggregateDialog", {
         aggregates: vm.tableWidget().aggregates,
@@ -1686,7 +1333,7 @@ workbookPage.component = {
             m(frmdlg, {
                 viewModel: vm.editWorkbookDialog()
             }),
-            m(sheetConfigureDialog.component, {
+            m(frmdlg, {
                 viewModel: vm.sheetConfigureDialog()
             }),
             m(dlg, {
