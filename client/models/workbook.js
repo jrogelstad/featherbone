@@ -731,3 +731,124 @@ models.workbookLocalConfig = workbookChild;
 models.workbookAuthorization = workbookAuthorization;
 Object.freeze(models.workbookLocalConfig);
 
+const worksheet = {
+    name: "Worksheet",
+    plural: "Worksheets",
+    description: "System worksheet definition",
+    isSystem: true,
+    properties: {
+        id: {
+            description: "Unique Id",
+            type: "string"
+        },
+        name: {
+            description: "Worksheet name",
+            type: "string"
+        },
+        feather: {
+            description: "Feather definition",
+            type: "string",
+            dataList: "feathers"
+        },
+        form: {
+            description: "Default editing form",
+            type: "string",
+            dataList: "forms"
+        },
+        isEditModeEnabled: {
+            description: "ALlow inline editing",
+            type: "boolean"
+        },
+        openInNewWindow: {
+            description: "Open worksheet in new tab",
+            type: "boolean"
+        },
+        columns: {
+            description: "Parent of \"parent\" on \"WorkbookAuthorization\"",
+            type: {
+                parentOf: "parent",
+                relation: "WorksheetColumn"
+            }
+        }
+    }
+};
+
+const worksheetColumn = {
+    description: "Worksheet column",
+    isSystem: true,
+    properties: {
+        attr: {
+            description: "Column name",
+            type: "string"
+        },
+        label: {
+            description: "Column label",
+            type: "string"
+        },
+        width: {
+            description: "Width",
+            type: "integer"
+        }
+    }
+};
+
+feathers.Worksheet = worksheet;
+feathers.WorksheetColumn = worksheetColumn;
+
+function worksheetModel(data) {
+    let model = f.createModel(data, worksheet);
+    let state;
+    let substate;
+
+    function thefeathers() {
+        return Object.keys(catalog.feathers()).map(function (key) {
+            return {value: key, label: key};
+        });
+    }
+
+    function theforms() {
+        let forms = catalog.store().data().forms();
+        let feather = model.data.feather();
+
+        // Only forms that have matching feather
+        return forms.filter(function (form) {
+            return form.feather === feather;
+        }).map(function (form) {
+            return {value: form.name, label: form.name};
+        });
+    }
+
+    model.addCalculated({
+        name: "feathers",
+        type: "array",
+        function: thefeathers
+    });
+
+    model.addCalculated({
+        name: "forms",
+        type: "array",
+        function: theforms
+    });
+
+    // Update statechart for modified behavior
+    state = model.state();
+    substate = state.resolve("/Ready/New");
+    substate.event("fetched", function () {
+        this.goto("/Ready/Fetched/Clean");
+    });
+    substate = state.resolve("/Busy/Saving");
+    delete substate.substateMap.Posting;
+    delete substate.substateMap.Patching;
+    substate.substates.length = 0;
+    substate = state.resolve("/Ready/Fetched/Clean");
+    substate.event("changed", function () {
+        this.goto("../Dirty");
+    });
+    substate = state.resolve("/Delete");
+    substate.enters.shift();
+
+    return model;
+}
+worksheetModel.static = f.prop({});
+worksheetModel.calculated = f.prop({});
+models.worksheet = worksheetModel;
