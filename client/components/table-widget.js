@@ -1394,7 +1394,7 @@ tableWidget.viewModel = function (options) {
                 title: action.title
             };
 
-            if (validator && validator(selections)) {
+            if (validator && !validator(selections)) {
                 opts.class = "pure-menu-link pure-menu-disabled";
             } else {
                 opts.onclick = method.bind(null, vm);
