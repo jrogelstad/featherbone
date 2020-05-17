@@ -331,9 +331,10 @@ workbookPage.viewModel = function (options) {
         Open worksheet configuration dialog.
         @method configureSheet
     */
-    vm.configureSheet = function () {
+    vm.configureSheet = function (e) {
         let dlg = vm.sheetConfigureDialog();
-        let sheet = vm.sheet();
+        let sheet = vm.sheet(e.sheetId);
+        let onCancel = vm.sheetConfigureDialog().onCancel();
         let data = {
             id: sheet.id,
             name: sheet.name,
@@ -341,13 +342,16 @@ workbookPage.viewModel = function (options) {
             form: sheet.feather || "",
             isEditModeEnabled: sheet.isEditModeEnabled,
             openInNewWindow: sheet.openInNewWindow,
-            actions: sheet.actions,
-            columns: sheet.list.columns
+            actions: sheet.actions || [],
+            columns: sheet.list.columns || []
         };
 
         sheetEditModel.set(data, true, true);
         sheetEditModel.state().send("fetched");
         vm.sheetConfigureDialog().onCancel(function () {
+            if (onCancel) {
+                onCancel();
+            }
             sheetEditModel.state().send("clear");
         });
         vm.sheetConfigureDialog().onOk = function () {
@@ -612,7 +616,8 @@ workbookPage.viewModel = function (options) {
             feather: sheet.feather,
             list: {
                 columns: sheet.list.columns
-            }
+            },
+            actions: []
         };
 
         undo = function () {
@@ -621,9 +626,8 @@ workbookPage.viewModel = function (options) {
         };
 
         vm.config().push(newSheet);
-        dialogSheetConfigure.sheetId(id);
         dialogSheetConfigure.onCancel(undo);
-        dialogSheetConfigure.show();
+        vm.configureSheet({sheetId: id});
     };
     /**
         @method ondragend

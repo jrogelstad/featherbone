@@ -835,11 +835,12 @@ feathers.WorksheetAction = worksheetAction;
 
 function worksheetModel(data) {
     let model = f.createModel(data, worksheet);
+    let d = model.data;
     let state;
     let substate;
 
     function thefeathers() {
-        return Object.keys(catalog.feathers()).map(function (key) {
+        return Object.keys(catalog.feathers()).sort().map(function (key) {
             return {value: key, label: key};
         });
     }
@@ -866,6 +867,21 @@ function worksheetModel(data) {
         name: "forms",
         type: "array",
         function: theforms
+    });
+    
+    model.onChanged("feather", function () {
+        let props = catalog.getFeather(d.feather()).properties;
+        let pkeys = Object.keys(props);
+        let cols = d.columns().slice();
+        let ckeys = cols.map((c) => c.data.attr());
+        let idx = 0;
+
+        ckeys.forEach(function (col) {
+            if (pkeys.indexOf(col) === -1) {
+                d.columns().remove(cols[idx]);
+            }
+            idx += 1;
+        });
     });
 
     // Update statechart for modified behavior
