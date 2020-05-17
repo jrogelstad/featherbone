@@ -781,12 +781,14 @@ const worksheet = {
 };
 
 const worksheetColumn = {
+    inherits: "Object",
     description: "Worksheet column",
     isSystem: true,
     properties: {
         attr: {
             description: "Column name",
-            type: "string"
+            type: "string",
+            dataList: "properties"
         },
         label: {
             description: "Column label",
@@ -884,3 +886,28 @@ function worksheetModel(data) {
 worksheetModel.static = f.prop({});
 worksheetModel.calculated = f.prop({});
 models.worksheet = worksheetModel;
+
+function worksheetColumnModel(data) {
+    let model = f.createModel(data, f.catalog().getFeather("WorksheetColumn"));
+
+    function theprops() {
+        let feather = model.parent().data.feather();
+        let props = f.catalog().getFeather(feather).properties;
+
+        // Only forms that have matching feather
+        return Object.keys(props).map(function (key) {
+            return {value: key, label: key};
+        });
+    }
+
+    model.addCalculated({
+        name: "properties",
+        type: "array",
+        function: theprops
+    });
+
+    return model;
+}
+worksheetColumnModel.static = f.prop({});
+worksheetColumnModel.calculated = f.prop({});
+models.worksheetColumn = worksheetColumnModel;
