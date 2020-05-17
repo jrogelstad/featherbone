@@ -373,7 +373,7 @@ workbookPage.viewModel = function (options) {
                 if (d === undefined) { // Deleted
                     return;
                 }
-                sheet.list.columns.push({
+                sheet.actions.push({
                     name: d.name,
                     title: d.title,
                     icon: d.icon,
