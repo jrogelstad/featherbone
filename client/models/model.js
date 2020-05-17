@@ -158,18 +158,12 @@ function extendArray(model, prop, name, onChange, onChanged) {
     };
 
     ary.moveDown = function (a) {
-        let idx = ary.indexOf(a);
-        let b;
+        let idx = ary.indexOf(a) + 1;
+        let b = ary[idx];
         let aId;
         let bId;
         let aData;
         let bData;
-
-        // Make sure we skip past removed
-        while (!b && idx < ary.length) {
-            idx += 1;
-            b = ary[idx];
-        }
 
         if (idx > ary.length) {
             return;
@@ -188,18 +182,12 @@ function extendArray(model, prop, name, onChange, onChanged) {
     };
 
     ary.moveUp = function (b) {
-        let idx = ary.indexOf(b);
-        let a;
+        let idx = ary.indexOf(b) - 1;
+        let a = ary[idx];
         let aId;
         let bId;
         let aData;
         let bData;
-
-        // Make sure we skip past removed
-        while (!a && idx >= 0) {
-            idx -= 1;
-            a = ary[idx];
-        }
 
         if (idx < 0) {
             return;

@@ -154,15 +154,10 @@ childTable.viewModel = function (options) {
         let tw = vm.tableWidget();
         let sel = tw.selection();
         let models = tw.models();
-        let idx = models.indexOf(sel);
-        let mod;
+        let idx = models.indexOf(sel) + 1;
 
         tw.models().moveDown(sel);
-        while (!mod && idx < models.length) {
-            idx += 1;
-            mod = models[idx];
-        }
-        tw.select(mod);
+        tw.select(models[idx]);
     };
     /**
         @method moveUp
@@ -171,14 +166,10 @@ childTable.viewModel = function (options) {
         let tw = vm.tableWidget();
         let sel = tw.selection();
         let models = tw.models();
-        let idx = models.indexOf(sel);
+        let idx = models.indexOf(sel) - 1;
         let mod;
 
         tw.models().moveUp(sel);
-        while (!mod && idx >= 0) {
-            idx -= 1;
-            mod = models[idx];
-        }
         tw.select(models[idx]);
     };
 
