@@ -422,9 +422,9 @@ childTable.component = {
         let index = ary.indexOf(sel);
         let buttonUp = vm.buttonUp();
         let buttonDown = vm.buttonDown();
- 
+
         buttonUp.disable();
-        buttonDown.disable(); 
+        buttonDown.disable();
 
         if (sel) {
             if (ary.length > 1) {
