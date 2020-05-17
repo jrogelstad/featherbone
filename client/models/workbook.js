@@ -819,7 +819,11 @@ const worksheetAction = {
             format: "icon"
         },
         method: {
-            description: "Column label",
+            description: "Method to execute for action",
+            type: "string"
+        },
+        validator: {
+            description: "Selection validation check",
             type: "string"
         }
     }
