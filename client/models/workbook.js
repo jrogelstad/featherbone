@@ -26,6 +26,42 @@ let models;
 let feathers;
 let descr = "Parent of \"parent\" on \"WorkbookDefaultConfig\"";
 
+function resolveProperties (feather, properties, ary, prefix) {
+	prefix = prefix || "";
+	let result = ary || [];
+
+	properties.forEach(function (key) {
+		let rfeather;
+		let prop = feather.properties[key];
+		let isObject = typeof prop.type === "object";
+		let path = prefix + key;
+
+		if (isObject && prop.type.properties) {
+			rfeather = catalog.getFeather(prop.type.relation);
+			resolveProperties(
+				rfeather,
+				prop.type.properties,
+				result,
+				path + "."
+			);
+		}
+
+		if (
+			isObject && (
+				prop.type.childOf ||
+				prop.type.parentOf ||
+				prop.type.isChild
+			)
+		) {
+			return;
+		}
+
+		result.push(path);
+	});
+
+	return result;
+};
+
 /**
     @module Workbook
 */
@@ -911,12 +947,22 @@ function worksheetColumnModel(data) {
     let model = f.createModel(data, f.catalog().getFeather("WorksheetColumn"));
 
     function theprops() {
-        let feather = model.parent().data.feather();
-        let props = f.catalog().getFeather(feather).properties;
+        let name = model.parent().data.feather();
+        let feather = f.catalog().getFeather(name);
+        let keys = (
+            feather
+            ? Object.keys(feather.properties)
+            : false
+        );
 
-        // Only forms that have matching feather
-        return Object.keys(props).map(function (key) {
-            return {value: key, label: key};
+        keys = (
+            keys
+            ? resolveProperties(feather, keys).sort()
+            : []
+        );
+
+		return keys.map(function (key) {
+            return {value: key, label: key.toName()};
         });
     }
 
