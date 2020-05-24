@@ -9,6 +9,13 @@
         "user": "admin",
         "password": "password"
     },
+    "log": {
+        "level": "info",
+        "zippedArchive": false,
+        "maxSize": "10m",
+        "maxFiles": "14d",
+        "silent": false
+    },
     "port": 10001,
     "mode": "prod",
     "npmModules": []

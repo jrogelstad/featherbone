@@ -31,6 +31,8 @@
     "purecss": "^1.0.0",
     "qs": "^6.6.0",
     "typeface-raleway": "0.0.54",
+    "winston": "^3.2.1",
+    "winston-daily-rotate-file": "^4.4.2",
     "ws": "^7.2.5",
     "xlsx": "^0.14.1"
   }
