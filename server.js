@@ -53,6 +53,26 @@
         "workbook",
         "workbooks"
     ];
+    const winston = require("winston");
+    require("winston-daily-rotate-file");
+    const argv = process.argv;
+    let loglevel;
+    let consolelog;
+
+    argv.forEach(function (arg) {
+        switch (arg) {
+        case "--loglevel":
+            loglevel = argv[argv.indexOf("--loglevel") + 1];
+            break;
+        case "-L":
+            loglevel = argv[argv.indexOf("-L") + 1];
+            break;
+        case "--consolelog":
+        case "-C":
+            consolelog = true;
+            break;
+        }
+    });
 
     /**
         @property datasource
@@ -85,6 +105,7 @@
     let sessionTimeout;
     let thesecret;
     let systemUser;
+    let logger;
 
     // Make sure file directories exist
     if (!fs.existsSync(dir)) {
@@ -97,6 +118,11 @@
     }
 
     dir = "./files/downloads";
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir);
+    }
+
+    dir = "./logs";
     if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir);
     }
@@ -146,12 +172,51 @@
         if (!err.statusCode) {
             err.statusCode = 500;
         }
-        console.error(err.message);
+        logger.error(err.message);
         this.status(err.statusCode).json(err.message);
     }
 
     function init() {
         return new Promise(function (resolve, reject) {
+            function configLogger() {
+                return new Promise(function (resolve) {
+                    config.read().then(function (resp) {
+                        let log = resp.log || {};
+                        let fmt = winston.format.combine(
+                            winston.format.timestamp(),
+                            winston.format.json()
+                        );
+
+                        logger = winston.createLogger({
+                            format: fmt,
+                            level: loglevel || log.level || "info",
+                            transports: [],
+                            silent: Boolean(log.silent)
+                        });
+
+                        if (consolelog) {
+                            logger.add(new winston.transports.Console({
+                                format: winston.format.prettyPrint()
+                            }));
+                        }
+
+                        logger.add(
+                            new(winston.transports.DailyRotateFile)({
+                                format: fmt,
+                                filename: "./logs/featherbone-%DATE%.log",
+                                datePattern: "YYYY-MM-DD-HH",
+                                zippedArchive: Boolean(log.zippedArchive),
+                                maxSize: log.maxSize || "20m",
+                                maxFiles: log.maxFiles || "7d"
+                            })
+                        );
+
+                        logger.info("Featherbone server starting");
+                        resolve();
+                    });
+                });
+            }
+
             function getServices() {
                 return new Promise(function (resolve, reject) {
                     datasource.getServices().then(
@@ -219,6 +284,8 @@
 
             // Execute
             Promise.resolve().then(
+                configLogger
+            ).then(
                 datasource.getCatalog
             ).then(
                 getServices
@@ -287,7 +354,7 @@
             data: req.body || {}
         };
 
-        console.log(JSON.stringify(payload, null, 2));
+        logger.verbose(payload);
         datasource.request(payload, req.user.isSuper).then(
             function (data) {
                 respond.bind(res, data)();
@@ -309,7 +376,7 @@
         let log = f.copy(payload);
         log.data.password = "****";
 
-        console.log(JSON.stringify(log, null, 2));
+        logger.verbose(log);
         datasource.request(payload, req.user.isSuper).then(
             function (data) {
                 respond.bind(res, data)();
@@ -336,7 +403,7 @@
         });
         log.data.password = "****";
 
-        console.log(JSON.stringify(log, null, 2));
+        logger.verbose(log);
         datasource.request(payload, req.user.isSuper).then(
             function (data) {
                 respond.bind(res, data)();
@@ -376,7 +443,7 @@
 
         payload.filter.offset = payload.filter.offset || 0;
 
-        console.log(JSON.stringify(payload, null, 2));
+        logger.verbose(payload);
         datasource.request(payload, isSuper).then(
             function (data) {
                 respond.bind(res, data)();
@@ -394,7 +461,7 @@
             data: req.body
         };
 
-        console.log(JSON.stringify(payload, null, 2));
+        logger.verbose(payload);
         datasource.request(payload).then(respond.bind(res)).catch(
             error.bind(res)
         );
@@ -410,7 +477,7 @@
             }
         };
 
-        console.log(JSON.stringify(payload, null, 2));
+        logger.verbose(payload);
         datasource.request(
             payload,
             req.user.isSuper
@@ -430,7 +497,7 @@
             }
         };
 
-        console.log(JSON.stringify(payload, null, 2));
+        logger.verbose(payload);
         datasource.request(payload).then(respond.bind(res)).catch(
             error.bind(res)
         );
@@ -450,7 +517,7 @@
             }
         };
 
-        console.log(JSON.stringify(payload, null, 2));
+        logger.verbose(payload);
         datasource.request(payload).then(
             respond.bind(res)
         ).catch(
@@ -516,7 +583,7 @@
             }
         };
 
-        console.log(JSON.stringify(payload, null, 2));
+        logger.verbose(payload);
         datasource.request(payload).then(
             function () {
                 registerDataRoutes();
@@ -539,7 +606,7 @@
             }
         };
 
-        console.log(JSON.stringify(payload, null, 2));
+        logger.verbose(payload);
         datasource.request(payload).then(
             function () {
                 registerDataRoutes();
@@ -582,7 +649,7 @@
             subscription: query.subscription
         };
 
-        console.log(JSON.stringify(payload, null, 2));
+        logger.verbose(payload);
         datasource.request(
             payload
         ).then(
@@ -601,7 +668,7 @@
             subscription: query.subscription
         };
 
-        console.log(JSON.stringify(payload, null, 2));
+        logger.verbose(payload);
         datasource.request(
             payload
         ).then(
@@ -614,7 +681,7 @@
     function doLock(req, res) {
         let username = req.user.name;
 
-        console.log("Lock", req.body.id);
+        logger.verbose("Lock " + req.body.id);
         datasource.lock(
             req.body.id,
             username,
@@ -635,7 +702,7 @@
             username: usr
         };
 
-        console.log("Unlock", req.body.id);
+        logger.verbose("Unlock " + req.body.id);
         datasource.unlock(
             criteria
         ).then(
@@ -649,7 +716,7 @@
         let name = req.params.name;
         let username = req.user.name;
 
-        console.log("Package", name);
+        logger.verbose("Package " + name);
         datasource.package(
             name,
             username
@@ -675,7 +742,7 @@
             return res.status(400).send("No files were uploaded.");
         }
 
-        console.log("Install");
+        logger.verbose("Install");
 
         // The name of the input field
         let file = req.files.package;
@@ -701,7 +768,7 @@
     function doExport(req, res) {
         let apiPath = req.url.slice(10);
         let feather = resolveName(apiPath);
-        console.log("Export", feather, req.params.format);
+        logger.verbose("Export", feather, req.params.format);
 
         datasource.export(
             feather,
@@ -729,7 +796,7 @@
             return res.status(400).send("No files were uploaded.");
         }
 
-        console.log("Import", format, feather);
+        logger.verbose("Import", format, feather);
 
         // The name of the input field
         let file = req.files.import;
@@ -834,7 +901,7 @@
     function doSignIn(req, res) {
         let message;
         req.flash = function (ignore, msg) {
-            console.log(msg);
+            logger.verbose(msg);
             message = msg;
         };
 
@@ -878,7 +945,7 @@
             user: req.user.name
         };
 
-        console.log(JSON.stringify(payload, null, 2));
+        logger.verbose(payload);
         datasource.request(payload).then(respond.bind(res)).catch(
             error.bind(res)
         );
@@ -892,7 +959,7 @@
             data: req.body
         };
 
-        console.log(JSON.stringify(payload, null, 2));
+        logger.verbose(payload);
         datasource.request(payload).then(respond.bind(res)).catch(
             error.bind(res)
         );
@@ -906,7 +973,7 @@
             data: req.body
         };
 
-        console.log(JSON.stringify(payload, null, 2));
+        logger.verbose(payload);
         datasource.request(payload).then(respond.bind(res)).catch(
             error.bind(res)
         );
@@ -929,7 +996,7 @@
             payload.data.feather = req.query.feather;
         }
 
-        console.log(JSON.stringify(payload, null, 2));
+        logger.verbose(payload);
         datasource.request(payload).then(
             respond.bind(res)
         ).catch(
@@ -947,7 +1014,7 @@
             }
         };
 
-        console.log(JSON.stringify(payload, null, 2));
+        logger.verbose(payload);
         datasource.request(payload).then(
             respond.bind(res)
         ).catch(
@@ -968,7 +1035,7 @@
             }
         };
 
-        console.log(JSON.stringify(payload, null, 2));
+        logger.verbose(payload);
         datasource.request(payload).then(
             respond.bind(res)
         ).catch(
@@ -988,7 +1055,7 @@
             }
         };
 
-        console.log(JSON.stringify(payload, null, 2));
+        logger.verbose(payload);
         datasource.request(payload).then(
             respond.bind(res)
         ).catch(
@@ -1008,7 +1075,7 @@
             }
         };
 
-        console.log("Change password for " + req.user.name);
+        logger.verbose("Change password for " + req.user.name);
         datasource.request(payload).then(respond.bind(res)).catch(
             error.bind(res)
         );
@@ -1023,7 +1090,7 @@
             phone: req.body.phone
         };
 
-        console.log("Change User Info", JSON.stringify(payload, null, 2));
+        logger.verbose("Change User Info", JSON.stringify(payload, null, 2));
         datasource.changeUserInfo(payload).then(
             respond.bind(res)
         ).catch(
@@ -1240,7 +1307,7 @@
             if (req.user) {
                 req.user.mode = mode;
                 sessions[req.sessionID] = setTimeout(function () {
-                    console.log("Session " + req.sessionID + " timed out");
+                    logger.verbose("Session " + req.sessionID + " timed out");
                     doSignOut(req, res);
                 }, interval);
             }
@@ -1262,7 +1329,7 @@
         registerDataRoutes();
 
         // REGISTER CORE ROUTES -------------------------------
-        console.log("Registering core routes");
+        logger.info("Registering core routes");
 
         app.post("/connect", doConnect);
         app.post("/data/user-accounts", doQueryRequest);
@@ -1361,7 +1428,7 @@
                     };
                     eventSessions[eKey].sessionID = sessionID;
 
-                    console.log("Listening for events " + eKey);
+                    logger.verbose("Listening for events " + eKey);
                 });
 
                 ws.on("close", function close() {
@@ -1371,7 +1438,7 @@
                         eventKey: eKey
                     });
 
-                    console.log("Closed instance " + eKey);
+                    logger.info("Closed instance " + eKey);
                 });
             });
         }
@@ -1380,7 +1447,7 @@
 
         // REGISTER MODULE SERVICES
         services.forEach(function (service) {
-            console.log("Registering module service:", service.name);
+            logger.info("Registering module service: " + service.name);
             try {
                 new Function("f", "\"use strict\";" + service.script)(f);
             } catch (e) {
@@ -1397,7 +1464,7 @@
                 data: req.body
             };
 
-            console.log(JSON.stringify(payload, null, 2));
+            logger.info(payload);
             datasource.request(
                 payload
             ).then(
@@ -1411,7 +1478,7 @@
             let fullPath = "/" + route.module.toSpinalCase() + route.path;
             let doPostRequest = postify.bind(route.function);
 
-            console.log("Registering module route:", fullPath);
+            logger.info("Registering module route: " + fullPath);
             app.post(fullPath, doPostRequest);
         });
 
