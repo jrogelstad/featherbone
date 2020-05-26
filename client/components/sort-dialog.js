@@ -58,6 +58,16 @@ sortDialog.viewModel = function (options) {
             return true;
         }
     };
+    /**
+        Available attributes
+        @method attrs
+        @return {Array}
+    */
+    vm.attrs = function () {
+        let feather = vm.feather();
+        let keys = Object.keys(feather.properties);
+        return vm.resolveProperties(feather, keys).sort();
+    };
     vm.viewHeaderIds = f.prop({
         column: f.createId(),
         order: f.createId()
