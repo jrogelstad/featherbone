@@ -290,7 +290,7 @@ tableDialog.viewModel = function (options) {
         @param {String} prefix
         @return {Array}
     */
-    vm.resolveProperties = function (feather, properties, ary, prefix) {
+    vm.resolveProperties = function (feather, properties, ary, prefix, norel) {
         prefix = prefix || "";
         let result = ary || [];
 
@@ -306,7 +306,8 @@ tableDialog.viewModel = function (options) {
                     rfeather,
                     prop.type.properties,
                     result,
-                    path + "."
+                    path + ".",
+                    norel
                 );
             }
 
@@ -317,7 +318,8 @@ tableDialog.viewModel = function (options) {
                     isObject && (
                         prop.type.childOf ||
                         prop.type.parentOf ||
-                        prop.type.isChild
+                        prop.type.isChild ||
+                        norel
                     )
                 )
             ) {
