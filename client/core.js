@@ -31,6 +31,7 @@ const m = window.m;
 const f = window.f;
 const console = window.console;
 const CodeMirror = window.CodeMirror;
+const Gantt = window.Gantt;
 const exclusions = [
     "id",
     "isDeleted",
@@ -605,6 +606,97 @@ formats.enum.tableData = function (obj) {
 
     return obj.value;
 };
+
+const data = [{
+  id: 1,
+  type: 'group',
+  text: 'Assembly',
+  start: new Date('2018-10-10T09:24:24.319Z'),
+  end: new Date('2018-12-12T09:32:51.245Z'),
+  percent: 0.71,
+  links: []
+}, {
+  id: 11,
+  parent: 1,
+  text: 'SFC505297 - 301324 - CORE UFA210B COAXIAL CABLE',
+  start: new Date('2018-10-21T09:24:24.319Z'),
+  end: new Date('2018-11-22T01:01:08.938Z'),
+  percent: 0.29,
+  links: [{
+    target: 12,
+    type: 'FS'
+  }]
+}, {
+  id: 12,
+  parent: 1,
+  text: '1.2 Design',
+  start: new Date('2018-11-05T09:24:24.319Z'),
+  end: new Date('2018-12-12T09:32:51.245Z'),
+  percent: 0.78,
+}];
+
+let gantt = {
+    type: "object",
+    fromType: function (val) {
+        let ary = (
+            val && val.data
+            ? val.data.slice()
+            : []
+        );
+        ary.forEach(function (i) {
+            if (typeof i.start === "string") {
+                i.start = f.parseDate(i.start);
+            }
+            if (typeof i.end === "string") {
+                i.end = f.parseDate(i.end);
+            }
+        });
+        ary.sort(function (a, b) {
+            return a.end - b.end;
+        });
+        return ary;
+    },
+    default: {},
+    editor: function (obj) {
+        let opts = {
+            id: "gantt",
+            key: "gantt",
+            oninit: function (vnode) {
+                this.viewModel = {};
+                this.viewModel.gantt = f.prop();
+                this.viewModel.data = obj.parentViewModel.model().data[
+                    obj.parentProperty
+                ]
+            },
+            onupdate: function (vnode) {
+                let e = document.getElementById(vnode.dom.id);
+                let gantt = this.viewModel.gantt();
+                let data = this.viewModel.data();
+
+                if (gantt) {
+                    gantt.render();
+                } else if (data.length && !gantt) {
+                    gantt = new Gantt.CanvasGantt(
+                        e,
+                        data,
+                        {viewMode: "month"}
+                    );
+                    this.viewModel.gantt();
+                    gantt.render();
+                }
+            }
+        };
+
+        return m("div", {
+            id: "gantt-cont",
+            key: "gantt-cont",
+        }, [
+            m("canvas", opts)
+        ]);
+    }
+};
+
+formats.gantt = gantt;
 
 function iconNames() {
     let result = f.copy(icons);
