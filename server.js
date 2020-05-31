@@ -1222,7 +1222,8 @@
             "/node_modules/@fortawesome/fontawesome-free/css/all.css",
             "/node_modules/dialog-polyfill/dialog-polyfill.css",
             "/node_modules/codemirror/theme/neat.css",
-            "/node_modules/typeface-raleway/index.css"
+            "/node_modules/typeface-raleway/index.css",
+            "/node_modules/gantt/dist/gantt.js"
         ];
 
         // configure app to use bodyParser()
