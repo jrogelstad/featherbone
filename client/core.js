@@ -31,7 +31,6 @@ const m = window.m;
 const f = window.f;
 const console = window.console;
 const CodeMirror = window.CodeMirror;
-const Gantt = window.Gantt;
 const exclusions = [
     "id",
     "isDeleted",
@@ -611,7 +610,7 @@ let gantt = {
     type: "object",
     fromType: function (val) {
         let ary = (
-            val && val.data
+            (val && val.data)
             ? val.data.slice()
             : []
         );
@@ -627,74 +626,8 @@ let gantt = {
         return ary;
     },
     default: {},
-    editor: function (obj) {
-        let opts = {
-            id: "gantt",
-            key: "gantt",
-            oninit: function (vnode) {
-                this.viewModel = {};
-                this.viewModel.gantt = f.prop();
-                this.viewModel.viewMode = f.prop("week");
-                this.viewModel.data = obj.parentViewModel.model().data[
-                    obj.parentProperty
-                ]
-            },
-            onupdate: function (vnode) {
-                let vm = this.viewModel;
-                let e = document.getElementById(vnode.dom.id);
-                let gantt = vm.gantt();
-                let data = vm.data();
-
-                if (gantt) {
-                    gantt.render();
-                } else if (data.length && !gantt) {
-                    gantt = new Gantt.CanvasGantt(
-                        e,
-                        data,
-                        {
-                            viewMode: vm.viewMode(),
-                            showDelay: true
-                        }
-                    );
-                    this.viewModel.gantt();
-                    gantt.render();
-                }
-            }
-        };
-
-        return m("div", {
-            id: "gantt-cont",
-            key: "gantt-cont",
-        }, [
-            m("div", {
-            id: "gantt-sel-div",
-            key: "gant-sel-div",
-            }, [
-                m("label", {
-                    id: "gantt-sel-label",
-                    key: "gantt-sel-key",
-                    for: "gantt-sel",
-                }, "View mode:"),
-                m("select", {
-                    id: "gantt-sel",
-                    key: "gantt-sel"
-                }, [
-                    m("option", {
-                        value: "day",
-                        label: "Day"
-                    }),
-                    m("option", {
-                        value: "week",
-                        label: "Week"
-                    }),
-                    m("option", {
-                        value: "month",
-                        label: "Month"
-                    }),
-                ], "week"),
-            ]),
-            m("canvas", opts)
-        ]);
+    editor: function (options) {
+        return m(catalog.store().components().gantt, options);
     }
 };
 
