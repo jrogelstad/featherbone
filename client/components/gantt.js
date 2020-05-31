@@ -41,6 +41,8 @@ gantt.viewModel = function (options) {
 
     vm.chart = f.prop();
     vm.id = f.prop(options.id || f.createId());
+    vm.showDetail = f.prop(true);
+    vm.showLinks = f.prop(true);
     vm.viewMode = f.prop("week");
 
     return vm;
@@ -75,17 +77,24 @@ gantt.component = {
         let id = "gantt" + vm.id();
         let e = document.getElementById(id);
         let chart = vm.chart();
-        let data = vm.data();
+        let data = vm.data().slice();
+
+        if (!vm.showDetail()) {
+            data = data.filter((d) => Boolean(d.type));
+        }
 
         if (chart) {
             chart.options.viewMode = vm.viewMode();
+            chart.options.showLinks = vm.showLinks();
+            chart.data = data;
             chart.render();
         } else if (data.length && !chart) {
             chart = new Gantt.CanvasGantt(
                 e,
                 data,
                 {
-                    viewMode: vm.viewMode()
+                    viewMode: vm.viewMode(),
+                    showLinks: vm.showLinks()
                 }
             );
             this.viewModel.chart(chart);
@@ -100,6 +109,7 @@ gantt.component = {
     view: function () {
         let vm = this.viewModel;
         let id = vm.id();
+        let cb = f.getComponent("checkbox");
 
         return m("div", {
             id: "gantt-cont" + id,
@@ -135,7 +145,29 @@ gantt.component = {
                         value: "month",
                         label: "Month"
                     })
-                ], "week")
+                ], "week"),
+                m("label", {
+                    id: "gantt-detail-lb" + id,
+                    key: "gantt-detail-lb" + id,
+                    for: "gantt-detail-cb" + id
+                }, "Show detail"),
+                m(cb, {
+                    id: "gantt-detail-cb" + id,
+                    key: "gantt-detail-cb" + id,
+                    onclick: (e) => vm.showDetail(e),
+                    value: vm.showDetail()
+                }),
+                m("label", {
+                    id: "gantt-links-lb" + id,
+                    key: "gantt-links-lb" + id,
+                    for: "gantt-links-cb" + id
+                }, "Show links"),
+                m(cb, {
+                    id: "gantt-links-cb" + id,
+                    key: "gantt-links-cb" + id,
+                    onclick: (e) => vm.showLinks(e),
+                    value: vm.showLinks()
+                })
             ]),
             m("canvas", {
                 id: "gantt" + id,
