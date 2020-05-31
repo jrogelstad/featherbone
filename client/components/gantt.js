@@ -89,12 +89,20 @@ gantt.component = {
             chart.data = data;
             chart.render();
         } else if (data.length && !chart) {
-            chart = new Gantt.CanvasGantt(
+            chart = new Gantt.SVGGantt(
                 e,
                 data,
                 {
                     viewMode: vm.viewMode(),
-                    showLinks: vm.showLinks()
+                    showLinks: vm.showLinks(),
+                    onClick: function (item) {
+                        if (item.feather && item.key) {
+                            m.route.set("/edit/:feather/:key", {
+                                feather: item.feather,
+                                key: item.key
+                            }, {});
+                        }
+                    }
                 }
             );
             this.viewModel.chart(chart);
@@ -169,7 +177,7 @@ gantt.component = {
                     value: vm.showLinks()
                 })
             ]),
-            m("canvas", {
+            m("div", {
                 id: "gantt" + id,
                 key: "gantt" + id
             })
