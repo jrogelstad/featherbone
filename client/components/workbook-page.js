@@ -193,7 +193,7 @@ function saveProfile(name, config, dlg) {
     @namespace ViewModels
     @param {Object} options
     @param {String} options.workbook name
-    @param {String} options.key worksheet name
+    @param {String} options.page worksheet name
 */
 workbookPage.viewModel = function (options) {
     let listState;
@@ -214,7 +214,7 @@ workbookPage.viewModel = function (options) {
 
     let config = workbook.getConfig();
     let the_sheet = config.find(function (sheet) {
-        return sheet.name.toSpinalCase() === options.key;
+        return sheet.name.toSpinalCase() === options.page;
     });
 
     if (!the_sheet) {
@@ -1215,13 +1215,13 @@ workbookPage.component = {
         @param {Object} [vnode] Virtual node
         @param {Object} [vnode.attrs] Options
         @param {String} [vnode.attrs.workbook] Workbook name
-        @param {Object} [vnode.attrs.key] Worksheet name
+        @param {Object} [vnode.attrs.page] Worksheet name
         @param {String} [vnode.attrs.isInvalid] Passed if view model
         was determined invalid. View will return nothing.
     */
     oninit: function (vnode) {
         let workbook = vnode.attrs.workbook;
-        let sheet = vnode.attrs.key;
+        let sheet = vnode.attrs.page;
         let viewModels = catalog.register("workbookViewModels");
 
         if (viewModels[workbook] && viewModels[workbook][sheet]) {

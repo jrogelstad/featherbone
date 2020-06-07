@@ -142,7 +142,7 @@ const home = {
     }
 };
 let routes = {
-    "/workbook/:workbook/:key": workbookPage.component,
+    "/workbook/:workbook/:page": workbookPage.component,
     "/edit/:feather/:key": formPage.component,
     "/traverse/:feather/:key": childFormPage.component,
     "/search/:feather": searchPage.component,

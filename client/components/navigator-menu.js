@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/*jslint this, browser*/
+/*jslint this, browser, bitwise*/
 /**
     @module NavigatorMenu
 */
@@ -95,10 +95,26 @@ navigator.viewModel = function () {
     */
     vm.goto = function () {
         let config = this.getConfig();
+        let wb = this.data.name().toSpinalCase();
+        let pg = config[0].name.toSpinalCase();
+        let ky = wb + "-" + pg;
 
-        m.route.set("/workbook/:workbook/:key", {
-            workbook: this.data.name().toSpinalCase(),
-            key: config[0].name.toSpinalCase()
+        function hashCode(s) {
+            return Math.abs(
+                s.split("").reduce(
+                    function (a, b) {
+                        a = ((a << 5) - a) + b.charCodeAt(0);
+                        return a & a;
+                    },
+                    0
+                )
+            );
+        }
+
+        m.route.set("/workbook/:workbook/:page", {
+            workbook: wb,
+            page: pg,
+            key: hashCode(ky)
         });
     };
     /**
