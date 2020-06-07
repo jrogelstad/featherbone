@@ -893,12 +893,16 @@ workbookPage.viewModel = function (options) {
         @method tabClicked
         @param {String} name Sheet name
     */
-    vm.tabClicked = function (sheet) {
-        m.route.set("/workbook/:workbook/:sheet", {
-            workbook: workbook.data.name().toSpinalCase(),
-            sheet: sheet.toSpinalCase()
-        });
-    };
+	vm.tabClicked = function (sheet) {
+		let wb = workbook.data.name().toSpinalCase();
+		let pg = sheet.toSpinalCase();
+
+		m.route.set("/workbook/:workbook/:page", {
+			workbook: wb,
+			page: pg,
+			key: f.hashCode(wb + "-" + pg)
+		});
+	};
     /**
         @method tableWidget
         @param {ViewModels.TableWidget} widget

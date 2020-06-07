@@ -93,30 +93,18 @@ navigator.viewModel = function () {
         Go to selected workbook.
         @method goto
     */
-    vm.goto = function () {
-        let config = this.getConfig();
-        let wb = this.data.name().toSpinalCase();
-        let pg = config[0].name.toSpinalCase();
-        let ky = wb + "-" + pg;
+	vm.goto = function () {
+		let config = this.getConfig();
+		let wb = this.data.name().toSpinalCase();
+		let pg = config[0].name.toSpinalCase();
 
-        function hashCode(s) {
-            return Math.abs(
-                s.split("").reduce(
-                    function (a, b) {
-                        a = ((a << 5) - a) + b.charCodeAt(0);
-                        return a & a;
-                    },
-                    0
-                )
-            );
-        }
+		m.route.set("/workbook/:workbook/:page", {
+			workbook: wb,
+			page: pg,
+			key: f.hashCode(wb + "-" + pg)
+		});
+	};
 
-        m.route.set("/workbook/:workbook/:page", {
-            workbook: wb,
-            page: pg,
-            key: hashCode(ky)
-        });
-    };
     /**
         Menu name.
         @method itemContent

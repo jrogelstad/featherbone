@@ -1261,6 +1261,25 @@ f.money = function (amount, currency, effective, baseAmount) {
     return ret;
 };
 
+/**
+    Return absolute value hash code.
+
+    @method hash code
+    @param {String} String.
+    @return {Number}
+*/
+f.hashCode = function (s) {
+    return Math.abs(
+        s.split("").reduce(
+            function (a, b) {
+                a = ((a << 5) - a) + b.charCodeAt(0);
+                return a & a;
+            },
+            0
+        )
+    );
+};
+
 f.types.address = {};
 f.types.address.tableData = function (obj) {
     let value = obj.value;
