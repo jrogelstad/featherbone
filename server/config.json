@@ -1,22 +1,46 @@
 {
     "nodeId": "node1",
     "sessionTimeout": 86400000,
-    "secret": "Your own session key here",
+    "secret": "Aracon2dotO",
     "postgres":{
         "host": "127.0.0.1",
-        "database": "demo",
+        "database": "pot_prod",
         "port": 5432,
         "user": "admin",
-        "password": "password"
+        "password": "p0t_fB2020"
     },
     "log": {
         "level": "info",
         "zippedArchive": false,
         "maxSize": "10m",
-        "maxFiles": "14d",
+        "maxFiles": "7d",
         "silent": false
     },
     "port": 10001,
     "mode": "prod",
-    "npmModules": []
+    "sqlServer": {
+        "user": "reports",
+        "password": "reports",
+        "server": "otto",
+        "requestTimeout": 100000,
+        "options": {
+            "encrypt": false
+        }
+    },
+    "synchronizeJob": "0 15 3 * * *",
+    "npmModules": [{
+        "require": "mssql"
+    }, {
+        "properties": [{
+            "export": "Client",
+            "property": "PgClient"
+        }],
+        "require": "pg"
+    },  {
+        "properties": [{
+            "export": "CronJob",
+            "property": "CronJob"
+        }],
+        "require": "cron"
+    }]
 }
