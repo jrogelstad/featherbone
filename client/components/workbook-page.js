@@ -365,6 +365,7 @@ workbookPage.viewModel = function (options) {
             sheet.isEditModeEnabled = data.isEditModeEnabled;
             sheet.openInNewWindow = data.openInNewWindow;
             sheet.list.columns.length = 0;
+			sheet.actions = sheet.actions || [];
             sheet.actions.length = 0;
             data.columns.forEach(function (d) {
                 if (d === undefined) { // Deleted
