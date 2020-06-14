@@ -30,10 +30,14 @@ function userAccount(data, feather) {
     }
     let model = f.createModel(data, feather);
 
-    model.data.isSuper.isReadOnly(!f.currentUser().isSuper);
+    if (model.data.isSuper) {
+		model.data.isSuper.isReadOnly(!f.currentUser().isSuper);
+	}
 
     model.onLoad(function () {
-        model.data.name.isReadOnly(true);
+		if (model.data.name) {
+			model.data.name.isReadOnly(true);
+		}
     });
 
     return model;
