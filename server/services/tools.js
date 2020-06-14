@@ -231,7 +231,11 @@
                         yr = today.slice(0, 4) - 0;
                         mo = today.slice(5, 7) - 1;
                         da = today.slice(8, 10) - 0;
-                        dw = f.parseDate(today).getDay();
+						// ISO week starts Monday
+                        dw = f.parseDate(today).getDay() - 1;
+						if (dw < 0) {
+							dw = 7;
+						}
                         part = tools.resolvePath(
                             where.property,
                             tokens
