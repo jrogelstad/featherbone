@@ -1041,10 +1041,19 @@ tableWidget.viewModel = function (options) {
             vm.attrs().forEach(function (attr) {
                 let theFeather = vm.feather();
                 let fmt = formatOf(theFeather, attr);
+				let p = resolveFeatherProp(theFeather, attr);
                 let nk;
                 let props;
 
-                if (fmt === "string") {
+                if (p.isCalculated) {
+					return;
+				}
+
+                if (
+					p.type === "string" &&
+					fmt !== "date" &&
+					fmt !== "dateTime"
+		        ) {
                     fattrs.push(attr);
                 } else if (
                     typeof fmt === "object" &&
