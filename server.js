@@ -420,7 +420,8 @@
             req.user.isSuper ||
             name === "Form" ||
             name === "Module" ||
-            name === "Role"
+            name === "Role" ||
+			name === "UserAccount"
         );
 
         payload.name = name;
