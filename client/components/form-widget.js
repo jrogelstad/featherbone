@@ -125,6 +125,19 @@ function buildFieldset(vm, attrs) {
             return ret;
         }
 
+        function newMenuClass() {
+            let ret = "pure-menu-link fb-form-label-menu-item";
+
+            if (
+			    (relation && relation.isReadOnly && relation.isReadOnly()) ||
+                !relation.canCreate()
+            ) {
+                ret += " pure-menu-disabled";
+            }
+
+            return ret;
+        }
+
         options.disableCurrency = item.disableCurrency;
 
         if (dataList) {
@@ -202,7 +215,7 @@ function buildFieldset(vm, attrs) {
                         })], " Open"),
                         m("li", {
                             id: "nav-relation-new-" + key,
-                            class: editMenuClass(),
+                            class: newMenuClass(),
                             onclick: relation.new
                         }, [m("i", {
                             id: "nav-relation-new-icon-" + key,
