@@ -109,6 +109,14 @@ relationWidget.viewModel = function (options) {
     );
 
     /**
+		Flag whether can create new records.
+
+        @method canCreate
+        @param {Boolean} id
+        @return {Boolean}
+    */
+    vm.canCreate = f.prop(false);
+    /**
         @method listId
         @param {String} id
         @return {String}
@@ -458,6 +466,13 @@ relationWidget.viewModel = function (options) {
     };
 
     vm.style(options.style || {});
+	
+    catalog.isAuthorized({
+        feather: type.relation,
+        action: "canCreate"
+    }).then(vm.canCreate).catch(function (err) {
+        console.error(err.message);
+    });
 
     return vm;
 };
@@ -523,6 +538,7 @@ relationWidget.component = {
         let style = vm.style();
         let openMenuClass = "pure-menu-link";
         let editMenuClass = "pure-menu-link";
+		let newMenuClass = "pure-menu-link";
         let buttonClass = "pure-button fa fa-bars fb-relation-button";
         let labelClass = "fb-relation-label";
         let id = vm.id();
@@ -554,7 +570,10 @@ relationWidget.component = {
 
         if (readonly) {
             editMenuClass += " pure-menu-disabled";
-        }
+			newMenuClass += " pure-menu-disabled";
+        } else if (!vm.canCreate()) {
+			newMenuClass += " pure-menu-disabled";
+		}
 
         if (vm.isCell()) {
             inputStyle = {
@@ -612,7 +631,7 @@ relationWidget.component = {
                         })], " Open"),
                         m("li", {
                             id: "nav-relation-new-" + id,
-                            class: editMenuClass,
+                            class: newMenuClass,
                             onclick: vm.new
                         }, [m("i", {
                             id: "nav-relation-new-icon-" + id,
