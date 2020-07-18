@@ -256,14 +256,14 @@
                             break;
                         case "THIS_WEEK":
                             d1 = new Date(yr, mo, da - dw);
-                            d2 = new Date(yr, mo, da + 7 - dw);
+                            d2 = new Date(yr, mo, da + 6 - dw);
                             part += (
                                 " BETWEEN '" + d1.toLocalDate() +
                                 "' AND '" + d2.toLocalDate() + "'"
                             );
                             break;
                         case "ON_OR_BEFORE_THIS_WEEK":
-                            d1 = new Date(yr, mo, da + 7 - dw);
+                            d1 = new Date(yr, mo, da + 6 - dw);
                             part += (
                                 " <= '" + d1.toLocalDate() + "'"
                             );
@@ -317,7 +317,7 @@
                             );
                             break;
                         case "LAST_WEEK":
-                            d1 = new Date(yr, mo, da - dw - 7);
+                            d1 = new Date(yr, mo, da - dw - 6);
                             d2 = new Date(yr, mo, da - dw - 1);
                             part += (
                                 " BETWEEN '" + d1.toLocalDate() +
@@ -347,7 +347,7 @@
                             break;
                         case "NEXT_WEEK":
                             d1 = new Date(yr, mo, da - dw + 7);
-                            d2 = new Date(yr, mo, da - dw + 13);
+                            d2 = new Date(yr, mo, da - dw + 12);
                             part += (
                                 " BETWEEN '" + d1.toLocalDate() +
                                 "' AND '" + d2.toLocalDate() + "'"

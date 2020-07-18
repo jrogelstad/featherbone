@@ -544,7 +544,7 @@ formats.date.tableData = function (obj) {
     if (obj.value) {
         // Turn into date adjusting time for
         // current timezone
-        obj.value = new Date(obj.value + f.now().slice(10));
+        obj.value = f.isoDateToDate(obj.value);
         return obj.value.toLocaleDateString();
     }
 };
