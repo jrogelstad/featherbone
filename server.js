@@ -275,7 +275,7 @@
                             }
 
                             name = mod.require;
-                            f[name] = require(mod.require);
+                            f[name.toCamelCase()] = require(mod.require);
                         });
                         resolve();
                     });
