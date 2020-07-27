@@ -1,4 +1,4 @@
-/*
+	/*
     Framework for building object relational database apps
     Copyright (C) 2020  John Rogelstad
 
@@ -317,7 +317,7 @@
                             );
                             break;
                         case "LAST_WEEK":
-                            d1 = new Date(yr, mo, da - dw - 6);
+                            d1 = new Date(yr, mo, da - dw - 7);
                             d2 = new Date(yr, mo, da - dw - 1);
                             part += (
                                 " BETWEEN '" + d1.toLocalDate() +
