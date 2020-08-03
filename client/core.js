@@ -1331,6 +1331,7 @@ f.types.boolean.editor = function (options) {
     let opts = {
         id: options.id,
         key: options.key,
+        isCell: options.isCell,
         onCreate: options.onCreate,
         onRemove: options.onRemove,
         required: options.required,

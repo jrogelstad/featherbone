@@ -34,12 +34,19 @@ const m = window.m;
     @namespace ViewModels
     @param {Object} [options] Options
     @param {String} [options.id] Id
+    @param {Boolean} [options.isCell] Use style for cell in table
 */
 checkbox.viewModel = function (options) {
     let vm = {};
 
     vm.hasFocus = f.prop(false);
     vm.id = f.prop(options.id || f.createId());
+    /**
+        @method isCell
+        @param {Boolean} flag
+        @return {String}
+    */
+    vm.isCell = f.prop(Boolean(options.isCell));
 
     return vm;
 };
@@ -88,21 +95,48 @@ checkbox.component = {
         let labelClass = "fb-checkbox-label";
         let vm = this.viewModel;
         let id = vm.id();
+        let theclass;
+        let thestyle;
+        let label;
 
-        if (vnode.attrs.readonly) {
-            labelClass += " fb-checkbox-readonly";
+        function createLabel() {
+            if (!vm.isCell()) {
+                theclass = "fb-checkbox-input";
+                thestyle = vnode.attrs.style || {};
+
+                if (vnode.attrs.readonly) {
+                    labelClass += " fb-checkbox-readonly";
+                }
+
+                if (vm.hasFocus()) {
+                    labelClass += " fb-checkbox-focus";
+                }
+
+                return m("label", {
+                    for: id,
+                    title: vnode.attrs.title,
+                    class: labelClass
+                }, m("i", {
+                    class: "fa fa-check",
+                    style: {
+                        visibility: (
+                            vnode.attrs.value
+                            ? "visible"
+                            : "hidden"
+                        )
+                    }
+                }));
+            }
         }
 
-        if (vm.hasFocus()) {
-            labelClass += " fb-checkbox-focus";
-        }
+        label = createLabel();
 
         return m("div", {
             class: "fb-checkbox"
         }, [
             m("input", {
                 id: id,
-                class: "fb-checkbox-input",
+                class: theclass,
                 type: "checkbox",
                 onclick: function (e) {
                     vnode.attrs.onclick(e.target.checked);
@@ -110,26 +144,13 @@ checkbox.component = {
                 oncreate: vnode.attrs.onCreate,
                 onremove: vnode.attrs.onRemove,
                 checked: vnode.attrs.value,
-                style: vnode.attrs.style || {},
+                style: thestyle,
                 disabled: vnode.attrs.readonly,
                 required: Boolean(vnode.attrs.required),
                 onfocus: () => vm.hasFocus(true),
                 onblur: () => vm.hasFocus(false)
             }),
-            m("label", {
-                for: id,
-                title: vnode.attrs.title,
-                class: labelClass
-            }, m("i", {
-                class: "fa fa-check",
-                style: {
-                    visibility: (
-                        vnode.attrs.value
-                        ? "visible"
-                        : "hidden"
-                    )
-                }
-            }))
+            label
         ]);
     }
 };
