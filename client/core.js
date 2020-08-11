@@ -220,7 +220,11 @@ function buildSelector(obj, opts) {
     }
 
     if (selectComponents[id]) {
-        if (opts.prop === selectComponents[id].prop) {
+        if (
+            selectComponents[id].value === value &&
+            selectComponents[id].readonly === opts.readonly &&
+            selectComponents[id].values === values
+        ) {
             return selectComponents[id].content;
         }
     } else {
@@ -234,7 +238,9 @@ function buildSelector(obj, opts) {
         });
     }
 
-    selectComponents[id].prop = opts.prop;
+    selectComponents[id].value = value;
+    selectComponents[id].readonly = opts.readonly;
+    selectComponents[id].values = values;
     selectComponents[id].content = m("select", {
         id: id,
         key: id,
