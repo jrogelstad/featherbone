@@ -85,6 +85,7 @@ relationWidget.viewModel = function (options) {
         limit: 10
     };
     let modelList = f.createList(type.relation, {
+        background: true,
         filter: filter
     });
     let configId = f.createId();
@@ -466,10 +467,11 @@ relationWidget.viewModel = function (options) {
     };
 
     vm.style(options.style || {});
-	
+
     catalog.isAuthorized({
         feather: type.relation,
-        action: "canCreate"
+        action: "canCreate",
+        background: true
     }).then(vm.canCreate).catch(function (err) {
         console.error(err.message);
     });
