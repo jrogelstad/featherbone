@@ -146,9 +146,6 @@ function createList(feather) {
     ary.checkUpdate = function (enabled) {
         if (enabled === true) {
             isCheckUpdates = true;
-            ary.forEach(function (model) {
-                model.checkUpdate();
-            });
         } else if (enabled === false) {
             isCheckUpdates = false;
         }
@@ -412,9 +409,6 @@ function createList(feather) {
                     let model = models[name](item);
 
                     model.state().goto("/Ready/Fetched");
-                    if (isCheckUpdates) {
-                        model.checkUpdate();
-                    }
                     ary.add(model);
                 });
             } else {

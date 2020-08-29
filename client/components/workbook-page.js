@@ -521,6 +521,7 @@ workbookPage.viewModel = function (options) {
 
                 nmodel.state().goto("/Ready/Fetched/Clean");
                 nmodel.checkDelete();
+                nmodel.checkUpdate();
                 vm.tableWidget().models().add(nmodel, true);
                 m.redraw();
             };
