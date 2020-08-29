@@ -1147,7 +1147,8 @@ function createModel(data, feather) {
             url = "/do/subscribe/" + query;
             payload = {
                 method: "POST",
-                path: url
+                path: url,
+                background: true
             };
 
             datasource.request(payload).catch(doError);
@@ -1165,7 +1166,8 @@ function createModel(data, feather) {
             url = "/do/unsubscribe/" + query;
             payload = {
                 method: "POST",
-                path: url
+                path: url,
+                background: true
             };
 
             datasource.request(payload).catch(doError);

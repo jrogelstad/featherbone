@@ -251,7 +251,8 @@ const catalog = (function () {
             });
             let payload = {
                 method: "GET",
-                path: "/do/is-authorized?" + query
+                path: "/do/is-authorized?" + query,
+                background: opts.background
             };
 
             // Check if memozied
