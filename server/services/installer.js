@@ -602,6 +602,7 @@
                     fs.readFile(filename, "utf8", function (err, data) {
                         if (err) {
                             reject(err);
+                            return;
                         }
 
                         manifest = JSON.parse(data);
