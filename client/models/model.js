@@ -1147,7 +1147,8 @@ function createModel(data, feather) {
             url = "/do/subscribe/" + query;
             payload = {
                 method: "POST",
-                path: url
+                path: url,
+                background: true
             };
 
             datasource.request(payload).catch(doError);
@@ -1165,7 +1166,8 @@ function createModel(data, feather) {
             url = "/do/unsubscribe/" + query;
             payload = {
                 method: "POST",
-                path: url
+                path: url,
+                background: true
             };
 
             datasource.request(payload).catch(doError);
@@ -1423,10 +1425,11 @@ function createModel(data, feather) {
 
     doPost = function (context) {
         let cache = model.toJSON();
+        let bdata = model.toJSON();
         let payload = {
             method: "POST",
             path: model.path(model.name),
-            body: cache
+            body: bdata
         };
 
         function callback(result) {
@@ -1435,6 +1438,21 @@ function createModel(data, feather) {
             state.send("fetched");
             context.resolve(d);
         }
+
+        // Trim extraneous relation data
+        Object.keys(bdata).forEach(function (key) {
+            let prop = feather.properties[key];
+            if (
+                typeof prop.type === "object" &&
+                !prop.type.parentOf &&
+                !prop.type.childOf &&
+                bdata[key]
+            ) {
+                bdata[key] = {
+                    id: bdata[key].id
+                };
+            }
+        });
 
         if (model.isValid()) {
             datasource.request(payload).then(

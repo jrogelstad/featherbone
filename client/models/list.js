@@ -52,6 +52,7 @@ function createList(feather) {
     let dirty = [];
     let sid = f.createId();
     let isCheckUpdates = false;
+    let isBackground = false;
 
     // ..........................................................
     // PUBLIC
@@ -145,9 +146,6 @@ function createList(feather) {
     ary.checkUpdate = function (enabled) {
         if (enabled === true) {
             isCheckUpdates = true;
-            ary.forEach(function (model) {
-                model.checkUpdate();
-            });
         } else if (enabled === false) {
             isCheckUpdates = false;
         }
@@ -162,7 +160,8 @@ function createList(feather) {
         @param {Array} properties
         @return {Object}
     */
-    ary.fetch = function (filter, merge) {
+    ary.fetch = function (filter, merge, background) {
+        isBackground = Boolean(background);
         ary.filter(filter || {});
 
         return doSend("fetch", merge);
@@ -410,9 +409,6 @@ function createList(feather) {
                     let model = models[name](item);
 
                     model.state().goto("/Ready/Fetched");
-                    if (isCheckUpdates) {
-                        model.checkUpdate();
-                    }
                     ary.add(model);
                 });
             } else {
@@ -498,9 +494,10 @@ function createList(feather) {
         payload = {
             method: "POST",
             url: url,
-            body: body
+            body: body,
+            background: isBackground
         };
-
+        isBackground = false; // reset
         return m.request(payload).then(callback).catch(console.error);
     };
 
@@ -618,7 +615,7 @@ function list(feather) {
         ary.isEditable(options.isEditable !== false);
 
         if (options.fetch !== false) {
-            ary.fetch(options.filter, options.merge);
+            ary.fetch(options.filter, options.merge, options.background);
         } else {
             ary.filter(options.filter || {});
         }
