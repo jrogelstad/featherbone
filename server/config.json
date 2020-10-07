@@ -2,7 +2,7 @@
     "nodeId": "node1",
     "sessionTimeout": 86400000,
     "secret": "Your own session key here",
-    "postgres":{
+    "postgres": {
         "host": "127.0.0.1",
         "database": "demo",
         "port": 5432,
@@ -15,7 +15,6 @@
         "maxSize": "10m",
         "maxFiles": "7d",
         "silent": false
-        "password": "password"
     },
     "port": 10001,
     "mode": "prod",
