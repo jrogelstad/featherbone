@@ -315,7 +315,7 @@
             @return {String}
         */
         startOfTime: function () {
-            return "1969-12-31";
+            return "1970-01-01";
         },
 
         /**
