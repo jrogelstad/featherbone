@@ -454,8 +454,8 @@ function featherProperty(data, spec) {
 
         d.scale.isReadOnly(isNotNumber);
         d.precision.isReadOnly(isNotNumber);
-        d.min.isReadOnly(isNotNumber);
-        d.max.isReadOnly(isNotNumber);
+        d.min.isReadOnly(isNotNumber && d.type() !== "integer");
+        d.max.isReadOnly(isNotNumber && d.type() !== "integer");
         d.isNaturalKey.isReadOnly(d.isLabelKey() || parentHasNaturalKey);
         d.isIndexed.isReadOnly(d.isNaturalKey());
         d.isLabelKey.isReadOnly(d.isNaturalKey() || parentHasLabelKey);
