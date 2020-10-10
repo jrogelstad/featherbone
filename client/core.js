@@ -1497,7 +1497,7 @@ f.createEditor = function (obj) {
         return editor({
             class: obj.options.class,
             readonly: obj.options.readonly || isPath,
-            disableCurrency: obj.options.fCurrency,
+            disableCurrency: obj.options.disableCurrency,
             filter: obj.options.filter,
             key: key,
             id: obj.options.id,

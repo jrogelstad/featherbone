@@ -176,6 +176,16 @@
         ],
 
         /**
+            Returns date string "2100-12-31".
+
+            @method endOfTime
+            @return {String}
+        */
+        endOfTime: function () {
+            return "2100-12-31";
+        },
+
+        /**
             Return Date object that accepts a ISO formatted "YYYY-MM-DD" string
             as the argument.
 
