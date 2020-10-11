@@ -22,6 +22,75 @@
     const {Database} = require("../database");
     const db = new Database();
 
+    function getSortedModules(client) {
+        return new Promise(function (resolve, reject) {
+            let sql = (
+                "SELECT name, version, script, " +
+                "to_json(dependencies) AS dependencies " +
+                "FROM _module;"
+            );
+
+            function callback(resp) {
+                let modules = resp.rows;
+
+                function resolveDependencies(module, tree) {
+                    tree = tree || module.tree;
+
+                    module.tree.forEach(function (dependency) {
+                        let parent = modules.find(
+                            (module) => module.name === dependency
+                        );
+
+                        parent.tree.forEach(
+                            (pDepencency) => tree.push(pDepencency)
+                        );
+
+                        resolveDependencies(parent, tree);
+                    });
+                }
+
+                // Simplify dependencies
+                modules.forEach(function (module) {
+                    module.dependencies = module.dependencies.map(
+                        (dep) => dep.module.name
+                    );
+                    module.tree = module.dependencies.slice();
+                });
+
+                // Process modules, start by resolving,
+                // then sorting on dependencies
+                modules.forEach((module) => resolveDependencies(module));
+
+                // Sort
+                modules = (function () {
+                    let module;
+                    let idx;
+                    let ret = [];
+
+                    function top(mod) {
+                        return mod.tree.every(
+                            (dep) => ret.some((added) => added.name === dep)
+                        );
+                    }
+
+                    while (modules.length) {
+                        module = modules.find(top);
+
+                        ret.push(module);
+                        idx = modules.indexOf(module);
+                        modules.splice(idx, 1);
+                    }
+
+                    return ret;
+                }());
+
+                resolve(modules);
+            }
+
+            client.query(sql).then(callback).catch(reject);
+        });
+    }
+
     /**
         Custom data service scripts loaded from the database at run time.
         @class Services
@@ -44,22 +113,32 @@
         */
         that.getServices = function (obj) {
             return new Promise(function (resolve, reject) {
-                let sql = (
-                    "SELECT name, to_json(module), script " +
-                    "FROM \"_data_service\" WHERE NOT is_deleted;"
-                );
                 let client = db.getClient(obj.client);
+                let sql = (
+                    "SELECT name, module, script " +
+                    "FROM data_service WHERE NOT is_deleted;"
+                );
 
-                // Query routes
-                client.query(sql, function (err, resp) {
-                    if (err) {
-                        reject(err);
-                        return;
-                    }
+                function callback(res) {
+                    let srvc = res[0].rows;
+                    let mods = res[1].map((mod) => mod.name);
+                    let ret = [];
 
-                    // Send back result
-                    resolve(resp.rows);
-                });
+                    mods.forEach(function (mod) {
+                        srvc.forEach(function (srv) {
+                            if (mod === srv.module) {
+                                ret.push(srv);
+                            }
+                        });
+                    });
+
+                    resolve(ret);
+                }
+
+                Promise.all([
+                    client.query(sql),
+                    getSortedModules(client)
+                ]).then(callback).catch(reject);
             });
         };
 
