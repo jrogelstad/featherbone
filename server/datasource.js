@@ -1211,10 +1211,10 @@
                     let feather = settings.data.catalog.data[name];
                     let parent = feather.inherits || "Object";
 
-					if (obj.noTrigger) {
-						commit().then(resolve).catch(reject);
-						return;
-					}
+                    if (obj.noTrigger) {
+                        commit().then(resolve).catch(reject);
+                        return;
+                    }
 
                     function doTrigger() {
                         if (name === "Object") {
@@ -1313,10 +1313,10 @@
                     let feather = settings.data.catalog.data[name];
                     let parent = feather.inherits || "Object";
 
-					if (obj.noTrigger) {
-						doQuery().then(resolve).catch(reject);
-						return;
-					}
+                    if (obj.noTrigger) {
+                        doQuery().then(resolve).catch(reject);
+                        return;
+                    }
 
                     function doTrigger() {
                         if (name === "Object") {
@@ -1968,6 +1968,32 @@
         });
 
         return result;
+    };
+
+    /**
+        Return a registered function. If trigger argument is passed
+        an array of functions is returned;
+
+        @method getFunction
+        @param {String} method Method name ("POST","PATCH","DELETE","PUT")
+        @param {String} name Function name
+        @param {Integer} trigger Trigger type
+        @return {Function|Array} return a registered function
+    */
+    that.getFunction = function (method, name, trigger) {
+        if (!registered[method]) {
+            return;
+        }
+
+        if (trigger) {
+            if (registered[method][name]) {
+                return registered[method][name][trigger] || [];
+            } else {
+                return;
+            }
+        }
+
+        return registered[method][name];
     };
 
     /**
