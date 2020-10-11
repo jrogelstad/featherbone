@@ -641,7 +641,8 @@
                 let sql = (
                     "SELECT * FROM module_dependency " +
                     "  JOIN module ON module._pk=_module_script_pk " +
-                    "WHERE module.name=$1;"
+                    "WHERE module.name=$1 " +
+                    "  AND NOT module_dependency.is_deleted;"
                 );
 
                 function callback(resp) {
