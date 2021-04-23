@@ -152,7 +152,6 @@
         let that = {};
 
         function createView(obj) {
-            let parent;
             let alias;
             let type;
             let view;
@@ -163,13 +162,12 @@
             let keys;
             let afterGetFeather;
             let name = obj.name;
-            let execute = obj.execute !== false;
-            let dropFirst = obj.dropFirst;
             let table = name.toSnakeCase();
             let args = ["_" + table, "_pk"];
             let cols = ["%I"];
             let sql = "";
             let client = obj.client;
+            let parentProp;
             // Child view variables
             let tProps;
             let tArgs;
@@ -184,8 +182,17 @@
                 props = feather.properties;
                 keys = Object.keys(props);
 
+                // Find any property that makes this table a child
+                parentProp = keys.find(function (key) {
+                    return (
+                        typeof props[key].type === "object" &&
+                        props[key].type.childOf
+                    );
+                });
+
                 keys.forEach(function (key) {
                     let clause;
+                    let parent;
 
                     alias = key.toSnakeCase();
 
@@ -211,7 +218,7 @@
                             sub += "WHERE %I.%I = %I._pk ";
                             sub += "AND NOT %I.is_deleted ORDER BY %I._pk) ";
                             sub += "AS %I";
-                            view = "_";
+                            view = "_" + parent + "$$";
                             view += props[key].type.relation.toSnakeCase();
                             col = "_" + type.parentOf.toSnakeCase();
                             col += "_" + parent + "_pk";
@@ -282,38 +289,36 @@
                         cols.push("%I");
                         args.push(alias);
                     }
-                });
+                }); 
+
+                sql = "DROP VIEW IF EXISTS %I CASCADE;";
+                sql = sql.format(["_" + table]);
 
                 args.push(table);
-
-                if (dropFirst) {
-                    sql = "DROP VIEW IF EXISTS %I CASCADE;";
-                    sql = sql.format(["_" + table]);
-                }
-
                 sql += childSql;
-                sql += "CREATE OR REPLACE VIEW %I AS SELECT " + cols.join(",");
+                sql += "CREATE VIEW %I AS SELECT " + cols.join(",");
                 sql += " FROM %I;";
                 sql = sql.format(args);
 
-                // If execute, run the sql now
-                if (execute) {
-                    client.query(sql, function (err) {
-                        if (err) {
-                            obj.callback(err);
-                            return;
-                        }
-
-                        obj.callback(null, true);
-                    });
-
-                    return;
+                if (parentProp) {
+                    args.shift();
+                    args[0] = (
+                        "_" + props[parentProp].type.relation.toSnakeCase() +
+                         "$$" + table
+                    );
+                    sql += "CREATE VIEW %I AS SELECT " + cols.join(",");
+                    sql += " FROM %I;";
+                    sql = sql.format(args);
                 }
 
-                // Deferred execution deprecated, throw error
-                obj.callback(
-                    "Deferred execution of view creation is unspported"
-                );
+                client.query(sql, function (err) {
+                    if (err) {
+                        obj.callback(err);
+                        return;
+                    }
+
+                    obj.callback(null, true);
+                });
             };
 
             that.getFeather({
@@ -392,7 +397,6 @@
                                 createView({
                                     client: obj.client,
                                     name: keys.shift(),
-                                    dropFirst: true,
                                     callback: nextView
                                 });
 
@@ -622,7 +626,6 @@
                         // Update views
                         createView({
                             name: rel,
-                            dropFirst: true,
                             client: client,
                             callback: createViews
                         });

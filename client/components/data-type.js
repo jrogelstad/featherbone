@@ -196,11 +196,8 @@ dataType.viewModel = function (options) {
             vm.buttonRemove().enable();
             if (
                 e.target.value &&
-                vm.relation() &&
-                !vm.childOf()
+                vm.relation()
             ) {
-                vm.buttonAdd().enable();
-                vm.buttonRemove().enable();
                 return;
             }
         } else {
@@ -223,15 +220,8 @@ dataType.viewModel = function (options) {
             type = f.copy(type);
             if (e.target.value) {
                 type.childOf = e.target.value;
-                vm.propsAvailableWidget().items([]);
-                vm.propsSelectedWidget().items([]);
-                vm.buttonAdd().disable();
-                vm.buttonRemove().disable();
             } else {
                 delete type.childOf;
-                vm.propsAvailableWidget().items(vm.properties());
-                vm.buttonAdd().enable();
-                vm.buttonRemove().enable();
             }
 
             vm.prop(type);
@@ -255,7 +245,7 @@ dataType.viewModel = function (options) {
             type.relation = e.target.value;
             vm.prop(type);
 
-            if (e.target.value && !vm.childOf()) {
+            if (e.target.value) {
                 vm.buttonAdd().enable();
                 vm.buttonRemove().enable();
                 vm.propsAvailableWidget().items(vm.properties());
