@@ -1108,14 +1108,6 @@
                         );
                     });
 
-                    /* Validate */
-                    /*
-                    if (!isChild && feather.isChild && !isSuperUser) {
-                        reject("Can not query directly on a child class");
-                        return;
-                    }
-                    */
-
                     keys.forEach(function (key) {
                         tokens.push("%I");
                         cols.push(key.toSnakeCase());
