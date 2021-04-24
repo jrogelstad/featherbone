@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2020  John Rogelstad
+    Copyright (C) 2021  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -67,7 +67,7 @@
             @param {Boolean} [isSuper] Force as super user
             @return {Promise}
         */
-        that.install = function (datasource, client, dir, user, isSuper) {
+        that.install = function (pDatasource, pClient, pDir, pUser, pIsSuper) {
             return new Promise(function (resolve, reject) {
                 let manifest;
                 let processFile;
@@ -75,13 +75,13 @@
                 let file;
                 let filename = path.format({
                     root: "/",
-                    dir: dir,
+                    dir: pDir,
                     base: MANIFEST
                 });
                 let installedFeathers = false;
 
-                f.datasource = datasource;
-                client.currentUser(user);
+                f.datasource = pDatasource;
+                pClient.currentUser(pUser);
 
                 function registerNpmModules(isSuper) {
                     return new Promise(function (resolve) {
@@ -91,7 +91,7 @@
                             // Add npm modules specified
                             mods.forEach(function (mod) {
                                 try {
-                                    let name;
+                                    let vName;
                                     if (mod.properties) {
                                         mod.properties.forEach(function (p) {
                                             f[p.property] = require(
@@ -101,8 +101,8 @@
                                         return;
                                     }
 
-                                    name = mod.require;
-                                    f[name] = require(mod.require);
+                                    vName = mod.require;
+                                    f[vName] = require(mod.require);
                                 } catch {
                                     console.log(
                                         "Unable to load npm module->",
@@ -116,7 +116,7 @@
                 }
 
                 function rollback(err) {
-                    client.query("ROLLBACK;", function () {
+                    pClient.query("ROLLBACK;", function () {
                         console.error(err);
                         //console.log("ROLLBACK");
                         console.error("Installation failed.");
@@ -152,11 +152,11 @@
                         payload = {
                             method: "GET",
                             name: "getServices",
-                            user: user,
-                            client: client
+                            user: pUser,
+                            client: pClient
                         };
 
-                        datasource.request(payload, true).then(
+                        pDatasource.request(payload, true).then(
                             after
                         ).catch(
                             rollback
@@ -169,10 +169,10 @@
 
                         if (b < len) {
                             payload = data[b];
-                            payload.user = user;
-                            payload.client = client;
+                            payload.user = pUser;
+                            payload.client = pClient;
                             b += 1;
-                            datasource.request(payload, true).then(
+                            pDatasource.request(payload, true).then(
                                 nextItem
                             ).catch(rollback);
                             return;
@@ -186,21 +186,21 @@
                     getServices();
                 }
 
-                function saveModule(name, script, version, dependencies) {
-                    dependencies = dependencies || [];
-                    let id = btoa(name);
+                function saveModule(pName, pScript, pVersion, pDependencies) {
+                    pDependencies = pDependencies || [];
+                    let vId = btoa(pName);
                     let payload = {
                         method: "POST",
                         name: "Module",
-                        user: user,
-                        client: client,
-                        id: id,
+                        user: pUser,
+                        client: pClient,
+                        id: vId,
                         data: {
-                            name: name,
-                            version: version,
-                            owner: user,
-                            script: script,
-                            dependencies: dependencies.map(function (dep) {
+                            name: pName,
+                            version: pVersion,
+                            owner: pUser,
+                            script: pScript,
+                            dependencies: pDependencies.map(function (dep) {
                                 return {
                                     module: {
                                         id: btoa(dep)
@@ -224,14 +224,14 @@
                         payload = {
                             method: "PUT",
                             name: "saveFeather",
-                            user: user,
-                            client: client,
+                            user: pUser,
+                            client: pClient,
                             data: {
                                 specs: feathers
                             }
                         };
 
-                        datasource.request(payload, true).then(
+                        pDatasource.request(payload, true).then(
                             processFile
                         ).catch(rollback);
                         return;
@@ -333,44 +333,44 @@
                     runBatch(data);
                 }
 
-                function saveService(name, module, script) {
+                function saveService(pName, pModule, pScript) {
                     function callback(resp) {
-                        let id = btoa("ds" + name);
+                        let vId = btoa("ds" + pName);
                         let payload;
 
                         if (resp.length) {
-                            id = resp[0].id;
+                            vId = resp[0].id;
                         }
 
                         payload = {
                             method: "POST",
                             name: "DataService",
-                            user: user,
-                            client: client,
-                            id: id,
+                            user: pUser,
+                            client: pClient,
+                            id: vId,
                             data: {
-                                name: name,
-                                module: module,
-                                script: script,
-                                owner: user
+                                name: pName,
+                                module: pModule,
+                                script: pScript,
+                                owner: pUser
                             }
                         };
 
                         runBatch([payload]);
                     }
 
-                    datasource.request({
+                    pDatasource.request({
                         method: "GET",
                         name: "DataService",
-                        user: user,
-                        client: client,
+                        user: pUser,
+                        client: pClient,
                         filter: {
                             criteria: [{
                                 property: "name",
-                                value: name
+                                value: pName
                             }, {
                                 property: "module",
-                                value: module
+                                value: pModule
                             }]
                         }
                     }, true).then(callback).catch(rollback);
@@ -380,8 +380,8 @@
                     let payload = {
                         method: "PUT",
                         name: "saveWorkbook",
-                        user: user,
-                        client: client,
+                        user: pUser,
+                        client: pClient,
                         data: {
                             specs: workbooks
                         }
@@ -392,7 +392,7 @@
                         wb.authorizations = false;
                         wb.localConfig = [];
                     });
-                    datasource.request(payload, true).then(
+                    pDatasource.request(payload, true).then(
                         processFile
                     ).catch(rollback);
                 }
@@ -402,16 +402,16 @@
                     let exp = require(dep);
 
                     exp.execute({
-                        user: user,
-                        client: client
-                    }).then(processFile.bind(client)).catch(rollback);
+                        user: pUser,
+                        client: pClient
+                    }).then(processFile.bind(pClient)).catch(rollback);
                 }
 
                 function install(filename) {
                     let subman;
                     let subfilepath = path.format({
                         root: "/",
-                        dir: dir,
+                        dir: pDir,
                         base: filename
                     });
                     let subdir = path.parse(filename).dir;
@@ -444,14 +444,14 @@
                     });
                 }
 
-                function defineSettings(settings, module) {
+                function defineSettings(pSettings, pModule) {
                     let sql;
-                    let params = [settings.name, settings];
+                    let params = [pSettings.name, pSettings];
 
                     sql = "SELECT * FROM \"$settings\" WHERE name='";
-                    sql += settings.name + "';";
+                    sql += pSettings.name + "';";
 
-                    client.query(sql, function (err, result) {
+                    pClient.query(sql, function (err, result) {
                         if (err) {
                             rollback(err);
                             return;
@@ -460,8 +460,8 @@
                             sql = "UPDATE \"$settings\" SET ";
                             sql += "definition=$2 WHERE name=$1;";
                         } else {
-                            params.push(user);
-                            params.push(module);
+                            params.push(pUser);
+                            params.push(pModule);
                             sql = (
                                 "INSERT INTO \"$settings\" " +
                                 "(name, definition, id, created, " +
@@ -472,7 +472,7 @@
                             );
                         }
 
-                        client.query(sql, params, processFile);
+                        pClient.query(sql, params, processFile);
                     });
                 }
 
@@ -496,7 +496,7 @@
                         return new Promise(function (resolve, reject) {
                             feathers.disablePropagation(false);
                             if (installedFeathers) {
-                                feathers.propagateViews(client).then(
+                                feathers.propagateViews(pClient).then(
                                     resolve
                                 ).catch(reject);
                                 return;
@@ -514,12 +514,12 @@
                         //console.log("COMMIT");
                         handleFeathers().then(function () {
                             return new Promise(function (resolve) {
-                                client.query("COMMIT;").then(resolve);
+                                pClient.query("COMMIT;").then(resolve);
                             });
                         }).then(
-                            api.buildClientApi.bind(null, datasource, user)
+                            api.buildClientApi.bind(null, pDatasource, pUser)
                         ).then(
-                            api.buildRestApi.bind(null, datasource, user)
+                            api.buildRestApi.bind(null, pDatasource, pUser)
                         ).then(complete).catch(reject);
 
                         return;
@@ -529,7 +529,7 @@
                     name = path.parse(filename).name;
                     filepath = path.format({
                         root: "/",
-                        dir: dir,
+                        dir: pDir,
                         base: filename
                     });
 
@@ -606,11 +606,11 @@
                         }
 
                         manifest = JSON.parse(data);
-                        client.query("BEGIN;").then(processFile);
+                        pClient.query("BEGIN;").then(processFile);
                     });
                 }
 
-                if (isSuper) {
+                if (pIsSuper) {
                     registerNpmModules(true).then(doInstall);
                     return;
                 }
@@ -618,7 +618,7 @@
                 f.datasource.request({
                     method: "GET",
                     name: "isSuperUser",
-                    client: client
+                    client: pClient
                 }).then(registerNpmModules).then(doInstall).catch(reject);
             });
         };
@@ -635,7 +635,7 @@
         */
         that.deleteModule = function (obj) {
             return new Promise(function (resolve, reject) {
-                let client = db.getClient(obj.client);
+                let vClient = db.getClient(obj.client);
                 let name = obj.data.name;
                 let requests;
                 let sql = (
@@ -653,7 +653,7 @@
                         );
                     }
                     requests = [
-                        client.query(
+                        vClient.query(
                             (
                                 "DELETE FROM form_attr_column WHERE EXISTS (" +
                                 "  SELECT * FROM form_attr, form " +
@@ -663,7 +663,7 @@
                             ),
                             [name]
                         ),
-                        client.query(
+                        vClient.query(
                             (
                                 "DELETE FROM form_attr WHERE EXISTS (" +
                                 "  SELECT * FROM form " +
@@ -672,7 +672,7 @@
                             ),
                             [name]
                         ),
-                        client.query(
+                        vClient.query(
                             (
                                 "DELETE FROM form_tab WHERE EXISTS (" +
                                 "  SELECT * FROM form " +
@@ -681,11 +681,11 @@
                             ),
                             [name]
                         ),
-                        client.query(
+                        vClient.query(
                             "DELETE FROM form WHERE module=$1",
                             [name]
                         ),
-                        client.query(
+                        vClient.query(
                             (
                                 "DELETE FROM relation_search_column " +
                                 "WHERE EXISTS (" +
@@ -696,31 +696,31 @@
                             ),
                             [name]
                         ),
-                        client.query(
+                        vClient.query(
                             "DELETE FROM relation_widget WHERE module = $1",
                             [name]
                         ),
-                        client.query(
+                        vClient.query(
                             "DELETE FROM data_service WHERE module=$1",
                             [name]
                         ),
-                        client.query(
+                        vClient.query(
                             "DELETE FROM route WHERE module=$1",
                             [name]
                         ),
-                        client.query(
+                        vClient.query(
                             "DELETE FROM style WHERE module=$1",
                             [name]
                         ),
-                        client.query(
+                        vClient.query(
                             "DELETE FROM \"$workbook\" WHERE module=$1",
                             [name]
                         ),
-                        client.query(
+                        vClient.query(
                             "DELETE FROM \"$settings\" WHERE module=$1",
                             [name]
                         ),
-                        client.query(
+                        vClient.query(
                             (
                                 "DELETE FROM module_dependency WHERE EXISTS (" +
                                 "  SELECT * FROM module " +
@@ -729,7 +729,7 @@
                             ),
                             [name]
                         ),
-                        client.query(
+                        vClient.query(
                             "DELETE FROM module WHERE name = $1",
                             [name]
                         )
@@ -745,7 +745,7 @@
 
                             if (found.length) {
                                 feathers.deleteFeather({
-                                    client: client,
+                                    client: vClient,
                                     data: {
                                         name: found.pop().name
                                     }
@@ -754,7 +754,7 @@
                             }
 
                             sql = "DELETE FROM feather WHERE module=$1";
-                            client.query(
+                            vClient.query(
                                 sql,
                                 [name]
                             ).then(resolve).catch(reject);
@@ -765,7 +765,7 @@
                             " AND NOT is_deleted " +
                             "ORDER BY _pk;"
                         );
-                        client.query(
+                        vClient.query(
                             sql,
                             [name]
                         ).then(deleteFeather).catch(reject);
@@ -775,7 +775,7 @@
                 f.datasource.request({
                     method: "GET",
                     name: "isSuperUser",
-                    client: client
+                    client: vClient
                 }).then(function (isSuperUser) {
                     if (!isSuperUser) {
                         throw new Error(
@@ -783,7 +783,7 @@
                             "uninstall packages."
                         );
                     }
-                    client.query(sql, [name]).then(callback).catch(reject);
+                    vClient.query(sql, [name]).then(callback).catch(reject);
                 }).catch(reject);
             });
         };
@@ -792,4 +792,3 @@
     };
 
 }(exports));
-
