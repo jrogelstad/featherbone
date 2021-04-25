@@ -166,12 +166,13 @@
             let cols = ["%I"];
             let sql = "";
             let parentProp;
+            let childTable;
             let childSql = "";
             let i;
             let args2;
             let cols2;
             let sql2;
-            let childSql2;
+            let parent;
 
             function createChildView(pName) {
                 let tProps;
@@ -223,7 +224,6 @@
 
                 keys.forEach(function (key) {
                     let clause;
-                    let parent;
 
                     alias = key.toSnakeCase();
 
@@ -298,6 +298,18 @@
                 sql = "DROP VIEW IF EXISTS %I CASCADE;";
                 sql = sql.format(["_" + table]);
 
+                if (parentProp) {
+                    childTable = (
+                        "_" + props[parentProp].type.relation.toSnakeCase() +
+                        "$$" + table
+                    );
+                    sql += "DROP VIEW IF EXISTS %I CASCADE;";
+                    sql = sql.format([childTable]);
+                }
+
+                args2 = args.slice(); // copy while pristine
+                cols2 = cols.slice();
+
                 args.push(table);
                 sql += childSql;
                 sql += "CREATE VIEW %I AS SELECT " + cols.join(",");
@@ -305,11 +317,47 @@
                 sql = sql.format(args);
 
                 if (parentProp) {
+                    if (
+                        props[parentProp].type.properties &&
+                        props[parentProp].type.properties.length
+                        // Update regular view later to include parent reference
+                    ) {
+                        debugger;
+
+                        col = (
+                            "_" + parentProp.toSnakeCase() + "_" +
+                            props[parentProp].type.relation.toSnakeCase() +
+                            "_pk"
+                        );
+                        sub = (
+                            "(SELECT %I FROM %I WHERE %I._pk = %I) " +
+                            "AS %I"
+                        );
+                        parent = (
+                            props[parentProp].inheritedFrom
+                            ? props[parentProp].inheritedFrom.toSnakeCase()
+                            : table
+                        );
+                        view = "_" + table + "$" + parentProp.toSnakeCase();
+                        sql2 = createChildView(parentProp);
+                        args2 = args2.concat(
+                            [view, view, view, col, parentProp, table]
+                        );
+                        cols2.push(sub);
+
+                        sql2 += (
+                            "CREATE OR REPLACE VIEW %I AS SELECT " +
+                            cols2.join(",") +
+                            " FROM %I;"
+                        );
+                        sql2 = sql2.format(args2);
+                        console.log(sql2);
+                        obj.childSql.push(sql2); // Will run at end
+                    }
+
+                    // Create another version that will be child array only
                     args.shift();
-                    args[0] = (
-                        "_" + props[parentProp].type.relation.toSnakeCase() +
-                        "$$" + table
-                    );
+                    args[0] = childTable;
                     sql += "CREATE VIEW %I AS SELECT " + cols.join(",");
                     sql += " FROM %I;";
                     sql = sql.format(args);
@@ -394,7 +442,7 @@
 
                         function nextChild() {
                             if (deferred.length) {
-                                obj.client(
+                                obj.client.query(
                                     deferred.shift()
                                 ).then(
                                     nextChild
