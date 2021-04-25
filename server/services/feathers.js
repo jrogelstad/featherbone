@@ -166,14 +166,47 @@
             let cols = ["%I"];
             let sql = "";
             let parentProp;
-            // Child view variables
-            let tProps;
-            let tArgs;
-            let tCols;
-            let tRel;
-            let vSql = "";
             let childSql = "";
             let i;
+            let args2;
+            let cols2;
+            let sql2;
+            let childSql2;
+
+            function createChildView(pName) {
+                let tProps;
+                let tArgs;
+                let tCols;
+                let tRel;
+                let vSql = "";
+
+                tProps = props[pName].type.properties;
+                tCols = ["%I"];
+                tArgs = [view, "_pk"];
+
+                /* Always include "id" whether
+                   specified or not */
+                if (tProps.indexOf("id") === -1) {
+                    tProps.unshift("id");
+                }
+
+                i = 0;
+                while (i < tProps.length) {
+                    tCols.push("%I");
+                    tArgs.push(tProps[i].toSnakeCase());
+                    i += 1;
+                }
+
+                tRel = (
+                    "_" + props[pName].type.relation.toSnakeCase()
+                );
+                tArgs.push(tRel);
+                vSql = "CREATE OR REPLACE VIEW %I AS SELECT ";
+                vSql += tCols.join(",");
+                vSql += " FROM %I ";
+                vSql += "WHERE NOT is_deleted;";
+                return vSql.format(tArgs);
+            }
 
             function afterGetFeather(resp) {
                 feather = resp;
@@ -241,34 +274,7 @@
 
                             if (props[key].type.properties) {
                                 view = "_" + parent + "$" + key.toSnakeCase();
-
-                                // Create child view
-                                tProps = props[key].type.properties;
-                                tCols = ["%I"];
-                                tArgs = [view, "_pk"];
-
-                                /* Always include "id" whether
-                                   specified or not */
-                                if (tProps.indexOf("id") === -1) {
-                                    tProps.unshift("id");
-                                }
-
-                                i = 0;
-                                while (i < tProps.length) {
-                                    tCols.push("%I");
-                                    tArgs.push(tProps[i].toSnakeCase());
-                                    i += 1;
-                                }
-
-                                tRel = (
-                                    "_" + props[key].type.relation.toSnakeCase()
-                                );
-                                tArgs.push(tRel);
-                                vSql = "CREATE OR REPLACE VIEW %I AS SELECT ";
-                                vSql += tCols.join(",");
-                                vSql += " FROM %I ";
-                                vSql += "WHERE NOT is_deleted;";
-                                childSql += vSql.format(tArgs);
+                                childSql += createChildView(key);
                             } else {
                                 view = "_";
                                 view += props[key].type.relation.toSnakeCase();
@@ -384,6 +390,21 @@
                         let feathers = f.copy(resp);
                         let deps = Object.keys(feathers);
                         let found;
+                        let deferred = [];
+
+                        function nextChild() {
+                            if (deferred.length) {
+                                obj.client(
+                                    deferred.shift()
+                                ).then(
+                                    nextChild
+                                ).catch(reject);
+
+                                return;
+                            }
+
+                            resolve();
+                        }
 
                         function nextView(err) {
                             if (err) {
@@ -395,13 +416,14 @@
                                 createView({
                                     client: obj.client,
                                     name: keys.shift(),
-                                    callback: nextView
+                                    callback: nextView,
+                                    childSql: deferred
                                 });
 
                                 return;
                             }
 
-                            resolve();
+                            nextChild();
                         }
 
                         // Establish dependencies
