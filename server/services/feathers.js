@@ -163,51 +163,17 @@
             let name = obj.name;
             let table = name.toSnakeCase();
             let args = ["_" + table, "_pk"];
-            let args2;
             let cols = ["%I"];
-            let cols2;
             let sql = "";
             let parentProp;
+            // Child view variables
+            let tProps;
+            let tArgs;
+            let tCols;
+            let tRel;
+            let vSql = "";
             let childSql = "";
-
-            function createChildView(name, prop, prnt) {
-                let tProps;
-                let tArgs;
-                let tCols;
-                let tRel;
-                let vSql = "";
-                let i;
-
-                view = "_" + prnt + "$" + name.toSnakeCase();
-
-                // Create child view
-                tProps = prop.type.properties;
-                tCols = ["%I"];
-                tArgs = [view, "_pk"];
-
-                /* Always include "id" whether
-                   specified or not */
-                if (tProps.indexOf("id") === -1) {
-                    tProps.unshift("id");
-                }
-
-                i = 0;
-                while (i < tProps.length) {
-                    tCols.push("%I");
-                    tArgs.push(tProps[i].toSnakeCase());
-                    i += 1;
-                }
-
-                tRel = (
-                    "_" + prop.type.relation.toSnakeCase()
-                );
-                tArgs.push(tRel);
-                vSql = "CREATE OR REPLACE VIEW %I AS SELECT ";
-                vSql += tCols.join(",");
-                vSql += " FROM %I ";
-                vSql += "WHERE NOT is_deleted;";
-                childSql += vSql.format(tArgs);
-            }
+            let i;
 
             function afterGetFeather(resp) {
                 feather = resp;
@@ -274,7 +240,35 @@
                             sub += "AS %I";
 
                             if (props[key].type.properties) {
-                                createChildView(key, props[key], parent);
+                                view = "_" + parent + "$" + key.toSnakeCase();
+
+                                // Create child view
+                                tProps = props[key].type.properties;
+                                tCols = ["%I"];
+                                tArgs = [view, "_pk"];
+
+                                /* Always include "id" whether
+                                   specified or not */
+                                if (tProps.indexOf("id") === -1) {
+                                    tProps.unshift("id");
+                                }
+
+                                i = 0;
+                                while (i < tProps.length) {
+                                    tCols.push("%I");
+                                    tArgs.push(tProps[i].toSnakeCase());
+                                    i += 1;
+                                }
+
+                                tRel = (
+                                    "_" + props[key].type.relation.toSnakeCase()
+                                );
+                                tArgs.push(tRel);
+                                vSql = "CREATE OR REPLACE VIEW %I AS SELECT ";
+                                vSql += tCols.join(",");
+                                vSql += " FROM %I ";
+                                vSql += "WHERE NOT is_deleted;";
+                                childSql += vSql.format(tArgs);
                             } else {
                                 view = "_";
                                 view += props[key].type.relation.toSnakeCase();
@@ -300,25 +294,16 @@
 
                 args.push(table);
                 sql += childSql;
+                sql += "CREATE VIEW %I AS SELECT " + cols.join(",");
+                sql += " FROM %I;";
+                sql = sql.format(args);
 
                 if (parentProp) {
-                    args2 = args.slice(args);
-                    cols2 = cols.slice(cols);
-
-                    // Add parent to-one back in regular table view
-                    sql += "CREATE VIEW %I AS SELECT " + cols.join(",");
-                    sql += " FROM %I;";
-                    sql = sql.format(args);
-
-                    // Make child array view
-                    args2[0] = (
+                    args.shift();
+                    args[0] = (
                         "_" + props[parentProp].type.relation.toSnakeCase() +
                         "$$" + table
                     );
-                    sql += "CREATE VIEW %I AS SELECT " + cols2.join(",");
-                    sql += " FROM %I;";
-                    sql = sql.format(args2);
-                } else {
                     sql += "CREATE VIEW %I AS SELECT " + cols.join(",");
                     sql += " FROM %I;";
                     sql = sql.format(args);
