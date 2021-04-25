@@ -48,7 +48,10 @@ function resolveProperties (feather, properties, ary, prefix) {
 
 		if (
 			isObject && (
-				prop.type.childOf ||
+				prop.type.childOf && (
+                    !prop.type.properties ||
+                    !prop.type.properties.length
+                ) ||
 				prop.type.parentOf ||
 				prop.type.isChild
 			)
