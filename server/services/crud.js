@@ -1360,12 +1360,10 @@
                     props = feather.properties;
 
                     /* Validate */
-                    /*
                     if (!isChild && feather.isChild) {
                         reject("Can not directly update a child class");
                         return;
                     }
-                    */
 
                     if (isSuperUser === false) {
                         feathers.isAuthorized({
