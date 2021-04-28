@@ -1104,7 +1104,11 @@
                     ).filter(function (key) {
                         return (
                             typeof feather.properties[key].type !== "object" ||
-                            feather.properties[key].type.childOf === undefined
+                            feather.properties[key].type.childOf === undefined || (
+                                feather.properties[key].type.childOf &&
+                                feather.properties[key].type.properties &&
+                                feather.properties[key].type.properties.length
+                            )
                         );
                     });
 

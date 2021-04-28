@@ -310,7 +310,7 @@ function isChild(p) {
 function isToOne(p) {
     return (
         p.type && typeof p.type === "object" &&
-        !p.type.childOf && !p.type.parentOf
+        !p.type.parentOf
     );
 }
 
@@ -1529,7 +1529,12 @@ function createModel(data, feather) {
 
             // Create properties for relations
             if (typeof p.type === "object") {
-                if (isChild(p)) {
+                if (
+                    isChild(p) &&
+                    (
+                        !p.type.properties || !p.type.properties.length
+                    )
+                ) {
                     return;
                 } // Ignore child properties on client level
 
