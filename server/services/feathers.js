@@ -351,7 +351,6 @@
                             " FROM %I;"
                         );
                         sql2 = sql2.format(args2);
-                        console.log(sql2);
                         obj.childSql.push(sql2); // Will run at end
                     }
 
