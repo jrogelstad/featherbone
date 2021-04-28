@@ -650,7 +650,10 @@ function createModel(data, feather) {
         @param {Boolean} isReadyOnly Read only flag
         @return {Boolean}
     */
-    model.isReadOnly = createProperty(feather.isReadOnly === true);
+    model.isReadOnly = createProperty(
+        feather.isReadOnly === true ||
+        feather.isChild
+    );
 
     /**
         Returns whether the object is in a valid state to save.

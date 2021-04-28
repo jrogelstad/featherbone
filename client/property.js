@@ -124,7 +124,7 @@ function isChild(p) {
 function isToOne(p) {
     return (
         p.type && typeof p.type === "object" &&
-        !p.type.childOf && !p.type.parentOf
+        !p.type.parentOf
     );
 }
 
