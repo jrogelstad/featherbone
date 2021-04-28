@@ -650,10 +650,21 @@ function createModel(data, feather) {
         @param {Boolean} isReadyOnly Read only flag
         @return {Boolean}
     */
-    model.isReadOnly = createProperty(
-        feather.isReadOnly === true ||
-        feather.isChild
-    );
+    function isReadOnly(store) {
+        return function (...args) {
+            if (args.length) {
+                store = args[0];
+            }
+
+            if (feather.isChild && !model.parent()) {
+                return true;
+            }
+
+            return store;
+        };
+    }
+
+    model.isReadOnly = isReadOnly(feather.isReadOnly);
 
     /**
         Returns whether the object is in a valid state to save.
@@ -798,27 +809,27 @@ function createModel(data, feather) {
         @chainable
         @return {Object}
     */
-    model.onChange = function (name, callback) {
+    model.onChange = function (pName, pCallback) {
         let attr;
-        let idx = name.indexOf(".");
+        let idx = pName.indexOf(".");
 
         function func() {
-            callback(this);
+            pCallback(this);
         }
 
         if (idx > -1) {
-            attr = name.slice(0, idx);
+            attr = pName.slice(0, idx);
             if (!onChange[attr]) {
                 onChange[attr] = [];
             }
             onChange[attr].push({
-                name: name.slice(idx + 1),
-                callback: callback
+                name: pName.slice(idx + 1),
+                callback: pCallback
             });
             return this;
         }
 
-        stateMap[name].substateMap.Changing.enter(func.bind(d[name]));
+        stateMap[pName].substateMap.Changing.enter(func.bind(d[pName]));
 
         return this;
     };
@@ -853,27 +864,27 @@ function createModel(data, feather) {
         @chainable
         @return {Object}
     */
-    model.onChanged = function (name, callback) {
+    model.onChanged = function (pName, pCallback) {
         let attr;
-        let idx = name.indexOf(".");
+        let idx = pName.indexOf(".");
 
         function func() {
-            callback(this);
+            pCallback(this);
         }
 
         if (idx > -1) {
-            attr = name.slice(0, idx);
+            attr = pName.slice(0, idx);
             if (!onChanged[attr]) {
                 onChanged[attr] = [];
             }
             onChanged[attr].push({
-                name: name.slice(idx + 1),
-                callback: callback
+                name: pName.slice(idx + 1),
+                callback: pCallback
             });
             return this;
         }
 
-        stateMap[name].substateMap.Changing.exit(func.bind(d[name]));
+        stateMap[pName].substateMap.Changing.exit(func.bind(d[pName]));
 
         return this;
     };
@@ -1471,10 +1482,10 @@ function createModel(data, feather) {
     };
 
     doSend = function (evt) {
-        return new Promise(function (resolve, reject) {
+        return new Promise(function (pResolve, pReject) {
             state.send(evt, {
-                resolve: resolve,
-                reject: reject
+                resolve: pResolve,
+                reject: pReject
             });
         });
     };
@@ -1734,9 +1745,9 @@ function createModel(data, feather) {
         this.state("Ready", {
             H: "*"
         }, function () {
-            this.event("fetch", function (context) {
+            this.event("fetch", function (pContext) {
                 this.goto("/Busy", {
-                    context: context
+                    context: pContext
                 });
             });
 
@@ -1747,9 +1758,9 @@ function createModel(data, feather) {
                         force: true
                     });
                 });
-                this.event("save", function (context) {
+                this.event("save", function (pContext) {
                     this.goto("/Busy/Saving", {
-                        context: context
+                        context: pContext
                     });
                 });
                 this.event("delete", function () {
@@ -1808,14 +1819,14 @@ function createModel(data, feather) {
 
                 this.state("Locking", function () {
                     this.enter(doLock);
-                    this.event("save", function (context) {
+                    this.event("save", function (pContext) {
                         this.goto("/Busy/Saving/Patching", {
-                            context: context
+                            context: pContext
                         });
                     });
-                    this.event("locked", function (context) {
-                        if (context && context.lock) {
-                            d.lock(context.lock);
+                    this.event("locked", function (pContext) {
+                        if (pContext && pContext.lock) {
+                            d.lock(pContext.lock);
                         }
                         this.goto("../Dirty");
                     });
@@ -1839,9 +1850,9 @@ function createModel(data, feather) {
                         doRevert();
                         this.goto("../Unlocking");
                     });
-                    this.event("save", function (context) {
+                    this.event("save", function (pContext) {
                         this.goto("/Busy/Saving/Patching", {
-                            context: context
+                            context: pContext
                         });
                     });
                     this.canDelete = () => false;
@@ -1901,9 +1912,9 @@ function createModel(data, feather) {
         });
 
         this.state("Locked", function () {
-            this.enter(function (context) {
-                if (context) {
-                    d.lock(context);
+            this.enter(function (pContext) {
+                if (pContext) {
+                    d.lock(pContext);
                 }
                 doFreeze();
             });
@@ -1923,9 +1934,9 @@ function createModel(data, feather) {
             this.enter(doLock);
             this.enter(doFreeze);
 
-            this.event("save", function (context) {
+            this.event("save", function (pContext) {
                 this.goto("/Busy/Deleting", {
-                    context: context
+                    context: pContext
                 });
             });
 
