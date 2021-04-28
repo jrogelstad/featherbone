@@ -1081,7 +1081,7 @@ workbookPage.viewModel = function (options) {
     }));
     vm.buttonDelete().disable();
 
-    if (feather.isReadOnly) {
+    if (feather.isReadOnly || feather.isChild) {
         vm.buttonNew().disable();
         vm.buttonNew().title("Table is read only");
         vm.buttonDelete().title("Table is read only");
