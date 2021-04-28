@@ -560,7 +560,7 @@
             app.delete("/data/" + name + "/:id", doRequest);
         }
 
-        if (catalog[key].plural && !catalog[key].isChild) {
+        if (catalog[key].plural) {
             name = catalog[key].plural.toSpinalCase();
             app.post("/data/" + name, doQueryRequest);
         }
