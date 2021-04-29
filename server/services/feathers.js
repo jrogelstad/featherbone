@@ -322,8 +322,6 @@
                         props[parentProp].type.properties.length
                         // Update regular view later to include parent reference
                     ) {
-                        debugger;
-
                         col = (
                             "_" + parentProp.toSnakeCase() + "_" +
                             props[parentProp].type.relation.toSnakeCase() +
@@ -538,61 +536,6 @@
                 ).then(
                     resolve
                 ).catch(reject);
-            });
-        }
-
-        function getParentKey(obj) {
-            return new Promise(function (resolve, reject) {
-                let cParent;
-                let afterGetChildFeather;
-                let afterGetParentFeather;
-
-                afterGetChildFeather = function (resp) {
-                    let cKeys;
-                    let cProps;
-
-                    cProps = resp.properties;
-                    cKeys = Object.keys(cProps);
-                    cKeys.every(function (cKey) {
-                        if (
-                            typeof cProps[cKey].type === "object" &&
-                            cProps[cKey].type.childOf
-                        ) {
-                            cParent = cProps[cKey].type.relation;
-
-                            that.getFeather({
-                                client: obj.client,
-                                data: {
-                                    name: obj.parent
-                                }
-                            }).then(afterGetParentFeather).catch(reject);
-
-                            return false;
-                        }
-
-                        return true;
-                    });
-                };
-
-                afterGetParentFeather = function (resp) {
-                    if (resp.isChildFeather) {
-                        getParentKey({
-                            child: cParent,
-                            parent: obj.parent,
-                            client: obj.client
-                        }).then(resolve).catch(reject);
-                        return;
-                    }
-
-                    resolve();
-                };
-
-                that.getFeather({
-                    client: obj.client,
-                    data: {
-                        name: obj.child
-                    }
-                }).then(afterGetChildFeather).catch(reject);
             });
         }
 
@@ -1125,7 +1068,9 @@
                     feather = resp;
 
                     if (tools.isChildFeather(feather)) {
-                        err = "Can not set authorization on child feathers.";
+                        actions.canCreate = false;
+                        actions.canUpdate = false;
+                        actions.canDelete = false;
                     } else if (!feather.properties.owner) {
                         err = (
                             "Feather '" + resp.name +
@@ -2154,8 +2099,6 @@
                     };
 
                     afterNextVal = function (err, resp) {
-                        let callback;
-
                         if (err) {
                             reject(err);
                             return;
@@ -2163,43 +2106,21 @@
 
                         pk = resp.rows[0].pk;
 
-                        callback = function (err, resp) {
-                            let key;
-
-                            if (err) {
-                                reject(err);
-                                return;
-                            }
-
-                            key = resp;
-
-                            sql = "INSERT INTO \"$feather\" ";
-                            sql += "(_pk, id, created, created_by, updated, ";
-                            sql += "updated_by, is_deleted, is_child, ";
-                            sql += "parent_pk) VALUES ";
-                            sql += "($1, $2, now(), $3, now(), $4, false, ";
-                            sql += "$5, $6);";
-                            values = [
-                                pk,
-                                table,
-                                vClient.currentUser(),
-                                vClient.currentUser(),
-                                isChild,
-                                key
-                            ];
-                            vClient.query(sql, values, afterInsertFeather);
-                        };
-
-                        if (isChild) {
-                            getParentKey({
-                                parent: vParent,
-                                child: vName,
-                                client: vClient
-                            }).then(callback).catch(reject);
-                            return;
-                        }
-
-                        callback(null, pk);
+                        sql = "INSERT INTO \"$feather\" ";
+                        sql += "(_pk, id, created, created_by, updated, ";
+                        sql += "updated_by, is_deleted, is_child, ";
+                        sql += "parent_pk) VALUES ";
+                        sql += "($1, $2, now(), $3, now(), $4, false, ";
+                        sql += "$5, $6);";
+                        values = [
+                            pk,
+                            table,
+                            vClient.currentUser(),
+                            vClient.currentUser(),
+                            isChild,
+                            pk
+                        ];
+                        vClient.query(sql, values, afterInsertFeather);
                     };
 
                     afterInsertFeather = function (err) {

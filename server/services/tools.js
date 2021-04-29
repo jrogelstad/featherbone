@@ -584,7 +584,7 @@
 
         /**
             @method isChildFeather
-            @param {String} feather Feathe name
+            @param {Object} feather Feather
             @return {Boolean}
         */
         tools.isChildFeather = function (feather) {
