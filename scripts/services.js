@@ -48,6 +48,13 @@ function doUpsertFeather(obj) {
             canUpdate: true,
             canDelete: true
         }];
+        let defaultChildAuth = [{
+            role: "everyone",
+            canCreate: false,
+            canRead: true,
+            canUpdate: false,
+            canDelete: false
+        }];
 
         function isChild(p) {
             return typeof p.type === "object" && p.type.childOf;
@@ -126,10 +133,21 @@ function doUpsertFeather(obj) {
             if (obj.newRec.authorizations === undefined) {
                 obj.newRec.authorizations = [];
                 if (
-                    !obj.newRec.properties.some(isChild) &&
-                    !obj.newRec.isChild
+                    obj.newRec.properties.some(isChild) ||
+                    obj.newRec.isChild
                 ) {
-                    obj.newRec.authorizations = defaultAuth;
+                    obj.newRec.authorizations = f.copy(defaultChildAuth);
+                    feather.authorizations = [{
+                        role: "everyone",
+                        actions: {
+                            canCreate: false,
+                            canRead: true,
+                            canUpdate: false,
+                            canDelete: false
+                        }
+                    }];
+                } else {
+                    obj.newRec.authorizations = f.copy(defaultAuth);
                     feather.authorizations = [{
                         role: "everyone",
                         actions: {
@@ -142,15 +160,30 @@ function doUpsertFeather(obj) {
                 }
             } else {
                 obj.newRec.authorizations.forEach(function (auth) {
-                    auths.push({
-                        role: auth.role,
-                        actions: {
-                            canCreate: Boolean(auth.canCreate),
-                            canRead: Boolean(auth.canRead),
-                            canUpdate: Boolean(auth.canUpdate),
-                            canDelete: Boolean(auth.canDelete)
-                        }
-                    });
+                    if (
+                        obj.newRec.properties.some(isChild) ||
+                        obj.newRec.isChild
+                    ) {
+                        auths.push({
+                            role: auth.role,
+                            actions: {
+                                canCreate: false,
+                                canRead: Boolean(auth.canRead),
+                                canUpdate: false,
+                                canDelete: false
+                            }
+                        });
+                    } else {
+                        auths.push({
+                            role: auth.role,
+                            actions: {
+                                canCreate: Boolean(auth.canCreate),
+                                canRead: Boolean(auth.canRead),
+                                canUpdate: Boolean(auth.canUpdate),
+                                canDelete: Boolean(auth.canDelete)
+                            }
+                        });
+                    }
                 });
 
                 feather.authorizations = auths;
@@ -174,7 +207,15 @@ function doUpsertFeather(obj) {
                 !obj.newRec.properties.some(isChild) &&
                 !obj.newRec.isChild
             ) {
-                obj.newRec.authorizations = defaultAuth;
+                obj.newRec.authorizations = f.copy(defaultAuth);
+            } else if (
+                !obj.newRec.authorizations.length &&
+                (
+                    obj.newRec.properties.some(isChild) ||
+                    obj.newRec.isChild
+                )
+            ) {
+                obj.newRec.authorizations = f.copy(defaultChildAuth);
             }
 
             obj.newRec.authorizations.forEach(function (auth) {
