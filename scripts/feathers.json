@@ -1,4 +1,4 @@
-[
+	[
     {
         "name": "Document",
         "module": "Core",
@@ -16,7 +16,8 @@
             "etag": {
                 "description": "Optimistic locking key",
                 "type": "string",
-                "default": "createId()"
+                "default": "createId()",
+                "isAlwaysLoad": true
             }
         }
     }, {
