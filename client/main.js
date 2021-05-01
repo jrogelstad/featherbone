@@ -848,7 +848,9 @@ connect().then(function (resp) {
                             )
                         )
                     ) {
+                        instance.state().goto("Ready/Fetched/ReadOnly");
                         instance.set(data, true, true);
+                        instance.state().goto("Ready/Fetched/Clean");
                         m.redraw();
                     }
                 }
