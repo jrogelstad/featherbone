@@ -24,7 +24,7 @@ const f = require("../common/core");
     exports.execute = function (obj) {
         return new Promise(function (resolve, reject) {
             let grantEveryoneGlobal;
-            let user;
+            let usr;
             let id;
             let datasource = require("../server/datasource");
 
@@ -37,7 +37,7 @@ const f = require("../common/core");
                             "now(), $1, " +
                             "now(), $1, false, null, $2, 'everyone');"
                         ),
-                        [user, id]
+                        [usr, id]
                     ).then(resolve).catch(reject);
                 });
             }
@@ -45,7 +45,7 @@ const f = require("../common/core");
             function grantMembership() {
                 return new Promise(function (resolve, reject) {
                     let sql = "GRANT everyone TO %I;";
-                    sql = sql.format([user]);
+                    sql = sql.format([usr]);
                     obj.client.query(sql).then(resolve).catch(reject);
                 });
             }
@@ -57,7 +57,7 @@ const f = require("../common/core");
                         "(nextval('object__pk_seq'), " +
                         "'z6obwieygb0', now(), $1, now(), " +
                         "$1, false, null, $1, $2, 'everyone');",
-                        [user, f.createId()]
+                        [usr, f.createId()]
                     ).then(resolve).catch(reject);
                 });
             }
@@ -93,7 +93,7 @@ const f = require("../common/core");
 
             function insertCurrentUser(resp) {
                 return new Promise(function (resolve, reject) {
-                    user = resp.rows[0].current_user;
+                    usr = resp.rows[0].current_user;
                     id = resp.rows[0].id;
                     obj.client.query(
                         (
@@ -101,7 +101,7 @@ const f = require("../common/core");
                             "($2, 'e54y397l4arw', now(), $1, now(), " +
                             "$1, false, null, $1, $3, $1, '', true);"
                         ),
-                        [user, id, f.createId()]
+                        [usr, id, f.createId()]
                     ).then(resolve).catch(reject);
                 });
             }
@@ -148,7 +148,7 @@ const f = require("../common/core");
                     return {
                         method: "PUT",
                         name: "saveAuthorization",
-                        user: user,
+                        user: usr,
                         data: {
                             feather: "Honorific",
                             role: "everyone",
