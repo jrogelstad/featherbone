@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/*jslint this, browser*/
+/*jslint this, browser, bitwise*/
 /**
     @module Core
 */
@@ -65,7 +65,7 @@ function buildForm(feather) {
     let props;
     let keys;
     let found;
-    let attrs = [];
+    let theAttrs = [];
 
     if (typeof feather === "string") {
         feather = catalog.getFeather(feather);
@@ -77,13 +77,13 @@ function buildForm(feather) {
     // Make sure key attributes are first
     found = keys.find((key) => props[key].isNaturalKey);
     if (found) {
-        attrs.push({attr: found});
+        theAttrs.push({attr: found});
         keys.splice(keys.indexOf(found), 1);
     }
 
     found = keys.find((key) => props[key].isLabelKey);
     if (found) {
-        attrs.push({attr: found});
+        theAttrs.push({attr: found});
         keys.splice(keys.indexOf(found), 1);
     }
 
@@ -123,10 +123,10 @@ function buildForm(feather) {
             value.height = "200px";
         }
 
-        attrs.push(value);
+        theAttrs.push(value);
     });
 
-    return {attrs: attrs};
+    return {attrs: theAttrs};
 }
 
 /**
@@ -201,16 +201,16 @@ function createRelationWidgetFromFeather(type, featherName) {
     @method buildSelector
 */
 function buildSelector(obj, opts) {
-    let id = opts.id;
+    let theId = opts.id;
     let vm = obj.viewModel;
     let selectComponents = vm.selectComponents();
-    let value = opts.prop();
+    let val = opts.prop();
     let values = obj.dataList.map((item) => item.value).join();
 
-    value = (
-        value === ""
+    val = (
+        val === ""
         ? undefined
-        : value
+        : val
     );
 
     if (opts.class) {
@@ -219,16 +219,16 @@ function buildSelector(obj, opts) {
         opts.class = "fb-input";
     }
 
-    if (selectComponents[id]) {
+    if (selectComponents[theId]) {
         if (
-            selectComponents[id].value === value &&
-            selectComponents[id].readonly === opts.readonly &&
-            selectComponents[id].values === values
+            selectComponents[theId].value === val &&
+            selectComponents[theId].readonly === opts.readonly &&
+            selectComponents[theId].values === values
         ) {
-            return selectComponents[id].content;
+            return selectComponents[theId].content;
         }
     } else {
-        selectComponents[id] = {};
+        selectComponents[theId] = {};
     }
 
     if (obj.dataList.length && obj.dataList[0].value) {
@@ -238,16 +238,16 @@ function buildSelector(obj, opts) {
         });
     }
 
-    selectComponents[id].value = value;
-    selectComponents[id].readonly = opts.readonly;
-    selectComponents[id].values = values;
-    selectComponents[id].content = m("select", {
-        id: id,
-        key: id,
+    selectComponents[theId].value = val;
+    selectComponents[theId].readonly = opts.readonly;
+    selectComponents[theId].values = values;
+    selectComponents[theId].content = m("select", {
+        id: theId,
+        key: theId,
         onchange: (e) => opts.prop(e.target.value),
         oncreate: opts.oncreate,
         onremove: opts.onremove,
-        value: value,
+        value: val,
         readonly: opts.readonly,
         disabled: opts.readonly,
         class: opts.class,
@@ -255,11 +255,11 @@ function buildSelector(obj, opts) {
     }, obj.dataList.map(function (item) {
         return m("option", {
             value: item.value,
-            key: id + "$" + item.value
+            key: theId + "$" + item.value
         }, item.label);
     }));
 
-    return selectComponents[id].content;
+    return selectComponents[theId].content;
 }
 
 /**
@@ -314,7 +314,7 @@ function buildRelationWidgetFromLayout(id) {
     return widget;
 }
 
-function input(type, options) {
+function input(pType, options) {
     let prop = options.prop;
     let opts = {
         class: options.class,
@@ -323,7 +323,7 @@ function input(type, options) {
         key: options.key,
         required: options.required,
         style: options.style,
-        type: type,
+        type: pType,
         onchange: (e) => prop(e.target.value),
         oncreate: options.onCreate,
         onremove: options.onRemove,
@@ -413,7 +413,7 @@ formats.money = {
     fromType: function (value) {
         let style;
         let amount = value.amount || 0;
-        let currency = value.currency;
+        let currVal = value.currency;
         let curr = f.getCurrency(value.currency);
         let hasDisplayUnit = curr.data.hasDisplayUnit();
         let minorUnit = (
@@ -435,12 +435,12 @@ formats.money = {
                 }
             });
 
-            currency = curr.data.displayUnit().data.code();
+            currVal = curr.data.displayUnit().data.code();
         }
 
         return {
             amount: amount.toLocaleString(undefined, style),
-            currency: currency,
+            currency: currVal,
             effective: (
                 value.effective === null
                 ? null
@@ -455,26 +455,26 @@ formats.money = {
     },
     toType: function (value) {
         value = value || f.money();
-        let amount = f.types.number.toType(value.amount);
-        let currency = f.formats().string.toType(value.currency);
+        let theAmount = f.types.number.toType(value.amount);
+        let theCurrency = f.formats().string.toType(value.currency);
         let curr = f.getCurrency(value.currency);
 
-        if (curr.data.hasDisplayUnit() && currency !== curr.data.code()) {
+        if (curr.data.hasDisplayUnit() && theCurrency !== curr.data.code()) {
             curr.data.conversions().some(function (conv) {
                 if (conv.data.toUnit().id() === curr.data.displayUnit().id()) {
-                    amount = amount.times(
+                    theAmount = theAmount.times(
                         conv.data.ratio().round(curr.data.minorUnit())
                     );
                     return true;
                 }
             });
 
-            currency = curr.data.code();
+            theCurrency = curr.data.code();
         }
 
         value = {
-            amount: amount,
-            currency: currency,
+            amount: theAmount,
+            currency: theCurrency,
             effective: (
                 value.effective === null
                 ? null
@@ -1446,29 +1446,29 @@ f.findRelationWidget = function (relation, isTop) {
 f.createEditor = function (obj) {
     let w;
     let featherName;
-    let key = obj.key;
-    let isPath = key.indexOf(".") !== -1;
-    let prop = f.resolveProperty(obj.model, key);
+    let theKey = obj.key;
+    let isPath = theKey.indexOf(".") !== -1;
+    let theProp = f.resolveProperty(obj.model, theKey);
     let editor;
     let rel;
     let keys;
 
-    obj.options.id = obj.options.id || key;
+    obj.options.id = obj.options.id || theKey;
 
     // Handle input types
-    if (typeof prop.type === "string" || isPath) {
+    if (typeof theProp.type === "string" || isPath) {
 
-        if (isPath || prop.isReadOnly()) {
+        if (isPath || theProp.isReadOnly()) {
             obj.options.readonly = true;
         } else {
             obj.options.readonly = false;
         }
 
-        if (prop.isRequired()) {
+        if (theProp.isRequired()) {
             obj.options.required = true;
         }
 
-        obj.options.prop = prop;
+        obj.options.prop = theProp;
 
         if (obj.dataList) {
             return buildSelector(obj, obj.options);
@@ -1476,20 +1476,20 @@ f.createEditor = function (obj) {
 
         // If relation, use feather natural key to
         // find value to display
-        if (prop.type && prop.type.relation) {
-            rel = catalog.getFeather(prop.type.relation);
+        if (theProp.type && theProp.type.relation) {
+            rel = catalog.getFeather(theProp.type.relation);
             keys = Object.keys(rel.properties);
             rel = (
-                keys.find((key) => rel.properties[key].isNaturalKey) ||
-                keys.find((key) => rel.properties[key].isLabelKey)
+                keys.find((theKey) => rel.properties[theKey].isNaturalKey) ||
+                keys.find((theKey) => rel.properties[theKey].isLabelKey)
             );
-            prop = prop().data[rel];
+            theProp = theProp().data[rel];
         }
 
-        if (prop.format && f.formats()[prop.format].editor) {
-            editor = f.formats()[prop.format].editor;
-        } else if (f.types[prop.type] && f.types[prop.type].editor) {
-            editor = f.types[prop.type].editor;
+        if (theProp.format && f.formats()[theProp.format].editor) {
+            editor = f.formats()[theProp.format].editor;
+        } else if (f.types[theProp.type] && f.types[theProp.type].editor) {
+            editor = f.types[theProp.type].editor;
         } else {
             editor = f.types.string.editor;
         }
@@ -1499,15 +1499,15 @@ f.createEditor = function (obj) {
             readonly: obj.options.readonly || isPath,
             disableCurrency: obj.options.disableCurrency,
             filter: obj.options.filter,
-            key: key,
+            key: theKey,
             id: obj.options.id,
             isCell: obj.options.isCell,
             onCreate: obj.options.oncreate,
             onRemove: obj.options.onremove,
             model: obj.model,
-            parentProperty: key,
+            parentProperty: theKey,
             parentViewModel: obj.viewModel,
-            prop: prop,
+            prop: theProp,
             required: obj.options.required,
             style: obj.options.style || {},
             showCurrency: obj.options.showCurrency
@@ -1515,7 +1515,7 @@ f.createEditor = function (obj) {
     }
 
     // Handle relations
-    if (prop.isToOne()) {
+    if (theProp.isToOne()) {
         featherName = obj.viewModel.model().name.toCamelCase();
 
         if (obj.widget) {
@@ -1523,43 +1523,43 @@ f.createEditor = function (obj) {
             w = buildRelationWidgetFromLayout(obj.widget.id);
         } else {
             // See if we have one defined somewhere
-            w = f.findRelationWidget(prop.type.relation, true);
+            w = f.findRelationWidget(theProp.type.relation, true);
         }
 
         if (!w) {
             // Nothing specific, deduce from feather definition
-            w = createRelationWidgetFromFeather(prop.type, featherName);
+            w = createRelationWidgetFromFeather(theProp.type, featherName);
         }
 
         if (w) {
             return m(w, {
                 parentViewModel: obj.viewModel,
-                parentProperty: key,
+                parentProperty: theKey,
                 filter: obj.filter,
                 isCell: obj.options.isCell,
                 style: obj.options.style,
                 onCreate: obj.options.oncreate,
                 onRemove: obj.options.onremove,
                 id: obj.options.id,
-                key: key,
-                isReadOnly: prop.isReadOnly
+                key: theKey,
+                isReadOnly: theProp.isReadOnly
             });
         }
     }
 
-    if (prop.isToMany()) {
+    if (theProp.isToMany()) {
         w = catalog.store().components().childTable;
         if (w) {
             return m(w, {
                 parentViewModel: obj.viewModel,
-                parentProperty: key,
+                parentProperty: theKey,
                 height: obj.options.height,
-                key: key
+                key: theKey
             });
         }
     }
 
-    console.log("Widget for property '" + key + "' is undefined");
+    console.log("Widget for property '" + theKey + "' is undefined");
 };
 
 /**
