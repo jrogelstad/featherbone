@@ -484,17 +484,17 @@ function handleCurrency(obj) {
             return new Promise(function (resolve, reject) {
 
                 function callback(result) {
-                    let data;
+                    let theData;
 
                     if (result.length) {
-                        data = result[0];
-                        data.isBase = false;
+                        theData = result[0];
+                        theData.isBase = false;
 
                         payload = {
                             method: "POST",
                             name: "Currency",
-                            id: data.id,
-                            data: data,
+                            id: theData.id,
+                            data: theData,
                             client: obj.client
                         };
 
@@ -1117,9 +1117,9 @@ function updateUserAccount(obj) {
 
     return new Promise(function (resolve, reject) {
         let requests = [];
-        let password = obj.newRec.password;
+        let pswd = obj.newRec.password;
 
-        if (password) {
+        if (pswd) {
             obj.newRec.password = "";
             requests.push(f.datasource.request(
                 {
@@ -1128,7 +1128,7 @@ function updateUserAccount(obj) {
                     client: obj.client,
                     data: {
                         name: obj.newRec.name.toLowerCase(),
-                        password: password
+                        password: pswd
                     }
                 },
                 true
