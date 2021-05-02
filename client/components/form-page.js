@@ -304,19 +304,19 @@ function authModel(data) {
     state = that.state();
     state.resolve("/Busy/Saving/Posting").enters.pop();
     state.resolve("/Busy/Saving/Posting").enter(doSave);
-    state.resolve("/Ready/Fetched/Dirty").event("save", function (context) {
+    state.resolve("/Ready/Fetched/Dirty").event("save", function (pContext) {
         that.state().goto("/Busy/Saving/Posting", {
-            context: context
+            context: pContext
         });
     });
     state.resolve("/Ready/Fetched/Clean").event("changed", function () {
         this.goto("../Dirty");
     });
     state.resolve("/Delete").enters.shift();
-    state.resolve("/Delete").event("save", function (context) {
-        context.isDeleting = true;
+    state.resolve("/Delete").event("save", function (pContext) {
+        pContext.isDeleting = true;
         that.state().goto("/Busy/Saving/Posting", {
-            context: context
+            context: pContext
         });
     });
 
@@ -488,10 +488,10 @@ formPage.viewModel = function (options) {
     let fmodel;
     let instances = catalog.register("instances");
     let sseState = catalog.store().global().sseState;
-    let feather = options.feather.toCamelCase(true);
+    let theFeather = options.feather.toCamelCase(true);
     let form = f.getForm({
         form: options.form,
-        feather: feather
+        feather: theFeather
     });
     let vm = {};
     let pageIdx = options.index || 1;
@@ -528,7 +528,7 @@ formPage.viewModel = function (options) {
     // Process feather auths after object authorization fetch
     function postProcess() {
         // Add in feather auths
-        let auths = catalog.getFeather(feather).authorizations;
+        let auths = catalog.getFeather(theFeather).authorizations;
 
         auths.forEach(function (auth) {
             let actions = auth.actions;
@@ -791,7 +791,7 @@ formPage.viewModel = function (options) {
 
     // Create form widget
     vm.formWidget(f.createViewModel("FormWidget", {
-        isNew: isNew,
+        isNew: Boolean(isNew),
         model: fmodel,
         id: options.key,
         config: form,
@@ -854,7 +854,7 @@ formPage.viewModel = function (options) {
         icon: "plus-circle",
         class: toolbarButtonClass
     }));
-    if (catalog.getFeather(feather).isReadOnly) {
+    if (catalog.getFeather(theFeather).isReadOnly) {
         vm.buttonSaveAndNew().label("&New");
         vm.buttonSaveAndNew().title("Data is read only");
         vm.buttonSaveAndNew().disable();
@@ -938,7 +938,7 @@ formPage.component = {
     */
     view: function () {
         let lock;
-        let title;
+        let theTitle;
         let vm = this.viewModel;
         let fmodel = vm.model();
         let icon = "file-alt";
@@ -961,24 +961,24 @@ formPage.component = {
 
         if (fmodel.canUpdate() === false) {
             icon = "lock";
-            title = "Unauthorized to edit";
+            theTitle = "Unauthorized to edit";
         } else {
             switch (fmodel.state().current()[0]) {
             case "/Locked":
                 icon = "user-lock";
                 lock = fmodel.data.lock() || {};
-                title = (
+                theTitle = (
                     "User: " + lock.username + "\nSince: " +
                     new Date(lock.created).toLocaleTimeString()
                 );
                 break;
             case "/Ready/Fetched/Dirty":
                 icon = "pencil-alt";
-                title = "Editing record";
+                theTitle = "Editing record";
                 break;
             case "/Ready/New":
                 icon = "plus";
-                title = "New record";
+                theTitle = "New record";
                 break;
             default:
                 if (
@@ -1018,7 +1018,7 @@ formPage.component = {
             }, [
                 m("i", {
                     class: "fa fa-" + icon + " fb-title-icon",
-                    title: title
+                    title: theTitle
                 }),
                 m("label", vm.title())
             ]),

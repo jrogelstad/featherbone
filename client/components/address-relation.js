@@ -257,13 +257,13 @@ addressRelation.component = {
     view: function (vnode) {
         let ret;
         let vm = this.viewModel;
-        let style = vm.style();
-        let readonly = vnode.attrs.isReadOnly() === true;
+        let theStyle = vm.style();
+        let readOnly = vnode.attrs.isReadOnly() === true;
         let options = {
             id: vm.id(),
             class: "fb-input",
             value: vm.content(vm.isCell()),
-            readonly: readonly,
+            readonly: readOnly,
             rows: 4
         };
 
@@ -274,17 +274,17 @@ addressRelation.component = {
             };
         }
 
-        if (!readonly) {
+        if (!readOnly) {
             options.title = "Click or Enter key to edit";
             options.onkeydown = vm.onkeydown;
             options.onclick = vm.doEdit;
         }
 
-        style.display = style.display || "inline-block";
+        theStyle.display = theStyle.display || "inline-block";
 
         // Build the view
         ret = m("div", {
-            style: style
+            style: theStyle
         }, [
             m(f.getComponent("FormDialog"), {
                 viewModel: vm.addressDialog()

@@ -51,7 +51,6 @@ function createList(feather) {
     let ary = [];
     let dirty = [];
     let sid = f.createId();
-    let isCheckUpdates = false;
     let isBackground = false;
 
     // ..........................................................
@@ -71,7 +70,7 @@ function createList(feather) {
     ary.add = function (model, subscribe) {
         let mstate;
         let payload;
-        let url;
+        let theUrl;
         let query;
         let subid;
         let id = model.id();
@@ -113,10 +112,10 @@ function createList(feather) {
                     merge: true
                 }
             });
-            url = "/do/subscribe/" + query;
+            theUrl = "/do/subscribe/" + query;
             payload = {
                 method: "POST",
-                url: url
+                url: theUrl
             };
 
             m.request(payload).catch(console.error);
@@ -132,24 +131,6 @@ function createList(feather) {
         @return {Boolean}
     */
     ary.canFilter = f.prop(true);
-
-    /**
-        If turned on perform `checkUpdate` on all fetched
-        models, or any newly fetched models. Do this if
-        models are going to be edited.
-
-        Note: only functions when `isEditable` is true.
-
-        @method checkUpdate
-        @param {Boolean} Enable or disable checking
-    */
-    ary.checkUpdate = function (enabled) {
-        if (enabled === true) {
-            isCheckUpdates = true;
-        } else if (enabled === false) {
-            isCheckUpdates = false;
-        }
-    };
 
     /**
         Fetch data. Returns a Promise.
@@ -312,7 +293,7 @@ function createList(feather) {
     */
     ary.subscribe = function (...args) {
         let query;
-        let url;
+        let theUrl;
         let payload;
 
         if (args.length) {
@@ -331,10 +312,10 @@ function createList(feather) {
                     };
 
                     query = Qs.stringify(query);
-                    url = "/do/unsubscribe/" + query;
+                    theUrl = "/do/unsubscribe/" + query;
                     payload = {
                         method: "POST",
-                        url: url
+                        url: theUrl
                     };
 
                     return m.request(payload).catch(console.error);
@@ -379,11 +360,11 @@ function createList(feather) {
     };
 
     doFetch = function (context) {
-        let url;
+        let theUrl;
         let payload;
         let subid = ary.subscribe();
-        let body = {};
-        let merge = true;
+        let theBody = {};
+        let isMerge = true;
         let cfeather = catalog.getFeather(name.toCamelCase(true));
 
         // Undo any edited rows
@@ -392,7 +373,7 @@ function createList(feather) {
         });
 
         if (context.merge === false) {
-            merge = false;
+            isMerge = false;
         }
 
         function callback(data) {
@@ -400,7 +381,7 @@ function createList(feather) {
             let props = {};
             let cache = [];
 
-            if (!merge) {
+            if (!isMerge) {
                 ary.reset();
             }
 
@@ -413,8 +394,8 @@ function createList(feather) {
                 });
             } else {
                 // Strip dot notation
-                if (body.properties) {
-                    body.properties = body.properties.map(function (p) {
+                if (theBody.properties) {
+                    theBody.properties = theBody.properties.map(function (p) {
                         let i = p.indexOf(".");
                         let ret = p;
 
@@ -433,7 +414,7 @@ function createList(feather) {
                 }
 
                 attrs = (
-                    body.properties || Object.keys(cfeather.properties)
+                    theBody.properties || Object.keys(cfeather.properties)
                 );
 
                 Object.keys(cfeather.properties).forEach(function (attr) {
@@ -458,43 +439,45 @@ function createList(feather) {
         }
 
         if (ary.properties()) {
-            body.properties = ary.properties();
+            theBody.properties = ary.properties();
             // Make sure required properties are included
             Object.keys(cfeather.properties).forEach(function (key) {
                 if (
                     cfeather.properties[key].isAlwaysLoad &&
-                    body.properties.indexOf(key) === -1
+                    theBody.properties.indexOf(key) === -1
                 ) {
-                    body.properties.push(key);
+                    theBody.properties.push(key);
                 }
             });
         }
 
         if (ary.filter()) {
-            body.filter = f.copy(ary.filter());
-            body.filter.limit = body.filter.limit || ary.defaultLimit();
+            theBody.filter = f.copy(ary.filter());
+            theBody.filter.limit = (
+                theBody.filter.limit || ary.defaultLimit()
+            );
         }
 
-        if (body.filter && body.filter.showDeleted !== undefined) {
-            ary.showDeleted(body.filter.showDeleted);
-            delete body.filter.showDeleted;
+        if (theBody.filter && theBody.filter.showDeleted !== undefined) {
+            ary.showDeleted(theBody.filter.showDeleted);
+            delete theBody.filter.showDeleted;
         }
 
-        body.showDeleted = ary.showDeleted();
+        theBody.showDeleted = ary.showDeleted();
 
         if (subid) {
-            body.subscription = {
+            theBody.subscription = {
                 id: subid,
                 eventKey: catalog.eventKey(),
-                merge: merge
+                merge: isMerge
             };
         }
 
-        url = ary.path();
+        theUrl = ary.path();
         payload = {
             method: "POST",
-            url: url,
-            body: body,
+            url: theUrl,
+            body: theBody,
             background: isBackground
         };
         isBackground = false; // reset
@@ -518,10 +501,10 @@ function createList(feather) {
         let evt = args[0];
         let merge = args[1];
 
-        return new Promise(function (resolve, reject) {
+        return new Promise(function (pResolve, pReject) {
             let context = {
-                resolve: resolve,
-                reject: reject
+                resolve: pResolve,
+                reject: pReject
             };
 
             if (args.length > 1) {
@@ -535,9 +518,9 @@ function createList(feather) {
     // Define statechart
     state = State.define(function () {
         this.state("Unitialized", function () {
-            this.event("fetch", function (context) {
+            this.event("fetch", function (pContext) {
                 this.goto("/Busy", {
-                    context: context
+                    context: pContext
                 });
             });
         });
@@ -570,9 +553,9 @@ function createList(feather) {
                 }
                 return "./Clean";
             });
-            this.event("fetch", function (context) {
+            this.event("fetch", function (pContext) {
                 this.goto("/Busy", {
-                    context: context
+                    context: pContext
                 });
             });
             this.state("Clean", function () {
@@ -581,9 +564,9 @@ function createList(feather) {
                 });
             });
             this.state("Dirty", function () {
-                this.event("save", function (context) {
+                this.event("save", function (pContext) {
                     this.goto("/Busy/Saving", {
-                        context: context
+                        context: pContext
                     });
                 });
             });

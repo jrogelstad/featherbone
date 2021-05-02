@@ -268,7 +268,7 @@ autonumber.component = {
     view: function (vnode) {
         let ret;
         let vm = this.viewModel;
-        let style = vm.style();
+        let theStyle = vm.style();
         let options = {
             id: vm.id(),
             class: "fb-data-list-input",
@@ -282,11 +282,11 @@ autonumber.component = {
             vm.buttonEdit().enable();
         }
 
-        style.display = style.display || "inline-block";
+        theStyle.display = theStyle.display || "inline-block";
 
         // Build the view
         ret = m("div", {
-            style: style,
+            style: theStyle,
             key: vm.key()
         }, [
             m(f.getComponent("Dialog"), {

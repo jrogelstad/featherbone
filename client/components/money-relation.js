@@ -324,14 +324,14 @@ moneyRelation.viewModel = function (options) {
     */
     vm.selector = function (vnode) {
         let selectorStyle;
-        let readonly = (
+        let readOnly = (
             vnode.attrs.readonly === true ||
             vm.disableCurrency() || vm.effective()
         );
         let currency = vm.currency();
 
         if (
-            selector && readonly === wasReadOnly &&
+            selector && readOnly === wasReadOnly &&
             currency === wasCurrency
         ) {
             return selector;
@@ -345,13 +345,13 @@ moneyRelation.viewModel = function (options) {
             selectorStyle.display = "none";
         }
 
-        wasReadOnly = readonly;
+        wasReadOnly = readOnly;
         wasCurrency = currency;
         selector = m("select", {
             id: "C" + vm.id(),
             onchange: (e) => vm.currency(e.target.value),
             value: currency,
-            readonly: readonly,
+            readonly: readOnly,
             style: selectorStyle
         }, vm.currencies().map(selections));
 
@@ -411,10 +411,10 @@ moneyRelation.component = {
         let amountLabelStyle;
         let displayStyle;
         let vm = this.viewModel;
-        let readonly = Boolean(
+        let readOnly = Boolean(
             vnode.attrs.readonly === true || vm.effective()
         );
-        let id = "A" + vm.id();
+        let theId = "A" + vm.id();
 
         displayStyle = {
             display: "inline-block"
@@ -456,10 +456,10 @@ moneyRelation.component = {
         }, [
             m("input", {
                 style: inputStyle,
-                id: id,
+                id: theId,
                 onchange: (e) => vm.amount(e.target.value),
                 value: vm.amount(),
-                readonly: readonly,
+                readonly: readOnly,
                 oncreate: vnode.attrs.onCreate,
                 onremove: vnode.attrs.onRemove
             }),

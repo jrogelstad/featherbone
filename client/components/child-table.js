@@ -167,7 +167,6 @@ childTable.viewModel = function (options) {
         let sel = tw.selection();
         let models = tw.models();
         let idx = models.indexOf(sel) - 1;
-        let mod;
 
         tw.models().moveUp(sel);
         tw.select(models[idx]);
@@ -358,46 +357,46 @@ childTable.component = {
         @param {String} [vnode.attrs.height] Height
     */
     oninit: function (vnode) {
-        let config;
+        let theConfig;
         let overload;
         let keys;
-        let parentProperty = vnode.attrs.parentProperty;
-        let parentViewModel = vnode.attrs.parentViewModel;
-        let prop = parentViewModel.model().data[parentProperty];
-        let models = prop();
-        let feather = catalog.getFeather(prop.type.relation);
+        let theParentProperty = vnode.attrs.parentProperty;
+        let theParentViewModel = vnode.attrs.parentViewModel;
+        let prop = theParentViewModel.model().data[theParentProperty];
+        let theModels = prop();
+        let theFeather = catalog.getFeather(prop.type.relation);
         let parentFeather = catalog.getFeather(
-            parentViewModel.model().name
+            theParentViewModel.model().name
         );
         let overloads = parentFeather.overloads || {};
         let relations = vnode.attrs.parentViewModel.relations();
 
-        config = parentViewModel.config().attrs.find(function (item) {
-            return item.attr === parentProperty;
+        theConfig = theParentViewModel.config().attrs.find(function (item) {
+            return item.attr === theParentProperty;
         });
 
         // Apply parent defined overloads to child feather
-        overload = overloads[parentProperty];
+        overload = overloads[theParentProperty];
         if (overload) {
-            feather.overloads = feather.overloads || {};
+            theFeather.overloads = theFeather.overloads || {};
             keys = Object.keys(overload);
             keys.forEach(function (key) {
-                feather.overloads[key] = overload[key];
+                theFeather.overloads[key] = overload[key];
             });
         }
 
         // Set up viewModel if required
-        if (!relations[parentProperty]) {
-            relations[parentProperty] = childTable.viewModel({
-                parentViewModel: parentViewModel,
-                parentProperty: parentProperty,
-                models: models,
-                feather: feather,
-                config: config,
+        if (!relations[theParentProperty]) {
+            relations[theParentProperty] = childTable.viewModel({
+                parentViewModel: theParentViewModel,
+                parentProperty: theParentProperty,
+                models: theModels,
+                feather: theFeather,
+                config: theConfig,
                 height: vnode.attrs.height
             });
         }
-        this.viewModel = relations[parentProperty];
+        this.viewModel = relations[theParentProperty];
     },
 
     /**

@@ -299,7 +299,7 @@ dataType.viewModel = function (options) {
             // Exclude self property from list if child
             props = Object.keys(fp).filter((p) => p !== co).sort();
         }
-  
+
         return props;
     };
     /**
@@ -405,14 +405,14 @@ dataType.viewModel = function (options) {
     */
     vm.update = function () {
         let type = vm.type();
-        let relation = vm.relation();
+        let rel = vm.relation();
         let childOf = vm.childOf();
         let value = type;
         let props;
 
         if (type === "relation") {
             value = {
-                relation: relation
+                relation: rel
             };
 
             props = vm.propertiesSelected();
@@ -461,7 +461,7 @@ dataType.viewModel = function (options) {
     vm.dataTypeDialog().buttons().pop();
 
     vm.dataTypeDialog().content = function () {
-        let id = vm.id();
+        let theId = vm.id();
         let isNotRelation = vm.type() !== "relation";
         let isNotFeather = !vm.relation();
         let propertiesSelected = vm.propertiesSelected() || [];
@@ -473,10 +473,10 @@ dataType.viewModel = function (options) {
                 class: "pure-control-group"
             }, [
                 m("label", {
-                    for: id
+                    for: theId
                 }, "Type:"),
                 m("select", {
-                    id: id,
+                    id: theId,
                     value: vm.type(),
                     onchange: vm.onchangeDialogType,
                     readonly: isOverload,
@@ -485,7 +485,7 @@ dataType.viewModel = function (options) {
                     return m("option", {
                         value: item,
                         label: item,
-                        key: id + "$" + item
+                        key: theId + "$" + item
                     });
                 }))
             ]),
@@ -505,7 +505,7 @@ dataType.viewModel = function (options) {
                     return m("option", {
                         value: item.value,
                         label: item.label,
-                        key: id + "$feather$" + item.value
+                        key: theId + "$feather$" + item.value
                     });
                 }))
             ]),
@@ -636,15 +636,15 @@ dataType.component = {
     */
     view: function (vnode) {
         let vm = this.viewModel;
-        let id = vm.id();
-        let style = vm.style();
-        let readonly = (
+        let theId = vm.id();
+        let theStyle = vm.style();
+        let readOnly = (
             vnode.attrs.readonly === true ||
             vm.isOverload()
         );
         let btn = f.getComponent("Button");
 
-        style.display = style.display || "inline-block";
+        theStyle.display = theStyle.display || "inline-block";
 
         if (vnode.attrs.readonly) {
             vm.buttonEdit().disable();
@@ -654,25 +654,25 @@ dataType.component = {
 
         // Build the view
         return m("div", {
-            style: style,
+            style: theStyle,
             key: vm.key()
         }, [
             m(f.getComponent("Dialog"), {
                 viewModel: vm.dataTypeDialog()
             }),
             m("select", {
-                id: id,
+                id: theId,
                 onchange: vm.onchange,
                 oncreate: vnode.attrs.onCreate,
                 onremove: vnode.attrs.onRemove,
                 value: vm.type(),
-                readonly: readonly,
-                disabled: readonly
+                readonly: readOnly,
+                disabled: readOnly
             }, vm.types().map(function (item) {
                 let opts = {
                     value: item,
                     label: item,
-                    key: id + "$" + item
+                    key: theId + "$" + item
                 };
                 if (vm.type() === item) {
                     opts.selected = true;

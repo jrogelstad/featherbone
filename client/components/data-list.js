@@ -175,10 +175,10 @@ dataList.viewModel = function (options) {
         @return {Object} View
     */
     vm.content = function () {
-        let value = vm.prop() || [];
+        let val = vm.prop() || [];
 
         return f.types.array.tableData({
-            value: value,
+            value: val,
             options: {}
         });
     };
@@ -329,9 +329,9 @@ dataList.component = {
     */
     view: function (vnode) {
         let vm = this.viewModel;
-        let style = vm.style();
+        let theStyle = vm.style();
         let readonly = vnode.attrs.readonly === true;
-        let id = vm.id();
+        let theId = vm.id();
         let btn = f.getComponent("Button");
         let dlg = f.getComponent("Dialog");
 
@@ -341,18 +341,18 @@ dataList.component = {
             vm.buttonEdit().enable();
         }
 
-        style.display = style.display || "inline-block";
+        theStyle.display = theStyle.display || "inline-block";
 
         // Build the view
         return m("div", {
-            style: style,
+            style: theStyle,
             key: vm.key()
         }, [
             m(dlg, {
                 viewModel: vm.dataListDialog()
             }),
             m("input", {
-                id: id,
+                id: theId,
                 class: "fb-data-list-input",
                 onchange: vm.onchange,
                 oncreate: vnode.attrs.onCreate,

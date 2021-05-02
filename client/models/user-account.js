@@ -31,13 +31,13 @@ function userAccount(data, feather) {
     let model = f.createModel(data, feather);
 
     if (model.data.isSuper) {
-		model.data.isSuper.isReadOnly(!f.currentUser().isSuper);
-	}
+        model.data.isSuper.isReadOnly(!f.currentUser().isSuper);
+    }
 
     model.onLoad(function () {
-		if (model.data.name) {
-			model.data.name.isReadOnly(true);
-		}
+        if (model.data.name) {
+            model.data.name.isReadOnly(true);
+        }
     });
 
     return model;

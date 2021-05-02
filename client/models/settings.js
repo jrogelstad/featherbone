@@ -117,9 +117,9 @@ function settings(definition) {
     that.state(State.define(function () {
         this.enter(doInit.bind({}));
         this.state("Ready", function () {
-            this.event("fetch", function (context) {
+            this.event("fetch", function (pContext) {
                 this.goto("/Busy", {
-                    context: context
+                    context: pContext
                 });
             });
 
@@ -136,9 +136,9 @@ function settings(definition) {
                 });
 
                 this.state("Dirty", function () {
-                    this.event("save", function (context) {
+                    this.event("save", function (pContext) {
                         this.goto("/Busy/Saving", {
-                            context: context
+                            context: pContext
                         });
                     });
                     this.canSave = that.isValid;

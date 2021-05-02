@@ -36,8 +36,8 @@ const m = window.m;
 */
 searchPage.viewModel = function (options) {
     let vm = {};
-    let feather = catalog.getFeather(options.feather.toCamelCase(true));
-    let config = catalog.register("config")[options.config];
+    let theFeather = catalog.getFeather(options.feather.toCamelCase(true));
+    let theConfig = catalog.register("config")[options.config];
 
     // ..........................................................
     // PUBLIC
@@ -143,7 +143,7 @@ searchPage.viewModel = function (options) {
 
     // Create table widget view model
     vm.tableWidget(f.createViewModel("TableWidget", {
-        config: config,
+        config: theConfig,
         feather: options.feather.toCamelCase(true),
         search: vm.searchInput().value,
         ondblclick: vm.doSelect
@@ -153,13 +153,13 @@ searchPage.viewModel = function (options) {
     vm.filterDialog(f.createViewModel("FilterDialog", {
         filter: vm.tableWidget().filter,
         list: vm.tableWidget().models(),
-        feather: feather
+        feather: theFeather
     }));
 
     vm.sortDialog(f.createViewModel("SortDialog", {
         filter: vm.tableWidget().filter,
         list: vm.tableWidget().models(),
-        feather: feather
+        feather: theFeather
     }));
 
     // Create button view models

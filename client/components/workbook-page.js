@@ -137,7 +137,7 @@ let profileInvalid = false;
 function saveProfile(name, config, dlg) {
     let oldProfile = catalog.store().data().profile();
     let newProfile = f.copy(oldProfile);
-    let patch;
+    let thePatch;
 
     function callback(resp) {
         newProfile.etag = resp;
@@ -158,14 +158,14 @@ function saveProfile(name, config, dlg) {
         } else {
             delete newProfile.data.workbooks[name];
         }
-        patch = jsonpatch.compare(oldProfile.data, newProfile.data);
-        if (patch && patch.length) {
+        thePatch = jsonpatch.compare(oldProfile.data, newProfile.data);
+        if (thePatch && thePatch.length) {
             datasource.request({
                 method: "PATCH",
                 path: "/profile",
                 body: {
                     etag: oldProfile.etag,
-                    patch: patch
+                    patch: thePatch
                 }
             }).then(callback).catch(function (err) {
                 profileInvalid = true;
@@ -200,7 +200,7 @@ workbookPage.viewModel = function (options) {
     let tableState;
     let searchState;
     let currentSheet;
-    let feather;
+    let theFeather;
     let sseState = catalog.store().global().sseState;
     let workbook = catalog.store().workbooks()[
         options.workbook.toCamelCase()
@@ -365,7 +365,7 @@ workbookPage.viewModel = function (options) {
             sheet.isEditModeEnabled = data.isEditModeEnabled;
             sheet.openInNewWindow = data.openInNewWindow;
             sheet.list.columns.length = 0;
-			sheet.actions = sheet.actions || [];
+            sheet.actions = sheet.actions || [];
             sheet.actions.length = 0;
             data.columns.forEach(function (d) {
                 if (d === undefined) { // Deleted
@@ -504,7 +504,7 @@ workbookPage.viewModel = function (options) {
                 window.location.protocol + "//" +
                 window.location.hostname + ":" +
                 window.location.port + "#!/edit/" +
-                feather.name.toSpinalCase() + "/" +
+                theFeather.name.toSpinalCase() + "/" +
                 f.createId()
             );
 
@@ -530,7 +530,7 @@ workbookPage.viewModel = function (options) {
 
         if (!vm.tableWidget().modelNew()) {
             m.route.set("/edit/:feather/:key", {
-                feather: feather.name.toSpinalCase(),
+                feather: theFeather.name.toSpinalCase(),
                 key: f.createId()
             }, {
                 state: {
@@ -597,7 +597,7 @@ workbookPage.viewModel = function (options) {
         let sheetName;
         let next;
         let dialogSheetConfigure = vm.sheetConfigureDialog();
-        let id = f.createId();
+        let theId = f.createId();
         let sheets = vm.sheets();
         let sheet = f.copy(vm.sheet());
         let i = 0;
@@ -613,7 +613,7 @@ workbookPage.viewModel = function (options) {
         i = 0;
 
         newSheet = {
-            id: id,
+            id: theId,
             name: sheetName,
             feather: sheet.feather,
             list: {
@@ -629,7 +629,7 @@ workbookPage.viewModel = function (options) {
 
         vm.config().push(newSheet);
         dialogSheetConfigure.onCancel(undo);
-        vm.configureSheet({sheetId: id});
+        vm.configureSheet({sheetId: theId});
     };
     /**
         @method ondragend
@@ -895,16 +895,16 @@ workbookPage.viewModel = function (options) {
         @method tabClicked
         @param {String} name Sheet name
     */
-	vm.tabClicked = function (sheet) {
-		let wb = workbook.data.name().toSpinalCase();
-		let pg = sheet.toSpinalCase();
+    vm.tabClicked = function (sheet) {
+        let wb = workbook.data.name().toSpinalCase();
+        let pg = sheet.toSpinalCase();
 
-		m.route.set("/workbook/:workbook/:page", {
-			workbook: wb,
-			page: pg,
-			key: f.hashCode(wb + "-" + pg)
-		});
-	};
+        m.route.set("/workbook/:workbook/:page", {
+            workbook: wb,
+            page: pg,
+            key: f.hashCode(wb + "-" + pg)
+        });
+    };
     /**
         @method tableWidget
         @param {ViewModels.TableWidget} widget
@@ -934,7 +934,7 @@ workbookPage.viewModel = function (options) {
     // ..........................................................
     // PRIVATE
     //
-    feather = catalog.getFeather(vm.sheet().feather);
+    theFeather = catalog.getFeather(vm.sheet().feather);
 
     // Register callback
     catalog.register("receivers", receiverKey, {
@@ -976,7 +976,7 @@ workbookPage.viewModel = function (options) {
     vm.filterDialog(f.createViewModel("FilterDialog", {
         filter: vm.tableWidget().filter,
         list: vm.tableWidget().models(),
-        feather: feather,
+        feather: theFeather,
         onOk: vm.saveProfile
     }));
 
@@ -1032,7 +1032,7 @@ workbookPage.viewModel = function (options) {
     vm.aggregateDialog(f.createViewModel("AggregateDialog", {
         aggregates: vm.tableWidget().aggregates,
         list: vm.tableWidget().models(),
-        feather: feather,
+        feather: theFeather,
         onOk: function () {
             vm.refresh();
             vm.saveProfile();
@@ -1042,7 +1042,7 @@ workbookPage.viewModel = function (options) {
     vm.sortDialog(f.createViewModel("SortDialog", {
         filter: vm.tableWidget().filter,
         list: vm.tableWidget().models(),
-        feather: feather,
+        feather: theFeather,
         onOk: vm.saveProfile
     }));
 
@@ -1081,7 +1081,7 @@ workbookPage.viewModel = function (options) {
     }));
     vm.buttonDelete().disable();
 
-    if (feather.isReadOnly || feather.isChild) {
+    if (theFeather.isReadOnly || theFeather.isChild) {
         vm.buttonNew().disable();
         vm.buttonNew().title("Table is read only");
         vm.buttonDelete().title("Table is read only");
@@ -1194,7 +1194,7 @@ workbookPage.viewModel = function (options) {
     });
 
     catalog.isAuthorized({
-        feather: feather.name,
+        feather: theFeather.name,
         action: "canCreate"
     }).then(function (canCreate) {
         if (!canCreate) {

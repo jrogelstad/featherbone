@@ -92,21 +92,24 @@ function normalizeDataList(dataList, model) {
 function createTableDataEditor(options, col) {
     let config = options.config;
     let defaultFocusId = options.defaultFocusId;
-    let model = options.model;
+    let theModel = options.model;
     let onshifttab = options.onshifttab;
     let ontab = options.ontab;
-    let vm = options.vm;
+    let theVm = options.vm;
     let zoom = options.zoom;
     let cell;
     let tdOpts;
     let inputOpts;
     let columnSpacerClass;
-    let widget;
-    let prop = f.resolveProperty(model, col);
-    let id = vm.formatInputId(col);
+    let theWidget;
+    let prop = f.resolveProperty(theModel, col);
+    let theId = theVm.formatInputId(col);
     let item = config.columns[options.idx];
     let columnWidth = item.width || COL_WIDTH_DEFAULT;
-    let dataList = normalizeDataList(item.dataList || prop.dataList, model);
+    let theDataList = normalizeDataList(
+        item.dataList || prop.dataList,
+        theModel
+    );
     let cfilter = item.filter;
     let style = (
         prop.style
@@ -117,9 +120,9 @@ function createTableDataEditor(options, col) {
     columnWidth -= 6;
 
     inputOpts = {
-        id: id,
-        key: id,
-        onclick: vm.toggleSelection.bind(this, model, id),
+        id: theId,
+        key: theId,
+        onclick: theVm.toggleSelection.bind(this, theModel, theId),
         value: prop(),
         style: {
             minWidth: columnWidth + "px",
@@ -131,7 +134,7 @@ function createTableDataEditor(options, col) {
     };
 
     // Set up self focus
-    if (vm.nextFocus() === id && id === defaultFocusId) {
+    if (theVm.nextFocus() === theId && theId === defaultFocusId) {
         inputOpts.oncreate = function (vnode) {
             let e = document.getElementById(vnode.dom.id);
 
@@ -145,17 +148,17 @@ function createTableDataEditor(options, col) {
                 e.removeEventListener("keydown", onshifttab);
             }
         };
-        vm.nextFocus(undefined);
+        theVm.nextFocus(undefined);
 
     } else if (
-        vm.nextFocus() === id &&
-        id !== defaultFocusId
+        theVm.nextFocus() === theId &&
+        theId !== defaultFocusId
     ) {
         inputOpts.oncreate = function (vnode) {
             document.getElementById(vnode.dom.id).focus();
         };
-        vm.nextFocus(undefined);
-    } else if (id === defaultFocusId) {
+        theVm.nextFocus(undefined);
+    } else if (theId === defaultFocusId) {
         inputOpts.oncreate = function (vnode) {
             // Key down handler for up down movement
             document.getElementById(
@@ -175,7 +178,7 @@ function createTableDataEditor(options, col) {
 
     // We want tab out of last cell to loop back to
     // the first
-    if (options.lastFocusId === id) {
+    if (options.lastFocusId === theId) {
         inputOpts.oncreate = function (vnode) {
             // Key down handler for up down movement
             document.getElementById(
@@ -225,25 +228,25 @@ function createTableDataEditor(options, col) {
         "fb-column-spacer " + tdOpts.class
     );
 
-    widget = vm.form().attrs.find(
+    theWidget = theVm.form().attrs.find(
         (item) => (
             item.attr === col && item.relationWidget
         )
     );
-    if (widget) {
-        widget = widget.relationWidget;
+    if (theWidget) {
+        theWidget = theWidget.relationWidget;
     }
 
     cell = [
         m("td", tdOpts, [
             f.createEditor({
-                model: model,
+                model: theModel,
                 key: col,
-                dataList: dataList,
+                dataList: theDataList,
                 filter: cfilter,
-                viewModel: vm,
+                viewModel: theVm,
                 options: inputOpts,
-                widget: widget
+                widget: theWidget
             })
         ]),
         m("td", {
@@ -260,34 +263,34 @@ function createTableDataEditor(options, col) {
 }
 
 function createTableDataView(options, col) {
-    let vm = options.vm;
+    let theVm = options.vm;
     let model = options.model;
     let config = options.config;
     let zoom = options.zoom;
-    let onclick = options.onclick;
+    let onClick = options.onclick;
     let url;
     let cell;
     let content;
     let tdOpts;
     let tableData;
-    let prop = f.resolveProperty(options.model, col);
-    let value = prop();
-    let format = prop.format || prop.type;
+    let theProp = f.resolveProperty(options.model, col);
+    let theValue = theProp();
+    let format = theProp.format || theProp.type;
     let columnWidth = (
         config.columns[options.idx].width || COL_WIDTH_DEFAULT
     );
     let style = (
-        prop.style
-        ? prop.style()
+        theProp.style
+        ? theProp.style()
         : ""
     );
     let relation;
     let id = model.id() + "-" + options.idx;
     let item = config.columns[options.idx];
-    let dataList = normalizeDataList(item.dataList || prop.dataList, model);
+    let dataList = normalizeDataList(item.dataList || theProp.dataList, model);
     let otitle = (
-        prop.title
-        ? prop.title()
+        theProp.title
+        ? theProp.title()
         : ""
     );
 
@@ -302,9 +305,9 @@ function createTableDataView(options, col) {
             } else if (ev.ctrlKey) {
                 optKey = "ctrlKey";
             }
-            vm.toggleSelection(
+            theVm.toggleSelection(
                 model,
-                vm.formatInputId(col),
+                theVm.formatInputId(col),
                 optKey
             );
         },
@@ -319,8 +322,8 @@ function createTableDataView(options, col) {
     handleStyle(style, tdOpts);
 
     // Build cell
-    if (typeof format === "object" && prop()) {
-        relation = prop.type.relation.toCamelCase();
+    if (typeof format === "object" && theProp()) {
+        relation = theProp.type.relation.toCamelCase();
         if (f.types[relation] && f.types[relation].tableData) {
             tableData = f.types[relation].tableData;
         } else {
@@ -338,51 +341,51 @@ function createTableDataView(options, col) {
                 );
 
                 if (rel) {
-                    value = prop().data[rel]();
+                    theValue = theProp().data[rel]();
 
                     url = (
                         window.location.protocol + "//" +
                         window.location.hostname + ":" +
                         window.location.port + "#!/edit/" +
-                        prop.type.relation.toSnakeCase() +
-                        "/" + prop().id()
+                        theProp.type.relation.toSnakeCase() +
+                        "/" + theProp().id()
                     );
 
                     return m("a", {
                         href: url,
                         onclick: function (e) {
-                            vm.canToggle(false);
+                            theVm.canToggle(false);
                             e.preventDefault();
                             m.route.set("/edit/:feather/:key", {
-                                feather: prop.type.relation.toSnakeCase(),
-                                key: prop().id()
+                                feather: theProp.type.relation.toSnakeCase(),
+                                key: theProp().id()
                             }, {
                                 state: {}
                             });
                         }
-                    }, value);
+                    }, theValue);
                 }
             };
         }
-    } else if (prop.format && f.formats()[prop.format].tableData) {
-        tableData = f.formats()[prop.format].tableData;
-    } else if (f.types[prop.type] && f.types[prop.type].tableData) {
-        tableData = f.types[prop.type].tableData;
+    } else if (theProp.format && f.formats()[theProp.format].tableData) {
+        tableData = f.formats()[theProp.format].tableData;
+    } else if (f.types[theProp.type] && f.types[theProp.type].tableData) {
+        tableData = f.types[theProp.type].tableData;
     } else {
         tableData = (obj) => obj.value;
     }
 
     if (dataList) {
-        value = dataList.find((i) => i.value === value) || {};
-        value = value.label;
+        theValue = dataList.find((i) => i.value === theValue) || {};
+        theValue = theValue.label;
     }
 
     content = tableData({
-        value: value,
+        value: theValue,
         options: tdOpts,
-        viewModel: vm,
-        prop: prop,
-        onclick: onclick,
+        viewModel: theVm,
+        prop: theProp,
+        onclick: onClick,
         title: otitle
     });
 
@@ -549,26 +552,26 @@ function createTableHeader(options, col) {
     return hview;
 }
 
-function createTableRow(options, model) {
-    let config = options.config;
-    let vm = options.vm;
-    let zoom = options.zoom;
+function createTableRow(options, pModel) {
+    let theConfig = options.config;
+    let theVm = options.vm;
+    let theZoom = options.zoom;
     let tds;
     let row;
     let thContent;
-    let onclick;
+    let onClick;
     let lock;
     let iconStyle;
-    let lastFocusId;
-    let ontab;
-    let onshifttab;
-    let defaultFocusId = vm.defaultFocus(model);
-    let currentMode = vm.mode().current()[0];
-    let isSelected = vm.isSelected(model);
-    let currentState = model.state().current()[0];
-    let d = model.data;
+    let theLastFocusId;
+    let onTab;
+    let onShifttab;
+    let theDefaultFocusId = theVm.defaultFocus(pModel);
+    let currentMode = theVm.mode().current()[0];
+    let isSelected = theVm.isSelected(pModel);
+    let currentState = pModel.state().current()[0];
+    let data = pModel.data;
     let rowOpts = {
-        key: model.id()
+        key: pModel.id()
     };
     let cellOpts = {};
     let rowClass;
@@ -576,28 +579,28 @@ function createTableRow(options, model) {
 
     // Build row
     if (isSelected) {
-        rowClass = vm.selectedClass();
+        rowClass = theVm.selectedClass();
     }
 
     // Build view row
     if (currentMode === "/Mode/View" || !isSelected) {
         // Build cells
-        tds = vm.attrs().map(createTableDataView.bind(null, {
-            config: config,
-            d: d,
+        tds = theVm.attrs().map(createTableDataView.bind(null, {
+            config: theConfig,
+            d: data,
             idx: 0,
-            model: model,
-            onclick: onclick,
-            vm: vm,
-            zoom: zoom
+            model: pModel,
+            onclick: onClick,
+            vm: theVm,
+            zoom: theZoom
         }));
 
         rowOpts = {
-            ondblclick: vm.ondblclick.bind(null, model)
+            ondblclick: theVm.ondblclick.bind(null, pModel)
         };
 
         // Apply any style business logic
-        style = model.style();
+        style = pModel.style();
 
         if (style) {
             style = f.getStyle(style);
@@ -619,73 +622,73 @@ function createTableRow(options, model) {
             class: "fb-table-cell-edit"
         };
 
-        lastFocusId = vm.lastFocus(model);
-        ontab = function (e) {
+        theLastFocusId = theVm.lastFocus(pModel);
+        onTab = function (e) {
             let key = e.key || e.keyIdentifier;
             if (key === "Tab" && !e.shiftKey) {
                 e.preventDefault();
-                document.getElementById(defaultFocusId).focus();
+                document.getElementById(theDefaultFocusId).focus();
             }
         };
 
-        onshifttab = function (e) {
+        onShifttab = function (e) {
             let key = e.key || e.keyIdentifier;
             if (key === "Tab" && e.shiftKey) {
                 e.preventDefault();
-                document.getElementById(lastFocusId).focus();
+                document.getElementById(theLastFocusId).focus();
             }
         };
 
         // Build cells
-        tds = vm.attrs().map(createTableDataEditor.bind(null, {
-            config: config,
-            defaultFocusId: defaultFocusId,
+        tds = theVm.attrs().map(createTableDataEditor.bind(null, {
+            config: theConfig,
+            defaultFocusId: theDefaultFocusId,
             idx: 0,
-            lastFocusId: lastFocusId,
-            model: model,
-            onshifttab: onshifttab,
-            ontab: ontab,
-            vm: vm,
-            zoom: zoom
+            lastFocusId: theLastFocusId,
+            model: pModel,
+            onshifttab: onShifttab,
+            ontab: onTab,
+            vm: theVm,
+            zoom: theZoom
         }));
     }
 
     // Front cap header navigation
-    onclick = function (ev) {
+    onClick = function (ev) {
         let optKey;
         if (ev.shiftKey) {
             optKey = "shiftKey";
         } else if (ev.ctrlKey) {
             optKey = "ctrlKey";
         }
-        vm.toggleSelection(
-            model,
-            defaultFocusId,
+        theVm.toggleSelection(
+            pModel,
+            theDefaultFocusId,
             optKey
         );
     };
     iconStyle = {
-        fontSize: zoom,
+        fontSize: theZoom,
         minWidth: "25px"
     };
 
     if (currentMode !== "/Mode/Edit" && isSelected) {
         thContent = m("i", {
-            onclick: vm.ondblclick.bind(null, model),
+            onclick: theVm.ondblclick.bind(null, pModel),
             class: "fa fa-folder-open fb-icon-button",
             style: iconStyle
         });
-    } else if (!model.isValid()) {
+    } else if (!pModel.isValid()) {
         thContent = m("i", {
-            onclick: onclick,
-            title: model.lastError(),
+            onclick: onClick,
+            title: pModel.lastError(),
             class: "fa fa-exclamation-triangle",
             style: iconStyle
         });
     } else if (currentState === "/Locked") {
-        lock = d.lock() || {};
+        lock = data.lock() || {};
         thContent = m("i", {
-            onclick: onclick,
+            onclick: onClick,
             title: (
                 "User: " + lock.username + "\nSince: " +
                 new Date(lock.created).toLocaleTimeString()
@@ -695,25 +698,25 @@ function createTableRow(options, model) {
         });
     } else if (currentState === "/Delete") {
         thContent = m("i", {
-            onclick: onclick,
+            onclick: onClick,
             class: "fa fa-trash",
             style: iconStyle
         });
     } else if (currentState === "/Ready/New") {
         thContent = m("i", {
-            onclick: onclick,
+            onclick: onClick,
             class: "fa fa-plus",
             style: iconStyle
         });
-    } else if (model.canUndo()) {
+    } else if (pModel.canUndo()) {
         thContent = m("i", {
-            onclick: onclick,
+            onclick: onClick,
             class: "fa fa-pencil-alt",
             style: iconStyle
         });
     } else {
         cellOpts = {
-            onclick: onclick,
+            onclick: onClick,
             style: iconStyle
         };
         if (currentMode === "/Mode/Edit" && isSelected) {
@@ -726,9 +729,9 @@ function createTableRow(options, model) {
 
     // Build row
     rowOpts.class = rowClass;
-    rowOpts.key = model.id();
+    rowOpts.key = pModel.id();
 
-    if (d.isDeleted()) {
+    if (data.isDeleted()) {
         row = m("del", {
             key: f.createId()
         }, m("tr", rowOpts, tds));
@@ -771,7 +774,7 @@ function createTableFooter(options, col) {
     let columnWidth = (
         config.columns[options.idx].width || COL_WIDTH_DEFAULT
     );
-    let value;
+    let theValue;
     let prop = resolveFeatherProp(options.feather, col.attr);
     let agg = vm.aggregates().find((a) => a.property === col.attr);
     let tableData;
@@ -786,12 +789,12 @@ function createTableFooter(options, col) {
     }
 
     if (values[attr] !== undefined && values[attr] !== null) {
-        value = values[attr];
+        theValue = values[attr];
     } else {
-        value = "";
+        theValue = "";
     }
 
-    if (value !== "") {
+    if (theValue !== "") {
         if (agg && agg.method === "COUNT") {
             tableData = f.types.integer.tableData;
         } else {
@@ -813,7 +816,7 @@ function createTableFooter(options, col) {
                 title: "",
                 style: {}
             },
-            value: value
+            value: theValue
         });
     }
 
@@ -1008,13 +1011,13 @@ tableWidget.viewModel = function (options) {
         input.click();
     }
 
-    function getFilter(p) {
+    function getFilter(offset) {
         let fattrs = [];
         let criterion;
-        let value = vm.search();
+        let theValue = vm.search();
         let filter = f.copy(vm.filter());
 
-        filter.offset = p || 0;
+        filter.offset = offset || 0;
         filter.limit = LIMIT;
 
         // Recursively resolve type
@@ -1037,23 +1040,23 @@ tableWidget.viewModel = function (options) {
         }
 
         // Only search on text attributes
-        if (value) {
+        if (theValue) {
             vm.attrs().forEach(function (attr) {
                 let theFeather = vm.feather();
                 let fmt = formatOf(theFeather, attr);
-				let p = resolveFeatherProp(theFeather, attr);
+                let p = resolveFeatherProp(theFeather, attr);
                 let nk;
                 let props;
 
                 if (p.isCalculated) {
-					return;
-				}
+                    return;
+                }
 
                 if (
-					p.type === "string" &&
-					fmt !== "date" &&
-					fmt !== "dateTime"
-		        ) {
+                    p.type === "string" &&
+                    fmt !== "date" &&
+                    fmt !== "dateTime"
+                ) {
                     fattrs.push(attr);
                 } else if (
                     typeof fmt === "object" &&
@@ -1073,7 +1076,7 @@ tableWidget.viewModel = function (options) {
                 criterion = {
                     property: fattrs,
                     operator: "~*",
-                    value: value
+                    value: theValue
                 };
                 filter.criteria = filter.criteria || [];
                 filter.criteria.push(criterion);
@@ -1099,9 +1102,9 @@ tableWidget.viewModel = function (options) {
         }
 
         function onOk() {
-            let url;
+            let theUrl;
             let payload;
-            let body = {};
+            let theBody = {};
             let fspec = vm.feather();
             let plural = fspec.plural || fspec.name;
 
@@ -1113,26 +1116,26 @@ tableWidget.viewModel = function (options) {
             }
 
             if (isOnlyVisible()) {
-                body.properties = vm.config().columns.map((col) => col.attr);
-                body.properties = body.properties.filter(notCalculated);
+                theBody.properties = vm.config().columns.map((col) => col.attr);
+                theBody.properties = theBody.properties.filter(notCalculated);
             }
 
-            body.filter = getFilter();
-            delete body.filter.limit;
+            theBody.filter = getFilter();
+            delete theBody.filter.limit;
 
             if (isOnlySelected()) {
-                body.filter.criteria = [{
+                theBody.filter.criteria = [{
                     property: "id",
                     operator: "IN",
                     value: vm.selections().map((item) => item.id())
                 }];
             }
 
-            url = "/do/export/" + format() + "/" + plural;
+            theUrl = "/do/export/" + format() + "/" + plural;
             payload = {
                 method: "POST",
-                url: url,
-                body: body
+                url: theUrl,
+                body: theBody
             };
 
             return m.request(payload).then(
@@ -1242,10 +1245,10 @@ tableWidget.viewModel = function (options) {
     }
 
     function doFetchAggregates() {
-        let url;
+        let theUrl;
         let payload;
         let aggregates = vm.aggregates();
-        let body = {
+        let theBody = {
             name: vm.feather().name,
             aggregations: aggregates,
             filter: f.copy(getFilter())
@@ -1292,19 +1295,19 @@ tableWidget.viewModel = function (options) {
         }
 
         // If nothing to calculate, bail
-        if (!body.aggregations.length) {
+        if (!theBody.aggregations.length) {
             return;
         }
 
-        delete body.filter.limit;
-        delete body.filter.sort;
-        delete body.filter.offset;
+        delete theBody.filter.limit;
+        delete theBody.filter.sort;
+        delete theBody.filter.offset;
 
-        url = "/do/aggregate";
+        theUrl = "/do/aggregate";
         payload = {
             method: "POST",
-            url: url,
-            body: body
+            url: theUrl,
+            body: theBody
         };
 
         return m.request(payload).then(callback);
@@ -2291,22 +2294,10 @@ tableWidget.viewModel = function (options) {
                     vm.nextFocus(id);
                     return true;
                 };
-                this.enter(function () {
-                    let checkUpdate = vm.models().checkUpdate;
-
-                    if (checkUpdate) {
-                        checkUpdate(false);
-                    }
-                });
             });
             this.state("Edit", function () {
                 this.enter(function () {
                     let last;
-                    let checkUpdate = vm.models().checkUpdate;
-
-                    if (checkUpdate) {
-                        checkUpdate(true);
-                    }
 
                     if (vm.selections().length > 1) {
                         last = vm.lastSelected();
@@ -2440,50 +2431,50 @@ tableWidget.component = {
         let header;
         let rows;
         let footer;
-        let vm = vnode.attrs.viewModel;
-        let ids = vm.ids();
-        let config = vm.config();
-        let filter = vm.filter();
-        let sort = filter.sort || [];
-        let zoom = vm.zoom() + "%";
-        let feather = vm.feather();
+        let theVm = vnode.attrs.viewModel;
+        let ids = theVm.ids();
+        let theConfig = theVm.config();
+        let theFilter = theVm.filter();
+        let theSort = theFilter.sort || [];
+        let theZoom = theVm.zoom() + "%";
+        let theFeather = theVm.feather();
         let dlg = f.getComponent("Dialog");
-        let aggs = vm.aggregates();
+        let aggs = theVm.aggregates();
         let tableBodyClass = "fb-table-body";
 
         // Build header
         header = (function () {
-            let ths = config.columns.map(createTableHeader.bind(null, {
-                config: config,
-                feather: feather,
-                filter: filter,
+            let ths = theConfig.columns.map(createTableHeader.bind(null, {
+                config: theConfig,
+                feather: theFeather,
+                filter: theFilter,
                 idx: 0,
-                sort: sort,
-                vm: vm,
-                zoom: zoom
+                sort: theSort,
+                vm: theVm,
+                zoom: theZoom
             }));
 
             // Front cap header navigation
             ths.unshift(m("th", {
                 style: {
                     minWidth: "25px",
-                    fontSize: zoom
+                    fontSize: theZoom
                 }
             }));
 
             // End cap on header for scrollbar
             ths.push(m("th", {
-                ondragover: vm.ondragover,
+                ondragover: theVm.ondragover,
                 draggable: true,
-                ondrop: vm.ondrop.bind(
+                ondrop: theVm.ondrop.bind(
                     null,
-                    config.columns.length,
+                    theConfig.columns.length,
                     "column",
-                    config.columns
+                    theConfig.columns
                 ),
                 style: {
-                    minWidth: vm.scrollbarWidth() + "px",
-                    maxWidth: vm.scrollbarWidth() + "px"
+                    minWidth: theVm.scrollbarWidth() + "px",
+                    maxWidth: theVm.scrollbarWidth() + "px"
                 }
             }));
 
@@ -2491,11 +2482,11 @@ tableWidget.component = {
         }());
 
         // Build rows
-        rows = vm.models().map(createTableRow.bind(null, {
-            config: config,
+        rows = theVm.models().map(createTableRow.bind(null, {
+            config: theConfig,
             idx: 0,
-            vm: vm,
-            zoom: zoom
+            vm: theVm,
+            zoom: theZoom
         }));
 
         // Put a dummy row in to manage spacing correctly if
@@ -2512,12 +2503,12 @@ tableWidget.component = {
         if (aggs.length) {
             tableBodyClass += " fb-table-body-with-footer";
             footer = (function () {
-                let tfs = config.columns.map(createTableFooter.bind(null, {
-                    config: config,
-                    feather: feather,
+                let tfs = theConfig.columns.map(createTableFooter.bind(null, {
+                    config: theConfig,
+                    feather: theFeather,
                     idx: 0,
-                    vm: vm,
-                    zoom: zoom
+                    vm: theVm,
+                    zoom: theZoom
                 }));
 
                 // Front cap header navigation
@@ -2525,7 +2516,7 @@ tableWidget.component = {
                     class: "fb-column-footer",
                     style: {
                         minWidth: "25px",
-                        fontSize: zoom,
+                        fontSize: theZoom,
                         color: "White" // Hack to get default height
                     }
                 }, "-"));
@@ -2535,25 +2526,25 @@ tableWidget.component = {
 
             footer = m("tfoot", {
                 id: ids.footer,
-                onscroll: vm.onscrollFooter,
+                onscroll: theVm.onscrollFooter,
                 class: "fb-table-footer"
             }, [footer]);
         }
 
         return m("div", {
-            class: "pure-form " + vm.class()
+            class: "pure-form " + theVm.class()
         }, [
             m(dlg, {
-                viewModel: vm.confirmDialog()
+                viewModel: theVm.confirmDialog()
             }),
             m(dlg, {
-                viewModel: vm.errorDialog()
+                viewModel: theVm.errorDialog()
             }),
             m("table", {
                 class: "pure-table fb-table"
             }, [
                 m("thead", {
-                    ondragover: vm.ondragover,
+                    ondragover: theVm.ondragover,
                     draggable: true,
                     id: ids.header,
                     class: "fb-table-header"
@@ -2561,20 +2552,20 @@ tableWidget.component = {
                 m("tbody", {
                     id: ids.rows,
                     class: tableBodyClass,
-                    onscroll: vm.onscroll,
+                    onscroll: theVm.onscroll,
                     oncreate: function (vnode) {
                         // Key down handler for up down movement
                         let e = document.getElementById(vnode.dom.id);
-                        e.addEventListener("keydown", vm.onkeydown);
-                        resize(vm, vnode);
+                        e.addEventListener("keydown", theVm.onkeydown);
+                        resize(theVm, vnode);
                     },
-                    onupdate: resize.bind(null, vm),
+                    onupdate: resize.bind(null, theVm),
                     onremove: function (vnode) {
                         // Key down handler for up down movement
                         let e = document.getElementById(vnode.dom.id);
 
                         if (e) {
-                            e.removeEventListener("keydown", vm.onkeydown);
+                            e.removeEventListener("keydown", theVm.onkeydown);
                         }
                     }
                 }, rows),

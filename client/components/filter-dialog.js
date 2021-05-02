@@ -90,14 +90,14 @@ filterDialog.viewModel = function (options) {
         let format;
         let feather = vm.feather();
         let attr = obj.key;
-        let value = obj.value;
+        let theValue = obj.value;
         let index = obj.index;
         let featherName;
         let op = obj.operator;
-        let id = "fltr_value_editor_" + attr + index;
+        let theId = "fltr_value_editor_" + attr + index;
         let opts = {
-            id: id,
-            key: id
+            id: theId,
+            key: theId
         };
         let setToday = false;
 
@@ -109,31 +109,31 @@ filterDialog.viewModel = function (options) {
         if (typeof type === "string") {
             if (type === "boolean") {
                 component = m(f.getComponent("Checkbox"), {
-                    value: value,
+                    value: theValue,
                     onclick: vm.itemChanged.bind(this, index, "value")
                 });
             } else if (
                 (format === "date" || format === "dateTime") &&
                 op === "IS"
             ) {
-                if (f.dateOptions.indexOf(value) === -1) {
-                    value = "TODAY";
+                if (f.dateOptions.indexOf(theValue) === -1) {
+                    theValue = "TODAY";
                     setToday = true;
                 }
 
                 component = m("select", {
-                    id: id,
-                    key: id,
+                    id: theId,
+                    key: theId,
                     onchange: (e) => vm.itemChanged.bind(
                         this,
                         index,
                         "value"
                     )(e.target.value),
-                    value: value
+                    value: theValue
                 }, f.dateOptions.map(function (item) {
                     return m("option", {
                         value: item,
-                        key: id + "$" + item
+                        key: theId + "$" + item
                     }, item.toLowerCase().toCamelCase(true).toProperCase());
                 }));
 
@@ -142,7 +142,7 @@ filterDialog.viewModel = function (options) {
                         this,
                         index,
                         "value"
-                    )(value);
+                    )(theValue);
                 }
             } else {
                 opts.type = f.inputMap[format];
@@ -151,7 +151,7 @@ filterDialog.viewModel = function (options) {
                     index,
                     "value"
                 )(e.target.value);
-                opts.value = value;
+                opts.value = theValue;
                 component = m("input", opts);
             }
 

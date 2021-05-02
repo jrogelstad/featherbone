@@ -179,7 +179,7 @@
                 let tArgs;
                 let tCols;
                 let tRel;
-                let vSql = "";
+                let theSql = "";
 
                 tProps = props[pName].type.properties;
                 tCols = ["%I"];
@@ -202,11 +202,11 @@
                     "_" + props[pName].type.relation.toSnakeCase()
                 );
                 tArgs.push(tRel);
-                vSql = "CREATE OR REPLACE VIEW %I AS SELECT ";
-                vSql += tCols.join(",");
-                vSql += " FROM %I ";
-                vSql += "WHERE NOT is_deleted;";
-                return vSql.format(tArgs);
+                theSql = "CREATE OR REPLACE VIEW %I AS SELECT ";
+                theSql += tCols.join(",");
+                theSql += " FROM %I ";
+                theSql += "WHERE NOT is_deleted;";
+                return theSql.format(tArgs);
             }
 
             function afterGetFeather(resp) {
@@ -579,7 +579,7 @@
                 );
                 let o = 0;
                 let c = 0;
-                let vClient = db.getClient(obj.client);
+                let theClient = db.getClient(obj.client);
 
                 afterGetCatalog = function (resp) {
                     catalog = resp;
@@ -598,7 +598,7 @@
                         "DROP TABLE IF EXISTS %I;" + sql
                     );
                     sql1 = sql1.format(["_" + table, table]);
-                    vClient.query(sql1, function (err) {
+                    theClient.query(sql1, function (err) {
                         if (err) {
                             reject(err);
                             return;
@@ -606,14 +606,14 @@
 
                         sql2 = "DELETE FROM \"$auth\" WHERE object_pk=";
                         sql2 += "(SELECT _pk FROM \"$feather\" WHERE id=$1);";
-                        vClient.query(sql2, [table], function (err) {
+                        theClient.query(sql2, [table], function (err) {
                             if (err) {
                                 reject(err);
                                 return;
                             }
 
                             sql3 = "DELETE FROM \"$feather\" WHERE id=$1;";
-                            vClient.query(sql3, [table], function (err) {
+                            theClient.query(sql3, [table], function (err) {
                                 if (err) {
                                     reject(err);
                                     return;
@@ -635,7 +635,7 @@
                         // Update views
                         createView({
                             name: rel,
-                            client: vClient,
+                            client: theClient,
                             callback: createViews
                         });
                         return;
@@ -684,7 +684,7 @@
                         /* Update catalog settings */
                         delete catalog[name];
                         settings.saveSettings({
-                            client: vClient,
+                            client: theClient,
                             data: {
                                 name: "catalog",
                                 data: catalog
@@ -698,7 +698,7 @@
                 };
 
                 settings.getSettings({
-                    client: vClient,
+                    client: theClient,
                     data: {
                         name: "catalog"
                     }
@@ -733,15 +733,15 @@
         that.getFeather = function (obj) {
             return new Promise(function (resolve, reject) {
                 let callback;
-                let vName = obj.data.name;
-                let vClient = db.getClient(obj.client);
+                let theName = obj.data.name;
+                let theClient = db.getClient(obj.client);
 
                 callback = function (catalog) {
                     let resultProps;
                     let featherProps;
                     let keys;
                     let appendParent;
-                    let result = {name: vName, inherits: "Object"};
+                    let result = {name: theName, inherits: "Object"};
 
                     appendParent = function (child, parent) {
                         let feather = catalog[parent];
@@ -764,21 +764,21 @@
                     };
 
                     /* Validation */
-                    if (!catalog[vName]) {
+                    if (!catalog[theName]) {
                         resolve(false);
                         return;
                     }
 
                     /* Add other attributes after name */
-                    keys = Object.keys(catalog[vName]);
+                    keys = Object.keys(catalog[theName]);
                     keys.forEach(function (key) {
-                        result[key] = catalog[vName][key];
+                        result[key] = catalog[theName][key];
                     });
 
                     /* Want inherited properties before class properties */
                     if (
                         obj.data.includeInherited !== false &&
-                        vName !== "Object"
+                        theName !== "Object"
                     ) {
                         result.properties = {};
                         result = appendParent(result, result.inherits);
@@ -787,7 +787,7 @@
                     }
 
                     /* Now add local properties back in */
-                    featherProps = catalog[vName].properties;
+                    featherProps = catalog[theName].properties;
                     resultProps = result.properties;
                     keys = Object.keys(featherProps);
                     keys.forEach(function (key) {
@@ -799,7 +799,7 @@
 
                 /* First, get catalog */
                 settings.getSettings({
-                    client: vClient,
+                    client: theClient,
                     data: {name: "catalog"}
                 }).then(callback).catch(reject);
             });
@@ -836,7 +836,7 @@
                 let id = obj.data.id;
                 let tokens = [];
                 let result = false;
-                let vClient = db.getClient(obj.client);
+                let theClient = db.getClient(obj.client);
 
                 function callback(isSuper) {
                     if (isSuper) {
@@ -860,7 +860,7 @@
                         );
                         sql = sql.format([action.toSnakeCase()]);
 
-                        vClient.query(sql, params, function (err, resp) {
+                        theClient.query(sql, params, function (err, resp) {
                             if (err) {
                                 reject(err);
                                 return;
@@ -876,7 +876,7 @@
                         sql = "SELECT _pk, tableoid::regclass::text AS \"t\" ";
                         sql += "FROM object WHERE id = $1;";
 
-                        vClient.query(sql, [id], function (err, resp) {
+                        theClient.query(sql, [id], function (err, resp) {
                             if (err) {
                                 reject(err);
                                 return;
@@ -899,7 +899,7 @@
                                 );
                                 sql = sql.format(tokens);
 
-                                vClient.query(
+                                theClient.query(
                                     sql,
                                     [user, pk],
                                     function (err, resp) {
@@ -925,7 +925,7 @@
                 }
 
                 tools.isSuperUser({
-                    client: vClient,
+                    client: theClient,
                     user: obj.data.user
                 }).then(callback).catch(reject);
             });
@@ -995,25 +995,25 @@
                 let afterCheckSuperUser;
                 let afterQueryAuth;
                 let done;
-                let vId = (
+                let theId = (
                     obj.data.feather
                     ? obj.data.feather.toSnakeCase()
                     : obj.data.id
                 );
                 let actions = obj.data.actions || {};
                 let hasAuth = false;
-                let vClient = db.getClient(obj.client);
+                let theClient = db.getClient(obj.client);
 
                 afterGetObjKey = function (resp) {
                     objPk = resp;
 
                     // Validation
                     if (!objPk) {
-                        reject("Object \"" + vId + "\" not found");
+                        reject("Object \"" + theId + "\" not found");
                         return;
                     }
 
-                    vClient.query(
+                    theClient.query(
                         "SELECT _pk FROM \"role\" WHERE name = $1",
                         [obj.data.role]
                     ).then(afterGetRoleKey).catch(reject);
@@ -1036,7 +1036,7 @@
                             "SELECT tableoid::regclass::text AS feather " +
                             "FROM object WHERE id=$1"
                         );
-                        vClient.query(sql, [vId], afterGetFeatherName);
+                        theClient.query(sql, [theId], afterGetFeatherName);
                         return;
                     }
 
@@ -1056,7 +1056,7 @@
                     feather = resp.rows[0].feather.toCamelCase(true);
 
                     that.getFeather({
-                        client: vClient,
+                        client: theClient,
                         data: {
                             name: feather,
                             includeInherited: true
@@ -1093,7 +1093,7 @@
 
                 checkSuperUser = function () {
                     tools.isSuperUser({
-                        client: vClient
+                        client: theClient
                     }).then(function (isSuper) {
                         if (isSuper) {
                             afterCheckSuperUser();
@@ -1102,19 +1102,24 @@
 
                         sql = "SELECT owner FROM object WHERE _pk=$1;";
 
-                        vClient.query(sql, [objPk], function (err, resp) {
+                        theClient.query(sql, [objPk], function (err, resp) {
                             if (err) {
                                 reject(err);
                                 return;
                             }
 
-                            if (resp.rows[0].owner !== vClient.currentUser()) {
+                            if (
+                                resp.rows[0].owner !== theClient.currentUser()
+                            ) {
                                 if (obj.data.isSilentError) {
                                     done(null, false);
                                     return;
                                 }
-                                err = "Must be super user or owner of \"" + vId;
-                                err += "\" to set authorization.";
+                                err = (
+                                    "Must be super user or owner of \"" +
+                                    theId +
+                                    "\" to set authorization."
+                                );
                                 reject(err);
                                 return;
                             }
@@ -1149,9 +1154,9 @@
                         "  AND auth.role=$2;"
                     );
 
-                    vClient.query(
+                    theClient.query(
                         sql,
-                        [vId, obj.data.role],
+                        [theId, obj.data.role],
                         afterQueryAuth
                     );
                 };
@@ -1236,7 +1241,7 @@
                         return;
                     }
 
-                    vClient.query(sql, params, done);
+                    theClient.query(sql, params, done);
                 };
 
                 done = function (err, resp) {
@@ -1251,8 +1256,8 @@
                 // Kick off query by getting object key, the rest falls
                 // through callbacks
                 tools.getKey({
-                    id: vId,
-                    client: vClient
+                    id: theId,
+                    client: theClient
                 }).then(afterGetObjKey).catch(reject);
             });
         };
@@ -1315,7 +1320,7 @@
         that.saveFeather = function (obj) {
             return new Promise(function (resolve, reject) {
                 let spec;
-                let vParent;
+                let theParent;
                 let specs = (
                     Array.isArray(obj.data.specs)
                     ? obj.data.specs
@@ -1323,7 +1328,7 @@
                 );
                 let c = 0;
                 let len = specs.length;
-                let vClient = db.getClient(obj.client);
+                let theClient = db.getClient(obj.client);
 
                 function nextSpec() {
                     let sqlUpd;
@@ -1334,7 +1339,7 @@
                     let keys;
                     let recs;
                     let type;
-                    let vName;
+                    let theName;
                     let isChild;
                     let pk;
                     let prec;
@@ -1401,7 +1406,7 @@
                         feather = resp;
 
                         settings.getSettings({
-                            client: vClient,
+                            client: theClient,
                             data: {
                                 name: "catalog"
                             }
@@ -1447,8 +1452,8 @@
                                         /* Update parent class for to-many
                                            children */
                                         if (type.childOf) {
-                                            vParent = catalog[type.relation];
-                                            pProps = vParent.properties;
+                                            theParent = catalog[type.relation];
+                                            pProps = theParent.properties;
                                             if (!pProps[type.childOf]) {
                                                 descr = "Parent of \"" + key;
                                                 descr += "\" on \"";
@@ -1485,8 +1490,8 @@
                                            as child, flag property as
                                            child on this feather. */
                                         } else {
-                                            vParent = catalog[type.relation];
-                                            if (vParent.isChild) {
+                                            theParent = catalog[type.relation];
+                                            if (theParent.isChild) {
                                                 prop.type.isChild = true;
                                             }
                                         }
@@ -1657,8 +1662,10 @@
 
                                     // Unrelate parent if applicable
                                     if (type.childOf) {
-                                        vParent = catalog[type.relation];
-                                        delete vParent.properties[type.childOf];
+                                        theParent = catalog[type.relation];
+                                        delete theParent.properties[
+                                            type.childOf
+                                        ];
                                     }
                                     // Always drop/recreate relation views in
                                     // case properties changed
@@ -1724,7 +1731,7 @@
 
                         /* Update schema */
                         sql = sql.format(tokens);
-                        vClient.query(sql, createSequence);
+                        theClient.query(sql, createSequence);
                     };
 
                     createSequence = function (err) {
@@ -1744,7 +1751,7 @@
                         sql += "WHERE relkind = 'S' AND relname = $1 ";
                         sql += "AND nspname = 'public'";
 
-                        vClient.query(sql, [sequence], function (err, resp) {
+                        theClient.query(sql, [sequence], function (err, resp) {
                             if (err) {
                                 reject(err);
                                 return;
@@ -1753,7 +1760,7 @@
                             if (!resp.rows.length) {
                                 sql = "CREATE SEQUENCE %I;";
                                 sql = sql.format([sequence]);
-                                vClient.query(sql, function (err) {
+                                theClient.query(sql, function (err) {
                                     if (err) {
                                         reject(err);
                                         return;
@@ -1776,7 +1783,7 @@
                             return new Promise(function (resolve, reject) {
                                 sql = "ALTER TABLE %I DISABLE TRIGGER ALL;";
                                 sql = sql.format([table]);
-                                vClient.query(sql).then(
+                                theClient.query(sql).then(
                                     resolve
                                 ).catch(
                                     reject
@@ -1789,7 +1796,7 @@
                                 sql = "UPDATE %I SET " + tokens.join(",");
                                 sql += ";";
                                 sql = sql.format(args);
-                                vClient.query(sql, values).then(
+                                theClient.query(sql, values).then(
                                     resolve
                                 ).catch(
                                     reject
@@ -1801,7 +1808,7 @@
                             return new Promise(function (resolve, reject) {
                                 sql = "ALTER TABLE %I ENABLE TRIGGER ALL;";
                                 sql = sql.format([table]);
-                                vClient.query(sql).then(
+                                theClient.query(sql).then(
                                     resolve
                                 ).catch(
                                     reject
@@ -1848,7 +1855,7 @@
                                 sqlUpd = "UPDATE %I SET " + tokens.join(",");
                                 sqlUpd += " WHERE _pk = $1";
                                 sqlUpd = sqlUpd.format(args);
-                                vClient.query(sql, [n], iterateDefaults);
+                                theClient.query(sql, [n], iterateDefaults);
                                 return;
                             }
 
@@ -1873,7 +1880,7 @@
                                     i += 1;
                                 }
 
-                                vClient.query(
+                                theClient.query(
                                     sqlUpd,
                                     values,
                                     function (err) {
@@ -1883,7 +1890,7 @@
                                         }
 
                                         // Look for next record
-                                        vClient.query(
+                                        theClient.query(
                                             sql,
                                             [n],
                                             iterateDefaults
@@ -1999,7 +2006,7 @@
                                 ]);
                             });
 
-                            vClient.query(
+                            theClient.query(
                                 sql.format(tokens),
                                 updateCatalog
                             );
@@ -2053,8 +2060,8 @@
                         }
 
                         /* Update catalog settings */
-                        vName = spec.name;
-                        catalog[vName] = spec;
+                        theName = spec.name;
+                        catalog[theName] = spec;
                         delete spec.name;
 
                         if (
@@ -2069,7 +2076,7 @@
                         );
 
                         settings.saveSettings({
-                            client: vClient,
+                            client: theClient,
                             data: {
                                 name: "catalog",
                                 data: catalog
@@ -2081,14 +2088,14 @@
                         function callback(resp) {
                             isChild = tools.isChildFeather(resp);
                             sql = "SELECT nextval('object__pk_seq') AS pk;";
-                            vClient.query(sql, afterNextVal);
+                            theClient.query(sql, afterNextVal);
                         }
 
                         if (!feather) {
                             that.getFeather({
-                                client: vClient,
+                                client: theClient,
                                 data: {
-                                    name: vName
+                                    name: theName
                                 }
                             }).then(callback).catch(reject);
                             return;
@@ -2115,12 +2122,12 @@
                         values = [
                             pk,
                             table,
-                            vClient.currentUser(),
-                            vClient.currentUser(),
+                            theClient.currentUser(),
+                            theClient.currentUser(),
                             isChild,
                             pk
                         ];
-                        vClient.query(sql, values, afterInsertFeather);
+                        theClient.query(sql, values, afterInsertFeather);
                     };
 
                     afterInsertFeather = function (err) {
@@ -2133,7 +2140,7 @@
                         changed = changed || !feather;
                         if (changed) {
                             propagateViews({
-                                client: vClient
+                                client: theClient
                             }).then(afterPropagateViews).catch(reject);
                             return;
                         }
@@ -2162,10 +2169,10 @@
                             spec.authorizations.length
                         ) {
                             spec.authorizations.forEach(function (auth) {
-                                auth.feather = vName;
+                                auth.feather = theName;
                                 auth.isSilentError = true;
                                 requests.push(that.saveAuthorization({
-                                    client: vClient,
+                                    client: theClient,
                                     data: auth
                                 }));
                             });
@@ -2215,7 +2222,7 @@
                     }
 
                     that.getFeather({
-                        client: vClient,
+                        client: theClient,
                         data: {
                             name: spec.name,
                             includeInherited: false
