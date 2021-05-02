@@ -1867,51 +1867,55 @@
             @param {String} eventKey
             @return {Promise} Resolves to `true` if successful.
         */
-        crud.lock = function (client, nodeid, id, username, eventkey) {
+        crud.lock = function (pClient, pNodeid, pId, pUsername, pEventkey) {
             return new Promise(function (resolve, reject) {
                 let msg;
 
-                if (!nodeid) {
+                if (!pNodeid) {
                     reject(new Error("Lock requires a node id."));
                     return;
                 }
 
-                if (!eventkey) {
+                if (!pEventkey) {
                     reject(new Error("Lock requires an eventkey."));
                     return;
                 }
 
-                if (!id) {
+                if (!pId) {
                     reject(new Error("Lock requires an object id."));
                     return;
                 }
 
-                if (!username) {
+                if (!pUsername) {
                     reject(new Error("Lock requires a username."));
                     return;
                 }
 
                 function checkLock() {
                     return new Promise(function (resolve, reject) {
-                        let sql = "SELECT lock FROM object WHERE id = $1";
+                        let sql = (
+                            "SELECT lock, " +
+                            "to_camel_case(tableoid::regclass::text) AS feather " +
+                            "FROM object WHERE id = $1"
+                        );
 
                         function callback(resp) {
                             if (!resp.rows.length) {
-                                msg = "Record " + id + " not found.";
+                                msg = "Record " + pId + " not found.";
                                 reject(new Error(msg));
                                 return;
                             }
 
                             if (resp.rows[0].lock) {
-                                msg = "Record " + id + " is already locked.";
+                                msg = "Record " + pId + " is already locked.";
                                 reject(new Error(msg));
                                 return;
                             }
 
-                            resolve();
+                            resolve(resp.rows[0].feather);
                         }
 
-                        client.query(sql, [id]).then(
+                        pClient.query(sql, [pId]).then(
                             callback
                         ).catch(
                             reject
@@ -1919,29 +1923,58 @@
                     });
                 }
 
-                function doLock() {
+                function getObject(feather) {
                     return new Promise(function (resolve, reject) {
-                        let params;
+                        crud.doSelect({
+                            name: feather,
+                            id: pId,
+                            client: pClient
+                        }).then(
+                            resolve
+                        ).catch(
+                            reject
+                        );
+                    });
+                }
+
+                function doLock(resp) {
+                    return new Promise(function (resolve, reject) {
                         let sql;
+                        let params = [
+                            pUsername,
+                            pNodeid,
+                            pEventkey,
+                            pId
+                        ];
+                        let n = 5;
+                        let ids = ["$" + 4, "$" + 4];
+
+                        function resolveIds(data) {
+                            Object.keys(data).forEach(function (key) {
+                                if (Array.isArray(data[key])) {
+                                    data[key].forEach(function (i) {
+                                        params.push(i.id);
+                                        ids.push("$" + n);
+                                        n += 1;
+                                        resolveIds(i);
+                                    });
+                                }
+                            });
+                        }
+
+                        resolveIds(resp);
 
                         sql = (
                             "UPDATE object " +
-                            "SET lock = ROW($1, now(), $2, $3) " +
-                            "WHERE id = $4"
+                            "SET lock = ROW($1, now(), $2, $3, $4) " +
+                            "WHERE id in (" + ids.join(",") + ");"
                         );
 
                         function callback() {
                             resolve(true);
                         }
 
-                        params = [
-                            username,
-                            nodeid,
-                            eventkey,
-                            id
-                        ];
-
-                        client.query(sql, params).then(
+                        pClient.query(sql, params).then(
                             callback
                         ).catch(
                             reject
@@ -1951,6 +1984,8 @@
 
                 Promise.resolve().then(
                     checkLock
+                ).then(
+                    getObject
                 ).then(
                     doLock
                 ).then(
@@ -1987,7 +2022,7 @@
 
                 if (criteria.id) {
                     params.push(criteria.id);
-                    sql += " AND object.id = $1";
+                    sql += " AND _objid(lock) = $1";
                 }
 
                 if (criteria.username) {
