@@ -78,7 +78,7 @@
             @param password
             @return {Promise}
         */
-        that.authenticate = function (username, password) {
+        that.authenticate = function (username, pswd) {
             return new Promise(function (resolve, reject) {
                 // Do connection
                 function doConnect(resp) {
@@ -89,7 +89,7 @@
                             host: resp.postgres.host,
                             database: resp.postgres.database,
                             user: username,
-                            password: password,
+                            password: pswd,
                             port: resp.postgres.port
                         });
 

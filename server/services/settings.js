@@ -82,9 +82,9 @@
         return new Promise(function (resolve, reject) {
             let payload;
             let name = obj.data.name;
-            let client = db.getClient(obj.client);
+            let theClient = db.getClient(obj.client);
 
-            function callback(ok) {
+            function theCallback(ok) {
                 let sql;
 
                 sql = "SELECT id, etag, data FROM \"$settings\"";
@@ -97,7 +97,7 @@
                 }
 
                 // If here, need to query for the current settings
-                client.query(sql, [name]).then(function (resp) {
+                theClient.query(sql, [name]).then(function (resp) {
                     let rec;
 
                     // If we found something, cache it
@@ -127,17 +127,17 @@
                     name: "$settings",
                     id: settings.data[name].id,
                     etag: settings.data[name].etag,
-                    client: client,
-                    callback: callback
+                    client: theClient,
+                    callback: theCallback
                 };
 
-                checkEtag(payload).then(callback).catch(reject);
+                checkEtag(payload).then(theCallback).catch(reject);
 
                 return;
             }
 
             // Request the settings from the database
-            callback(false);
+            theCallback(false);
         });
     };
 
@@ -214,16 +214,16 @@
             let row;
             let sql = "SELECT * FROM \"$settings\" WHERE name = $1;";
             let name = obj.data.name;
-            let data = obj.data.data;
-            let etag = obj.etag || f.createId();
-            let params = [name, data, etag, obj.client.currentUser()];
+            let d = obj.data.data;
+            let tag = obj.etag || f.createId();
+            let params = [name, d, tag, obj.client.currentUser()];
             let client = db.getClient(obj.client);
 
             function done() {
                 settings[name] = {
                     id: name,
-                    data: data,
-                    etag: etag
+                    data: d,
+                    etag: tag
                 };
                 resolve(true);
             }

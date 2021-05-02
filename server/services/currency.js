@@ -73,7 +73,7 @@
     // Get currency info and listen for any subsequent changes
     function init() {
         return new Promise(function (resolve, reject) {
-            let id;
+            let theId;
 
             function getCurrencies(obj) {
                 return new Promise(function (resolve, reject) {
@@ -146,7 +146,7 @@
                     let ids;
                     let subscription;
 
-                    id = db.nodeId + "$currency";
+                    theId = db.nodeId + "$currency";
 
                     // Subscribe to changes to currency and new records
                     ids = currencies.map((currency) => currency.id);
@@ -154,9 +154,9 @@
                     ids.push("base_currency");
 
                     subscription = {
-                        nodeId: id,
-                        eventKey: id,
-                        id: id
+                        nodeId: theId,
+                        eventKey: theId,
+                        id: theId
                     };
 
                     events.subscribe(
@@ -175,7 +175,7 @@
                 return new Promise(function (resolve, reject) {
                     events.listen(
                         obj.client,
-                        id,
+                        theId,
                         receiver
                     ).then(
                         resolve
@@ -291,7 +291,7 @@
             return new Promise(function (resolve, reject) {
                 let baseCurr;
                 let err;
-                let effective;
+                let eff;
                 let fromCurr = obj.data.fromCurrency;
                 let fromAmount = obj.data.amount;
                 let msg;
@@ -299,10 +299,10 @@
 
                 // Advance date to next day so we get latest conversion for
                 // that day
-                effective = (
+                eff = (
                     f.parseDate(obj.data.effective || f.today()).toDate()
                 );
-                effective.setDate(effective.getDate() + 1);
+                eff.setDate(eff.getDate() + 1);
 
                 if (obj.data.toCurrency) {
                     msg = "Conversion to a specific currency is not";
@@ -315,12 +315,12 @@
 
                 function calculate(resp) {
                     let conv;
-                    let amount;
+                    let amt;
 
                     if (!resp.rows.length) {
                         msg = "Conversion not found for ";
                         msg += fromCurr + " to " + baseCurr.code + " on ";
-                        msg += effective.toLocaleString();
+                        msg += eff.toLocaleString();
                         err = new Error(msg);
                         err.statusCode = "404";
                         reject(err);
@@ -329,7 +329,7 @@
 
                     conv = tools.sanitize(resp.rows[0]);
                     if (conv.fromCurrency.code === baseCurr.code) {
-                        amount = new Big(
+                        amt = new Big(
                             fromAmount
                         ).div(
                             conv.ratio
@@ -337,7 +337,7 @@
                             baseCurr.minorUnit
                         ).valueOf() - 0;
                     } else {
-                        amount = new Big(
+                        amt = new Big(
                             fromAmount
                         ).times(
                             conv.ratio
@@ -348,7 +348,7 @@
 
                     resolve({
                         currency: baseCurr.code,
-                        amount: amount,
+                        amount: amt,
                         effective: undefined,
                         baseAmount: undefined
                     });
@@ -381,7 +381,7 @@
                     params = [
                         fromCurr,
                         baseCurr.code,
-                        effective.toISOString()
+                        eff.toISOString()
                     ];
 
                     client.query(sql, params).then(
@@ -393,7 +393,7 @@
 
                 that.baseCurrency({
                     data: {
-                        effective: effective
+                        effective: eff
                     }
                 }).then(
                     getConversion

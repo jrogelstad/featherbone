@@ -1,4 +1,4 @@
-	/*
+    /*
     Framework for building object relational database apps
     Copyright (C) 2021  John Rogelstad
 
@@ -231,11 +231,11 @@
                         yr = today.slice(0, 4) - 0;
                         mo = today.slice(5, 7) - 1;
                         da = today.slice(8, 10) - 0;
-						// ISO week starts Monday
+                        // ISO week starts Monday
                         dw = f.parseDate(today).getDay() - 1;
-						if (dw < 0) {
-							dw = 7;
-						}
+                        if (dw < 0) {
+                            dw = 7;
+                        }
                         part = tools.resolvePath(
                             where.property,
                             tokens
@@ -748,7 +748,7 @@
                 let afterGetUser;
                 let afterUpsert;
                 let user = obj.user;
-                let client = db.getClient(obj.client);
+                let theClient = db.getClient(obj.client);
 
                 afterCheckSuperUser = function (err, ok) {
                     if (err) {
@@ -761,7 +761,7 @@
                     }
 
                     sql = "SELECT * FROM pg_user WHERE usename=$1;";
-                    client.query(sql, [user], afterGetUser);
+                    theClient.query(sql, [user], afterGetUser);
                 };
 
                 afterGetPgUser = function (err, resp) {
@@ -775,7 +775,7 @@
                     }
 
                     sql = "SELECT * FROM user_account WHERE name=$1;";
-                    client.query(sql, [user], afterGetPgUser);
+                    theClient.query(sql, [user], afterGetPgUser);
                 };
 
                 afterGetUser = function (err, resp) {
@@ -791,7 +791,7 @@
                         throw new Error("User " + user + " not found.");
                     }
 
-                    client.query(sql, [user, isSuper], afterUpsert);
+                    theClient.query(sql, [user, isSuper], afterUpsert);
                 };
 
                 afterUpsert = function (err) {
@@ -805,8 +805,8 @@
                 };
 
                 tools.isSuperUser({
-                    name: client.currentUser(),
-                    client: client
+                    name: theClient.currentUser(),
+                    client: theClient
                 }).then(afterCheckSuperUser).catch(reject);
             });
         };
