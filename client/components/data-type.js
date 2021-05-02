@@ -290,14 +290,16 @@ dataType.viewModel = function (options) {
     */
     vm.properties = function () {
         let props = [];
-        let feather;
+        let fp;
         let relation = vm.relation();
+        let co = options.parentViewModel.model().data.type().childOf;
 
         if (relation && !vm.isOverload()) {
-            feather = catalog.getFeather(relation);
-            props = Object.keys(feather.properties).sort();
+            fp = catalog.getFeather(relation).properties;
+            // Exclude self property from list if child
+            props = Object.keys(fp).filter((p) => p !== co).sort();
         }
-
+  
         return props;
     };
     /**
