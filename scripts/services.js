@@ -225,21 +225,46 @@ function doUpsertFeather(obj) {
 
                 let found = auths.find((a) => a.role === auth.role);
 
-                if (found) {
-                    found.actions.canCreate = auth.canCreate;
-                    found.actions.canRead = auth.canRead;
-                    found.actions.canUpdate = auth.canUpdate;
-                    found.actions.canDelete = auth.canDelete;
+                if (
+                    obj.newRec.properties.some(isChild) ||
+                    obj.newRec.isChild
+                ) {
+                    auth.canCreate = false;
+                    auth.canUpdate = false;
+                    auth.canDelete = false;
+                    if (found) {
+                        found.actions.canCreate = false;
+                        found.actions.canRead = auth.canRead;
+                        found.actions.canUpdate = false;
+                        found.actions.canDelete = false;
+                    } else {
+                        auths.push({
+                            role: auth.role,
+                            actions: {
+                                canCreate: false,
+                                canRead: auth.canRead,
+                                canUpdate: false,
+                                canDelete: false
+                            }
+                        });
+                    }
                 } else {
-                    auths.push({
-                        role: auth.role,
-                        actions: {
-                            canCreate: auth.canCreate,
-                            canRead: auth.canRead,
-                            canUpdate: auth.canUpdate,
-                            canDelete: auth.canDelete
-                        }
-                    });
+                    if (found) {
+                        found.actions.canCreate = auth.canCreate;
+                        found.actions.canRead = auth.canRead;
+                        found.actions.canUpdate = auth.canUpdate;
+                        found.actions.canDelete = auth.canDelete;
+                    } else {
+                        auths.push({
+                            role: auth.role,
+                            actions: {
+                                canCreate: auth.canCreate,
+                                canRead: auth.canRead,
+                                canUpdate: auth.canUpdate,
+                                canDelete: auth.canDelete
+                            }
+                        });
+                    }
                 }
             });
             feather.authorizations = auths;
