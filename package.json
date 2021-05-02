@@ -20,7 +20,7 @@
     "connect-pg-simple": "^6.0.1",
     "dialog-polyfill": "^0.4.9",
     "express": "^4.16.4",
-    "express-fileupload": "^1.1.6",
+    "express-fileupload": "^1.1.9",
     "express-session": "^1.16.1",
     "fast-json-patch": "^2.0.7",
     "gantt": "^3.0.12",
