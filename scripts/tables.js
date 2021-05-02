@@ -397,7 +397,8 @@
                             "   username text," +
                             "   created timestamp with time zone," +
                             "   _nodeid text," +
-                            "   _eventkey text" +
+                            "   _eventkey text, " +
+                            "   _objid text" +
                             ");"
                         );
                         obj.client.query(sql, createEventTrigger);
