@@ -32,13 +32,13 @@ function role(data, feather) {
     });
 
     model.onValidate(function () {
-		if (model.data.membership) {
-			model.data.membership().forEach(function (item) {
-				if (!item.data.role()) {
-					throw new Error("Role must be selected for membership");
-				}
-			});
-		}
+        if (model.data.membership) {
+            model.data.membership().forEach(function (item) {
+                if (!item.data.role()) {
+                    throw new Error("Role must be selected for membership");
+                }
+            });
+        }
     });
 
     return model;

@@ -167,17 +167,17 @@ catalog.register(
 contactRelation.component = {
     oninit: function (vnode) {
         let list;
-        let form;
+        let theForm;
         let options = vnode.attrs;
         let id = vnode.attrs.form || "6kir5kogekam";
         let relations = options.parentViewModel.relations();
 
-        form = catalog.store().data().forms().find(
+        theForm = catalog.store().data().forms().find(
             (row) => id === row.id
         );
 
-        if (form) {
-            form = form.toJSON();
+        if (theForm) {
+            theForm = theForm.toJSON();
         }
 
         list = {
@@ -208,7 +208,7 @@ contactRelation.component = {
                 parentViewModel: options.parentViewModel,
                 parentProperty: options.parentProperty,
                 valueProperty: options.valueProperty || "fullName",
-                form: form,
+                form: theForm,
                 list: options.list || list,
                 filter: options.filter,
                 isCell: options.isCell,

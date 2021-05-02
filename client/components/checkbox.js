@@ -94,7 +94,6 @@ checkbox.component = {
     view: function (vnode) {
         let labelClass = "fb-checkbox-label";
         let vm = this.viewModel;
-        let id = vm.id();
         let theclass;
         let thestyle;
         let label;
@@ -113,7 +112,7 @@ checkbox.component = {
                 }
 
                 return m("label", {
-                    for: id,
+                    for: vm.id(),
                     title: vnode.attrs.title,
                     class: labelClass
                 }, m("i", {
@@ -135,7 +134,7 @@ checkbox.component = {
             class: "fb-checkbox"
         }, [
             m("input", {
-                id: id,
+                id: vm.id(),
                 class: theclass,
                 type: "checkbox",
                 onclick: function (e) {

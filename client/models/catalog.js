@@ -48,11 +48,11 @@ function settings() {
         @param {Boolean} merge
         @return {Promise}
     */
-    that.fetch = function (merge) {
-        return new Promise(function (resolve) {
+    that.fetch = function (pMerge) {
+        return new Promise(function (pResolve) {
             state.send("fetch", {
-                resolve: resolve,
-                merge: merge
+                resolve: pResolve,
+                merge: pMerge
             });
         });
     };
@@ -86,9 +86,9 @@ function settings() {
 
     state = State.define(function () {
         this.state("Ready", function () {
-            this.event("fetch", function (context) {
+            this.event("fetch", function (pContext) {
                 this.goto("/Busy", {
-                    context: context
+                    context: pContext
                 });
             });
             this.state("New");

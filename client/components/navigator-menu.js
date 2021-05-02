@@ -93,17 +93,17 @@ navigator.viewModel = function () {
         Go to selected workbook.
         @method goto
     */
-	vm.goto = function () {
-		let config = this.getConfig();
-		let wb = this.data.name().toSpinalCase();
-		let pg = config[0].name.toSpinalCase();
+    vm.goto = function () {
+        let config = this.getConfig();
+        let wb = this.data.name().toSpinalCase();
+        let pg = config[0].name.toSpinalCase();
 
-		m.route.set("/workbook/:workbook/:page", {
-			workbook: wb,
-			page: pg,
-			key: f.hashCode(wb + "-" + pg)
-		});
-	};
+        m.route.set("/workbook/:workbook/:page", {
+            workbook: wb,
+            page: pg,
+            key: f.hashCode(wb + "-" + pg)
+        });
+    };
 
     /**
         Menu name.

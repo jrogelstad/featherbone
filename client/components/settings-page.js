@@ -39,7 +39,7 @@ settingsPage.viewModel = function (options) {
     let vm = {};
     let form = {};
     let models = catalog.store().models();
-    let model = models[options.settings]();
+    let theModel = models[options.settings]();
     let definition = models[options.settings].definition();
 
     // Build form from settings definition
@@ -68,7 +68,7 @@ settingsPage.viewModel = function (options) {
         @method doDone
     */
     vm.doDone = function () {
-        if (model.canSave()) {
+        if (theModel.canSave()) {
             vm.formWidget().model().save().then(function () {
                 window.history.back();
             });
@@ -83,7 +83,7 @@ settingsPage.viewModel = function (options) {
         @return {ViewModels.FormWidget}
     */
     vm.formWidget = f.prop(f.createViewModel("FormWidget", {
-        model: model,
+        model: theModel,
         id: options.settings,
         config: form,
         outsideElementIds: ["toolbar"]
@@ -94,7 +94,7 @@ settingsPage.viewModel = function (options) {
         @param {Model} model
         @return {Model}
     */
-    vm.model = f.prop(model);
+    vm.model = f.prop(theModel);
     /**
         @method title
         @return {String}
@@ -113,8 +113,8 @@ settingsPage.viewModel = function (options) {
         class: "fb-toolbar-button"
     }));
 
-    if (model.state().current()[0] === "/Ready/New") {
-        model.fetch();
+    if (theModel.state().current()[0] === "/Ready/New") {
+        theModel.fetch();
     }
 
     return vm;

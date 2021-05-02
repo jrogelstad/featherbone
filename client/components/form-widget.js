@@ -87,20 +87,20 @@ function buildFieldset(vm, attrs) {
         let result;
         let labelOpts;
         let label;
-        let key = item.attr;
-        let model = vm.model();
-        let prop = model.data[key];
+        let theKey = item.attr;
+        let theModel = vm.model();
+        let prop = theModel.data[theKey];
         if (!prop) {
-            console.error("Unknown attribute " + key + " in form");
+            console.error("Unknown attribute " + theKey + " in form");
             return;
         }
-        let dataList = item.dataList || prop.dataList;
+        let theDataList = item.dataList || prop.dataList;
         let value = prop();
-        let options = {
+        let theOptions = {
             height: item.height
         };
         let menuButtons = vm.menuButtons();
-        let relation = vm.relations()[key];
+        let relation = vm.relations()[theKey];
 
         function openMenuClass() {
             let ret = "pure-menu-link fb-form-label-menu-item";
@@ -129,7 +129,7 @@ function buildFieldset(vm, attrs) {
             let ret = "pure-menu-link fb-form-label-menu-item";
 
             if (
-			    (relation && relation.isReadOnly && relation.isReadOnly()) ||
+                (relation && relation.isReadOnly && relation.isReadOnly()) ||
                 !relation.canCreate()
             ) {
                 ret += " pure-menu-disabled";
@@ -138,24 +138,24 @@ function buildFieldset(vm, attrs) {
             return ret;
         }
 
-        options.disableCurrency = item.disableCurrency;
+        theOptions.disableCurrency = item.disableCurrency;
 
-        if (dataList) {
+        if (theDataList) {
             // If reference a property, get the property
-            if (typeof dataList === "string") {
-                dataList = model.data[dataList]();
+            if (typeof theDataList === "string") {
+                theDataList = theModel.data[theDataList]();
 
             // Must referencoe a simple array, transform
-            } else if (typeof dataList[0] !== "object") {
-                dataList = dataList.map(function (item) {
+            } else if (typeof theDataList[0] !== "object") {
+                theDataList = theDataList.map(function (item) {
                     return {value: item, label: item};
                 });
             }
         }
 
         labelOpts = {
-            for: key,
-            key: key + "FormLabel",
+            for: theKey,
+            key: theKey + "FormLabel",
             class: "fb-form-label",
             style: {},
             title: prop.description
@@ -163,15 +163,15 @@ function buildFieldset(vm, attrs) {
 
         // For relations we get buttons for label
         if (relation && relation.isRelationWidget) {
-            if (!menuButtons[key]) {
-                menuButtons[key] = {
+            if (!menuButtons[theKey]) {
+                menuButtons[theKey] = {
                     display: "none"
                 };
             }
 
             labelOpts.class = "pure-button fb-form-label-button";
             labelOpts.onclick = function () {
-                menuButtons[key].display = "block";
+                menuButtons[theKey].display = "block";
             };
             labelOpts.onmouseout = function (ev) {
                 if (
@@ -181,44 +181,44 @@ function buildFieldset(vm, attrs) {
                         "nav-relation"
                     ) === -1
                 ) {
-                    menuButtons[key].display = "none";
+                    menuButtons[theKey].display = "none";
                 }
             };
             label = m("div", labelOpts, [
                 m("div", {
-                    id: "nav-relation-div-" + key,
+                    id: "nav-relation-div-" + theKey,
                     class: "pure-menu fb-relation-menu"
                 }, [
                     m("ul", {
                         class: "pure-menu-list fb-relation-menu-list",
-                        id: "nav-relation-list-" + key,
+                        id: "nav-relation-list-" + theKey,
                         style: {
                             top: "27px",
-                            display: menuButtons[key].display
+                            display: menuButtons[theKey].display
                         }
                     }, [
                         m("li", {
-                            id: "nav-relation-search-" + key,
+                            id: "nav-relation-search-" + theKey,
                             class: editMenuClass(),
                             onclick: relation.search
                         }, [m("i", {
-                            id: "nav-relation-search-icon-" + key,
+                            id: "nav-relation-search-icon-" + theKey,
                             class: "fa fa-search"
                         })], " Search"),
                         m("li", {
-                            id: "nav-relation-open-" + key,
+                            id: "nav-relation-open-" + theKey,
                             class: openMenuClass(),
                             onclick: relation.open
                         }, [m("i", {
-                            id: "nav-relation-open-icon-" + key,
+                            id: "nav-relation-open-icon-" + theKey,
                             class: "fa fa-folder-open"
                         })], " Open"),
                         m("li", {
-                            id: "nav-relation-new-" + key,
+                            id: "nav-relation-new-" + theKey,
                             class: newMenuClass(),
                             onclick: relation.new
                         }, [m("i", {
-                            id: "nav-relation-new-icon-" + key,
+                            id: "nav-relation-new-icon-" + theKey,
                             class: "fa fa-plus-circle"
                         })], " New")
                     ])
@@ -239,11 +239,11 @@ function buildFieldset(vm, attrs) {
         }
 
         if (!prop.isReadOnly() && !vm.focusAttr()) {
-            vm.focusAttr(key);
+            vm.focusAttr(theKey);
         }
 
-        if (vm.focusAttr() === key) {
-            options.oncreate = function (vnode) {
+        if (vm.focusAttr() === theKey) {
+            theOptions.oncreate = function (vnode) {
                 document.getElementById(vnode.dom.id).focus();
             };
         }
@@ -260,12 +260,12 @@ function buildFieldset(vm, attrs) {
         }, [
             label,
             f.createEditor({
-                model: model,
-                key: key,
-                dataList: dataList,
+                model: theModel,
+                key: theKey,
+                dataList: theDataList,
                 filter: item.filter,
                 viewModel: vm,
-                options: options,
+                options: theOptions,
                 widget: item.relationWidget
             })
         ]);

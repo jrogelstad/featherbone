@@ -46,20 +46,20 @@ childFormPage.viewModel = function (options) {
     }
 
     let instances = catalog.store().instances();
-    let model = instances[options.key];
+    let theModel = instances[options.key];
 
-    if (!model) {
+    if (!theModel) {
         m.route.set("/home");
         options.isInvalid = true;
         return;
     }
 
-    let ary = model.parent().data[options.parentProperty]();
+    let ary = theModel.parent().data[options.parentProperty]();
     let sseState = catalog.store().global().sseState;
-    let feather = options.feather.toCamelCase(true);
+    let theFeather = options.feather.toCamelCase(true);
     let form = f.getForm({
         form: options.form,
-        feather: feather
+        feather: theFeather
     });
     let vm = {};
     let pageIdx = options.index || 1;
@@ -110,7 +110,7 @@ childFormPage.viewModel = function (options) {
     vm.doChildOpen = function (idx) {
         let target = ary[idx];
 
-        delete instances[model.id()];
+        delete instances[theModel.id()];
         instances[target.id()] = target;
 
         m.route.set("/traverse/:feather/:key", {
@@ -137,7 +137,7 @@ childFormPage.viewModel = function (options) {
         @method doNext
     */
     vm.doPrevious = function () {
-        let idx = ary.indexOf(model);
+        let idx = ary.indexOf(theModel);
 
         vm.doChildOpen(idx - 1);
     };
@@ -146,7 +146,7 @@ childFormPage.viewModel = function (options) {
         @method doNext
     */
     vm.doNext = function () {
-        let idx = ary.indexOf(model);
+        let idx = ary.indexOf(theModel);
 
         vm.doChildOpen(idx + 1);
     };
@@ -155,7 +155,7 @@ childFormPage.viewModel = function (options) {
         @method doNew
     */
     vm.doNew = function () {
-        let newInstance = f.createList(feather);
+        let newInstance = f.createList(theFeather);
 
         ary.add(newInstance);
         vm.doChildOpen(ary.length - 1);
@@ -202,8 +202,8 @@ childFormPage.viewModel = function (options) {
 
     // Create form widget
     vm.formWidget(f.createViewModel("FormWidget", {
-        isNew: isNew,
-        model: model,
+        isNew: Boolean(isNew),
+        model: theModel,
         id: options.key,
         config: form,
         outsideElementIds: ["toolbar"]
@@ -222,7 +222,7 @@ childFormPage.viewModel = function (options) {
         icon: "arrow-up",
         class: toolbarButtonClass
     }));
-    if (ary.indexOf(model) === 0) {
+    if (ary.indexOf(theModel) === 0) {
         vm.buttonPrevious().disable();
         vm.buttonPrevious().title("Current data is first record");
     }
@@ -233,7 +233,7 @@ childFormPage.viewModel = function (options) {
         icon: "arrow-down",
         class: toolbarButtonClass
     }));
-    if (ary.indexOf(model) === ary.length - 1) {
+    if (ary.indexOf(theModel) === ary.length - 1) {
         vm.buttonNext().disable();
         vm.buttonNext().title("Current data is last record");
     }
@@ -244,7 +244,9 @@ childFormPage.viewModel = function (options) {
         icon: "plus-circle",
         class: toolbarButtonClass
     }));
-    if (f.findRoot(model).state().current()[0] === "/Ready/Fetched/ReadOnly") {
+    if (
+        f.findRoot(theModel).state().current()[0] === "/Ready/Fetched/ReadOnly"
+    ) {
         vm.buttonNew().disable();
         vm.buttonNew().title("Data is read only");
     }
@@ -298,7 +300,7 @@ childFormPage.component = {
         }
 
         let lock;
-        let title;
+        let theTitle;
         let vm = this.viewModel;
         let model = vm.model();
         let icon = "file-alt";
@@ -319,23 +321,23 @@ childFormPage.component = {
             case "/Locked":
                 icon = "lock";
                 lock = model.data.lock() || {};
-                title = (
+                theTitle = (
                     "User: " + lock.username + "\nSince: " +
                     new Date(lock.created).toLocaleTimeString()
                 );
                 break;
             case "/Ready/Fetched/Dirty":
                 icon = "pencil-alt";
-                title = "Editing record";
+                theTitle = "Editing record";
                 break;
             case "/Ready/New":
                 icon = "plus";
-                title = "New record";
+                theTitle = "New record";
                 break;
             }
         } else {
             icon = "exclamation-triangle";
-            title = model.lastError();
+            theTitle = model.lastError();
         }
 
         // Build view
@@ -362,7 +364,7 @@ childFormPage.component = {
             }, [
                 m("i", {
                     class: "fa fa-" + icon + " fb-title-icon",
-                    title: title
+                    title: theTitle
                 }),
                 m("label", vm.title())
             ]),

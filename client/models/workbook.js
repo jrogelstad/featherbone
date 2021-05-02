@@ -26,44 +26,46 @@ let models;
 let feathers;
 let descr = "Parent of \"parent\" on \"WorkbookDefaultConfig\"";
 
-function resolveProperties (feather, properties, ary, prefix) {
-	prefix = prefix || "";
-	let result = ary || [];
+function resolveProperties(feather, properties, ary, prefix) {
+    prefix = prefix || "";
+    let result = ary || [];
 
-	properties.forEach(function (key) {
-		let rfeather;
-		let prop = feather.properties[key];
-		let isObject = typeof prop.type === "object";
-		let path = prefix + key;
+    properties.forEach(function (key) {
+        let rfeather;
+        let prop = feather.properties[key];
+        let isObject = typeof prop.type === "object";
+        let path = prefix + key;
 
-		if (isObject && prop.type.properties) {
-			rfeather = catalog.getFeather(prop.type.relation);
-			resolveProperties(
-				rfeather,
-				prop.type.properties,
-				result,
-				path + "."
-			);
-		}
+        if (isObject && prop.type.properties) {
+            rfeather = catalog.getFeather(prop.type.relation);
+            resolveProperties(
+                rfeather,
+                prop.type.properties,
+                result,
+                path + "."
+            );
+        }
 
-		if (
-			isObject && (
-				prop.type.childOf && (
-                    !prop.type.properties ||
-                    !prop.type.properties.length
+        if (
+            isObject && (
+                (
+                    prop.type.childOf && (
+                        !prop.type.properties ||
+                        !prop.type.properties.length
+                    )
                 ) ||
-				prop.type.parentOf ||
-				prop.type.isChild
-			)
-		) {
-			return;
-		}
+                prop.type.parentOf ||
+                prop.type.isChild
+            )
+        ) {
+            return;
+        }
 
-		result.push(path);
-	});
+        result.push(path);
+    });
 
-	return result;
-};
+    return result;
+}
 
 /**
     @module Workbook
@@ -291,10 +293,10 @@ function workbookModel(data) {
     let canUpdate;
     let profileConfig;
 
-    function save(promise) {
+    function save(pPromise) {
         this.goto("/Busy/Saving", {
             context: {
-                promise: promise
+                promise: pPromise
             }
         });
     }
@@ -391,10 +393,10 @@ function workbookModel(data) {
         @param {String} Action name
         @return {Object} Promise
     */
-    model.isAuthorized = function (action) {
+    model.isAuthorized = function (pAction) {
         return new Promise(function (resolve, reject) {
             let query = Qs.stringify({
-                action: action
+                action: pAction
             });
             let payload = {
                 method: "GET",
@@ -907,7 +909,7 @@ function worksheetModel(data) {
         type: "array",
         function: theforms
     });
-    
+
     model.onChanged("feather", function () {
         let props = catalog.getFeather(d.feather()).properties;
         let pkeys = Object.keys(props);
@@ -964,7 +966,7 @@ function worksheetColumnModel(data) {
             : []
         );
 
-		return keys.map(function (key) {
+        return keys.map(function (key) {
             return {value: key, label: key.toName()};
         });
     }

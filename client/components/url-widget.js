@@ -133,7 +133,7 @@ urlWidget.component = {
         let options = vnode.attrs;
         let ret;
         let vm = this.viewModel;
-        let style = vm.style();
+        let theStyle = vm.style();
         let prop = options.prop;
         let opts = {
             readonly: options.readonly,
@@ -153,11 +153,11 @@ urlWidget.component = {
             opts.class = "fb-input";
         }
 
-        style.display = style.display || "inline-block";
+        theStyle.display = theStyle.display || "inline-block";
 
         // Build the view
         ret = m("div", {
-            style: style,
+            style: theStyle,
             key: vm.key()
         }, [
             m("input", opts),

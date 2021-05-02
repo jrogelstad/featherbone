@@ -77,7 +77,7 @@ relationWidget.viewModel = function (options) {
         ? options.filter.criteria || []
         : []
     );
-    let filter = {
+    let theFilter = {
         criteria: f.copy(criteria),
         sort: [{
             property: valueProperty
@@ -86,7 +86,7 @@ relationWidget.viewModel = function (options) {
     };
     let modelList = f.createList(type.relation, {
         background: true,
-        filter: filter
+        filter: theFilter
     });
     let configId = f.createId();
 
@@ -110,7 +110,7 @@ relationWidget.viewModel = function (options) {
     );
 
     /**
-		Flag whether can create new records.
+        Flag whether can create new records.
 
         @method canCreate
         @param {Boolean} id
@@ -127,7 +127,7 @@ relationWidget.viewModel = function (options) {
         @method fetch
     */
     vm.fetch = function () {
-        vm.models().fetch(filter, false);
+        vm.models().fetch(theFilter, false);
     };
     /**
         @method id
@@ -318,7 +318,7 @@ relationWidget.viewModel = function (options) {
         } else {
             modelValue(null);
             inputValue(null);
-            delete filter.criteria;
+            delete theFilter.criteria;
             vm.fetch();
         }
     };
@@ -365,8 +365,8 @@ relationWidget.viewModel = function (options) {
         }
         inputValue(value);
         if (fetch) {
-            filter.criteria = f.copy(criteria);
-            filter.criteria.push({
+            theFilter.criteria = f.copy(criteria);
+            theFilter.criteria.push({
                 property: valueProperty,
                 operator: "~*",
                 value: "^" + value
@@ -507,7 +507,7 @@ relationWidget.component = {
         if (!relations[parentProperty]) {
             relations[parentProperty] = relationWidget.viewModel({
                 parentViewModel: options.parentViewModel,
-                parentProperty: parentProperty,
+                parentProperty: options.parentProperty,
                 valueProperty: options.valueProperty,
                 labelProperty: options.labelProperty,
                 form: options.form,
@@ -536,11 +536,11 @@ relationWidget.component = {
         let maxWidth;
         let menu;
         let vm = this.viewModel;
-        let readonly = vm.isReadOnly();
-        let style = vm.style();
+        let readOnly = vm.isReadOnly();
+        let theStyle = vm.style();
         let openMenuClass = "pure-menu-link";
         let editMenuClass = "pure-menu-link";
-		let newMenuClass = "pure-menu-link";
+        let newMenuClass = "pure-menu-link";
         let buttonClass = "pure-button fa fa-bars fb-relation-button";
         let labelClass = "fb-relation-label";
         let id = vm.id();
@@ -564,18 +564,18 @@ relationWidget.component = {
             return m("option", content);
         });
 
-        style.display = style.display || "inline-block";
+        theStyle.display = theStyle.display || "inline-block";
 
         if (!vm.model()) {
             openMenuClass += " pure-menu-disabled";
         }
 
-        if (readonly) {
+        if (readOnly) {
             editMenuClass += " pure-menu-disabled";
-			newMenuClass += " pure-menu-disabled";
+            newMenuClass += " pure-menu-disabled";
         } else if (!vm.canCreate()) {
-			newMenuClass += " pure-menu-disabled";
-		}
+            newMenuClass += " pure-menu-disabled";
+        }
 
         if (vm.isCell()) {
             inputStyle = {
@@ -645,8 +645,8 @@ relationWidget.component = {
         }
 
         // Hack size to fit button.
-        if (style.maxWidth) {
-            maxWidth = style.maxWidth.replace("px", "");
+        if (theStyle.maxWidth) {
+            maxWidth = theStyle.maxWidth.replace("px", "");
             maxWidth = maxWidth - 35;
             maxWidth = (
                 maxWidth < 100
@@ -658,7 +658,7 @@ relationWidget.component = {
 
         // Build the view
         return m("div", {
-            style: style,
+            style: theStyle,
             key: vm.key()
         }, [
             m("input", {
@@ -672,7 +672,7 @@ relationWidget.component = {
                 value: vm.value(),
                 oncreate: vnode.attrs.onCreate,
                 onremove: vnode.attrs.onRemove,
-                readonly: readonly
+                readonly: readOnly
             }),
             menu,
             m("div", {

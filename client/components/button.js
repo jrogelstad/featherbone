@@ -380,7 +380,6 @@ button.component = {
         let iconView;
         let vm = this.viewModel;
         let classes = ["pure-button"];
-        let style = vm.style();
         let title = vm.title();
         let icon = vm.icon();
         let label = vm.label();
@@ -393,7 +392,7 @@ button.component = {
         opts = {
             id: vm.id(),
             type: "button",
-            style: style,
+            style: vm.style(),
             disabled: vm.isDisabled(),
             onclick: vm.onclick()
         };
