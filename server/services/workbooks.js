@@ -61,10 +61,10 @@
         that.deleteWorkbook = function (obj) {
             return new Promise(function (resolve, reject) {
                 let sql = "DELETE FROM \"$workbook\" WHERE name=$1;";
-                let client = db.getClient(obj.client);
+                let theClient = db.getClient(obj.client);
 
                 tools.isSuperUser({
-                    client: client,
+                    client: theClient,
                     user: obj.user
                 }).then(function (isSuper) {
                     let err;
@@ -77,7 +77,7 @@
                         throw err;
                     }
 
-                    client.query(sql, [obj.data.name], function (err) {
+                    theClient.query(sql, [obj.data.name], function (err) {
                         if (err) {
                             reject(err);
                             return;
@@ -133,8 +133,8 @@
         */
         that.getWorkbooks = function (obj) {
             return new Promise(function (resolve, reject) {
-                let user = obj.user;
-                let client = db.getClient(obj.client);
+                let theUser = obj.user;
+                let theClient = db.getClient(obj.client);
 
                 function callback(isSuper) {
                     let params = [];
@@ -156,7 +156,7 @@
                     );
 
                     if (!isSuper) {
-                        params = [client.currentUser()];
+                        params = [theClient.currentUser()];
                         sql += (
                             "AND EXISTS (" +
                             "  SELECT can_read FROM ( " +
@@ -180,7 +180,7 @@
 
                     sql += " ORDER BY _pk";
 
-                    client.query(sql, params, function (err, resp) {
+                    theClient.query(sql, params, function (err, resp) {
                         function auths(a) {
                             return {
                                 role: a.f1,
@@ -203,8 +203,8 @@
                 }
 
                 tools.isSuperUser({
-                    client: client,
-                    user: user
+                    client: theClient,
+                    user: theUser
                 }).then(callback).catch(reject);
             });
         };
@@ -232,7 +232,7 @@
                 let user = obj.data.user;
                 let action = obj.data.action || "";
                 let name = obj.data.name;
-                let client = db.getClient(obj.client);
+                let theClient = db.getClient(obj.client);
 
                 action = action.toSnakeCase();
 
@@ -255,7 +255,7 @@
                         "LIMIT 1;"
                     );
 
-                    client.query(sql, [name, user]).then(function (resp) {
+                    theClient.query(sql, [name, user]).then(function (resp) {
                         resolve(resp.rows.length > 0);
                     }).catch(reject);
                 }
@@ -272,7 +272,7 @@
                 }
 
                 tools.isSuperUser({
-                    client: client,
+                    client: theClient,
                     user: obj.data.user
                 }).then(callback).catch(reject);
             });
@@ -298,8 +298,8 @@
                 let sql;
                 let params;
                 let authorizations;
-                let id;
-                let user = obj.user;
+                let theId;
+                let theUser = obj.user;
                 let findSql = "SELECT * FROM \"$workbook\" WHERE name = $1;";
                 let workbooks = (
                     Array.isArray(obj.data.specs)
@@ -309,7 +309,7 @@
                 let len = workbooks.length;
                 let n = 0;
                 let oldAuth;
-                let client = db.getClient(obj.client);
+                let theClient = db.getClient(obj.client);
 
                 findSql = (
                     "SELECT * FROM \"$workbook\" AS workbook, " +
@@ -321,7 +321,7 @@
                 );
 
                 function execute() {
-                    client.query(sql, params, function (err) {
+                    theClient.query(sql, params, function (err) {
                         let auths = [];
                         let requests = [];
 
@@ -334,9 +334,9 @@
                             // Clear old auths in case of deletions
                             oldAuth.forEach(function (auth) {
                                 auths.push({
-                                    client: client,
+                                    client: theClient,
                                     data: {
-                                        id: id,
+                                        id: theId,
                                         role: auth.f1,
                                         isInternal: true,
                                         actions: {
@@ -372,9 +372,9 @@
                                     actions.canDelete = null;
                                 } else {
                                     auths.push({
-                                        client: client,
+                                        client: theClient,
                                         data: {
-                                            id: id,
+                                            id: theId,
                                             role: auth.role,
                                             isInternal: true,
                                             actions: {
@@ -406,7 +406,7 @@
                         oldAuth = false;
 
                         // Upsert workbook
-                        client.query(
+                        theClient.query(
                             findSql,
                             [wb.name],
                             function (err, resp) {
@@ -436,7 +436,7 @@
                                         "icon=$8, sequence=$9, actions=$10 " +
                                         "WHERE name=$1;"
                                     );
-                                    id = row.id;
+                                    theId = row.id;
                                     launchConfig = (
                                         wb.launchConfig || row.launch_config
                                     );
@@ -451,7 +451,7 @@
                                     );
                                     params = [
                                         wb.name,
-                                        client.currentUser(),
+                                        theClient.currentUser(),
                                         wb.description || row.description,
                                         JSON.stringify(launchConfig),
                                         JSON.stringify(defaultConfig),
@@ -464,8 +464,8 @@
                                     execute();
                                 } else {
                                     tools.isSuperUser({
-                                        client: client,
-                                        user: user
+                                        client: theClient,
+                                        user: theUser
                                     }).then(function (isSuper) {
                                         let e;
 
@@ -495,13 +495,13 @@
                                             "now(), now(), false) " +
                                             "RETURNING _pk;"
                                         );
-                                        id = f.createId();
+                                        theId = f.createId();
                                         launchConfig = wb.launchConfig || {};
                                         localConfig = wb.localConfig || [];
                                         defaultConfig = wb.defaultConfig || [];
                                         icon = wb.icon || "folder";
                                         params = [
-                                            id,
+                                            theId,
                                             wb.name,
                                             wb.description || "",
                                             wb.module,
@@ -509,7 +509,7 @@
                                             JSON.stringify(defaultConfig),
                                             JSON.stringify(localConfig),
                                             icon,
-                                            client.currentUser(),
+                                            theClient.currentUser(),
                                             wb.sequence || 0,
                                             {} // TODO
                                         ];

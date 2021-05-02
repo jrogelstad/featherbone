@@ -284,7 +284,7 @@
 
                         let schema;
                         let feather = catalog[key];
-                        let properties = {};
+                        let theProperties = {};
                         let inherits = feather.inherits || "Object";
                         let tag = key.toSpinalCase();
                         let pathName = "/data/" + tag + "/{id}";
@@ -584,20 +584,20 @@
                             schema.discriminator = feather.discriminator;
                         }
 
-                        processProperties(feather, properties);
+                        processProperties(feather, theProperties);
 
                         if (key === "Object") {
                             delete schema.discriminator;
                             schema.type = "object";
-                            schema.properties = properties;
+                            schema.properties = theProperties;
                         } else {
                             schema.allOf = [{
                                 $ref: "#/components/schemas/" + inherits
                             }];
 
-                            if (Object.keys(properties).length) {
+                            if (Object.keys(theProperties).length) {
                                 schema.allOf.push({
-                                    properties: properties
+                                    properties: theProperties
                                 });
                             }
                         }

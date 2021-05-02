@@ -31,23 +31,23 @@
     const crud = new CRUD();
     const feathers = new Feathers();
 
-    function getFeather(client, name, localFeathers, idx) {
+    function getFeather(client, featherName, localFeathers, idx) {
         return new Promise(function (resolve, reject) {
             idx = idx || [];
 
             // avoid infinite loops
-            if (idx.indexOf(name) !== -1) {
+            if (idx.indexOf(featherName) !== -1) {
                 resolve();
                 return;
             }
-            idx.push(name);
+            idx.push(featherName);
 
             function getChildFeathers(resp) {
                 let frequests = [];
                 let props = resp.properties;
 
                 try {
-                    localFeathers[name] = resp;
+                    localFeathers[featherName] = resp;
 
                     // Recursively get feathers for all children
                     Object.keys(props).forEach(function (key) {
@@ -79,7 +79,7 @@
             feathers.getFeather({
                 client,
                 data: {
-                    name: name
+                    name: featherName
                 }
             }).then(getChildFeathers).catch(reject);
         });
@@ -125,10 +125,10 @@
         }
 
         function doExport(
-            client,
-            feather,
-            properties,
-            filter,
+            pClient,
+            pFeather,
+            pProperties,
+            pFilter,
             dir,
             format,
             writeFile
@@ -137,19 +137,19 @@
                 let id = f.createId();
                 let filename = dir + id + "." + format;
                 let props = (
-                    properties
-                    ? f.copy(properties)
+                    pProperties
+                    ? f.copy(pProperties)
                     : undefined
                 );
                 let payload = {
-                    client: client,
-                    name: feather,
-                    filter: filter,
-                    properties: properties
+                    client: pClient,
+                    name: pFeather,
+                    filter: pFilter,
+                    properties: pProperties
                 };
 
-                if (properties && properties.indexOf("objectType") === -1) {
-                    properties.push("objectType");
+                if (pProperties && pProperties.indexOf("objectType") === -1) {
+                    pProperties.push("objectType");
                 }
 
                 function callback(resp) {
@@ -157,8 +157,8 @@
                         filename,
                         resp,
                         format,
-                        client,
-                        feather,
+                        pClient,
+                        pFeather,
                         props
                     ).then(
                         () => resolve(filename)
@@ -557,7 +557,7 @@
             @param {String} Source file
             @return {Array} Error log
         */
-        that.json = function (datasource, client, feather, filename) {
+        that.json = function (datasource, pClient, feather, filename) {
             return new Promise(function (resolve, reject) {
                 let requests = [];
                 let log = [];
@@ -608,7 +608,7 @@
                         data.forEach(function (item) {
                             let payload = {
                                 method: "POST",
-                                client: client,
+                                client: pClient,
                                 name: feather,
                                 id: item.id,
                                 data: item
@@ -626,7 +626,7 @@
                     }
 
                     Promise.all(requests).then(
-                        commit.bind(null, client)
+                        commit.bind(null, pClient)
                     ).then(writeLog).catch(function (err) {
                         rollback().then(function () {
                             fs.unlink(filename, reject.bind(null, err));
@@ -648,7 +648,7 @@
             @param {String} Source file
             @return {Array} Error log
         */
-        that.xlsx = function (datasource, client, feather, filename) {
+        that.xlsx = function (datasource, pClient, feather, filename) {
             return new Promise(function (resolve, reject) {
                 let log = [];
                 let wb;
@@ -796,13 +796,13 @@
                     let payload;
 
                     if (!sheets[feather].length) {
-                        commit(client).then(writeLog).then(resolve);
+                        commit(pClient).then(writeLog).then(resolve);
                         return;
                     }
 
                     row = sheets[feather].shift();
                     payload = {
-                        client: client,
+                        client: pClient,
                         method: "POST",
                         name: feather,
                         id: row.Id,
@@ -816,11 +816,11 @@
                 };
 
                 getFeather(
-                    client,
+                    pClient,
                     feather,
                     localFeathers
                 ).then(callback).catch(function (err) {
-                    rollback(client).then(function () {
+                    rollback(pClient).then(function () {
                         fs.unlink.bind(filename, function () {
                             reject(err);
                         });

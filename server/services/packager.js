@@ -409,20 +409,20 @@
         let filename = folder + "forms.json";
 
         content = rows.map(function (row) {
-            let data = row.form;
+            let rec = row.form;
             let ret = {
                 name: "Form",
                 method: "POST",
-                module: data.module,
-                id: data.id,
-                data: data
+                module: rec.module,
+                id: rec.id,
+                data: rec
             };
 
-            if (!data.focus) {
-                delete data.focus;
+            if (!rec.focus) {
+                delete rec.focus;
             }
-            removeExclusions(data);
-            data.attrs.forEach(function (attr) {
+            removeExclusions(rec);
+            rec.attrs.forEach(function (attr) {
                 if (!attr.label) {
                     delete attr.label;
                 }
@@ -553,19 +553,19 @@
         let name = type.toCamelCase() + "s.json";
         let filename = folder + name;
 
-        content = rows.map(function (data) {
+        content = rows.map(function (rec) {
             let ret = {
                 name: type,
                 method: "POST",
-                module: data.module,
-                id: data.id,
-                data: data
+                module: rec.module,
+                id: rec.id,
+                data: rec
             };
 
-            if (!data.focus) {
-                delete data.focus;
+            if (!rec.focus) {
+                delete rec.focus;
             }
-            removeExclusions(data);
+            removeExclusions(rec);
 
             return ret;
         });
@@ -597,7 +597,7 @@
         */
         let that = {};
 
-        function addDependencies(client, manifest, zip, resp, user, folder) {
+        function addDependencies(client, manifest, pzip, resp, user, folder) {
             return new Promise(function (resolve, reject) {
                 let content;
                 let requests = [];
@@ -608,8 +608,8 @@
 
                 content = resp.slice(0, resp.length - 1);
 
-                content.forEach(function (module) {
-                    let name = module.name;
+                content.forEach(function (mod) {
+                    let name = mod.name;
                     let addPackage;
 
                     addPackage = new Promise(function (resolve, reject) {
@@ -628,9 +628,9 @@
                             name,
                             user,
                             {
-                                zip: zip,
+                                zip: pzip,
                                 folder: folder + name.toSpinalCase() + "/",
-                                module: module
+                                module: mod
                             }
                         ).then(callback).catch(reject);
                     });
