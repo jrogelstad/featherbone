@@ -143,11 +143,11 @@ function findPivot(other) {
 // opts   - The options object passed to the `goto` method.
 //
 // Returns nothing.
-function queueTransition(pivot, states, opts) {
+function queueTransition(pPivot, pStates, pOpts) {
     this.transitions.push({
-        pivot: pivot,
-        states: states,
-        opts: opts
+        pivot: pPivot,
+        states: pStates,
+        opts: pOpts
     });
 }
 
