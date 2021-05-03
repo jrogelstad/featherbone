@@ -146,8 +146,14 @@ checkbox.component = {
                 style: thestyle,
                 disabled: vnode.attrs.readonly,
                 required: Boolean(vnode.attrs.required),
-                onfocus: () => vm.hasFocus(true),
-                onblur: () => vm.hasFocus(false)
+                onfocus: function () {
+                    vnode.attrs.onFocus();
+                    vm.hasFocus(true);
+                },
+                onblur: function () {
+                    vnode.attrs.onBlur();
+                    vm.hasFocus(false);
+                }
             }),
             label
         ]);

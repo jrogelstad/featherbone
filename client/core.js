@@ -247,6 +247,8 @@ function buildSelector(obj, opts) {
         onchange: (e) => opts.prop(e.target.value),
         oncreate: opts.oncreate,
         onremove: opts.onremove,
+        onfocus: opts.onfocus,
+        onblur: opts.onblur,
         value: val,
         readonly: opts.readonly,
         disabled: opts.readonly,
@@ -327,6 +329,8 @@ function input(pType, options) {
         onchange: (e) => prop(e.target.value),
         oncreate: options.onCreate,
         onremove: options.onRemove,
+        onfocus: options.onFocus,
+        onblur: options.onBlur,
         value: prop()
     };
 
@@ -661,6 +665,8 @@ function selectEditor(dataList, options) {
         readonly: options.readonly,
         oncreate: options.onCreate,
         onremove: options.onRemove,
+        onfocus: options.onFocus,
+        onblur: options.onBlur,
         style: options.style,
         isCell: options.isCell
     };
@@ -790,6 +796,8 @@ formats.textArea.editor = function (options) {
         onchange: (e) => prop(e.target.value),
         oncreate: options.onCreate,
         onremove: options.onRemove,
+        onfocus: options.onFocus,
+        onblur: options.onBlur,
         value: prop(),
         rows: options.rows || 4
     };
@@ -806,7 +814,9 @@ formats.script.editor = function (options) {
         key: options.key,
         required: options.required,
         onchange: (e) => prop(e.target.value),
-        value: prop()
+        value: prop(),
+        onfocus: options.onFocus,
+        onblur: options.onBlur
     };
 
     opts.oncreate = function () {
@@ -1340,6 +1350,8 @@ f.types.boolean.editor = function (options) {
         isCell: options.isCell,
         onCreate: options.onCreate,
         onRemove: options.onRemove,
+        onFocus: options.onFocus,
+        onBlur: options.onBlur,
         required: options.required,
         readonly: options.readonly,
         style: options.style,
@@ -1370,6 +1382,8 @@ f.types.number.editor = function (options) {
         type: options.type || "text",
         oncreate: options.onCreate,
         onremove: options.onRemove,
+        onfocus: options.onFocus,
+        onblur: options.onBlur,
         onchange: (e) => prop(e.target.value),
         value: prop()
     };
@@ -1471,6 +1485,8 @@ f.createEditor = function (obj) {
         obj.options.prop = theProp;
 
         if (obj.dataList) {
+            obj.options.onfocus = () => f.processEvents(false);
+            obj.options.onblur = () => f.processEvents(true);
             return buildSelector(obj, obj.options);
         }
 
@@ -1504,6 +1520,8 @@ f.createEditor = function (obj) {
             isCell: obj.options.isCell,
             onCreate: obj.options.oncreate,
             onRemove: obj.options.onremove,
+            onFocus: () => f.processEvents(false),
+            onBlur: () => f.processEvents(true),
             model: obj.model,
             parentProperty: theKey,
             parentViewModel: obj.viewModel,
@@ -1540,6 +1558,8 @@ f.createEditor = function (obj) {
                 style: obj.options.style,
                 onCreate: obj.options.oncreate,
                 onRemove: obj.options.onremove,
+                onFocus: () => f.processEvents(false),
+                onBlur: () => f.processEvents(true),
                 id: obj.options.id,
                 key: theKey,
                 isReadOnly: theProp.isReadOnly
@@ -1655,6 +1675,181 @@ f.getStyle = function (name) {
     @return {Property}
 */
 f.prop = createProperty;
+
+let holdEvents = false;
+let pending = [];
+
+/**
+    Turn processing of events on or off. Used to prevent event handling and
+    redrawing while user is editing records.
+
+    @method processEvents
+    @param {Boolean} flag Set false to hold events, true to process pending
+*/
+f.processEvents = function (flag) {
+    if (flag === true) {
+        holdEvents = false;
+        while (pending.length) {
+            f.processEvent(pending.shift());
+        }
+        return;
+    }
+
+    if (flag === false) {
+        holdEvents = true;
+    }
+};
+
+/**
+    Process events sent from the server.
+
+    @method processEvent
+    @param {Object} event Server event object
+*/
+f.processEvent = function (obj) {
+    let instance;
+    let ary;
+    let payload;
+    let subscriptionId;
+    let change;
+    let patching = "/Busy/Saving/Patching";
+    let data;
+    let event = obj.event;
+    let formsSid = obj.formsSubscrId;
+    let moduleSid = obj.moduleSubscrId;
+
+    if (holdEvents) {
+        pending.push(obj);
+        return;
+    }
+
+    try {
+        payload = JSON.parse(event.data);
+    } catch (ignore) {
+        console.log(event.data);
+        return;
+    }
+    change = payload.message.subscription.change;
+
+    if (change === "signedOut") {
+        f.state().send("signOut");
+        return;
+    }
+
+    data = payload.message.data;
+
+    if (change === "feather") {
+        if (payload.message.subscription.deleted) {
+            catalog.unregister("feathers", data);
+            catalog.unregister("models", data.toCamelCase());
+        } else {
+            catalog.register("feathers", data.name, data);
+            catalog.registerModel(
+                data.name,
+                function (d, spec) {
+                    return createModel(d, spec || data);
+                },
+                Boolean(data.plural)
+            );
+        }
+        return;
+    }
+
+    subscriptionId = payload.message.subscription.subscriptionid;
+    ary = catalog.store().subscriptions()[subscriptionId];
+
+    if (!ary) {
+        return;
+    }
+
+    // Special application change events
+    switch (subscriptionId) {
+    case moduleSid:
+        if (change === "create") {
+            catalog.store().data().modules().push({
+                value: data.name,
+                label: data.name
+            });
+        }
+        return;
+    case formsSid:
+        if (change === "create") {
+            ary.push(data);
+        } else if (change === "update") {
+            instance = ary.find((item) => item.id === data.id);
+            ary.splice(ary.indexOf(instance), 1, data);
+        } else if (change === "delete") {
+            instance = ary.find((item) => item.id === data);
+            ary.splice(ary.indexOf(instance), 1);
+        }
+
+        return;
+    }
+
+    // Apply event to the catalog data;
+    switch (change) {
+    case "update":
+        instance = ary.find(function (model) {
+            return model.id() === data.id;
+        });
+
+        if (instance) {
+            // Only update if not caused by this instance
+            if (
+                instance.state().current()[0] !== patching && (
+                    !data.etag || (
+                        data.etag && instance.data.etag &&
+                        data.etag !== instance.data.etag()
+                    )
+                )
+            ) {
+                instance.state().goto("Ready/Fetched/ReadOnly");
+                instance.set(data, true, true);
+                instance.state().goto("Ready/Fetched/Clean");
+                m.redraw();
+            }
+        }
+        break;
+    case "create":
+        ary.add(ary.model(data));
+        break;
+    case "delete":
+        instance = ary.find(function (model) {
+            return model.id() === data;
+        });
+
+        if (instance) {
+            if (ary.showDeleted()) {
+                instance.data.isDeleted(true);
+            } else {
+                ary.remove(instance);
+            }
+        }
+        break;
+    case "lock":
+        instance = ary.find(function (model) {
+            return model.id() === data.id;
+        });
+
+        if (instance) {
+            instance.lock(data.lock);
+            m.redraw();
+        }
+        break;
+    case "unlock":
+        instance = ary.find(function (model) {
+            return model.id() === data;
+        });
+
+        if (instance) {
+            instance.unlock();
+            m.redraw();
+        }
+        break;
+    }
+
+    m.redraw();
+};
 
 /**
     Helper function to resolve property dot notation.
