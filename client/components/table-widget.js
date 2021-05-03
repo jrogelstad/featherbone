@@ -16,6 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, for, browser*/
+/*global f, m*/
 /**
     @module TableWidget
 */
@@ -24,20 +25,15 @@ let inner;
 let widthNoScroll;
 let widthWithScroll;
 
-import f from "../core.js";
-
 /*
     @class tableWidget
 */
-const catalog = f.catalog();
-const datasource = f.datasource();
 const tableWidget = {};
 const outer = document.createElement("div");
 const COL_WIDTH_DEFAULT = "150";
 const LIMIT = 20;
 const ROW_COUNT = 2;
 const FETCH_MAX = 3;
-const m = window.m;
 
 // Calculate scroll bar width
 // http://stackoverflow.com/questions/13382516
@@ -333,7 +329,7 @@ function createTableDataView(options, col) {
 
                 // If relation, use feather natural key to
                 // find value to display
-                rel = catalog.getFeather(format.relation);
+                rel = f.catalog().getFeather(format.relation);
                 keys = Object.keys(rel.properties);
                 rel = (
                     keys.find((key) => rel.properties[key].isNaturalKey) ||
@@ -416,7 +412,7 @@ function resolveDescription(feather, attr) {
     if (idx > -1) {
         prefix = attr.slice(0, idx);
         suffix = attr.slice(idx + 1, attr.length);
-        feather = catalog.getFeather(
+        feather = f.catalog().getFeather(
             feather.properties[prefix].type.relation
         );
         return resolveDescription(feather, suffix);
@@ -756,7 +752,7 @@ function resolveFeatherProp(feather, attr) {
             return feather.properties[prefix];
         }
         suffix = attr.slice(idx + 1, attr.length);
-        feather = catalog.getFeather(
+        feather = f.catalog().getFeather(
             feather.properties[prefix].type.relation
         );
         return resolveFeatherProp(feather, suffix);
@@ -906,10 +902,10 @@ tableWidget.viewModel = function (options) {
     let feather = (
         typeof options.feather === "object"
         ? options.feather
-        : catalog.getFeather(options.feather)
+        : f.catalog().getFeather(options.feather)
     );
     let modelName = feather.name.toCamelCase();
-    let modelConstructor = catalog.store().models()[modelName];
+    let modelConstructor = f.catalog().store().models()[modelName];
     let offset = 0;
     let dlgSelectId = f.createId();
     let dlgSelectedId = f.createId();
@@ -972,7 +968,7 @@ tableWidget.viewModel = function (options) {
                 file.name.length
             );
             let name = file.name.slice(0, file.name.indexOf("."));
-            let feathers = catalog.feathers();
+            let feathers = f.catalog().feathers();
             let payload;
 
             if (name.indexOf(" ") !== -1) {
@@ -1002,7 +998,7 @@ tableWidget.viewModel = function (options) {
                 body: formData
             };
 
-            datasource.request(payload).then(callback).catch(error);
+            f.datasource().request(payload).then(callback).catch(error);
         }
 
         input.setAttribute("type", "file");
@@ -1032,7 +1028,7 @@ tableWidget.viewModel = function (options) {
                 prefix = property.slice(0, idx);
                 suffix = property.slice(idx + 1, property.length);
                 rel = feather.properties[prefix].type.relation;
-                return formatOf(catalog.getFeather(rel), suffix);
+                return formatOf(f.catalog().getFeather(rel), suffix);
             }
 
             prop = feather.properties[property];
@@ -1062,7 +1058,7 @@ tableWidget.viewModel = function (options) {
                     typeof fmt === "object" &&
                     !fmt.childOf
                 ) {
-                    props = catalog.getFeather(fmt.relation).properties;
+                    props = f.catalog().getFeather(fmt.relation).properties;
                     nk = Object.keys(props).find(
                         (key) => props[key].isNaturalKey
                     );
@@ -2383,7 +2379,7 @@ tableWidget.viewModel = function (options) {
     return vm;
 };
 
-catalog.register("viewModels", "tableWidget", tableWidget.viewModel);
+f.catalog().register("viewModels", "tableWidget", tableWidget.viewModel);
 
 /**
     @class TableWidget
@@ -2575,6 +2571,4 @@ tableWidget.component = {
     }
 };
 
-catalog.register("components", "tableWidget", tableWidget.component);
-
-export default Object.freeze(tableWidget);
+f.catalog().register("components", "tableWidget", tableWidget.component);

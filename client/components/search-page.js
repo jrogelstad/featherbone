@@ -16,14 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/*global f, m*/
 /**
     @module SearchPage
 */
-import f from "../core.js";
 
-const catalog = f.catalog();
 const searchPage = {};
-const m = window.m;
 
 /**
     @class SearchPage
@@ -36,8 +34,8 @@ const m = window.m;
 */
 searchPage.viewModel = function (options) {
     let vm = {};
-    let theFeather = catalog.getFeather(options.feather.toCamelCase(true));
-    let theConfig = catalog.register("config")[options.config];
+    let theFeather = f.catalog().getFeather(options.feather.toCamelCase(true));
+    let theConfig = f.catalog().register("config")[options.config];
 
     // ..........................................................
     // PUBLIC
@@ -92,7 +90,7 @@ searchPage.viewModel = function (options) {
         let selection;
 
         if (options.receiver) {
-            receivers = catalog.register("receivers");
+            receivers = f.catalog().register("receivers");
             if (receivers[options.receiver]) {
                 selection = vm.tableWidget().selection();
                 receivers[options.receiver].callback(selection);
@@ -225,7 +223,7 @@ searchPage.viewModel = function (options) {
     return vm;
 };
 
-catalog.register("viewModels", "searchPage", searchPage.viewModel);
+f.catalog().register("viewModels", "searchPage", searchPage.viewModel);
 
 /**
     Search component.
@@ -257,7 +255,7 @@ searchPage.component = {
         @param {Object} [vnode] Virtual node
     */
     onremove: function (vnode) {
-        delete catalog.register("config")[vnode.attrs.config];
+        delete f.catalog().register("config")[vnode.attrs.config];
     },
 
     /**
@@ -314,5 +312,4 @@ searchPage.component = {
     }
 };
 
-catalog.register("components", "searchPage", searchPage.component);
-export default Object.freeze(searchPage);
+f.catalog().register("components", "searchPage", searchPage.component);

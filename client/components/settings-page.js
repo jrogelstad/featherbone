@@ -16,14 +16,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/*global f, m*/
 /**
     @module SettingsPage
 */
-import f from "../core.js";
-
-const catalog = f.catalog();
 const settingsPage = {};
-const m = window.m;
 
 /**
     View model for settings page.
@@ -38,7 +35,7 @@ settingsPage.viewModel = function (options) {
     options = options || {};
     let vm = {};
     let form = {};
-    let models = catalog.store().models();
+    let models = f.catalog().store().models();
     let theModel = models[options.settings]();
     let definition = models[options.settings].definition();
 
@@ -173,6 +170,4 @@ settingsPage.component = {
     }
 };
 
-catalog.register("components", "settingsPage", settingsPage.component);
-
-export default Object.freeze(settingsPage);
+f.catalog().register("components", "settingsPage", settingsPage.component);

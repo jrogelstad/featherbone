@@ -16,14 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/*global f, m*/
 /**
     @module MoneyRelation
 */
-import f from "../core.js";
 
-const catalog = f.catalog();
 const moneyRelation = {};
-const m = window.m;
 
 function selections(item) {
     let value = (
@@ -55,7 +53,7 @@ moneyRelation.viewModel = function (options) {
     let wasCurrency;
     let vm = {};
     let parent = options.parentViewModel;
-    let store = catalog.store();
+    let store = f.catalog().store();
     let currencyList = store.data().currencies;
     let currConvList = f.createList("CurrencyConversion", {
         fetch: false
@@ -478,6 +476,5 @@ moneyRelation.component = {
     }
 };
 
-catalog.register("components", "moneyRelation", moneyRelation.component);
+f.catalog().register("components", "moneyRelation", moneyRelation.component);
 
-export default Object.freeze(moneyRelation);

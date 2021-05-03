@@ -16,15 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/*global f, m*/
 /**
     @module TableDialog
 */
-import f from "../core.js";
 
-const catalog = f.catalog();
-const State = f.State;
 const tableDialog = {};
-const m = window.m;
 
 /**
     View model for sort dialog.
@@ -301,7 +298,7 @@ tableDialog.viewModel = function (options) {
             let path = prefix + key;
 
             if (isObject && prop.type.properties) {
-                rfeather = catalog.getFeather(prop.type.relation);
+                rfeather = f.catalog().getFeather(prop.type.relation);
                 vm.resolveProperties(
                     rfeather,
                     prop.type.properties,
@@ -470,7 +467,7 @@ tableDialog.viewModel = function (options) {
     });
 
     // Statechart
-    state = State.define(function () {
+    state = f.State.define(function () {
         this.state("Selection", function () {
             this.state("Off", function () {
                 this.event("selected", function () {
@@ -499,7 +496,7 @@ tableDialog.viewModel = function (options) {
     return vm;
 };
 
-catalog.register("viewModels", "tableDialog", tableDialog.viewModel);
+f.catalog().register("viewModels", "tableDialog", tableDialog.viewModel);
 
 /**
     Table dialog component
@@ -510,6 +507,4 @@ catalog.register("viewModels", "tableDialog", tableDialog.viewModel);
 */
 tableDialog.component = f.getComponent("Dialog");
 
-catalog.register("components", "tableDialog", tableDialog.component);
-
-export default Object.freeze(tableDialog);
+f.catalog().register("components", "tableDialog", tableDialog.component);

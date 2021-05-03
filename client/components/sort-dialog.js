@@ -16,14 +16,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/*global f, m*/
 /**
     @module SortDialog
 */
-import f from "../core.js";
-
-const catalog = f.catalog();
 const sortDialog = {};
-const m = window.m;
 
 /**
     View model for sort dialog.
@@ -164,7 +161,7 @@ sortDialog.viewModel = function (options) {
     return vm;
 };
 
-catalog.register("viewModels", "sortDialog", sortDialog.viewModel);
+f.catalog().register("viewModels", "sortDialog", sortDialog.viewModel);
 
 /**
     Sort dialog component
@@ -174,6 +171,4 @@ catalog.register("viewModels", "sortDialog", sortDialog.viewModel);
     @uses Components.Dialog
 */
 sortDialog.component = f.getComponent("Dialog");
-catalog.register("components", "sortDialog", sortDialog.component);
-
-export default Object.freeze(sortDialog);
+f.catalog().register("components", "sortDialog", sortDialog.component);

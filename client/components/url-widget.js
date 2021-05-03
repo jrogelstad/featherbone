@@ -16,14 +16,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/*global f, m*/
 /**
     @module UrlWidget
 */
-import f from "../core.js";
-
-const catalog = f.catalog();
 const urlWidget = {};
-const m = window.m;
 
 /**
     @class UrlWidget
@@ -50,7 +47,7 @@ urlWidget.viewModel = function (options) {
         @method doOpen
     */
     vm.doOpen = function () {
-        let url = options.parentViewModel.model().data[
+        let url = "http://" + options.parentViewModel.model().data[
             options.parentProperty
         ]();
 
@@ -170,10 +167,10 @@ urlWidget.component = {
     }
 };
 
-catalog.register(
+f.catalog().register(
     "components",
     "urlWidget",
     urlWidget.component
 );
-export default Object.freeze(urlWidget);
+
 
