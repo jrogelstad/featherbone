@@ -16,14 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/*global f, m*/
 /**
     @module Button
 */
-import f from "../core.js";
 
-const catalog = f.catalog();
 const button = {};
-const m = window.m;
 
 /**
     Generate view model for button.
@@ -341,7 +339,7 @@ button.viewModel = function (options) {
     return vm;
 };
 
-catalog.register("viewModels", "button", button.viewModel);
+f.catalog().register("viewModels", "button", button.viewModel);
 
 /**
     Button component
@@ -435,6 +433,4 @@ button.component = {
     }
 };
 
-catalog.register("components", "button", button.component);
-
-export default Object.freeze(button);
+f.catalog().register("components", "button", button.component);

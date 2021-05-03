@@ -17,14 +17,12 @@
 */
 
 /*jslint this, browser*/
+/*global f, m*/
 /**
     @module Checkbox
 */
-import f from "../core.js";
 
-const catalog = f.catalog();
 const checkbox = {};
-const m = window.m;
 
 /**
     Generate view model for checkbox.
@@ -160,6 +158,4 @@ checkbox.component = {
     }
 };
 
-catalog.register("components", "checkbox", checkbox.component);
-
-export default Object.freeze(checkbox);
+f.catalog().register("components", "checkbox", checkbox.component);

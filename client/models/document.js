@@ -16,8 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint browser*/
-import catalog from "./catalog.js";
-import f from "../core.js";
+/*global f*/
 
 function doc(data, feather) {
     if (data === undefined) {
@@ -27,7 +26,7 @@ function doc(data, feather) {
     } else if (data.owner === undefined) {
         data.owner = f.currentUser().name;
     }
-    feather = feather || catalog.getFeather("Document");
+    feather = feather || f.catalog().getFeather("Document");
     let model = f.createModel(data, feather);
     let d = model.data;
 
@@ -45,4 +44,4 @@ function doc(data, feather) {
     return model;
 }
 
-catalog.registerModel("Document", doc);
+f.catalog().registerModel("Document", doc);

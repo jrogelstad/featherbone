@@ -15,11 +15,10 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-import catalog from "./catalog.js";
-import f from "../core.js";
+/*global f*/
 
 function userAccount(data, feather) {
-    feather = feather || catalog.getFeather("UserAccount");
+    feather = feather || f.catalog().getFeather("UserAccount");
     // New roles are always members of everyone
     if (data === undefined) {
         data = {
@@ -43,4 +42,4 @@ function userAccount(data, feather) {
     return model;
 }
 
-catalog.registerModel("UserAccount", userAccount);
+f.catalog().registerModel("UserAccount", userAccount);

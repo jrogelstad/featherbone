@@ -16,14 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/*global f, m*/
 /**
     @module ChildFormPage
 */
-import f from "../core.js";
 
-const catalog = f.catalog();
 const childFormPage = {};
-const m = window.m;
 
 /**
     Generate view model for child form page.
@@ -39,13 +37,13 @@ const m = window.m;
     @param {Boolean} [options.create]
 */
 childFormPage.viewModel = function (options) {
-    if (!catalog.store().instances) {
+    if (!f.catalog().store().instances) {
         m.route.set("/home");
         options.isInvalid = true;
         return;
     }
 
-    let instances = catalog.store().instances();
+    let instances = f.catalog().store().instances();
     let theModel = instances[options.key];
 
     if (!theModel) {
@@ -55,7 +53,7 @@ childFormPage.viewModel = function (options) {
     }
 
     let ary = theModel.parent().data[options.parentProperty]();
-    let sseState = catalog.store().global().sseState;
+    let sseState = f.catalog().store().global().sseState;
     let theFeather = options.feather.toCamelCase(true);
     let form = f.getForm({
         form: options.form,
@@ -258,7 +256,7 @@ childFormPage.viewModel = function (options) {
     return vm;
 };
 
-catalog.register("viewModels", "childFormPage", childFormPage.viewModel);
+f.catalog().register("viewModels", "childFormPage", childFormPage.viewModel);
 
 /**
     Child form page component
@@ -378,6 +376,5 @@ childFormPage.component = {
     }
 };
 
-catalog.register("components", "childFormPage", childFormPage.component);
+f.catalog().register("components", "childFormPage", childFormPage.component);
 
-export default Object.freeze(childFormPage);

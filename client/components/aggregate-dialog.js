@@ -16,14 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/*global f, m*/
 /**
     @module AggregateDialog
 */
-import f from "../core.js";
 
-const catalog = f.catalog();
 const aggregateDialog = {};
-const m = window.m;
 
 /**
     View model for sort dialog.
@@ -59,7 +57,7 @@ aggregateDialog.viewModel = function (options) {
                 feather.properties[prefix].type.relation ||
                 feather.properties[prefix].format.toProperCase()
             );
-            feather = catalog.getFeather(rel);
+            feather = f.catalog().getFeather(rel);
             return resolveProperty(feather, suffix);
         }
 
@@ -112,7 +110,7 @@ aggregateDialog.viewModel = function (options) {
         @param {Object} feather
         @return {Object}
     */
-    vm.feather = f.prop(catalog.getFeather(
+    vm.feather = f.prop(f.catalog().getFeather(
         options.feather.name,
         true,
         false
@@ -260,7 +258,7 @@ aggregateDialog.viewModel = function (options) {
     return vm;
 };
 
-catalog.register("viewModels", "aggregateDialog", aggregateDialog.viewModel);
+f.catalog().register("viewModels", "aggregateDialog", aggregateDialog.viewModel);
 
 /**
     Aggregate dialog component
@@ -270,6 +268,4 @@ catalog.register("viewModels", "aggregateDialog", aggregateDialog.viewModel);
     @uses Components.Dialog
 */
 aggregateDialog.component = f.getComponent("Dialog");
-catalog.register("components", "aggregateDialog", aggregateDialog.component);
-
-export default Object.freeze(aggregateDialog);
+f.catalog().register("components", "aggregateDialog", aggregateDialog.component);
