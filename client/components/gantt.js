@@ -17,15 +17,12 @@
 */
 
 /*jslint this, browser*/
+/*global f, m*/
 /**
     @module Gantt
 */
-import f from "../core.js";
-
 const Gantt = window.Gantt;
-const catalog = f.catalog();
 const gantt = {};
-const m = window.m;
 
 /**
     Generate view model for checkbox.
@@ -185,6 +182,5 @@ gantt.component = {
     }
 };
 
-catalog.register("components", "gantt", gantt.component);
+f.catalog().register("components", "gantt", gantt.component);
 
-export default Object.freeze(gantt);

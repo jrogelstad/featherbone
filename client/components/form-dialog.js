@@ -16,14 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint browser*/
+/*global f, m*/
 /**
     @module FormDialog
 */
-import f from "../core.js";
 
-const catalog = f.catalog();
 const formDialog = {};
-const m = window.m;
 
 /**
     @class FormDialog
@@ -129,7 +127,7 @@ formDialog.viewModel = function (options) {
     return vm;
 };
 
-catalog.register("viewModels", "formDialog", formDialog.viewModel);
+f.catalog().register("viewModels", "formDialog", formDialog.viewModel);
 
 /**
     Form dialog component
@@ -141,6 +139,4 @@ catalog.register("viewModels", "formDialog", formDialog.viewModel);
 */
 formDialog.component = f.getComponent("Dialog");
 
-catalog.register("components", "formDialog", formDialog.component);
-
-export default Object.freeze(formDialog);
+f.catalog().register("components", "formDialog", formDialog.component);

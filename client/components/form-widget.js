@@ -16,15 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/*global f, m*/
 /**
     @module FormWidget
 */
-import f from "../core.js";
 
-const catalog = f.catalog();
 const formWidget = {};
-const m = window.m;
-const console = window.console;
 
 function buildButtons(vm) {
     let ret;
@@ -91,7 +88,7 @@ function buildFieldset(vm, attrs) {
         let theModel = vm.model();
         let prop = theModel.data[theKey];
         if (!prop) {
-            console.error("Unknown attribute " + theKey + " in form");
+            window.console.error("Unknown attribute " + theKey + " in form");
             return;
         }
         let theDataList = item.dataList || prop.dataList;
@@ -273,7 +270,7 @@ function buildFieldset(vm, attrs) {
     });
 }
 
-function resize(vm, vnode) {
+function resizeWidget(vm, vnode) {
     let e = document.getElementById(vnode.dom.id);
     let bodyHeight = window.innerHeight;
     let eids = vm.outsideElementIds();
@@ -453,7 +450,7 @@ formWidget.viewModel = function (options) {
     return vm;
 };
 
-catalog.register("viewModels", "formWidget", formWidget.viewModel);
+f.catalog().register("viewModels", "formWidget", formWidget.viewModel);
 
 /**
     @class FormWidget
@@ -521,12 +518,10 @@ formWidget.component = {
                 ? "fb-form-content"
                 : ""
             ),
-            oncreate: resize.bind(null, vm),
-            onupdate: resize.bind(null, vm)
+            oncreate: resizeWidget.bind(null, vm),
+            onupdate: resizeWidget.bind(null, vm)
         }, grids);
     }
 };
 
-catalog.register("components", "formWidget", formWidget.component);
-
-export default Object.freeze(formWidget);
+f.catalog().register("components", "formWidget", formWidget.component);

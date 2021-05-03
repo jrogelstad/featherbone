@@ -16,15 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/*global f, m*/
 /**
     @module SearchInput
 */
-import f from "../core.js";
 
-const State = f.State;
-const catalog = f.catalog();
 const searchInput = {};
-const m = window.m;
 
 /**
     @class SearchInput
@@ -132,7 +129,7 @@ searchInput.viewModel = function (options) {
     //
 
     // Define statechart
-    state = State.define(function () {
+    state = f.State.define(function () {
         this.state("Search", function () {
             this.state("Off", function () {
                 this.enter(function () {
@@ -181,7 +178,7 @@ searchInput.viewModel = function (options) {
     return vm;
 };
 
-catalog.register("viewModels", "searchInput", searchInput.viewModel);
+f.catalog().register("viewModels", "searchInput", searchInput.viewModel);
 
 /**
     Search component.
@@ -222,6 +219,5 @@ searchInput.component = {
     }
 };
 
-catalog.register("components", "searchInput", searchInput.component);
+f.catalog().register("components", "searchInput", searchInput.component);
 
-export default Object.freeze(searchInput);

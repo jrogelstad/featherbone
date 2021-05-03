@@ -18,6 +18,7 @@
     },
     "port": 10001,
     "mode": "prod",
-    "npmModules": []
+    "npmModules": [],
+    "debug": false
 }
 

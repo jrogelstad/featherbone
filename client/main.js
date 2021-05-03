@@ -24,11 +24,8 @@ import catalog from "./models/catalog.js";
 import State from "./state.js";
 import navigator from "./components/navigator-menu.js";
 import dialog from "./components/dialog.js";
-import formDialog from "./components/form-dialog.js";
 import formPage from "./components/form-page.js";
 import childFormPage from "./components/child-form-page.js";
-import searchPage from "./components/search-page.js";
-import settingsPage from "./components/settings-page.js";
 import workbookPage from "./components/workbook-page.js";
 import signInPage from "./components/sign-in-page.js";
 import accountMenu from "./components/account-menu.js";
@@ -36,6 +33,8 @@ import accountMenu from "./components/account-menu.js";
 const m = window.m;
 const WebSocket = window.WebSocket;
 const console = window.console;
+const components = f.catalog().store().components();
+const viewModels = f.catalog().store().viewModels();
 
 let hash = window.location.hash.slice(window.location.hash.indexOf("/"));
 let feathers;
@@ -145,8 +144,8 @@ let routes = {
     "/workbook/:workbook/:page": workbookPage.component,
     "/edit/:feather/:key": formPage.component,
     "/traverse/:feather/:key": childFormPage.component,
-    "/search/:feather": searchPage.component,
-    "/settings/:settings": settingsPage.component,
+    "/search/:feather": components.searchPage,
+    "/settings/:settings": components.settingsPage,
     "/sign-in": signInPage.component
 };
 
@@ -679,7 +678,7 @@ function initApp() {
         menu = navigator.viewModel();
 
         // View model for adding workbooks.
-        addWorkbookViewModel = formDialog.viewModel({
+        addWorkbookViewModel = viewModels.formDialog({
             icon: "plus",
             title: "Add workbook",
             model: addWorkbookModel(),
