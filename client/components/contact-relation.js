@@ -16,14 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/*global f, m*/
 /**
     @module ContactRelation
 */
-import f from "../core.js";
 
-const catalog = f.catalog();
 const contactRelation = {};
-const m = window.m;
 
 /**
     @class ContactRelation
@@ -153,7 +151,7 @@ contactRelation.viewModel = function (options) {
     return vm;
 };
 
-catalog.register(
+f.catalog().register(
     "viewModels",
     "contactRelation",
     contactRelation.viewModel
@@ -172,7 +170,7 @@ contactRelation.component = {
         let id = vnode.attrs.form || "6kir5kogekam";
         let relations = options.parentViewModel.relations();
 
-        theForm = catalog.store().data().forms().find(
+        theForm = f.catalog().store().data().forms().find(
             (row) => id === row.id
         );
 
@@ -224,10 +222,8 @@ contactRelation.component = {
     valueProperty: f.prop("fullName")
 };
 
-catalog.register(
+f.catalog().register(
     "components",
     "contactRelation",
     contactRelation.component
 );
-
-export default Object.freeze(contactRelation);

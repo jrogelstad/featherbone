@@ -16,14 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/*global f, m*/
 /**
     @module Dialog
 */
-import f from "../core.js";
 
-const catalog = f.catalog();
 const dialog = {};
-const m = window.m;
 const dialogPolyfill = window.dialogPolyfill;
 /**
     View model for dialog.
@@ -257,7 +255,7 @@ dialog.viewModel = function (options) {
     return vm;
 };
 
-catalog.register("viewModels", "dialog", dialog.viewModel);
+f.catalog().register("viewModels", "dialog", dialog.viewModel);
 
 /**
     Dialog component
@@ -337,6 +335,4 @@ dialog.component = {
     }
 };
 
-catalog.register("components", "dialog", dialog.component);
-
-export default Object.freeze(dialog);
+f.catalog().register("components", "dialog", dialog.component);

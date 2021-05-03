@@ -23,9 +23,7 @@ import settings from "./models/settings.js";
 import catalog from "./models/catalog.js";
 import State from "./state.js";
 import navigator from "./components/navigator-menu.js";
-import dialog from "./components/dialog.js";
 import formPage from "./components/form-page.js";
-import childFormPage from "./components/child-form-page.js";
 import workbookPage from "./components/workbook-page.js";
 import signInPage from "./components/sign-in-page.js";
 import accountMenu from "./components/account-menu.js";
@@ -52,7 +50,6 @@ let workbooks = catalog.register("workbooks");
 let addWorkbookViewModel;
 let sseErrorDialogViewModel;
 let models = catalog.store().models();
-let workbookModel = models.workbook;
 let initialized = false;
 let isSuper = false;
 
@@ -101,10 +98,10 @@ const home = {
             m(navigator.component, {
                 viewModel: menu
             }), [
-                m(dialog.component, {
+                m(components.dialog, {
                     viewModel: sseErrorDialogViewModel
                 }),
-                m(dialog.component, {
+                m(components.dialog, {
                     viewModel: addWorkbookViewModel
                 }),
                 m("span", {
@@ -143,7 +140,7 @@ const home = {
 let routes = {
     "/workbook/:workbook/:page": workbookPage.component,
     "/edit/:feather/:key": formPage.component,
-    "/traverse/:feather/:key": childFormPage.component,
+    "/traverse/:feather/:key": components.childFormPage,
     "/search/:feather": components.searchPage,
     "/settings/:settings": components.settingsPage,
     "/sign-in": signInPage.component
@@ -224,7 +221,7 @@ const addWorkbookConfig = {
 
 function registerWorkbook(workbook) {
     let name = workbook.name.toSpinalCase().toCamelCase();
-    let wmodel = workbookModel(workbook);
+    let wmodel = models.workbook(workbook);
     wmodel.state().goto("/Ready/Fetched/Clean");
     wmodel.checkUpdate();
     workbooks[name] = wmodel;
@@ -686,7 +683,7 @@ function initApp() {
         });
 
         // View model for sse error trapping
-        sseErrorDialogViewModel = dialog.viewModel({
+        sseErrorDialogViewModel = viewModels.dialog({
             icon: "close",
             title: "Connection Error",
             message: (

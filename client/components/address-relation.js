@@ -16,14 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/*global f, m*/
 /**
     @module AddressRelation
 */
-import f from "../core.js";
 
-const catalog = f.catalog();
 const addressRelation = {};
-const m = window.m;
 /**
     Generate view model for address relation.
 
@@ -92,7 +90,7 @@ addressRelation.viewModel = function (options) {
         @return {Array} Array of geographical country names
     */
     vm.countries = function () {
-        let countries = catalog.store().data().countries().map(
+        let countries = f.catalog().store().data().countries().map(
             function (model) {
                 return model.data.name();
             }
@@ -164,7 +162,7 @@ addressRelation.viewModel = function (options) {
         @return {Array} Array of geographical state names
     */
     vm.states = function () {
-        let states = catalog.store().data().states().map(function (model) {
+        let states = f.catalog().store().data().states().map(function (model) {
             return model.data.code();
         }).sort();
 
@@ -296,10 +294,10 @@ addressRelation.component = {
     }
 };
 
-catalog.register(
+f.catalog().register(
     "components",
     "addressRelation",
     addressRelation.component
 );
-export default Object.freeze(addressRelation);
+
 

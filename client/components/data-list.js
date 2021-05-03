@@ -16,15 +16,13 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/*global f, m*/
 /**
     @Module DataList
 */
-import f from "../core.js";
 
-const catalog = f.catalog();
 const dataList = {};
 const table = {};
-const m = window.m;
 
 table.viewModel = function (options) {
     let tableState;
@@ -190,7 +188,7 @@ dataList.viewModel = function (options) {
         let models = vm.models();
         let dataListDialog = vm.dataListDialog();
         let value = vm.prop() || [];
-        let dataListOption = catalog.store().models().dataListOption;
+        let dataListOption = f.catalog().store().models().dataListOption;
 
         function applyEdit() {
             models = models.slice();
@@ -368,6 +366,5 @@ dataList.component = {
     }
 };
 
-catalog.register("components", "dataList", dataList.component);
+f.catalog().register("components", "dataList", dataList.component);
 
-export default Object.freeze(dataList);

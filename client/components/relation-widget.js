@@ -16,14 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/*global f, m*/
 /**
     @module RelationWidget
 */
-import f from "../core.js";
 
-const catalog = f.catalog();
 const relationWidget = {};
-const m = window.m;
 
 function positionMenu(vnode) {
     let e = document.getElementById(vnode.dom.id);
@@ -249,7 +247,7 @@ relationWidget.viewModel = function (options) {
         let searchList = f.copy(options.list);
         searchList.filter = filter || options.filter || searchList.filter;
 
-        catalog.register("config", configId, searchList);
+        f.catalog().register("config", configId, searchList);
 
         m.route.set("/search/:feather", {
             feather: type.relation.toSpinalCase(),
@@ -456,7 +454,7 @@ relationWidget.viewModel = function (options) {
     registerReceiver = function () {
         let receiverKey = f.createId();
 
-        catalog.register("receivers", receiverKey, {
+        f.catalog().register("receivers", receiverKey, {
             callback: function (model) {
                 modelValue(model);
                 vm.showMenu(false);
@@ -468,7 +466,7 @@ relationWidget.viewModel = function (options) {
 
     vm.style(options.style || {});
 
-    catalog.isAuthorized({
+    f.catalog().isAuthorized({
         feather: type.relation,
         action: "canCreate",
         background: true
@@ -479,7 +477,7 @@ relationWidget.viewModel = function (options) {
     return vm;
 };
 
-catalog.register("viewModels", "relationWidget", relationWidget.viewModel);
+f.catalog().register("viewModels", "relationWidget", relationWidget.viewModel);
 
 /**
     @class RelationWidget
@@ -691,6 +689,4 @@ relationWidget.component = {
     }
 };
 
-catalog.register("components", "relationWidget", relationWidget.component);
-
-export default Object.freeze(relationWidget);
+f.catalog().register("components", "relationWidget", relationWidget.component);

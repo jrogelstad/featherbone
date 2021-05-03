@@ -16,14 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/*global f, m*/
 /**
     @module ChildTable
 */
-import f from "../core.js";
 
-const catalog = f.catalog();
 const childTable = {};
-const m = window.m;
 
 /**
     View model for child table used inside forms to present editable lists.
@@ -44,7 +42,7 @@ childTable.viewModel = function (options) {
     let canAdd;
     let root = f.findRoot(options.parentViewModel.model());
     let vm = {};
-    let instances = catalog.register("instances");
+    let instances = f.catalog().register("instances");
 
     function toggleCanAdd() {
         let currentState = root.state().current()[0];
@@ -338,7 +336,7 @@ childTable.viewModel = function (options) {
     return vm;
 };
 
-catalog.register("viewModels", "childTable", childTable.viewModel);
+f.catalog().register("viewModels", "childTable", childTable.viewModel);
 
 /**
   Child table component
@@ -364,8 +362,8 @@ childTable.component = {
         let theParentViewModel = vnode.attrs.parentViewModel;
         let prop = theParentViewModel.model().data[theParentProperty];
         let theModels = prop();
-        let theFeather = catalog.getFeather(prop.type.relation);
-        let parentFeather = catalog.getFeather(
+        let theFeather = f.catalog().getFeather(prop.type.relation);
+        let parentFeather = f.catalog().getFeather(
             theParentViewModel.model().name
         );
         let overloads = parentFeather.overloads || {};
@@ -453,6 +451,4 @@ childTable.component = {
     }
 };
 
-catalog.register("components", "childTable", childTable.component);
-
-export default Object.freeze(childTable);
+f.catalog().register("components", "childTable", childTable.component);

@@ -16,14 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/*global f, m*/
 /**
     @module FilterDialog
 */
-import f from "../core.js";
 
-const catalog = f.catalog();
 const filterDialog = {};
-const m = window.m;
 
 /**
     View model for filter and sort dialog.
@@ -65,7 +63,7 @@ filterDialog.viewModel = function (options) {
                 feather.properties[prefix].type.relation ||
                 feather.properties[prefix].format.toProperCase()
             );
-            feather = catalog.getFeather(rel);
+            feather = f.catalog().getFeather(rel);
             return resolveProperty(feather, suffix);
         }
 
@@ -277,7 +275,7 @@ filterDialog.viewModel = function (options) {
         @param {Object} feather
         @return {Object}
     */
-    vm.feather = f.prop(catalog.getFeather(
+    vm.feather = f.prop(f.catalog().getFeather(
         options.feather.name,
         true,
         false
@@ -540,7 +538,7 @@ filterDialog.viewModel = function (options) {
     return vm;
 };
 
-catalog.register("viewModels", "filterDialog", filterDialog.viewModel);
+f.catalog().register("viewModels", "filterDialog", filterDialog.viewModel);
 
 /**
     Filter dialog component
@@ -551,6 +549,4 @@ catalog.register("viewModels", "filterDialog", filterDialog.viewModel);
 */
 filterDialog.component = f.getComponent("Dialog");
 
-catalog.register("components", "filterDialog", filterDialog.component);
-
-export default Object.freeze(filterDialog);
+f.catalog().register("components", "filterDialog", filterDialog.component);

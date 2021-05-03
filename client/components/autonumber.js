@@ -16,14 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/*global f, m*/
 /**
     @module AutoNumber
 */
-import f from "../core.js";
 
-const catalog = f.catalog();
 const autonumber = {};
-const m = window.m;
 
 function autonumberModel() {
     let feather;
@@ -302,10 +300,10 @@ autonumber.component = {
     }
 };
 
-catalog.register(
+f.catalog().register(
     "components",
     "autonumber",
     autonumber.component
 );
-export default Object.freeze(autonumber);
+
 

@@ -15,13 +15,12 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+/*global f*/
 /**
     @module DataList
 */
-import f from "../core.js";
-import catalog from "./catalog.js";
 
-let feathers;
+let dloFeathers;
 
 const dataListOption = {
     name: "DataListOption",
@@ -41,8 +40,8 @@ const dataListOption = {
     }
 };
 
-feathers = catalog.store().feathers();
-feathers.DataListOption = dataListOption;
+dloFeathers = f.catalog().store().feathers();
+dloFeathers.DataListOption = dataListOption;
 
 /**
     Options for data list.
@@ -56,7 +55,7 @@ function dataListOptionModel(data) {
     let model;
 
     data = data || {};
-    model = f.createModel(data, catalog.getFeather("DataListOption"));
+    model = f.createModel(data, f.catalog().getFeather("DataListOption"));
 
     model.state().resolve("/Ready/Fetched/Clean").event(
         "changed",
@@ -83,6 +82,4 @@ function dataListOptionModel(data) {
     @type Property
 */
 
-catalog.registerModel("DataListOption", dataListOptionModel);
-
-Object.freeze(dataListOptionModel);
+f.catalog().registerModel("DataListOption", dataListOptionModel);

@@ -16,15 +16,13 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/*global f, m*/
 /**
     @module DataType
 */
-import f from "../core.js";
 
-const catalog = f.catalog();
 const dataType = {};
 const listWidget = {};
-const m = window.m;
 
 listWidget.viewModel = function (options) {
     let vm = {};
@@ -147,7 +145,7 @@ dataType.viewModel = function (options) {
         @return {Array}
     */
     vm.feathers = function () {
-        let countries = catalog.store().data().countries().map(
+        let countries = f.catalog().store().data().countries().map(
             function (model) {
                 return model.data.name();
             }
@@ -295,7 +293,7 @@ dataType.viewModel = function (options) {
         let co = options.parentViewModel.model().data.type().childOf;
 
         if (relation && !vm.isOverload()) {
-            fp = catalog.getFeather(relation).properties;
+            fp = f.catalog().getFeather(relation).properties;
             // Exclude self property from list if child
             props = Object.keys(fp).filter((p) => p !== co).sort();
         }
@@ -686,7 +684,7 @@ dataType.component = {
     }
 };
 
-catalog.register(
+f.catalog().register(
     "components",
     "dataType",
     dataType.component

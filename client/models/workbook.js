@@ -16,15 +16,13 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
-import f from "../core.js";
-import datasource from "../datasource.js";
-import catalog from "./catalog.js";
+/*global f*/
 
 const Qs = window.Qs;
 
-let models;
-let feathers;
-let descr = "Parent of \"parent\" on \"WorkbookDefaultConfig\"";
+let wbModels;
+let wbFeathers;
+let wbDescr = "Parent of \"parent\" on \"WorkbookDefaultConfig\"";
 
 function resolveProperties(feather, properties, ary, prefix) {
     prefix = prefix || "";
@@ -37,7 +35,7 @@ function resolveProperties(feather, properties, ary, prefix) {
         let path = prefix + key;
 
         if (isObject && prop.type.properties) {
-            rfeather = catalog.getFeather(prop.type.relation);
+            rfeather = f.catalog().getFeather(prop.type.relation);
             resolveProperties(
                 rfeather,
                 prop.type.properties,
@@ -106,7 +104,7 @@ const workbook = {
             type: "object"
         },
         defaultConfig: {
-            description: descr,
+            description: wbDescr,
             type: "object"
         },
         localConfig: {
@@ -256,12 +254,12 @@ workbookLocalConfig.properties.list = {
     }
 };
 
-feathers = catalog.store().feathers();
-feathers.Workbook = workbook;
-feathers.WorkbookDefaultConfig = workbookDefaultConifg;
-feathers.WorkbookLocalConfig = workbookLocalConfig;
-feathers.WorkbookList = workbookList;
-feathers.WorkbookAuthorization = workbookAuth;
+wbFeathers = f.catalog().store().feathers();
+wbFeathers.Workbook = workbook;
+wbFeathers.WorkbookDefaultConfig = workbookDefaultConifg;
+wbFeathers.WorkbookLocalConfig = workbookLocalConfig;
+wbFeathers.WorkbookList = workbookList;
+wbFeathers.WorkbookAuthorization = workbookAuth;
 
 function resolveConfig(config) {
     config.forEach(function (sheet) {
@@ -269,7 +267,7 @@ function resolveConfig(config) {
             sheet.id = f.createId();
         }
         if (typeof sheet.form === "string" && sheet.form.length) {
-            sheet.form = catalog.store().data().forms().find(
+            sheet.form = f.catalog().store().data().forms().find(
                 (form) => sheet.form === form.id
             );
         }
@@ -289,7 +287,7 @@ function workbookModel(data) {
     let state;
     let substate;
     let doPut;
-    let modules = f.prop(catalog.store().data().modules());
+    let modules = f.prop(f.catalog().store().data().modules());
     let canUpdate;
     let profileConfig;
 
@@ -332,7 +330,7 @@ function workbookModel(data) {
             return profileConfig;
         }
 
-        profile = catalog.store().data().profile();
+        profile = f.catalog().store().data().profile();
 
         if (
             profile &&
@@ -403,7 +401,7 @@ function workbookModel(data) {
                 path: "/workbook/is-authorized/" + model.id() + "?" + query
             };
 
-            datasource.request(payload).then(resolve).catch(reject);
+            f.datasource().request(payload).then(resolve).catch(reject);
         });
     };
 
@@ -425,7 +423,7 @@ function workbookModel(data) {
         }
 
         if (model.isValid()) {
-            datasource.request(payload).then(callback).catch(model.error);
+            f.datasource().request(payload).then(callback).catch(model.error);
         }
     };
 
@@ -551,7 +549,7 @@ function workbookChild(data) {
         // When feather changes, automatically assign
         // the first available form.
         if (value) {
-            forms = catalog.store().data().forms();
+            forms = f.catalog().store().data().forms();
             // Copy to new array model has regular filter method
             forms = forms.slice(0, forms.length - 1);
             forms = forms.filter(
@@ -569,7 +567,7 @@ function workbookChild(data) {
             );
 
             // Remove mismatched columns
-            feather = catalog.getFeather(value);
+            feather = f.catalog().getFeather(value);
             invalid = columns.filter(function (column) {
                 return !feather.properties[column.attr];
             });
@@ -766,11 +764,11 @@ workbookAuthorization.calculated = f.prop({});
 workbookModel.static = f.prop({});
 workbookModel.calculated = f.prop({});
 
-models = catalog.store().models();
-models.workbook = workbookModel;
-models.workbookLocalConfig = workbookChild;
-models.workbookAuthorization = workbookAuthorization;
-Object.freeze(models.workbookLocalConfig);
+wbModels = f.catalog().store().models();
+wbModels.workbook = workbookModel;
+wbModels.workbookLocalConfig = workbookChild;
+wbModels.workbookAuthorization = workbookAuthorization;
+Object.freeze(wbModels.workbookLocalConfig);
 
 const worksheet = {
     name: "Worksheet",
@@ -870,9 +868,9 @@ const worksheetAction = {
     }
 };
 
-feathers.Worksheet = worksheet;
-feathers.WorksheetColumn = worksheetColumn;
-feathers.WorksheetAction = worksheetAction;
+wbFeathers.Worksheet = worksheet;
+wbFeathers.WorksheetColumn = worksheetColumn;
+wbFeathers.WorksheetAction = worksheetAction;
 
 function worksheetModel(data) {
     let model = f.createModel(data, worksheet);
@@ -881,13 +879,13 @@ function worksheetModel(data) {
     let substate;
 
     function thefeathers() {
-        return Object.keys(catalog.feathers()).sort().map(function (key) {
+        return Object.keys(f.catalog().feathers()).sort().map(function (key) {
             return {value: key, label: key};
         });
     }
 
     function theforms() {
-        let forms = catalog.store().data().forms();
+        let forms = f.catalog().store().data().forms();
         let feather = model.data.feather();
 
         // Only forms that have matching feather
@@ -911,7 +909,7 @@ function worksheetModel(data) {
     });
 
     model.onChanged("feather", function () {
-        let props = catalog.getFeather(d.feather()).properties;
+        let props = f.catalog().getFeather(d.feather()).properties;
         let pkeys = Object.keys(props);
         let cols = d.columns().slice();
         let ckeys = cols.map((c) => c.data.attr());
@@ -946,7 +944,7 @@ function worksheetModel(data) {
 }
 worksheetModel.static = f.prop({});
 worksheetModel.calculated = f.prop({});
-models.worksheet = worksheetModel;
+wbModels.worksheet = worksheetModel;
 
 function worksheetColumnModel(data) {
     let model = f.createModel(data, f.catalog().getFeather("WorksheetColumn"));
@@ -981,4 +979,4 @@ function worksheetColumnModel(data) {
 }
 worksheetColumnModel.static = f.prop({});
 worksheetColumnModel.calculated = f.prop({});
-models.worksheetColumn = worksheetColumnModel;
+wbModels.worksheetColumn = worksheetColumnModel;
