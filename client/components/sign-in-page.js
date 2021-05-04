@@ -90,3 +90,5 @@ signInPage.component = {
     }
 };
 
+f.catalog().register("components", "signInPage", signInPage.component);
+
