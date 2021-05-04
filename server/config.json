@@ -19,6 +19,6 @@
     "port": 10001,
     "mode": "prod",
     "npmModules": [],
-    "debug": false
+    "debug": true
 }
 
