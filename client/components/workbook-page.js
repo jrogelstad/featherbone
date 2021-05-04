@@ -36,11 +36,7 @@ const editWorkbookConfig = {
         grid: 1
     }, {
         attr: "icon",
-        dataList: function () {
-            let l = f.icons().map((i) => i.value);
-            l.shift();
-            return l;
-        },
+        dataList: f.icons(),
         grid: 1
     }, {
         attr: "sequence",

@@ -1035,6 +1035,13 @@ f.getForm = function (options) {
 };
 
 /**
+    Array of system supported font-awesome icon names
+
+    @return {Array}
+*/
+f.icons = () => icons
+
+/**
     Object to define what input type to use for data
 
     @property inputMap
