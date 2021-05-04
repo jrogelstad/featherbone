@@ -57,7 +57,7 @@ function doUpsertFeather(obj) {
         }];
 
         function isChild(p) {
-            return typeof p.type === "object" && p.type.childOf;
+            return p !== null && typeof p.type === "object" && p.type.childOf;
         }
 
         // Some update checks
