@@ -20,6 +20,4 @@ $ node server
 
 From your browser navigate to <http://localhost:10001> to run the application. Use the same username and password as specified as in your PostgreSQL [configuration](https://github.com/jrogelstad/featherbone/blob/master/server/config.json) service user ("admin"/"password" by default) to sign in.
 
-An additional example module may be loaded [here](https://github.com/jrogelstad/cardinal)
-
 A documentation server may be installed from [here](https://github.com/jrogelstad/featherbone-docs)
