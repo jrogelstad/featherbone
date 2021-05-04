@@ -58,6 +58,7 @@
     const argv = process.argv;
     let loglevel;
     let consolelog;
+    let debug;
 
     argv.forEach(function (arg) {
         switch (arg) {
@@ -262,6 +263,8 @@
                 return new Promise(function (resolve) {
                     config.read().then(function (resp) {
                         let mods = resp.npmModules || [];
+                        
+                        debug = Boolean(resp.debug);
 
                         // Default 1 day.
                         sessionTimeout = resp.sessionTimeout || 86400000;
@@ -896,7 +899,12 @@
     }
 
     function doGetIndexFile(ignore, res) {
-        fs.readFile("./index.html", function (err, resp) {
+        let file = (
+            debug ?
+            "./index_debug.html" :
+            "./index.html"
+        );
+        fs.readFile(file, function (err, resp) {
             if (err) {
                 error.bind(res)(new Error(err));
                 return;
@@ -1225,6 +1233,7 @@
             "/node_modules/fast-json-patch/dist/fast-json-patch.min.js",
             "/node_modules/dialog-polyfill/dialog-polyfill.js",
             "/node_modules/mithril/mithril.js",
+            "/node_modules/mithril/mithril.min.js",
             "/node_modules/qs/dist/qs.js",
             "/node_modules/purecss/build/pure-min.css",
             "/node_modules/purecss/build/grids-responsive-min.css",
