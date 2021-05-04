@@ -95,7 +95,7 @@ module.static = f.prop({
             dialog.show();
         }
 
-        datasource.request(payload).then(download).catch(error);
+        f.datasource().request(payload).then(download).catch(error);
     },
     packageCheck: function (selections) {
         return (
