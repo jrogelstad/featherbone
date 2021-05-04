@@ -15,11 +15,10 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-import catalog from "./catalog.js";
-import f from "../core.js";
+/*global f*/
 
 function style(data, feather) {
-    feather = feather || catalog.getFeather("Style");
+    feather = feather || f.catalog().getFeather("Style");
     let model = f.createModel(data, feather);
     let d = model.data;
 
@@ -43,10 +42,10 @@ function style(data, feather) {
     model.addCalculated({
         name: "modules",
         type: "array",
-        function: catalog.store().data().modules
+        function: f.catalog().store().data().modules
     });
 
     return model;
 }
 
-catalog.registerModel("Style", style);
+f.catalog().registerModel("Style", style);

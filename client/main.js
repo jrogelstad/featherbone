@@ -17,22 +17,17 @@
 */
 /*jslint this, browser, eval*/
 import f from "./core.js";
-import datasource from "./datasource.js";
 import model from "./models/model.js";
 import settings from "./models/settings.js";
-import catalog from "./models/catalog.js";
-import State from "./state.js";
-import navigator from "./components/navigator-menu.js";
-import formPage from "./components/form-page.js";
-import workbookPage from "./components/workbook-page.js";
-import signInPage from "./components/sign-in-page.js";
-import accountMenu from "./components/account-menu.js";
 
+const datasource = f.datasource();
+const State = f.State;
+const catalog = f.catalog();
 const m = window.m;
 const WebSocket = window.WebSocket;
 const console = window.console;
-const components = f.catalog().store().components();
-const viewModels = f.catalog().store().viewModels();
+const components = catalog.store().components();
+const viewModels = catalog.store().viewModels();
 
 let hash = window.location.hash.slice(window.location.hash.indexOf("/"));
 let feathers;
@@ -95,7 +90,7 @@ const home = {
         return m("div", {
             class: "fb-navigator-menu-container"
         }, [
-            m(navigator.component, {
+            m(components.navigatorMenu, {
                 viewModel: menu
             }), [
                 m(components.dialog, {
@@ -110,7 +105,7 @@ const home = {
                     m("div", {
                         class: "fb-header-home"
                     }, "Home"),
-                    m(accountMenu.component),
+                    m(components.accountMenu),
                     m("button", {
                         class: (
                             toolbarButtonClass +
@@ -138,12 +133,12 @@ const home = {
     }
 };
 let routes = {
-    "/workbook/:workbook/:page": workbookPage.component,
-    "/edit/:feather/:key": formPage.component,
+    "/workbook/:workbook/:page": components.workbookPage,
+    "/edit/:feather/:key": components.formPage,
     "/traverse/:feather/:key": components.childFormPage,
     "/search/:feather": components.searchPage,
     "/settings/:settings": components.settingsPage,
-    "/sign-in": signInPage.component
+    "/sign-in": components.signInPage
 };
 
 // Global sse state handler, allows any page
@@ -672,7 +667,7 @@ function initApp() {
         isSuper = f.currentUser().isSuper;
 
         // Menu
-        menu = navigator.viewModel();
+        menu = viewModels.navigatorMenu();
 
         // View model for adding workbooks.
         addWorkbookViewModel = viewModels.formDialog({

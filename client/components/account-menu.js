@@ -16,13 +16,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/*global f, m*/
 /**
     @module AccountMenu
 */
-import f from "../core.js";
 
-const catalog = f.catalog();
-const m = window.m;
 const accountMenu = {};
 
 /**
@@ -320,7 +318,7 @@ accountMenu.viewModel = function () {
     return vm;
 };
 
-catalog.register("viewModels", "accountMenu", accountMenu.viewModel);
+f.catalog().register("viewModels", "accountMenu", accountMenu.viewModel);
 
 /**
     @class AccountMenu
@@ -470,6 +468,5 @@ accountMenu.component = {
     }
 };
 
-catalog.register("components", "accountMenu", accountMenu.component);
+f.catalog().register("components", "accountMenu", accountMenu.component);
 
-export default Object.freeze(accountMenu);

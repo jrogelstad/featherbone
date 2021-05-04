@@ -15,11 +15,10 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-import catalog from "./catalog.js";
-import f from "../core.js";
+/*global f*/
 
 function currency(data, feather) {
-    feather = feather || catalog.getFeather("Currency");
+    feather = feather || f.catalog().getFeather("Currency");
     let model = f.createModel(data, feather);
 
     model.data.displayUnit.isReadOnly = function () {
@@ -64,10 +63,10 @@ function currency(data, feather) {
     return model;
 }
 
-catalog.registerModel("Currency", currency);
+f.catalog().registerModel("Currency", currency);
 
 function currencyConversion(data, feather) {
-    feather = feather || catalog.getFeather("CurrencyConversion");
+    feather = feather || f.catalog().getFeather("CurrencyConversion");
     let model = f.createModel(data, feather);
 
     model.onValidate(function () {
@@ -83,10 +82,10 @@ function currencyConversion(data, feather) {
     return model;
 }
 
-catalog.registerModel("CurrencyConversion", currencyConversion);
+f.catalog().registerModel("CurrencyConversion", currencyConversion);
 
 function currencyUnit(data, feather) {
-    feather = feather || catalog.getFeather("CurrencyUnit");
+    feather = feather || f.catalog().getFeather("CurrencyUnit");
     let model = f.createModel(data, feather);
 
     model.onValidate(function () {
@@ -98,4 +97,4 @@ function currencyUnit(data, feather) {
     return model;
 }
 
-catalog.registerModel("CurrencyUnit", currencyUnit);
+f.catalog().registerModel("CurrencyUnit", currencyUnit);

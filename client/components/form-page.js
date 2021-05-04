@@ -16,16 +16,13 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/*global f, m*/
 /**
     @module FormPage
 */
-import f from "../core.js";
 
-const catalog = f.catalog();
-const datasource = f.datasource();
 const authTable = {};
 const formPage = {};
-const m = window.m;
 
 const authFeather = {
     name: "ObjectAuthorization",
@@ -295,7 +292,7 @@ function authModel(data) {
             context.resolve();
         }
 
-        datasource.request(payload).then(callback);
+        f.datasource().request(payload).then(callback);
     }
 
     that.objectId = f.prop();
@@ -339,8 +336,8 @@ function authModel(data) {
     return that;
 }
 
-catalog.register("feathers", "ObjectAuthorization", authFeather);
-catalog.registerModel("objectAuthorization", authModel);
+f.catalog().register("feathers", "ObjectAuthorization", authFeather);
+f.catalog().registerModel("objectAuthorization", authModel);
 
 authTable.viewModel = function (options) {
     let tableState;
@@ -486,8 +483,8 @@ formPage.viewModel = function (options) {
     let applyTitle;
     let saveTitle;
     let fmodel;
-    let instances = catalog.register("instances");
-    let sseState = catalog.store().global().sseState;
+    let instances = f.catalog().register("instances");
+    let sseState = f.catalog().store().global().sseState;
     let theFeather = options.feather.toCamelCase(true);
     let form = f.getForm({
         form: options.form,
@@ -514,7 +511,7 @@ formPage.viewModel = function (options) {
     function callReceiver() {
         let receivers;
         if (options.receiver) {
-            receivers = catalog.register("receivers");
+            receivers = f.catalog().register("receivers");
             if (receivers[options.receiver]) {
                 receivers[options.receiver].callback(vm.model());
             }
@@ -528,7 +525,7 @@ formPage.viewModel = function (options) {
     // Process feather auths after object authorization fetch
     function postProcess() {
         // Add in feather auths
-        let auths = catalog.getFeather(theFeather).authorizations;
+        let auths = f.catalog().getFeather(theFeather).authorizations;
 
         auths.forEach(function (auth) {
             let actions = auth.actions;
@@ -854,7 +851,7 @@ formPage.viewModel = function (options) {
         icon: "plus-circle",
         class: toolbarButtonClass
     }));
-    if (catalog.getFeather(theFeather).isReadOnly) {
+    if (f.catalog().getFeather(theFeather).isReadOnly) {
         vm.buttonSaveAndNew().label("&New");
         vm.buttonSaveAndNew().title("Data is read only");
         vm.buttonSaveAndNew().disable();
@@ -1038,6 +1035,5 @@ formPage.component = {
     }
 };
 
-catalog.register("components", "formPage", formPage.component);
+f.catalog().register("components", "formPage", formPage.component);
 
-export default Object.freeze(formPage);

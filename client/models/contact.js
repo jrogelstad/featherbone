@@ -16,14 +16,13 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint browser*/
-import catalog from "./catalog.js";
-import f from "../core.js";
+/*global f*/
 
 /*
   Contact Model
 */
 function contact(data, feather) {
-    feather = feather || catalog.getFeather("Contact");
+    feather = feather || f.catalog().getFeather("Contact");
     let model = f.createModel(data, feather);
     let d = model.data;
 
@@ -43,4 +42,4 @@ function contact(data, feather) {
     return model;
 }
 
-catalog.registerModel("Contact", contact);
+f.catalog().registerModel("Contact", contact);
