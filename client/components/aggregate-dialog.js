@@ -258,7 +258,11 @@ aggregateDialog.viewModel = function (options) {
     return vm;
 };
 
-f.catalog().register("viewModels", "aggregateDialog", aggregateDialog.viewModel);
+f.catalog().register(
+    "viewModels",
+    "aggregateDialog",
+    aggregateDialog.viewModel
+);
 
 /**
     Aggregate dialog component
@@ -268,4 +272,8 @@ f.catalog().register("viewModels", "aggregateDialog", aggregateDialog.viewModel)
     @uses Components.Dialog
 */
 aggregateDialog.component = f.getComponent("Dialog");
-f.catalog().register("components", "aggregateDialog", aggregateDialog.component);
+f.catalog().register(
+    "components",
+    "aggregateDialog",
+    aggregateDialog.component
+);

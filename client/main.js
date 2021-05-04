@@ -16,16 +16,13 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser, eval*/
-import f from "./core.js";
+/*global f, WebSocket, m*/
 import model from "./models/model.js";
 import settings from "./models/settings.js";
 
 const datasource = f.datasource();
 const State = f.State;
 const catalog = f.catalog();
-const m = window.m;
-const WebSocket = window.WebSocket;
-const console = window.console;
 const components = catalog.store().components();
 const viewModels = catalog.store().viewModels();
 

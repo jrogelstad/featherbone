@@ -263,7 +263,7 @@
                 return new Promise(function (resolve) {
                     config.read().then(function (resp) {
                         let mods = resp.npmModules || [];
-                        
+
                         debug = Boolean(resp.debug);
 
                         // Default 1 day.
@@ -900,9 +900,9 @@
 
     function doGetIndexFile(ignore, res) {
         let file = (
-            debug ?
-            "./index_debug.html" :
-            "./index.html"
+            debug
+            ? "./index_debug.html"
+            : "./index.html"
         );
         fs.readFile(file, function (err, resp) {
             if (err) {
