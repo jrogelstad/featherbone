@@ -16,18 +16,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
+/*global f, jsonpatch, m*/
 /**
    @module WorkbookPage
 */
-import f from "../core.js";
-import icons from "../icons.js";
 
-const catalog = f.catalog();
-const datasource = f.datasource();
 const workbookPage = {};
-const m = window.m;
-const console = window.console;
-const jsonpatch = window.jsonpatch;
 const editWorkbookConfig = {
     tabs: [{
         name: "Definition"
@@ -42,7 +36,11 @@ const editWorkbookConfig = {
         grid: 1
     }, {
         attr: "icon",
-        dataList: icons,
+        dataList: function () {
+            let l = f.icons().map((i) => i.value);
+            l.shift();
+            return l;
+        },
         grid: 1
     }, {
         attr: "sequence",
@@ -135,13 +133,13 @@ const editSheetConfig = {
 let profileInvalid = false;
 
 function saveProfile(name, config, dlg) {
-    let oldProfile = catalog.store().data().profile();
+    let oldProfile = f.catalog().store().data().profile();
     let newProfile = f.copy(oldProfile);
     let thePatch;
 
     function callback(resp) {
         newProfile.etag = resp;
-        catalog.store().data().profile(newProfile);
+        f.catalog().store().data().profile(newProfile);
     }
 
     if (profileInvalid) {
@@ -160,7 +158,7 @@ function saveProfile(name, config, dlg) {
         }
         thePatch = jsonpatch.compare(oldProfile.data, newProfile.data);
         if (thePatch && thePatch.length) {
-            datasource.request({
+            f.datasource().request({
                 method: "PATCH",
                 path: "/profile",
                 body: {
@@ -178,7 +176,7 @@ function saveProfile(name, config, dlg) {
     } else if (config) {
         newProfile = {data: {workbooks: {}}};
         newProfile.data.workbooks[name] = f.copy(config);
-        datasource.request({
+        f.datasource().request({
             method: "PUT",
             path: "/profile",
             body: newProfile.data
@@ -201,8 +199,8 @@ workbookPage.viewModel = function (options) {
     let searchState;
     let currentSheet;
     let theFeather;
-    let sseState = catalog.store().global().sseState;
-    let workbook = catalog.store().workbooks()[
+    let sseState = f.catalog().store().global().sseState;
+    let workbook = f.catalog().store().workbooks()[
         options.workbook.toCamelCase()
     ];
 
@@ -934,10 +932,10 @@ workbookPage.viewModel = function (options) {
     // ..........................................................
     // PRIVATE
     //
-    theFeather = catalog.getFeather(vm.sheet().feather);
+    theFeather = f.catalog().getFeather(vm.sheet().feather);
 
     // Register callback
-    catalog.register("receivers", receiverKey, {
+    f.catalog().register("receivers", receiverKey, {
         callback: function (model) {
             let tableModel = vm.tableWidget().selection();
 
@@ -1002,7 +1000,7 @@ workbookPage.viewModel = function (options) {
                     name = name.toSpinalCase().toCamelCase();
 
                     function callback() {
-                        catalog.unregister("workbooks", name);
+                        f.catalog().unregister("workbooks", name);
                         vm.editWorkbookDialog().cancel();
                         m.route.set("/home");
                     }
@@ -1193,7 +1191,7 @@ workbookPage.viewModel = function (options) {
         vm.sseErrorDialog().show();
     });
 
-    catalog.isAuthorized({
+    f.catalog().isAuthorized({
         feather: theFeather.name,
         action: "canCreate"
     }).then(function (canCreate) {
@@ -1228,7 +1226,7 @@ workbookPage.component = {
     oninit: function (vnode) {
         let workbook = vnode.attrs.workbook;
         let sheet = vnode.attrs.page;
-        let viewModels = catalog.register("workbookViewModels");
+        let viewModels = f.catalog().register("workbookViewModels");
 
         if (viewModels[workbook] && viewModels[workbook][sheet]) {
             this.viewModel = viewModels[workbook][sheet];
@@ -1609,6 +1607,4 @@ workbookPage.component = {
     }
 };
 
-catalog.register("components", "workbookPage", workbookPage.component);
-
-export default Object.freeze(workbookPage);
+f.catalog().register("components", "workbookPage", workbookPage.component);

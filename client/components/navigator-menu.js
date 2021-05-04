@@ -16,19 +16,16 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser, bitwise*/
+/*global f, m*/
 /**
     @module NavigatorMenu
 */
-import f from "../core.js";
 
-const catalog = f.catalog();
-const State = f.State;
 const selected = f.prop();
 const navigator = {};
-const m = window.m;
 
 // Define state (global)
-const state = State.define(function () {
+const state = f.State.define(function () {
     this.state("Expanded", function () {
         this.event("toggle", function () {
             this.goto("../Collapsed");
@@ -82,7 +79,7 @@ navigator.viewModel = function () {
         @method workbooks
         @return {Object}
     */
-    vm.workbooks = catalog.store().workbooks;
+    vm.workbooks = f.catalog().store().workbooks;
     /**
         @method goHome
     */
@@ -183,7 +180,7 @@ navigator.viewModel = function () {
     return vm;
 };
 
-catalog.register("viewModels", "navigatorMenu", navigator.viewModel);
+f.catalog().register("viewModels", "navigatorMenu", navigator.viewModel);
 
 /**
     @class NavigatorMenu
@@ -292,6 +289,5 @@ navigator.component = {
     }
 };
 
-catalog.register("components", "navigatorMenu", navigator.component);
+f.catalog().register("components", "navigatorMenu", navigator.component);
 
-export default Object.freeze(navigator);

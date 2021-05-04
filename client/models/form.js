@@ -15,11 +15,10 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+/*global f*/
 /**
     @module Core
 */
-import f from "../core.js";
-import catalog from "./catalog.js";
 
 function form(data, feather) {
     let model;
@@ -34,7 +33,7 @@ function form(data, feather) {
             if (!formFeather) {
                 return result;
             }
-            formFeather = catalog.getFeather(formFeather);
+            formFeather = f.catalog().getFeather(formFeather);
             keys = Object.keys(formFeather.properties || []).sort();
             keys.unshift("");
             props = keys.map(function (key) {
@@ -51,7 +50,7 @@ function form(data, feather) {
         props = undefined;
     }
 
-    feather = feather || catalog.getFeather("Form");
+    feather = feather || f.catalog().getFeather("Form");
     model = f.createModel(data, feather);
 
     /**
@@ -89,7 +88,7 @@ function form(data, feather) {
     model.addCalculated({
         name: "modules",
         type: "array",
-        function: catalog.store().data().modules
+        function: f.catalog().store().data().modules
     });
 
     /**
@@ -117,7 +116,7 @@ function form(data, feather) {
     return model;
 }
 
-catalog.registerModel("Form", form);
+f.catalog().registerModel("Form", form);
 
 function formAttr(data, feather) {
     let model;
@@ -134,7 +133,7 @@ function formAttr(data, feather) {
             return;
         }
 
-        formFeather = catalog.getFeather(formFeather);
+        formFeather = f.catalog().getFeather(formFeather);
         if (formFeather) {
             fprop = formFeather.properties[attr()];
 
@@ -203,7 +202,7 @@ function formAttr(data, feather) {
         if (!formFeather) {
             return result;
         }
-        formFeather = catalog.getFeather(formFeather);
+        formFeather = f.catalog().getFeather(formFeather);
         keys = Object.keys(formFeather.properties || []).sort();
         result = keys.map(function (key) {
             return {
@@ -219,7 +218,7 @@ function formAttr(data, feather) {
         return result;
     }
 
-    feather = feather || catalog.getFeather("FormAttr");
+    feather = feather || f.catalog().getFeather("FormAttr");
     model = f.createModel(data, feather);
 
     /**
@@ -268,7 +267,7 @@ function formAttr(data, feather) {
     return model;
 }
 
-catalog.registerModel("FormAttr", formAttr);
+f.catalog().registerModel("FormAttr", formAttr);
 
 function formAttrColumn(data, feather) {
     let model;
@@ -283,8 +282,8 @@ function formAttrColumn(data, feather) {
             return;
         }
 
-        formFeather = catalog.getFeather(formFeather);
-        childFeather = catalog.getFeather(
+        formFeather = f.catalog().getFeather(formFeather);
+        childFeather = f.catalog().getFeather(
             formFeather.properties[parentAttr].type.relation
         );
 
@@ -302,7 +301,7 @@ function formAttrColumn(data, feather) {
             let path = prefix + key;
 
             if (isObject && prop.type.properties) {
-                rfeather = catalog.getFeather(prop.type.relation);
+                rfeather = f.catalog().getFeather(prop.type.relation);
                 resolveProperties(
                     rfeather,
                     prop.type.properties,
@@ -386,7 +385,7 @@ function formAttrColumn(data, feather) {
         });
     }
 
-    feather = feather || catalog.getFeather("FormAttrColumn");
+    feather = feather || f.catalog().getFeather("FormAttrColumn");
     model = f.createModel(data, feather);
 
     /**
@@ -435,4 +434,4 @@ function formAttrColumn(data, feather) {
     return model;
 }
 
-catalog.registerModel("FormAttrColumn", formAttrColumn);
+f.catalog().registerModel("FormAttrColumn", formAttrColumn);

@@ -15,11 +15,10 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-import catalog from "./catalog.js";
-import f from "../core.js";
+/*global f*/
 
 function role(data, feather) {
-    feather = feather || catalog.getFeather("Role");
+    feather = feather || f.catalog().getFeather("Role");
     let model = f.createModel(data, feather);
     let re = new RegExp(" ", "g");
 
@@ -44,14 +43,14 @@ function role(data, feather) {
     return model;
 }
 
-catalog.registerModel("Role", role);
+f.catalog().registerModel("Role", role);
 
 function roleMembership(data, feather) {
-    feather = feather || catalog.getFeather("RoleMembership");
+    feather = feather || f.catalog().getFeather("RoleMembership");
     let model = f.createModel(data, feather);
 
     function roleNames() {
-        let roles = catalog.store().data().roles().slice();
+        let roles = f.catalog().store().data().roles().slice();
         let result;
 
         result = roles.filter(function (role) {
@@ -96,4 +95,4 @@ function roleMembership(data, feather) {
     return model;
 }
 
-catalog.registerModel("RoleMembership", roleMembership);
+f.catalog().registerModel("RoleMembership", roleMembership);

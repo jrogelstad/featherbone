@@ -15,16 +15,15 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+/*global f*/
 /**
     @module Core
 */
-import f from "../core.js";
-import catalog from "./catalog.js";
 
 function script(data, feather) {
     let model;
 
-    feather = feather || catalog.getFeather("Script");
+    feather = feather || f.catalog().getFeather("Script");
     model = f.createModel(data, feather);
 
     /**
@@ -70,4 +69,4 @@ function script(data, feather) {
     return model;
 }
 
-catalog.registerModel("Script", script);
+f.catalog().registerModel("Script", script);

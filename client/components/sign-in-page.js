@@ -16,9 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint this, browser*/
-import f from "../core.js";
+/*global f, m*/
 
-const m = window.m;
 const signInPage = {};
 
 signInPage.component = {
@@ -91,4 +90,3 @@ signInPage.component = {
     }
 };
 
-export default Object.freeze(signInPage);

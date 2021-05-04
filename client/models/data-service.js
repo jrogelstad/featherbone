@@ -15,16 +15,16 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+/*global f*/
+
 /**
     @module Core
 */
-import catalog from "./catalog.js";
-import f from "../core.js";
 
 function dataService(data, feather) {
     let model;
 
-    feather = feather || catalog.getFeather("DataService");
+    feather = feather || f.catalog().getFeather("DataService");
     model = f.createModel(data, feather);
 
     /**
@@ -43,10 +43,10 @@ function dataService(data, feather) {
     model.addCalculated({
         name: "modules",
         type: "array",
-        function: catalog.store().data().modules
+        function: f.catalog().store().data().modules
     });
 
     return model;
 }
 
-catalog.registerModel("DataService", dataService);
+f.catalog().registerModel("DataService", dataService);

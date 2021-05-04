@@ -16,12 +16,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint browser*/
-import f from "../core.js";
-import catalog from "./catalog.js";
-import datasource from "../datasource.js";
+/*global f*/
 
 function module(data, feather) {
-    feather = feather || catalog.getFeather("Module");
+    feather = feather || f.catalog().getFeather("Module");
     let model = f.createModel(data, feather);
 
     model.onLoad(function () {
@@ -56,7 +54,9 @@ module.static = f.prop({
                 body: formData
             };
 
-            datasource.request(payload).then(viewModel.refresh).catch(error);
+            f.datasource().request(payload).then(
+                viewModel.refresh
+            ).catch(error);
         }
 
         input.setAttribute("type", "file");
@@ -105,4 +105,4 @@ module.static = f.prop({
     }
 });
 
-catalog.registerModel("Module", module);
+f.catalog().registerModel("Module", module);

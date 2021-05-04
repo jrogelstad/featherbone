@@ -18,13 +18,11 @@
 /**
     @module Core
 */
-import catalog from "./catalog.js";
-import f from "../core.js";
 
 function route(data, feather) {
     let model;
 
-    feather = feather || catalog.getFeather("Route");
+    feather = feather || f.catalog().getFeather("Route");
     model = f.createModel(data, feather);
 
     /**
@@ -43,10 +41,10 @@ function route(data, feather) {
     model.addCalculated({
         name: "modules",
         type: "array",
-        function: catalog.store().data().modules
+        function: f.catalog().store().data().modules
     });
 
     return model;
 }
 
-catalog.registerModel("Route", route);
+f.catalog().registerModel("Route", route);
