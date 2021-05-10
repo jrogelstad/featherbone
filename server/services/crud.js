@@ -1827,6 +1827,17 @@
                 };
 
                 doUnlock = function () {
+                    function clearLock (theobj) {
+                        theobj.lock = null;
+                        Object.keys(result).forEach(function (key) {
+                            if (Array.isArray(theobj[key])) {
+                                theobj[key].forEach(clearLock);
+                            }
+                        });
+                    }
+
+                    clearLock(result);
+
                     crud.unlock(theClient, {
                         id: obj.id
                     }).then(
@@ -1837,9 +1848,6 @@
                 };
 
                 done = function () {
-                    // Remove the lock information
-                    result.lock = null;
-
                     // Send back the differences between what user asked
                     // for and result
                     resolve(jsonpatch.compare(cacheRec, result));
