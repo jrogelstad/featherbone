@@ -1848,9 +1848,15 @@
                 };
 
                 done = function () {
+                    let ret = jsonpatch.compare(cacheRec, result);
+
+                    ret = ret.filter(
+                        (r) => r.path.slice(r.path.length - 5) !== "/lock"
+                    );
+
                     // Send back the differences between what user asked
                     // for and result
-                    resolve(jsonpatch.compare(cacheRec, result));
+                    resolve(ret);
                 };
 
                 // Kick off query by getting feather, the rest falls
