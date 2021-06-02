@@ -290,7 +290,7 @@ dataType.viewModel = function (options) {
         let props = [];
         let fp;
         let relation = vm.relation();
-        let co = options.parentViewModel.model().data.type().childOf;
+        let co = options.parentViewModel.model().data.type.childOf;
 
         if (relation && !vm.isOverload()) {
             fp = f.catalog().getFeather(relation).properties;
