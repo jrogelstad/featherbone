@@ -100,6 +100,10 @@ function doUpsertFeather(obj) {
         feather.overloads = {};
         overloads.forEach(function (o) {
             let overload = {};
+            
+            if (o === null) {
+                return;
+            }
 
             if (o.overloadDescription) {
                 overload.description = o.description;
