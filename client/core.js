@@ -66,6 +66,7 @@ function buildForm(feather) {
     let keys;
     let found;
     let theAttrs = [];
+    let idx = 0;
 
     if (typeof feather === "string") {
         feather = catalog.getFeather(feather);
@@ -79,12 +80,16 @@ function buildForm(feather) {
     if (found) {
         theAttrs.push({attr: found});
         keys.splice(keys.indexOf(found), 1);
+    } else {
+        theAttrs.push({attr: "id"});
+        keys.splice(0, 1);
+        idx = 1;
     }
 
     found = keys.find((key) => props[key].isLabelKey);
     if (found) {
         theAttrs.push({attr: found});
-        keys.splice(keys.indexOf(found), 1);
+        keys.splice(keys.indexOf(found) + idx, 1);
     }
 
     // Build config with remaining keys
@@ -153,7 +158,7 @@ function createRelationWidgetFromFeather(type, featherName) {
     let relationWidget = catalog.store().components().relationWidget;
     let feather = catalog.getFeather(type.relation);
     let keys = Object.keys(feather.properties);
-    let naturalKey = keys.find((key) => feather.properties[key].isNaturalKey);
+    let naturalKey = keys.find((key) => feather.properties[key].isNaturalKey) || "id";
     let labelKey = keys.find((key) => feather.properties[key].isLabelKey);
     let properties = f.copy(type.properties);
 
