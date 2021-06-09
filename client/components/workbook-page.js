@@ -333,7 +333,7 @@ workbookPage.viewModel = function (options) {
             id: sheet.id,
             name: sheet.name,
             feather: sheet.feather,
-            form: sheet.feather || "",
+            form: sheet.form || "",
             isEditModeEnabled: sheet.isEditModeEnabled,
             openInNewWindow: sheet.openInNewWindow,
             actions: sheet.actions || [],
@@ -489,7 +489,9 @@ workbookPage.viewModel = function (options) {
         @method modelNew
     */
     vm.modelNew = function () {
-        let form = vm.sheet().form || {};
+        let form = f.catalog().store().data().forms().find(function (frm) {
+            return vm.sheet().form === frm.name;
+        }) || {};
         let url;
         let win;
 
@@ -542,7 +544,9 @@ workbookPage.viewModel = function (options) {
     vm.modelOpen = function () {
         let selection = vm.tableWidget().selection();
         let sheet = vm.sheet() || {};
-        let form = sheet.form || {};
+        let form = f.catalog().store().data().forms().find(function (frm) {
+            return sheet.form === frm.name;
+        }) || {};
         let type = vm.tableWidget().model().data.objectType();
         let url;
         let win;
