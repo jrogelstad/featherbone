@@ -463,6 +463,10 @@
             "attr": "updatedBy",
             "grid": 3,
             "unit": 0
+        }, {
+            "attr": "isDefault",
+            "grid": 0,
+            "unit": 0
         }]
     }
 }, {

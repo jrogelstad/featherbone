@@ -42,7 +42,8 @@
                 "description": "Active status",
                 "type": "boolean",
                 "isRequired": true,
-                "default": true
+                "default": true,
+                "isAlwaysLoad": true
             }
         }
     },
@@ -57,6 +58,12 @@
             "focus": {
                 "description": "Attribute that receives first focus",
                 "type": "string"
+            },
+            "isDefault": {
+                "description": "Is default form",
+                "type": "boolean",
+                "default": true,
+                "isAlwaysLoad": true
             }
         }
     },

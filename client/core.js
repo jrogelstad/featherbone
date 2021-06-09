@@ -1026,7 +1026,7 @@ f.getForm = function (options) {
         form = forms.find(
             (row) => (
                 row.feather === options.feather &&
-                row.isActive
+                row.isDefault
             )
         );
     }

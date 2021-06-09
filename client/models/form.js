@@ -113,6 +113,11 @@ function form(data, feather) {
 
     model.onChanged("feather", handleProperties);
     model.onLoad(handleProperties);
+    model.onValidate(function () {
+        if (model.data.isDefault() && !model.data.isActive()) {
+            throw "Default form must be active"
+        }
+    });
 
     return model;
 }
