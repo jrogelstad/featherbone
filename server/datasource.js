@@ -305,7 +305,8 @@
                     name: "getSettings",
                     user: resp.postgres.user,
                     data: {
-                        name: "catalog"
+                        name: "catalog",
+                        force: true
                     }
                 };
 

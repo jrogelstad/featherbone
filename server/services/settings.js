@@ -76,6 +76,7 @@
         @param {Object} payload.data Data
         @param {String} payload.data.name Settings name
         @param {Object} payload.client Database client
+        @param {Boolean} payload.data.force Force reload
         @return {Promise}
     */
     settings.getSettings = function (obj) {
@@ -119,6 +120,12 @@
 
                     resolve(false);
                 }).catch(reject);
+            }
+
+            if (obj.data.force) {
+                // Is this bug or intentional it's saved two ways?
+                delete settings[name];
+                delete settings.data[name];
             }
 
             // Check if settings have been changed if we already have them
