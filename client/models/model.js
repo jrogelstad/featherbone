@@ -1516,6 +1516,24 @@ function createModel(data, feather) {
         let props = feather.properties;
         let overloads = feather.overloads;
         let keys = Object.keys(props || {});
+        let skeys = {};
+        let dkeys;
+
+        // Fix malformed data names
+        if (data) {
+            keys.forEach((k) => skeys[k.toSnakeCase()] = k);
+            dkeys = Object.keys(data);
+            dkeys.forEach(function (k) {
+                let sk = k.toSnakeCase();
+                if (
+                    skeys[sk] &&
+                    skeys[sk] !== k
+                ) {
+                    data[skeys[sk]] = data[k];
+                    delete data[k];
+                }
+            });
+        }
 
         // Loop through each model property and instantiate a data property
         keys.forEach(function (key) {
