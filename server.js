@@ -175,14 +175,18 @@
 
     // Handle datasource error
     function error(err) {
-        if (typeof err === "string") {
-            err = new Error(err);
-        }
-        if (!err.statusCode) {
-            err.statusCode = 500;
-        }
-        logger.error(err.message);
         this.status(err.statusCode).json(err.message);
+        datasource.getCatalog().then(function () {
+            if (typeof err === "string") {
+                err = new Error(err);
+            }
+            if (!err.statusCode) {
+                err.statusCode = 500;
+            }
+            logger.error(err.message);
+        }).catch(function (e) {
+            console.log(e);
+        });
     }
 
     function init() {
