@@ -100,7 +100,7 @@ function doUpsertFeather(obj) {
         feather.overloads = {};
         overloads.forEach(function (o) {
             let overload = {};
-            
+
             if (o === null) {
                 return;
             }
@@ -874,6 +874,79 @@ f.datasource.registerFunction(
     "Form",
     doHandleForm,
     f.datasource.TRIGGER_BEFORE
+);
+
+function doFormPostProc(obj) {
+    "use strict";
+
+    return new Promise(function (resolve, reject) {
+        let requests = [];
+
+        function callback(resp) {
+            resp.forEach(function (row) {
+                row.isDefault = false;
+                requests.push(
+                    f.datasource.request({
+                        method: "POST",
+                        name: "Form",
+                        client: obj.client,
+                        user: obj.client.currentUser(),
+                        id: row.id,
+                        data: row
+                    }, true)
+                );
+            });
+
+            Promise.all(requests).then(resolve).catch(reject);
+        }
+
+        if (
+            (
+                !obj.oldRec && obj.newRec.isDefault
+            ) ||
+            (
+                !obj.oldRec.isDefault && obj.newRec.isDefault
+            )
+        ) {
+            f.datasource.request({
+                method: "GET",
+                name: "Form",
+                client: obj.client,
+                user: obj.client.currentUser(),
+                filter: {
+                    criteria: [{
+                        property: "feather",
+                        value: obj.newRec.feather
+                    }, {
+                        property: "id",
+                        operator: "!=",
+                        value: obj.newRec.id
+                    }, {
+                        property: "isDefault",
+                        value: true
+                    }]
+                }
+            }, true).then(callback).catch(reject);
+            return;
+        }
+
+        resolve();
+    });
+}
+
+
+f.datasource.registerFunction(
+    "POST",
+    "Form",
+    doFormPostProc,
+    f.datasource.TRIGGER_AFTER
+);
+
+f.datasource.registerFunction(
+    "PATCH",
+    "Form",
+    doFormPostProc,
+    f.datasource.TRIGGER_AFTER
 );
 
 /*

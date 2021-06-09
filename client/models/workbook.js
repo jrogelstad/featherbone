@@ -528,7 +528,6 @@ function workbookChild(data) {
 
     model.onChanged("feather", function (property) {
         let id;
-        let forms;
         let invalid;
         let feather;
         let value = property.newValue();
@@ -546,26 +545,7 @@ function workbookChild(data) {
             : false
         );
 
-        // When feather changes, automatically assign
-        // the first available form.
         if (value) {
-            forms = f.catalog().store().data().forms();
-            // Copy to new array model has regular filter method
-            forms = forms.slice(0, forms.length - 1);
-            forms = forms.filter(
-                (form) => form.feather === value
-            ).sort(function (a, b) {
-                if (a.data.name() < b.data.name()) {
-                    return -1;
-                }
-                return 1;
-            });
-            id = (
-                forms.length
-                ? forms[0].id
-                : undefined
-            );
-
             // Remove mismatched columns
             feather = f.catalog().getFeather(value);
             invalid = columns.filter(function (column) {
@@ -603,8 +583,6 @@ function workbookChild(data) {
                 delete filter[key];
             });
         }
-
-        model.data.form(forms.find((row) => row.id === id));
     });
 
     model.onValidate(function () {
@@ -890,7 +868,10 @@ function worksheetModel(data) {
 
         // Only forms that have matching feather
         return forms.filter(function (form) {
-            return form.feather === feather;
+            return (
+                form.feather === feather &&
+                form.isActive
+            );
         }).map(function (form) {
             return {value: form.name, label: form.name};
         });
