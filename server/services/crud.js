@@ -1827,7 +1827,7 @@
                 };
 
                 doUnlock = function () {
-                    function clearLock (theobj) {
+                    function clearLock(theobj) {
                         theobj.lock = null;
                         Object.keys(result).forEach(function (key) {
                             if (Array.isArray(theobj[key])) {

@@ -1234,7 +1234,7 @@
             "/css/featherbone.css",
             "/node_modules/big.js/big.mjs",
             "/node_modules/event-source-polyfill/src/eventsource.js",
-			"/node_modules/fast-json-patch/dist/fast-json-patch.js",
+            "/node_modules/fast-json-patch/dist/fast-json-patch.js",
             "/node_modules/fast-json-patch/dist/fast-json-patch.min.js",
             "/node_modules/dialog-polyfill/dialog-polyfill.js",
             "/node_modules/mithril/mithril.js",

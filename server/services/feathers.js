@@ -338,9 +338,14 @@
                         );
                         view = "_" + table + "$" + parentProp.toSnakeCase();
                         sql2 = createChildView(parentProp);
-                        args2 = args2.concat(
-                            [view, view, view, col, parentProp.toSnakeCase(), table]
-                        );
+                        args2 = args2.concat([
+                            view,
+                            view,
+                            view,
+                            col,
+                            parentProp.toSnakeCase(),
+                            table
+                        ]);
                         cols2.push(sub);
 
                         sql2 += (
