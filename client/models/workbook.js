@@ -527,7 +527,6 @@ function workbookChild(data) {
     let model = f.createModel(data, workbookLocalConfig);
 
     model.onChanged("feather", function (property) {
-        let id;
         let invalid;
         let feather;
         let value = property.newValue();

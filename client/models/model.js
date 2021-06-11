@@ -1521,7 +1521,9 @@ function createModel(data, feather) {
 
         // Fix malformed data names
         if (data) {
-            keys.forEach((k) => skeys[k.toSnakeCase()] = k);
+            keys.forEach(function (k) {
+                skeys[k.toSnakeCase()] = k;
+            });
             dkeys = Object.keys(data);
             dkeys.forEach(function (k) {
                 let sk = k.toSnakeCase();

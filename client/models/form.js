@@ -115,7 +115,7 @@ function form(data, feather) {
     model.onLoad(handleProperties);
     model.onValidate(function () {
         if (model.data.isDefault() && !model.data.isActive()) {
-            throw "Default form must be active"
+            throw "Default form must be active";
         }
     });
 
