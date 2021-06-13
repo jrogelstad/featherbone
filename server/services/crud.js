@@ -324,13 +324,6 @@
                 afterGetFeather = function (feather) {
                     props = feather.properties;
 
-                    /*
-                    if (!isChild && feather.isChild) {
-                        reject("Can not directly delete a child class");
-                        return;
-                    }
-                    */
-
                     if (isSuperUser === false) {
                         feathers.isAuthorized({
                             client: theClient,
@@ -1360,12 +1353,6 @@
                     feather = resp;
                     tokens = [feather.name.toSnakeCase()];
                     props = feather.properties;
-
-                    /* Validate */
-                    if (!isChild && feather.isChild) {
-                        reject("Can not directly update a child class");
-                        return;
-                    }
 
                     if (isSuperUser === false) {
                         feathers.isAuthorized({
