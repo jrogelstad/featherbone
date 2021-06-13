@@ -1496,9 +1496,7 @@
                                            child on this feather. */
                                         } else {
                                             theParent = catalog[type.relation];
-                                            if (theParent.isChild) {
-                                                prop.type.isChild = true;
-                                            }
+                                            prop.type.isChild = Boolean(theParent.isChild);
                                         }
                                     } else {
                                         err = "Relation not defined for ";
@@ -2036,6 +2034,8 @@
                                     ft.isChild
                                 ) {
                                     st.isChild = true;
+                                } else if (st && st.isChild) {
+                                    st.isChild = false;
                                 }
                             }
                         }
@@ -2075,10 +2075,6 @@
                         ) {
                             spec.authorization = [spec.authorization];
                         }
-
-                        spec.isChild = (
-                            spec.isChild || tools.isChildFeather(spec)
-                        );
 
                         settings.saveSettings({
                             client: theClient,
