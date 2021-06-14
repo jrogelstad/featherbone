@@ -493,7 +493,10 @@ function featherProperty(data, spec) {
 
     model.onChange("name", function (prop) {
         let re = new RegExp(" ", "g");
-        let value = prop.newValue().toCamelCase().replace(re, "");
+        let value = prop.newValue().toSnakeCase().toCamelCase().replace(
+            re,
+            ""
+        );
 
         prop.newValue(value);
     });
