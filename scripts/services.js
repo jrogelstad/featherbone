@@ -905,7 +905,7 @@ function doFormPostProc(obj) {
                 !obj.oldRec && obj.newRec.isDefault
             ) ||
             (
-                !obj.oldRec.isDefault && obj.newRec.isDefault
+                obj.oldRec && !obj.oldRec.isDefault && obj.newRec.isDefault
             )
         ) {
             f.datasource.request({
