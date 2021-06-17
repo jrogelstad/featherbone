@@ -93,7 +93,8 @@ function extendArray(model, prop, name, onChange, onChanged) {
             result = value;
         } else {
             // Create an instance
-            result = catalog.store().models()[name](value);
+            result = catalog.store().models()[name]();
+            result.set(value, true, true);
         }
 
         result.parent(model);
@@ -1589,7 +1590,8 @@ function createModel(data, feather) {
                             result = createModel(value, cFeather);
                         // Get regular model
                         } else {
-                            result = catalog.store().models()[name](value);
+                            result = catalog.store().models()[name]();
+                            result.set(value, true, true);                            
                         }
 
                         // Synchronize statechart
