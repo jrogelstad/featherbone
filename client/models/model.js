@@ -1530,7 +1530,7 @@ function createModel(data, feather) {
             let toType;
             let scale;
             let overload = overloads[key] || {};
-            let alias = overload.alias || props[key].alias || key;
+            let alias = overload.alias || props[key].alias || key.toName();
             let p = props[key];
             let min = p.min;
             let max = p.max;
@@ -1540,7 +1540,6 @@ function createModel(data, feather) {
             let isAutoNumber = overload.autonumber || p.autonumber;
 
             p.default = overload.default || p.default;
-            alias = alias.toName();
 
             // Create properties for relations
             if (typeof p.type === "object") {
