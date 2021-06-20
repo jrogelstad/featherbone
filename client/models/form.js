@@ -289,9 +289,13 @@ function formAttrColumn(data, feather) {
         }
 
         formFeather = f.catalog().getFeather(formFeather);
-        childFeather = f.catalog().getFeather(
-            formFeather.properties[parentAttr].type.relation
-        );
+        if (formFeather &&
+            formFeather.properties[parentAttr]
+        ) {
+            childFeather = f.catalog().getFeather(
+                formFeather.properties[parentAttr].type.relation
+            );
+        }
 
         return childFeather;
     }
