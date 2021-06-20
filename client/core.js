@@ -350,17 +350,13 @@ formats.string = {
 formats.date = {
     type: "string",
     toType: function (value) {
-        let month;
         let ret = "";
 
         if (
             value &&
             value.constructor.name === "Date"
         ) {
-            month = value.getUTCMonth() + 1;
-            ret += value.getUTCFullYear() + "-";
-            ret += month.pad(2, "0") + "-";
-            ret += value.getUTCDate().pad(2, "0");
+            ret += value.toLocalDate();
         } else {
             ret = value;
         }
