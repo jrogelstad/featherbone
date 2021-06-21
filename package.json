@@ -32,7 +32,7 @@
     "purecss": "^1.0.0",
     "qs": "^6.6.0",
     "typeface-raleway": "0.0.54",
-    "winston": "^3.2.1",
+    "winston": "^3.3.3",
     "winston-daily-rotate-file": "^4.4.2",
     "ws": "^7.5.0",
     "xlsx": "^0.14.1"
