@@ -40,7 +40,8 @@ const exclusions = [
     "updated",
     "updatedBy",
     "objectType",
-    "etag"
+    "etag",
+    "owner"
 ];
 const formats = {};
 
