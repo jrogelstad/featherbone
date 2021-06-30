@@ -50,7 +50,7 @@
             "module": {
                 "description": "Module",
                 "type": "string",
-                "isRequired": true
+                "isRequired": false
             },
             "inherits": {
                 "description": "Inherits",
