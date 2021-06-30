@@ -1838,7 +1838,7 @@ tableWidget.viewModel = function (options) {
 
             // Navigate in desired direction
             vm[name]();
-            m.redraw();
+            m.redraw.sync();
             // Set focus on the same cell we left
             document.getElementById(id).focus();
         }
