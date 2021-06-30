@@ -387,7 +387,7 @@ function createList(feather) {
 
             if (ary.isEditable()) {
                 data.forEach(function (item) {
-                    let model = models[name](item);
+                    let model = models[item.objectType.toCamelCase()](item);
 
                     model.state().goto("/Ready/Fetched");
                     ary.add(model);
