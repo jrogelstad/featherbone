@@ -1422,6 +1422,16 @@ function createModel(data, feather) {
         function callback(result) {
             // Update to sent changes
             jsonpatch.applyPatch(lastFetched, patch);
+            // Strip away inapplicable changes in case
+            // this is not a fully loaded instance
+            result = result.filter(function (i) {
+                let attr = i.path.substr(1);
+                let idx = attr.indexOf("/");
+                if (idx !== -1) {
+                    attr = attr.substr(0, idx);
+                }
+                return Boolean(d[attr]);
+            });
             // Update server side changes
             jsonpatch.applyPatch(lastFetched, result);
             model.set(lastFetched, true);
