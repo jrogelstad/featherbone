@@ -288,7 +288,8 @@ childTable.viewModel = function (options) {
         let current = root.state().current()[0];
         if (
             current !== "/Ready/Fetched/ReadOnly" &&
-            current !== "/Locked"
+            current !== "/Locked" &&
+            vm.tableWidget().selection().canDelete()
         ) {
             vm.buttonRemove().enable();
         }
