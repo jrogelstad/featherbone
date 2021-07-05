@@ -830,7 +830,9 @@ function createModel(data, feather) {
             return this;
         }
 
-        stateMap[pName].substateMap.Changing.enter(func.bind(d[pName]));
+        if (stateMap[pName]) {
+            stateMap[pName].substateMap.Changing.enter(func.bind(d[pName]));
+        }
 
         return this;
     };
@@ -885,7 +887,9 @@ function createModel(data, feather) {
             return this;
         }
 
-        stateMap[pName].substateMap.Changing.exit(func.bind(d[pName]));
+        if (stateMap[pName]) {
+            stateMap[pName].substateMap.Changing.exit(func.bind(d[pName]));
+        }
 
         return this;
     };
