@@ -1847,10 +1847,15 @@ tableWidget.viewModel = function (options) {
         case "Up":
         case "ArrowUp":
             nav("goPrevRow");
+            e.preventDefault();
+            e.stopPropagation();
             break;
         case "Down":
         case "ArrowDown":
             nav("goNextRow");
+            e.preventDefault();
+            e.stopPropagation();
+            console.log("DONE");
             break;
         }
     };
