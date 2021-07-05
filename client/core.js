@@ -222,6 +222,7 @@ function buildSelector(obj, opts) {
 
     if (selectComponents[theId]) {
         if (
+            selectComponents[theId].prop === opts.prop &&
             selectComponents[theId].value === val &&
             selectComponents[theId].readonly === opts.readonly &&
             selectComponents[theId].values === values
@@ -239,6 +240,7 @@ function buildSelector(obj, opts) {
         });
     }
 
+    selectComponents[theId].prop = opts.prop;
     selectComponents[theId].value = val;
     selectComponents[theId].readonly = opts.readonly;
     selectComponents[theId].values = values;
@@ -1395,7 +1397,7 @@ f.types.number.editor = function (options) {
     if (prop.min !== undefined) {
         opts.min = prop.min;
     }
-    if (prop.max !== undefined) {
+    if (prop.max) {
         opts.max = prop.max;
     }
 
