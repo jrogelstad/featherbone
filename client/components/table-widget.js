@@ -1855,7 +1855,6 @@ tableWidget.viewModel = function (options) {
             nav("goNextRow");
             e.preventDefault();
             e.stopPropagation();
-            console.log("DONE");
             break;
         }
     };
