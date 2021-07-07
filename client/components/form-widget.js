@@ -228,7 +228,7 @@ function buildFieldset(vm, attrs) {
                 })
             ], item.label || prop.alias() + ":");
         } else {
-            label = m("label", labelOpts, item.label || prop.alias() + ":");
+            label = m("label", labelOpts, (item.label || prop.alias()) + ":");
         }
 
         if (item.showLabel === false) {
