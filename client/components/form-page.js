@@ -23,6 +23,8 @@
 
 const authTable = {};
 const formPage = {};
+const instances = f.catalog().register("instances");
+const formInstances = f.catalog().register("formInstances");
 
 const authFeather = {
     name: "ObjectAuthorization",
@@ -483,7 +485,6 @@ formPage.viewModel = function (options) {
     let applyTitle;
     let saveTitle;
     let fmodel;
-    let instances = f.catalog().register("instances");
     let sseState = f.catalog().store().global().sseState;
     let theFeather = options.feather.toCamelCase(true);
     let form = f.getForm({
@@ -651,6 +652,7 @@ formPage.viewModel = function (options) {
 
         // Once we consciously leave, purge memoize
         delete instances[vm.model().id()];
+        delete formInstances[vm.model().id()];
 
         if (options.isNewWindow) {
             sseState.send("close");
@@ -699,6 +701,7 @@ formPage.viewModel = function (options) {
         vm.model().save().then(function () {
             callReceiver();
             delete instances[vm.model().id()];
+            delete formInstances[vm.model().id()];
             vm.doNew();
         });
     };
@@ -908,9 +911,18 @@ formPage.component = {
         @param {Boolean} [vnode.attrs.isNewWindow]
     */
     oninit: function (vnode) {
+        let instances = f.catalog().store().formInstances();
+        let key = vnode.attrs.key;
+        let existing = instances[key];
+        let redraw;
+
+        if (!vnode.attrs.viewModel && existing) {
+            vnode.attrs.viewModel = existing;
+        }
         this.viewModel = (
             vnode.attrs.viewModel || formPage.viewModel(vnode.attrs)
         );
+        instances[key] = this.viewModel;
     },
     /**
         Feather icon.

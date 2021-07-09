@@ -98,6 +98,7 @@ function buildFieldset(vm, attrs) {
         };
         let menuButtons = vm.menuButtons();
         let relation = vm.relations()[theKey];
+        console.log(vm.model().id());
 
         function openMenuClass() {
             let ret = "pure-menu-link fb-form-label-menu-item";
@@ -164,6 +165,8 @@ function buildFieldset(vm, attrs) {
                 menuButtons[theKey] = {
                     display: "none"
                 };
+            } else {
+                console.log(theKey, menuButtons[theKey].display);
             }
 
             labelOpts.class = "pure-button fb-form-label-button";
@@ -179,6 +182,7 @@ function buildFieldset(vm, attrs) {
                     ) === -1
                 ) {
                     menuButtons[theKey].display = "none";
+                    console.log("kolkaka", theKey);
                 }
             };
             label = m("div", labelOpts, [
@@ -197,7 +201,11 @@ function buildFieldset(vm, attrs) {
                         m("li", {
                             id: "nav-relation-search-" + theKey,
                             class: editMenuClass(),
-                            onclick: relation.search
+                            onclick: function (e) {
+                                menuButtons[theKey].display = "none";
+                                relation.search();
+                                return false; // Stop propagation
+                            }
                         }, [m("i", {
                             id: "nav-relation-search-icon-" + theKey,
                             class: "fa fa-search"
@@ -205,7 +213,11 @@ function buildFieldset(vm, attrs) {
                         m("li", {
                             id: "nav-relation-open-" + theKey,
                             class: openMenuClass(),
-                            onclick: relation.open
+                            onclick: function (e) {
+                                menuButtons[theKey].display = "none";
+                                relation.open();
+                                return false; // Stop propagation
+                            }
                         }, [m("i", {
                             id: "nav-relation-open-icon-" + theKey,
                             class: "fa fa-folder-open"
@@ -213,7 +225,11 @@ function buildFieldset(vm, attrs) {
                         m("li", {
                             id: "nav-relation-new-" + theKey,
                             class: newMenuClass(),
-                            onclick: relation.new
+                            onclick: function () {
+                                menuButtons[theKey].display = "none";
+                                relation.new();
+                                return false; // Stop propagation
+                            }
                         }, [m("i", {
                             id: "nav-relation-new-icon-" + theKey,
                             class: "fa fa-plus-circle"
