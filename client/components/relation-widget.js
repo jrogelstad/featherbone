@@ -616,7 +616,11 @@ relationWidget.component = {
                         m("li", {
                             id: "nav-relation-search-" + id,
                             class: editMenuClass,
-                            onclick: vm.search
+                            onclick: function () {
+                                vm.showMenu(false);
+                                vm.search();
+                                return false;
+                            }
                         }, [m("i", {
                             id: "nav-relation-search-icon-" + id,
                             class: "fa fa-search"
@@ -624,7 +628,11 @@ relationWidget.component = {
                         m("li", {
                             id: "nav-relation-open-" + id,
                             class: openMenuClass,
-                            onclick: vm.open
+                            onclick: function () {
+                                vm.showMenu(false);
+                                vm.open();
+                                return false;
+                            }
                         }, [m("i", {
                             id: "nav-relation-open-icon-" + id,
                             class: "fa fa-folder-open"
@@ -632,7 +640,11 @@ relationWidget.component = {
                         m("li", {
                             id: "nav-relation-new-" + id,
                             class: newMenuClass,
-                            onclick: vm.new
+                            onclick: function () {
+                                vm.showMenu(false);
+                                vm.new();
+                                return false;
+                            }
                         }, [m("i", {
                             id: "nav-relation-new-icon-" + id,
                             class: "fa fa-plus-circle"
