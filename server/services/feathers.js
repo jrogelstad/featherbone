@@ -1496,7 +1496,9 @@
                                            child on this feather. */
                                         } else {
                                             theParent = catalog[type.relation];
-                                            prop.type.isChild = Boolean(theParent.isChild);
+                                            prop.type.isChild = Boolean(
+                                                theParent.isChild
+                                            );
                                         }
                                     } else {
                                         err = "Relation not defined for ";
