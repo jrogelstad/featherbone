@@ -187,30 +187,59 @@
                 }
 
                 function saveModule(pName, pScript, pVersion, pDependencies) {
-                    pDependencies = pDependencies || [];
-                    let vId = btoa(pName);
-                    let payload = {
-                        method: "POST",
-                        name: "Module",
-                        user: pUser,
-                        client: pClient,
-                        id: vId,
-                        data: {
-                            name: pName,
-                            version: pVersion,
-                            owner: pUser,
-                            script: pScript,
-                            dependencies: pDependencies.map(function (dep) {
-                                return {
-                                    module: {
-                                        id: btoa(dep)
-                                    }
-                                };
-                            })
-                        }
-                    };
+                    function callback(modules) {
+                        pDependencies = pDependencies || [];
+                        let found = modules.find((r) => r.name === pName);
+                        let modId = (
+                            found
+                            ? found.id
+                            : btoa(pName)
+                        );
+                        let err;
+                        let deps = pDependencies.map(function (dep) {
+                            let dfound = modules.find((r) => r.name === dep);
+                            if (!dfound) {
+                                err = "Dependant module " + dep + " not found";
+                                return;
+                            }
+                            return {
+                                module: {
+                                    id: dfound.id
+                                }
+                            };
+                        });
+                        let payload;
 
-                    runBatch([payload]);
+                        if (err) {
+                            rollback(err);
+                            return;
+                        }
+
+                        payload = {
+                            method: "POST",
+                            name: "Module",
+                            user: pUser,
+                            client: pClient,
+                            id: modId,
+                            data: {
+                                name: pName,
+                                version: pVersion,
+                                owner: pUser,
+                                script: pScript,
+                                dependencies: deps
+                            }
+                        };
+
+                        runBatch([payload]);
+                    }
+
+                    // Get all modules for mapping
+                    pDatasource.request({
+                        method: "GET",
+                        name: "Module",
+                        client: pClient,
+                        properties: ["id", "name"]
+                    }, true).then(callback).catch(rollback);
                 }
 
                 function saveFeathers(feathers, isSystem) {
