@@ -172,7 +172,15 @@ function createRelationWidgetFromFeather(type, featherName) {
             (key) => exclusions.indexOf(key) === -1
         );
     } else {
-        properties = properties.filter((key) => key !== "id");
+        properties = properties.filter(function (key) {
+            let prop = feather.properties[key];
+            return (
+                key !== "id" && (
+                    typeof prop.type !== "object" ||
+                    !prop.type.parentOf
+                )
+            );
+        });
     }
 
     widget = {
