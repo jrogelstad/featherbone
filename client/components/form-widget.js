@@ -98,7 +98,6 @@ function buildFieldset(vm, attrs) {
         };
         let menuButtons = vm.menuButtons();
         let relation = vm.relations()[theKey];
-        console.log(vm.model().id());
 
         function openMenuClass() {
             let ret = "pure-menu-link fb-form-label-menu-item";
@@ -165,8 +164,6 @@ function buildFieldset(vm, attrs) {
                 menuButtons[theKey] = {
                     display: "none"
                 };
-            } else {
-                console.log(theKey, menuButtons[theKey].display);
             }
 
             labelOpts.class = "pure-button fb-form-label-button";
@@ -182,7 +179,6 @@ function buildFieldset(vm, attrs) {
                     ) === -1
                 ) {
                     menuButtons[theKey].display = "none";
-                    console.log("kolkaka", theKey);
                 }
             };
             label = m("div", labelOpts, [
