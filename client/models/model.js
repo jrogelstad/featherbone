@@ -1814,6 +1814,11 @@ function createModel(data, feather) {
                             context: lock
                         });
                     });
+                    this.event("freeze", function (lock) {
+                        this.goto("../ReadOnly", {
+                            context: lock
+                        });
+                    });
                     this.canDelete = () => true;
                     this.canSave = () => false;
                     this.canUndo = () => false;
