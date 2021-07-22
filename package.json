@@ -35,6 +35,6 @@
     "winston": "^3.3.3",
     "winston-daily-rotate-file": "^4.4.2",
     "ws": "^7.5.0",
-    "xlsx": "^0.14.1"
+    "xlsx": "^0.17.0"
   }
 }
