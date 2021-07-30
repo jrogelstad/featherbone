@@ -1,0 +1,30 @@
+﻿/* override styles when printing */
+
+.fb-navigator-menu {
+  display: none;
+}
+
+.fb-table {
+  width: auto;
+  height: auto;
+}
+
+.fb-toolbar {
+  display: none;
+}
+
+.fb-workbook-tab {
+  display: none;
+}
+
+.fb-workbook-tab {
+  display: none;
+}
+
+.fb-workbook-tab-edit {
+  display: none;
+}
+
+
+
+
