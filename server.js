@@ -1231,6 +1231,7 @@
             "/index.html",
             "/featherbone.png",
             "/css/featherbone.css",
+            "/css/print.css",
             "/node_modules/big.js/big.mjs",
             "/node_modules/event-source-polyfill/src/eventsource.js",
             "/node_modules/fast-json-patch/dist/fast-json-patch.js",
