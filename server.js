@@ -850,6 +850,9 @@
             res.writeHeader(200, {"Content-Type": "application.pdf"});
             res.write(resp);
             res.end();
+            fs.unlink(file, function () {
+                return;
+            });
         });
     }
 
@@ -879,7 +882,7 @@
             req.body.feather,
             req.body.workbook,
             req.body.sheet,
-            "./files/downloads/",
+            "./files/pdf/",
             req.user.name
         ).then(
             respond.bind(res)
