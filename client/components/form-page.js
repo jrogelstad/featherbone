@@ -569,20 +569,6 @@ formPage.viewModel = function (options) {
         });
     }
 
-    function doDownload(target, source) {
-        let element = document.createElement("a");
-
-        element.setAttribute("href", source + "/" + target);
-        element.setAttribute("download", source);
-        element.style.display = "none";
-
-        document.body.appendChild(element);
-
-        element.click();
-
-        document.body.removeChild(element);
-    }
-
     function doPrintPdf() {
         let dlg = vm.confirmDialog();
 
@@ -592,6 +578,16 @@ formPage.viewModel = function (options) {
             dlg.icon("window-close");
             dlg.buttonCancel().hide();
             dlg.show();
+        }
+
+        function openPdf(resp) {
+            let url = (
+                window.location.protocol + "//" +
+                window.location.hostname + ":" +
+                window.location.port + "/pdf/" + resp
+            );
+
+            window.open(url);
         }
 
         let payload;
@@ -606,9 +602,7 @@ formPage.viewModel = function (options) {
             body: theBody
         };
 
-        return m.request(payload).then(
-            doDownload.bind(null, "output.pdf")
-        ).catch(error);
+        return m.request(payload).then(openPdf).catch(error);
     }
 
     // Check if we've already got a model instantiated

@@ -130,6 +130,11 @@
         fs[mkdirsync](dir);
     }
 
+    dir = "./files/pdf";
+    if (!fs[existssync](dir)) {
+        fs[mkdirsync](dir);
+    }
+
     dir = "./logs";
     if (!fs[existssync](dir)) {
         fs[mkdirsync](dir);
@@ -835,6 +840,19 @@
         });
     }
 
+    function doOpenPdf(req, res) {
+        let file = "./files/pdf/" + req.params.file + ".pdf";
+        fs.readFile(file, function (err, resp) {
+            if (err) {
+                error.bind(res)(new Error(err));
+                return;
+            }
+            res.writeHeader(200, {"Content-Type": "application.pdf"});
+            res.write(resp);
+            res.end();
+        });
+    }
+
     function doPrintPdfForm(req, res) {
         let apiPath = req.url.slice(10);
         let feather = resolveName(apiPath);
@@ -843,7 +861,7 @@
         datasource.printPdfForm(
             req.body.form,
             req.body.id || req.body.ids,
-            "./files/downloads/",
+            "./files/pdf/",
             req.user.name
         ).then(
             respond.bind(res)
@@ -1394,6 +1412,7 @@
         app.post("/data/user-accounts", doQueryRequest);
         app.post("/data/user-account", doPostUserAccount);
         app.get("/data/user-account/:id", doRequest);
+        app.get("/pdf/:file", doOpenPdf);
         app.patch("/data/user-account/:id", doPatchUserAccount);
         app.delete("/data/user-account/:id", doRequest);
         app.get("/currency/base", doGetBaseCurrency);
