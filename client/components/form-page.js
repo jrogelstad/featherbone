@@ -569,6 +569,48 @@ formPage.viewModel = function (options) {
         });
     }
 
+    function doDownload(target, source) {
+        let element = document.createElement("a");
+
+        element.setAttribute("href", source + "/" + target);
+        element.setAttribute("download", source);
+        element.style.display = "none";
+
+        document.body.appendChild(element);
+
+        element.click();
+
+        document.body.removeChild(element);
+    }
+
+    function doPrintPdf() {
+        let dlg = vm.confirmDialog();
+
+        function error(err) {
+            dlg.message(err.message);
+            dlg.title("Error");
+            dlg.icon("window-close");
+            dlg.buttonCancel().hide();
+            dlg.show();
+        }
+
+        let payload;
+        let theBody = {
+            id: vm.model().id(),
+            form: options.form
+        };
+
+        payload = {
+            method: "POST",
+            url: "/do/print-pdf/form/",
+            body: theBody
+        };
+
+        return m.request(payload).then(
+            doDownload.bind(null, "output.pdf")
+        ).catch(error);
+    }
+
     // Check if we've already got a model instantiated
     if (options.key && instances[options.key]) {
         fmodel = instances[options.key];
@@ -592,6 +634,12 @@ formPage.viewModel = function (options) {
         @return {ViewModels.Button}
     */
     vm.buttonAuth = f.prop();
+    /**
+        @method buttonPdf
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
+    vm.buttonPdf = f.prop();
     /**
         @method buttonBack
         @param {ViewModels.Button} button
@@ -841,6 +889,13 @@ formPage.viewModel = function (options) {
         class: toolbarButtonClass + " fb-toolbar-button-right"
     }));
 
+    vm.buttonPdf(f.createViewModel("Button", {
+        onclick: doPrintPdf,
+        icon: "file-pdf",
+        title: "Print to PDF",
+        class: toolbarButtonClass + " fb-toolbar-button-right"
+    }));
+
     vm.buttonSave(f.createViewModel("Button", {
         onclick: vm.doSave,
         label: "&Save",
@@ -911,10 +966,9 @@ formPage.component = {
         @param {Boolean} [vnode.attrs.isNewWindow]
     */
     oninit: function (vnode) {
-        let instances = f.catalog().store().formInstances();
+        let frminstances = f.catalog().store().formInstances();
         let key = vnode.attrs.key;
-        let existing = instances[key];
-        let redraw;
+        let existing = frminstances[key];
 
         if (!vnode.attrs.viewModel && existing) {
             vnode.attrs.viewModel = existing;
@@ -922,7 +976,7 @@ formPage.component = {
         this.viewModel = (
             vnode.attrs.viewModel || formPage.viewModel(vnode.attrs)
         );
-        instances[key] = this.viewModel;
+        frminstances[key] = this.viewModel;
     },
     /**
         Feather icon.
@@ -1007,6 +1061,9 @@ formPage.component = {
             }, [
                 m(btn, {
                     viewModel: vm.buttonAuth()
+                }),
+                m(btn, {
+                    viewModel: vm.buttonPdf()
                 }),
                 m(btn, {
                     viewModel: vm.buttonBack()

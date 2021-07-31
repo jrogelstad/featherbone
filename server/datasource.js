@@ -42,6 +42,7 @@
     const {Tools} = require("./services/tools");
     const {Workbooks} = require("./services/workbooks");
     const {Config} = require("./config");
+    const {PDF} = require("./services/pdf");
 
     const f = require("../common/core");
     const jsonpatch = require("fast-json-patch");
@@ -62,6 +63,8 @@
     const role = new Role();
     const tools = new Tools();
     const workbooks = new Workbooks();
+    const pdf = new PDF();
+
     /**
         Server datasource class.
 
@@ -731,6 +734,60 @@
                 db.connect
             ).then(
                 doImport
+            ).then(
+                resolve
+            ).catch(
+                reject
+            );
+        });
+    };
+
+    /**
+        Generate PDF form.
+        Exposes {{#crossLink "Services.PDF"}}{{/crossLink}} via datasource.
+
+        @method printPdfForm
+        @param {String} Form
+        @param {String | Array} ids
+        @param {String} dir Target directory
+        @param {String} username
+        @return {Promise}
+    */
+    that.printPdfForm = function (
+        form,
+        ids,
+        dir,
+        username
+    ) {
+        return new Promise(function (resolve, reject) {
+            // Do the work
+            function doPrint(resp) {
+                return new Promise(function (resolve, reject) {
+                    function callback(ok) {
+                        resp.client.currentUser(undefined);
+                        resp.done();
+                        resolve(ok);
+                    }
+
+                    resp.client.currentUser(username);
+
+                    pdf.printForm(
+                        resp.client,
+                        form,
+                        ids,
+                        dir
+                    ).then(
+                        callback
+                    ).catch(
+                        reject
+                    );
+                });
+            }
+
+            Promise.resolve().then(
+                db.connect
+            ).then(
+                doPrint
             ).then(
                 resolve
             ).catch(

@@ -175,10 +175,10 @@
 
     // Handle datasource error
     function error(err) {
-       if (typeof err === "string") {
+        if (typeof err === "string") {
             err = new Error(err);
         }
-       if (!err.statusCode) {
+        if (!err.statusCode) {
             err.statusCode = 500;
         }
         logger.error(err.message);
@@ -835,6 +835,41 @@
         });
     }
 
+    function doPrintPdfForm(req, res) {
+        let apiPath = req.url.slice(10);
+        let feather = resolveName(apiPath);
+        logger.verbose("Print PDF Form", feather, req.params.format);
+
+        datasource.printPdfForm(
+            req.body.form,
+            req.body.id || req.body.ids,
+            "./files/downloads/",
+            req.user.name
+        ).then(
+            respond.bind(res)
+        ).catch(
+            error.bind(res)
+        );
+    }
+
+    function doPrintPdfWorksheet(req, res) {
+        let apiPath = req.url.slice(10);
+        let feather = resolveName(apiPath);
+        logger.verbose("Print PDF Form", feather, req.params.format);
+
+        datasource.printPdfSheet(
+            req.body.feather,
+            req.body.workbook,
+            req.body.sheet,
+            "./files/downloads/",
+            req.user.name
+        ).then(
+            respond.bind(res)
+        ).catch(
+            error.bind(res)
+        );
+    }
+
     function doGetDownload(req, res) {
         let filePath = "./files/downloads/" + req.params.sourcename;
 
@@ -1371,6 +1406,8 @@
         app.post("/do/save-authorization", doSaveAuthorization);
         app.post("/do/export/:format/:feather", doExport);
         app.post("/do/import/:format/:feather", doImport);
+        app.post("/do/print-pdf/form/", doPrintPdfForm);
+        app.post("/do/print-pdf/worksheet/", doPrintPdfWorksheet);
         app.post("/do/subscribe/:query", doSubscribe);
         app.post("/do/unsubscribe/:query", doUnsubscribe);
         app.post("/do/lock", doLock);
