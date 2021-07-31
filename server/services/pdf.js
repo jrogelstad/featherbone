@@ -24,6 +24,7 @@
 (function (exports) {
     "use strict";
 
+    const f = require("../../common/core");
     const {CRUD} = require("./crud");
     const {Feathers} = require("./feathers");
     const pdf = require("pdfjs");
@@ -293,10 +294,12 @@
                         addRow(2, "Article E", lorem, 120);
                         addRow(5, "Article F", lorem, 50);
 
-                        let w = fs.createWriteStream(dir + "output.pdf");
+                        let id = f.createId();
+                        let path = dir + id + ".pdf";
+                        let w = fs.createWriteStream(path);
                         doc.pipe(w);
                         w.on("close", function () {
-                            resolve("./files/downloads/output.pdf");
+                            resolve(id);
                         });
                         doc.end();
                     });
