@@ -29,9 +29,20 @@
     const {Feathers} = require("./feathers");
     const pdf = require("pdfjs");
     const fonts = {
+        Courier: require("pdfjs/font/Courier"),
+        CourierBold: require("pdfjs/font/Courier-Bold"),
+        CourierBoldOblique: require("pdfjs/font/Courier-BoldOblique"),
+        CourierOblique: require("pdfjs/font/Courier-Oblique"),
         Helvetica: require("pdfjs/font/Helvetica"),
         HelveticaBold: require("pdfjs/font/Helvetica-Bold"),
-        TimesRoman: require("pdfjs/font/Times-Roman")
+        HelveticaBoldOblique: require("pdfjs/font/Helvetica-BoldOblique"),
+        HelveticaOblique: require("pdfjs/font/Helvetica-Oblique"),
+        Symbol: require("pdfjs/font/Symbol"),
+        TimesBold: require("pdfjs/font/Times-Bold"),
+        TimesBoldItalic: require("pdfjs/font/Times-BoldItalic"),
+        TimesItalic: require("pdfjs/font/Times-Italic"),
+        TimesRoman: require("pdfjs/font/Times-Roman"),
+        ZapfDingbats: require("pdfjs/font/ZapfDingbats")
     };
     const fs = require("fs");
     const crud = new CRUD();
@@ -66,11 +77,12 @@
                 }
                 let requests = [];
                 let rows;
-
+                console.log("FORM->", form);
                 function getForm() {
                     return new Promise(function (resolve, reject) {
                         crud.doSelect({
                             name: "Form",
+                            client: vClient,
                             filter: {
                                 criteria: [{
                                     property: "name",
@@ -90,17 +102,17 @@
                             return;
                         }
                         if (form) {
-                            if (!resp[1]) {
+                            if (!resp[1][0]) {
                                 reject("Form " + form + " not found");
                                 return;
                             }
 
-                            if (!resp[1].isActive) {
-                                reject("Form" + form + " is not active");
+                            if (!resp[1][0].isActive) {
+                                reject("Form " + form + " is not active");
                                 return;
                             }
                         }
-                        form = resp[1];
+                        form = resp[1][0];
 
                         feathers.getFeather({
                             client: vClient,
@@ -137,21 +149,29 @@
                     });
                 }
 
-                function doPrint() {
+                function doPrint(resp) {
                     return new Promise(function (resolve) {
+                        console.log(JSON.stringify(form, null, 2));
                         let fn = "readFileSync"; // Lint dogma
-                        //let feather = resp;
+                        let feather = resp;
                         let doc = new pdf.Document({
+                            width: 612,
+                            height: 792,
                             font: fonts.Helvetica,
-                            padding: 10
+                            padding: 10,
+                            properties: {
+                                creator: vClient.currentUser(),
+                                subject: form.description
+                            }
                         });
-
+                        //console.log(
+                        //"FEATHER->", JSON.stringify(feather, null, 2));
                         let header = doc.header().table({
                             widths: [null, null],
                             paddingBottom: 1 * pdf.cm
                         }).row();
 
-                        let cell;
+                        //let cell;
                         let table;
                         let tr;
                         let src = fs[fn]("featherbone.jpg");
@@ -165,35 +185,126 @@
                             " Quia nec honesto quic quam honestius nec turpi" +
                             "turpius."
                         );
+                        let n = 0;
+                        let row = rows[0]; // Need to loop thru this
+
+                        function getLabel(name) {
+                            return (
+                                feather.properties[name].alias ||
+                                name.toName()
+                            );
+                        }
+
+                        header.cell().text({
+                            fontSize: 20,
+                            font: fonts.HelveticaBold
+                        }).add(feather.name.toName());
 
                         header.cell().image(logo, {
-                            height: 2 * pdf.cm
+                            align: "right",
+                            height: 1.5 * pdf.cm
                         });
-                        header.cell().text({
-                            textAlign: "right"
-                        }).add(
-                            "A Portable Document Format (PDF)" +
-                            "generation library targeting both the server- " +
-                            "and client-side."
-                        ).add("https://github.com/rkusa/pdfjs", {
-                            link: "https://github.com/rkusa/pdfjs",
-                            underline: true,
-                            color: 0x569cd6
-                        });
+
+                        function buildSection() {
+                            let attrs = form.attrs.filter((a) => a.grid === n);
+                            let colCnt = 0;
+                            let rowCnt = 0;
+                            let ary = [];
+                            let tbl;
+                            let units = [];
+                            let c = 0;
+
+                            // Figure out how many units (columns)
+                            // in form
+                            attrs.forEach(function (a) {
+                                if (a.unit > colCnt) {
+                                    colCnt = a.unit;
+                                }
+                                if (!ary[a.unit]) {
+                                    ary[a.unit] = [a];
+                                } else {
+                                    ary[a.unit].push(a);
+                                }
+                            });
+                            colCnt += 1;
+                            ary.forEach(function (i) {
+                                if (i.length > rowCnt) {
+                                    rowCnt = i.length;
+                                }
+                            });
+
+                            // Build table
+                            while (c < colCnt) {
+                                units.push(null); // label
+                                units.push(null); // value
+                                c += 1;
+                            }
+                            tbl = doc.table({
+                                widths: units,
+                                padding: 5
+                            });
+
+                            function addRow() {
+                                let atr = tbl.row();
+                                let i = 0;
+                                let attr;
+                                let label;
+                                let value;
+
+                                while (i < colCnt) {
+                                    attr = ary[i].shift();
+                                    if (attr) {
+                                        if (attr.showLabel) {
+                                            label = (
+                                                attr.label ||
+                                                getLabel(attr.attr)
+                                            );
+                                            atr.cell(label + ":", {
+                                                textAlign: "right"
+                                            });
+                                        } else {
+                                            atr.cell("");
+                                        }
+                                        if (attr.columns.length) {
+                                            value = "Array";
+                                        } else {
+                                            value = row[attr.attr];
+                                            if (typeof value === "number") {
+                                                value = value.toString();
+                                            }
+                                        }
+                                        atr.cell(value);
+                                    }
+                                    i += 1;
+                                }
+                            }
+                            c = 0;
+                            while (c < rowCnt) {
+                                addRow();
+                                c += 1;
+                            }
+
+                            n += 1;
+                        }
+
+                        buildSection();
+                        form.tabs.forEach(buildSection);
 
                         doc.footer().pageNumber(function (curr, total) {
                             return curr + " / " + total;
                         }, {
                             textAlign: "center"
                         });
-
+                        /*
                         cell = doc.cell({
                             paddingBottom: 0.5 * pdf.cm
                         });
-                        cell.text("Features:", {
+
+                        cell.text(feather.name.toName(), {
                             fontSize: 16,
                             font: fonts.HelveticaBold
                         });
+
                         cell.text({
                             fontSize: 14,
                             lineHeight: 1.35
@@ -232,7 +343,7 @@
                             underline: true,
                             color: 0x569cd6
                         });
-
+                        */
                         table = doc.table({
                             widths: [
                                 1.5 * pdf.cm,
@@ -293,6 +404,12 @@
                         addRow(3, "Article D", lorem, 1220);
                         addRow(2, "Article E", lorem, 120);
                         addRow(5, "Article F", lorem, 50);
+                        addRow(2, "Article G", lorem, 500);
+                        addRow(1, "Article H", lorem, 250);
+                        addRow(2, "Article I", lorem, 330);
+                        addRow(3, "Article J", lorem, 1220);
+                        addRow(2, "Article K", lorem, 120);
+                        addRow(5, "Article L", lorem, 50);
 
                         let id = f.createId();
                         let path = dir + id + ".pdf";

@@ -841,7 +841,7 @@
     }
 
     function doOpenPdf(req, res) {
-        let file = "./files/pdf/" + req.params.file + ".pdf";
+        let file = "./files/pdf/" + req.params.file;
         fs.readFile(file, function (err, resp) {
             if (err) {
                 error.bind(res)(new Error(err));
