@@ -218,6 +218,8 @@
                 function doPrint() {
                     return new Promise(function (resolve) {
                         let fn = "readFileSync"; // Lint dogma
+                        //let docHeight = 612,
+                        //let docWidth = 792,
                         let doc = new pdf.Document({
                             width: 792,
                             height: 612,
@@ -495,8 +497,16 @@
                             let attr = obj.attribute;
                             let p = resolveProperty(attr.attr, feather);
                             let tr;
+                            let maxWidth = doc.width.minus(
+                                doc.paddingLeft
+                            ).minus(doc.paddingRight);
+                            let ttlWidth = 0;
+                            let cols = attr.columns.filter(function (c) {
+                                ttlWidth += c.width || COL_WIDTH_DEFAULT;
+                                return ttlWidth <= maxWidth;
+                            });
                             let table = doc.table({
-                                widths: attr.columns.map(
+                                widths: cols.map(
                                     (c) => c.width || COL_WIDTH_DEFAULT
                                 ),
                                 borderHorizontalWidths: function (i) {
@@ -535,7 +545,7 @@
                             function addRow(rec) {
                                 let row = table.row();
 
-                                attr.columns.forEach(function (col) {
+                                cols.forEach(function (col) {
                                     formatValue(
                                         row,
                                         rec.objectType,
@@ -545,7 +555,7 @@
                                 });
                             }
 
-                            attr.columns.forEach(addHeader);
+                            cols.forEach(addHeader);
                             data[attr.attr].forEach(addRow);
                         }
 
