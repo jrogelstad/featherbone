@@ -223,7 +223,8 @@
                             width: 792,
                             height: 612,
                             font: fonts.Helvetica,
-                            padding: 10,
+                            padding: 36,
+                            paddingTop: 54,
                             properties: {
                                 creator: vClient.currentUser(),
                                 subject: form.description
@@ -466,7 +467,9 @@
                                 break;
                             case "integer":
                             case "number":
-                                row.cell(value.toLocaleString());
+                                row.cell(value.toLocaleString(), {
+                                    textAlign: "right"
+                                });
                                 break;
                             case "object":
                                 if (p.format === "money") {
@@ -525,7 +528,7 @@
                                         prop.format === "money"
                                     )
                                 ) {
-                                    opts.textAlight = "right";
+                                    opts.textAlign = "right";
                                 }
                                 tr.cell(getLabel(feather.name, col), opts);
                             }
@@ -547,7 +550,7 @@
                             data[attr.attr].forEach(addRow);
                         }
 
-                        function buildSection() {
+                        function buildSection(tab) {
                             let attrs = form.attrs.filter((a) => a.grid === n);
                             let colCnt = 0;
                             let rowCnt = 0;
@@ -556,6 +559,17 @@
                             let units = [];
                             let c = 0;
                             let tables = [];
+
+                            if (tab) {
+                                doc.cell(tab.name, {
+                                    font: fonts.HelveticaBold,
+                                    backgroundColor: 0xd3d3d3,
+                                    fontSize: 14,
+                                    paddingLeft: 9,
+                                    paddingBottom: 2,
+                                    borderBottomWidth: 1
+                                });
+                            }
 
                             // Figure out how many units (columns)
                             // in form
@@ -578,13 +592,14 @@
 
                             // Build table
                             while (c < colCnt) {
-                                units.push(100); // label
-                                units.push(150); // value
+                                units.push(90); // label
+                                units.push(144); // value
                                 c += 1;
                             }
                             tbl = doc.table({
                                 widths: units,
-                                padding: 5
+                                padding: 5,
+                                paddingBottom: 10
                             });
 
                             function addRow() {
@@ -643,6 +658,7 @@
 
                             n += 1;
                         }
+
                         header.cell().text({
                             fontSize: 20,
                             font: fonts.HelveticaBold
@@ -652,7 +668,7 @@
                             align: "right",
                             height: 1.5 * pdf.cm
                         });
-                        
+
                         // Loop through data to build content
                         while (rows.length) {
                             data = rows.shift();
