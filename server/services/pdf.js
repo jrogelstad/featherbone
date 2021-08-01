@@ -133,7 +133,7 @@
                 let rows;
                 let currs;
                 let localFeathers = {};
-                console.log("FORM->", form);
+
                 function getForm() {
                     return new Promise(function (resolve, reject) {
                         crud.doSelect({
@@ -248,7 +248,7 @@
                         );
                         let n = 0;
                         let data = rows[0]; // Need to loop thru this
-
+                        //console.log("FEATHERS->", JSON.stringify(localFeathers, null, 2));
                         function getLabel(feather, attr) {
                             feather = localFeathers[feather];
                             return (
@@ -256,6 +256,18 @@
                                 feather.properties[attr.attr].alias ||
                                 attr.attr.toName()
                             );
+                        }
+
+                        function inheritedFrom(source, target) {
+                            let feather = localFeathers[target];
+                            let props = feather.properties;
+
+                            if (feather.name === source) {
+                                return true;
+                            }
+                            return Object.keys(props).some(function (k) {
+                                return props[k].inheritedFrom === source;
+                            });
                         }
 
                         function formatMoney(value) {
@@ -316,7 +328,7 @@
                                     return;
                                 }
 
-                                if (p.type.relation === "Address") {
+                                if (inheritedFrom(p.type.relation, "Address")) {
                                     value = data[attr].street;
                                     if (data[attr].unit) {
                                         value += cr + data[attr].unit();
@@ -326,6 +338,41 @@
                                     value += data[attr].postalCode;
                                     value += cr + data[attr].country;
                                     row.cell(value);
+                                    return;
+                                }
+
+                                if (inheritedFrom(p.type.relation, "Contact")) {
+                                    rel = row.cell().text();
+                                    rel.add(
+                                        value.fullName
+                                    );
+                                    if (value.phone) {
+                                        rel.br().add(
+                                            value.phone,
+                                            {
+                                                fontSize: 10
+                                            }
+                                        );
+                                    }
+                                    if (value.email) {
+                                        rel.br().add(
+                                            value.email,
+                                            {
+                                                fontSize: 10
+                                            }
+                                        );
+                                    }
+                                    if (value.address) {
+                                        rel.br().add(
+                                            (
+                                                value.address.city + "," +
+                                                value.address.state
+                                            ),
+                                            {
+                                                fontSize: 10
+                                            }
+                                        );
+                                    }
                                     return;
                                 }
 
