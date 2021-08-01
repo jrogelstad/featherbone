@@ -47,6 +47,7 @@
     const fs = require("fs");
     const crud = new CRUD();
     const feathers = new Feathers();
+    const COL_WIDTH_DEFAULT = 150;
 
     function doGetFeather(client, featherName, localFeathers, idx) {
         return new Promise(function (resolve, reject) {
@@ -232,35 +233,45 @@
                             widths: [null, null],
                             paddingBottom: 1 * pdf.cm
                         }).row();
-
-                        let table;
-                        let tr;
                         let src = fs[fn]("featherbone.jpg");
                         let logo = new pdf.Image(src);
-                        let lorem = (
-                            "Lorem ipsum dolor sit amet, consectetur " +
-                            "adipiscing elit. Cum id fugiunt, re eadem " +
-                            " quae Peripatetici, verba. Tenesne igitur, " +
-                            "inquam, Hieronymus Rhodius quid dicat esse " +
-                            "summum bonum, quo putet omnia referri oportere?" +
-                            " Quia nec honesto quic quam honestius nec turpi" +
-                            "turpius."
-                        );
                         let n = 0;
                         let data = rows[0]; // Need to loop thru this
-                        //console.log("FEATHERS->", JSON.stringify(localFeathers, null, 2));
+
+                        function resolveProperty(key, fthr) {
+                            let idx = key.indexOf(".");
+                            let attr;
+                            let rel;
+
+                            if (idx !== -1) {
+                                attr = key.slice(0, idx);
+                                rel = fthr.properties[attr].type.relation;
+                                fthr = localFeathers[rel];
+                                key = key.slice(idx + 1, key.length);
+                                return resolveProperty(key, fthr);
+                            }
+
+                            return fthr.properties[key];
+                        }
+
                         function getLabel(feather, attr) {
                             feather = localFeathers[feather];
                             return (
                                 attr.label ||
-                                feather.properties[attr.attr].alias ||
+                                resolveProperty(attr.attr, feather).alias ||
                                 attr.attr.toName()
                             );
                         }
 
                         function inheritedFrom(source, target) {
                             let feather = localFeathers[target];
-                            let props = feather.properties;
+                            let props;
+
+                            if (!feather) {
+                                return false;
+                            }
+
+                            props = feather.properties;
 
                             if (feather.name === source) {
                                 return true;
@@ -311,11 +322,11 @@
                             );
                         }
 
-                        function formatValue(row, feather, attr) {
+                        function formatValue(row, feather, attr, rec) {
                             feather = localFeathers[feather];
-                            let p = feather.properties[attr];
+                            let p = resolveProperty(attr, feather);
                             let curr;
-                            let value = data[attr];
+                            let value = rec[attr];
                             let item;
                             let nkey;
                             let lkey;
@@ -329,14 +340,14 @@
                                 }
 
                                 if (inheritedFrom(p.type.relation, "Address")) {
-                                    value = data[attr].street;
-                                    if (data[attr].unit) {
-                                        value += cr + data[attr].unit();
+                                    value = rec[attr].street;
+                                    if (rec[attr].unit) {
+                                        value += cr + rec[attr].unit();
                                     }
-                                    value += cr + data[attr].city + ", ";
-                                    value += data[attr].state + " ";
-                                    value += data[attr].postalCode;
-                                    value += cr + data[attr].country;
+                                    value += cr + rec[attr].city + ", ";
+                                    value += rec[attr].state + " ";
+                                    value += rec[attr].postalCode;
+                                    value += cr + rec[attr].country;
                                     row.cell(value);
                                     return;
                                 }
@@ -432,6 +443,7 @@
                                 }
                                 row.cell(value);
                                 break;
+                            case "integer":
                             case "number":
                                 row.cell(value.toLocaleString());
                                 break;
@@ -455,6 +467,65 @@
                             }
                         }
 
+                        function formatTable(obj) {
+                            let feather = localFeathers[obj.feather];
+                            let attr = obj.attribute;
+                            let p = resolveProperty(attr.attr, feather);
+                            let tr;
+                            let table = doc.table({
+                                widths: attr.columns.map(
+                                    (c) => c.width || COL_WIDTH_DEFAULT
+                                ),
+                                borderHorizontalWidths: function (i) {
+                                    return (
+                                        i < 2
+                                        ? 1
+                                        : 0.1
+                                    );
+                                },
+                                padding: 5
+                            });
+                            feather = localFeathers[p.type.relation];
+
+                            tr = table.header({
+                                font: fonts.HelveticaBold,
+                                borderBottomWidth: 1.5
+                            });
+
+                            function addHeader(col) {
+                                let opts = {};
+                                let prop = resolveProperty(col.attr, feather);
+
+                                if (
+                                    prop.type === "number" ||
+                                    prop.type === "integer" ||
+                                    (
+                                        prop.type === "object" &&
+                                        prop.format === "money"
+                                    )
+                                ) {
+                                    opts.textAlight = "right";
+                                }
+                                tr.cell(getLabel(feather.name, col), opts);
+                            }
+
+                            function addRow(rec) {
+                                let row = table.row();
+
+                                attr.columns.forEach(function (col) {
+                                    formatValue(
+                                        row,
+                                        rec.objectType,
+                                        col.attr,
+                                        rec
+                                    );
+                                });
+                            }
+
+                            attr.columns.forEach(addHeader);
+                            data[attr.attr].forEach(addRow);
+                        }
+
                         header.cell().text({
                             fontSize: 20,
                             font: fonts.HelveticaBold
@@ -473,6 +544,7 @@
                             let tbl;
                             let units = [];
                             let c = 0;
+                            let tables = [];
 
                             // Figure out how many units (columns)
                             // in form
@@ -529,12 +601,18 @@
                                         }
                                         // Handle value
                                         if (attr.columns.length) {
-                                            row.cell("Array");
+                                            // Build tables after done with grid
+                                            // Can't put a table in a cell
+                                            tables.push({
+                                                feather: data.objectType,
+                                                attribute: attr
+                                            });
                                         } else {
                                             formatValue(
                                                 row,
                                                 data.objectType,
-                                                attr.attr
+                                                attr.attr,
+                                                data
                                             );
                                         }
                                     }
@@ -545,6 +623,10 @@
                             while (c < rowCnt) {
                                 addRow();
                                 c += 1;
+                            }
+
+                            while (tables.length) {
+                                formatTable(tables.shift());
                             }
 
                             n += 1;
@@ -606,7 +688,7 @@
                             underline: true,
                             color: 0x569cd6
                         });
-                        */
+
                         table = doc.table({
                             widths: [
                                 1.5 * pdf.cm,
@@ -673,7 +755,7 @@
                         addRow(3, "Article J", lorem, 1220);
                         addRow(2, "Article K", lorem, 120);
                         addRow(5, "Article L", lorem, 50);
-
+                        */
                         let id = f.createId();
                         let path = dir + id + ".pdf";
                         let w = fs.createWriteStream(path);
