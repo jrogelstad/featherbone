@@ -267,19 +267,38 @@
                             let nkey;
                             let lkey;
                             let rel;
+                            let cr = "\n";
 
                             if (typeof p.type === "object") {
                                 if (value === null) {
                                     row.cell("");
                                     return;
                                 }
+
+                                if (p.type.relation === "Address") {
+                                    value = data[attr].street;
+                                    if (data[attr].unit) {
+                                        value += cr + data[attr].unit();
+                                    }
+                                    value += cr + data[attr].city + ", ";
+                                    value += data[attr].state + " ";
+                                    value += data[attr].postalCode;
+                                    value += cr + data[attr].country;
+                                    row.cell(value);
+                                    return;
+                                }
+
                                 feather = localFeathers[p.type.relation];
                                 nkey = Object.keys(feather.properties).find(
                                     (k) => feather.properties[k].isNaturalKey
-                                ) || "id";
+                                );
                                 lkey = Object.keys(feather.properties).find(
                                     (k) => feather.properties[k].isLabelKey
                                 );
+                                if (lkey && !nkey) {
+                                    nkey = lkey;
+                                    lkey = undefined;
+                                }
                                 rel = row.cell().text();
                                 if (lkey) {
                                     rel.add(
