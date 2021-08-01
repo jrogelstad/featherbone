@@ -114,7 +114,8 @@
                 "description": "Unit (column) number",
                 "type": "integer",
                 "default": 0,
-                "isRequired": true
+                "isRequired": true,
+                "max": 3
             },
             "showLabel": {
                 "description": "Flag to show or hide label",

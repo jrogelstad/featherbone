@@ -219,8 +219,8 @@
                         console.log(JSON.stringify(form, null, 2));
                         let fn = "readFileSync"; // Lint dogma
                         let doc = new pdf.Document({
-                            width: 612,
-                            height: 792,
+                            width: 792,
+                            height: 612,
                             font: fonts.Helvetica,
                             padding: 10,
                             properties: {
@@ -269,6 +269,10 @@
                             let rel;
 
                             if (typeof p.type === "object") {
+                                if (value === null) {
+                                    row.cell("");
+                                    return;
+                                }
                                 feather = localFeathers[p.type.relation];
                                 nkey = Object.keys(feather.properties).find(
                                     (k) => feather.properties[k].isNaturalKey
@@ -294,11 +298,30 @@
 
                             switch (p.type) {
                             case "string":
+                                if (!value) {
+                                    row.cell("");
+                                    return;
+                                }
                                 if (p.dataList) {
                                     item = p.dataList.find(
                                         (i) => i.value === value
                                     );
                                     value = item.label;
+                                } else if (p.format === "date") {
+                                    value = f.parseDate(
+                                        value
+                                    ).toLocaleDateString();
+                                } else if (p.format === "dateTime") {
+                                    value = new Date(value).toLocaleString();
+                                }
+
+                                row.cell(value);
+                                break;
+                            case "boolean":
+                                if (value) {
+                                    value = "True";
+                                } else {
+                                    value = "False";
                                 }
                                 row.cell(value);
                                 break;
@@ -310,13 +333,19 @@
                                     curr = currs.find(
                                         (c) => c.code === value.currency
                                     );
-                                    value = (
-                                        curr.symbol + " " +
-                                        value.amount.toFixed(curr.minorUnit)
-                                    );
-                                    row.cell(value, {
-                                        textAlign: "right"
-                                    });
+                                    if (curr) {
+                                        value = (
+                                            curr.symbol + " " +
+                                            value.amount.toFixed(
+                                                curr.minorUnit
+                                            )
+                                        );
+                                        row.cell(value, {
+                                            textAlign: "right"
+                                        });
+                                    } else {
+                                        row.cell("Invalid currency");
+                                    }
                                 }
                                 break;
                             default:
@@ -364,8 +393,8 @@
 
                             // Build table
                             while (c < colCnt) {
-                                units.push(null); // label
-                                units.push(null); // value
+                                units.push(100); // label
+                                units.push(150); // value
                                 c += 1;
                             }
                             tbl = doc.table({
