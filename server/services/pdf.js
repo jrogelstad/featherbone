@@ -217,7 +217,6 @@
 
                 function doPrint() {
                     return new Promise(function (resolve) {
-                        console.log(JSON.stringify(form, null, 2));
                         let fn = "readFileSync"; // Lint dogma
                         let doc = new pdf.Document({
                             width: 792,
@@ -561,13 +560,15 @@
                             let tables = [];
 
                             if (tab) {
+                                doc.cell("", {
+                                    minHeight: 10
+                                });
                                 doc.cell(tab.name, {
                                     font: fonts.HelveticaBold,
                                     backgroundColor: 0xd3d3d3,
                                     fontSize: 14,
                                     paddingLeft: 9,
-                                    paddingBottom: 2,
-                                    borderBottomWidth: 1
+                                    paddingBottom: 2
                                 });
                             }
 
@@ -592,14 +593,13 @@
 
                             // Build table
                             while (c < colCnt) {
-                                units.push(90); // label
-                                units.push(144); // value
+                                units.push(100); // label
+                                units.push(134); // value
                                 c += 1;
                             }
                             tbl = doc.table({
                                 widths: units,
-                                padding: 5,
-                                paddingBottom: 10
+                                padding: 5
                             });
 
                             function addRow() {
