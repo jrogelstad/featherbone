@@ -236,7 +236,10 @@
                         let src = fs[fn]("featherbone.jpg");
                         let logo = new pdf.Image(src);
                         let n = 0;
-                        let data = rows[0]; // TODO: Need to loop thru rows
+                        let data;
+                        let id = f.createId();
+                        let path = dir + id + ".pdf";
+                        let w = fs.createWriteStream(path);
 
                         function resolveProperty(key, fthr) {
                             let idx = key.indexOf(".");
@@ -544,16 +547,6 @@
                             data[attr.attr].forEach(addRow);
                         }
 
-                        header.cell().text({
-                            fontSize: 20,
-                            font: fonts.HelveticaBold
-                        }).add(data.objectType.toName());
-
-                        header.cell().image(logo, {
-                            align: "right",
-                            height: 1.5 * pdf.cm
-                        });
-
                         function buildSection() {
                             let attrs = form.attrs.filter((a) => a.grid === n);
                             let colCnt = 0;
@@ -650,9 +643,22 @@
 
                             n += 1;
                         }
+                        header.cell().text({
+                            fontSize: 20,
+                            font: fonts.HelveticaBold
+                        }).add(rows[0].objectType.toName());
 
-                        buildSection();
-                        form.tabs.forEach(buildSection);
+                        header.cell().image(logo, {
+                            align: "right",
+                            height: 1.5 * pdf.cm
+                        });
+                        
+                        // Loop through data to build content
+                        while (rows.length) {
+                            data = rows.shift();
+                            buildSection();
+                            form.tabs.forEach(buildSection);
+                        }
 
                         doc.footer().pageNumber(function (curr, total) {
                             return curr + " / " + total;
@@ -660,9 +666,6 @@
                             textAlign: "center"
                         });
 
-                        let id = f.createId();
-                        let path = dir + id + ".pdf";
-                        let w = fs.createWriteStream(path);
                         doc.pipe(w);
                         w.on("close", function () {
                             resolve(id);
