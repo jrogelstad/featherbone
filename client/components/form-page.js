@@ -584,16 +584,16 @@ formPage.viewModel = function (options) {
             let url = (
                 window.location.protocol + "//" +
                 window.location.hostname + ":" +
-                window.location.port + "/pdf/" + resp
+                window.location.port + "/pdf/" + resp + ".pdf"
             );
 
             window.open(url);
         }
-
+	
         let payload;
         let theBody = {
             id: vm.model().id(),
-            form: options.form
+            form: form.name
         };
 
         payload = {
