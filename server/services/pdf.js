@@ -264,6 +264,33 @@
                             let curr;
                             let value = data[attr];
                             let item;
+                            let nkey;
+                            let lkey;
+                            let rel;
+
+                            if (typeof p.type === "object") {
+                                feather = localFeathers[p.type.relation];
+                                nkey = Object.keys(feather.properties).find(
+                                    (k) => feather.properties[k].isNaturalKey
+                                ) || "id";
+                                lkey = Object.keys(feather.properties).find(
+                                    (k) => feather.properties[k].isLabelKey
+                                );
+                                rel = row.cell().text();
+                                if (lkey) {
+                                    rel.add(
+                                        value[nkey]
+                                    ).br().add(
+                                        value[lkey],
+                                        {
+                                            fontSize: 10
+                                        }
+                                    );
+                                } else {
+                                    rel.add(value[nkey]);
+                                }
+                                return;
+                            }
 
                             switch (p.type) {
                             case "string":
