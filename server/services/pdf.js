@@ -322,16 +322,22 @@
                             );
                         }
 
-                        function formatValue(row, feather, attr, rec) {
+                        function formatValue(row, feather, attr, rec, showLabel) {
                             feather = localFeathers[feather];
                             let p = resolveProperty(attr, feather);
                             let curr;
-                            let value = rec[attr];
+                            let parts =  attr.split(".");
+                            let value = rec[parts[0]];
                             let item;
                             let nkey;
                             let lkey;
                             let rel;
                             let cr = "\n";
+
+                            parts.shift();
+                            while (parts.length) {
+                                value = value[parts.shift()];
+                            }
 
                             if (typeof p.type === "object") {
                                 if (value === null) {
@@ -357,32 +363,34 @@
                                     rel.add(
                                         value.fullName
                                     );
-                                    if (value.phone) {
-                                        rel.br().add(
-                                            value.phone,
-                                            {
-                                                fontSize: 10
-                                            }
-                                        );
-                                    }
-                                    if (value.email) {
-                                        rel.br().add(
-                                            value.email,
-                                            {
-                                                fontSize: 10
-                                            }
-                                        );
-                                    }
-                                    if (value.address) {
-                                        rel.br().add(
-                                            (
-                                                value.address.city + "," +
-                                                value.address.state
-                                            ),
-                                            {
-                                                fontSize: 10
-                                            }
-                                        );
+                                    if (showLabel) {
+                                        if (value.phone) {
+                                            rel.br().add(
+                                                value.phone,
+                                                {
+                                                    fontSize: 10
+                                                }
+                                            );
+                                        }
+                                        if (value.email) {
+                                            rel.br().add(
+                                                value.email,
+                                                {
+                                                    fontSize: 10
+                                                }
+                                            );
+                                        }
+                                        if (value.address) {
+                                            rel.br().add(
+                                                (
+                                                    value.address.city + "," +
+                                                    value.address.state
+                                                ),
+                                                {
+                                                    fontSize: 10
+                                                }
+                                            );
+                                        }
                                     }
                                     return;
                                 }
@@ -391,9 +399,11 @@
                                 nkey = Object.keys(feather.properties).find(
                                     (k) => feather.properties[k].isNaturalKey
                                 );
-                                lkey = Object.keys(feather.properties).find(
-                                    (k) => feather.properties[k].isLabelKey
-                                );
+                                if (showLabel) {
+                                    lkey = Object.keys(feather.properties).find(
+                                        (k) => feather.properties[k].isLabelKey
+                                    );
+                                }
                                 if (lkey && !nkey) {
                                     nkey = lkey;
                                     lkey = undefined;
@@ -612,7 +622,8 @@
                                                 row,
                                                 data.objectType,
                                                 attr.attr,
-                                                data
+                                                data,
+                                                true
                                             );
                                         }
                                     }
