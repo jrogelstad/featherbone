@@ -48,6 +48,60 @@
     const crud = new CRUD();
     const feathers = new Feathers();
 
+    function doGetFeather(client, featherName, localFeathers, idx) {
+        return new Promise(function (resolve, reject) {
+            idx = idx || [];
+
+            // avoid infinite loops
+            if (idx.indexOf(featherName) !== -1) {
+                resolve();
+                return;
+            }
+            idx.push(featherName);
+
+            function getChildFeathers(resp) {
+                let frequests = [];
+                let props = resp.properties;
+
+                try {
+                    localFeathers[featherName] = resp;
+
+                    // Recursively get feathers for all children
+                    Object.keys(props).forEach(function (key) {
+                        let type = props[key].type;
+
+                        if (
+                            typeof type === "object"
+                        ) {
+                            frequests.push(
+                                doGetFeather(
+                                    client,
+                                    type.relation,
+                                    localFeathers,
+                                    idx
+                                )
+                            );
+                        }
+                    });
+                } catch (e) {
+                    reject(e);
+                    return;
+                }
+
+                Promise.all(
+                    frequests
+                ).then(resolve).catch(reject);
+            }
+
+            feathers.getFeather({
+                client,
+                data: {
+                    name: featherName
+                }
+            }).then(getChildFeathers).catch(reject);
+        });
+    }
+
     /**
         @class PDF
         @constructor
@@ -77,6 +131,8 @@
                 }
                 let requests = [];
                 let rows;
+                let currs;
+                let localFeathers = {};
                 console.log("FORM->", form);
                 function getForm() {
                     return new Promise(function (resolve, reject) {
@@ -96,30 +152,30 @@
                 function getFeather(resp) {
                     return new Promise(function (resolve, reject) {
                         rows = resp[0];
+                        currs = resp[1];
 
                         if (!rows.length) {
                             reject("Data not found");
                             return;
                         }
                         if (form) {
-                            if (!resp[1][0]) {
+                            if (!resp[2][0]) {
                                 reject("Form " + form + " not found");
                                 return;
                             }
 
-                            if (!resp[1][0].isActive) {
+                            if (!resp[2][0].isActive) {
                                 reject("Form " + form + " is not active");
                                 return;
                             }
                         }
-                        form = resp[1][0];
+                        form = resp[2][0];
 
-                        feathers.getFeather({
-                            client: vClient,
-                            data: {
-                                name: rows[0].objectType
-                            }
-                        }).then(resolve).catch(reject);
+                        doGetFeather(
+                            vClient,
+                            rows[0].objectType,
+                            localFeathers
+                        ).then(resolve).catch(reject);
                     });
                 }
 
@@ -149,11 +205,19 @@
                     });
                 }
 
-                function doPrint(resp) {
+                function getCurr() {
+                    return new Promise(function (resolve, reject) {
+                        crud.doSelect({
+                            name: "Currency",
+                            client: vClient
+                        }, false, true).then(resolve).catch(reject);
+                    });
+                }
+
+                function doPrint() {
                     return new Promise(function (resolve) {
                         console.log(JSON.stringify(form, null, 2));
                         let fn = "readFileSync"; // Lint dogma
-                        let feather = resp;
                         let doc = new pdf.Document({
                             width: 612,
                             height: 792,
@@ -164,14 +228,11 @@
                                 subject: form.description
                             }
                         });
-                        //console.log(
-                        //"FEATHER->", JSON.stringify(feather, null, 2));
                         let header = doc.header().table({
                             widths: [null, null],
                             paddingBottom: 1 * pdf.cm
                         }).row();
 
-                        //let cell;
                         let table;
                         let tr;
                         let src = fs[fn]("featherbone.jpg");
@@ -186,19 +247,60 @@
                             "turpius."
                         );
                         let n = 0;
-                        let row = rows[0]; // Need to loop thru this
+                        let data = rows[0]; // Need to loop thru this
 
-                        function getLabel(name) {
+                        function getLabel(feather, attr) {
+                            feather = localFeathers[feather];
                             return (
-                                feather.properties[name].alias ||
-                                name.toName()
+                                attr.label ||
+                                feather.properties[attr.attr].alias ||
+                                attr.attr.toName()
                             );
+                        }
+
+                        function formatValue(row, feather, attr) {
+                            feather = localFeathers[feather];
+                            let p = feather.properties[attr];
+                            let curr;
+                            let value = data[attr];
+                            let item;
+
+                            switch (p.type) {
+                            case "string":
+                                if (p.dataList) {
+                                    item = p.dataList.find(
+                                        (i) => i.value === value
+                                    );
+                                    value = item.label;
+                                }
+                                row.cell(value);
+                                break;
+                            case "number":
+                                row.cell(value.toLocaleString());
+                                break;
+                            case "object":
+                                if (p.format === "money") {
+                                    curr = currs.find(
+                                        (c) => c.code === value.currency
+                                    );
+                                    value = (
+                                        curr.symbol + " " +
+                                        value.amount.toFixed(curr.minorUnit)
+                                    );
+                                    row.cell(value, {
+                                        textAlign: "right"
+                                    });
+                                }
+                                break;
+                            default:
+                                row.cell(value);
+                            }
                         }
 
                         header.cell().text({
                             fontSize: 20,
                             font: fonts.HelveticaBold
-                        }).add(feather.name.toName());
+                        }).add(data.objectType.toName());
 
                         header.cell().image(logo, {
                             align: "right",
@@ -245,35 +347,38 @@
                             });
 
                             function addRow() {
-                                let atr = tbl.row();
+                                let row = tbl.row();
                                 let i = 0;
                                 let attr;
                                 let label;
-                                let value;
 
                                 while (i < colCnt) {
                                     attr = ary[i].shift();
                                     if (attr) {
+                                        // Handle Label
                                         if (attr.showLabel) {
-                                            label = (
-                                                attr.label ||
-                                                getLabel(attr.attr)
+                                            label = getLabel(
+                                                data.objectType,
+                                                attr
                                             );
-                                            atr.cell(label + ":", {
-                                                textAlign: "right"
+
+                                            row.cell(label + ":", {
+                                                textAlign: "right",
+                                                font: fonts.HelveticaBold
                                             });
                                         } else {
-                                            atr.cell("");
+                                            row.cell("");
                                         }
+                                        // Handle value
                                         if (attr.columns.length) {
-                                            value = "Array";
+                                            row.cell("Array");
                                         } else {
-                                            value = row[attr.attr];
-                                            if (typeof value === "number") {
-                                                value = value.toString();
-                                            }
+                                            formatValue(
+                                                row,
+                                                data.objectType,
+                                                attr.attr
+                                            );
                                         }
-                                        atr.cell(value);
                                     }
                                     i += 1;
                                 }
@@ -423,6 +528,7 @@
                 }
 
                 requests.push(getData());
+                requests.push(getCurr());
                 if (form) {
                     requests.push(getForm());
                 }
