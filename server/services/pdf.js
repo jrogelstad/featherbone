@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/*jslint node, this, for*/
+/*jslint node, this, for, devel*/
 
 /**
     PDF file generator.
@@ -236,7 +236,7 @@
                         let src = fs[fn]("featherbone.jpg");
                         let logo = new pdf.Image(src);
                         let n = 0;
-                        let data = rows[0]; // Need to loop thru this
+                        let data = rows[0]; // TODO: Need to loop thru rows
 
                         function resolveProperty(key, fthr) {
                             let idx = key.indexOf(".");
@@ -251,15 +251,17 @@
                                 return resolveProperty(key, fthr);
                             }
 
+                            fthr.properties[key].name = key;
                             return fthr.properties[key];
                         }
 
                         function getLabel(feather, attr) {
                             feather = localFeathers[feather];
+                            let p = resolveProperty(attr.attr, feather);
                             return (
                                 attr.label ||
-                                resolveProperty(attr.attr, feather).alias ||
-                                attr.attr.toName()
+                                p.alias ||
+                                p.name.toName()
                             );
                         }
 
@@ -322,11 +324,17 @@
                             );
                         }
 
-                        function formatValue(row, feather, attr, rec, showLabel) {
+                        function formatValue(
+                            row,
+                            feather,
+                            attr,
+                            rec,
+                            showLabel
+                        ) {
                             feather = localFeathers[feather];
                             let p = resolveProperty(attr, feather);
                             let curr;
-                            let parts =  attr.split(".");
+                            let parts = attr.split(".");
                             let value = rec[parts[0]];
                             let item;
                             let nkey;
