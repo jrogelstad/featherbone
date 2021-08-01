@@ -258,6 +258,47 @@
                             );
                         }
 
+                        function formatMoney(value) {
+                            let style;
+                            let amount = value.amount || 0;
+                            let curr = currs.find(
+                                (c) => c.code === value.currency
+                            );
+                            let hasDisplayUnit = curr.hasDisplayUnit;
+                            let minorUnit = (
+                                hasDisplayUnit
+                                ? curr.displayUnit.minorUnit
+                                : curr.minorUnit
+                            );
+
+                            style = {
+                                minimumFractionDigits: minorUnit,
+                                maximumFractionDigits: minorUnit
+                            };
+
+                            if (hasDisplayUnit) {
+                                curr.conversions.some(function (conv) {
+                                    if (
+                                        conv.toUnit().id === curr.displayUnit.id
+                                    ) {
+                                        amount = amount.div(
+                                            conv.ratio
+                                        ).round(minorUnit);
+
+                                        return true;
+                                    }
+                                });
+
+                                curr = currs.find(
+                                    (c) => c.code === curr.displayUnit.code
+                                );
+                            }
+                            return (
+                                curr.symbol + " " +
+                                amount.toLocaleString(undefined, style)
+                            );
+                        }
+
                         function formatValue(row, feather, attr) {
                             feather = localFeathers[feather];
                             let p = feather.properties[attr];
@@ -353,12 +394,7 @@
                                         (c) => c.code === value.currency
                                     );
                                     if (curr) {
-                                        value = (
-                                            curr.symbol + " " +
-                                            value.amount.toFixed(
-                                                curr.minorUnit
-                                            )
-                                        );
+                                        value = formatMoney(value);
                                         row.cell(value, {
                                             textAlign: "right"
                                         });
