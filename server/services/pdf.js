@@ -437,7 +437,12 @@
 
                             parts.shift();
                             while (parts.length) {
-                                value = value[parts.shift()];
+                                if (value === null) {
+                                    value = "";
+                                    parts = [];
+                                } else {
+                                    value = value[parts.shift()];
+                                }
                             }
 
                             if (typeof p.type === "object") {
@@ -719,6 +724,10 @@
                                 let label;
 
                                 while (i < colCnt) {
+                                    if (ary[i] === undefined) {
+                                        i += 1;
+                                        return;
+                                    }
                                     attr = ary[i].shift();
                                     if (attr) {
                                         // Handle Label
