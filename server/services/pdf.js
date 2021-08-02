@@ -314,10 +314,7 @@
                                 creator: vClient.currentUser()
                             }
                         });
-                        let header = doc.header().table({
-                            widths: [null, null],
-                            paddingBottom: 1 * pdf.cm
-                        }).row();
+                        let header;
                         let src = fs[fn]("featherbone.jpg");
                         let logo = new pdf.Image(src);
                         let n = 0;
@@ -598,7 +595,7 @@
                                 ttlWidth += c.width || COL_WIDTH_DEFAULT;
                                 return ttlWidth <= maxWidth;
                             });
-                            let table
+                            let table;
 
                             if (attr.showLabel) {
                                 doc.cell("", {
@@ -781,6 +778,11 @@
                             n += 1;
                         }
 
+                        header = doc.header().table({
+                            widths: [null, null],
+                            paddingBottom: 1 * pdf.cm
+                        }).row();
+
                         header.cell().text({
                             fontSize: 20,
                             font: fonts.HelveticaBold
@@ -791,18 +793,18 @@
                             height: 1.5 * pdf.cm
                         });
 
+                        doc.footer().pageNumber(function (curr, total) {
+                            return curr + " / " + total;
+                        }, {
+                            textAlign: "center"
+                        });
+
                         // Loop through data to build content
                         while (rows.length) {
                             data = rows.shift();
                             buildSection();
                             form.tabs.forEach(buildSection);
                         }
-
-                        doc.footer().pageNumber(function (curr, total) {
-                            return curr + " / " + total;
-                        }, {
-                            textAlign: "center"
-                        });
 
                         doc.pipe(w);
                         w.on("close", function () {
