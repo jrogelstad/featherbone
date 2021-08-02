@@ -48,6 +48,92 @@
     const crud = new CRUD();
     const feathers = new Feathers();
     const COL_WIDTH_DEFAULT = 150;
+    const exclusions = [
+        "id",
+        "isDeleted",
+        "lock",
+        "created",
+        "createdBy",
+        "updated",
+        "updatedBy",
+        "objectType",
+        "etag",
+        "owner"
+    ];
+
+    function buildForm(feather, localFeathers) {
+        let props;
+        let keys;
+        let found;
+        let theAttrs = [];
+
+        props = f.copy(feather.properties);
+        keys = Object.keys(props);
+
+        // Make sure key attributes are first
+        found = keys.find((key) => props[key].isNaturalKey);
+        if (found) {
+            theAttrs.push({attr: found});
+            keys.splice(keys.indexOf(found), 1);
+        }
+
+        found = keys.find((key) => props[key].isLabelKey);
+        if (found) {
+            theAttrs.push({attr: found});
+            keys.splice(keys.indexOf(found), 1);
+        }
+
+        // Build config with remaining keys
+        keys.forEach(function (key) {
+            let value = {attr: key};
+            let p;
+            let k;
+
+            if (exclusions.indexOf(key) !== -1) {
+                return;
+            }
+
+            if (
+                props[key].type === "object" &&
+                !props[key].format
+            ) {
+                return;
+            }
+
+            if (
+                typeof props[key].type === "object" && (
+                    props[key].type.childOf || props[key].type.parentOf
+                )
+            ) {
+                p = localFeathers[props[key].type.relation].properties;
+                k = Object.keys(p);
+                k = k.filter(function (key) {
+                    return (
+                        exclusions.indexOf(key) === -1 &&
+                        (typeof p[key] !== "object" || !p[key].type.childOf)
+                    );
+                });
+                value.columns = k.map(function (key) {
+                    return {attr: key};
+                });
+                value.height = "200px";
+            }
+
+            theAttrs.push(value);
+        });
+
+        theAttrs.forEach(function (a) {
+            a.grid = 0;
+            a.unit = 0;
+            a.label = "";
+            a.showLabel = true;
+            a.columns = a.columns || [];
+        });
+        return {
+            attrs: theAttrs,
+            tabs: []
+        };
+    }
 
     function doGetFeather(client, featherName, localFeathers, idx) {
         return new Promise(function (resolve, reject) {
@@ -169,8 +255,8 @@
                                 reject("Form " + form + " is not active");
                                 return;
                             }
+                            form = resp[2][0];
                         }
-                        form = resp[2][0];
 
                         doGetFeather(
                             vClient,
@@ -218,8 +304,6 @@
                 function doPrint() {
                     return new Promise(function (resolve) {
                         let fn = "readFileSync"; // Lint dogma
-                        //let docHeight = 612,
-                        //let docWidth = 792,
                         let doc = new pdf.Document({
                             width: 792,
                             height: 612,
@@ -227,8 +311,7 @@
                             padding: 36,
                             paddingTop: 54,
                             properties: {
-                                creator: vClient.currentUser(),
-                                subject: form.description
+                                creator: vClient.currentUser()
                             }
                         });
                         let header = doc.header().table({
@@ -242,6 +325,11 @@
                         let id = f.createId();
                         let path = dir + id + ".pdf";
                         let w = fs.createWriteStream(path);
+
+                        form = form || buildForm(
+                            localFeathers[rows[0].objectType],
+                            localFeathers
+                        );
 
                         function resolveProperty(key, fthr) {
                             let idx = key.indexOf(".");
