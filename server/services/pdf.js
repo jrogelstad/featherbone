@@ -593,7 +593,19 @@
                                 ttlWidth += c.width || COL_WIDTH_DEFAULT;
                                 return ttlWidth <= maxWidth;
                             });
-                            let table = doc.table({
+                            let table
+
+                            if (attr.showLabel) {
+                                doc.cell("", {
+                                    minHeight: 10
+                                });
+                                doc.cell(getLabel(obj.feather, attr) + ":", {
+                                    padding: 5,
+                                    font: fonts.HelveticaBold
+                                });
+                            }
+
+                            table = doc.table({
                                 widths: cols.map(
                                     (c) => c.width || COL_WIDTH_DEFAULT
                                 ),
