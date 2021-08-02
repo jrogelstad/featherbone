@@ -731,7 +731,10 @@
                                     attr = ary[i].shift();
                                     if (attr) {
                                         // Handle Label
-                                        if (attr.showLabel) {
+                                        if (
+                                            attr.showLabel &&
+                                            !attr.columns.length
+                                        ) {
                                             label = getLabel(
                                                 data.objectType,
                                                 attr
