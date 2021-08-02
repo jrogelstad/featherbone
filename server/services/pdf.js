@@ -793,17 +793,19 @@
                             height: 1.5 * pdf.cm
                         });
 
+/*                      Some bug in footer fouls up alignment
                         doc.footer().pageNumber(function (curr, total) {
                             return curr + " / " + total;
                         }, {
                             textAlign: "center"
                         });
-
+*/
                         // Loop through data to build content
                         while (rows.length) {
                             data = rows.shift();
                             buildSection();
                             form.tabs.forEach(buildSection);
+                            doc.cell("");
                         }
 
                         doc.pipe(w);
