@@ -64,6 +64,62 @@
                 "type": "boolean",
                 "default": true,
                 "isAlwaysLoad": true
+            },
+            "title": {
+                "description": "Appears as form header. If blank feather will be used",
+                "type": "string"
+            },
+            "paperSize": {
+                "description": "Print paper size",
+                "type": "string",
+                "format": "enum",
+                "isRequired": true,
+                "default": "Letter Wide",
+                "dataList": [{
+                    "value": "Letter",
+                    "label": "Letter"
+                }, {
+                    "value": "Letter Wide",
+                    "label": "Letter Wide"
+                }, {
+                    "value": "Legal",
+                    "label": "Legal"
+                }, {
+                    "value": "Legal Wide",
+                    "label": "Legal Wide"
+                }, {
+                    "value": "Statement",
+                    "label": "Statement"
+                }, {
+                    "value": "A4",
+                    "label": "A4"
+                }, {
+                    "value": "A4 Wide",
+                    "label": "A4 Wide"
+                }, {
+                    "value": "Label 4x6",
+                    "label": "Label 4x6"
+                }, {
+                    "value": "Label 5x7",
+                    "label": "Label 5x7"
+                }]
+            },
+            "font": {
+                "description": "Default font",
+                "type": "string",
+                "format": "enum",
+                "isRequired": true,
+                "default": "Helvetica",
+                "dataList": [{
+                    "value": "Courier",
+                    "label": "Courier"
+                }, {
+                    "value": "Helvetica",
+                    "label": "Helvetica"
+                }, {
+                    "value": "Times",
+                    "label": "Times Roman"
+                }]
             }
         }
     },
@@ -101,7 +157,7 @@
             "attr": {
                 "description": "Attribute name",
                 "type": "string",
-                "alias": "attribute",
+                "alias": "Attribute",
                 "isRequired": true
             },
             "grid": {
@@ -151,6 +207,70 @@
                     ]
                 },
                 "isReadOnly": true
+            },
+            "font": {
+                "description": "Print override font",
+                "type": "string",
+                "format": "enum",
+                "dataList": [{
+                    "value": "Barcode128",
+                    "label": "Barcode 128"
+                }, {
+                    "value": "Barcode128Text",
+                    "label": "Barcode 128 Text"
+                }, {
+                    "value": "Barcode39",
+                    "label": "Barcode 39"
+                }, {
+                    "value": "Barcode39Text",
+                    "label": "Barcode 39 Text"
+                }, {
+                    "value": "Barcode39Extended",
+                    "label": "Barcode 39 Extended"
+                }, {
+                    "value": "Barcode39ExtendedText",
+                    "label": "Barcode 39 Extended Text"
+                }, {
+                    "value": "Courier",
+                    "label": "Courier"
+                }, {
+                    "value": "CourierBold",
+                    "label": "Courier Bold"
+                }, {
+                    "value": "CourierBoldOblique",
+                    "label": "Courier Bold Italic"
+                }, {
+                    "value": "CourierOblique",
+                    "label": "Courier Italic"
+                }, {
+                    "value": "Helvetica",
+                    "label": "Helvetica"
+                }, {
+                    "value": "HelveticaBold",
+                    "label": "Helvetica Bold"
+                }, {
+                    "value": "HelveticaBoldOblique",
+                    "label": "Helvetica Bold Italic"
+                }, {
+                    "value": "HelveticaOblique",
+                    "label": "Helvetica Italic"
+                }, {
+                    "value": "TimesRoman",
+                    "label": "Times"
+                }, {
+                    "value": "TimesBold",
+                    "label": "Times Bold"
+                }, {
+                    "value": "TimesBoldItalic",
+                    "label": "Courier Bold Italic"
+                }, {
+                    "value": "TimesItalic",
+                    "label": "Courier Italic"
+                }]
+            },
+            "fontSize": {
+                "description": "Print override font size (default 12)",
+                "type": "number"
             }
         },
         "overloads": {
@@ -176,7 +296,7 @@
             "attr": {
                 "description": "Attribute name",
                 "type": "string",
-                "alias": "attribute"
+                "alias": "Attribute"
             },
             "label": {
                 "description": "Alternate column label",
@@ -198,6 +318,70 @@
             "width": {
                 "description": "Default column width",
                 "type": "integer"
+            },
+            "font": {
+                "description": "Print override font",
+                "type": "string",
+                "format": "enum",
+                "dataList": [{
+                    "value": "Barcode128",
+                    "label": "Barcode 128"
+                }, {
+                    "value": "Barcode128Text",
+                    "label": "Barcode 128 Text"
+                }, {
+                    "value": "Barcode39",
+                    "label": "Barcode 39"
+                }, {
+                    "value": "Barcode39Text",
+                    "label": "Barcode 39 Text"
+                }, {
+                    "value": "Barcode39Extended",
+                    "label": "Barcode 39 Extended"
+                }, {
+                    "value": "Barcode39ExtendedText",
+                    "label": "Barcode 39 Extended Text"
+                }, {
+                    "value": "Courier",
+                    "label": "Courier"
+                }, {
+                    "value": "CourierBold",
+                    "label": "Courier Bold"
+                }, {
+                    "value": "CourierBoldOblique",
+                    "label": "Courier Bold Italic"
+                }, {
+                    "value": "CourierOblique",
+                    "label": "Courier Italic"
+                }, {
+                    "value": "Helvetica",
+                    "label": "Helvetica"
+                }, {
+                    "value": "HelveticaBold",
+                    "label": "Helvetica Bold"
+                }, {
+                    "value": "HelveticaBoldOblique",
+                    "label": "Helvetica Bold Italic"
+                }, {
+                    "value": "HelveticaOblique",
+                    "label": "Helvetica Italic"
+                }, {
+                    "value": "TimesRoman",
+                    "label": "Times"
+                }, {
+                    "value": "TimesBold",
+                    "label": "Times Bold"
+                }, {
+                    "value": "TimesBoldItalic",
+                    "label": "Courier Bold Italic"
+                }, {
+                    "value": "TimesItalic",
+                    "label": "Courier Italic"
+                }]
+            },
+            "fontSize": {
+                "description": "Print override font size (default 12)",
+                "type": "number"
             }
         }
     },

@@ -24,11 +24,33 @@
 (function (exports) {
     "use strict";
 
+    const readFileSync = "readFileSync"; // Lint dogma
     const f = require("../../common/core");
+    const fs = require("fs");
     const {CRUD} = require("./crud");
     const {Feathers} = require("./feathers");
     const pdf = require("pdfjs");
     const fonts = {
+        Barcode128: new pdf.Font(
+            fs[readFileSync]("./fonts/LibreBarcode128-Regular.ttf")
+        ),
+        Barcode128Text: new pdf.Font(
+            fs[readFileSync]("./fonts/LibreBarcode128Text-Regular.ttf")
+        ),
+        Barcode39: new pdf.Font(
+            fs[readFileSync]("./fonts/LibreBarcode39-Regular.ttf")
+        ),
+        Barcode39Text: new pdf.Font(
+            fs[readFileSync]("./fonts/LibreBarcode39Text-Regular.ttf")
+        ),
+        Barcode39Extended: new pdf.Font(
+            fs[readFileSync]("./fonts/LibreBarcode39Extended-Regular.ttf")
+        ),
+        Barcode39ExtendedText: new pdf.Font(
+            fs[readFileSync](
+                "./fonts/LibreBarcode39ExtendedText-Regular.ttf"
+            )
+        ),
         Courier: require("pdfjs/font/Courier"),
         CourierBold: require("pdfjs/font/Courier-Bold"),
         CourierBoldOblique: require("pdfjs/font/Courier-BoldOblique"),
@@ -37,14 +59,11 @@
         HelveticaBold: require("pdfjs/font/Helvetica-Bold"),
         HelveticaBoldOblique: require("pdfjs/font/Helvetica-BoldOblique"),
         HelveticaOblique: require("pdfjs/font/Helvetica-Oblique"),
-        Symbol: require("pdfjs/font/Symbol"),
+        Times: require("pdfjs/font/Times-Roman"),
         TimesBold: require("pdfjs/font/Times-Bold"),
         TimesBoldItalic: require("pdfjs/font/Times-BoldItalic"),
-        TimesItalic: require("pdfjs/font/Times-Italic"),
-        TimesRoman: require("pdfjs/font/Times-Roman"),
-        ZapfDingbats: require("pdfjs/font/ZapfDingbats")
+        TimesItalic: require("pdfjs/font/Times-Italic")
     };
-    const fs = require("fs");
     const crud = new CRUD();
     const feathers = new Feathers();
     const COL_WIDTH_DEFAULT = 150;
@@ -60,6 +79,44 @@
         "etag",
         "owner"
     ];
+    const sizes = {
+        "Letter": {
+            height: 792,
+            width: 612
+        },
+        "Letter Wide": {
+            height: 612,
+            width: 792
+        },
+        "Legal": {
+            height: 1008,
+            width: 612
+        },
+        "Legal Wide": {
+            height: 612,
+            width: 1008
+        },
+        "Statement": {
+            height: 612,
+            width: 396
+        },
+        "A4": {
+            height: 841.896,
+            width: 595.296
+        },
+        "A4 Wide": {
+            height: 595.296,
+            width: 841.896
+        },
+        "Label 4x6": {
+            height: 432,
+            width: 288
+        },
+        "Label 5x7": {
+            height: 504,
+            width: 360
+        }
+    };
 
     function buildForm(feather, localFeathers) {
         let props;
@@ -303,11 +360,20 @@
 
                 function doPrint() {
                     return new Promise(function (resolve) {
-                        let fn = "readFileSync"; // Lint dogma
+                        let defFont = (
+                            (form && form.font)
+                            ? form.font
+                            : "Helvetica"
+                        );
+                        let defSize = (
+                            (form && form.paperSize)
+                            ? form.paperSize
+                            : "Letter Wide"
+                        );
                         let doc = new pdf.Document({
-                            width: 792,
-                            height: 612,
-                            font: fonts.Helvetica,
+                            width: sizes[defSize].width,
+                            height: sizes[defSize].width,
+                            font: fonts[defFont],
                             padding: 36,
                             paddingTop: 54,
                             properties: {
@@ -315,7 +381,7 @@
                             }
                         });
                         let header;
-                        let src = fs[fn]("featherbone.jpg");
+                        let src = fs[readFileSync]("featherbone.jpg");
                         let logo = new pdf.Image(src);
                         let n = 0;
                         let data;
@@ -419,7 +485,8 @@
                             feather,
                             attr,
                             rec,
-                            showLabel
+                            showLabel,
+                            font
                         ) {
                             feather = localFeathers[feather];
                             let p = resolveProperty(attr, feather);
@@ -431,6 +498,7 @@
                             let lkey;
                             let rel;
                             let cr = "\n";
+                            let ovrFont = font || defFont;
 
                             parts.shift();
                             while (parts.length) {
@@ -457,7 +525,9 @@
                                     value += rec[attr].state + " ";
                                     value += rec[attr].postalCode;
                                     value += cr + rec[attr].country;
-                                    row.cell(value);
+                                    row.cell(value, {
+                                        font: fonts[ovrFont]
+                                    });
                                     return;
                                 }
 
@@ -471,6 +541,7 @@
                                             rel.br().add(
                                                 value.phone,
                                                 {
+                                                    font: fonts[ovrFont],
                                                     fontSize: 10
                                                 }
                                             );
@@ -479,6 +550,7 @@
                                             rel.br().add(
                                                 value.email,
                                                 {
+                                                    font: fonts[ovrFont],
                                                     fontSize: 10
                                                 }
                                             );
@@ -490,6 +562,7 @@
                                                     value.address.state
                                                 ),
                                                 {
+                                                    font: fonts[ovrFont],
                                                     fontSize: 10
                                                 }
                                             );
@@ -514,10 +587,14 @@
                                 rel = row.cell().text();
                                 if (lkey) {
                                     rel.add(
-                                        value[nkey]
+                                        value[nkey],
+                                        {
+                                            font: fonts[ovrFont]
+                                        }
                                     ).br().add(
                                         value[lkey],
                                         {
+                                            font: fonts[ovrFont],
                                             fontSize: 10
                                         }
                                     );
@@ -546,7 +623,9 @@
                                     value = new Date(value).toLocaleString();
                                 }
 
-                                row.cell(value);
+                                row.cell(value, {
+                                    font: fonts[ovrFont]
+                                });
                                 break;
                             case "boolean":
                                 if (value) {
@@ -554,11 +633,14 @@
                                 } else {
                                     value = "False";
                                 }
-                                row.cell(value);
+                                row.cell(value, {
+                                    font: fonts[ovrFont]
+                                });
                                 break;
                             case "integer":
                             case "number":
                                 row.cell(value.toLocaleString(), {
+                                    font: fonts[ovrFont],
                                     textAlign: "right"
                                 });
                                 break;
@@ -570,6 +652,7 @@
                                     if (curr) {
                                         value = formatMoney(value);
                                         row.cell(value, {
+                                            font: fonts[ovrFont],
                                             textAlign: "right"
                                         });
                                     } else {
@@ -578,7 +661,9 @@
                                 }
                                 break;
                             default:
-                                row.cell(value);
+                                row.cell(value, {
+                                    font: fonts[ovrFont]
+                                });
                             }
                         }
 
@@ -628,7 +713,9 @@
                             });
 
                             function addHeader(col) {
-                                let opts = {};
+                                let opts = {
+                                    font: fonts[defFont]
+                                };
                                 let prop = resolveProperty(col.attr, feather);
 
                                 if (
@@ -652,7 +739,8 @@
                                         row,
                                         rec.objectType,
                                         col.attr,
-                                        rec
+                                        rec,
+                                        col.font
                                     );
                                 });
                             }
@@ -758,7 +846,8 @@
                                                 data.objectType,
                                                 attr.attr,
                                                 data,
-                                                true
+                                                true,
+                                                attr.font
                                             );
                                         }
                                     }

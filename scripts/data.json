@@ -383,6 +383,8 @@
         }, {
             "name": "Tabs"
         }, {
+            "name": "Print"
+        }, {
             "name": "Audit"
         }],
         "attrs": [{
@@ -394,9 +396,13 @@
             "grid": 0,
             "unit": 0
         }, {
-            "attr": "isActive",
+            "attr": "title",
             "grid": 0,
             "unit": 0
+        }, {
+            "attr": "isActive",
+            "grid": 0,
+            "unit": 1
         }, {
             "attr": "module",
             "dataList": "modules",
@@ -448,20 +454,28 @@
                 "attr": "name"
             }]
         }, {
-            "attr": "created",
+            "attr": "paperSize",
             "grid": 3,
+            "unit": 0
+        }, {
+            "attr": "font",
+            "grid": 3,
+            "unit": 0
+        }, {
+            "attr": "created",
+            "grid": 4,
             "unit": 0
         }, {
             "attr": "createdBy",
-            "grid": 3,
+            "grid": 4,
             "unit": 0
         }, {
             "attr": "updated",
-            "grid": 3,
+            "grid": 4,
             "unit": 0
         }, {
             "attr": "updatedBy",
-            "grid": 3,
+            "grid": 4,
             "unit": 0
         }, {
             "attr": "isDefault",
@@ -480,6 +494,8 @@
         "module": "Core",
         "tabs": [{
             "name": "Columns"
+        }, {
+            "name": "Print"
         }],
         "attrs": [{
             "attr": "attr",
@@ -531,6 +547,12 @@
             }, {
                 "attr": "width"
             }]
+        }, {
+            "attr": "font",
+            "grid": 2
+        }, {
+            "attr": "fontSize",
+            "grid": 2
         }]
     }
 }, {
