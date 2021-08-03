@@ -427,6 +427,10 @@
                     delete attr.label;
                 }
 
+                if (!attr.title) {
+                    delete attr.title;
+                }
+
                 if (!attr.columns.length) {
                     delete attr.columns;
                 } else {
@@ -471,6 +475,10 @@
 
                 if (attr.showLabel) {
                     delete attr.showLabel;
+                }
+
+                if (!attr.font) {
+                    delete attr.font;
                 }
             });
 
