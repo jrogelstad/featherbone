@@ -486,7 +486,7 @@
                             attr,
                             rec,
                             showLabel,
-                            font
+                            style
                         ) {
                             feather = localFeathers[feather];
                             let p = resolveProperty(attr, feather);
@@ -498,7 +498,15 @@
                             let lkey;
                             let rel;
                             let cr = "\n";
-                            let ovrFont = font || defFont;
+                            let fontStr = style.font || defFont;
+                            let ovrFont = fonts[fontStr];
+
+                            function fontMod(val) {
+                                if (fontStr.startsWith("Barcode")) {
+                                    val = "*" + val + "*";
+                                }
+                                return val;
+                            }
 
                             parts.shift();
                             while (parts.length) {
@@ -525,8 +533,9 @@
                                     value += rec[attr].state + " ";
                                     value += rec[attr].postalCode;
                                     value += cr + rec[attr].country;
-                                    row.cell(value, {
-                                        font: fonts[ovrFont]
+                                    row.cell(fontMod(value), {
+                                        font: ovrFont,
+                                        fontSize: style.fontSize
                                     });
                                     return;
                                 }
@@ -541,7 +550,7 @@
                                             rel.br().add(
                                                 value.phone,
                                                 {
-                                                    font: fonts[ovrFont],
+                                                    font: ovrFont,
                                                     fontSize: 10
                                                 }
                                             );
@@ -550,7 +559,7 @@
                                             rel.br().add(
                                                 value.email,
                                                 {
-                                                    font: fonts[ovrFont],
+                                                    font: ovrFont,
                                                     fontSize: 10
                                                 }
                                             );
@@ -562,7 +571,7 @@
                                                     value.address.state
                                                 ),
                                                 {
-                                                    font: fonts[ovrFont],
+                                                    font: ovrFont,
                                                     fontSize: 10
                                                 }
                                             );
@@ -587,19 +596,26 @@
                                 rel = row.cell().text();
                                 if (lkey) {
                                     rel.add(
-                                        value[nkey],
+                                        fontMod(value[nkey]),
                                         {
-                                            font: fonts[ovrFont]
+                                            font: ovrFont,
+                                            fontSize: style.fontSize
                                         }
                                     ).br().add(
                                         value[lkey],
                                         {
-                                            font: fonts[ovrFont],
+                                            font: ovrFont,
                                             fontSize: 10
                                         }
                                     );
                                 } else {
-                                    rel.add(value[nkey]);
+                                    rel.add(
+                                        fontMod(value[nkey]),
+                                        {
+                                            font: ovrFont,
+                                            fontSize: style.fontSize
+                                        }
+                                    );
                                 }
                                 return;
                             }
@@ -623,8 +639,9 @@
                                     value = new Date(value).toLocaleString();
                                 }
 
-                                row.cell(value, {
-                                    font: fonts[ovrFont]
+                                row.cell(fontMod(value), {
+                                    font: ovrFont,
+                                    fontSize: style.fontSize
                                 });
                                 break;
                             case "boolean":
@@ -633,14 +650,16 @@
                                 } else {
                                     value = "False";
                                 }
-                                row.cell(value, {
-                                    font: fonts[ovrFont]
+                                row.cell(fontMod(value), {
+                                    font: ovrFont,
+                                    fontSize: style.fontSize
                                 });
                                 break;
                             case "integer":
                             case "number":
-                                row.cell(value.toLocaleString(), {
-                                    font: fonts[ovrFont],
+                                row.cell(fontMod(value.toLocaleString()), {
+                                    font: ovrFont,
+                                    fontSize: style.fontSize,
                                     textAlign: "right"
                                 });
                                 break;
@@ -651,8 +670,9 @@
                                     );
                                     if (curr) {
                                         value = formatMoney(value);
-                                        row.cell(value, {
-                                            font: fonts[ovrFont],
+                                        row.cell(fontMod(value), {
+                                            font: ovrFont,
+                                            fontSize: style.fontSize,
                                             textAlign: "right"
                                         });
                                     } else {
@@ -661,8 +681,9 @@
                                 }
                                 break;
                             default:
-                                row.cell(value, {
-                                    font: fonts[ovrFont]
+                                row.cell(fontMod(value), {
+                                    font: ovrFont,
+                                    fontSize: style.fontSize
                                 });
                             }
                         }
@@ -688,7 +709,7 @@
                                 });
                                 doc.cell(getLabel(obj.feather, attr) + ":", {
                                     padding: 5,
-                                    font: fonts.HelveticaBold
+                                    font: fonts[defFont + "Bold"]
                                 });
                             }
 
@@ -708,13 +729,13 @@
                             feather = localFeathers[p.type.relation];
 
                             tr = table.header({
-                                font: fonts.HelveticaBold,
+                                font: fonts[defFont + "Bold"],
                                 borderBottomWidth: 1.5
                             });
 
                             function addHeader(col) {
                                 let opts = {
-                                    font: fonts[defFont]
+                                    font: fonts[defFont + "Bold"]
                                 };
                                 let prop = resolveProperty(col.attr, feather);
 
@@ -740,7 +761,11 @@
                                         rec.objectType,
                                         col.attr,
                                         rec,
-                                        col.font
+                                        false,
+                                        {
+                                            font: col.font,
+                                            fontSize: col.fontSize
+                                        }
                                     );
                                 });
                             }
@@ -764,7 +789,7 @@
                                     minHeight: 10
                                 });
                                 doc.cell(tab.name, {
-                                    font: fonts.HelveticaBold,
+                                    font: fonts[defFont + "Bold"],
                                     backgroundColor: 0xd3d3d3,
                                     fontSize: 14,
                                     paddingLeft: 9,
@@ -827,7 +852,7 @@
 
                                             row.cell(label + ":", {
                                                 textAlign: "right",
-                                                font: fonts.HelveticaBold
+                                                font: fonts[defFont + "Bold"]
                                             });
                                         } else {
                                             row.cell("");
@@ -847,7 +872,10 @@
                                                 attr.attr,
                                                 data,
                                                 true,
-                                                attr.font
+                                                {
+                                                    font: attr.font,
+                                                    fontSize: attr.fontSize
+                                                }
                                             );
                                         }
                                     }
@@ -874,7 +902,7 @@
 
                         header.cell().text({
                             fontSize: 20,
-                            font: fonts.HelveticaBold
+                            font: fonts[defFont + "Bold"]
                         }).add(rows[0].objectType.toName());
 
                         header.cell().image(logo, {
