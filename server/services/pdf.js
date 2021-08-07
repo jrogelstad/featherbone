@@ -728,7 +728,7 @@
                             });
                             feather = localFeathers[p.type.relation];
 
-                            tr = table.header({
+                            tr = table.row({
                                 font: fonts[defFont + "Bold"],
                                 borderBottomWidth: 1.5
                             });
@@ -926,10 +926,7 @@
                         }
 
                         doc.pipe(w);
-                        w.on("close", function () {
-                            resolve(id);
-                        });
-                        doc.end();
+                        doc.end().then(resolve.bind(null,id)).catch(reject);
                     });
                 }
 
