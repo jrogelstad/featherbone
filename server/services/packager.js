@@ -522,6 +522,29 @@
         }
     }
 
+    function addSettings(manifest, zip, resp, folder) {
+        let content = resp.rows;
+
+        if (content.length) {
+            content.forEach(function (settings) {
+                let def = JSON.stringify(settings.definition, null, 4);
+                let name = settings.name.toSpinalCase() + ".json";
+                let filename = folder + name;
+
+                manifest.files.push({
+                    type: "settings",
+                    name: settings.name,
+                    path: name
+                });
+
+                zip.addFile(
+                    filename,
+                    Buffer.alloc(def.length, def)
+                );
+            });
+        }
+    }
+
     function addWorkbooks(manifest, zip, resp, folder) {
         let content = tools.sanitize(resp.rows);
         let name = "workbooks.json";
@@ -734,6 +757,14 @@
                 );
                 requests.push(client.query(sql, params));
 
+                // Settings
+                sql = (
+                    "SELECT * FROM \"$settings\" WHERE module = $1 " +
+                    "AND NOT is_deleted " +
+                    "ORDER BY name;"
+                );
+                requests.push(client.query(sql, params));
+
                 // Workbooks
                 sql = (
                     "SELECT * FROM \"$workbook\" WHERE module = $1 " +
@@ -755,7 +786,8 @@
                         addServices(manifest, zip, resp[3], folder);
                         addBatch("Route", manifest, zip, resp[4], folder);
                         addBatch("Style", manifest, zip, resp[5], folder);
-                        addWorkbooks(manifest, zip, resp[6], folder);
+                        addSettings(manifest, zip, resp[6], folder);
+                        addWorkbooks(manifest, zip, resp[7], folder);
                         if (sub.module) {
                             addModule(manifest, zip, [sub.module], folder);
                         } else {
