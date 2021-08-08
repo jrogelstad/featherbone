@@ -397,12 +397,12 @@
             "unit": 0
         }, {
             "attr": "title",
-            "grid": 0,
+            "grid": 3,
             "unit": 0
         }, {
             "attr": "isActive",
             "grid": 0,
-            "unit": 1
+            "unit": 0
         }, {
             "attr": "module",
             "dataList": "modules",
