@@ -30,6 +30,7 @@
     "pdfjs": "^2.4.5",
     "pg": "^8.6.0",
     "pg-format": "^1.0.4",
+    "print-js": "^1.6.0",
     "purecss": "^1.0.0",
     "qs": "^6.6.0",
     "typeface-raleway": "0.0.54",
