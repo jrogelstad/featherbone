@@ -372,7 +372,7 @@
                         );
                         let doc = new pdf.Document({
                             width: sizes[defSize].width,
-                            height: sizes[defSize].width,
+                            height: sizes[defSize].height,
                             font: fonts[defFont],
                             padding: 36,
                             paddingTop: 54,
