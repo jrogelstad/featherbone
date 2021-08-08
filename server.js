@@ -927,6 +927,7 @@
         case ".css":
             mimetype = {"Content-Type": "text/css"};
             break;
+        case ".map":
         case ".json":
             mimetype = {"Content-Type": "application/json"};
             break;
@@ -1280,7 +1281,8 @@
             "/node_modules/codemirror/lib",
             "/node_modules/codemirror/mode/javascript",
             "/node_modules/codemirror/mode/css",
-            "/node_modules/typeface-raleway/files"
+            "/node_modules/typeface-raleway/files",
+            "/node_modules/print-js/dist"
         ];
         let files = [
             "/api.json",
