@@ -841,6 +841,10 @@ const worksheetAction = {
         validator: {
             description: "Selection validation check",
             type: "string"
+        },
+        hasSeparator: {
+            description: "Precede action with separator",
+            type: "boolean"
         }
     }
 };
