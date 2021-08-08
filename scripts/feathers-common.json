@@ -74,7 +74,7 @@
                 "type": "string",
                 "format": "enum",
                 "isRequired": true,
-                "default": "Letter Wide",
+                "default": "Letter",
                 "dataList": [{
                     "value": "Letter",
                     "label": "Letter"
