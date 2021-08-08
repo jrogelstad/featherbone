@@ -462,6 +462,10 @@
             "grid": 3,
             "unit": 0
         }, {
+            "attr": "showLabelKey",
+            "grid": 3,
+            "unit": 0
+        }, {
             "attr": "created",
             "grid": 4,
             "unit": 0
