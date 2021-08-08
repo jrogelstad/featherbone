@@ -122,6 +122,10 @@ const editSheetConfig = {
         }, {
             attr: "validator",
             width: 165
+        }, {
+            attr: "hasSeparator",
+            width: 100,
+            label: "Separator"
         }]
     }]
 };
@@ -380,7 +384,8 @@ workbookPage.viewModel = function (options) {
                     title: d.title,
                     icon: d.icon,
                     method: d.method,
-                    validator: d.validator
+                    validator: d.validator,
+                    hasSeparator: Boolean(d.hasSeparator)
                 });
             });
 
