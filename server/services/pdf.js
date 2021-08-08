@@ -922,7 +922,8 @@
                             data = rows.shift();
                             buildSection();
                             form.tabs.forEach(buildSection);
-                            doc.cell("");
+                            doc.pageBreak();
+                            n = 0;
                         }
 
                         doc.pipe(w);
