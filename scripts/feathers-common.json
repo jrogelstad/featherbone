@@ -120,6 +120,10 @@
                     "value": "Times",
                     "label": "Times Roman"
                 }]
+            },
+            "showLabelKey": {
+                "description": "When printing include label key on child table rows",
+                "type": "boolean"
             }
         }
     },

@@ -733,7 +733,7 @@
                                 borderBottomWidth: 1.5
                             });
 
-                            function addHeader(col) {
+                            function addHeaderCol(col) {
                                 let opts = {
                                     font: fonts[defFont + "Bold"]
                                 };
@@ -761,7 +761,7 @@
                                         rec.objectType,
                                         col.attr,
                                         rec,
-                                        false,
+                                        Boolean(form.showLabelKey),
                                         {
                                             font: col.font,
                                             fontSize: col.fontSize
@@ -770,7 +770,7 @@
                                 });
                             }
 
-                            cols.forEach(addHeader);
+                            cols.forEach(addHeaderCol);
                             data[attr.attr].forEach(addRow);
                         }
 
@@ -903,7 +903,7 @@
                         header.cell().text({
                             fontSize: 20,
                             font: fonts[defFont + "Bold"]
-                        }).add(rows[0].objectType.toName());
+                        }).add(form.title || rows[0].objectType.toName());
 
                         header.cell().image(logo, {
                             align: "right",
