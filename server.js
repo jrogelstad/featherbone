@@ -628,9 +628,9 @@
 
         logger.verbose(payload);
         datasource.request(payload).then(
-            function () {
+            function (resp) {
                 registerDataRoutes();
-                respond.bind(res)();
+                respond.bind(res, resp)();
             }
         ).catch(
             error.bind(res)
