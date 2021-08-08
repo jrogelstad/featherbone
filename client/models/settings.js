@@ -95,12 +95,15 @@ function settings(definition) {
         let payload = {
             method: "PUT",
             path: "/settings/" + name,
-            data: cache
+            body: cache
         };
 
         function callback(result) {
-            jsonpatch.applyPatch(cache, result);
-            that.set(cache.data);
+            if (!result === true) {
+                that.state().send("error");
+                context.reject("Settings failed to save");
+                return;
+            }
             that.state().send("fetched");
             context.resolve(that.data);
         }

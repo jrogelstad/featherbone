@@ -16,271 +16,265 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*jslint node*/
+const settings = {};
+const {Database} = require("../database");
+const f = require("../../common/core");
+const db = new Database();
+
+settings.data = {};
 /**
     @module Settings
 */
-(function (exports) {
-    "use strict";
 
-    const {Database} = require("../database");
-    const f = require("../../common/core");
+// ..........................................................
+// PRIVATE
+//
 
-    const db = new Database();
-    const settings = {};
+/**
+    Check to see if an etag is current.
+    @private
+    @method checkEtag
+    @param {Object} payload
+    @param {String} payload.id Object id
+    @param {String} payload.etag Object etag
+    @param {Object} payload.client Database client
+    @return {Promise}
+*/
+function checkEtag(obj) {
+    return new Promise(function (resolve, reject) {
+        let sql = "SELECT etag FROM %I WHERE id = $1";
 
-    // ..........................................................
-    // PRIVATE
-    //
+        function callback(resp) {
+            let result = false;
 
-    /**
-        Check to see if an etag is current.
-        @private
-        @method checkEtag
-        @param {Object} payload
-        @param {String} payload.id Object id
-        @param {String} payload.etag Object etag
-        @param {Object} payload.client Database client
-        @return {Promise}
-    */
-    function checkEtag(obj) {
-        return new Promise(function (resolve, reject) {
-            let sql = "SELECT etag FROM %I WHERE id = $1";
-
-            function callback(resp) {
-                let result = false;
-
-                if (resp.rows.length) {
-                    result = resp.rows[0].etag === obj.etag;
-                }
-
-                resolve(result);
+            if (resp.rows.length) {
+                result = resp.rows[0].etag === obj.etag;
             }
 
-            sql = sql.format([obj.name.toSnakeCase()]);
+            resolve(result);
+        }
 
-            obj.client.query(sql, [obj.id]).then(callback).catch(reject);
-        });
-    }
+        sql = sql.format([obj.name.toSnakeCase()]);
 
-    // ..........................................................
-    // PUBLIC
-    //
+        obj.client.query(sql, [obj.id]).then(callback).catch(reject);
+    });
+}
 
-    settings.data = {};
+// ..........................................................
+// PUBLIC
+//
 
-    /**
-        Return settings data.
-        @method getSettings
-        @for Services.Settings
-        @param {Object} payload Request payload
-        @param {Object} payload.data Data
-        @param {String} payload.data.name Settings name
-        @param {Object} payload.client Database client
-        @param {Boolean} payload.data.force Force reload
-        @return {Promise}
-    */
-    settings.getSettings = function (obj) {
-        return new Promise(function (resolve, reject) {
-            let payload;
-            let name = obj.data.name;
-            let theClient = db.getClient(obj.client);
+/**
+    Return settings data.
+    @method getSettings
+    @for Services.Settings
+    @param {Object} payload Request payload
+    @param {Object} payload.data Data
+    @param {String} payload.data.name Settings name
+    @param {Object} payload.client Database client
+    @param {Boolean} payload.data.force Force reload
+    @return {Promise}
+*/
+settings.getSettings = function (obj) {
+    return new Promise(function (resolve, reject) {
+        let payload;
+        let name = obj.data.name;
+        let theClient = db.getClient(obj.client);
 
-            function theCallback(ok) {
-                let sql;
+        function theCallback(ok) {
+            let sql;
 
-                sql = "SELECT id, etag, data FROM \"$settings\"";
-                sql += "WHERE name = $1";
+            sql = "SELECT id, etag, data FROM \"$settings\"";
+            sql += "WHERE name = $1";
 
-                // If etag checks out, pass back cached
-                if (ok) {
+            // If etag checks out, pass back cached
+            if (ok) {
+                resolve(settings.data[name].data);
+                return;
+            }
+
+            // If here, need to query for the current settings
+            theClient.query(sql, [name]).then(function (resp) {
+                let rec;
+
+                // If we found something, cache it
+                if (resp.rows.length) {
+                    rec = resp.rows[0];
+                    if (!settings.data[name]) {
+                        settings.data[name] = {};
+                    }
+                    settings.data[name].id = rec.id;
+                    settings.data[name].etag = rec.etag;
+                    settings.data[name].data = rec.data;
+                }
+
+                // Send back the settings if any were found, otherwise
+                // "false"
+                if (settings.data[name]) {
                     resolve(settings.data[name].data);
                     return;
                 }
 
-                // If here, need to query for the current settings
-                theClient.query(sql, [name]).then(function (resp) {
-                    let rec;
+                resolve(false);
+            }).catch(reject);
+        }
 
-                    // If we found something, cache it
-                    if (resp.rows.length) {
-                        rec = resp.rows[0];
-                        settings.data[name] = {
-                            id: rec.id,
-                            etag: rec.etag,
-                            data: rec.data
-                        };
-                    }
+        if (obj.data.force) {
+            delete settings.data[name];
+        }
 
-                    // Send back the settings if any were found, otherwise
-                    // "false"
-                    if (settings.data[name]) {
-                        resolve(settings.data[name].data);
-                        return;
-                    }
+        // Check if settings have been changed if we already have them
+        if (settings.data[name]) {
+            payload = {
+                name: "$settings",
+                id: settings.data[name].id,
+                etag: settings.data[name].etag,
+                client: theClient,
+                callback: theCallback
+            };
 
-                    resolve(false);
-                }).catch(reject);
-            }
+            checkEtag(payload).then(theCallback).catch(reject);
 
-            if (obj.data.force) {
-                // Is this bug or intentional it's saved two ways?
-                delete settings[name];
-                delete settings.data[name];
-            }
+            return;
+        }
 
-            // Check if settings have been changed if we already have them
-            if (settings.data[name]) {
-                payload = {
-                    name: "$settings",
-                    id: settings.data[name].id,
-                    etag: settings.data[name].etag,
-                    client: theClient,
-                    callback: theCallback
-                };
+        // Request the settings from the database
+        theCallback(false);
+    });
+};
 
-                checkEtag(payload).then(theCallback).catch(reject);
+/**
+    Resolve settings definitions as array of objects.
+    @method getSettingsDefinition
+    @for Services.Settings
+    @param {Object} Request payload
+    @param {Client} payload.client Database client
+    @return {Promise}
+*/
+settings.getSettingsDefinition = function (obj) {
+    return new Promise(function (resolve, reject) {
+        let sql;
+        let client = db.getClient(obj.client);
 
+        sql = "SELECT definition FROM \"$settings\" ";
+        sql += "WHERE definition is NOT NULL";
+
+        function definition(row) {
+            return row.definition;
+        }
+
+        function callback(resp) {
+            resolve(resp.rows.map(definition));
+        }
+
+        client.query(sql).then(callback).catch(reject);
+    });
+};
+
+/**
+    Resolves to object properties `definition` and `etag`.
+    @method getSettingsRow
+    @for Services.Settings
+    @param {Object} payload Request payload
+    @param {Object} payload.client Database client
+    @param {String} payload.name Settings name
+    @return {Promise}
+*/
+settings.getSettingsRow = function (obj) {
+    return new Promise(function (resolve, reject) {
+        let ret = {};
+
+        function callback(resp) {
+            if (resp !== false) {
+                ret.etag = settings.data[obj.data.name].etag;
+                ret.data = settings.data[obj.data.name].data;
+                resolve(ret);
                 return;
             }
 
-            // Request the settings from the database
-            theCallback(false);
-        });
-    };
+            resolve(false);
+        }
 
-    /**
-        Resolve settings definitions as array of objects.
-        @method getSettingsDefinition
-        @for Services.Settings
-        @param {Object} Request payload
-        @param {Client} payload.client Database client
-        @return {Promise}
-    */
-    settings.getSettingsDefinition = function (obj) {
-        return new Promise(function (resolve, reject) {
-            let sql;
-            let client = db.getClient(obj.client);
+        settings.getSettings(obj).then(callback).catch(reject);
+    });
+};
 
-            sql = "SELECT definition FROM \"$settings\" ";
-            sql += "WHERE definition is NOT NULL";
+/**
+    Create or upate settings.
+    @method saveSettings
+    @for Services.Settings
+    @param {Object} payload
+    @param {Object} payload.data Payload data
+    @param {String} payload.data.name Name of settings
+    @param {String} payload.data.etag Etag
+    @param {Object} payload.data.data Settings data
+    @param {Object} payload.client Database client
+    @return {Promise}
+*/
+settings.saveSettings = function (obj) {
+    return new Promise(function (resolve, reject) {
+        let row;
+        let sql = "SELECT * FROM \"$settings\" WHERE name = $1;";
+        let name = obj.data.name;
+        let d = obj.data.data;
+        let tag = obj.etag || f.createId();
+        let params = [name, d, tag, obj.client.currentUser()];
+        let client = db.getClient(obj.client);
 
-            function definition(row) {
-                return row.definition;
-            }
-
-            function callback(resp) {
-                resolve(resp.rows.map(definition));
-            }
-
-            client.query(sql).then(callback).catch(reject);
-        });
-    };
-
-    /**
-        Resolves to object properties `definition` and `etag`.
-        @method getSettingsRow
-        @for Services.Settings
-        @param {Object} payload Request payload
-        @param {Object} payload.client Database client
-        @param {String} payload.name Settings name
-        @return {Promise}
-    */
-    settings.getSettingsRow = function (obj) {
-        return new Promise(function (resolve, reject) {
-            let ret = {};
-
-            function callback(resp) {
-                if (resp !== false) {
-                    ret.etag = settings.data[obj.data.name].etag;
-                    ret.data = settings.data[obj.data.name].data;
-                    resolve(ret);
-                    return;
-                }
-
-                resolve(false);
-            }
-
-            settings.getSettings(obj).then(callback).catch(reject);
-        });
-    };
-
-    /**
-        Create or upate settings.
-        @method saveSettings
-        @for Services.Settings
-        @param {Object} payload
-        @param {Object} payload.data Payload data
-        @param {String} payload.data.name Name of settings
-        @param {String} payload.data.etag Etag
-        @param {Object} payload.data.data Settings data
-        @param {Object} payload.client Database client
-        @return {Promise}
-    */
-    settings.saveSettings = function (obj) {
-        return new Promise(function (resolve, reject) {
-            let row;
-            let sql = "SELECT * FROM \"$settings\" WHERE name = $1;";
-            let name = obj.data.name;
-            let d = obj.data.data;
-            let tag = obj.etag || f.createId();
-            let params = [name, d, tag, obj.client.currentUser()];
-            let client = db.getClient(obj.client);
+        function update(resp) {
+            let msg;
 
             function done() {
-                settings[name] = {
-                    id: name,
-                    data: d,
-                    etag: tag
-                };
+                if (!settings.data[name]) {
+                    settings.data[name] = {};
+                }
+                settings.data[name].id = name;
+                settings.data[name].data = d;
+                settings.data[name].etag = tag;
                 resolve(true);
             }
 
-            function update(resp) {
-                return new Promise(function (resolve, reject) {
-                    let msg;
+            // If found existing, update
+            if (resp.rows.length) {
+                row = resp.rows[0];
 
-                    // If found existing, update
-                    if (resp.rows.length) {
-                        row = resp.rows[0];
+                if (
+                    settings.data[name] &&
+                    settings.data[name].etag !== row.etag
+                ) {
+                    msg = "Settings for \"" + name;
+                    msg += "\" changed by another user. Save failed.";
+                    reject(msg);
+                    return;
+                }
 
-                        if (
-                            settings[name] &&
-                            settings[name].etag !== row.etag
-                        ) {
-                            msg = "Settings for \"" + name;
-                            msg += "\" changed by another user. Save failed.";
-                            reject(msg);
-                            return;
-                        }
-
-                        sql = "UPDATE \"$settings\" SET ";
-                        sql += " data = $2, etag = $3, ";
-                        sql += " updated = now(), updated_by = $4 ";
-                        sql += "WHERE name = $1;";
-                        client.query(sql, params, done);
-                        return;
-                    }
-
-                    // otherwise create new
-                    sql = "INSERT INTO \"$settings\" (name, data, etag, id, ";
-                    sql += " created, created_by, updated, updated_by, ";
-                    sql += "is_deleted) VALUES ";
-                    sql += "($1, $2, $3, $1, now(), $4, now(), $4, false);";
-
-                    client.query(sql, params).then(resolve).catch(reject);
-                });
+                sql = "UPDATE \"$settings\" SET ";
+                sql += " data = $2, etag = $3, ";
+                sql += " updated = now(), updated_by = $4 ";
+                sql += "WHERE name = $1;";
+                client.query(sql, params, done);
+                return;
             }
 
-            client.query(sql, [name]).then(
-                update
-            ).then(
-                done
-            ).catch(
-                reject
-            );
-        });
-    };
+            // otherwise create new
+            sql = "INSERT INTO \"$settings\" (name, data, etag, id, ";
+            sql += " created, created_by, updated, updated_by, ";
+            sql += "is_deleted) VALUES ";
+            sql += "($1, $2, $3, $1, now(), $4, now(), $4, false);";
 
+            client.query(sql, params).then(done).catch(reject);
+        }
+
+        client.query(sql, [name]).then(
+            update
+        ).catch(
+            reject
+        );
+    });
+};
+
+(function (exports) {
+    "use strict";
     /**
         @class Settings
         @constructor
