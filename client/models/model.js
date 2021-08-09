@@ -1642,6 +1642,12 @@ function createModel(data, feather) {
 
                     // Create property
                     prop = createProperty(value, formatter);
+                    
+                    // Enable ability to pre-filter results
+                    prop.filter = createProperty({
+                        sort: [],
+                        criteria: []
+                    });
 
                     // Define format for to-many
                 } else if (isToMany(p)) {
