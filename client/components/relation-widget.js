@@ -82,10 +82,7 @@ relationWidget.viewModel = function (options) {
         }],
         limit: 10
     };
-    let modelList = f.createList(type.relation, {
-        background: true,
-        filter: theFilter
-    });
+    let modelList;
     let configId = f.createId();
 
     function updateValue(prop) {
@@ -96,6 +93,30 @@ relationWidget.viewModel = function (options) {
             vm.value("");
         }
     }
+
+    // Merge user with filter dictated by model if applicable
+    function mergeFilter(filter) {
+        filter = f.copy(filter || {});
+        let pFilter = f.copy(parent.model().data[parentProperty].filter());
+
+        if (!filter.criteria) {
+            filter.criteria = [];
+        }
+        
+        if (!filter.sort) {
+            filter.sort = [];
+        }
+        filter.criteria = filter.criteria.concat(pFilter.criteria);
+        filter.sort = filter.sort || pFilter.sort;
+        filter.limit = filter.limit || pFilter.limit;
+
+        return filter;
+    }
+
+    modelList = f.createList(type.relation, {
+        background: true,
+        filter: mergeFilter(theFilter)
+    });
 
     // Make sure data changes made by biz logic in the model are
     // recognized
@@ -125,7 +146,7 @@ relationWidget.viewModel = function (options) {
         @method fetch
     */
     vm.fetch = function () {
-        vm.models().fetch(theFilter, false);
+        vm.models().fetch(mergeFilter(theFilter), false);
     };
     /**
         @method id
@@ -246,6 +267,7 @@ relationWidget.viewModel = function (options) {
     vm.search = function (filter) {
         let searchList = f.copy(options.list);
         searchList.filter = filter || options.filter || searchList.filter;
+        searchList.filter = mergeFilter(searchList.filter);
 
         f.catalog().register("config", configId, searchList);
 
