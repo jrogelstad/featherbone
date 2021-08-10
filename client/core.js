@@ -601,22 +601,6 @@ formats.dataType.tableData = function (obj) {
     return content;
 };
 
-formats.enum.tableData = function (obj) {
-    let found;
-    if (typeof obj.prop.dataList[0] === "object") {
-        found = obj.prop.dataList.find(function (item) {
-            return item.value === obj.value;
-        });
-        if (found) {
-            return found.label;
-        } else {
-            return "invalid value " + obj.value;
-        }
-    }
-
-    return obj.value;
-};
-
 let gantt = {
     type: "object",
     fromType: function (val) {
