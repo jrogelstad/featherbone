@@ -292,7 +292,7 @@
             "<": "less than",
             ">=": "greater than or equals",
             "<=": "less than or equals",
-            IN: "in list",
+            IN: "is one of",
             IS: "is"
         },
 
