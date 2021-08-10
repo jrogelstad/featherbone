@@ -865,6 +865,7 @@
             req.body.form,
             req.body.id || req.body.ids,
             "./files/pdf/",
+            req.body.filename,
             req.user.name
         ).then(
             respond.bind(res)
@@ -876,7 +877,10 @@
     function doPrintPdfWorksheet(req, res) {
         let apiPath = req.url.slice(10);
         let feather = resolveName(apiPath);
-        logger.verbose("Print PDF Form", feather, req.params.format);
+        logger.verbose("Print PDF List", feather, req.params.format);
+
+        err.bind(res)({message: "Not implemented yet"});
+        return;
 
         datasource.printPdfSheet(
             req.body.feather,

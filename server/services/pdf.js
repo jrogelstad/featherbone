@@ -266,9 +266,10 @@
             @param {String} Form name
             @param {String | Array} Record Id or Id array
             @param {String} Target file directory
+            @param {String} Target filename
             @return {String} Filename
         */
-        that.printForm = function (vClient, form, ids, dir) {
+        that.printForm = function (vClient, form, ids, dir, filename) {
             return new Promise(function (resolve, reject) {
                 if (!Array.isArray(ids)) {
                     ids = [ids];
@@ -385,8 +386,8 @@
                         let logo = new pdf.Image(src);
                         let n = 0;
                         let data;
-                        let id = f.createId();
-                        let path = dir + id + ".pdf";
+                        let file = filename || f.createId();
+                        let path = dir + file + ".pdf";
                         let w = fs.createWriteStream(path);
 
                         form = form || buildForm(
@@ -927,7 +928,7 @@
                         }
 
                         doc.pipe(w);
-                        doc.end().then(resolve.bind(null,id)).catch(reject);
+                        doc.end().then(resolve.bind(null,file)).catch(reject);
                     });
                 }
 
