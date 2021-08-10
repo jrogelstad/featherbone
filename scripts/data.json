@@ -1177,4 +1177,111 @@
         "code": "RI",
         "name": "Rhode Island"
     }
+},  {
+    "name": "Form",
+    "method": "POST",
+    "id": "1skactu555eh",
+    "data": {
+        "name": "Contact",
+        "description": "Contact form",
+        "module": "Core",
+        "feather": "Contact",
+        "focus": "firstName",
+        "tabs": [
+            {
+                "name": "Phones"
+            },
+            {
+                "name": "Emails"
+            },
+            {
+                "name": "Social Media"
+            }
+        ],
+        "attrs": [
+            {
+                "attr": "honorific",
+                "grid": 0,
+                "unit": 0
+            },
+            {
+                "attr": "firstName",
+                "grid": 0,
+                "unit": 0
+            },
+            {
+                "attr": "lastName",
+                "grid": 0,
+                "unit": 0
+            },
+            {
+                "attr": "phone",
+                "grid": 0,
+                "unit": 1
+            },
+            {
+                "attr": "email",
+                "grid": 0,
+                "unit": 1
+            },
+            {
+                "attr": "address",
+                "grid": 0,
+                "unit": 1
+            },
+            {
+                "attr": "phones",
+                "grid": 1,
+                "unit": 0,
+                "showLabel": false,
+                "fontSize": 0,
+                "columns": [
+                    {
+                        "attr": "phone"
+                    },
+                    {
+                        "attr": "type"
+                    },
+                    {
+                        "attr": "isPrimary"
+                    }
+                ]
+            },
+            {
+                "attr": "emails",
+                "grid": 2,
+                "unit": 0,
+                "showLabel": false,
+                "fontSize": 0,
+                "columns": [
+                    {
+                        "attr": "email"
+                    },
+                    {
+                        "attr": "type"
+                    },
+                    {
+                        "attr": "isPrimary"
+                    }
+                ]
+            },
+            {
+                "attr": "social",
+                "grid": 3,
+                "unit": 0,
+                "showLabel": false,
+                "columns": [
+                    {
+                        "attr": "userName"
+                    },
+                    {
+                        "attr": "network"
+                    },
+                    {
+                        "attr": "network.url"
+                    }
+                ]
+            }
+        ]
+    }
 }]
