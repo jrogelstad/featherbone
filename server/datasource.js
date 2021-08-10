@@ -757,6 +757,7 @@
         form,
         ids,
         dir,
+        filename,
         username
     ) {
         return new Promise(function (resolve, reject) {
@@ -775,7 +776,8 @@
                         resp.client,
                         form,
                         ids,
-                        dir
+                        dir,
+                        filename
                     ).then(
                         callback
                     ).catch(

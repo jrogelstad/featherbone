@@ -571,6 +571,17 @@ formPage.viewModel = function (options) {
 
     function doPrintPdf() {
         let dlg = vm.confirmDialog();
+        let p = f.catalog().getFeather(
+            theFeather
+        ).properties;
+        let now = new Date();
+        let nkey = Object.keys(p).find(function (k) {
+            return p[k].isNaturalKey;
+        }) || "id";
+        let file = (
+            vm.model().data[nkey]() + " " +
+            now.toLocalDateTime() + ".pdf"
+        );
 
         function error(err) {
             dlg.message(err.message);
@@ -593,7 +604,8 @@ formPage.viewModel = function (options) {
         let payload;
         let theBody = {
             id: vm.model().id(),
-            form: form.name
+            form: form.name,
+            filename: file
         };
 
         payload = {
