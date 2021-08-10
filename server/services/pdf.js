@@ -422,7 +422,7 @@
                         }
 
                         function inheritedFrom(source, target) {
-                            let feather = localFeathers[target];
+                            let feather = localFeathers[source];
                             let props;
 
                             if (!feather) {
@@ -431,11 +431,11 @@
 
                             props = feather.properties;
 
-                            if (feather.name === source) {
+                            if (feather.name === target) {
                                 return true;
                             }
                             return Object.keys(props).some(function (k) {
-                                return props[k].inheritedFrom === source;
+                                return props[k].inheritedFrom === target;
                             });
                         }
 
