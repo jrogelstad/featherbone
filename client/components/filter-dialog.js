@@ -144,11 +144,19 @@ filterDialog.viewModel = function (options) {
                 }
             } else {
                 opts.type = f.inputMap[format];
-                opts.onchange = (e) => vm.itemChanged.bind(
-                    this,
-                    index,
-                    "value"
-                )(e.target.value);
+                if (op === "IN") {
+                    opts.onchange = (e) => vm.itemChanged.bind(
+                        this,
+                        index,
+                        "value"
+                    )(e.target.value.split(","));
+                } else {
+                    opts.onchange = (e) => vm.itemChanged.bind(
+                        this,
+                        index,
+                        "value"
+                    )(e.target.value);
+                }
                 opts.value = theValue;
                 component = m("input", opts);
             }
@@ -316,6 +324,7 @@ filterDialog.viewModel = function (options) {
             case "dateTime":
                 delete ops["~*"];
                 delete ops["!~*"];
+                delete ops.IN;
                 break;
             case "integer":
             case "number":
@@ -323,6 +332,7 @@ filterDialog.viewModel = function (options) {
                 delete ops["~*"];
                 delete ops["!~*"];
                 delete ops.IS;
+                delete ops.IN;
                 break;
             case "boolean":
                 delete ops["~*"];
@@ -332,6 +342,7 @@ filterDialog.viewModel = function (options) {
                 delete ops[">="];
                 delete ops["<="];
                 delete ops.IS;
+                delete ops.IN;
                 break;
             case "string":
             case "password":
@@ -349,12 +360,12 @@ filterDialog.viewModel = function (options) {
                 delete ops["<"];
                 delete ops[">="];
                 delete ops["<="];
+                delete ops.IN;
                 delete ops.IS;
             }
         }
 
         // Currently unsupported operators
-        delete ops.IN;
         delete ops["~"];
         delete ops["!~"];
 
