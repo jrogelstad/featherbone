@@ -1071,10 +1071,6 @@ function createModel(data, feather) {
         let keys;
         let climateChange = islastFetched && model.isFrozen();
 
-        if (islastFetched) {
-            lastFetched = data;
-        }
-
         if (typeof data === "object") {
             if (climateChange) {
                 doThaw();
@@ -1099,6 +1095,10 @@ function createModel(data, feather) {
             if (climateChange) {
                 doFreeze();
             }
+        }
+
+        if (islastFetched) {
+            lastFetched = model.toJSON();
         }
 
         return this;
