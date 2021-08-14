@@ -130,11 +130,6 @@
         fs[mkdirsync](dir);
     }
 
-    dir = "./files/pdf";
-    if (!fs[existssync](dir)) {
-        fs[mkdirsync](dir);
-    }
-
     dir = "./logs";
     if (!fs[existssync](dir)) {
         fs[mkdirsync](dir);
@@ -841,7 +836,9 @@
     }
 
     function doOpenPdf(req, res) {
-        let file = "./files/pdf/" + req.params.file;
+        let path = "./files/downloads/";
+        let file = path + req.params.file;
+
         fs.readFile(file, function (err, resp) {
             if (err) {
                 error.bind(res)(new Error(err));
@@ -864,7 +861,7 @@
         datasource.printPdfForm(
             req.body.form,
             req.body.id || req.body.ids,
-            "./files/pdf/",
+            "./files/downloads/",
             req.body.filename,
             req.user.name
         ).then(

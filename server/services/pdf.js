@@ -386,8 +386,8 @@
                         let logo = new pdf.Image(src);
                         let n = 0;
                         let data;
-                        let file = filename || f.createId();
-                        let path = dir + file + ".pdf";
+                        let file = (filename || f.createId()) + ".pdf";
+                        let path = dir + file;
                         let w = fs.createWriteStream(path);
 
                         form = form || buildForm(

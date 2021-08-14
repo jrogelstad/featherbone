@@ -580,9 +580,12 @@ formPage.viewModel = function (options) {
         }) || "id";
         let file = (
             vm.model().data[nkey]() + " " +
-            now.toLocalDateTime() + ".pdf"
+            now.toLocalDate() + " " +
+            now.getHours() +
+            now.getMinutes()
         );
 
+        console.log(file);
         function error(err) {
             dlg.message(err.message);
             dlg.title("Error");
@@ -595,7 +598,7 @@ formPage.viewModel = function (options) {
             let url = (
                 window.location.protocol + "//" +
                 window.location.hostname + ":" +
-                window.location.port + "/pdf/" + resp + ".pdf"
+                window.location.port + "/pdf/" + resp
             );
 
             window.open(url);
