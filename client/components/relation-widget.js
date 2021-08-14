@@ -710,7 +710,8 @@ relationWidget.component = {
                 value: vm.value(),
                 oncreate: vnode.attrs.onCreate,
                 onremove: vnode.attrs.onRemove,
-                readonly: readOnly
+                readonly: readOnly,
+                autocomplete: "off"
             }),
             menu,
             m("div", {
