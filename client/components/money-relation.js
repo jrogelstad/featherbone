@@ -461,7 +461,8 @@ moneyRelation.component = {
                 oncreate: vnode.attrs.onCreate,
                 onremove: vnode.attrs.onRemove,
                 onfocus: vnode.attrs.onFocus,
-                onblur: vnode.attrs.onBlur
+                onblur: vnode.attrs.onBlur,
+                autocomplete: "off"
             }),
             vm.selector(vnode),
             m("div", [

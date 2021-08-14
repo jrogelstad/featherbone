@@ -342,7 +342,8 @@ function input(pType, options) {
         onremove: options.onRemove,
         onfocus: options.onFocus,
         onblur: options.onBlur,
-        value: prop()
+        value: prop(),
+        autocomplete: "off"
     };
 
     if (opts.class) {
@@ -1354,7 +1355,8 @@ f.types.boolean.editor = function (options) {
         readonly: options.readonly,
         style: options.style,
         onclick: prop,
-        value: prop()
+        value: prop(),
+        autocomplete: "off"
     };
 
     return m(catalog.store().components().checkbox, opts);
@@ -1383,7 +1385,8 @@ f.types.number.editor = function (options) {
         onfocus: options.onFocus,
         onblur: options.onBlur,
         onchange: (e) => prop(e.target.value),
-        value: prop()
+        value: prop(),
+        autocomplete: "off"
     };
 
     if (prop.min !== undefined) {
