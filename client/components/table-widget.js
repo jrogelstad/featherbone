@@ -1349,6 +1349,8 @@ tableWidget.viewModel = function (options) {
             dlg.buttonOk,
             dlg.buttonCancel
         ]);
+        dlg.buttonOk().label("&Ok");
+        dlg.buttonCancel().label("&Cancel");
     }
 
     function selectionChanged() {
