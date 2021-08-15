@@ -242,6 +242,7 @@ dialog.viewModel = function (options) {
 
                     if (dlg) {
                         dlg.showModal();
+                        m.redraw();
                     }
                 });
                 this.event("close", function () {
