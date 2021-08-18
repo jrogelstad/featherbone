@@ -265,11 +265,10 @@
             @param {Object} Database client
             @param {String} Form name
             @param {String | Array} Record Id or Id array
-            @param {String} Target file directory
             @param {String} Target filename
             @return {String} Filename
         */
-        that.printForm = function (vClient, form, ids, dir, filename) {
+        that.printForm = function (vClient, form, ids, filename) {
             return new Promise(function (resolve, reject) {
                 if (!Array.isArray(ids)) {
                     ids = [ids];
@@ -278,6 +277,7 @@
                 let rows;
                 let currs;
                 let localFeathers = {};
+                let dir = "./files/downloads/";
 
                 function getForm() {
                     return new Promise(function (resolve, reject) {
