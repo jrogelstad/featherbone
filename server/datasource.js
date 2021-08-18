@@ -43,6 +43,7 @@
     const {Workbooks} = require("./services/workbooks");
     const {Config} = require("./config");
     const {PDF} = require("./services/pdf");
+    const {Mail} = require("./services/mailer");
 
     const f = require("../common/core");
     const jsonpatch = require("fast-json-patch");
@@ -64,6 +65,7 @@
     const tools = new Tools();
     const workbooks = new Workbooks();
     const pdf = new PDF();
+    const mail = new Mail();
 
     /**
         Server datasource class.
@@ -756,7 +758,6 @@
     that.printPdfForm = function (
         form,
         ids,
-        dir,
         filename,
         username
     ) {
@@ -776,7 +777,6 @@
                         resp.client,
                         form,
                         ids,
-                        dir,
                         filename
                     ).then(
                         callback
@@ -2119,6 +2119,7 @@
         "saveAuthorization",
         feathers.saveAuthorization
     );
+    that.registerFunction("POST", "emailPdf", mail.sendPdf);
     that.registerFunction("PUT", "saveFeather", feathers.saveFeather);
     that.registerFunction("PUT", "saveProfile", profile.saveProfile);
     that.registerFunction("PUT", "saveSettings", settings.saveSettings);

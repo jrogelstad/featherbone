@@ -836,8 +836,8 @@
     }
 
     function doOpenPdf(req, res) {
-        let path = "./files/downloads/";
-        let file = path + req.params.file;
+        let filepath = "./files/downloads/";
+        let file = filepath + req.params.file;
 
         fs.readFile(file, function (err, resp) {
             if (err) {
@@ -854,14 +854,11 @@
     }
 
     function doPrintPdfForm(req, res) {
-        let apiPath = req.url.slice(10);
-        let feather = resolveName(apiPath);
-        logger.verbose("Print PDF Form", feather, req.params.format);
+        logger.verbose("Print PDF Form", req.body.form);
 
         datasource.printPdfForm(
             req.body.form,
             req.body.id || req.body.ids,
-            "./files/downloads/",
             req.body.filename,
             req.user.name
         ).then(
@@ -871,21 +868,30 @@
         );
     }
 
-    function doPrintPdfWorksheet(req, res) {
-        let apiPath = req.url.slice(10);
-        let feather = resolveName(apiPath);
-        logger.verbose("Print PDF List", feather, req.params.format);
+    function doEmailPdfForm(req, res) {
+        let payload = {
+            method: "PUT",
+            name: "saveProfile",
+            user: req.user.name,
+            data: {
+                message: {
+                    from: req.body.from,
+                    to: req.body.to,
+                    cc: req.body.cc,
+                    bcc: req.body.bcc,
+                    subject: req.body.subject,
+                    text: req.body.message
+                },
+                pdf: {
+                    form: req.body.form,
+                    ids: req.body.id || req.body.ids
+                }
+            }
+        };
 
-        err.bind(res)({message: "Not implemented yet"});
-        return;
-
-        datasource.printPdfSheet(
-            req.body.feather,
-            req.body.workbook,
-            req.body.sheet,
-            "./files/pdf/",
-            req.user.name
-        ).then(
+        logger.verbose("Email PDF Form");
+        logger.verbose(payload);
+        datasource.request(payload).then(
             respond.bind(res)
         ).catch(
             error.bind(res)
@@ -1432,7 +1438,7 @@
         app.post("/do/export/:format/:feather", doExport);
         app.post("/do/import/:format/:feather", doImport);
         app.post("/do/print-pdf/form/", doPrintPdfForm);
-        app.post("/do/print-pdf/worksheet/", doPrintPdfWorksheet);
+        app.post("/do/email-pdf/form/", doEmailPdfForm);
         app.post("/do/subscribe/:query", doSubscribe);
         app.post("/do/unsubscribe/:query", doUnsubscribe);
         app.post("/do/lock", doLock);
