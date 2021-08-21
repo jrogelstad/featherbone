@@ -52,24 +52,27 @@
         //
 
         /**
-            Send an email message with a Pdf attached.
+            Send an email message with an optional Pdf attached.
 
-            @method sendPdf
+            @method send
             @param {Object} Request payload
-            @param {Object} [payload.data] Payload data
-            @param {String} [payload.data.from] From address
-            @param {String} [payload.data.to] To address
-            @param {String} [payload.data.cc] Cc address
-            @param {String} [payload.data.bcc] Bcc address
-            @param {String} [payload.data.subject] Subject
-            @param {String} [payload.data.text] Message text
-            @param {String} [payload.data.html] Message html
-            @param {String} [payload.data.form] Form name
-            @param {String|Array} [payload.data.ids] Record id or ids
-            @param {Object} [payload.client] Database client
+            @param {Object} payload.data Payload data
+            @param {Object} payload.data.message Message data
+            @param {String} payload.data.message.from From address
+            @param {String} payload.data.message.to To address
+            @param {String} [payload.data.message.cc] Cc address
+            @param {String} [payload.data.message.bcc] Bcc address
+            @param {String} payload.data.message.subject Subject
+            @param {String} [payload.data.message.text] Message text
+            @param {String} [payload.data.message.html] Message html
+            @param {Object} [payload.data.pdf] PDF Generation data (optional)
+            @param {String} [payload.data.pdf.form] Form name
+            @param {String|Array} [payload.data.pdf.ids] Record id or ids
+            @param {filename} [payload.data.pdf.filename] Name of attachement
+            @param {Object} payload.client Database client
             @return {Object} Promise
         */
-        that.sendPdf = function (obj) {
+        that.sendMail = function (obj) {
             return new Promise(function (resolve, reject) {
                 let message = obj.data.message;
                 let opts = obj.data.pdf;
@@ -84,31 +87,48 @@
                     });
                 }
 
-                function sendMail(resp) {
-                    let transporter;
-                    message.attachments = {
-                        path: "./files/downloads/" + resp
-                    };
-                    transporter = nodemailer.createTransport(smtp);
-                    transporter.sendMail(
-                        message
+                function attachPdf(resp) {
+                    return new Promise(function (resolve) {
+                        message.attachments = {
+                            path: "./files/downloads/" + resp
+                        };
+
+                        resolve();
+                    });
+                }
+
+                function sendMail() {
+                    return new Promise(function (resolve, reject) {
+                        let transporter = nodemailer.createTransport(smtp);
+
+                        transporter.sendMail(
+                            message
+                        ).then(
+                            resolve
+                        ).catch(
+                            reject
+                        );
+                    });
+                }
+
+                if (opts) {
+                    pdf.printForm(
+                        obj.client,
+                        opts.form,
+                        opts.ids,
+                        opts.filename
+                    ).then(
+                        attachPdf
+                    ).then(
+                        sendMail
                     ).then(
                         cleanup
                     ).catch(
                         reject
                     );
+                } else {
+                    sendMail().then(resolve).catch(reject);
                 }
-
-                pdf.printForm(
-                    obj.client,
-                    opts.form,
-                    opts.ids,
-                    opts.filename
-                ).then(
-                    sendMail
-                ).catch(
-                    reject
-                );
             });
         };
 

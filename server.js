@@ -868,30 +868,30 @@
         );
     }
 
-    function doMailPdfForm(req, res) {
+    function doSendMail(req, res) {
         let payload = {
             method: "POST",
-            name: "mailPdf",
+            name: "sendMail",
             user: req.user.name,
             data: {
                 message: {
-                    from: req.body.from,
-                    to: req.body.to,
-                    cc: req.body.cc,
-                    bcc: req.body.bcc,
-                    subject: req.body.subject,
-                    text: req.body.text,
-                    html: req.body.html
+                    from: req.body.message.from,
+                    to: req.body.message.to,
+                    cc: req.body.message.cc,
+                    bcc: req.body.message.bcc,
+                    subject: req.body.message.subject,
+                    text: req.body.message.text,
+                    html: req.body.message.html
                 },
                 pdf: {
-                    form: req.body.form,
-                    ids: req.body.id || req.body.ids,
-                    filename: req.body.filename
+                    form: req.body.pdf.form,
+                    ids: req.body.pdf.id || req.body.pdf.ids,
+                    filename: req.body.pdf.filename
                 }
             }
         };
 
-        logger.verbose("Mail PDF Form");
+        logger.verbose("Send mail");
         logger.verbose(payload);
         datasource.request(payload).then(
             respond.bind(res)
@@ -1440,7 +1440,7 @@
         app.post("/do/export/:format/:feather", doExport);
         app.post("/do/import/:format/:feather", doImport);
         app.post("/do/print-pdf/form/", doPrintPdfForm);
-        app.post("/do/mail-pdf/form/", doMailPdfForm);
+        app.post("/do/send-mail", doSendMail);
         app.post("/do/subscribe/:query", doSubscribe);
         app.post("/do/unsubscribe/:query", doUnsubscribe);
         app.post("/do/lock", doLock);
