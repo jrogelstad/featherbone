@@ -923,7 +923,9 @@
                             data = rows.shift();
                             buildSection();
                             form.tabs.forEach(buildSection);
-                            doc.pageBreak();
+                            if (rows.length) {
+                                doc.pageBreak();
+                            }
                             n = 0;
                         }
 
