@@ -868,10 +868,10 @@
         );
     }
 
-    function doEmailPdfForm(req, res) {
+    function doMailPdfForm(req, res) {
         let payload = {
-            method: "PUT",
-            name: "saveProfile",
+            method: "POST",
+            name: "mailPdf",
             user: req.user.name,
             data: {
                 message: {
@@ -880,7 +880,8 @@
                     cc: req.body.cc,
                     bcc: req.body.bcc,
                     subject: req.body.subject,
-                    text: req.body.message
+                    text: req.body.text,
+                    html: req.body.html
                 },
                 pdf: {
                     form: req.body.form,
@@ -889,7 +890,7 @@
             }
         };
 
-        logger.verbose("Email PDF Form");
+        logger.verbose("Mail PDF Form");
         logger.verbose(payload);
         datasource.request(payload).then(
             respond.bind(res)
@@ -1438,7 +1439,7 @@
         app.post("/do/export/:format/:feather", doExport);
         app.post("/do/import/:format/:feather", doImport);
         app.post("/do/print-pdf/form/", doPrintPdfForm);
-        app.post("/do/email-pdf/form/", doEmailPdfForm);
+        app.post("/do/mail-pdf/form/", doMailPdfForm);
         app.post("/do/subscribe/:query", doSubscribe);
         app.post("/do/unsubscribe/:query", doUnsubscribe);
         app.post("/do/lock", doLock);
