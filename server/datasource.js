@@ -2119,7 +2119,7 @@
         "saveAuthorization",
         feathers.saveAuthorization
     );
-    that.registerFunction("POST", "emailPdf", mail.sendPdf);
+    that.registerFunction("POST", "mailPdf", mail.sendPdf);
     that.registerFunction("PUT", "saveFeather", feathers.saveFeather);
     that.registerFunction("PUT", "saveProfile", profile.saveProfile);
     that.registerFunction("PUT", "saveSettings", settings.saveSettings);

@@ -23,13 +23,12 @@
     "use strict";
 
     const fs = require("fs");
-    const {Nodemailer} = require("nodemailer");
     const {PDF} = require("./pdf");
     const {Config} = require("../config");
 
     const config = new Config();
     const pdf = new PDF();
-    const nodemailer = new Nodemailer();
+    const nodemailer = require("nodemailer");
     let smtp;
 
     config.read().then(function (resp) {
@@ -60,8 +59,11 @@
             @param {Object} [payload.data] Payload data
             @param {String} [payload.data.from] From address
             @param {String} [payload.data.to] To address
+            @param {String} [payload.data.cc] Cc address
+            @param {String} [payload.data.bcc] Bcc address
             @param {String} [payload.data.subject] Subject
             @param {String} [payload.data.text] Message text
+            @param {String} [payload.data.html] Message html
             @param {String} [payload.data.form] Form name
             @param {String|Array} [payload.data.ids] Record id or ids
             @param {Object} [payload.client] Database client
@@ -83,17 +85,18 @@
                 }
 
                 function sendMail(resp) {
+                    let transporter;
+                    /*
                     message.attachments = {
                         path: "./files/downloads/" + resp
                     };
-                    nodemailer.createTransport(smtp);
-                    nodemailer.sendMail(message, function (err) {
-                        if (err) {
-                            reject(err);
-                            return;
-                        }
+                    */
+                    transporter = nodemailer.createTransport(smtp);
+                    transporter.sendMail(message).then(function (info) {
+                        console.log("Message sent: %s", info.messageId);
+                        console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info));
                         cleanup();
-                    });
+                    }).catch(reject);
                 }
 
                 pdf.printForm(obj.client, opts.form, opts.ids).then(
