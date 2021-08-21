@@ -75,7 +75,7 @@
                 let opts = obj.data.pdf;
 
                 function cleanup() {
-                    fs.unlink(message.attachements.path, function (err) {
+                    fs.unlink(message.attachments.path, function (err) {
                         if (err) {
                             reject(err);
                             return;
@@ -86,20 +86,25 @@
 
                 function sendMail(resp) {
                     let transporter;
-                    /*
                     message.attachments = {
                         path: "./files/downloads/" + resp
                     };
-                    */
                     transporter = nodemailer.createTransport(smtp);
-                    transporter.sendMail(message).then(function (info) {
-                        console.log("Message sent: %s", info.messageId);
-                        console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info));
-                        cleanup();
-                    }).catch(reject);
+                    transporter.sendMail(
+                        message
+                    ).then(
+                        cleanup
+                    ).catch(
+                        reject
+                    );
                 }
 
-                pdf.printForm(obj.client, opts.form, opts.ids).then(
+                pdf.printForm(
+                    obj.client,
+                    opts.form,
+                    opts.ids,
+                    opts.filename
+                ).then(
                     sendMail
                 ).catch(
                     reject
