@@ -263,10 +263,10 @@
 
             @method printForm
             @param {Object} Database client
-            @param {String} Form name
+            @param {String} [Form] name
             @param {String | Array} Record Id or Id array
-            @param {String} Target filename
-            @return {String} Filename
+            @param {String} [Filename] Target filename
+            @return {Promise} Filename
         */
         that.printForm = function (vClient, form, ids, filename) {
             return new Promise(function (resolve, reject) {

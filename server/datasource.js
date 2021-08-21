@@ -1789,6 +1789,8 @@
           {{/crossLink}}
           * {{#crossLink "Services.Events/unsubscribe:method"}}
           {{/crossLink}}
+          * {{#crossLink "Services.Mail/sendMail:method"}}
+          {{/crossLink}}
         * __PATCH__
           * {{#crossLink "Services.Profile/patchProfile:method"}}
           {{/crossLink}}
@@ -2119,7 +2121,7 @@
         "saveAuthorization",
         feathers.saveAuthorization
     );
-    that.registerFunction("POST", "mailPdf", mail.sendPdf);
+    that.registerFunction("POST", "sendMail", mail.sendMail);
     that.registerFunction("PUT", "saveFeather", feathers.saveFeather);
     that.registerFunction("PUT", "saveProfile", profile.saveProfile);
     that.registerFunction("PUT", "saveSettings", settings.saveSettings);
