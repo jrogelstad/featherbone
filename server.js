@@ -885,7 +885,8 @@
                 },
                 pdf: {
                     form: req.body.form,
-                    ids: req.body.id || req.body.ids
+                    ids: req.body.id || req.body.ids,
+                    filename: req.body.filename
                 }
             }
         };
