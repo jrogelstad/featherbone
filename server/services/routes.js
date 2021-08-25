@@ -47,7 +47,10 @@
         */
         that.getRoutes = function (obj) {
             return new Promise(function (resolve, reject) {
-                let sql = "SELECT module, path, function FROM \"_route\" ";
+                let sql = (
+                    "SELECT module, path, function FROM \"_route\" " +
+                    "WHERE NOT is_deleted;"
+                );
                 let client = db.getClient(obj.client);
 
                 // Query routes
