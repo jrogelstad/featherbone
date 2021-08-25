@@ -34,7 +34,7 @@
     config.read().then(function (resp) {
         smtp = {
             auth: {
-                password: resp.smtpAuthPassword,
+                pass: resp.smtpAuthPass,
                 user: resp.smtpAuthUser
             },
             host: resp.smtpHost,
