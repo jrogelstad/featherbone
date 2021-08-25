@@ -280,7 +280,7 @@
                         thesecret = resp.secret;
                         systemUser = resp.pgUser;
                         mode = resp.mode || "prod";
-                        port = resp.clientPort || 10001;
+                        port = process.env.PORT || resp.clientPort || 10001;
 
                         // Add npm modules specified
                         mods.forEach(function (mod) {
