@@ -52,7 +52,15 @@
         // Reslove connection string
         function setConfig(resp) {
             return new Promise(function (resolve) {
-                cache = resp;
+                cache = {
+                    postgres: {
+                        host: resp.pgHost,
+                        port: resp.pgPort,
+                        database: resp.pgDatabase,
+                        user: resp.pgUser,
+                        password: resp.pgPassword
+                    }
+                };
                 resolve(resp);
             });
         }
@@ -86,11 +94,11 @@
                         let login;
 
                         login = new Pool({
-                            host: resp.postgres.host,
-                            database: resp.postgres.database,
+                            host: resp.pgHost,
+                            database: resp.pgDatabase,
                             user: username,
                             password: pswd,
-                            port: resp.postgres.port
+                            port: resp.pgPort
                         });
 
                         login.connect(function (err, ignore, done) {

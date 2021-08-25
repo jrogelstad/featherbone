@@ -193,7 +193,13 @@
             function configLogger() {
                 return new Promise(function (resolve) {
                     config.read().then(function (resp) {
-                        let log = resp.log || {};
+                        let log = {
+                            level: resp.logLevel,
+                            zippedArchive: resp.logZippedArchive,
+                            maxSize: resp.logMaxSize,
+                            maxFiles: resp.logMaxFiles,
+                            silent: resp.logSilent
+                        };
                         let fmt = winston.format.combine(
                             winston.format.timestamp(),
                             winston.format.json()
@@ -272,9 +278,9 @@
                         // Default 1 day.
                         sessionTimeout = resp.sessionTimeout || 86400000;
                         thesecret = resp.secret;
-                        systemUser = resp.postgres.user;
+                        systemUser = resp.pgUser;
                         mode = resp.mode || "prod";
-                        port = resp.port || 10001;
+                        port = resp.clientPort || 10001;
 
                         // Add npm modules specified
                         mods.forEach(function (mod) {

@@ -1,24 +1,20 @@
 {
-    "nodeId": "node1",
-    "sessionTimeout": 86400000,
-    "secret": "Your own session key here",
-    "postgres": {
-        "host": "127.0.0.1",
-        "database": "demo",
-        "port": 5432,
-        "user": "admin",
-        "password": "password"
-    },
-    "log": {
-        "level": "info",
-        "zippedArchive": false,
-        "maxSize": "10m",
-        "maxFiles": "7d",
-        "silent": false
-    },
-    "port": 10001,
+    "clientPort": 10001,
+    "debug": true,
+    "logLevel": "info",
+    "logMaxFiles": "7d",
+    "logMaxSize": "10m",
+    "logZippedArchive": false,
+    "logSilent": false,
     "mode": "prod",
+    "nodeId": "node1",
     "npmModules": [],
-    "debug": true
+    "pgHost": "127.0.0.1",
+    "pgDatabase": "demo",
+    "pgPort": 5432,
+    "pgUser": "admin",
+    "pgPassword": "password",
+    "secret": "Your own session key here",
+    "sessionTimeout": 86400000
 }
 

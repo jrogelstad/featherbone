@@ -32,7 +32,15 @@
     let smtp;
 
     config.read().then(function (resp) {
-        smtp = resp.smtp;
+        smtp = {
+            auth: {
+                password: resp.smtpAuthPassword,
+                user: resp.smtpAuthUser
+            },
+            host: resp.smtpHost,
+            port: resp.smtpPort,
+            secure: resp.smtpSecure
+        };
     });
 
     /**
