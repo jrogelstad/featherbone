@@ -79,7 +79,7 @@
     function connect() {
         return new Promise(function (resolve, reject) {
             function callback(config) {
-                user = config.postgres.user;
+                user = config.pgUser;
                 db.connect().then(function (resp) {
                     client = resp.client;
                     client.currentUser = () => user;
@@ -108,7 +108,7 @@
                     client.end().then(function () {
                         // Check if this database has been initialized
                         client = new Client({
-                            connectionString: conn + conf.postgres.database
+                            connectionString: conn + conf.pgDatabase
                         });
                         client.connect().then(function () {
                             sql = (
@@ -128,14 +128,14 @@
                 // Otherwise create database first
                 } else {
                     msg = "Creating database \"";
-                    msg += conf.postgres.database + "\"";
+                    msg += conf.pgDatabase + "\"";
                     console.log(msg);
 
                     sql = "CREATE DATABASE %I;";
                     sql = format(
                         sql,
-                        conf.postgres.database,
-                        conf.postgres.user
+                        conf.pgDatabase,
+                        conf.pgUser
                     );
 
                     client.query(sql).then(resolve);
@@ -150,16 +150,16 @@
 
                 client.query(
                     sql,
-                    [conf.postgres.database]
+                    [conf.pgDatabase]
                 ).then(handleDb).catch(reject);
             }
 
             conn = (
                 "postgres://" +
-                (superuser || conf.postgres.user) + ":" +
-                (superpwd || conf.postgres.password) + "@" +
-                conf.postgres.host + ":" +
-                conf.postgres.port + "/"
+                (superuser || conf.pgUser) + ":" +
+                (superpwd || conf.pgPassword) + "@" +
+                conf.pgHost + ":" +
+                conf.pgPort + "/"
             );
 
             client = new Client({connectionString: conn + "postgres"});
@@ -175,21 +175,21 @@
             function grantUser() {
                 sql = (
                     "GRANT SELECT ON pg_authid TO " +
-                    conf.postgres.user + ";"
+                    conf.pgUser + ";"
                 );
                 client.query(sql).then(resolve).catch(reject);
             }
 
             function createUser() {
                 sql = (
-                    "CREATE USER " + conf.postgres.user + " WITH " +
+                    "CREATE USER " + conf.pgUser + " WITH " +
                     "LOGIN " +
                     "NOSUPERUSER " +
                     "CREATEROLE " +
                     "INHERIT " +
                     "NOREPLICATION " +
                     "CONNECTION LIMIT -1 " +
-                    "PASSWORD '" + conf.postgres.password + "';"
+                    "PASSWORD '" + conf.pgPassword + "';"
                 );
                 client.query(sql).then(grantUser).catch(grantUser);
             }
@@ -203,8 +203,8 @@
                 "postgres://" +
                 superuser + ":" +
                 superpwd + "@" +
-                conf.postgres.host + ":" +
-                conf.postgres.port + "/" + conf.postgres.database
+                conf.pgHost + ":" +
+                conf.pgPort + "/" + conf.pgDatabase
             );
 
             client = new Client({connectionString: conn});

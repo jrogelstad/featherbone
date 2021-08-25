@@ -308,7 +308,7 @@
                 let payload = {
                     method: "GET",
                     name: "getSettings",
-                    user: resp.postgres.user,
+                    user: resp.pgUser,
                     data: {
                         name: "catalog",
                         force: true
@@ -334,7 +334,7 @@
                 let payload = {
                     method: "GET",
                     name: "getServices",
-                    user: resp.postgres.user
+                    user: resp.pgUser
                 };
 
                 that.request(payload).then(resolve).catch(reject);
@@ -356,7 +356,7 @@
                 let payload = {
                     method: "GET",
                     name: "getRoutes",
-                    user: resp.postgres.user
+                    user: resp.pgUser
                 };
 
                 that.request(payload).then(resolve).catch(reject);
