@@ -738,7 +738,10 @@ connect().then(function (resp) {
     let edata;
 
     function listen() {
-        const wsurl = "ws://" + window.location.hostname + ":7070";
+        const wsurl = (
+            "ws://" + window.location.hostname +
+            ":" + resp.data.webSocketPort
+        );
         const evsubscr = new WebSocket(wsurl);
 
         // Connection opened
