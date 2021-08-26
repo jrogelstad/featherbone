@@ -40,7 +40,8 @@
     const {Config} = require("./server/config");
     const config = new Config();
     const WebSocket = require("ws");
-    const wss = new WebSocket.Server({port: 7070});
+    const wsPort = 7070;
+    const wss = new WebSocket.Server({port: wsPort});
     const check = [
         "data",
         "do",
@@ -1198,8 +1199,9 @@
 
         respond.bind(res)({
             data: {
+                authorized: req.user,
                 eventKey: key,
-                authorized: req.user
+                webSocketPort: wsPort
             }
         });
     }
