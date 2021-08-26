@@ -1585,6 +1585,7 @@
         // START THE SERVER
         // ====================================================================
         const server = app.listen(port);
+        // Enable web sockets to listen on the same port as http
         server.on("upgrade", function (request, socket, head) {
             wss.handleUpgrade(request, socket, head, function (socket) {
                 wss.emit("connection", socket, request);
