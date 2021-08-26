@@ -1,5 +1,4 @@
 {
-    "clientPort": 10001,
     "debug": true,
     "logLevel": "info",
     "logMaxFiles": "7d",

@@ -40,6 +40,7 @@
     const {Config} = require("./server/config");
     const config = new Config();
     const WebSocket = require("ws");
+    const wss = new WebSocket.Server({noServer: true});
     const check = [
         "data",
         "do",
@@ -55,8 +56,6 @@
     const winston = require("winston");
     require("winston-daily-rotate-file");
     const argv = process.argv;
-    let wsPort;
-    let wss;
     let loglevel;
     let consolelog;
     let debug;
@@ -276,20 +275,12 @@
 
                         debug = Boolean(resp.debug);
 
-                        if (resp.webSocketPort) {
-                            wsPort = resp.webSocketPort;
-                        } else if (resp.https) {
-                            wsPort = 443;
-                        } else {
-                            wsPort = 80;
-                        }
-                        wss = new WebSocket.Server({port: wsPort});
                         // Default 1 day.
                         sessionTimeout = resp.sessionTimeout || 86400000;
                         thesecret = resp.secret;
                         systemUser = resp.pgUser;
                         mode = resp.mode || "prod";
-                        port = process.env.PORT || resp.clientPort || 10001;
+                        port = process.env.PORT || resp.clientPort || 80;
 
                         // Add npm modules specified
                         mods.forEach(function (mod) {
@@ -1208,8 +1199,7 @@
         respond.bind(res)({
             data: {
                 authorized: req.user,
-                eventKey: key,
-                webSocketPort: wsPort
+                eventKey: key
             }
         });
     }
@@ -1594,7 +1584,12 @@
 
         // START THE SERVER
         // ====================================================================
-        app.listen(port);
+        const server = app.listen(port);
+        server.on("upgrade", function (request, socket, head) {
+            wss.handleUpgrade(request, socket, head, function (socket) {
+                wss.emit("connection", socket, request);
+            });
+        });
         console.log("Magic happens on port " + port);
     }
 
