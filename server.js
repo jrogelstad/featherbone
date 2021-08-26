@@ -40,8 +40,6 @@
     const {Config} = require("./server/config");
     const config = new Config();
     const WebSocket = require("ws");
-    const wsPort = 7070;
-    const wss = new WebSocket.Server({port: wsPort});
     const check = [
         "data",
         "do",
@@ -57,6 +55,8 @@
     const winston = require("winston");
     require("winston-daily-rotate-file");
     const argv = process.argv;
+    let wsPort;
+    let wss;
     let loglevel;
     let consolelog;
     let debug;
@@ -276,6 +276,14 @@
 
                         debug = Boolean(resp.debug);
 
+                        if (resp.webSocketPort) {
+                            wsPort = resp.webSocketPort;
+                        } else if (resp.https) {
+                            wsPort = 443;
+                        } else {
+                            wsPort = 80;
+                        }
+                        wss = new WebSocket.Server({port: wsPort});
                         // Default 1 day.
                         sessionTimeout = resp.sessionTimeout || 86400000;
                         thesecret = resp.secret;
