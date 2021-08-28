@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/*jslint node, this, devel*/
+/*jslint node, this, eval*/
 /**
     @module Datasource
 */
@@ -236,7 +236,6 @@
                                 email: obj.email
                             }
                         }, true).then(function () {
-                            debugger;
                             that.request({
                                 method: "POST",
                                 name: "UserAccount",
@@ -251,7 +250,6 @@
                             }, true).then(resolve).catch(reject);
                         }).catch(reject);
                     } else {
-                        debugger;
                         // Update existing contact
                         that.request({
                             method: "POST",
@@ -2033,30 +2031,67 @@
     };
 
     /**
-        Use to clear all registered triggers if services
-        are going to be reloaded.
+        Load all services into memory.
+        
+        Pass username and client reduce connection calls
+        and avoid hanging if this request is made many consecutive
+        times.
 
-        @method unregisterTriggers
+        @method loadServices
+        @param {String} [username]
+        @param {Object} [client]
+        @return {Promise}
     */
-    that.unregisterTriggers = function () {
-        function clearTriggers(fn, trigger) {
-            if (
-                fn[trigger] &&
-                fn[trigger].length
-            ) {
-                fn[trigger].length = 0;
-            }
-        }
+    that.loadServices = function (pUser, pClient) {
+        return new Promise(function (resolve, reject) {
+            function unregisterTriggers() {
+                function clearTriggers(fn, trigger) {
+                    if (
+                        fn[trigger] &&
+                        fn[trigger].length
+                    ) {
+                        fn[trigger].length = 0;
+                    }
+                }
 
-        Object.keys(registered).forEach(function (method) {
-            Object.keys(registered[method]).forEach(function (fn) {
-                let func = registered[method][fn];
-                clearTriggers(func, TRIGGER_BEFORE);
-                clearTriggers(func, TRIGGER_AFTER);
-            });
+                Object.keys(registered).forEach(function (method) {
+                    Object.keys(registered[method]).forEach(function (fn) {
+                        let func = registered[method][fn];
+                        clearTriggers(func, TRIGGER_BEFORE);
+                        clearTriggers(func, TRIGGER_AFTER);
+                    });
+                });
+            }
+
+            function doLoadServices(resp) {
+                unregisterTriggers();
+
+                resp.forEach(function (service) {
+                    try {
+                        new Function(
+                            "f",
+                            "\"use strict\";" + service.script
+                        )(f);
+                    } catch (e) {
+                        reject(e);
+                    }
+                });
+
+                resolve();
+            }
+
+            if (pUser && pClient) {
+                that.request({
+                    method: "GET",
+                    name: "getServices",
+                    user: pUser,
+                    client: pClient
+                }, true).then(doLoadServices);
+            } else {
+                that.getServices().then(doLoadServices);
+            }
         });
     };
-
     /**
         Return a registered function. If trigger argument is passed
         an array of functions is returned;
