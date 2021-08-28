@@ -2033,6 +2033,31 @@
     };
 
     /**
+        Use to clear all registered triggers if services
+        are going to be reloaded.
+
+        @method unregisterTriggers
+    */
+    that.unregisterTriggers = function () {
+        function clearTriggers(fn, trigger) {
+            if (
+                fn[trigger] &&
+                fn[trigger].length
+            ) {
+                fn[trigger].length = 0;
+            }
+        }
+
+        Object.keys(registered).forEach(function (method) {
+            Object.keys(registered[method]).forEach(function (fn) {
+                let func = registered[method][fn];
+                clearTriggers(func, TRIGGER_BEFORE);
+                clearTriggers(func, TRIGGER_AFTER);
+            });
+        });
+    };
+
+    /**
         Return a registered function. If trigger argument is passed
         an array of functions is returned;
 
