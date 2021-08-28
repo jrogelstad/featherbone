@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/*jslint node eval*/
+/*jslint node*/
 /**
     @module Installer
 */
@@ -129,50 +129,6 @@
                     let len = data.length;
                     let b = 0;
 
-                    // Ensure all recentely installed services are now available
-                    function getServices() {
-                        let payload;
-                        let services;
-
-                        function clearTriggers(resp) {
-                            return new Promise(function (resolve) {
-                                services = resp;
-                                pDatasource.unregisterTriggers();
-                                resolve();
-                            });
-                        }
-
-                        function loadServices() {
-                            services.forEach(function (service) {
-                                try {
-                                    new Function(
-                                        "f",
-                                        "\"use strict\";" + service.script
-                                    )(f);
-                                } catch (e) {
-                                    reject(e);
-                                }
-                            });
-
-                            nextItem();
-                        }
-
-                        payload = {
-                            method: "GET",
-                            name: "getServices",
-                            user: pUser,
-                            client: pClient
-                        };
-
-                        pDatasource.request(payload, true).then(
-                            clearTriggers
-                        ).then(
-                            loadServices
-                        ).catch(
-                            rollback
-                        );
-                    }
-
                     // Iterate recursively
                     nextItem = function () {
                         let payload;
@@ -193,7 +149,11 @@
                     };
 
                     // Start processing
-                    getServices();
+                    pDatasource.loadServices(pUser, pClient).then(
+                        nextItem
+                    ).catch(
+                        rollback
+                    );
                 }
 
                 function saveModule(pName, pScript, pVersion, pDependencies) {

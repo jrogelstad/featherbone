@@ -93,7 +93,6 @@
     f.jsonpatch = require("fast-json-patch");
 
     let app = express();
-    let services = [];
     let routes = [];
     let eventSessions = {};
     let eventKeys = {};
@@ -235,19 +234,6 @@
                 });
             }
 
-            function getServices() {
-                return new Promise(function (resolve, reject) {
-                    datasource.getServices().then(
-                        function (data) {
-                            services = data;
-                            resolve();
-                        }
-                    ).catch(
-                        reject
-                    );
-                });
-            }
-
             function getRoutes() {
                 return new Promise(function (resolve, reject) {
                     datasource.getRoutes().then(
@@ -308,7 +294,7 @@
             ).then(
                 datasource.getCatalog
             ).then(
-                getServices
+                datasource.loadServices
             ).then(
                 getRoutes
             ).then(
@@ -1544,16 +1530,6 @@
         }
 
         datasource.listen(receiver).then(handleEvents).catch(console.error);
-
-        // REGISTER MODULE SERVICES
-        services.forEach(function (service) {
-            logger.info("Registering module service: " + service.name);
-            try {
-                new Function("f", "\"use strict\";" + service.script)(f);
-            } catch (e) {
-                console.error(e);
-            }
-        });
 
         // REGISTER MODULE ROUTES
         function postify(req, res) {
