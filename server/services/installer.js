@@ -132,10 +132,18 @@
                     // Ensure all recentely installed services are now available
                     function getServices() {
                         let payload;
-                        let after;
+                        let services;
 
-                        after = function (resp) {
-                            resp.forEach(function (service) {
+                        function clearTriggers(resp) {
+                            return new Promise(function (resolve) {
+                                services = resp;
+                                pDatasource.unregisterTriggers();
+                                resolve();
+                            });
+                        }
+
+                        function loadServices() {
+                            services.forEach(function (service) {
                                 try {
                                     new Function(
                                         "f",
@@ -147,7 +155,7 @@
                             });
 
                             nextItem();
-                        };
+                        }
 
                         payload = {
                             method: "GET",
@@ -157,7 +165,9 @@
                         };
 
                         pDatasource.request(payload, true).then(
-                            after
+                            clearTriggers
+                        ).then(
+                            loadServices
                         ).catch(
                             rollback
                         );
