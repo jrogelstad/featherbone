@@ -653,6 +653,34 @@ f.datasource.registerFunction(
 );
 
 /*
+  Data Service
+*/
+function doLoadServices(obj) {
+    "use strict";
+    
+    return new Promise(function (resolve, reject) {
+        f.datasource.loadServices(
+            obj.client.currentUser(),
+            obj.client
+        ).then(resolve).catch(reject);
+    });
+}
+
+f.datasource.registerFunction(
+    "POST",
+    "DataService",
+    doLoadServices,
+    f.datasource.TRIGGER_AFTER
+);
+
+f.datasource.registerFunction(
+    "PATCH",
+    "DataService",
+    doLoadServices,
+    f.datasource.TRIGGER_AFTER
+);
+
+/*
   Document
 */
 function doCreateDocument(obj) {
