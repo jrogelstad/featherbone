@@ -231,9 +231,7 @@ function buildSelector(obj, opts) {
     if (selectComponents[theId]) {
         if (
             selectComponents[theId].prop === opts.prop &&
-            selectComponents[theId].value === val &&
-            selectComponents[theId].readonly === opts.readonly &&
-            selectComponents[theId].values === values
+            selectComponents[theId].readonly === opts.readonly
         ) {
             return selectComponents[theId].content;
         }
@@ -249,9 +247,7 @@ function buildSelector(obj, opts) {
     }
 
     selectComponents[theId].prop = opts.prop;
-    selectComponents[theId].value = val;
     selectComponents[theId].readonly = opts.readonly;
-    selectComponents[theId].values = values;
     selectComponents[theId].content = m("select", {
         id: theId,
         key: theId,
@@ -271,7 +267,9 @@ function buildSelector(obj, opts) {
             key: theId + "$" + item.value
         }, item.label);
     }));
-
+    if (theId === "inputValue") {
+    console.log("New selector=>", theId);
+    }
     return selectComponents[theId].content;
 }
 
