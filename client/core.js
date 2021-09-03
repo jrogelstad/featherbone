@@ -267,9 +267,7 @@ function buildSelector(obj, opts) {
             key: theId + "$" + item.value
         }, item.label);
     }));
-    if (theId === "inputValue") {
-    console.log("New selector=>", theId);
-    }
+
     return selectComponents[theId].content;
 }
 
