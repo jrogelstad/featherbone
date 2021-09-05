@@ -231,7 +231,9 @@ function buildSelector(obj, opts) {
     if (selectComponents[theId]) {
         if (
             selectComponents[theId].prop === opts.prop &&
-            selectComponents[theId].readonly === opts.readonly
+            selectComponents[theId].readonly === opts.readonly &&
+            selectComponents[theId].readonly === val &&
+            selectComponents[theId].values === values
         ) {
             return selectComponents[theId].content;
         }
@@ -247,7 +249,9 @@ function buildSelector(obj, opts) {
     }
 
     selectComponents[theId].prop = opts.prop;
+    selectComponents[theId].value = val;
     selectComponents[theId].readonly = opts.readonly;
+    selectComponents[theId].values = values;
     selectComponents[theId].content = m("select", {
         id: theId,
         key: theId,
