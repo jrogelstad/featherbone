@@ -441,6 +441,7 @@
                         let deps = Object.keys(feathers);
                         let found;
                         let deferred = [];
+                        let err;
 
                         function nextChild() {
                             if (deferred.length) {
@@ -515,12 +516,25 @@
 
                         while (deps.length) {
                             found = deps.find(candidate);
-                            keys.push(found);
-                            deps.splice(deps.indexOf(found), 1);
+                            if (found === undefined) {
+                                err = (
+                                    "Relationships cause circular" +
+                                    " dependencies"
+                                );
+                                deps.length = 0;
+                            } else {
+                                keys.push(found);
+                                deps.splice(deps.indexOf(found), 1);
+                            }
                         }
 
-                        // Now create views
-                        nextView();
+                        if (err) {
+                            reject(err);
+                        } else {
+
+                        // Now create views                     
+                            nextView();
+                        }
                     });
                 }
 
