@@ -107,7 +107,11 @@ relationWidget.viewModel = function (options) {
             filter.sort = [];
         }
         filter.criteria = filter.criteria.concat(pFilter.criteria);
-        filter.sort = filter.sort || pFilter.sort;
+        filter.sort = (
+            filter.sort && filter.sort.length
+            ? filter.sort
+            : pFilter.sort
+        );
         filter.limit = filter.limit || pFilter.limit;
 
         return filter;
