@@ -739,7 +739,8 @@ connect().then(function (resp) {
 
     function listen() {
         const wsurl = (
-            "ws://" + window.location.hostname
+            "ws://" + window.location.hostname + 
+            ":" + window.location.port
         );
         const evsubscr = new WebSocket(wsurl);
 
