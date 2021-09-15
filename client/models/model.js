@@ -944,8 +944,11 @@ function createModel(data, feather) {
         @return {Object}
     */
     model.onLoad = function (callback) {
-        model.state().resolve("/Ready/Fetched/Clean").enter(callback);
-        model.state().resolve("/Ready/Fetched/ReadOnly").enter(callback);
+        if (model.isReadOnly()) {
+            model.state().resolve("/Ready/Fetched/ReadOnly").enter(callback);
+        } else {
+            model.state().resolve("/Ready/Fetched/Clean").enter(callback);
+        }
 
         return this;
     };
