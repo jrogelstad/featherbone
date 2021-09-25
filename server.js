@@ -309,9 +309,11 @@
                 getConfig
             ).then(
                 resolve
-            ).catch(
-                reject
-            );
+            ).catch(function(err) {
+                logger.error(err.message);
+                console.log(err);
+                reject(err);
+            });
         });
     }
 
