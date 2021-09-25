@@ -2064,19 +2064,26 @@
             }
 
             function doLoadServices(resp) {
+                let err;
                 unregisterTriggers();
 
-                resp.forEach(function (service) {
+                resp.every(function (service) {
                     try {
                         new Function(
                             "f",
                             "\"use strict\";" + service.script
                         )(f);
                     } catch (e) {
-                        reject(e);
+                        err = e;
+                        return false;
                     }
+                    return true;
                 });
 
+                if (err) {
+                    reject(err);
+                    return;
+                }
                 resolve();
             }
 
