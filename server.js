@@ -294,8 +294,6 @@
             ).then(
                 datasource.getCatalog
             ).then(
-                datasource.loadServices
-            ).then(
                 getRoutes
             ).then(
                 datasource.unsubscribe
@@ -307,6 +305,8 @@
                 setPool
             ).then(
                 getConfig
+            ).then(
+                datasource.loadServices
             ).then(
                 resolve
             ).catch(function(err) {
