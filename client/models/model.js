@@ -1608,7 +1608,7 @@ function createModel(data, feather) {
                         // Get regular model
                         } else {
                             result = catalog.store().models()[name]();
-                            result.set(value, true, true);                            
+                            result.set(value, true, true);
                         }
 
                         // Synchronize statechart
@@ -1646,7 +1646,7 @@ function createModel(data, feather) {
 
                     // Create property
                     prop = createProperty(value, formatter);
-                    
+
                     // Enable ability to pre-filter results
                     prop.filter = createProperty({
                         sort: [],
@@ -2006,18 +2006,31 @@ function createModel(data, feather) {
     // Add standard validator that checks required properties
     // and validates children
     model.onValidate(function () {
-        let name;
         let keys = Object.keys(d);
 
-        function requiredIsNull(key) {
+        function validate(key) {
             let prop = d[key];
+            let val = prop();
+            let name = prop.alias();
+
+            // Validate required property
             if (
-                prop.isRequired() && (prop() === null || (
-                    prop.type === "string" && !prop()
+                prop.isRequired() && (val === null || (
+                    prop.type === "string" && !val
                 ))
             ) {
-                name = prop.alias();
-                return true;
+                throw "\"" + name + "\" is required";
+            }
+
+            // Validate min/max
+            if (prop.type === "number" || prop.type === "integer") {
+                if (val !== null && prop.max && val > prop.max) {
+                    throw "Maximum value for \"" + name + "\" is " + prop.max;
+                }
+
+                if (val !== null && prop.min !== undefined && val < prop.min) {
+                    throw "Minimum value for \"" + name + "\" is " + prop.min;
+                }
             }
 
             // Recursively validate children
@@ -2030,10 +2043,8 @@ function createModel(data, feather) {
             }
         }
 
-        // Validate required values
-        if (keys.some(requiredIsNull)) {
-            throw "\"" + name + "\" is required";
-        }
+        // Validate all extant properties
+        keys.forEach(validate);
     });
 
 
