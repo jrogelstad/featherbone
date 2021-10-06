@@ -1469,7 +1469,7 @@
                     let payload = {
                         id: obj.id,
                         name: obj.name,
-                        client: obj.client
+                        client: theClient
                     };
 
                     // Apply properties of a new record over the top of an
