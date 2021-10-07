@@ -456,6 +456,7 @@ relationWidget.viewModel = function (options) {
 
         if (hasFocus) {
             if (args.length) {
+                vm.models().reset();
                 result = inputValue(value);
             } else {
                 result = inputValue();
