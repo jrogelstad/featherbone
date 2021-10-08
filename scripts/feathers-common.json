@@ -217,12 +217,6 @@
                 "type": "string",
                 "format": "enum",
                 "dataList": [{
-                    "value": "Barcode128",
-                    "label": "Barcode 128"
-                }, {
-                    "value": "Barcode128Text",
-                    "label": "Barcode 128 Text"
-                }, {
                     "value": "Barcode39",
                     "label": "Barcode 39"
                 }, {

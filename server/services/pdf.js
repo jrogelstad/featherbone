@@ -31,12 +31,6 @@
     const {Feathers} = require("./feathers");
     const pdf = require("pdfjs");
     const fonts = {
-        Barcode128: new pdf.Font(
-            fs[readFileSync]("./fonts/LibreBarcode128-Regular.ttf")
-        ),
-        Barcode128Text: new pdf.Font(
-            fs[readFileSync]("./fonts/LibreBarcode128Text-Regular.ttf")
-        ),
         Barcode39: new pdf.Font(
             fs[readFileSync]("./fonts/LibreBarcode39-Regular.ttf")
         ),
