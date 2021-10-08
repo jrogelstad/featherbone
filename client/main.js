@@ -493,7 +493,7 @@ function initPromises() {
 
             mapped.unshift({
                 value: "",
-                lable: ""
+                label: ""
             });
 
             catalog.register(

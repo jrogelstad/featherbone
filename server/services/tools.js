@@ -687,7 +687,7 @@
                     oldObj = JSON.parse(JSON.stringify(ary[i]));
                     newObj = {};
 
-                    keys = Object.keys(oldObj);
+                    keys = Object.keys(oldObj || {});
                     klen = keys.length;
                     n = 0;
 
