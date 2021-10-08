@@ -60,6 +60,12 @@ function doUpsertFeather(obj) {
             return p !== null && typeof p.type === "object" && p.type.childOf;
         }
 
+        props.forEach(function (p) {
+            if (p.dataList) {
+                p.dataList = p.dataList.filter((i) => i !== null);
+            }
+        });
+
         // Some update checks
         if (obj.oldRec && obj.newRec) {
             if (obj.oldRec.name !== obj.newRec.name) {
@@ -657,7 +663,7 @@ f.datasource.registerFunction(
 */
 function doLoadServices(obj) {
     "use strict";
-    
+
     return new Promise(function (resolve, reject) {
         f.datasource.loadServices(
             obj.client.currentUser(),
