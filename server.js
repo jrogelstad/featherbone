@@ -257,8 +257,6 @@
             function getConfig() {
                 return new Promise(function (resolve) {
                     config.read().then(function (resp) {
-                        let mods = resp.npmModules || [];
-
                         debug = Boolean(resp.debug);
 
                         // Default 1 day.
@@ -268,21 +266,6 @@
                         mode = resp.mode || "prod";
                         port = process.env.PORT || resp.clientPort || 80;
 
-                        // Add npm modules specified
-                        mods.forEach(function (mod) {
-                            let name;
-                            if (mod.properties) {
-                                mod.properties.forEach(function (p) {
-                                    f[p.property] = require(
-                                        mod.require
-                                    )[p.export];
-                                });
-                                return;
-                            }
-
-                            name = mod.require;
-                            f[name.toCamelCase()] = require(mod.require);
-                        });
                         resolve();
                     });
                 });
@@ -305,6 +288,8 @@
                 setPool
             ).then(
                 getConfig
+            ).then(
+                datasource.loadNpmModules
             ).then(
                 datasource.loadServices
             ).then(

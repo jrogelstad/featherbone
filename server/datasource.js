@@ -2031,6 +2031,37 @@
     };
 
     /**
+        Load all npm modules defined in configuration into memory.
+
+        @method loadModules
+        @return {Promise}
+    */
+    that.loadNpmModules = function (pUser, pClient) {
+        return new Promise(function (resolve, reject) {
+            config.read().then(function (resp) {
+                let mods = resp.npmModules || [];
+
+                // Add npm modules specified
+                mods.forEach(function (mod) {
+                    let name;
+                    if (mod.properties) {
+                        mod.properties.forEach(function (p) {
+                            f[p.property] = require(
+                                mod.require
+                            )[p.export];
+                        });
+                        return;
+                    }
+
+                    name = mod.require;
+                    f[name.toCamelCase()] = require(mod.require);
+                });
+                resolve();
+            });
+        });
+    };
+
+    /**
         Load all services into memory.
         
         Pass username and client reduce connection calls
