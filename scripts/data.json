@@ -768,9 +768,45 @@
     "method": "POST",
     "id": "each",
     "data": {
-        "code": "EA",
+        "code": "ea",
         "description": "Each",
         "dimension": "Q"
+    }
+}, {
+    "name": "Unit",
+    "method": "POST",
+    "id": "gram",
+    "data": {
+        "code": "g",
+        "description": "Gram",
+        "dimension": "W"
+    }
+}, {
+    "name": "Unit",
+    "method": "POST",
+    "id": "ounce",
+    "data": {
+        "code": "oz",
+        "description": "Ounce",
+        "dimension": "W"
+    }
+}, {
+    "name": "Unit",
+    "method": "POST",
+    "id": "pound",
+    "data": {
+        "code": "lb",
+        "description": "Pound",
+        "dimension": "W"
+    }
+}, {
+    "name": "Unit",
+    "method": "POST",
+    "id": "kilogram",
+    "data": {
+        "code": "kg",
+        "description": "Kilogram",
+        "dimension": "W"
     }
 }, {
     "name": "CurrencyUnit",
