@@ -61,7 +61,7 @@ function doUpsertFeather(obj) {
         }
 
         props.forEach(function (p) {
-            if (p.dataList) {
+            if (p && p.dataList) {
                 p.dataList = p.dataList.filter((i) => i !== null);
             }
         });
