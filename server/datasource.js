@@ -1509,7 +1509,10 @@
                                 // Update children in array
                                 n = 0;
                                 oldRec[key].forEach(function (oldChild) {
-                                    if (newRec[key][n] !== undefined) {
+                                    if (
+                                        newRec[key][n] !== undefined &&
+                                        newRec[key][n] !== null
+                                    ) {
                                         overlay(newRec[key][n], oldChild);
                                     } else {
                                         newRec[key][n] = null;
