@@ -643,11 +643,15 @@ relationWidget.component = {
                         m("li", {
                             id: "nav-relation-search-" + id,
                             class: editMenuClass,
-                            onclick: function () {
-                                vm.showMenu(false);
-                                vm.search();
-                                return false;
-                            }
+                            onclick: (
+                                editMenuClass.indexOf("disabled") === -1
+                                ? function () {
+                                    vm.showMenu(false);
+                                    vm.search();
+                                    return false;
+                                }
+                                : undefined
+                            )
                         }, [m("i", {
                             id: "nav-relation-search-icon-" + id,
                             class: "fa fa-search"
@@ -655,11 +659,15 @@ relationWidget.component = {
                         m("li", {
                             id: "nav-relation-open-" + id,
                             class: openMenuClass,
-                            onclick: function () {
-                                vm.showMenu(false);
-                                vm.open();
-                                return false;
-                            }
+                            onclick: (
+                                openMenuClass.indexOf("disabled") === -1
+                                ? function () {
+                                    vm.showMenu(false);
+                                    vm.open();
+                                    return false;
+                                }
+                                : undefined
+                            )
                         }, [m("i", {
                             id: "nav-relation-open-icon-" + id,
                             class: "fa fa-folder-open"
@@ -667,11 +675,15 @@ relationWidget.component = {
                         m("li", {
                             id: "nav-relation-new-" + id,
                             class: newMenuClass,
-                            onclick: function () {
-                                vm.showMenu(false);
-                                vm.new();
-                                return false;
-                            }
+                            onclick: (
+                                newMenuClass.indexOf("disabled") === -1
+                                ? function () {
+                                    vm.showMenu(false);
+                                    vm.new();
+                                    return false;
+                                }
+                                : undefined
+                            )
                         }, [m("i", {
                             id: "nav-relation-new-icon-" + id,
                             class: "fa fa-plus-circle"
