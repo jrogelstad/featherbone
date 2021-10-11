@@ -99,36 +99,47 @@ function buildFieldset(vm, attrs) {
         let menuButtons = vm.menuButtons();
         let relation = vm.relations()[theKey];
 
+        function canOpen() {
+            return relation && relation.model && relation.model();
+        }
+
         function openMenuClass() {
             let ret = "pure-menu-link fb-form-label-menu-item";
 
-            if (relation && relation.model && !relation.model()) {
+            if (!canOpen()) {
                 ret += " pure-menu-disabled";
             }
 
             return ret;
+        }
+
+        function canEdit() {
+            return relation && relation.isReadOnly && !relation.isReadOnly();
         }
 
         function editMenuClass() {
             let ret = "pure-menu-link fb-form-label-menu-item";
 
-            if (
-                relation && relation.isReadOnly &&
-                relation.isReadOnly()
-            ) {
+            if (!canEdit()) {
                 ret += " pure-menu-disabled";
             }
 
             return ret;
         }
 
+        function canCreate() {
+            return (
+                relation &&
+                relation.isReadOnly &&
+                !relation.isReadOnly() &&
+                relation.canCreate()
+            );
+        }
+
         function newMenuClass() {
             let ret = "pure-menu-link fb-form-label-menu-item";
 
-            if (
-                (relation && relation.isReadOnly && relation.isReadOnly()) ||
-                !relation.canCreate()
-            ) {
+            if (!canCreate()) {
                 ret += " pure-menu-disabled";
             }
 
@@ -197,11 +208,15 @@ function buildFieldset(vm, attrs) {
                         m("li", {
                             id: "nav-relation-search-" + theKey,
                             class: editMenuClass(),
-                            onclick: function (e) {
-                                menuButtons[theKey].display = "none";
-                                relation.search();
-                                return false; // Stop propagation
-                            }
+                            onclick: (
+                                canEdit()
+                                ? function (e) {
+                                    menuButtons[theKey].display = "none";
+                                    relation.search();
+                                    return false; // Stop propagation
+                                }
+                                : undefined
+                            )
                         }, [m("i", {
                             id: "nav-relation-search-icon-" + theKey,
                             class: "fa fa-search"
@@ -209,11 +224,15 @@ function buildFieldset(vm, attrs) {
                         m("li", {
                             id: "nav-relation-open-" + theKey,
                             class: openMenuClass(),
-                            onclick: function (e) {
-                                menuButtons[theKey].display = "none";
-                                relation.open();
-                                return false; // Stop propagation
-                            }
+                            onclick: (
+                                canOpen()
+                                ? function (e) {
+                                    menuButtons[theKey].display = "none";
+                                    relation.open();
+                                    return false; // Stop propagation
+                                }
+                                : undefined
+                            )
                         }, [m("i", {
                             id: "nav-relation-open-icon-" + theKey,
                             class: "fa fa-folder-open"
@@ -221,11 +240,15 @@ function buildFieldset(vm, attrs) {
                         m("li", {
                             id: "nav-relation-new-" + theKey,
                             class: newMenuClass(),
-                            onclick: function () {
-                                menuButtons[theKey].display = "none";
-                                relation.new();
-                                return false; // Stop propagation
-                            }
+                            onclick: (
+                                canCreate()
+                                ? function () {
+                                    menuButtons[theKey].display = "none";
+                                    relation.new();
+                                    return false; // Stop propagation
+                                }
+                                : undefined
+                            )
                         }, [m("i", {
                             id: "nav-relation-new-icon-" + theKey,
                             class: "fa fa-plus-circle"
