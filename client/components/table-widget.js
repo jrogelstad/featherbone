@@ -668,20 +668,7 @@ function createTableRow(options, pModel) {
         minWidth: "25px"
     };
 
-    if (currentMode !== "/Mode/Edit" && isSelected) {
-        thContent = m("i", {
-            onclick: theVm.ondblclick.bind(null, pModel),
-            class: "fa fa-folder-open fb-icon-button",
-            style: iconStyle
-        });
-    } else if (!pModel.isValid()) {
-        thContent = m("i", {
-            onclick: onClick,
-            title: pModel.lastError(),
-            class: "fa fa-exclamation-triangle",
-            style: iconStyle
-        });
-    } else if (currentState === "/Locked") {
+    if (currentState === "/Locked") {
         lock = data.lock() || {};
         thContent = m("i", {
             onclick: onClick,
@@ -695,6 +682,19 @@ function createTableRow(options, pModel) {
                 ? "fa fa-user-lock"
                 : "fa fa-spinner fa-spin"
             ),
+            style: iconStyle
+        });
+    } else if (!pModel.isValid()) {
+        thContent = m("i", {
+            onclick: onClick,
+            title: pModel.lastError(),
+            class: "fa fa-exclamation-triangle",
+            style: iconStyle
+        });
+    } else if (currentMode !== "/Mode/Edit" && isSelected) {
+        thContent = m("i", {
+            onclick: theVm.ondblclick.bind(null, pModel),
+            class: "fa fa-folder-open fb-icon-button",
             style: iconStyle
         });
     } else if (currentState === "/Delete") {
