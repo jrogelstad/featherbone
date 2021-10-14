@@ -687,9 +687,14 @@ function createTableRow(options, pModel) {
             onclick: onClick,
             title: (
                 "User: " + lock.username + "\nSince: " +
-                new Date(lock.created).toLocaleTimeString()
+                new Date(lock.created).toLocaleTimeString() +
+                "\nProcess: " + lock.process
             ),
-            class: "fa fa-user-lock",
+            class: (
+                lock.process === "Editing"
+                ? "fa fa-user-lock"
+                : "fa fa-spinner fa-spin"
+            ),
             style: iconStyle
         });
     } else if (currentState === "/Delete") {
