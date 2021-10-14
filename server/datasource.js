@@ -2040,8 +2040,8 @@
         @method loadModules
         @return {Promise}
     */
-    that.loadNpmModules = function (pUser, pClient) {
-        return new Promise(function (resolve, reject) {
+    that.loadNpmModules = function () {
+        return new Promise(function (resolve) {
             config.read().then(function (resp) {
                 let mods = resp.npmModules || [];
 
@@ -2067,7 +2067,7 @@
 
     /**
         Load all services into memory.
-        
+
         Pass username and client reduce connection calls
         and avoid hanging if this request is made many consecutive
         times.

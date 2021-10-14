@@ -532,7 +532,7 @@
                             reject(err);
                         } else {
 
-                        // Now create views                     
+                        // Now create views
                             nextView();
                         }
                     });

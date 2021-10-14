@@ -924,7 +924,7 @@
                         }
 
                         doc.pipe(w);
-                        doc.end().then(resolve.bind(null,file)).catch(reject);
+                        doc.end().then(resolve.bind(null, file)).catch(reject);
                     });
                 }
 
