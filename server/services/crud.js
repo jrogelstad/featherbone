@@ -377,7 +377,7 @@
 
                     if (
                         oldRec && oldRec.lock &&
-                        oldRec.lock[eventKey] !== obj.eventkey
+                        oldRec.lock[eventKey] !== obj.eventKey
                     ) {
                         msg = "Record is locked by " + oldRec.lock.username;
                         msg += " and cannot be updated.";
@@ -1416,11 +1416,11 @@
                     }
 
                     if (
-                        oldRec && oldRec.lock &&
-                        oldRec.lock[eventKey] !== obj.eventkey
+                        resp && resp.lock &&
+                        resp.lock[eventKey] !== obj.eventKey
                     ) {
                         msg = "Record is locked by ";
-                        msg += oldRec.lock.username;
+                        msg += resp.lock.username;
                         msg += " and cannot be updated.";
                         reject(new Error(msg));
                         return;
