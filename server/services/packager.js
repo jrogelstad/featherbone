@@ -243,10 +243,6 @@
                     delete prop.isRequired;
                 }
 
-                if (prop.isReadOnly === false) {
-                    delete prop.isReadOnly;
-                }
-
                 if (prop.isIndexed === false) {
                     delete prop.isIndexed;
                 }
@@ -309,10 +305,6 @@
                 feather.overloads = props;
             } else {
                 delete feather.overloads;
-            }
-
-            if (feather.isReadOnly === false) {
-                delete feather.isReadOnly;
             }
 
             if (feather.isFetchOnStartup === false) {
@@ -471,10 +463,6 @@
 
                 if (!attr.filter) {
                     delete attr.filter;
-                }
-
-                if (attr.showLabel) {
-                    delete attr.showLabel;
                 }
 
                 if (!attr.font) {
