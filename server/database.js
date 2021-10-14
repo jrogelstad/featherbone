@@ -225,6 +225,12 @@
                         }
 
                         pool.connect(function (err, c, d) {
+                            let callbacks = [];
+
+                            function doOnCommit(callback) {
+                                callbacks.push(callback);
+                            }
+
                             // handle an error from the connection
                             if (err) {
                                 console.error(
@@ -239,6 +245,8 @@
                             c.currentUser = prop();
                             c.isTriggering = prop(false);
                             c.wrapped = prop(false);
+                            c.onCommit = doOnCommit;
+                            c.callbacks = callbacks;
                             clients[id] = c;
 
                             if (referenceOnly) {
@@ -247,7 +255,8 @@
                                         clientId: c.clientId,
                                         currentUser: c.currentUser,
                                         isTriggering: c.isTriggering,
-                                        wrapped: c.wrapped
+                                        wrapped: c.wrapped,
+                                        onCommit: doOnCommit
                                     }),
                                     done: function () {
                                         delete clients[id];
