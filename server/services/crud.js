@@ -111,7 +111,10 @@
         crud.commit = function (obj) {
             return new Promise(function (resolve, reject) {
                 let client = db.getClient(obj.client);
-                client.query("COMMIT;").then(resolve).catch(reject);
+                client.query("COMMIT;").then(function () {
+                    client.callbacks.forEach((cb) => cb());
+                    resolve();
+                }).catch(reject);
             });
         };
 
