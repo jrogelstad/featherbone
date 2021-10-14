@@ -1857,7 +1857,8 @@
             @param {String} eventKey
             @return {Promise} Resolves to `true` if successful.
         */
-        crud.lock = function (client, nodeid, id, username, eventkey) {
+        crud.lock = function (client, nodeid, id, username, eventkey, process) {
+            process = process || "Editing";
             return new Promise(function (resolve, reject) {
                 let msg;
 
@@ -1917,7 +1918,7 @@
                         sql = (
                             "UPDATE object " +
                             "SET lock = ROW($1, now(), $2, $3, $4) " +
-                            "WHERE id = $4"
+                            "WHERE id = $5"
                         );
 
                         function callback() {
@@ -1928,6 +1929,7 @@
                             username,
                             nodeid,
                             eventkey,
+                            process,
                             id
                         ];
 

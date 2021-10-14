@@ -1037,11 +1037,16 @@ formPage.component = {
         } else {
             switch (fmodel.state().current()[0]) {
             case "/Locked":
-                icon = "user-lock";
                 lock = fmodel.data.lock() || {};
+                icon = (
+                    lock.process === "Editing"
+                    ? "fa fa-user-lock"
+                    : "fa fa-spinner fa-spin"
+                );
                 theTitle = (
                     "User: " + lock.username + "\nSince: " +
-                    new Date(lock.created).toLocaleTimeString()
+                    new Date(lock.created).toLocaleTimeString() +
+                    "\nProcess: " + lock.process
                 );
                 break;
             case "/Ready/Fetched/Dirty":

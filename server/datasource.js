@@ -457,7 +457,7 @@
         @param {String} eventKey Browser instance event key
         @return {Promise}
     */
-    that.lock = function (id, username, eventkey) {
+    that.lock = function (id, username, eventkey, process) {
         return new Promise(function (resolve, reject) {
             // Do the work
             function doLock(resp) {
@@ -472,7 +472,8 @@
                         db.nodeId,
                         id,
                         username,
-                        eventkey
+                        eventkey,
+                        process
                     ).then(
                         callback
                     ).catch(
