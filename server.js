@@ -338,11 +338,14 @@
     }
 
     function doRequest(req, res) {
+        let eKey = Object.keys(eventKeys).find(
+            (ek) => eventKeys[ek].sessionID === req.sessionID
+        );
         let payload = {
             name: resolveName(req.url),
             method: req.method,
             user: req.user.name,
-            eventKey: req.eventKey,
+            eventKey: eKey,
             id: req.params.id,
             data: req.body || {}
         };
@@ -673,13 +676,16 @@
     }
 
     function doLock(req, res) {
+        let eKey = Object.keys(eventKeys).find(
+            (ek) => eventKeys[ek].sessionID === req.sessionID
+        );
         let username = req.user.name;
 
         logger.verbose("Lock " + req.body.id);
         datasource.lock(
             req.body.id,
             username,
-            req.body.eventKey
+            eKey
         ).then(
             respond.bind(res)
         ).catch(
@@ -1381,6 +1387,8 @@
                     doSignOut(req, res);
                 }, interval);
             }
+
+            req.eventKey = 
 
             next();
         });
