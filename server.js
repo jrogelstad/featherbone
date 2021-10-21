@@ -383,11 +383,14 @@
     }
 
     function doPatchUserAccount(req, res) {
+        let eKey = Object.keys(eventKeys).find(
+            (ek) => eventKeys[ek].sessionID === req.sessionID
+        );
         let payload = {
             name: "UserAccount",
             method: "PATCH",
             user: req.user.name,
-            eventKey: req.eventKey,
+            eventKey: eKey,
             id: req.params.id,
             data: req.body || []
         };
