@@ -219,40 +219,12 @@
                     delete prop.max;
                 }
 
-                if (prop.format === "") {
-                    delete prop.format;
-                }
-
-                if (prop.alias === "") {
-                    delete prop.alias;
-                }
-
                 if (prop.autonumber === null) {
                     delete prop.autonumber;
                 }
 
-                if (prop.isNaturalKey === false) {
-                    delete prop.isNaturalKey;
-                }
-
-                if (prop.isLabelKey === false) {
-                    delete prop.isLabelKey;
-                }
-
-                if (prop.isRequired === false) {
-                    delete prop.isRequired;
-                }
-
-                if (prop.isIndexed === false) {
-                    delete prop.isIndexed;
-                }
-
                 if (prop.dataList === null) {
                     delete prop.dataList;
-                }
-
-                if (prop.isAlwaysLoad === false) {
-                    delete prop.isAlwaysLoad;
                 }
 
                 if (
@@ -317,14 +289,6 @@
 
             if (feather.plural === "") {
                 delete feather.plural;
-            }
-
-            if (feather.isChild === false) {
-                delete feather.isChild;
-            }
-
-            if (feather.isSystem === false) {
-                delete feather.isSystem;
             }
 
             feather.dependencies = [];
@@ -414,61 +378,6 @@
                 delete rec.focus;
             }
             removeExclusions(rec);
-            rec.attrs.forEach(function (attr) {
-                if (!attr.label) {
-                    delete attr.label;
-                }
-
-                if (!attr.title) {
-                    delete attr.title;
-                }
-
-                if (!attr.columns.length) {
-                    delete attr.columns;
-                } else {
-                    attr.columns.forEach(function (col) {
-                        if (!col.filter) {
-                            delete col.filter;
-                        }
-
-                        if (!col.showCurrency) {
-                            delete col.showCurrency;
-                        }
-
-                        if (!col.width) {
-                            delete col.width;
-                        }
-
-                        if (!col.dataList) {
-                            delete col.dataList;
-                        }
-
-                        if (!col.label) {
-                            delete col.label;
-                        }
-                    });
-                }
-
-                if (!attr.dataList) {
-                    delete attr.dataList;
-                }
-
-                if (!attr.disableCurrency) {
-                    delete attr.disableCurrency;
-                }
-
-                if (!attr.relationWidget) {
-                    delete attr.relationWidget;
-                }
-
-                if (!attr.filter) {
-                    delete attr.filter;
-                }
-
-                if (!attr.font) {
-                    delete attr.font;
-                }
-            });
 
             return ret;
         });
