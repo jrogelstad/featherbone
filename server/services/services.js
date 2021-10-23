@@ -27,7 +27,7 @@
             let sql = (
                 "SELECT name, version, script, " +
                 "to_json(dependencies) AS dependencies " +
-                "FROM _module;"
+                "FROM _module WHERE NOT is_deleted;"
             );
 
             function callback(resp) {
