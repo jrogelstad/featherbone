@@ -294,7 +294,7 @@
                 datasource.loadServices
             ).then(
                 resolve
-            ).catch(function(err) {
+            ).catch(function (err) {
                 logger.error(err.message);
                 console.log(err);
                 reject(err);
@@ -1387,8 +1387,6 @@
                     doSignOut(req, res);
                 }, interval);
             }
-
-            req.eventKey = 
 
             next();
         });

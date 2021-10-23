@@ -603,7 +603,7 @@ formPage.viewModel = function (options) {
 
             window.open(url);
         }
-	
+
         let payload;
         let theBody = {
             id: vm.model().id(),
