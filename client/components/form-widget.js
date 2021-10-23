@@ -210,7 +210,7 @@ function buildFieldset(vm, attrs) {
                             class: editMenuClass(),
                             onclick: (
                                 canEdit()
-                                ? function (e) {
+                                ? function () {
                                     menuButtons[theKey].display = "none";
                                     relation.search();
                                     return false; // Stop propagation
@@ -226,7 +226,7 @@ function buildFieldset(vm, attrs) {
                             class: openMenuClass(),
                             onclick: (
                                 canOpen()
-                                ? function (e) {
+                                ? function () {
                                     menuButtons[theKey].display = "none";
                                     relation.open();
                                     return false; // Stop propagation

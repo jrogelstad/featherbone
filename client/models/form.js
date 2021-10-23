@@ -289,7 +289,8 @@ function formAttrColumn(data, feather) {
         }
 
         formFeather = f.catalog().getFeather(formFeather);
-        if (formFeather &&
+        if (
+            formFeather &&
             formFeather.properties[parentAttr]
         ) {
             childFeather = f.catalog().getFeather(
