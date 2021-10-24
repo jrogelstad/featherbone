@@ -279,10 +279,6 @@
                 delete feather.overloads;
             }
 
-            if (feather.isFetchOnStartup === false) {
-                delete feather.isFetchOnStartup;
-            }
-
             if (feather.authorization === null) {
                 delete feather.authorization;
             }
