@@ -2050,7 +2050,7 @@
                     let name;
                     if (mod.properties) {
                         mod.properties.forEach(function (p) {
-                            f[p.property] = require(
+                            f[p.property.toCamelCase(true)] = require(
                                 mod.require
                             )[p.export];
                         });
@@ -2058,7 +2058,7 @@
                     }
 
                     name = mod.require;
-                    f[name.toCamelCase()] = require(mod.require);
+                    f[name.toCamelCase(true)] = require(mod.require);
                 });
                 resolve();
             });
