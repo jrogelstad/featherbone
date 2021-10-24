@@ -369,6 +369,8 @@ formats.date = {
             value.constructor.name === "Date"
         ) {
             ret += value.toLocalDate();
+        } else if (value === "") {
+            ret = null;
         } else {
             ret = value;
         }
