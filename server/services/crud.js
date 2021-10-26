@@ -1586,6 +1586,7 @@
                                 /* Do delete */
                                 if (oldRec[key] && !updRec[key]) {
                                     crud.doDelete({
+                                        eventKey: obj.eventKey,
                                         name: props[key].type.relation,
                                         id: oldRec[key].id,
                                         client: theClient,
@@ -1636,6 +1637,7 @@
 
                                 if (cpatches.length) {
                                     crud.doUpdate({
+                                        eventKey: obj.eventKey,
                                         name: props[key].type.relation,
                                         id: updRec[key].id,
                                         data: cpatches,
