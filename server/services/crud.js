@@ -355,7 +355,8 @@
                         showDeleted: true,
                         properties: Object.keys(props).filter(noChildProps),
                         client: theClient,
-                        callback: afterDoSelect
+                        callback: afterDoSelect,
+                        sanitize: false
                     }, true).then(afterDoSelect).catch(reject);
                 };
 
