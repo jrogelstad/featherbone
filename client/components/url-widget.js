@@ -47,9 +47,12 @@ urlWidget.viewModel = function (options) {
         @method doOpen
     */
     vm.doOpen = function () {
-        let url = "http://" + options.parentViewModel.model().data[
+        let url = options.parentViewModel.model().data[
             options.parentProperty
         ]();
+        if (url.slice(0,4) !== "http") {
+            url = "http://" + url;
+        }
 
         window.open(url);
     };
