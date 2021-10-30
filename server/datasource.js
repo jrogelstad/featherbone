@@ -1609,6 +1609,12 @@
                         } else if (
                             obj.method === "DELETE" || obj.method === "PATCH"
                         ) {
+                            if (!obj.id) {
+                                throw new Error(
+                                    obj.method + " request requires an id"
+                                );
+                            }
+
                             // Cache original request that may get changed by
                             // triggers
                             if (obj.data) {
