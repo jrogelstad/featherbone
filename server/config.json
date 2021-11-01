@@ -1,4 +1,5 @@
 {
+    "clientPort": 80,
     "debug": true,
     "logLevel": "info",
     "logMaxFiles": "7d",
@@ -8,12 +9,13 @@
     "mode": "prod",
     "nodeId": "node1",
     "npmModules": [],
+    "passwordLength": 0,
     "pgHost": "127.0.0.1",
     "pgDatabase": "demo",
     "pgPort": 5432,
     "pgUser": "admin",
     "pgPassword": "password",
     "secret": "Your own session key here",
-    "sessionTimeout": 86400000
+    "sessionTimeout": 86400000,
+    "npmModules": []
 }
-
