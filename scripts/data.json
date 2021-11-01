@@ -1090,7 +1090,7 @@
     "method": "POST",
     "id": "USA",
     "data": {
-        "code": "USA",
+        "code": "US",
         "name": "United States"
     }
 }, {
@@ -1098,7 +1098,7 @@
     "method": "POST",
     "id": "Canada",
     "data": {
-        "code": "CAN",
+        "code": "CA",
         "name": "Canada"
     }
 }, {
@@ -1106,7 +1106,7 @@
     "method": "POST",
     "id": "Mexico",
     "data": {
-        "code": "MEX",
+        "code": "MX",
         "name": "Mexico"
     }
 }, {
