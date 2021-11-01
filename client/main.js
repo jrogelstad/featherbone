@@ -736,10 +736,15 @@ function connect() {
 
 connect().then(function (resp) {
     let edata;
+    let wp = (
+        window.location.protocol.indexOf("s") === -1
+        ? "ws://"
+        : "wss://"
+    );
 
     function listen() {
         const wsurl = (
-            "ws://" + window.location.hostname + 
+            wp + window.location.hostname + 
             ":" + window.location.port
         );
         const evsubscr = new WebSocket(wsurl);
