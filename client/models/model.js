@@ -1534,7 +1534,16 @@ function createModel(data, feather) {
     doInit = function (data) {
         let props = feather.properties;
         let overloads = feather.overloads;
-        let keys = Object.keys(props || {});
+        let keys;
+
+        if (!props.ojbectType) {
+            props.objectType = {
+                type: "string",
+                isReadOnly: true,
+                isAlwaysLoad: true
+            }
+        }
+        keys = Object.keys(props || {});
 
         // Loop through each model property and instantiate a data property
         keys.forEach(function (key) {
