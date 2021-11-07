@@ -326,6 +326,7 @@ function createTableDataView(options, col) {
             tableData = function () {
                 let rel;
                 let keys;
+                let type = "";
 
                 // If relation, use feather natural key to
                 // find value to display
@@ -338,12 +339,13 @@ function createTableDataView(options, col) {
 
                 if (rel) {
                     theValue = theProp().data[rel]();
+                    type = theProp().data.objectType().toSnakeCase();
 
                     url = (
                         window.location.protocol + "//" +
                         window.location.hostname + ":" +
                         window.location.port + "#!/edit/" +
-                        theProp.type.relation.toSnakeCase() +
+                        type +
                         "/" + theProp().id()
                     );
 
@@ -353,7 +355,7 @@ function createTableDataView(options, col) {
                             theVm.canToggle(false);
                             e.preventDefault();
                             m.route.set("/edit/:feather/:key", {
-                                feather: theProp.type.relation.toSnakeCase(),
+                                feather: type,
                                 key: theProp().id()
                             }, {
                                 state: {}
