@@ -845,6 +845,27 @@ formPage.viewModel = function (options) {
             vm.buttonSaveAndNew().onclick(vm.doSaveAndNew);
         }
     };
+    /**
+        @method waitDialog
+        @param {ViewModels.Dialog} dialog
+        @return {ViewModels.Dialog}
+    */
+    vm.waitDialog = f.prop(f.createViewModel("Dialog"));
+    let wd = vm.waitDialog();
+    wd.style().width = "100px";
+    wd.style().border = "none";
+    wd.style().background = "none";
+    wd.content = function () {
+        return m("i", {
+            class: "fa fa-spinner fa-spin",
+            style: {
+                fontSize: "60px",
+                textShadow: "1px 1px 1px white"
+            }
+        });
+    }
+    wd.buttonCancel().hide();
+    wd.buttonOk().hide();
 
     // Create form widget
     vm.formWidget(f.createViewModel("FormWidget", {
@@ -864,6 +885,11 @@ formPage.viewModel = function (options) {
             state: options
         });
     }
+
+    // Bind waiting spinner dialog to model state
+    let busy = vm.model().state().resolve("/Busy")
+    busy.enter(wd.show);
+    busy.exit(wd.cancel);
 
     // Memoize our model instance in case we leave and come back while
     // zooming deeper into detail
@@ -1110,6 +1136,9 @@ formPage.component = {
             }),
             m(dlg, {
                 viewModel: vm.editAuthDialog()
+            }),
+            m(dlg, {
+                viewModel: vm.waitDialog()
             }),
             m(fw, {
                 viewModel: vm.formWidget()

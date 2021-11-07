@@ -295,6 +295,7 @@ dialog.component = {
         let content;
         let vm = this.viewModel;
         let ids = vm.ids();
+        let header;
 
         if (vm.okDisabled()) {
             vm.buttonOk().disable();
@@ -310,6 +311,15 @@ dialog.component = {
         });
         content.unshift(m("br"));
         content.unshift(vm.content());
+        
+        if (vm.icon() || vm.title()) {
+            header = m("h3", {
+                id: ids.header,
+                class: "fb-header"
+            }, [m("i", {
+                class: "fa fa-" + vm.icon() + " fb-dialog-icon"
+            })], vm.title().toName());
+        }
 
         return m("dialog", {
             id: ids.dialog,
@@ -323,12 +333,7 @@ dialog.component = {
                 }
             }
         }, [
-            m("h3", {
-                id: ids.header,
-                class: "fb-header"
-            }, [m("i", {
-                class: "fa fa-" + vm.icon() + " fb-dialog-icon"
-            })], vm.title().toName()),
+            header,
             m("div", {
                 class: "fb-dialog-content-frame"
             }, content)

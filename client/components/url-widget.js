@@ -50,7 +50,7 @@ urlWidget.viewModel = function (options) {
         let url = options.parentViewModel.model().data[
             options.parentProperty
         ]();
-        if (url.slice(0,4) !== "http") {
+        if (url.slice(0, 4) !== "http") {
             url = "http://" + url;
         }
 
