@@ -42,10 +42,10 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
+files/downloads
 node/node_modules
 node/npm-debug.log
 node_modules
-files
 logs
 api.json
 client/out
