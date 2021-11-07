@@ -670,7 +670,14 @@ function createTableRow(options, pModel) {
         minWidth: "25px"
     };
 
-    if (currentState === "/Locked") {
+    if (currentState.slice(0, 5) === "/Busy") {
+        thContent = m("i", {
+            onclick: onClick,
+            title: "Saving",
+            class: "fa fa-spinner fa-spin",
+            style: iconStyle
+        });
+    } else if (currentState === "/Locked") {
         lock = data.lock() || {};
         thContent = m("i", {
             onclick: onClick,
