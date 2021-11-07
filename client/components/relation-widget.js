@@ -255,7 +255,7 @@ relationWidget.viewModel = function (options) {
     */
     vm.open = function () {
         m.route.set("/edit/:feather/:key", {
-            feather: type.relation.toSpinalCase(),
+            feather: modelValue().data.objectType(),
             key: modelValue().id()
         }, {
             state: {

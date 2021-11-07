@@ -185,8 +185,11 @@
                 tCols = ["%I"];
                 tArgs = [view, "_pk"];
 
-                /* Always include "id" whether
+                /* Always include "objectType" and "id" whether
                    specified or not */
+                if (tProps.indexOf("objectType") === -1) {
+                    tProps.unshift("objectType");
+                }
                 if (tProps.indexOf("id") === -1) {
                     tProps.unshift("id");
                 }
