@@ -115,10 +115,6 @@
     let rmdirsync = "rmdirSync";
 
     // Make sure file directories exist
-    if (!fs[existssync](dir)) {
-        fs[mkdirsync](dir);
-    }
-
     dir = "./files/import";
     if (!fs[existssync](dir)) {
         fs[mkdirsync](dir);

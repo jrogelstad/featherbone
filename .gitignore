@@ -43,6 +43,7 @@ Temporary Items
 .apdisk
 
 files/downloads
+files/import
 node/node_modules
 node/npm-debug.log
 node_modules
