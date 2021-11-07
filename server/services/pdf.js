@@ -376,7 +376,7 @@
                             }
                         });
                         let header;
-                        let src = fs[readFileSync]("featherbone.jpg");
+                        let src = fs[readFileSync]("./files/logo.jpg");
                         let logo = new pdf.Image(src);
                         let n = 0;
                         let data;
