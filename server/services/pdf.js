@@ -723,7 +723,7 @@
                             });
                             feather = localFeathers[p.type.relation];
 
-                            tr = table.row({
+                            tr = table.header({
                                 font: fonts[defFont + "Bold"],
                                 borderBottomWidth: 1.5
                             });
