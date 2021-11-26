@@ -1858,11 +1858,6 @@ function createModel(data, feather) {
 
                 this.state("Locking", function () {
                     this.enter(doLock);
-                    this.event("save", function (pContext) {
-                        this.goto("/Busy/Saving/Patching", {
-                            context: pContext
-                        });
-                    });
                     this.event("locked", function (pContext) {
                         if (pContext && pContext.lock) {
                             d.lock(pContext.lock);
