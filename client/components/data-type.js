@@ -178,7 +178,7 @@ dataType.viewModel = function (options) {
         @method model
         @return {Model}
     */
-    vm.model = parent.model().data[options.parentProperty];
+    vm.model = parent.model;
     /**
         @method onchange
         @param {Event} event,
@@ -465,6 +465,7 @@ dataType.viewModel = function (options) {
         let propertiesSelected = vm.propertiesSelected() || [];
         let isOverload = vm.isOverload();
         let btn = f.getComponent("Button");
+        let isNew = vm.model().state().current()[0] === "/Ready/New";
 
         return m("div", [
             m("div", {
@@ -477,8 +478,8 @@ dataType.viewModel = function (options) {
                     id: theId,
                     value: vm.type(),
                     onchange: vm.onchangeDialogType,
-                    readonly: isOverload,
-                    disabled: isOverload
+                    readonly: isOverload || !isNew,
+                    disabled: isOverload || !isNew
                 }, vm.types().map(function (item) {
                     return m("option", {
                         value: item,
@@ -641,6 +642,7 @@ dataType.component = {
             vm.isOverload()
         );
         let btn = f.getComponent("Button");
+        let isNew = vm.model().state().current()[0] === "/Ready/New";
 
         theStyle.display = theStyle.display || "inline-block";
 
@@ -664,8 +666,8 @@ dataType.component = {
                 oncreate: vnode.attrs.onCreate,
                 onremove: vnode.attrs.onRemove,
                 value: vm.type(),
-                readonly: readOnly,
-                disabled: readOnly
+                readonly: readOnly || !isNew,
+                disabled: readOnly || !isNew,
             }, vm.types().map(function (item) {
                 let opts = {
                     value: item,
