@@ -186,60 +186,6 @@
         };
     }
 
-    function doGetFeather(client, featherName, localFeathers, idx) {
-        return new Promise(function (resolve, reject) {
-            idx = idx || [];
-
-            // avoid infinite loops
-            if (idx.indexOf(featherName) !== -1) {
-                resolve();
-                return;
-            }
-            idx.push(featherName);
-
-            function getChildFeathers(resp) {
-                let frequests = [];
-                let props = resp.properties;
-
-                try {
-                    localFeathers[featherName] = resp;
-
-                    // Recursively get feathers for all children
-                    Object.keys(props).forEach(function (key) {
-                        let type = props[key].type;
-
-                        if (
-                            typeof type === "object"
-                        ) {
-                            frequests.push(
-                                doGetFeather(
-                                    client,
-                                    type.relation,
-                                    localFeathers,
-                                    idx
-                                )
-                            );
-                        }
-                    });
-                } catch (e) {
-                    reject(e);
-                    return;
-                }
-
-                Promise.all(
-                    frequests
-                ).then(resolve).catch(reject);
-            }
-
-            feathers.getFeather({
-                client,
-                data: {
-                    name: featherName
-                }
-            }).then(getChildFeathers).catch(reject);
-        });
-    }
-
     /**
         @class PDF
         @constructor
@@ -310,7 +256,7 @@
                             form = resp[2][0];
                         }
 
-                        doGetFeather(
+                        feathers.getFeathers(
                             vClient,
                             rows[0].objectType,
                             localFeathers

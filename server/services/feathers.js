@@ -158,6 +158,7 @@
             let sub;
             let col;
             let feather;
+            let localFeathers = {};
             let props;
             let keys;
             let name = obj.name;
@@ -180,18 +181,34 @@
                 let tCols;
                 let tRel;
                 let theSql = "";
+                let cFeather = localFeathers[props[pName].type.relation];
+                let nKey = Object.keys(
+                    cFeather.properties
+                ).find((k) => cFeather.properties[k].isNaturalKey);
+                let idx;
+                let ret;
 
-                tProps = props[pName].type.properties;
-                tCols = ["%I"];
-                tArgs = [view, "_pk"];
+                tProps = props[pName].type.properties.slice();
+                tCols = [];
+                tArgs = [view];
 
-                /* Always include "objectType" and "id" whether
-                   specified or not */
+                /* Always include natural key,
+                "objectType" and "id"
+                whether specified or not. */
+
+                //Natural key first
+                if (nKey) {
+                    idx = tProps.indexOf(nKey);
+                    if (idx !== -1) {
+                        tProps.splice(idx, 1);
+                    }
+                    tProps.unshift(nKey);
+                }
                 if (tProps.indexOf("objectType") === -1) {
-                    tProps.unshift("objectType");
+                    tProps.push("objectType");
                 }
                 if (tProps.indexOf("id") === -1) {
-                    tProps.unshift("id");
+                    tProps.push("id");
                 }
 
                 i = 0;
@@ -201,6 +218,10 @@
                     i += 1;
                 }
 
+                // Add primary key
+                tCols.push("%I");
+                tArgs.push("_pk");
+
                 tRel = (
                     "_" + props[pName].type.relation.toSnakeCase()
                 );
@@ -209,11 +230,12 @@
                 theSql += tCols.join(",");
                 theSql += " FROM %I ";
                 theSql += "WHERE NOT is_deleted;";
-                return theSql.format(tArgs);
+                ret = theSql.format(tArgs);
+                return ret;
             }
 
-            function afterGetFeather(resp) {
-                feather = resp;
+            function afterGetFeathers() {
+                feather = localFeathers[obj.name];
                 props = feather.properties;
                 keys = Object.keys(props);
 
@@ -378,12 +400,11 @@
                 });
             }
 
-            that.getFeather({
-                client: obj.client,
-                data: {
-                    name: obj.name
-                }
-            }).then(afterGetFeather).catch(obj.callback);
+            that.getFeathers(
+                obj.client,
+                obj.name,
+                localFeathers
+            ).then(afterGetFeathers).catch(obj.callback);
         }
 
         function propagateViews(obj) {
@@ -750,7 +771,7 @@
             @param {Object} payload.data.name Feather name
             @param {Boolean} [payload.data.includeInherited] Include inherited
                 or not. Default = true.
-            @return {Promise} Reseloves to feather definition object.
+            @return {Promise} Resoloves to feather definition object.
         */
         that.getFeather = function (obj) {
             return new Promise(function (resolve, reject) {
@@ -824,6 +845,70 @@
                     client: theClient,
                     data: {name: "catalog"}
                 }).then(callback).catch(reject);
+            });
+        };
+
+        /**
+            Append feather definitions to an object that includes theClient
+            child feathers for the feather requested.
+
+            @method getFeathers
+            @param {Object} Database client
+            @param {String} Feather name
+            @param {Object} Object to append feathers to
+            @return {Promise}
+        */
+        that.getFeathers = function (client, featherName, localFeathers, idx) {
+            return new Promise(function (resolve, reject) {
+                idx = idx || [];
+
+                // avoid infinite loops
+                if (idx.indexOf(featherName) !== -1) {
+                    resolve();
+                    return;
+                }
+                idx.push(featherName);
+
+                function getChildFeathers(resp) {
+                    let frequests = [];
+                    let props = resp.properties;
+
+                    try {
+                        localFeathers[featherName] = resp;
+
+                        // Recursively get feathers for all children
+                        Object.keys(props).forEach(function (key) {
+                            let type = props[key].type;
+
+                            if (
+                                typeof type === "object"
+                            ) {
+                                frequests.push(
+                                    that.getFeathers(
+                                        client,
+                                        type.relation,
+                                        localFeathers,
+                                        idx
+                                    )
+                                );
+                            }
+                        });
+                    } catch (e) {
+                        reject(e);
+                        return;
+                    }
+
+                    Promise.all(
+                        frequests
+                    ).then(resolve).catch(reject);
+                }
+
+                that.getFeather({
+                    client,
+                    data: {
+                        name: featherName
+                    }
+                }).then(getChildFeathers).catch(reject);
             });
         };
 
