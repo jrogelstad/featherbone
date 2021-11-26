@@ -842,13 +842,15 @@ formats.script.editor = function (options) {
         lint.options.globals = ["f", "m"];
 
         // Populate on fetch
+        function notify() {
+            state.send("changed");
+            m.redraw();
+            editor.off("change", notify);
+        }
+
         state.resolve("/Ready/Fetched/Clean").enter(
             function () {
-                function notify() {
-                    state.send("changed");
-                    m.redraw();
-                    editor.off("change", notify);
-                }
+                editor.off("change", notify);
                 editor.setValue(prop());
                 editor.on("change", notify);
             }
