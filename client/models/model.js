@@ -1423,7 +1423,10 @@ function createModel(data, feather) {
         let patch = jsonpatch.compare(lastFetched, model.toJSON());
         let payload = {
             method: "PATCH",
-            path: model.path(model.name, model.id()),
+            path: (
+                model.path(model.name, model.id()) +
+                "?eventKey=" + catalog.eventKey()
+            ),
             body: patch
         };
 
@@ -1541,7 +1544,7 @@ function createModel(data, feather) {
                 type: "string",
                 isReadOnly: true,
                 isAlwaysLoad: true
-            }
+            };
         }
         keys = Object.keys(props || {});
 

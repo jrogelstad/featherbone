@@ -334,14 +334,11 @@
     }
 
     function doRequest(req, res) {
-        let eKey = Object.keys(eventKeys).find(
-            (ek) => eventKeys[ek].sessionID === req.sessionID
-        );
         let payload = {
             name: resolveName(req.url),
             method: req.method,
             user: req.user.name,
-            eventKey: eKey,
+            eventKey: req.query.eventKey,
             id: req.params.id,
             data: req.body || {}
         };
@@ -379,14 +376,11 @@
     }
 
     function doPatchUserAccount(req, res) {
-        let eKey = Object.keys(eventKeys).find(
-            (ek) => eventKeys[ek].sessionID === req.sessionID
-        );
         let payload = {
             name: "UserAccount",
             method: "PATCH",
             user: req.user.name,
-            eventKey: eKey,
+            eventKey: req.query.eventKey,
             id: req.params.id,
             data: req.body || []
         };
@@ -675,16 +669,13 @@
     }
 
     function doLock(req, res) {
-        let eKey = Object.keys(eventKeys).find(
-            (ek) => eventKeys[ek].sessionID === req.sessionID
-        );
         let username = req.user.name;
 
         logger.verbose("Lock " + req.body.id);
         datasource.lock(
             req.body.id,
             username,
-            eKey
+            req.body.eventKey
         ).then(
             respond.bind(res)
         ).catch(
