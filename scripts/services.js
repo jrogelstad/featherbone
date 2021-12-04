@@ -97,7 +97,10 @@ function doUpsertFeather(obj) {
                     prop.default.toLowerCase() === "null"
                 ) {
                     prop.default = null;
-                } else if (prop.default === "") {
+                } else if (
+                    prop.default === "" ||
+                    prop.default === null
+                ) {
                     delete prop.default;
                 }
                 delete prop.name;
