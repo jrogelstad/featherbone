@@ -863,7 +863,7 @@ formPage.viewModel = function (options) {
                 textShadow: "1px 1px 1px white"
             }
         });
-    }
+    };
     wd.buttonCancel().hide();
     wd.buttonOk().hide();
 
@@ -887,7 +887,7 @@ formPage.viewModel = function (options) {
     }
 
     // Bind waiting spinner dialog to model state
-    let busy = vm.model().state().resolve("/Busy")
+    let busy = vm.model().state().resolve("/Busy");
     busy.enter(wd.show);
     busy.exit(wd.cancel);
 

@@ -311,7 +311,7 @@ dialog.component = {
         });
         content.unshift(m("br"));
         content.unshift(vm.content());
-        
+
         if (vm.icon() || vm.title()) {
             header = m("h3", {
                 id: ids.header,
