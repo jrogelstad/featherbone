@@ -332,7 +332,6 @@ workbookPage.viewModel = function (options) {
     vm.configureSheet = function (e) {
         let dlg = vm.sheetConfigureDialog();
         let sheet = vm.sheet(e.sheetId);
-        let onCancel = vm.sheetConfigureDialog().onCancel();
         let data = {
             id: sheet.id,
             name: sheet.name,
@@ -346,15 +345,8 @@ workbookPage.viewModel = function (options) {
 
         sheetEditModel.set(data, true, true);
         sheetEditModel.state().send("fetched");
-        vm.sheetConfigureDialog().onCancel(function () {
-            if (onCancel) {
-                onCancel();
-            }
-            sheetEditModel.state().send("clear");
-        });
         vm.sheetConfigureDialog().onOk = function () {
             data = sheetEditModel.toJSON();
-            sheetEditModel.state().send("clear");
 
             // Update sheet with new values
             sheet.name = data.name;
@@ -1031,6 +1023,9 @@ workbookPage.viewModel = function (options) {
         config: editSheetConfig
     }));
     vm.sheetConfigureDialog().style().width = "520px";
+    vm.sheetConfigureDialog().state().resolve(
+        "/Display/Showing"
+    ).exit(() => sheetEditModel.state().send("clear"));
 
     vm.aggregateDialog(f.createViewModel("AggregateDialog", {
         aggregates: vm.tableWidget().aggregates,
