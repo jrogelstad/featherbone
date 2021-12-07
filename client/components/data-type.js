@@ -667,7 +667,7 @@ dataType.component = {
                 onremove: vnode.attrs.onRemove,
                 value: vm.type(),
                 readonly: readOnly || !isNew,
-                disabled: readOnly || !isNew,
+                disabled: readOnly || !isNew
             }, vm.types().map(function (item) {
                 let opts = {
                     value: item,
