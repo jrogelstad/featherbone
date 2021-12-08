@@ -265,12 +265,19 @@
         },
 
         /**
-            Return a time in string format that is the current UTC time.
+            Return a time in string format that is the current UTC time
+            returned in ISO format.
+
+            If Local flag passed, returns in "yyyy-MM-ddThh:mm" format.
 
             @method now
+            @param {Boolean} Local
             @return {String}
         */
-        now: function () {
+        now: function (local) {
+            if (local) {
+                return (new Date()).toLocalDateTime();
+            }
             return (new Date()).toISOString();
         },
 
