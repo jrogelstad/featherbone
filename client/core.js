@@ -380,7 +380,7 @@ formats.date = {
 };
 formats.dateTime = {
     type: "string",
-    default: () => f.now(),
+    default: () => f.now(true),
     fromType: (value) => new Date(value).toLocalDateTime(),
     toType: function (value) {
         if (
