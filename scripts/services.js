@@ -72,7 +72,10 @@ function doUpsertFeather(obj) {
                 throw new Error("Feather name cannot be changed");
             }
 
-            if (obj.oldRec.plural !== obj.newRec.plural) {
+            if (
+                obj.oldRec.plural &&
+                obj.oldRec.plural !== obj.newRec.plural
+            ) {
                 throw new Error("Feather plural value cannot be changed");
             }
 
