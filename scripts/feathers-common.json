@@ -1,5 +1,6 @@
 [{
         "name": "Comment",
+        "plural": "Comments",
         "module": "Core",
         "description": "Note",
         "properties": {
@@ -148,6 +149,7 @@
     },
     {
         "name": "FormAttr",
+        "plural": "FormAttrs",
         "module": "Core",
         "description": "Form attribute definitions",
         "properties": {
@@ -281,6 +283,7 @@
     },
     {
         "name": "FormAttrColumn",
+        "plural": "FormAttrColumns",
         "module": "Core",
         "description": "Form attribute column definitions for child objects",
         "properties": {
@@ -969,6 +972,7 @@
     },
     {
         "name": "ContactAddress",
+        "plural": "ContactAddresses",
         "module": "Core",
         "description": "Contact address",
         "properties": {
