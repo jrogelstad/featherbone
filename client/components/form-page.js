@@ -499,15 +499,6 @@ formPage.viewModel = function (options) {
     let authViewModel = authTable.viewModel({models: authorizations});
     let toolbarButtonClass = "fb-toolbar-button";
 
-    switch (f.currentUser().mode) {
-    case "test":
-        toolbarButtonClass += " fb-toolbar-button-test";
-        break;
-    case "dev":
-        toolbarButtonClass += " fb-toolbar-button-dev";
-        break;
-    }
-
     // Helper function to pass back data to sending model
     function callReceiver() {
         let receivers;

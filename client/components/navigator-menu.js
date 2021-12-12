@@ -26,13 +26,27 @@ const navigator = {};
 
 // Define state (global)
 const state = f.State.define(function () {
+    function navmode() {
+        switch (f.currentUser().mode) {
+        case "test":
+            return "fb-navigator-menu-test ";
+        case "dev":
+            return "fb-navigator-menu-dev ";
+        }
+        return "";
+    }
+
     this.state("Expanded", function () {
         this.event("toggle", function () {
             this.goto("../Collapsed");
         });
-        this.classMenu = (
-            "pure-menu fb-navigator-menu fb-navigator-menu-expanded"
-        );
+        this.classMenu = function () {
+            return (
+                "pure-menu fb-navigator-menu " +
+                navmode() +
+                "fb-navigator-menu-expanded"
+            );
+        };
         this.classHeader = "";
         this.content = function (value) {
             return value;
@@ -45,9 +59,13 @@ const state = f.State.define(function () {
         this.event("toggle", function () {
             this.goto("../Expanded");
         });
-        this.classMenu = (
-            "pure-menu fb-navigator-menu fb-navigator-menu-collapsed"
-        );
+        this.classMenu = function () {
+            return (
+                "pure-menu fb-navigator-menu " +
+                navmode() +
+                "fb-navigator-menu-collapsed"
+            );
+        };
         this.classHeader = "fb-navigator-menu-header-collapsed";
         this.content = function () {
             return undefined;
@@ -157,7 +175,7 @@ navigator.viewModel = function () {
         @return {String}
     */
     vm.classMenu = function () {
-        return state.resolve(state.current()[0]).classMenu;
+        return state.resolve(state.current()[0]).classMenu();
     };
     /**
         @method selected

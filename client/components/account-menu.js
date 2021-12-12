@@ -344,17 +344,8 @@ accountMenu.component = {
         let menuButtonClass = (
             "pure-button " +
             "fa fa-user-circle " +
-            "fb-menu-button"
+            "fb-menu-button fb-menu-button-left-side"
         );
-
-        switch (f.currentUser().mode) {
-        case "test":
-            menuButtonClass += " fb-menu-button-test";
-            break;
-        case "dev":
-            menuButtonClass += " fb-menu-button-dev";
-            break;
-        }
 
         return m("div", {
             id: "nav-account-div",

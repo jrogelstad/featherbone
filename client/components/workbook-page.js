@@ -228,17 +228,6 @@ workbookPage.viewModel = function (options) {
     let formWorkbookClass = "fb-form-workbook";
     let sheetEditModel = f.createModel("Worksheet");
 
-    switch (f.currentUser().mode) {
-    case "test":
-        toolbarButtonClass += " fb-toolbar-button-test";
-        formWorkbookClass += " fb-form-workbook-test";
-        break;
-    case "dev":
-        toolbarButtonClass += " fb-toolbar-button-dev";
-        formWorkbookClass += " fb-form-workbook-dev";
-        break;
-    }
-
     // ..........................................................
     // PUBLIC
     //
@@ -1115,7 +1104,7 @@ workbookPage.viewModel = function (options) {
         icon: "sort",
         hotkey: "T",
         title: "Sort results",
-        class: toolbarButtonClass
+        class: "fb-toolbar-button fb-toolbar-button-left-side"
     }));
 
     vm.buttonFilter(f.createViewModel("Button", {
@@ -1123,14 +1112,14 @@ workbookPage.viewModel = function (options) {
         icon: "filter",
         hotkey: "F",
         title: "Filter results",
-        class: toolbarButtonClass
+        class: "fb-toolbar-button fb-toolbar-button-middle-side"
     }));
 
     vm.buttonAggregate(f.createViewModel("Button", {
         onclick: vm.aggregateDialog().show,
         icon: "calculator",
         title: "Calculate sum, count and other aggregations",
-        class: toolbarButtonClass
+        class: "fb-toolbar-button fb-toolbar-button-right-side"
     }));
 
     // Bind button states to list statechart events
@@ -1288,17 +1277,6 @@ workbookPage.component = {
         let toolbarClass = "fb-toolbar";
         let menuButtonClass = "fb-menu-button";
 
-        switch (f.currentUser().mode) {
-        case "test":
-            toolbarClass += " fb-toolbar-test";
-            menuButtonClass += " fb-menu-button-test";
-            break;
-        case "dev":
-            toolbarClass += " fb-toolbar-dev";
-            menuButtonClass += " fb-menu-button-dev";
-            break;
-        }
-
         if (vm.tableWidget().selections().some((s) => s.canDelete())) {
             vm.buttonDelete().enable();
         } else {
@@ -1445,7 +1423,7 @@ workbookPage.component = {
                             m("ul", {
                                 id: "nav-actions-list",
                                 class: (
-                                    "pure-menu-list fb-menu-list" + (
+                                    "pure-menu-list fb-menu-list " + (
                                         vm.showActions()
                                         ? " fb-menu-list-show"
                                         : ""
@@ -1479,7 +1457,7 @@ workbookPage.component = {
                             class: (
                                 "pure-menu " +
                                 "custom-restricted-width " +
-                                "fb-menu fb-menu-setup"
+                                "fb-menu fb-menu-setup "
                             ),
                             onclick: vm.onclickmenu,
                             onmouseout: vm.onmouseoutmenu
@@ -1489,7 +1467,8 @@ workbookPage.component = {
                                 class: (
                                     "pure-button " +
                                     "fa fa-list " +
-                                    menuButtonClass
+                                    menuButtonClass +
+                                    " fb-menu-button-right-side"
                                 )
                             }),
                             m("ul", {

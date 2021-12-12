@@ -209,7 +209,7 @@ searchPage.viewModel = function (options) {
         title: "Filter",
         hotkey: "F",
         icon: "filter",
-        class: "fb-toolbar-button"
+        class: "fb-toolbar-button fb-toolbar-button-right-side"
     }));
 
     vm.buttonSort(f.createViewModel("Button", {
@@ -217,7 +217,7 @@ searchPage.viewModel = function (options) {
         title: "Sort",
         hotkey: "O",
         icon: "sort",
-        class: "fb-toolbar-button"
+        class: "fb-toolbar-button fb-toolbar-button-left-side"
     }));
 
     return vm;
