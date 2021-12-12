@@ -912,14 +912,22 @@ formPage.viewModel = function (options) {
         onclick: vm.editAuthDialog().show,
         icon: "key",
         title: "Edit Authorizations",
-        class: toolbarButtonClass + " fb-toolbar-button-right"
+        class: (
+            toolbarButtonClass +
+            " fb-toolbar-button-right" +
+            " fb-toolbar-button-right-side"
+        )
     }));
 
     vm.buttonPdf(f.createViewModel("Button", {
         onclick: doPrintPdf,
         icon: "file-pdf",
         title: "Print to PDF",
-        class: toolbarButtonClass + " fb-toolbar-button-right"
+        class: (
+            toolbarButtonClass +
+            " fb-toolbar-button-right" +
+            " fb-toolbar-button-left-side "
+        )
     }));
 
     vm.buttonSave(f.createViewModel("Button", {
