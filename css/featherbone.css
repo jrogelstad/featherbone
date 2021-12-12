@@ -683,6 +683,7 @@ a.pure-button-selected {
   border-top-left-radius: 0px !important;
   border-bottom-left-radius: 0px !important;
   margin-left: 0px !important;
+  margin-right: 4px !important;
 }
 
 .fb-toolbar-button-right {
