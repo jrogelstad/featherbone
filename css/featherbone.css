@@ -250,10 +250,19 @@ a.pure-button-selected {
 
 .fb-navigator-menu {
   font-family: Raleway;
-  background-color: #191818;
+  background-color: steelblue;
   color: white;
   font-size: 16px;
-  padding: 8px; 
+  padding: 8px;
+  border-right: lightgrey thin solid;
+}
+
+.fb-navigator-menu-test {
+  background-color: lightseagreen;
+}
+
+.fb-navigator-menu-dev {
+  background-color: #B7472A;
 }
 
 .fb-navigator-menu-expanded {
@@ -261,7 +270,7 @@ a.pure-button-selected {
 }
 
 .fb-navigator-menu-collapsed {
-  max-width: 42px;
+  max-width: 53px;
 }
 
 .fb-navigator-menu-header-collapsed {
@@ -280,19 +289,26 @@ a.pure-button-selected {
 }
 
 .fb-navigator-item {
-  color: #999;
-  font-size: 14.4px;
+  color: white;
+  font-size: 14px;
   font-family:sans-serif;
   font-weight:normal;
   cursor:default;
+  padding-bottom: 7px;
 }
 
 .fb-navigator-item-selected {
-  color: cornsilk;
+  color: darkblue;
+  background: #E1E1E1;
+  border-left: solid darkblue;
+  border-radius: 6px;
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
 }
 
 .fb-navigator-item-mouseover {
-  color: white;
+  background: #D1D0CE;
+  color: darkblue;
+  border-radius: 6px;
 }
 
 .fb-table-dialog-table-body {
@@ -312,15 +328,7 @@ a.pure-button-selected {
 }
 
 .fb-form-workbook {
-  background-color: #3F51B5;
-}
-
-.fb-form-workbook-test {
-  background-color: Green;
-}
-
-.fb-form-workbook-dev {
-  background-color: #B7472A;
+  background-color: whitesmoke;
 }
 
 .fb-form-content {
@@ -453,7 +461,7 @@ a.pure-button-selected {
 .fb-header-home {
     font-size: 1.5em;
     font-weight: bold;
-    color: white;
+    color: royalblue;
     padding-left: 10px;
     display: inline-block;
     margin-top: 3px;
@@ -483,18 +491,27 @@ a.pure-button-selected {
 }
 
 .fb-menu-button {
-  background-color: #3F51B5;
-  color: white;
+  background-color: white;
+  color: royalblue;
   margin: 2px;
   min-height: 34px;
+  box-shadow: 0 2px 5px 0 rgb(0 0 0 / 10%), 0 0px 1px 0 rgb(0 0 0 / 10%);
+  border-radius: 6px;
+  margin-left: 4px;
+  margin-bottom: 6px;
 }
 
-.fb-menu-button-test {
-  background-color: Green;
+.fb-menu-button-left-side {
+  border-top-right-radius: 0px;
+  border-bottom-right-radius: 0px;
+  margin-right: 0px !important;
 }
 
-.fb-menu-button-dev {
-  background-color: #B7472A
+.fb-menu-button-right-side {
+  border-top-left-radius: 0px;
+  border-bottom-left-radius: 0px;
+  margin-left: 0px !important;
+  margin-right: 4px !important;
 }
 
 .fb-menu-list {
@@ -552,6 +569,8 @@ a.pure-button-selected {
   height: 28px;
   margin-top: 4px !important;
   margin-bottom: 6px !important;
+  margin-left: 10px !important;
+  margin-right: 6px !important;
 }
 
 .fb-sign-in {
@@ -578,6 +597,7 @@ a.pure-button-selected {
   table-layout: fixed;
   width: 100%;
   background-color: white;
+  border-left: none;
 }
 
 .fb-table-cell-edit {
@@ -625,18 +645,10 @@ a.pure-button-selected {
 }
 
 .fb-toolbar {
-  background-color: #3F51B5;
+  background-color: whitesmoke;
   height: 38px;
   padding-top: 3px;
   border-color: darkslateblue;
-}
-
-.fb-toolbar-dev {
-  background-color: #B7472A
-}
-
-.fb-toolbar-test {
-  background-color: Green;
 }
 
 .fb-toolbar-home {
@@ -644,19 +656,33 @@ a.pure-button-selected {
     position: relative;
     width: 100%;
     color: white;
+    border-bottom: thin lightgrey solid;
+    height: 41px;
 }
 
 .fb-toolbar-button {
-  background-color: #3F51B5;
-  color: white;
+  background-color: white;
+  color: royalblue;
+  box-shadow: 0 2px 5px 0 rgb(0 0 0 / 10%), 0 0px 1px 0 rgb(0 0 0 / 10%);
+  border-radius: 6px;
+  margin-left: 4px;
+  margin-bottom: 4px;
 }
 
-.fb-toolbar-button-test {
-  background-color: Green;
+.fb-toolbar-button-left-side {
+  border-top-right-radius: 0px !important;
+  border-bottom-right-radius: 0px !important;
 }
 
-.fb-toolbar-button-dev {
-  background-color: #B7472A
+.fb-toolbar-button-middle-side {
+  border-radius: 0px !important;
+  margin-left: 0px !important;
+}
+
+.fb-toolbar-button-right-side {
+  border-top-left-radius: 0px !important;
+  border-bottom-left-radius: 0px !important;
+  margin-left: 0px !important;
 }
 
 .fb-toolbar-button-right {
@@ -665,9 +691,10 @@ a.pure-button-selected {
 
 .fb-toolbar-button-home {
     float: right;
-    margin: 4px;
+    margin: 2px;
     border: none;
-    padding-top: 5px;
+    height: 34px;
+    width: 40px;
 }
 
 .fb-toolbar-spacer {

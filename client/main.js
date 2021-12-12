@@ -102,11 +102,13 @@ const home = {
                     m("div", {
                         class: "fb-header-home"
                     }, "Home"),
-                    m(components.accountMenu),
                     m("button", {
                         class: (
                             toolbarButtonClass +
-                            " fb-toolbar-button-home " + (
+                            " fb-toolbar-button " +
+                            " fb-toolbar-button-right-side" +
+                            " fb-toolbar-button-home " + 
+                            (
                                 isSuper
                                 ? ""
                                 : "fb-button-disabled"
@@ -123,7 +125,8 @@ const home = {
                         m("i", {
                             class: "fa fa-plus fb-button-icon"
                         })
-                    ])
+                    ]),
+                    m(components.accountMenu)
                 ])
             ]
         ]);
