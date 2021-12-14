@@ -897,7 +897,7 @@ formPage.viewModel = function (options) {
         icon: (
             window.history.state === null
             ? ""
-            : "arrow-left"
+            : "arrow_back"
         ),
         class: toolbarButtonClass
     }));
@@ -921,7 +921,7 @@ formPage.viewModel = function (options) {
 
     vm.buttonPdf(f.createViewModel("Button", {
         onclick: doPrintPdf,
-        icon: "file-pdf",
+        icon: "pdf",
         title: "Print to PDF",
         class: (
             toolbarButtonClass +
@@ -933,14 +933,14 @@ formPage.viewModel = function (options) {
     vm.buttonSave(f.createViewModel("Button", {
         onclick: vm.doSave,
         label: "&Save",
-        icon: "cloud-upload-alt",
+        icon: "cloud_upload",
         class: toolbarButtonClass
     }));
 
     vm.buttonSaveAndNew(f.createViewModel("Button", {
         onclick: vm.doSaveAndNew,
         label: "Save and &New",
-        icon: "plus-circle",
+        icon: "add_circle_outline",
         class: toolbarButtonClass
     }));
     if (f.catalog().getFeather(theFeather).isReadOnly) {

@@ -74,6 +74,9 @@ a.pure-button-selected {
 
 .fb-button-icon {
     margin-right: 4px;
+    margin-bottom: -2px;
+    font-size: 24px;
+    vertical-align: bottom;
 }
 
 .fb-checkbox {
@@ -279,22 +282,30 @@ a.pure-button-selected {
   font-size: small;
   margin-left: 8px;
 }
+.fb-navigator-header-icon {
+    font-size: 18px;
+    margin-left: 8px;
+}
+
+.fb-navigator-header-icon-expanded {
+    vertical-align: bottom;
+}
 
 .fb-navigator-item-icon {
+    display: inline;
 	margin-right: 8px;
-	margin-top: 8px;
 	margin-left: 8px;
 	min-width: 18px;
-	text-align: center;
+    vertical-align: bottom;
+    font-size: 18px;
 }
 
 .fb-navigator-item {
   color: white;
-  font-size: 14px;
+  font-size: 15px;
   font-family:sans-serif;
-  font-weight:normal;
-  cursor:default;
-  padding-bottom: 7px;
+  padding-bottom: 4.5px;
+  padding-top: 4.5px;
 }
 
 .fb-navigator-item-selected {
@@ -667,6 +678,21 @@ a.pure-button-selected {
   border-radius: 6px;
   margin-left: 4px;
   margin-bottom: 4px;
+  padding-top: .3em;
+  padding-bottom: .4em;
+  padding-left: .6em;
+  padding-right: .7em;
+  min-height: 34px;
+}
+
+.fb-toolbar-button-clear {
+  background: none;
+  background-image: none !important;
+  box-shadow: none;
+  color: grey;
+  font-size: 6px;
+  margin-left: -45px;
+  margin-right: 10px;
 }
 
 .fb-toolbar-button-left-side {
@@ -720,6 +746,8 @@ a.pure-button-selected {
 
 .fb-workbook-tab-edit {
   background-color: white;
+  padding: 0em;
+  padding-left: .75em;
 }
 
 .fb-workbook-tab-edit-show {

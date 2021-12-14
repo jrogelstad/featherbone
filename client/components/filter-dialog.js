@@ -43,7 +43,7 @@ filterDialog.viewModel = function (options) {
     let monkeyPatch = options.onOk;
     let showDeletedButton = f.prop(f.createViewModel("Button", {
         label: "Show Deleted",
-        icon: "far fa-square",
+        icon: "check_box_outline_blank",
         onclick: function () {
             vm.filter().showDeleted = !Boolean(vm.filter().showDeleted);
         },
@@ -441,9 +441,9 @@ filterDialog.viewModel = function (options) {
         let view;
 
         if (vm.filter().showDeleted) {
-            showDeletedButton().icon("check-square");
+            showDeletedButton().icon("check_box");
         } else {
-            showDeletedButton().icon("far fa-square");
+            showDeletedButton().icon("check_box_outline_blank");
         }
 
         view = vm.items().map(function (item) {

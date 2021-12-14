@@ -213,7 +213,7 @@ childTable.viewModel = function (options) {
         onclick: vm.tableWidget().modelNew,
         title: "Insert",
         hotkey: "I",
-        icon: "plus-circle",
+        icon: "add_circle_outline",
         class: "fb-icon-button",
         style: {
             backgroundColor: "white"
@@ -224,7 +224,7 @@ childTable.viewModel = function (options) {
         onclick: vm.tableWidget().modelDelete,
         title: "Delete",
         hotkey: "D",
-        icon: "trash",
+        icon: "delete",
         class: "fb-icon-button",
         style: {
             backgroundColor: "white"
@@ -248,7 +248,7 @@ childTable.viewModel = function (options) {
         onclick: vm.doChildOpen,
         title: "Open",
         hotkey: "O",
-        icon: "folder-plus",
+        icon: "create_new_folder",
         class: "fb-icon-button",
         style: {
             backgroundColor: "white"
@@ -294,7 +294,7 @@ childTable.viewModel = function (options) {
             vm.buttonRemove().enable();
         }
 
-        vm.buttonOpen().icon("folder-open");
+        vm.buttonOpen().icon("folder_open");
         vm.buttonOpen().enable();
     });
     tableState.resolve("/Selection/On/Clean").enter(function () {
