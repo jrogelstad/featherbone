@@ -419,8 +419,8 @@ button.component = {
 
         if (icon) {
             iconView = [m("i", {
-                class: pre + icon + " fb-button-icon"
-            })];
+                class: "material-icons-outlined fb-button-icon"
+            }, icon)];
         }
 
         if (title) {

@@ -1056,14 +1056,14 @@ workbookPage.viewModel = function (options) {
     vm.buttonNew(f.createViewModel("Button", {
         onclick: vm.modelNew,
         label: "&New",
-        icon: "plus-circle",
+        icon: "add_circle_outline",
         class: toolbarButtonClass
     }));
 
     vm.buttonDelete(f.createViewModel("Button", {
         onclick: vm.tableWidget().modelDelete,
         label: "&Delete",
-        icon: "trash",
+        icon: "delete",
         class: toolbarButtonClass
     }));
     vm.buttonDelete().disable();
@@ -1087,29 +1087,32 @@ workbookPage.viewModel = function (options) {
         title: "Refresh",
         hotkey: "R",
         icon: "sync",
-        class: toolbarButtonClass
+        class: "fb-toolbar-button fb-toolbar-button-left-side"
     }));
 
     vm.buttonClear(f.createViewModel("Button", {
         onclick: vm.searchInput().clear,
         title: "Clear search",
         hotkey: "C",
-        icon: "eraser",
-        class: toolbarButtonClass
+        icon: "clear",
+        class: (
+            toolbarButtonClass +
+            " fb-toolbar-button-clear"
+        )
     }));
     vm.buttonClear().disable();
 
     vm.buttonSort(f.createViewModel("Button", {
         onclick: vm.showSortDialog,
-        icon: "sort",
+        icon: "sort_by_alpha",
         hotkey: "T",
         title: "Sort results",
-        class: "fb-toolbar-button fb-toolbar-button-left-side"
+        class: "fb-toolbar-button fb-toolbar-button-middle-side"
     }));
 
     vm.buttonFilter(f.createViewModel("Button", {
         onclick: vm.showFilterDialog,
-        icon: "filter",
+        icon: "filter_list",
         hotkey: "F",
         title: "Filter results",
         class: "fb-toolbar-button fb-toolbar-button-middle-side"
@@ -1117,7 +1120,7 @@ workbookPage.viewModel = function (options) {
 
     vm.buttonAggregate(f.createViewModel("Button", {
         onclick: vm.aggregateDialog().show,
-        icon: "calculator",
+        icon: "calculate",
         title: "Calculate sum, count and other aggregations",
         class: "fb-toolbar-button fb-toolbar-button-right-side"
     }));
@@ -1329,8 +1332,8 @@ workbookPage.component = {
             title: "Add sheet",
             onclick: vm.newSheet
         }, [m("i", {
-            class: "fa fa-plus"
-        })]));
+            class: "material-icons-outlined"
+        }, "add")]));
 
         // Delete target
         tabs.push(m("div", {
@@ -1338,8 +1341,8 @@ workbookPage.component = {
             ondragover: vm.ondragover,
             ondrop: vm.deleteSheet
         }, [m("i", {
-            class: "fa fa-trash"
-        })]));
+            class: "material-icons-outlined"
+        }, "delete")]));
 
         // Finally assemble the whole view
         filterMenuClass = "pure-menu-link";
@@ -1434,14 +1437,14 @@ workbookPage.component = {
                         m("div", {
                             class: "fb-toolbar-spacer"
                         }),
-                        m(btn, {
-                            viewModel: vm.buttonRefresh()
-                        }),
                         m(srch, {
                             viewModel: vm.searchInput()
                         }),
                         m(btn, {
                             viewModel: vm.buttonClear()
+                        }),
+                        m(btn, {
+                            viewModel: vm.buttonRefresh()
                         }),
                         m(btn, {
                             viewModel: vm.buttonSort()
@@ -1463,7 +1466,7 @@ workbookPage.component = {
                             onmouseout: vm.onmouseoutmenu
                         }, [
                             m("span", {
-                                id: "nav-meun-button",
+                                id: "nav-menu-button",
                                 class: (
                                     "pure-button " +
                                     "fa fa-list " +
