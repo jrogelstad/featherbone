@@ -846,6 +846,7 @@ formPage.viewModel = function (options) {
     wd.style().width = "100px";
     wd.style().border = "none";
     wd.style().background = "none";
+    wd.style().boxShadow = "none";
     wd.content = function () {
         return m("i", {
             class: "fa fa-spinner fa-spin",

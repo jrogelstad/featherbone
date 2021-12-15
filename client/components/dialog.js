@@ -317,8 +317,8 @@ dialog.component = {
                 id: ids.header,
                 class: "fb-header"
             }, [m("i", {
-                class: "fa fa-" + vm.icon() + " fb-dialog-icon"
-            })], vm.title().toName());
+                class: "material-icons-outlined fb-dialog-icon"
+            }, vm.icon())], vm.title().toName());
         }
 
         return m("dialog", {

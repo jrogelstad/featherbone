@@ -191,7 +191,10 @@ a.pure-button-selected {
 }
 
 .fb-dialog {
+  border-width: thin;
+  border-color: grey;
   border-radius: 10px;
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
   padding: 0px;
 }
 
@@ -205,6 +208,7 @@ a.pure-button-selected {
 
 .fb-dialog-icon {
   margin-right: 5px;
+  vertical-align: bottom;
 }
 
 .fb-filter-dialog-input {
@@ -467,6 +471,7 @@ a.pure-button-selected {
   border-bottom-color: LightGrey;
   border-bottom-style: solid;
   border-bottom-width: thin;
+  font-weight: normal;
   margin: 2px;
   padding: 6px;
 }
