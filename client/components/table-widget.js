@@ -1417,12 +1417,12 @@ tableWidget.viewModel = function (options) {
 
             opts = {
                 id: "nav-actions-" + action.id,
-                class: "pure-menu-link",
+                class: "pure-menu-link fb-menu-list-item",
                 title: action.title
             };
 
             if (validator && !validator(selections)) {
-                opts.class = "pure-menu-link pure-menu-disabled";
+                opts.class = "pure-menu-link pure-menu-disabled fb-menu-list-item";
             } else {
                 opts.onclick = method.bind(null, vm);
             }
@@ -1434,7 +1434,7 @@ tableWidget.viewModel = function (options) {
             if (action.icon) {
                 actionIcon = [m("i", {
                     id: "nav-actions-" + action.id + "-icon",
-                    class: "material-icons-outlined fb-menu-list-icon"
+                    class: "material-icons fb-menu-list-icon"
                 }, action.icon)];
             }
 

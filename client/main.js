@@ -123,8 +123,8 @@ const home = {
                         disabled: !isSuper
                     }, [
                         m("i", {
-                            class: "fa fa-plus fb-button-icon"
-                        })
+                            class: "material-icons"
+                        }, "add")
                     ]),
                     m(components.accountMenu)
                 ])

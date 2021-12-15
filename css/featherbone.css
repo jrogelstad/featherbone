@@ -539,9 +539,13 @@ a.pure-button-selected {
   display: none;
 }
 
+.fb-menu-list-item {
+  font-size: 16px;
+}
+
 .fb-menu-list-icon {
   margin-right: 4px;
-  vertical-align: bottom;
+  vertical-align: bottom;;
 }
 
 .fb-menu-list-separator {
