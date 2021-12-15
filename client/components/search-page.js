@@ -164,7 +164,7 @@ searchPage.viewModel = function (options) {
     vm.buttonBack(f.createViewModel("Button", {
         onclick: vm.doBack,
         label: "&Back",
-        icon: "arrow-left",
+        icon: "arrow_back",
         class: "fb-toolbar-button"
     }));
 
@@ -190,15 +190,15 @@ searchPage.viewModel = function (options) {
         title: "Refresh",
         hotkey: "R",
         icon: "sync",
-        class: "fb-toolbar-button"
+        class: "fb-toolbar-button fb-toolbar-button-left-side"
     }));
 
     vm.buttonClear(f.createViewModel("Button", {
         onclick: vm.searchInput().clear,
         title: "Clear search",
         hotkey: "C",
-        icon: "eraser",
-        class: "fb-toolbar-button"
+        icon: "clear",
+        class: "fb-toolbar-button fb-toolbar-button-clear"
     }));
     vm.buttonClear().isDisabled = function () {
         return !vm.searchInput().value();
@@ -208,7 +208,7 @@ searchPage.viewModel = function (options) {
         onclick: vm.filterDialog().show,
         title: "Filter",
         hotkey: "F",
-        icon: "filter",
+        icon: "filter_list",
         class: "fb-toolbar-button fb-toolbar-button-right-side"
     }));
 
@@ -216,8 +216,8 @@ searchPage.viewModel = function (options) {
         onclick: vm.sortDialog().show,
         title: "Sort",
         hotkey: "O",
-        icon: "sort",
-        class: "fb-toolbar-button fb-toolbar-button-left-side"
+        icon: "sort_by_alpha",
+        class: "fb-toolbar-button fb-toolbar-button-middle-side"
     }));
 
     return vm;
@@ -287,10 +287,10 @@ searchPage.component = {
                     viewModel: vm.searchInput()
                 }),
                 m(btn, {
-                    viewModel: vm.buttonRefresh()
+                    viewModel: vm.buttonClear()
                 }),
                 m(btn, {
-                    viewModel: vm.buttonClear()
+                    viewModel: vm.buttonRefresh()
                 }),
                 m(btn, {
                     viewModel: vm.buttonSort()

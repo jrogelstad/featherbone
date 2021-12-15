@@ -159,6 +159,8 @@ a.pure-button-selected {
   margin-right: 8px;
   min-width: 18px;
   text-align: center;
+  vertical-align: bottom;
+  font-size: 18px;
 }
 
 .fb-data-list-input {
