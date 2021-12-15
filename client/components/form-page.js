@@ -921,7 +921,7 @@ formPage.viewModel = function (options) {
 
     vm.buttonPdf(f.createViewModel("Button", {
         onclick: doPrintPdf,
-        icon: "pdf",
+        icon: "picture_as_pdf",
         title: "Print to PDF",
         class: (
             toolbarButtonClass +

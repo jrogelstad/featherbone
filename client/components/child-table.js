@@ -224,7 +224,7 @@ childTable.viewModel = function (options) {
         onclick: vm.tableWidget().modelDelete,
         title: "Delete",
         hotkey: "D",
-        icon: "delete",
+        icon: "remove_circle_outline",
         class: "fb-icon-button",
         style: {
             backgroundColor: "white"
@@ -248,7 +248,8 @@ childTable.viewModel = function (options) {
         onclick: vm.doChildOpen,
         title: "Open",
         hotkey: "O",
-        icon: "create_new_folder",
+        icon: "file_open",
+        outline: false,
         class: "fb-icon-button",
         style: {
             backgroundColor: "white"
@@ -257,7 +258,7 @@ childTable.viewModel = function (options) {
 
     vm.buttonUp(f.createViewModel("Button", {
         onclick: vm.moveUp,
-        icon: "chevron-up",
+        icon: "keyboard_arrow_up",
         title: "Move up",
         class: "fb-icon-button",
         style: {
@@ -268,7 +269,7 @@ childTable.viewModel = function (options) {
 
     vm.buttonDown(f.createViewModel("Button", {
         onclick: vm.moveDown,
-        icon: "chevron-down",
+        icon: "keyboard_arrow_down",
         title: "Move down",
         class: "fb-icon-button",
         style: {
@@ -294,7 +295,7 @@ childTable.viewModel = function (options) {
             vm.buttonRemove().enable();
         }
 
-        vm.buttonOpen().icon("folder_open");
+        vm.buttonOpen().icon("file_open");
         vm.buttonOpen().enable();
     });
     tableState.resolve("/Selection/On/Clean").enter(function () {

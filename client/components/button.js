@@ -394,6 +394,10 @@ button.component = {
             disabled: vm.isDisabled(),
             onclick: vm.onclick()
         };
+        
+        if (!icon) {
+            opts.style.paddingTop = "8px";
+        }
 
         if (vm.isDisabled()) {
             classes.push("fb-button-disabled");
