@@ -427,7 +427,7 @@ tableDialog.viewModel = function (options) {
     buttonRemove = f.createViewModel("Button", {
         onclick: vm.remove,
         label: "Remove",
-        icon: "delete",
+        icon: "remove_circle_outline",
         class: "fb-icon-button",
         style: {
             backgroundColor: "white"

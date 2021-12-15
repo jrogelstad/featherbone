@@ -213,6 +213,7 @@ childTable.viewModel = function (options) {
         onclick: vm.tableWidget().modelNew,
         title: "Insert",
         hotkey: "I",
+        label: "Add",
         icon: "add_circle_outline",
         class: "fb-icon-button",
         style: {
@@ -224,6 +225,7 @@ childTable.viewModel = function (options) {
         onclick: vm.tableWidget().modelDelete,
         title: "Delete",
         hotkey: "D",
+        label: "Remove",
         icon: "remove_circle_outline",
         class: "fb-icon-button",
         style: {

@@ -168,7 +168,7 @@ function saveProfile(name, config, dlg) {
             }).then(callback).catch(function (err) {
                 profileInvalid = true;
                 dlg.message(err.message);
-                dlg.icon("window-close");
+                dlg.icon("cancel_presentation");
                 dlg.buttonCancel().hide();
                 dlg.show();
             });
@@ -311,7 +311,7 @@ workbookPage.viewModel = function (options) {
         @return {ViewModels.Dialog}
     */
     vm.confirmDialog = f.prop(f.createViewModel("Dialog", {
-        icon: "question-circle",
+        icon: "help_outline",
         title: "Confirmation"
     }));
     /**
@@ -413,7 +413,7 @@ workbookPage.viewModel = function (options) {
         confirmDialog.message(
             "Are you sure you want to delete this sheet?"
         );
-        confirmDialog.icon("question-circle");
+        confirmDialog.icon("help_outline");
         confirmDialog.onOk(doDelete);
         confirmDialog.show();
     };
@@ -765,7 +765,7 @@ workbookPage.viewModel = function (options) {
             "Are you sure you want to share your workbook " +
             "configuration with all other users?"
         );
-        confirmDialog.icon("question-circle");
+        confirmDialog.icon("help_outline");
         confirmDialog.onOk(doShare);
         confirmDialog.show();
     };
@@ -863,7 +863,7 @@ workbookPage.viewModel = function (options) {
         @return {ViewModels.Dialog}
     */
     vm.sseErrorDialog = f.prop(f.createViewModel("Dialog", {
-        icon: "window-close",
+        icon: "cancel_presentation",
         title: "Connection Error",
         message: (
             "You have lost connection to the server. " +
@@ -965,7 +965,7 @@ workbookPage.viewModel = function (options) {
     }));
 
     vm.editWorkbookDialog(f.createViewModel("FormDialog", {
-        icon: "cogs",
+        icon: "settings",
         title: "Edit workbook",
         model: workbook,
         config: editWorkbookConfig
@@ -980,7 +980,7 @@ workbookPage.viewModel = function (options) {
                 dlg.message(
                     "This will permanently delete this workbook. Are you sure?"
                 );
-                dlg.icon("exclamation-triangle");
+                dlg.icon("report_problem");
                 dlg.onOk(function () {
                     let name = workbook.data.name();
                     name = name.toSpinalCase().toCamelCase();
@@ -1006,7 +1006,7 @@ workbookPage.viewModel = function (options) {
     }
 
     vm.sheetConfigureDialog(f.createViewModel("FormDialog", {
-        icon: "table",
+        icon: "table_chart",
         title: "Configure worksheet",
         model: sheetEditModel,
         config: editSheetConfig
@@ -1048,7 +1048,7 @@ workbookPage.viewModel = function (options) {
     vm.buttonSave(f.createViewModel("Button", {
         onclick: vm.tableWidget().save,
         label: "&Save",
-        icon: "cloud-upload-alt",
+        icon: "cloud_upload",
         class: toolbarButtonClass
     }));
     vm.buttonSave().hide();

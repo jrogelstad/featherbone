@@ -223,7 +223,7 @@ filterDialog.viewModel = function (options) {
         }
     };
     options.title = options.title || "Filter";
-    options.icon = options.icon || "filter";
+    options.icon = options.icon || "filter_list";
 
     // ..........................................................
     // PUBLIC

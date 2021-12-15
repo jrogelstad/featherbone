@@ -673,7 +673,7 @@ formats.icon.tableData = function (obj) {
     if (obj.value) {
         return m("i", {
             style: {fontSize: "18px", verticalAlign: "bottom"},
-            class: "material-icons-outlined",
+            class: "material-icons",
             title: obj.title
         }, obj.value);
     }
