@@ -672,9 +672,10 @@ formats.icon.editor = selectEditor.bind(null, iconNames);
 formats.icon.tableData = function (obj) {
     if (obj.value) {
         return m("i", {
-            class: "fa fa-" + obj.value,
+            style: {fontSize: "18px", verticalAlign: "bottom"},
+            class: "material-icons-outlined",
             title: obj.title
-        });
+        }, obj.value);
     }
 };
 

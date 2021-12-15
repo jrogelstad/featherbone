@@ -471,17 +471,17 @@ function createTableHeader(options, col) {
     if (fidx !== false) {
         order = sort[fidx].order || "ASC";
         if (order.toUpperCase() === "ASC") {
-            name = "fa fa-sort-up";
+            name = "keyboard_arrow_up";
         } else {
-            name = "fa fa-sort-down";
+            name = "keyboard_arrow_down";
         }
 
         icon.push(m("i", {
-            class: name + " fb-column-sort-icon",
+            class: "material-icons-outlined fb-column-sort-icon",
             style: {
                 fontSize: zoom
             }
-        }));
+        }, name));
 
         if (sort.length > 1) {
             icon.push(m("span", {
@@ -497,14 +497,14 @@ function createTableHeader(options, col) {
     fidx = findFilterIndex(key);
     if (fidx !== false) {
         icon.push(m("i", {
-            class: "fa fa-filter fb-column-filter-icon",
+            class: "material-icons-outlined fb-column-filter-icon",
             title: operators[
                 (filter.criteria[fidx].operator || "=")
             ] + " " + filter.criteria[fidx].value,
             style: {
                 fontSize: vm.zoom() * 0.80 + "%"
             }
-        }));
+        }, "filter_list"));
     }
 
     hview = [
@@ -1434,8 +1434,8 @@ tableWidget.viewModel = function (options) {
             if (action.icon) {
                 actionIcon = [m("i", {
                     id: "nav-actions-" + action.id + "-icon",
-                    class: "fa fa-" + action.icon + " fb-menu-list-icon"
-                })];
+                    class: "material-icons-outlined fb-menu-list-icon"
+                }, action.icon)];
             }
 
             return m("li", opts, actionIcon, action.name);
@@ -1455,8 +1455,8 @@ tableWidget.viewModel = function (options) {
         menu.push(
             m("li", o, [m("i", {
                 id: "nav-actions-import-icon",
-                class: "fa fa-file-import fb-menu-list-icon"
-            })], "Import")
+                class: "material-icons-outlined fb-menu-list-icon"
+            }, "file_upload")], "Import")
         );
 
         menu.push(
@@ -1467,8 +1467,8 @@ tableWidget.viewModel = function (options) {
                 onclick: doExport
             }, [m("i", {
                 id: "nav-actions-export-icon",
-                class: "fa fa-file-export fb-menu-list-icon"
-            })], "Export")
+                class: "material-icons-outlined fb-menu-list-icon"
+            }, "file_download")], "Export")
         );
 
         return menu;
