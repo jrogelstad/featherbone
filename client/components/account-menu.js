@@ -392,7 +392,7 @@ accountMenu.component = {
                     : ""
                 ),
                 class: menuButtonClass
-            }, "perm_identity"),
+            }, "perm_identityarrow_drop_down"),
             m("ul", {
                 id: "nav-account-list",
                 class: (

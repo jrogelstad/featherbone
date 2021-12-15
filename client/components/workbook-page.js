@@ -1422,7 +1422,7 @@ workbookPage.component = {
                                     "material-icons-outlined " +
                                     menuButtonClass
                                 )
-                            }, "menu"),
+                            }, "menuarrow_drop_down"),
                             m("ul", {
                                 id: "nav-actions-list",
                                 class: (
@@ -1473,7 +1473,7 @@ workbookPage.component = {
                                     menuButtonClass +
                                     " fb-menu-button-right-side"
                                 )
-                            }, "settings"),
+                            }, "settingsarrow_drop_down"),
                             m("ul", {
                                 id: "nav-menu-list",
                                 class: (
