@@ -1419,10 +1419,10 @@ workbookPage.component = {
                                 id: "nav-actions-button",
                                 class: (
                                     "pure-button " +
-                                    "fa fa-bolt " +
+                                    "material-icons-outlined " +
                                     menuButtonClass
                                 )
-                            }),
+                            }, "menu"),
                             m("ul", {
                                 id: "nav-actions-list",
                                 class: (
@@ -1469,11 +1469,11 @@ workbookPage.component = {
                                 id: "nav-menu-button",
                                 class: (
                                     "pure-button " +
-                                    "fa fa-list " +
+                                    "material-icons-outlined " +
                                     menuButtonClass +
                                     " fb-menu-button-right-side"
                                 )
-                            }),
+                            }, "settings"),
                             m("ul", {
                                 id: "nav-menu-list",
                                 class: (

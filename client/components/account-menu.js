@@ -343,7 +343,7 @@ accountMenu.component = {
         const dlgState = vm.changePasswordDialog().state().current()[0];
         let menuButtonClass = (
             "pure-button " +
-            "fa fa-user-circle " +
+            "material-icons-outlined " +
             "fb-menu-button fb-menu-button-left-side"
         );
 
@@ -392,7 +392,7 @@ accountMenu.component = {
                     : ""
                 ),
                 class: menuButtonClass
-            }),
+            }, "perm_identity"),
             m("ul", {
                 id: "nav-account-list",
                 class: (

@@ -510,6 +510,10 @@ a.pure-button-selected {
   border-radius: 6px;
   margin-left: 4px;
   margin-bottom: 6px;
+  padding-top: .2em;
+  padding-bottom: .2em;
+  padding-left: .4em;
+  padding-right: .5em;
 }
 
 .fb-menu-button-left-side {
@@ -535,6 +539,7 @@ a.pure-button-selected {
 
 .fb-menu-list-icon {
   margin-right: 4px;
+  vertical-align: bottom;
 }
 
 .fb-menu-list-separator {
