@@ -310,14 +310,13 @@ a.pure-button-selected {
   color: white;
   font-size: 15px;
   font-family:sans-serif;
-  padding-bottom: 4.5px;
+  padding-bottom: 5px;
   padding-top: 4.5px;
 }
 
 .fb-navigator-item-selected {
   color: darkblue;
   background: #E1E1E1;
-  border-left: solid darkblue;
   border-radius: 6px;
   box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
 }
