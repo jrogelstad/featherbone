@@ -654,8 +654,8 @@ relationWidget.component = {
                             )
                         }, [m("i", {
                             id: "nav-relation-search-icon-" + id,
-                            class: "fa fa-search"
-                        })], " Search"),
+                            class: "material-icons fb-menu-list-icon"
+                        }, "search")], " Search"),
                         m("li", {
                             id: "nav-relation-open-" + id,
                             class: openMenuClass,
@@ -670,8 +670,8 @@ relationWidget.component = {
                             )
                         }, [m("i", {
                             id: "nav-relation-open-icon-" + id,
-                            class: "fa fa-folder-open"
-                        })], " Open"),
+                            class: "material-icons fb-menu-list-icon"
+                        }, "file_open")], " Open"),
                         m("li", {
                             id: "nav-relation-new-" + id,
                             class: newMenuClass,
@@ -686,8 +686,8 @@ relationWidget.component = {
                             )
                         }, [m("i", {
                             id: "nav-relation-new-icon-" + id,
-                            class: "fa fa-plus-circle"
-                        })], " New")
+                            class: "material-icons fb-menu-list-icon"
+                        }, "add_circle")], " New")
                     ])
                 ])
             ]);

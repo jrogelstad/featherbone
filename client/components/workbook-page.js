@@ -965,7 +965,7 @@ workbookPage.viewModel = function (options) {
     }));
 
     vm.editWorkbookDialog(f.createViewModel("FormDialog", {
-        icon: "settings",
+        icon: "backup_table",
         title: "Edit workbook",
         model: workbook,
         config: editWorkbookConfig
@@ -1492,8 +1492,8 @@ workbookPage.component = {
                                     onclick: vm.configureSheet
                                 }, [m("i", {
                                     id: "nav-menu-configure-worksheet-icon",
-                                    class: "fa fa-table  fb-menu-list-icon"
-                                })], "Sheet"),
+                                    class: "material-icons-outlined fb-menu-list-icon"
+                                }, "table_chart")], "Sheet"),
                                 m("li", {
                                     id: "nav-menu-configure-workbook",
                                     class: "pure-menu-link",
@@ -1501,8 +1501,8 @@ workbookPage.component = {
                                     onclick: vm.editWorkbookDialog().show
                                 }, [m("i", {
                                     id: "nav-menu-configure-workbook-icon",
-                                    class: "fa fa-cogs  fb-menu-list-icon"
-                                })], "Workbook"),
+                                    class: "material-icons-outlined  fb-menu-list-icon"
+                                }, "backup_table")], "Workbook"),
                                 m("li", {
                                     id: "nav-menu-share",
                                     class: (
@@ -1517,10 +1517,10 @@ workbookPage.component = {
                                 }, [m("i", {
                                     id: "nav-menu-share-icon",
                                     class: (
-                                        "fa fa-share-alt " +
+                                        "material-icons " +
                                         "fb-menu-list-icon"
                                     )
-                                })], "Share"),
+                                }, "share")], "Share"),
                                 m("li", {
                                     id: "nav-menu-revert",
                                     class: "pure-menu-link",
@@ -1531,8 +1531,8 @@ workbookPage.component = {
                                     onclick: vm.revert
                                 }, [m("i", {
                                     id: "nav-menu-revert-icon",
-                                    class: "fa fa-reply fb-menu-list-icon"
-                                })], "Revert"),
+                                    class: "material-icons fb-menu-list-icon"
+                                }, "undo")], "Revert"),
                                 m("li", {
                                     id: "nav-menu-settings",
                                     class: (
@@ -1547,8 +1547,8 @@ workbookPage.component = {
                                     onclick: vm.goSettings
                                 }, [m("i", {
                                     id: "nav-menu-settings-icon",
-                                    class: "fa fa-wrench fb-menu-list-icon"
-                                })], "Settings")
+                                    class: "material-icons fb-menu-list-icon"
+                                }, "build")], "Settings")
                             ])
                         ]),
                         m(menu)

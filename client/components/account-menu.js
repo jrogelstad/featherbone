@@ -226,7 +226,7 @@ accountMenu.viewModel = function () {
 
     vm.changeUserInfoDialog(f.createViewModel("Dialog", {
         title: "Edit my contact information",
-        icon: "address-book",
+        icon: "edit",
         onOk: function () {
             m.request({
                 method: "POST",
@@ -416,12 +416,12 @@ accountMenu.component = {
                         cdlg.show();
                     }
                 }, [m("i", {
-                    id: "nav-account-myinfo-icon",
+                    id: "material-icons nav-account-myinfo-icon",
                     class: (
-                        "fa fa-pencil-alt " +
+                        "material-icons-outlined " +
                         "fb-menu-list-icon"
                     )
-                })], "Info"),
+                }, "edit")], "Info"),
                 m("li", {
                     id: "nav-account-password",
                     class: (
@@ -437,8 +437,8 @@ accountMenu.component = {
                     }
                 }, [m("i", {
                     id: "nav-account-password-icon",
-                    class: "fa fa-key fb-menu-list-icon"
-                })], "Password"),
+                    class: "material-icons fb-menu-list-icon"
+                }, "key")], "Password"),
                 m("li", {
                     id: "nav-account-signout",
                     class: (
@@ -450,10 +450,10 @@ accountMenu.component = {
                 }, [m("i", {
                     id: "nav-account-signout-icon",
                     class: (
-                        "fa fa-sign-out-alt " +
+                        "material-icons " +
                         "fb-menu-list-icon"
                     )
-                })], "Sign out")
+                },"logout")], "Sign out")
             ])
         ]);
     }
