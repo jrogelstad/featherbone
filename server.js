@@ -921,6 +921,9 @@
         case ".ttf":
             mimetype = {"Content-Type": "application/x-font-ttf"};
             break;
+        case ".otf":
+            mimetype = {"Content-Type": "application/x-font-otf"};
+            break;
         case ".woff":
             mimetype = {"Content-Type": "font/woff"};
             break;
@@ -1260,6 +1263,7 @@
             "/client/components",
             "/client/models",
             "/common",
+            "/fonts",
             "/node_modules/@fortawesome/fontawesome-free/webfonts",
             "/node_modules/codemirror/addon/lint",
             "/node_modules/codemirror/lib",
