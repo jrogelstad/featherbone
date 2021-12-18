@@ -1336,7 +1336,10 @@ tableWidget.viewModel = function (options) {
             getFilter(offset),
             refresh !== true
         ).then(function () {
-            if (fetchCount < FETCH_MAX) {
+            if (
+                fetchCount < FETCH_MAX &&
+                vm.models().length === offset + LIMIT
+            ) {
                 offset += LIMIT;
                 doFetch();
             }
