@@ -469,6 +469,7 @@
     },
     {
         "name": "Address",
+        "plural": "Addresses",
         "module": "Core",
         "description": "Physical location",
         "isChild": true,
