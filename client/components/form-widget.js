@@ -219,8 +219,8 @@ function buildFieldset(vm, attrs) {
                             )
                         }, [m("i", {
                             id: "nav-relation-search-icon-" + theKey,
-                            class: "fa fa-search"
-                        })], " Search"),
+                            class: "material-icons fb-menu-list-icon"
+                        }, "search")], " Search"),
                         m("li", {
                             id: "nav-relation-open-" + theKey,
                             class: openMenuClass(),
@@ -235,8 +235,8 @@ function buildFieldset(vm, attrs) {
                             )
                         }, [m("i", {
                             id: "nav-relation-open-icon-" + theKey,
-                            class: "fa fa-folder-open"
-                        })], " Open"),
+                            class: "material-icons fb-menu-list-icon"
+                        }, "file_open")], " Open"),
                         m("li", {
                             id: "nav-relation-new-" + theKey,
                             class: newMenuClass(),
@@ -251,8 +251,8 @@ function buildFieldset(vm, attrs) {
                             )
                         }, [m("i", {
                             id: "nav-relation-new-icon-" + theKey,
-                            class: "fa fa-plus-circle"
-                        })], " New")
+                            class: "material-icons fb-menu-list-icon"
+                        }, "add_circle")], " New")
                     ])
                 ]),
                 m("i", {
