@@ -226,7 +226,7 @@ childTable.viewModel = function (options) {
         title: "Delete",
         hotkey: "D",
         label: "Remove",
-        icon: "remove_circle_outline",
+        icon: "delete",
         class: "fb-icon-button",
         style: {
             backgroundColor: "white"
