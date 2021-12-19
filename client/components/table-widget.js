@@ -34,6 +34,11 @@ const COL_WIDTH_DEFAULT = "150";
 const LIMIT = 20;
 const ROW_COUNT = 2;
 const FETCH_MAX = 3;
+const contextMenuStyle = f.prop({display: "none"});
+
+document.onclick = function () {
+    contextMenuStyle({display: "none"});
+};
 
 // Calculate scroll bar width
 // http://stackoverflow.com/questions/13382516
@@ -740,6 +745,19 @@ function createTableRow(options, pModel) {
     // Build row
     rowOpts.class = rowClass;
     rowOpts.key = pModel.id();
+    rowOpts.oncontextmenu = function (e) {
+        e.preventDefault();
+
+        if (contextMenuStyle().display === "block") {
+            contextMenuStyle({display: "none"});
+        } else {
+            contextMenuStyle({
+                display: "block",
+                left: e.pageX + "px",
+                top: e.pageY + "px"
+            });
+        }
+    };
 
     if (data.isDeleted()) {
         row = m("del", {
@@ -1425,7 +1443,10 @@ tableWidget.viewModel = function (options) {
             };
 
             if (validator && !validator(selections)) {
-                opts.class = "pure-menu-link pure-menu-disabled fb-menu-list-item";
+                opts.class = (
+                    "pure-menu-link pure-menu-disabled " +
+                    "fb-menu-list-item"
+                );
             } else {
                 opts.onclick = method.bind(null, vm);
             }
@@ -2554,7 +2575,10 @@ tableWidget.component = {
         }
 
         return m("div", {
-            class: "pure-form " + theVm.class()
+            class: "pure-form " + theVm.class(),
+            onclick: function () {
+                contextMenuStyle({display: "none"});
+            }
         }, [
             m(dlg, {
                 viewModel: theVm.confirmDialog()
@@ -2562,6 +2586,18 @@ tableWidget.component = {
             m(dlg, {
                 viewModel: theVm.errorDialog()
             }),
+            m("div", {
+                class: "fb-context-menu",
+                style: contextMenuStyle()
+            }, [
+                m("ul", {
+                    id: "context-actions-list",
+                    class: (
+                        "pure-menu-list fb-menu-list " +
+                        "fb-menu-list-show"
+                    )
+                }, theVm.actions())
+            ]),
             m("table", {
                 class: "pure-table fb-table"
             }, [
