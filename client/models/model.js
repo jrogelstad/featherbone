@@ -369,6 +369,7 @@ function createModel(data, feather) {
     let naturalKey;
     let canUpdate;
     let canDelete;
+    let saveContext;
 
     // Inherit parent logic via traversal
     if (feather.inherits && feather.inherits !== "Object") {
@@ -1867,6 +1868,9 @@ function createModel(data, feather) {
                         }
                         this.goto("../Dirty");
                     });
+                    this.event("save", function (context) {
+                        saveContext = context;
+                    });
                     this.canDelete = () => false;
                     this.canSave = () => false;
                     this.canUndo = () => true;
@@ -1883,6 +1887,13 @@ function createModel(data, feather) {
                 });
 
                 this.state("Dirty", function () {
+                    this.enter(function () {
+                        let ctxt = {context: saveContext};
+                        if (saveContext) {
+                            saveContext = undefined;
+                            this.goto("/Busy/Saving/Patching", ctxt);
+                        }
+                    });
                     this.event("undo", function () {
                         doRevert();
                         this.goto("../Unlocking");
