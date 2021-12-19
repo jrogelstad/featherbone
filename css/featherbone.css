@@ -571,6 +571,10 @@ a.pure-button-selected {
   right: 8px;
 }
 
+.fb-context-menu {
+  position: absolute;
+}
+
 .fb-menu-button {
   background-color: white;
   color: royalblue;
