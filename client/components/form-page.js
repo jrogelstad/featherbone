@@ -381,7 +381,7 @@ authTable.viewModel = function (options) {
         onclick: vm.tableWidget().modelNew,
         title: "Insert",
         hotkey: "I",
-        icon: "plus-circle",
+        icon: "add_circle_outline",
         class: "fb-icon-button",
         style: {
             backgroundColor: "white"
@@ -392,7 +392,7 @@ authTable.viewModel = function (options) {
         onclick: vm.tableWidget().modelDelete,
         title: "Delete",
         hotkey: "D",
-        icon: "trash",
+        icon: "delete",
         class: "fb-icon-button",
         style: {
             backgroundColor: "white"
@@ -580,7 +580,7 @@ formPage.viewModel = function (options) {
         function error(err) {
             dlg.message(err.message);
             dlg.title("Error");
-            dlg.icon("window-close");
+            dlg.icon("cancel_presentation");
             dlg.buttonCancel().hide();
             dlg.show();
         }
@@ -664,7 +664,7 @@ formPage.viewModel = function (options) {
         @return {ViewModels.Dialog}
     */
     vm.confirmDialog = f.prop(f.createViewModel("Dialog", {
-        icon: "question-circle",
+        icon: "help_outline",
         title: "Confirm close",
         message: ("You will lose changes you have made. Are you sure?"),
         onOk: function () {
@@ -805,7 +805,7 @@ formPage.viewModel = function (options) {
         @return {ViewModels.Dialog}
     */
     vm.sseErrorDialog = f.prop(f.createViewModel("Dialog", {
-        icon: "window-close",
+        icon: "cancel_presentation",
         title: "Connection Error",
         message: (
             "You have lost connection to the server." +
