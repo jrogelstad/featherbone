@@ -398,7 +398,7 @@
                             "   created timestamp with time zone," +
                             "   _nodeid text," +
                             "   _eventkey text, " +
-                            "   _objid text" +
+                            "   process text" +
                             ");"
                         );
                         obj.client.query(sql, createEventTrigger);

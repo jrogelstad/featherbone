@@ -457,7 +457,7 @@
         @param {String} eventKey Browser instance event key
         @return {Promise}
     */
-    that.lock = function (id, username, eventkey) {
+    that.lock = function (id, username, eventkey, process) {
         return new Promise(function (resolve, reject) {
             // Do the work
             function doLock(resp) {
@@ -472,7 +472,8 @@
                         db.nodeId,
                         id,
                         username,
-                        eventkey
+                        eventkey,
+                        process
                     ).then(
                         callback
                     ).catch(
@@ -1469,7 +1470,7 @@
                     let payload = {
                         id: obj.id,
                         name: obj.name,
-                        client: obj.client
+                        client: theClient
                     };
 
                     // Apply properties of a new record over the top of an
@@ -1509,7 +1510,10 @@
                                 // Update children in array
                                 n = 0;
                                 oldRec[key].forEach(function (oldChild) {
-                                    if (newRec[key][n] !== undefined) {
+                                    if (
+                                        newRec[key][n] !== undefined &&
+                                        newRec[key][n] !== null
+                                    ) {
                                         overlay(newRec[key][n], oldChild);
                                     } else {
                                         newRec[key][n] = null;
@@ -1605,6 +1609,12 @@
                         } else if (
                             obj.method === "DELETE" || obj.method === "PATCH"
                         ) {
+                            if (!obj.id) {
+                                throw new Error(
+                                    obj.method + " request requires an id"
+                                );
+                            }
+
                             // Cache original request that may get changed by
                             // triggers
                             if (obj.data) {
@@ -2031,8 +2041,39 @@
     };
 
     /**
+        Load all npm modules defined in configuration into memory.
+
+        @method loadModules
+        @return {Promise}
+    */
+    that.loadNpmModules = function () {
+        return new Promise(function (resolve) {
+            config.read().then(function (resp) {
+                let mods = resp.npmModules || [];
+
+                // Add npm modules specified
+                mods.forEach(function (mod) {
+                    let name;
+                    if (mod.properties) {
+                        mod.properties.forEach(function (p) {
+                            f[p.property.toCamelCase(true)] = require(
+                                mod.require
+                            )[p.export];
+                        });
+                        return;
+                    }
+
+                    name = mod.require;
+                    f[name.toCamelCase(true)] = require(mod.require);
+                });
+                resolve();
+            });
+        });
+    };
+
+    /**
         Load all services into memory.
-        
+
         Pass username and client reduce connection calls
         and avoid hanging if this request is made many consecutive
         times.
@@ -2064,19 +2105,26 @@
             }
 
             function doLoadServices(resp) {
+                let err;
                 unregisterTriggers();
 
-                resp.forEach(function (service) {
+                resp.every(function (service) {
                     try {
                         new Function(
                             "f",
                             "\"use strict\";" + service.script
                         )(f);
                     } catch (e) {
-                        reject(e);
+                        err = e;
+                        return false;
                     }
+                    return true;
                 });
 
+                if (err) {
+                    reject(err);
+                    return;
+                }
                 resolve();
             }
 

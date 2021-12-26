@@ -32,8 +32,10 @@
     const fs = require("fs");
     const path = require("path");
     const f = require("../../common/core");
+    let isInstalling = false;
 
     f.jsonpatch = require("fast-json-patch");
+    f.isInstalling = () => isInstalling;
 
     const api = new API();
     const db = new Database();
@@ -81,6 +83,7 @@
                 let installedFeathers = false;
 
                 f.datasource = pDatasource;
+                isInstalling = true;
                 pClient.currentUser(pUser);
 
                 function registerNpmModules(isSuper) {
@@ -484,8 +487,16 @@
                     let name;
 
                     function complete() {
-                        console.log("Installation completed!");
-                        resolve();
+                        isInstalling = false;
+                        // Some services won't initialize while installing
+                        // so do it again now to make sure they're started
+                        pDatasource.loadServices(
+                            pUser,
+                            pClient
+                        ).then(function () {
+                            console.log("Installation completed!");
+                            resolve();
+                        });
                     }
 
                     // We deferred propagating views on every feather

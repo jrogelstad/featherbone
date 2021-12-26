@@ -381,7 +381,7 @@ authTable.viewModel = function (options) {
         onclick: vm.tableWidget().modelNew,
         title: "Insert",
         hotkey: "I",
-        icon: "plus-circle",
+        icon: "add_circle_outline",
         class: "fb-icon-button",
         style: {
             backgroundColor: "white"
@@ -392,7 +392,7 @@ authTable.viewModel = function (options) {
         onclick: vm.tableWidget().modelDelete,
         title: "Delete",
         hotkey: "D",
-        icon: "trash",
+        icon: "delete",
         class: "fb-icon-button",
         style: {
             backgroundColor: "white"
@@ -499,15 +499,6 @@ formPage.viewModel = function (options) {
     let authViewModel = authTable.viewModel({models: authorizations});
     let toolbarButtonClass = "fb-toolbar-button";
 
-    switch (f.currentUser().mode) {
-    case "test":
-        toolbarButtonClass += " fb-toolbar-button-test";
-        break;
-    case "dev":
-        toolbarButtonClass += " fb-toolbar-button-dev";
-        break;
-    }
-
     // Helper function to pass back data to sending model
     function callReceiver() {
         let receivers;
@@ -589,7 +580,7 @@ formPage.viewModel = function (options) {
         function error(err) {
             dlg.message(err.message);
             dlg.title("Error");
-            dlg.icon("window-close");
+            dlg.icon("cancel_presentation");
             dlg.buttonCancel().hide();
             dlg.show();
         }
@@ -603,7 +594,7 @@ formPage.viewModel = function (options) {
 
             window.open(url);
         }
-	
+
         let payload;
         let theBody = {
             id: vm.model().id(),
@@ -673,7 +664,7 @@ formPage.viewModel = function (options) {
         @return {ViewModels.Dialog}
     */
     vm.confirmDialog = f.prop(f.createViewModel("Dialog", {
-        icon: "question-circle",
+        icon: "help_outline",
         title: "Confirm close",
         message: ("You will lose changes you have made. Are you sure?"),
         onOk: function () {
@@ -814,7 +805,7 @@ formPage.viewModel = function (options) {
         @return {ViewModels.Dialog}
     */
     vm.sseErrorDialog = f.prop(f.createViewModel("Dialog", {
-        icon: "window-close",
+        icon: "cancel_presentation",
         title: "Connection Error",
         message: (
             "You have lost connection to the server." +
@@ -845,6 +836,28 @@ formPage.viewModel = function (options) {
             vm.buttonSaveAndNew().onclick(vm.doSaveAndNew);
         }
     };
+    /**
+        @method waitDialog
+        @param {ViewModels.Dialog} dialog
+        @return {ViewModels.Dialog}
+    */
+    vm.waitDialog = f.prop(f.createViewModel("Dialog"));
+    let wd = vm.waitDialog();
+    wd.style().width = "100px";
+    wd.style().border = "none";
+    wd.style().background = "none";
+    wd.style().boxShadow = "none";
+    wd.content = function () {
+        return m("i", {
+            class: "fa fa-spinner fa-spin",
+            style: {
+                fontSize: "60px",
+                textShadow: "1px 1px 1px white"
+            }
+        });
+    };
+    wd.buttonCancel().hide();
+    wd.buttonOk().hide();
 
     // Create form widget
     vm.formWidget(f.createViewModel("FormWidget", {
@@ -865,6 +878,11 @@ formPage.viewModel = function (options) {
         });
     }
 
+    // Bind waiting spinner dialog to model state
+    let busy = vm.model().state().resolve("/Busy");
+    busy.enter(wd.show);
+    busy.exit(wd.cancel);
+
     // Memoize our model instance in case we leave and come back while
     // zooming deeper into detail
     instances[vm.model().id()] = vm.model();
@@ -880,7 +898,7 @@ formPage.viewModel = function (options) {
         icon: (
             window.history.state === null
             ? ""
-            : "arrow-left"
+            : "arrow_back"
         ),
         class: toolbarButtonClass
     }));
@@ -895,27 +913,35 @@ formPage.viewModel = function (options) {
         onclick: vm.editAuthDialog().show,
         icon: "key",
         title: "Edit Authorizations",
-        class: toolbarButtonClass + " fb-toolbar-button-right"
+        class: (
+            toolbarButtonClass +
+            " fb-toolbar-button-right" +
+            " fb-toolbar-button-right-side"
+        )
     }));
 
     vm.buttonPdf(f.createViewModel("Button", {
         onclick: doPrintPdf,
-        icon: "file-pdf",
+        icon: "picture_as_pdf",
         title: "Print to PDF",
-        class: toolbarButtonClass + " fb-toolbar-button-right"
+        class: (
+            toolbarButtonClass +
+            " fb-toolbar-button-right" +
+            " fb-toolbar-button-left-side "
+        )
     }));
 
     vm.buttonSave(f.createViewModel("Button", {
         onclick: vm.doSave,
         label: "&Save",
-        icon: "cloud-upload-alt",
+        icon: "cloud_upload",
         class: toolbarButtonClass
     }));
 
     vm.buttonSaveAndNew(f.createViewModel("Button", {
         onclick: vm.doSaveAndNew,
         label: "Save and &New",
-        icon: "plus-circle",
+        icon: "add_circle_outline",
         class: toolbarButtonClass
     }));
     if (f.catalog().getFeather(theFeather).isReadOnly) {
@@ -1037,11 +1063,16 @@ formPage.component = {
         } else {
             switch (fmodel.state().current()[0]) {
             case "/Locked":
-                icon = "user-lock";
                 lock = fmodel.data.lock() || {};
+                icon = (
+                    lock.process === "Editing"
+                    ? "fa fa-user-lock"
+                    : "fa fa-spinner fa-spin"
+                );
                 theTitle = (
                     "User: " + lock.username + "\nSince: " +
-                    new Date(lock.created).toLocaleTimeString()
+                    new Date(lock.created).toLocaleTimeString() +
+                    "\nProcess: " + lock.process
                 );
                 break;
             case "/Ready/Fetched/Dirty":
@@ -1105,6 +1136,9 @@ formPage.component = {
             }),
             m(dlg, {
                 viewModel: vm.editAuthDialog()
+            }),
+            m(dlg, {
+                viewModel: vm.waitDialog()
             }),
             m(fw, {
                 viewModel: vm.formWidget()

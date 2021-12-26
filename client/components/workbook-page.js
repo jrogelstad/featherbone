@@ -168,7 +168,7 @@ function saveProfile(name, config, dlg) {
             }).then(callback).catch(function (err) {
                 profileInvalid = true;
                 dlg.message(err.message);
-                dlg.icon("window-close");
+                dlg.icon("cancel_presentation");
                 dlg.buttonCancel().hide();
                 dlg.show();
             });
@@ -227,17 +227,6 @@ workbookPage.viewModel = function (options) {
     let toolbarButtonClass = "fb-toolbar-button";
     let formWorkbookClass = "fb-form-workbook";
     let sheetEditModel = f.createModel("Worksheet");
-
-    switch (f.currentUser().mode) {
-    case "test":
-        toolbarButtonClass += " fb-toolbar-button-test";
-        formWorkbookClass += " fb-form-workbook-test";
-        break;
-    case "dev":
-        toolbarButtonClass += " fb-toolbar-button-dev";
-        formWorkbookClass += " fb-form-workbook-dev";
-        break;
-    }
 
     // ..........................................................
     // PUBLIC
@@ -322,7 +311,7 @@ workbookPage.viewModel = function (options) {
         @return {ViewModels.Dialog}
     */
     vm.confirmDialog = f.prop(f.createViewModel("Dialog", {
-        icon: "question-circle",
+        icon: "help_outline",
         title: "Confirmation"
     }));
     /**
@@ -332,7 +321,6 @@ workbookPage.viewModel = function (options) {
     vm.configureSheet = function (e) {
         let dlg = vm.sheetConfigureDialog();
         let sheet = vm.sheet(e.sheetId);
-        let onCancel = vm.sheetConfigureDialog().onCancel();
         let data = {
             id: sheet.id,
             name: sheet.name,
@@ -346,15 +334,8 @@ workbookPage.viewModel = function (options) {
 
         sheetEditModel.set(data, true, true);
         sheetEditModel.state().send("fetched");
-        vm.sheetConfigureDialog().onCancel(function () {
-            if (onCancel) {
-                onCancel();
-            }
-            sheetEditModel.state().send("clear");
-        });
         vm.sheetConfigureDialog().onOk = function () {
             data = sheetEditModel.toJSON();
-            sheetEditModel.state().send("clear");
 
             // Update sheet with new values
             sheet.name = data.name;
@@ -432,7 +413,7 @@ workbookPage.viewModel = function (options) {
         confirmDialog.message(
             "Are you sure you want to delete this sheet?"
         );
-        confirmDialog.icon("question-circle");
+        confirmDialog.icon("help_outline");
         confirmDialog.onOk(doDelete);
         confirmDialog.show();
     };
@@ -784,7 +765,7 @@ workbookPage.viewModel = function (options) {
             "Are you sure you want to share your workbook " +
             "configuration with all other users?"
         );
-        confirmDialog.icon("question-circle");
+        confirmDialog.icon("help_outline");
         confirmDialog.onOk(doShare);
         confirmDialog.show();
     };
@@ -882,7 +863,7 @@ workbookPage.viewModel = function (options) {
         @return {ViewModels.Dialog}
     */
     vm.sseErrorDialog = f.prop(f.createViewModel("Dialog", {
-        icon: "window-close",
+        icon: "cancel_presentation",
         title: "Connection Error",
         message: (
             "You have lost connection to the server. " +
@@ -984,7 +965,7 @@ workbookPage.viewModel = function (options) {
     }));
 
     vm.editWorkbookDialog(f.createViewModel("FormDialog", {
-        icon: "cogs",
+        icon: "backup_table",
         title: "Edit workbook",
         model: workbook,
         config: editWorkbookConfig
@@ -999,7 +980,7 @@ workbookPage.viewModel = function (options) {
                 dlg.message(
                     "This will permanently delete this workbook. Are you sure?"
                 );
-                dlg.icon("exclamation-triangle");
+                dlg.icon("report_problem");
                 dlg.onOk(function () {
                     let name = workbook.data.name();
                     name = name.toSpinalCase().toCamelCase();
@@ -1025,12 +1006,15 @@ workbookPage.viewModel = function (options) {
     }
 
     vm.sheetConfigureDialog(f.createViewModel("FormDialog", {
-        icon: "table",
+        icon: "table_chart",
         title: "Configure worksheet",
         model: sheetEditModel,
         config: editSheetConfig
     }));
     vm.sheetConfigureDialog().style().width = "520px";
+    vm.sheetConfigureDialog().state().resolve(
+        "/Display/Showing"
+    ).exit(() => sheetEditModel.state().send("clear"));
 
     vm.aggregateDialog(f.createViewModel("AggregateDialog", {
         aggregates: vm.tableWidget().aggregates,
@@ -1064,7 +1048,7 @@ workbookPage.viewModel = function (options) {
     vm.buttonSave(f.createViewModel("Button", {
         onclick: vm.tableWidget().save,
         label: "&Save",
-        icon: "cloud-upload-alt",
+        icon: "cloud_upload",
         class: toolbarButtonClass
     }));
     vm.buttonSave().hide();
@@ -1072,14 +1056,14 @@ workbookPage.viewModel = function (options) {
     vm.buttonNew(f.createViewModel("Button", {
         onclick: vm.modelNew,
         label: "&New",
-        icon: "plus-circle",
+        icon: "add_circle_outline",
         class: toolbarButtonClass
     }));
 
     vm.buttonDelete(f.createViewModel("Button", {
         onclick: vm.tableWidget().modelDelete,
         label: "&Delete",
-        icon: "trash",
+        icon: "delete",
         class: toolbarButtonClass
     }));
     vm.buttonDelete().disable();
@@ -1103,39 +1087,42 @@ workbookPage.viewModel = function (options) {
         title: "Refresh",
         hotkey: "R",
         icon: "sync",
-        class: toolbarButtonClass
+        class: "fb-toolbar-button fb-toolbar-button-left-side"
     }));
 
     vm.buttonClear(f.createViewModel("Button", {
         onclick: vm.searchInput().clear,
         title: "Clear search",
         hotkey: "C",
-        icon: "eraser",
-        class: toolbarButtonClass
+        icon: "clear",
+        class: (
+            toolbarButtonClass +
+            " fb-toolbar-button-clear"
+        )
     }));
     vm.buttonClear().disable();
 
     vm.buttonSort(f.createViewModel("Button", {
         onclick: vm.showSortDialog,
-        icon: "sort",
+        icon: "sort_by_alpha",
         hotkey: "T",
         title: "Sort results",
-        class: toolbarButtonClass
+        class: "fb-toolbar-button fb-toolbar-button-middle-side"
     }));
 
     vm.buttonFilter(f.createViewModel("Button", {
         onclick: vm.showFilterDialog,
-        icon: "filter",
+        icon: "filter_list",
         hotkey: "F",
         title: "Filter results",
-        class: toolbarButtonClass
+        class: "fb-toolbar-button fb-toolbar-button-middle-side"
     }));
 
     vm.buttonAggregate(f.createViewModel("Button", {
         onclick: vm.aggregateDialog().show,
-        icon: "calculator",
+        icon: "calculate",
         title: "Calculate sum, count and other aggregations",
-        class: toolbarButtonClass
+        class: "fb-toolbar-button fb-toolbar-button-right-side"
     }));
 
     // Bind button states to list statechart events
@@ -1293,17 +1280,6 @@ workbookPage.component = {
         let toolbarClass = "fb-toolbar";
         let menuButtonClass = "fb-menu-button";
 
-        switch (f.currentUser().mode) {
-        case "test":
-            toolbarClass += " fb-toolbar-test";
-            menuButtonClass += " fb-menu-button-test";
-            break;
-        case "dev":
-            toolbarClass += " fb-toolbar-dev";
-            menuButtonClass += " fb-menu-button-dev";
-            break;
-        }
-
         if (vm.tableWidget().selections().some((s) => s.canDelete())) {
             vm.buttonDelete().enable();
         } else {
@@ -1356,8 +1332,8 @@ workbookPage.component = {
             title: "Add sheet",
             onclick: vm.newSheet
         }, [m("i", {
-            class: "fa fa-plus"
-        })]));
+            class: "material-icons-outlined"
+        }, "add")]));
 
         // Delete target
         tabs.push(m("div", {
@@ -1365,8 +1341,8 @@ workbookPage.component = {
             ondragover: vm.ondragover,
             ondrop: vm.deleteSheet
         }, [m("i", {
-            class: "fa fa-trash"
-        })]));
+            class: "material-icons-outlined"
+        }, "delete")]));
 
         // Finally assemble the whole view
         filterMenuClass = "pure-menu-link";
@@ -1443,14 +1419,14 @@ workbookPage.component = {
                                 id: "nav-actions-button",
                                 class: (
                                     "pure-button " +
-                                    "fa fa-bolt " +
+                                    "material-icons-outlined " +
                                     menuButtonClass
                                 )
-                            }),
+                            }, "menuarrow_drop_down"),
                             m("ul", {
                                 id: "nav-actions-list",
                                 class: (
-                                    "pure-menu-list fb-menu-list" + (
+                                    "pure-menu-list fb-menu-list " + (
                                         vm.showActions()
                                         ? " fb-menu-list-show"
                                         : ""
@@ -1461,14 +1437,14 @@ workbookPage.component = {
                         m("div", {
                             class: "fb-toolbar-spacer"
                         }),
-                        m(btn, {
-                            viewModel: vm.buttonRefresh()
-                        }),
                         m(srch, {
                             viewModel: vm.searchInput()
                         }),
                         m(btn, {
                             viewModel: vm.buttonClear()
+                        }),
+                        m(btn, {
+                            viewModel: vm.buttonRefresh()
                         }),
                         m(btn, {
                             viewModel: vm.buttonSort()
@@ -1484,19 +1460,20 @@ workbookPage.component = {
                             class: (
                                 "pure-menu " +
                                 "custom-restricted-width " +
-                                "fb-menu fb-menu-setup"
+                                "fb-menu fb-menu-setup "
                             ),
                             onclick: vm.onclickmenu,
                             onmouseout: vm.onmouseoutmenu
                         }, [
                             m("span", {
-                                id: "nav-meun-button",
+                                id: "nav-menu-button",
                                 class: (
                                     "pure-button " +
-                                    "fa fa-list " +
-                                    menuButtonClass
+                                    "material-icons-outlined " +
+                                    menuButtonClass +
+                                    " fb-menu-button-right-side"
                                 )
-                            }),
+                            }, "settingsarrow_drop_down"),
                             m("ul", {
                                 id: "nav-menu-list",
                                 class: (
@@ -1515,8 +1492,8 @@ workbookPage.component = {
                                     onclick: vm.configureSheet
                                 }, [m("i", {
                                     id: "nav-menu-configure-worksheet-icon",
-                                    class: "fa fa-table  fb-menu-list-icon"
-                                })], "Sheet"),
+                                    class: "material-icons-outlined fb-menu-list-icon"
+                                }, "table_chart")], "Sheet"),
                                 m("li", {
                                     id: "nav-menu-configure-workbook",
                                     class: "pure-menu-link",
@@ -1524,8 +1501,8 @@ workbookPage.component = {
                                     onclick: vm.editWorkbookDialog().show
                                 }, [m("i", {
                                     id: "nav-menu-configure-workbook-icon",
-                                    class: "fa fa-cogs  fb-menu-list-icon"
-                                })], "Workbook"),
+                                    class: "material-icons-outlined  fb-menu-list-icon"
+                                }, "backup_table")], "Workbook"),
                                 m("li", {
                                     id: "nav-menu-share",
                                     class: (
@@ -1540,10 +1517,10 @@ workbookPage.component = {
                                 }, [m("i", {
                                     id: "nav-menu-share-icon",
                                     class: (
-                                        "fa fa-share-alt " +
+                                        "material-icons " +
                                         "fb-menu-list-icon"
                                     )
-                                })], "Share"),
+                                }, "share")], "Share"),
                                 m("li", {
                                     id: "nav-menu-revert",
                                     class: "pure-menu-link",
@@ -1554,8 +1531,8 @@ workbookPage.component = {
                                     onclick: vm.revert
                                 }, [m("i", {
                                     id: "nav-menu-revert-icon",
-                                    class: "fa fa-reply fb-menu-list-icon"
-                                })], "Revert"),
+                                    class: "material-icons fb-menu-list-icon"
+                                }, "undo")], "Revert"),
                                 m("li", {
                                     id: "nav-menu-settings",
                                     class: (
@@ -1570,8 +1547,8 @@ workbookPage.component = {
                                     onclick: vm.goSettings
                                 }, [m("i", {
                                     id: "nav-menu-settings-icon",
-                                    class: "fa fa-wrench fb-menu-list-icon"
-                                })], "Settings")
+                                    class: "material-icons fb-menu-list-icon"
+                                }, "build")], "Settings")
                             ])
                         ]),
                         m(menu)

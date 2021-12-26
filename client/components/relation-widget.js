@@ -102,12 +102,16 @@ relationWidget.viewModel = function (options) {
         if (!filter.criteria) {
             filter.criteria = [];
         }
-        
+
         if (!filter.sort) {
             filter.sort = [];
         }
         filter.criteria = filter.criteria.concat(pFilter.criteria);
-        filter.sort = filter.sort || pFilter.sort;
+        filter.sort = (
+            (filter.sort && filter.sort.length)
+            ? filter.sort
+            : pFilter.sort
+        );
         filter.limit = filter.limit || pFilter.limit;
 
         return filter;
@@ -251,7 +255,7 @@ relationWidget.viewModel = function (options) {
     */
     vm.open = function () {
         m.route.set("/edit/:feather/:key", {
-            feather: type.relation.toSpinalCase(),
+            feather: modelValue().data.objectType(),
             key: modelValue().id()
         }, {
             state: {
@@ -452,6 +456,7 @@ relationWidget.viewModel = function (options) {
 
         if (hasFocus) {
             if (args.length) {
+                vm.models().reset();
                 result = inputValue(value);
             } else {
                 result = inputValue();
@@ -638,39 +643,51 @@ relationWidget.component = {
                         m("li", {
                             id: "nav-relation-search-" + id,
                             class: editMenuClass,
-                            onclick: function () {
-                                vm.showMenu(false);
-                                vm.search();
-                                return false;
-                            }
+                            onclick: (
+                                editMenuClass.indexOf("disabled") === -1
+                                ? function () {
+                                    vm.showMenu(false);
+                                    vm.search();
+                                    return false;
+                                }
+                                : undefined
+                            )
                         }, [m("i", {
                             id: "nav-relation-search-icon-" + id,
-                            class: "fa fa-search"
-                        })], " Search"),
+                            class: "material-icons fb-menu-list-icon"
+                        }, "search")], " Search"),
                         m("li", {
                             id: "nav-relation-open-" + id,
                             class: openMenuClass,
-                            onclick: function () {
-                                vm.showMenu(false);
-                                vm.open();
-                                return false;
-                            }
+                            onclick: (
+                                openMenuClass.indexOf("disabled") === -1
+                                ? function () {
+                                    vm.showMenu(false);
+                                    vm.open();
+                                    return false;
+                                }
+                                : undefined
+                            )
                         }, [m("i", {
                             id: "nav-relation-open-icon-" + id,
-                            class: "fa fa-folder-open"
-                        })], " Open"),
+                            class: "material-icons fb-menu-list-icon"
+                        }, "file_open")], " Open"),
                         m("li", {
                             id: "nav-relation-new-" + id,
                             class: newMenuClass,
-                            onclick: function () {
-                                vm.showMenu(false);
-                                vm.new();
-                                return false;
-                            }
+                            onclick: (
+                                newMenuClass.indexOf("disabled") === -1
+                                ? function () {
+                                    vm.showMenu(false);
+                                    vm.new();
+                                    return false;
+                                }
+                                : undefined
+                            )
                         }, [m("i", {
                             id: "nav-relation-new-icon-" + id,
-                            class: "fa fa-plus-circle"
-                        })], " New")
+                            class: "material-icons fb-menu-list-icon"
+                        }, "add_circle")], " New")
                     ])
                 ])
             ]);

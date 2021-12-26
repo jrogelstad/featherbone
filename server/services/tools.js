@@ -379,15 +379,22 @@
                     // Whether "Andy"="Ann" OR "Andy"="Andy"
                     } else if (op === "IN") {
                         part = [];
-                        where.value.forEach(function (val) {
-                            params.push(val);
+                        if (where.value.length) {
+                            where.value.forEach(function (val) {
+                                params.push(val);
+                                part.push("$" + p);
+                                p += 1;
+                            });
+                            part = tools.resolvePath(
+                                where.property,
+                                tokens
+                            ) + " IN (" + part.join(",") + ")";
+                        // If no values in array, then no result
+                        } else {
+                            params.push(false);
                             part.push("$" + p);
                             p += 1;
-                        });
-                        part = tools.resolvePath(
-                            where.property,
-                            tokens
-                        ) + " IN (" + part.join(",") + ")";
+                        }
 
                     // Property "OR" array compared to value
                     // (["name","email"]="Andy")
@@ -687,7 +694,7 @@
                     oldObj = JSON.parse(JSON.stringify(ary[i]));
                     newObj = {};
 
-                    keys = Object.keys(oldObj);
+                    keys = Object.keys(oldObj || {});
                     klen = keys.length;
                     n = 0;
 

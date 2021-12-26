@@ -115,10 +115,6 @@
     let rmdirsync = "rmdirSync";
 
     // Make sure file directories exist
-    if (!fs[existssync](dir)) {
-        fs[mkdirsync](dir);
-    }
-
     dir = "./files/import";
     if (!fs[existssync](dir)) {
         fs[mkdirsync](dir);
@@ -257,8 +253,6 @@
             function getConfig() {
                 return new Promise(function (resolve) {
                     config.read().then(function (resp) {
-                        let mods = resp.npmModules || [];
-
                         debug = Boolean(resp.debug);
 
                         // Default 1 day.
@@ -268,21 +262,6 @@
                         mode = resp.mode || "prod";
                         port = process.env.PORT || resp.clientPort || 80;
 
-                        // Add npm modules specified
-                        mods.forEach(function (mod) {
-                            let name;
-                            if (mod.properties) {
-                                mod.properties.forEach(function (p) {
-                                    f[p.property] = require(
-                                        mod.require
-                                    )[p.export];
-                                });
-                                return;
-                            }
-
-                            name = mod.require;
-                            f[name.toCamelCase()] = require(mod.require);
-                        });
                         resolve();
                     });
                 });
@@ -293,8 +272,6 @@
                 configLogger
             ).then(
                 datasource.getCatalog
-            ).then(
-                datasource.loadServices
             ).then(
                 getRoutes
             ).then(
@@ -308,10 +285,16 @@
             ).then(
                 getConfig
             ).then(
+                datasource.loadNpmModules
+            ).then(
+                datasource.loadServices
+            ).then(
                 resolve
-            ).catch(
-                reject
-            );
+            ).catch(function (err) {
+                logger.error(err.message);
+                console.log(err);
+                reject(err);
+            });
         });
     }
 
@@ -355,7 +338,7 @@
             name: resolveName(req.url),
             method: req.method,
             user: req.user.name,
-            eventKey: req.eventKey,
+            eventKey: req.query.eventKey,
             id: req.params.id,
             data: req.body || {}
         };
@@ -397,7 +380,7 @@
             name: "UserAccount",
             method: "PATCH",
             user: req.user.name,
-            eventKey: req.eventKey,
+            eventKey: req.query.eventKey,
             id: req.params.id,
             data: req.body || []
         };
@@ -938,6 +921,9 @@
         case ".ttf":
             mimetype = {"Content-Type": "application/x-font-ttf"};
             break;
+        case ".otf":
+            mimetype = {"Content-Type": "application/x-font-otf"};
+            break;
         case ".woff":
             mimetype = {"Content-Type": "font/woff"};
             break;
@@ -1277,6 +1263,7 @@
             "/client/components",
             "/client/models",
             "/common",
+            "/fonts",
             "/node_modules/@fortawesome/fontawesome-free/webfonts",
             "/node_modules/codemirror/addon/lint",
             "/node_modules/codemirror/lib",

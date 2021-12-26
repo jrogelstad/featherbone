@@ -34,6 +34,11 @@ const COL_WIDTH_DEFAULT = "150";
 const LIMIT = 20;
 const ROW_COUNT = 2;
 const FETCH_MAX = 3;
+const contextMenuStyle = f.prop({display: "none"});
+
+document.onclick = function () {
+    contextMenuStyle({display: "none"});
+};
 
 // Calculate scroll bar width
 // http://stackoverflow.com/questions/13382516
@@ -326,6 +331,7 @@ function createTableDataView(options, col) {
             tableData = function () {
                 let rel;
                 let keys;
+                let type = "";
 
                 // If relation, use feather natural key to
                 // find value to display
@@ -338,12 +344,13 @@ function createTableDataView(options, col) {
 
                 if (rel) {
                     theValue = theProp().data[rel]();
+                    type = theProp().data.objectType().toSnakeCase();
 
                     url = (
                         window.location.protocol + "//" +
                         window.location.hostname + ":" +
                         window.location.port + "#!/edit/" +
-                        theProp.type.relation.toSnakeCase() +
+                        type +
                         "/" + theProp().id()
                     );
 
@@ -353,7 +360,7 @@ function createTableDataView(options, col) {
                             theVm.canToggle(false);
                             e.preventDefault();
                             m.route.set("/edit/:feather/:key", {
-                                feather: theProp.type.relation.toSnakeCase(),
+                                feather: type,
                                 key: theProp().id()
                             }, {
                                 state: {}
@@ -469,17 +476,17 @@ function createTableHeader(options, col) {
     if (fidx !== false) {
         order = sort[fidx].order || "ASC";
         if (order.toUpperCase() === "ASC") {
-            name = "fa fa-sort-up";
+            name = "keyboard_arrow_up";
         } else {
-            name = "fa fa-sort-down";
+            name = "keyboard_arrow_down";
         }
 
         icon.push(m("i", {
-            class: name + " fb-column-sort-icon",
+            class: "material-icons-outlined fb-column-sort-icon",
             style: {
                 fontSize: zoom
             }
-        }));
+        }, name));
 
         if (sort.length > 1) {
             icon.push(m("span", {
@@ -495,14 +502,14 @@ function createTableHeader(options, col) {
     fidx = findFilterIndex(key);
     if (fidx !== false) {
         icon.push(m("i", {
-            class: "fa fa-filter fb-column-filter-icon",
+            class: "material-icons-outlined fb-column-filter-icon",
             title: operators[
                 (filter.criteria[fidx].operator || "=")
             ] + " " + filter.criteria[fidx].value,
             style: {
                 fontSize: vm.zoom() * 0.80 + "%"
             }
-        }));
+        }, "filter_list"));
     }
 
     hview = [
@@ -668,10 +675,27 @@ function createTableRow(options, pModel) {
         minWidth: "25px"
     };
 
-    if (currentMode !== "/Mode/Edit" && isSelected) {
+    if (currentState.slice(0, 5) === "/Busy") {
         thContent = m("i", {
-            onclick: theVm.ondblclick.bind(null, pModel),
-            class: "fa fa-folder-open fb-icon-button",
+            onclick: onClick,
+            title: "Saving",
+            class: "fa fa-spinner fa-spin",
+            style: iconStyle
+        });
+    } else if (currentState === "/Locked") {
+        lock = data.lock() || {};
+        thContent = m("i", {
+            onclick: onClick,
+            title: (
+                "User: " + lock.username + "\nSince: " +
+                new Date(lock.created).toLocaleTimeString() +
+                "\nProcess: " + lock.process
+            ),
+            class: (
+                lock.process === "Editing"
+                ? "fa fa-user-lock"
+                : "fa fa-spinner fa-spin"
+            ),
             style: iconStyle
         });
     } else if (!pModel.isValid()) {
@@ -681,15 +705,10 @@ function createTableRow(options, pModel) {
             class: "fa fa-exclamation-triangle",
             style: iconStyle
         });
-    } else if (currentState === "/Locked") {
-        lock = data.lock() || {};
+    } else if (currentMode !== "/Mode/Edit" && isSelected) {
         thContent = m("i", {
-            onclick: onClick,
-            title: (
-                "User: " + lock.username + "\nSince: " +
-                new Date(lock.created).toLocaleTimeString()
-            ),
-            class: "fa fa-user-lock",
+            onclick: theVm.ondblclick.bind(null, pModel),
+            class: "fa fa-folder-open fb-icon-button",
             style: iconStyle
         });
     } else if (currentState === "/Delete") {
@@ -726,6 +745,19 @@ function createTableRow(options, pModel) {
     // Build row
     rowOpts.class = rowClass;
     rowOpts.key = pModel.id();
+    rowOpts.oncontextmenu = function (e) {
+        e.preventDefault();
+
+        if (contextMenuStyle().display === "block") {
+            contextMenuStyle({display: "none"});
+        } else {
+            contextMenuStyle({
+                display: "block",
+                left: e.pageX + "px",
+                top: e.pageY + "px"
+            });
+        }
+    };
 
     if (data.isDeleted()) {
         row = m("del", {
@@ -943,7 +975,7 @@ tableWidget.viewModel = function (options) {
                     "Would you like to download the log?"
                 );
                 dlg.title("Error");
-                dlg.icon("window-close");
+                dlg.icon("cancel_presentation");
                 dlg.onOk(doDownload.bind(null, target, resp));
                 dlg.show();
             }
@@ -954,7 +986,7 @@ tableWidget.viewModel = function (options) {
             if (err.response !== null) {
                 dlg.message(err.message);
                 dlg.title("Error");
-                dlg.icon("window-close");
+                dlg.icon("cancel_presentation");
                 dlg.buttonCancel().hide();
                 dlg.show();
             }
@@ -1092,7 +1124,7 @@ tableWidget.viewModel = function (options) {
         function error(err) {
             dlg.message(err.message);
             dlg.title("Error");
-            dlg.icon("window-close");
+            dlg.icon("cancel_presentation");
             dlg.buttonCancel().hide();
             dlg.show();
         }
@@ -1322,7 +1354,10 @@ tableWidget.viewModel = function (options) {
             getFilter(offset),
             refresh !== true
         ).then(function () {
-            if (fetchCount < FETCH_MAX) {
+            if (
+                fetchCount < FETCH_MAX &&
+                vm.models().length === offset + LIMIT
+            ) {
                 offset += LIMIT;
                 doFetch();
             }
@@ -1403,12 +1438,15 @@ tableWidget.viewModel = function (options) {
 
             opts = {
                 id: "nav-actions-" + action.id,
-                class: "pure-menu-link",
+                class: "pure-menu-link fb-menu-list-item",
                 title: action.title
             };
 
             if (validator && !validator(selections)) {
-                opts.class = "pure-menu-link pure-menu-disabled";
+                opts.class = (
+                    "pure-menu-link pure-menu-disabled " +
+                    "fb-menu-list-item"
+                );
             } else {
                 opts.onclick = method.bind(null, vm);
             }
@@ -1420,8 +1458,8 @@ tableWidget.viewModel = function (options) {
             if (action.icon) {
                 actionIcon = [m("i", {
                     id: "nav-actions-" + action.id + "-icon",
-                    class: "fa fa-" + action.icon + " fb-menu-list-icon"
-                })];
+                    class: "material-icons fb-menu-list-icon"
+                }, action.icon)];
             }
 
             return m("li", opts, actionIcon, action.name);
@@ -1441,8 +1479,8 @@ tableWidget.viewModel = function (options) {
         menu.push(
             m("li", o, [m("i", {
                 id: "nav-actions-import-icon",
-                class: "fa fa-file-import fb-menu-list-icon"
-            })], "Import")
+                class: "material-icons-outlined fb-menu-list-icon"
+            }, "file_upload")], "Import")
         );
 
         menu.push(
@@ -1453,8 +1491,8 @@ tableWidget.viewModel = function (options) {
                 onclick: doExport
             }, [m("i", {
                 id: "nav-actions-export-icon",
-                class: "fa fa-file-export fb-menu-list-icon"
-            })], "Export")
+                class: "material-icons-outlined fb-menu-list-icon"
+            }, "file_download")], "Export")
         );
 
         return menu;
@@ -2537,7 +2575,10 @@ tableWidget.component = {
         }
 
         return m("div", {
-            class: "pure-form " + theVm.class()
+            class: "pure-form " + theVm.class(),
+            onclick: function () {
+                contextMenuStyle({display: "none"});
+            }
         }, [
             m(dlg, {
                 viewModel: theVm.confirmDialog()
@@ -2545,6 +2586,18 @@ tableWidget.component = {
             m(dlg, {
                 viewModel: theVm.errorDialog()
             }),
+            m("div", {
+                class: "fb-context-menu",
+                style: contextMenuStyle()
+            }, [
+                m("ul", {
+                    id: "context-actions-list",
+                    class: (
+                        "pure-menu-list fb-menu-list " +
+                        "fb-menu-list-show"
+                    )
+                }, theVm.actions())
+            ]),
             m("table", {
                 class: "pure-table fb-table"
             }, [

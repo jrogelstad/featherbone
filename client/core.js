@@ -231,7 +231,9 @@ function buildSelector(obj, opts) {
     if (selectComponents[theId]) {
         if (
             selectComponents[theId].prop === opts.prop &&
-            selectComponents[theId].readonly === opts.readonly
+            selectComponents[theId].readonly === opts.readonly &&
+            selectComponents[theId].readonly === val &&
+            selectComponents[theId].values === values
         ) {
             return selectComponents[theId].content;
         }
@@ -247,7 +249,9 @@ function buildSelector(obj, opts) {
     }
 
     selectComponents[theId].prop = opts.prop;
+    selectComponents[theId].value = val;
     selectComponents[theId].readonly = opts.readonly;
+    selectComponents[theId].values = values;
     selectComponents[theId].content = m("select", {
         id: theId,
         key: theId,
@@ -365,6 +369,8 @@ formats.date = {
             value.constructor.name === "Date"
         ) {
             ret += value.toLocalDate();
+        } else if (value === "") {
+            ret = null;
         } else {
             ret = value;
         }
@@ -374,7 +380,7 @@ formats.date = {
 };
 formats.dateTime = {
     type: "string",
-    default: () => f.now(),
+    default: () => f.now(true),
     fromType: (value) => new Date(value).toLocalDateTime(),
     toType: function (value) {
         if (
@@ -666,9 +672,10 @@ formats.icon.editor = selectEditor.bind(null, iconNames);
 formats.icon.tableData = function (obj) {
     if (obj.value) {
         return m("i", {
-            class: "fa fa-" + obj.value,
+            style: {fontSize: "18px", verticalAlign: "bottom"},
+            class: "material-icons",
             title: obj.title
-        });
+        }, obj.value);
     }
 };
 
@@ -836,13 +843,15 @@ formats.script.editor = function (options) {
         lint.options.globals = ["f", "m"];
 
         // Populate on fetch
+        function notify() {
+            state.send("changed");
+            m.redraw();
+            editor.off("change", notify);
+        }
+
         state.resolve("/Ready/Fetched/Clean").enter(
             function () {
-                function notify() {
-                    state.send("changed");
-                    m.redraw();
-                    editor.off("change", notify);
-                }
+                editor.off("change", notify);
                 editor.setValue(prop());
                 editor.on("change", notify);
             }

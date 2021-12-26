@@ -26,14 +26,33 @@ const navigator = {};
 
 // Define state (global)
 const state = f.State.define(function () {
+    function navmode() {
+        switch (f.currentUser().mode) {
+        case "test":
+            return "fb-navigator-menu-test ";
+        case "dev":
+            return "fb-navigator-menu-dev ";
+        }
+        return "";
+    }
+
     this.state("Expanded", function () {
         this.event("toggle", function () {
             this.goto("../Collapsed");
         });
-        this.classMenu = (
-            "pure-menu fb-navigator-menu fb-navigator-menu-expanded"
-        );
+        this.classMenu = function () {
+            return (
+                "pure-menu fb-navigator-menu " +
+                navmode() +
+                "fb-navigator-menu-expanded"
+            );
+        };
         this.classHeader = "";
+        this.classHeaderIcon = (
+            "material-icons-outlined " +
+            "fb-navigator-header-icon " +
+            "fb-navigator-header-icon-expanded"
+        );
         this.content = function (value) {
             return value;
         };
@@ -45,10 +64,18 @@ const state = f.State.define(function () {
         this.event("toggle", function () {
             this.goto("../Expanded");
         });
-        this.classMenu = (
-            "pure-menu fb-navigator-menu fb-navigator-menu-collapsed"
-        );
+        this.classMenu = function () {
+            return (
+                "pure-menu fb-navigator-menu " +
+                navmode() +
+                "fb-navigator-menu-collapsed"
+            );
+        };
         this.classHeader = "fb-navigator-menu-header-collapsed";
+        this.classHeaderIcon = (
+            "material-icons-outlined " +
+            "fb-navigator-header-icon"
+        );
         this.content = function () {
             return undefined;
         };
@@ -153,11 +180,18 @@ navigator.viewModel = function () {
         return state.resolve(state.current()[0]).classHeader;
     };
     /**
+        @method classHeaderIcon
+        @return {String}
+    */
+    vm.classHeaderIcon = function () {
+        return state.resolve(state.current()[0]).classHeaderIcon;
+    };
+    /**
         @method classMenu
         @return {String}
     */
     vm.classMenu = function () {
-        return state.resolve(state.current()[0]).classMenu;
+        return state.resolve(state.current()[0]).classMenu();
     };
     /**
         @method selected
@@ -230,11 +264,10 @@ navigator.component = {
             }, [
                 m("i", {
                     class: (
-                        "fa fa-" +
-                        workbooks[key].data.icon() +
-                        " fb-navigator-item-icon"
+                        "material-icons-outlined " +
+                        "fb-navigator-item-icon"
                     )
-                })
+                }, workbooks[key].data.icon())
             ], vm.itemContent(name));
         }
 
@@ -261,8 +294,8 @@ navigator.component = {
                 title: vm.itemTitle("Home")
             }, [
                 m("i", {
-                    class: "fa fa-home fb-navigator-item-icon"
-                })
+                    class: "material-icons-outlined fb-navigator-item-icon"
+                }, "home")
             ], vm.itemContent("Home"))
         );
 
@@ -273,14 +306,9 @@ navigator.component = {
                 class: vm.classHeader()
             }, "Featherbone", [
                 m("i", {
-                    style: {
-                        fontSize: "x-small",
-                        marginLeft: "8px",
-                        marginTop: "4px"
-                    },
-                    class: "fa fa-chevron-left",
+                    class: vm.classHeaderIcon(),
                     onclick: vm.toggle
-                })
+                }, "chevron_left")
             ]),
             m("ul", {
                 class: "pure-menu-list"

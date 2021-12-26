@@ -2,7 +2,7 @@
         "name": "Develop",
         "module": "Core",
         "description": "Setup definitions",
-        "icon": "drafting-compass",
+        "icon": "architecture",
         "authorizations": [],
         "defaultConfig": [{
                 "name": "Modules",
@@ -17,7 +17,7 @@
                 }, {
                   "name": "Package",
                   "title": "Package and download module",
-                  "icon": "gift",
+                  "icon": "archive",
                   "method": "package",
                   "authorization": "PackageModules",
                   "validator": "packageCheck"
@@ -202,7 +202,7 @@
         "name": "Admin",
         "module": "Core",
         "description": "Application administration",
-        "icon": "tools",
+        "icon": "handyman",
         "authorizations": [],
         "defaultConfig": [{
                 "name": "UserAccounts",
@@ -282,7 +282,7 @@
         "name": "Currency",
         "module": "Core",
         "description": "Currency definitions",
-        "icon": "money-bill",
+        "icon": "payments",
         "defaultConfig": [{
                 "name": "Conversions",
                 "feather": "CurrencyConversion",

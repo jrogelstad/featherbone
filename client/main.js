@@ -102,11 +102,13 @@ const home = {
                     m("div", {
                         class: "fb-header-home"
                     }, "Home"),
-                    m(components.accountMenu),
                     m("button", {
                         class: (
                             toolbarButtonClass +
-                            " fb-toolbar-button-home " + (
+                            " fb-toolbar-button " +
+                            " fb-toolbar-button-right-side" +
+                            " fb-toolbar-button-home " + 
+                            (
                                 isSuper
                                 ? ""
                                 : "fb-button-disabled"
@@ -121,9 +123,10 @@ const home = {
                         disabled: !isSuper
                     }, [
                         m("i", {
-                            class: "fa fa-plus fb-button-icon"
-                        })
-                    ])
+                            class: "material-icons"
+                        }, "add")
+                    ]),
+                    m(components.accountMenu)
                 ])
             ]
         ]);
@@ -493,7 +496,7 @@ function initPromises() {
 
             mapped.unshift({
                 value: "",
-                lable: ""
+                label: ""
             });
 
             catalog.register(
@@ -676,7 +679,7 @@ function initApp() {
 
         // View model for sse error trapping
         sseErrorDialogViewModel = viewModels.dialog({
-            icon: "close",
+            icon: "cancel_presentation",
             title: "Connection Error",
             message: (
                 "You have lost connection to the server." +
@@ -736,10 +739,16 @@ function connect() {
 
 connect().then(function (resp) {
     let edata;
+    let wp = (
+        window.location.protocol.indexOf("s") === -1
+        ? "ws://"
+        : "wss://"
+    );
 
     function listen() {
         const wsurl = (
-            "ws://" + window.location.hostname
+            wp + window.location.hostname + 
+            ":" + window.location.port
         );
         const evsubscr = new WebSocket(wsurl);
 

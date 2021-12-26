@@ -111,7 +111,10 @@
         crud.commit = function (obj) {
             return new Promise(function (resolve, reject) {
                 let client = db.getClient(obj.client);
-                client.query("COMMIT;").then(resolve).catch(reject);
+                client.query("COMMIT;").then(function () {
+                    client.callbacks.forEach((cb) => cb());
+                    resolve();
+                }).catch(reject);
             });
         };
 
@@ -352,7 +355,8 @@
                         showDeleted: true,
                         properties: Object.keys(props).filter(noChildProps),
                         client: theClient,
-                        callback: afterDoSelect
+                        callback: afterDoSelect,
+                        sanitize: false
                     }, true).then(afterDoSelect).catch(reject);
                 };
 
@@ -374,7 +378,7 @@
 
                     if (
                         oldRec && oldRec.lock &&
-                        oldRec.lock[eventKey] !== obj.eventkey
+                        oldRec.lock[eventKey] !== obj.eventKey
                     ) {
                         msg = "Record is locked by " + oldRec.lock.username;
                         msg += " and cannot be updated.";
@@ -1413,11 +1417,11 @@
                     }
 
                     if (
-                        oldRec && oldRec.lock &&
-                        oldRec.lock[eventKey] !== obj.eventkey
+                        resp && resp.lock &&
+                        resp.lock[eventKey] !== obj.eventKey
                     ) {
                         msg = "Record is locked by ";
-                        msg += oldRec.lock.username;
+                        msg += resp.lock.username;
                         msg += " and cannot be updated.";
                         reject(new Error(msg));
                         return;
@@ -1582,6 +1586,7 @@
                                 /* Do delete */
                                 if (oldRec[key] && !updRec[key]) {
                                     crud.doDelete({
+                                        eventKey: obj.eventKey,
                                         name: props[key].type.relation,
                                         id: oldRec[key].id,
                                         client: theClient,
@@ -1632,6 +1637,7 @@
 
                                 if (cpatches.length) {
                                     crud.doUpdate({
+                                        eventKey: obj.eventKey,
                                         name: props[key].type.relation,
                                         id: updRec[key].id,
                                         data: cpatches,
@@ -1814,17 +1820,6 @@
                 };
 
                 doUnlock = function () {
-                    function clearLock(theobj) {
-                        theobj.lock = null;
-                        Object.keys(result).forEach(function (key) {
-                            if (Array.isArray(theobj[key])) {
-                                theobj[key].forEach(clearLock);
-                            }
-                        });
-                    }
-
-                    clearLock(result);
-
                     crud.unlock(theClient, {
                         id: obj.id
                     }).then(
@@ -1868,56 +1863,52 @@
             @param {String} eventKey
             @return {Promise} Resolves to `true` if successful.
         */
-        crud.lock = function (pClient, pNodeid, pId, pUsername, pEventkey) {
+        crud.lock = function (client, nodeid, id, username, eventkey, process) {
+            process = process || "Editing";
             return new Promise(function (resolve, reject) {
                 let msg;
 
-                if (!pNodeid) {
+                if (!nodeid) {
                     reject(new Error("Lock requires a node id."));
                     return;
                 }
 
-                if (!pEventkey) {
+                if (!eventkey) {
                     reject(new Error("Lock requires an eventkey."));
                     return;
                 }
 
-                if (!pId) {
+                if (!id) {
                     reject(new Error("Lock requires an object id."));
                     return;
                 }
 
-                if (!pUsername) {
+                if (!username) {
                     reject(new Error("Lock requires a username."));
                     return;
                 }
 
                 function checkLock() {
                     return new Promise(function (resolve, reject) {
-                        let sql = (
-                            "SELECT lock, " +
-                            "to_camel_case(tableoid::regclass::text) " +
-                            "AS feather " +
-                            "FROM object WHERE id = $1"
-                        );
+                        let sql = "SELECT lock FROM object WHERE id = $1";
 
                         function callback(resp) {
                             if (!resp.rows.length) {
-                                msg = "Record " + pId + " not found.";
+                                msg = "Record " + id + " not found.";
                                 reject(new Error(msg));
                                 return;
                             }
 
                             if (resp.rows[0].lock) {
-                                msg = "Record " + pId + " is already locked.";
+                                msg = "Record " + id + " is already locked.";
                                 reject(new Error(msg));
                                 return;
                             }
 
-                            resolve(resp.rows[0].feather);
+                            resolve();
                         }
 
-                        pClient.query(sql, [pId]).then(
+                        client.query(sql, [id]).then(
                             callback
                         ).catch(
                             reject
@@ -1925,58 +1916,30 @@
                     });
                 }
 
-                function getObject(feather) {
+                function doLock() {
                     return new Promise(function (resolve, reject) {
-                        crud.doSelect({
-                            name: feather,
-                            id: pId,
-                            client: pClient
-                        }).then(
-                            resolve
-                        ).catch(
-                            reject
-                        );
-                    });
-                }
-
-                function doLock(resp) {
-                    return new Promise(function (resolve, reject) {
+                        let params;
                         let sql;
-                        let params = [
-                            pUsername,
-                            pNodeid,
-                            pEventkey,
-                            pId
-                        ];
-                        let n = 5;
-                        let ids = ["$" + 4, "$" + 4];
-
-                        function resolveIds(data) {
-                            Object.keys(data).forEach(function (key) {
-                                if (Array.isArray(data[key])) {
-                                    data[key].forEach(function (i) {
-                                        params.push(i.id);
-                                        ids.push("$" + n);
-                                        n += 1;
-                                        resolveIds(i);
-                                    });
-                                }
-                            });
-                        }
-
-                        resolveIds(resp);
 
                         sql = (
                             "UPDATE object " +
                             "SET lock = ROW($1, now(), $2, $3, $4) " +
-                            "WHERE id in (" + ids.join(",") + ");"
+                            "WHERE id = $5"
                         );
 
                         function callback() {
                             resolve(true);
                         }
 
-                        pClient.query(sql, params).then(
+                        params = [
+                            username,
+                            nodeid,
+                            eventkey,
+                            process,
+                            id
+                        ];
+
+                        client.query(sql, params).then(
                             callback
                         ).catch(
                             reject
@@ -1986,8 +1949,6 @@
 
                 Promise.resolve().then(
                     checkLock
-                ).then(
-                    getObject
                 ).then(
                     doLock
                 ).then(
@@ -2024,7 +1985,7 @@
 
                 if (criteria.id) {
                     params.push(criteria.id);
-                    sql += " AND _objid(lock) = $1";
+                    sql += " AND object.id = $1";
                 }
 
                 if (criteria.username) {

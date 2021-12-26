@@ -219,44 +219,12 @@
                     delete prop.max;
                 }
 
-                if (prop.format === "") {
-                    delete prop.format;
-                }
-
-                if (prop.alias === "") {
-                    delete prop.alias;
-                }
-
                 if (prop.autonumber === null) {
                     delete prop.autonumber;
                 }
 
-                if (prop.isNaturalKey === false) {
-                    delete prop.isNaturalKey;
-                }
-
-                if (prop.isLabelKey === false) {
-                    delete prop.isLabelKey;
-                }
-
-                if (prop.isRequired === false) {
-                    delete prop.isRequired;
-                }
-
-                if (prop.isReadOnly === false) {
-                    delete prop.isReadOnly;
-                }
-
-                if (prop.isIndexed === false) {
-                    delete prop.isIndexed;
-                }
-
                 if (prop.dataList === null) {
                     delete prop.dataList;
-                }
-
-                if (prop.isAlwaysLoad === false) {
-                    delete prop.isAlwaysLoad;
                 }
 
                 if (
@@ -311,28 +279,12 @@
                 delete feather.overloads;
             }
 
-            if (feather.isReadOnly === false) {
-                delete feather.isReadOnly;
-            }
-
-            if (feather.isFetchOnStartup === false) {
-                delete feather.isFetchOnStartup;
-            }
-
             if (feather.authorization === null) {
                 delete feather.authorization;
             }
 
             if (feather.plural === "") {
                 delete feather.plural;
-            }
-
-            if (feather.isChild === false) {
-                delete feather.isChild;
-            }
-
-            if (feather.isSystem === false) {
-                delete feather.isSystem;
             }
 
             feather.dependencies = [];
@@ -422,65 +374,6 @@
                 delete rec.focus;
             }
             removeExclusions(rec);
-            rec.attrs.forEach(function (attr) {
-                if (!attr.label) {
-                    delete attr.label;
-                }
-
-                if (!attr.title) {
-                    delete attr.title;
-                }
-
-                if (!attr.columns.length) {
-                    delete attr.columns;
-                } else {
-                    attr.columns.forEach(function (col) {
-                        if (!col.filter) {
-                            delete col.filter;
-                        }
-
-                        if (!col.showCurrency) {
-                            delete col.showCurrency;
-                        }
-
-                        if (!col.width) {
-                            delete col.width;
-                        }
-
-                        if (!col.dataList) {
-                            delete col.dataList;
-                        }
-
-                        if (!col.label) {
-                            delete col.label;
-                        }
-                    });
-                }
-
-                if (!attr.dataList) {
-                    delete attr.dataList;
-                }
-
-                if (!attr.disableCurrency) {
-                    delete attr.disableCurrency;
-                }
-
-                if (!attr.relationWidget) {
-                    delete attr.relationWidget;
-                }
-
-                if (!attr.filter) {
-                    delete attr.filter;
-                }
-
-                if (attr.showLabel) {
-                    delete attr.showLabel;
-                }
-
-                if (!attr.font) {
-                    delete attr.font;
-                }
-            });
 
             return ret;
         });
@@ -491,6 +384,41 @@
             manifest.files.push({
                 type: "batch",
                 path: "forms.json"
+            });
+
+            zip.addFile(
+                filename,
+                Buffer.alloc(content.length, content)
+            );
+        }
+    }
+
+    function addRelWidgets(manifest, zip, resp, folder) {
+        let content = [];
+        let rows = tools.sanitize(resp.rows);
+        let filename = folder + "relationWidgets.json";
+
+        content = rows.map(function (row) {
+            let rec = row.widget;
+            let ret = {
+                name: "RelationWidget",
+                method: "POST",
+                module: rec.module,
+                id: rec.id,
+                data: rec
+            };
+
+            removeExclusions(rec);
+
+            return ret;
+        });
+
+        if (content.length) {
+            content = JSON.stringify(content, null, 4);
+
+            manifest.files.push({
+                type: "batch",
+                path: "relationWidgets.json"
             });
 
             zip.addFile(
@@ -773,6 +701,15 @@
                 );
                 requests.push(client.query(sql, params));
 
+                // Relation widgets
+                sql = (
+                    "SELECT to_json(_relation_widget) as widget " +
+                    "FROM _relation_widget WHERE module = $1 " +
+                    "AND NOT is_deleted " +
+                    "ORDER BY name"
+                );
+                requests.push(client.query(sql, params));
+
                 Promise.all(requests).then(function (resp) {
                     let filename = name;
                     let pathname = path.format({
@@ -782,6 +719,7 @@
 
                     function finishPackage() {
                         addFeathers(manifest, zip, resp[1], folder);
+                        addRelWidgets(manifest, zip, resp[8], folder);
                         addForms(manifest, zip, resp[2], folder);
                         addServices(manifest, zip, resp[3], folder);
                         addBatch("Route", manifest, zip, resp[4], folder);

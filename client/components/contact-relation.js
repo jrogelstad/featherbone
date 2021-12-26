@@ -83,10 +83,11 @@ contactRelation.viewModel = function (options) {
                         }, [
                             m("i", {
                                 class: (
-                                    "fa fa-phone fb-contact-relation-icon " +
+                                    "material-icons " +
+                                    "fb-contact-relation-icon " +
                                     "fb-icon-button"
                                 )
-                            })
+                            }, "phone")
                         ])
                     ], phone)
                 );
@@ -104,12 +105,16 @@ contactRelation.viewModel = function (options) {
                             target: "_blank"
                         }, [
                             m("i", {
+                                style: {
+                                    verticalAlign: "bottom",
+                                    fontSize: "18px"
+                                },
                                 class: (
-                                    "fa fa-envelope " +
+                                    "material-icons " +
                                     "fb-contact-relation-icon " +
                                     "fb-icon-button"
                                 )
-                            })
+                            }, "email")
                         ])
                     ], email)
                 );
@@ -132,11 +137,11 @@ contactRelation.viewModel = function (options) {
                         }, [
                             m("i", {
                                 class: (
-                                    "fa fa-map-marker " +
+                                    "material-icons " +
                                     "fb-contact-relation-icon " +
                                     "fb-icon-button"
                                 )
-                            })
+                            }, "place")
                         ])
                     ], address.data.city() + ", " + address.data.state())
                 );

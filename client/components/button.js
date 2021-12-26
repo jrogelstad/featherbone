@@ -394,6 +394,10 @@ button.component = {
             disabled: vm.isDisabled(),
             onclick: vm.onclick()
         };
+        
+        if (!icon) {
+            opts.style.paddingTop = "8px";
+        }
 
         if (vm.isDisabled()) {
             classes.push("fb-button-disabled");
@@ -419,8 +423,8 @@ button.component = {
 
         if (icon) {
             iconView = [m("i", {
-                class: pre + icon + " fb-button-icon"
-            })];
+                class: "material-icons-outlined fb-button-icon"
+            }, icon)];
         }
 
         if (title) {
