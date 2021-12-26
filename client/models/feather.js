@@ -25,6 +25,16 @@ import list from "./list.js";
 
 const f = window.f;
 
+function capsValid(str) {
+    let re = new RegExp("[A-Z]{2,}");
+    return !Boolean(re.exec(str));
+}
+
+function alphaNumValid(str) {
+    let re = new RegExp("^[a-zA-Z0-9]+$");
+    return Boolean(re.exec(str));
+}
+
 function feather(data, spec) {
     spec = spec || catalog.getFeather("Feather");
     if (data === undefined) {
@@ -202,6 +212,30 @@ function feather(data, spec) {
             ? model.data.authorizations()
             : []
         );
+
+        if (!capsValid(model.data.name())) {
+            throw new Error(
+                "Feather name may not have consecutive capital letters"
+            );
+        }
+
+        if (!alphaNumValid(model.data.name())) {
+            throw new Error(
+                "Feather name must only be alpha numeric characters"
+            );
+        }
+
+        if (!capsValid(model.data.plural())) {
+            throw new Error(
+                "Feather plural may not have consecutive capital letters"
+            );
+        }
+
+        if (!alphaNumValid(model.data.plural())) {
+            throw new Error(
+                "Feather plural must only be alpha numeric characters"
+            );
+        }
 
         if (model.data.name() === model.data.plural()) {
             throw new Error(

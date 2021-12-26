@@ -222,7 +222,9 @@
     }
 
     // Real work starts here
-    config.read().then(
+    datasource.loadNpmModules().then(
+        config.read
+    ).then(
         start
     ).then(
         handleUser

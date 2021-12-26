@@ -33,7 +33,7 @@ const datasource = {
     */
     baseUrl: function () {
         let l = window.location;
-        return "http://" + l.hostname + ":" + l.port;
+        return location.protocol + "//" + l.hostname + ":" + l.port;
     },
 
     /**

@@ -179,7 +179,7 @@ childFormPage.viewModel = function (options) {
         @return {ViewModels.Dialog}
     */
     vm.sseErrorDialog = f.prop(f.createViewModel("Dialog", {
-        icon: "close",
+        icon: "cancel_presentation",
         title: "Connection Error",
         message: (
             "You have lost connection to the server." +
@@ -217,7 +217,7 @@ childFormPage.viewModel = function (options) {
     vm.buttonPrevious(f.createViewModel("Button", {
         onclick: vm.doPrevious,
         label: "&Previous",
-        icon: "arrow-up",
+        icon: "arrow_upward",
         class: toolbarButtonClass
     }));
     if (ary.indexOf(theModel) === 0) {
@@ -228,7 +228,7 @@ childFormPage.viewModel = function (options) {
     vm.buttonNext(f.createViewModel("Button", {
         onclick: vm.doNext,
         label: "&Next",
-        icon: "arrow-down",
+        icon: "arrow_downward",
         class: toolbarButtonClass
     }));
     if (ary.indexOf(theModel) === ary.length - 1) {
@@ -239,7 +239,7 @@ childFormPage.viewModel = function (options) {
     vm.buttonNew(f.createViewModel("Button", {
         onclick: vm.doNew,
         label: "&New",
-        icon: "plus-circle",
+        icon: "add_circle_outline",
         class: toolbarButtonClass
     }));
     if (

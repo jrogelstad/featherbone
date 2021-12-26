@@ -226,7 +226,7 @@ accountMenu.viewModel = function () {
 
     vm.changeUserInfoDialog(f.createViewModel("Dialog", {
         title: "Edit my contact information",
-        icon: "address-book",
+        icon: "edit",
         onOk: function () {
             m.request({
                 method: "POST",
@@ -343,18 +343,9 @@ accountMenu.component = {
         const dlgState = vm.changePasswordDialog().state().current()[0];
         let menuButtonClass = (
             "pure-button " +
-            "fa fa-user-circle " +
-            "fb-menu-button"
+            "material-icons-outlined " +
+            "fb-menu-button fb-menu-button-left-side"
         );
-
-        switch (f.currentUser().mode) {
-        case "test":
-            menuButtonClass += " fb-menu-button-test";
-            break;
-        case "dev":
-            menuButtonClass += " fb-menu-button-dev";
-            break;
-        }
 
         return m("div", {
             id: "nav-account-div",
@@ -401,7 +392,7 @@ accountMenu.component = {
                     : ""
                 ),
                 class: menuButtonClass
-            }),
+            }, "perm_identityarrow_drop_down"),
             m("ul", {
                 id: "nav-account-list",
                 class: (
@@ -425,12 +416,12 @@ accountMenu.component = {
                         cdlg.show();
                     }
                 }, [m("i", {
-                    id: "nav-account-myinfo-icon",
+                    id: "material-icons nav-account-myinfo-icon",
                     class: (
-                        "fa fa-pencil-alt " +
+                        "material-icons-outlined " +
                         "fb-menu-list-icon"
                     )
-                })], "Info"),
+                }, "edit")], "Info"),
                 m("li", {
                     id: "nav-account-password",
                     class: (
@@ -446,8 +437,8 @@ accountMenu.component = {
                     }
                 }, [m("i", {
                     id: "nav-account-password-icon",
-                    class: "fa fa-key fb-menu-list-icon"
-                })], "Password"),
+                    class: "material-icons fb-menu-list-icon"
+                }, "key")], "Password"),
                 m("li", {
                     id: "nav-account-signout",
                     class: (
@@ -459,10 +450,10 @@ accountMenu.component = {
                 }, [m("i", {
                     id: "nav-account-signout-icon",
                     class: (
-                        "fa fa-sign-out-alt " +
+                        "material-icons " +
                         "fb-menu-list-icon"
                     )
-                })], "Sign out")
+                },"logout")], "Sign out")
             ])
         ]);
     }

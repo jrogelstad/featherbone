@@ -145,11 +145,15 @@ checkbox.component = {
                 disabled: vnode.attrs.readonly,
                 required: Boolean(vnode.attrs.required),
                 onfocus: function () {
-                    vnode.attrs.onFocus();
+                    if (vnode.attrs.onFocus) {
+                        vnode.attrs.onFocus();
+                    }
                     vm.hasFocus(true);
                 },
                 onblur: function () {
-                    vnode.attrs.onBlur();
+                    if (vnode.attrs.onBlur) {
+                        vnode.attrs.onBlur();
+                    }
                     vm.hasFocus(false);
                 }
             }),

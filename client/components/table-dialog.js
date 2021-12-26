@@ -417,7 +417,7 @@ tableDialog.viewModel = function (options) {
     buttonAdd = f.createViewModel("Button", {
         onclick: vm.add,
         label: "Add",
-        icon: "plus-circle",
+        icon: "add_circle_outline",
         class: "fb-icon-button",
         style: {
             backgroundColor: "white"
@@ -427,7 +427,7 @@ tableDialog.viewModel = function (options) {
     buttonRemove = f.createViewModel("Button", {
         onclick: vm.remove,
         label: "Remove",
-        icon: "trash",
+        icon: "remove_circle_outline",
         class: "fb-icon-button",
         style: {
             backgroundColor: "white"
@@ -437,7 +437,7 @@ tableDialog.viewModel = function (options) {
     buttonClear = f.createViewModel("Button", {
         onclick: vm.clear,
         title: "Clear",
-        icon: "eraser",
+        icon: "clear",
         class: "fb-icon-button",
         style: {
             backgroundColor: "white"
@@ -446,7 +446,7 @@ tableDialog.viewModel = function (options) {
 
     buttonUp = f.createViewModel("Button", {
         onclick: vm.moveUp,
-        icon: "chevron-up",
+        icon: "keyboard_arrow_up",
         title: "Move up",
         class: "fb-icon-button",
         style: {
@@ -457,7 +457,7 @@ tableDialog.viewModel = function (options) {
 
     buttonDown = f.createViewModel("Button", {
         onclick: vm.moveDown,
-        icon: "chevron-down",
+        icon: "keyboard_arrow_down",
         title: "Move down",
         class: "fb-icon-button",
         style: {

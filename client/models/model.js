@@ -369,6 +369,7 @@ function createModel(data, feather) {
     let naturalKey;
     let canUpdate;
     let canDelete;
+    let saveContext;
 
     // Inherit parent logic via traversal
     if (feather.inherits && feather.inherits !== "Object") {
@@ -944,7 +945,11 @@ function createModel(data, feather) {
         @return {Object}
     */
     model.onLoad = function (callback) {
-        model.state().resolve("/Ready/Fetched/Clean").enter(callback);
+        if (model.isReadOnly()) {
+            model.state().resolve("/Ready/Fetched/ReadOnly").enter(callback);
+        } else {
+            model.state().resolve("/Ready/Fetched/Clean").enter(callback);
+        }
 
         return this;
     };
@@ -1419,7 +1424,10 @@ function createModel(data, feather) {
         let patch = jsonpatch.compare(lastFetched, model.toJSON());
         let payload = {
             method: "PATCH",
-            path: model.path(model.name, model.id()),
+            path: (
+                model.path(model.name, model.id()) +
+                "?eventKey=" + catalog.eventKey()
+            ),
             body: patch
         };
 
@@ -1530,7 +1538,16 @@ function createModel(data, feather) {
     doInit = function (data) {
         let props = feather.properties;
         let overloads = feather.overloads;
-        let keys = Object.keys(props || {});
+        let keys;
+
+        if (!props.ojbectType) {
+            props.objectType = {
+                type: "string",
+                isReadOnly: true,
+                isAlwaysLoad: true
+            };
+        }
+        keys = Object.keys(props || {});
 
         // Loop through each model property and instantiate a data property
         keys.forEach(function (key) {
@@ -1604,7 +1621,7 @@ function createModel(data, feather) {
                         // Get regular model
                         } else {
                             result = catalog.store().models()[name]();
-                            result.set(value, true, true);                            
+                            result.set(value, true, true);
                         }
 
                         // Synchronize statechart
@@ -1642,7 +1659,7 @@ function createModel(data, feather) {
 
                     // Create property
                     prop = createProperty(value, formatter);
-                    
+
                     // Enable ability to pre-filter results
                     prop.filter = createProperty({
                         sort: [],
@@ -1845,16 +1862,14 @@ function createModel(data, feather) {
 
                 this.state("Locking", function () {
                     this.enter(doLock);
-                    this.event("save", function (pContext) {
-                        this.goto("/Busy/Saving/Patching", {
-                            context: pContext
-                        });
-                    });
                     this.event("locked", function (pContext) {
                         if (pContext && pContext.lock) {
                             d.lock(pContext.lock);
                         }
                         this.goto("../Dirty");
+                    });
+                    this.event("save", function (context) {
+                        saveContext = context;
                     });
                     this.canDelete = () => false;
                     this.canSave = () => false;
@@ -1872,6 +1887,13 @@ function createModel(data, feather) {
                 });
 
                 this.state("Dirty", function () {
+                    this.enter(function () {
+                        let ctxt = {context: saveContext};
+                        if (saveContext) {
+                            saveContext = undefined;
+                            this.goto("/Busy/Saving/Patching", ctxt);
+                        }
+                    });
                     this.event("undo", function () {
                         doRevert();
                         this.goto("../Unlocking");
@@ -2002,18 +2024,31 @@ function createModel(data, feather) {
     // Add standard validator that checks required properties
     // and validates children
     model.onValidate(function () {
-        let name;
         let keys = Object.keys(d);
 
-        function requiredIsNull(key) {
+        function validate(key) {
             let prop = d[key];
+            let val = prop();
+            let name = prop.alias();
+
+            // Validate required property
             if (
-                prop.isRequired() && (prop() === null || (
-                    prop.type === "string" && !prop()
+                prop.isRequired() && (val === null || (
+                    prop.type === "string" && !val
                 ))
             ) {
-                name = prop.alias();
-                return true;
+                throw "\"" + name + "\" is required";
+            }
+
+            // Validate min/max
+            if (prop.type === "number" || prop.type === "integer") {
+                if (val !== null && prop.max && val > prop.max) {
+                    throw "Maximum value for \"" + name + "\" is " + prop.max;
+                }
+
+                if (val !== null && prop.min !== undefined && val < prop.min) {
+                    throw "Minimum value for \"" + name + "\" is " + prop.min;
+                }
             }
 
             // Recursively validate children
@@ -2026,10 +2061,8 @@ function createModel(data, feather) {
             }
         }
 
-        // Validate required values
-        if (keys.some(requiredIsNull)) {
-            throw "\"" + name + "\" is required";
-        }
+        // Validate all extant properties
+        keys.forEach(validate);
     });
 
 

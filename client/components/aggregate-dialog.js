@@ -42,7 +42,7 @@ aggregateDialog.viewModel = function (options) {
 
     options.propertyName = "sort";
     options.title = options.title || "Aggregate";
-    options.icon = options.icon || "calculator";
+    options.icon = options.icon || "calculate";
 
     function resolveProperty(feather, property) {
         let prefix;

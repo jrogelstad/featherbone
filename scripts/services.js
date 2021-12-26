@@ -60,13 +60,22 @@ function doUpsertFeather(obj) {
             return p !== null && typeof p.type === "object" && p.type.childOf;
         }
 
+        props.forEach(function (p) {
+            if (p && p.dataList) {
+                p.dataList = p.dataList.filter((i) => i !== null);
+            }
+        });
+
         // Some update checks
         if (obj.oldRec && obj.newRec) {
             if (obj.oldRec.name !== obj.newRec.name) {
                 throw new Error("Feather name cannot be changed");
             }
 
-            if (obj.oldRec.plural !== obj.newRec.plural) {
+            if (
+                obj.oldRec.plural &&
+                obj.oldRec.plural !== obj.newRec.plural
+            ) {
                 throw new Error("Feather plural value cannot be changed");
             }
 
@@ -91,7 +100,10 @@ function doUpsertFeather(obj) {
                     prop.default.toLowerCase() === "null"
                 ) {
                     prop.default = null;
-                } else if (prop.default === "") {
+                } else if (
+                    prop.default === "" ||
+                    prop.default === null
+                ) {
                     delete prop.default;
                 }
                 delete prop.name;
@@ -657,7 +669,7 @@ f.datasource.registerFunction(
 */
 function doLoadServices(obj) {
     "use strict";
-    
+
     return new Promise(function (resolve, reject) {
         f.datasource.loadServices(
             obj.client.currentUser(),
@@ -1243,60 +1255,92 @@ f.datasource.registerFunction(
   User Account
 */
 function updateUserAccount(obj) {
-    "use strict";
-
     return new Promise(function (resolve, reject) {
         let requests = [];
         let pswd = obj.newRec.password;
 
-        if (pswd) {
-            obj.newRec.password = "";
-            requests.push(f.datasource.request(
-                {
-                    method: "POST",
-                    name: "changeRolePassword",
-                    client: obj.client,
-                    data: {
-                        name: obj.newRec.name.toLowerCase(),
-                        password: pswd
-                    }
-                },
-                true
-            ));
+        function unlock() {
+            f.datasource.unlock({
+                username: obj.client.currentUser(),
+                eventKey: obj.eventKey
+            }).then(resolve).catch(reject);
         }
 
-        if (obj.newRec.isActive !== obj.oldRec.isActive) {
-            requests.push(f.datasource.request(
-                {
-                    method: "POST",
-                    name: "changeRoleLogin",
-                    client: obj.client,
-                    data: {
-                        name: obj.newRec.name.toLowerCase(),
-                        isLogin: obj.newRec.isActive
-                    }
-                },
-                true
-            ));
+        function callback(config) {
+            if (pswd) {
+                if (
+                    config.passwordLength &&
+                    pswd.length < config.passwordLength
+                ) {
+                    reject(
+                        "Password length must be at least " +
+                        config.passwordLength + " characters"
+                    );
+                    return;
+                }
+
+                obj.newRec.password = "";
+                requests.push(f.datasource.request(
+                    {
+                        method: "POST",
+                        name: "changeRolePassword",
+                        client: obj.client,
+                        data: {
+                            name: obj.newRec.name.toLowerCase(),
+                            password: pswd
+                        }
+                    },
+                    true
+                ));
+            }
+
+            if (obj.newRec.isActive !== obj.oldRec.isActive) {
+                requests.push(f.datasource.request(
+                    {
+                        method: "POST",
+                        name: "changeRoleLogin",
+                        client: obj.client,
+                        data: {
+                            name: obj.newRec.name.toLowerCase(),
+                            isLogin: obj.newRec.isActive
+                        }
+                    },
+                    true
+                ));
+            }
+
+            Promise.all(requests).then(unlock).catch(reject);
         }
 
-        Promise.all(requests).then(resolve).catch(reject);
+        f.datasource.config().then(callback).catch(reject);
     });
 }
 
 function createUserAccount(obj) {
-    "use strict";
+    return new Promise(function (resolve, reject) {
+        function callback(config) {
+            if (
+                config.passwordLength &&
+                obj.newRec.password.length < config.passwordLength
+            ) {
+                reject(
+                    "Password length must be at least " +
+                    config.passwordLength + " characters"
+                );
+                return;
+            }
 
-    return new Promise(function (resolve) {
-        // Forward user account based options for role
-        obj.roleOptions = {
-            name: obj.newRec.name.toLowerCase(),
-            isLogin: obj.newRec.isActive,
-            password: obj.newRec.password,
-            isInherits: false
-        };
-        obj.newRec.password = "";
-        resolve();
+            // Forward user account based options for role
+            obj.roleOptions = {
+                name: obj.newRec.name.toLowerCase(),
+                isLogin: obj.newRec.isActive,
+                password: obj.newRec.password,
+                isInherits: false
+            };
+            obj.newRec.password = "";
+            resolve();
+        }
+        f.datasource.config().then(callback).catch(reject);
     });
 }
 

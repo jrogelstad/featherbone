@@ -31,12 +31,6 @@
     const {Feathers} = require("./feathers");
     const pdf = require("pdfjs");
     const fonts = {
-        Barcode128: new pdf.Font(
-            fs[readFileSync]("./fonts/LibreBarcode128-Regular.ttf")
-        ),
-        Barcode128Text: new pdf.Font(
-            fs[readFileSync]("./fonts/LibreBarcode128Text-Regular.ttf")
-        ),
         Barcode39: new pdf.Font(
             fs[readFileSync]("./fonts/LibreBarcode39-Regular.ttf")
         ),
@@ -192,60 +186,6 @@
         };
     }
 
-    function doGetFeather(client, featherName, localFeathers, idx) {
-        return new Promise(function (resolve, reject) {
-            idx = idx || [];
-
-            // avoid infinite loops
-            if (idx.indexOf(featherName) !== -1) {
-                resolve();
-                return;
-            }
-            idx.push(featherName);
-
-            function getChildFeathers(resp) {
-                let frequests = [];
-                let props = resp.properties;
-
-                try {
-                    localFeathers[featherName] = resp;
-
-                    // Recursively get feathers for all children
-                    Object.keys(props).forEach(function (key) {
-                        let type = props[key].type;
-
-                        if (
-                            typeof type === "object"
-                        ) {
-                            frequests.push(
-                                doGetFeather(
-                                    client,
-                                    type.relation,
-                                    localFeathers,
-                                    idx
-                                )
-                            );
-                        }
-                    });
-                } catch (e) {
-                    reject(e);
-                    return;
-                }
-
-                Promise.all(
-                    frequests
-                ).then(resolve).catch(reject);
-            }
-
-            feathers.getFeather({
-                client,
-                data: {
-                    name: featherName
-                }
-            }).then(getChildFeathers).catch(reject);
-        });
-    }
-
     /**
         @class PDF
         @constructor
@@ -316,7 +256,7 @@
                             form = resp[2][0];
                         }
 
-                        doGetFeather(
+                        feathers.getFeathers(
                             vClient,
                             rows[0].objectType,
                             localFeathers
@@ -382,7 +322,7 @@
                             }
                         });
                         let header;
-                        let src = fs[readFileSync]("featherbone.jpg");
+                        let src = fs[readFileSync]("./files/logo.jpg");
                         let logo = new pdf.Image(src);
                         let n = 0;
                         let data;
@@ -729,7 +669,7 @@
                             });
                             feather = localFeathers[p.type.relation];
 
-                            tr = table.row({
+                            tr = table.header({
                                 font: fonts[defFont + "Bold"],
                                 borderBottomWidth: 1.5
                             });
@@ -930,7 +870,7 @@
                         }
 
                         doc.pipe(w);
-                        doc.end().then(resolve.bind(null,file)).catch(reject);
+                        doc.end().then(resolve.bind(null, file)).catch(reject);
                     });
                 }
 

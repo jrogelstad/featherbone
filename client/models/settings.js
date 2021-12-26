@@ -24,8 +24,6 @@ import datasource from "../datasource.js";
 import catalog from "./catalog.js";
 import State from "../state.js";
 
-const jsonpatch = window.jsonpatch;
-
 /*
   Model for handling settings.
 
