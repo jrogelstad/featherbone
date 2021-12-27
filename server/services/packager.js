@@ -647,7 +647,8 @@
                     "to_json(properties) AS properties, " +
                     "to_json(overloads) AS overloads " +
                     "FROM _feather WHERE module = $1" +
-                    " AND NOT is_deleted;"
+                    " AND NOT is_deleted " +
+                    "ORDER BY name;"
                 );
                 requests.push(client.query(sql, params));
 
