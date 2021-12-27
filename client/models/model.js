@@ -1540,7 +1540,7 @@ function createModel(data, feather) {
         let overloads = feather.overloads;
         let keys;
 
-        if (!props.ojbectType) {
+        if (!props.objectType) {
             props.objectType = {
                 type: "string",
                 isReadOnly: true,
