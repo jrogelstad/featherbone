@@ -331,6 +331,15 @@ dialog.component = {
                 if (!dlg.showModal) {
                     dialogPolyfill.registerDialog(dlg);
                 }
+            },
+            onupdate: function (vnode) {
+                let dlg = document.getElementById(vnode.dom.id);
+                if (
+                    vm.state().current()[0] === "/Display/Showing" &&
+                    !dlg.open
+                ) {
+                    dlg.showModal();
+                }
             }
         }, [
             header,
