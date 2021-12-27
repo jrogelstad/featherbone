@@ -394,7 +394,7 @@ formWidget.viewModel = function (options) {
         @return {ViewModels.Dialog}
     */
     vm.errorDialog = f.prop(f.createViewModel("Dialog", {
-        icon: "exclamation-circle",
+        icon: "report_problem",
         title: "Error"
     }));
     vm.errorDialog().buttonCancel().hide();
