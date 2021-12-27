@@ -1233,7 +1233,7 @@ tableWidget.viewModel = function (options) {
         };
 
         dlg.title("Export data");
-        dlg.icon("file-export");
+        dlg.icon("file_download");
         dlg.onOk(onOk);
         dlg.style({
             width: "550px"
@@ -1368,7 +1368,7 @@ tableWidget.viewModel = function (options) {
     function doResetDialog() {
         let dlg = vm.confirmDialog();
 
-        dlg.icon("question-circle");
+        dlg.icon("help_outline");
         dlg.title("Confirmation");
         dlg.buttonOk().show();
         dlg.buttonCancel().show();
@@ -1593,7 +1593,7 @@ tableWidget.viewModel = function (options) {
         @return {ViewModels.Dialog}
     */
     vm.confirmDialog = f.prop(f.createViewModel("Dialog", {
-        icon: "question-circle",
+        icon: "help_outline",
         title: "Confirmation"
     }));
     vm.confirmDialog().state().resolve("/Display/Closed").enter(doResetDialog);
