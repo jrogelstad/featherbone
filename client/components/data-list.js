@@ -63,7 +63,8 @@ table.viewModel = function (options) {
         onclick: vm.tableWidget().modelNew,
         title: "Insert",
         hotkey: "I",
-        icon: "plus-circle",
+        icon: "add_circle",
+        class: "fb-icon-button",
         style: {
             backgroundColor: "white"
         }
@@ -73,7 +74,8 @@ table.viewModel = function (options) {
         onclick: vm.tableWidget().modelDelete,
         title: "Delete",
         hotkey: "D",
-        icon: "trash",
+        icon: "delete",
+        class: "fb-icon-button",
         style: {
             backgroundColor: "white"
         }

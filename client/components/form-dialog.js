@@ -39,7 +39,7 @@ formDialog.viewModel = function (options) {
     //
 
     options.title = options.title || options.model.toName();
-    options.icon = options.icon || "file-text";
+    options.icon = options.icon || "article";
     options.onOk = function () {
         let model = vm.formWidget().model();
         model.save().then(function () {
