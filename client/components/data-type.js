@@ -431,7 +431,7 @@ dataType.viewModel = function (options) {
     vm.buttonAdd(f.createViewModel("Button", {
         onclick: vm.propertyAdd,
         title: "Add",
-        icon: "arrow-alt-circle-right",
+        icon: "chevron_right",
         style: {
             display: "block",
             backgroundColor: "white"
@@ -441,7 +441,7 @@ dataType.viewModel = function (options) {
     vm.buttonRemove(f.createViewModel("Button", {
         onclick: vm.propertyRemove,
         title: "Remove",
-        icon: "arrow-alt-circle-left",
+        icon: "chevron_left",
         style: {
             backgroundColor: "white"
         }

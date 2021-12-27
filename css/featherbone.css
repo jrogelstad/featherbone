@@ -234,12 +234,15 @@ a.pure-button-selected {
 .fb-data-type-edit-button {
     background-color: #dedede;
     margin-left: 5px;
-    max-height: 35px;
+    max-height: 36px;
     max-width: 52px;
     border-width: 1px;
     border-style: solid;
     border-color: #lightgrey;
     border-radius: 5px;
+    padding: .6em;
+    padding-top: .3em;
+    padding-right: .3em;
 }
 
 .fb-data-type-dialog-list-body {
