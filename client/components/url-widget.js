@@ -85,7 +85,7 @@ urlWidget.viewModel = function (options) {
     vm.buttonOpen(f.createViewModel("Button", {
         onclick: vm.doOpen,
         title: "Open link in new browser tab",
-        icon: "external-link-alt",
+        icon: "link",
         class: "fb-data-type-edit-button"
     }));
 
