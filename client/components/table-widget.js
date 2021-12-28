@@ -1427,7 +1427,7 @@ tableWidget.viewModel = function (options) {
                         "\" found on model \"" + modelName + "\""
                     );
                     dialog.title("Error");
-                    dialog.icon("exclamation-triangle");
+                    dialog.icon("report_problem");
                     dialog.onOk(undefined);
                     dialog.buttonCancel().hide();
                     dialog.show();
@@ -1621,7 +1621,7 @@ tableWidget.viewModel = function (options) {
         @return {ViewModels.Dialog}
     */
     vm.errorDialog = f.prop(f.createViewModel("Dialog", {
-        icon: "exclamation-triangle",
+        icon: "report_problem",
         title: "Error"
     }));
     /**
