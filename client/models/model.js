@@ -1286,10 +1286,10 @@ function createModel(data, feather) {
 
         payload = {
             method: "DELETE",
-            path: model.path(model.name, model.id()),
-            body: {
-                eventKey: catalog.eventKey()
-            }
+            path: (
+                model.path(model.name, model.id()) +
+                "?eventKey=" + catalog.eventKey()
+            )
         };
 
         datasource.request(payload).then(
