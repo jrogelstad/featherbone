@@ -1222,6 +1222,7 @@ workbookPage.component = {
 
         if (viewModels[workbook] && viewModels[workbook][sheet]) {
             this.viewModel = viewModels[workbook][sheet];
+            m.redraw();
             return;
         }
 

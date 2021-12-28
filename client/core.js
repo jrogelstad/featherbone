@@ -381,7 +381,12 @@ formats.date = {
 formats.dateTime = {
     type: "string",
     default: () => f.now(true),
-    fromType: (value) => new Date(value).toLocalDateTime(),
+    fromType: function (value) {
+        if (value !== null) {
+            return new Date(value).toLocalDateTime();
+        }
+        return value;
+    },
     toType: function (value) {
         if (
             value &&

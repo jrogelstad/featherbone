@@ -367,7 +367,8 @@ function buildGrid(grid, idx) {
     @param {Object} [options.config] Layout configuration
     @param {String} [options.config.focus] Focus attribute
     @param {String} [options.containerId]
-    @param {String} [options.isScrollable]
+    @param {Boolean} [options.isScrollable]
+    @param {Object} [options.style]
     @param {Array} [options.outsideElementIds]
 */
 formWidget.viewModel = function (options) {
@@ -449,6 +450,13 @@ formWidget.viewModel = function (options) {
         @return {Object}
     */
     vm.selectComponents = f.prop({});
+    /**
+        Style over-rides
+        @method style
+        @param {Object} style
+        @return {Object}
+    */
+    vm.style = f.prop(options.style || {});
 
     // ..........................................................
     // PRIVATE
@@ -548,6 +556,7 @@ formWidget.component = {
 
         return m("div", {
             id: model.id(),
+            style: vm.style(),
             class: (
                 vm.isScrollable()
                 ? "fb-form-content"
