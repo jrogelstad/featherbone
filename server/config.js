@@ -36,6 +36,13 @@
                         return reject(err);
                     }
 
+                    // Environment values over-ride file if they exist
+                    Object.keys(data).forEach(function (key) {
+                        if (process.env[key] !== undefined) {
+                            data[key] = process.env[key];
+                        }
+                    });
+
                     resolve(JSON.parse(data));
                 });
             });
