@@ -427,7 +427,8 @@
                             attr,
                             rec,
                             showLabel,
-                            style
+                            style,
+                            printBlank
                         ) {
                             feather = localFeathers[feather];
                             let p = resolveProperty(attr, feather);
@@ -457,6 +458,11 @@
                                 } else {
                                     value = value[parts.shift()];
                                 }
+                            }
+
+                            if (printBlank) {
+                                row.cell("");
+                                return;
                             }
 
                             if (typeof p.type === "object") {
@@ -706,7 +712,8 @@
                                         {
                                             font: col.font,
                                             fontSize: col.fontSize
-                                        }
+                                        },
+                                        col.printBlank
                                     );
                                 });
                             }
