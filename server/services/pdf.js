@@ -199,20 +199,24 @@
         let that = {};
 
         /**
-            Create pdf based on form definition.
+            Create pdf based on form definition. Input may be data to print,
+            an array of data to print, or an id string or array of strings.
+            If one or more ids are passed, the records will be queried for
+            the form.
 
             @method printForm
             @param {Object} Database client
             @param {String} [Form] name
-            @param {String | Array} Record Id or Id array
+            @param {Object|String|Array} Input Record, id, or array of either
             @param {String} [Filename] Target filename
             @return {Promise} Filename
         */
-        that.printForm = function (vClient, form, ids, filename) {
+        that.printForm = function (vClient, form, data, filename) {
             return new Promise(function (resolve, reject) {
-                if (!Array.isArray(ids)) {
-                    ids = [ids];
+                if (!Array.isArray(data)) {
+                    data = [data];
                 }
+                let ids;
                 let requests = [];
                 let rows;
                 let currs;
@@ -266,6 +270,13 @@
 
                 function getData() {
                     return new Promise(function (resolve, reject) {
+                        if (typeof data[0] === "string") {
+                            ids = data;
+                        } else {
+                            resolve(data);
+                            return;
+                        }
+
                         function callback(resp) {
                             crud.doSelect({
                                 name: resp.objectType,
@@ -325,7 +336,6 @@
                         let src = fs[readFileSync]("./files/logo.jpg");
                         let logo = new pdf.Image(src);
                         let n = 0;
-                        let data;
                         let file = (filename || f.createId()) + ".pdf";
                         let path = dir + file;
                         let w = fs.createWriteStream(path);
@@ -427,7 +437,8 @@
                             attr,
                             rec,
                             showLabel,
-                            style
+                            style,
+                            printBlank
                         ) {
                             feather = localFeathers[feather];
                             let p = resolveProperty(attr, feather);
@@ -457,6 +468,11 @@
                                 } else {
                                     value = value[parts.shift()];
                                 }
+                            }
+
+                            if (printBlank) {
+                                row.cell("");
+                                return;
                             }
 
                             if (typeof p.type === "object") {
@@ -706,7 +722,8 @@
                                         {
                                             font: col.font,
                                             fontSize: col.fontSize
-                                        }
+                                        },
+                                        col.printBlank
                                     );
                                 });
                             }

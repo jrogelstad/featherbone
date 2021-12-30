@@ -383,6 +383,10 @@
             "fontSize": {
                 "description": "Print override font size (default 12)",
                 "type": "number"
+            },
+            "printBlank": {
+                "description": "Print blank field when printing for hand written data",
+                "type": "boolean"
             }
         }
     },
