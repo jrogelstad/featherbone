@@ -748,15 +748,15 @@
         Exposes {{#crossLink "Services.PDF"}}{{/crossLink}} via datasource.
 
         @method printPdfForm
-        @param {String} Form
-        @param {String | Array} ids
+        @param {String} form
+        @param {Object|String|Array} input data or ids
         @param {String} dir Target directory
         @param {String} username
         @return {Promise}
     */
     that.printPdfForm = function (
         form,
-        ids,
+        data,
         filename,
         username
     ) {
@@ -775,7 +775,7 @@
                     pdf.printForm(
                         resp.client,
                         form,
-                        ids,
+                        data,
                         filename
                     ).then(
                         callback
