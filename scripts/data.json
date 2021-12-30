@@ -550,6 +550,8 @@
                 "attr": "showCurrency"
             }, {
                 "attr": "width"
+            }, {
+                "attr": "printBlank"
             }]
         }, {
             "attr": "font",
