@@ -641,7 +641,7 @@ function iconNames() {
     result = result.map(function (icon) {
         return {
             value: icon,
-            label: icon
+            label: icon.toName()
         };
     });
     result.unshift({
@@ -672,7 +672,36 @@ function selectEditor(dataList, options) {
     return buildSelector(obj, opts);
 }
 
-formats.icon.editor = selectEditor.bind(null, iconNames);
+formats.icon.editor = function (options) {
+    let prop = options.prop;
+    let listOptions = iconNames().map(function (icon) {
+        return m("option", icon.label);
+    });
+
+    return m("div", {
+        key: options.key,
+        style: {display: "inline-block"}
+    }, [
+        m("input", {
+            class: "fb-input " + options.class || "",
+            style: options.style,
+            type: "text",
+            list: options.id + "-list",
+            id: options.id,
+            onchange: (e) => prop(e.target.value.replaceAll(" ", "").toSnakeCase()),
+            onfocus: options.onFocus,
+            onblur: options.onBlur,
+            value: prop().toName(),
+            oncreate: options.onCreate,
+            onremove: options.onRemove,
+            readonly: options.readOnly
+            autocomplete: "off"
+        }),
+        m("datalist", {
+            id: options.id + "-list"
+        }, listOptions)
+    ]);
+};
 
 formats.icon.tableData = function (obj) {
     if (obj.value) {

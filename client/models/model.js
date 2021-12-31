@@ -1574,14 +1574,14 @@ function createModel(data, feather) {
 
             // Create properties for relations
             if (typeof p.type === "object") {
-                if (
-                    isChild(p) &&
-                    (
+                if (isChild(p)) {
+                    model.isChild = true;
+                    if (
                         !p.type.properties || !p.type.properties.length
-                    )
-                ) {
-                    return;
-                } // Ignore child properties on client level
+                    ) {
+                        return;
+                    } // Ignore child properties on client level
+                }
 
                 relation = type.relation;
                 name = relation.toCamelCase();
@@ -1812,7 +1812,13 @@ function createModel(data, feather) {
             this.state("Fetched", function () {
                 this.c = this.C; // Squelch jslint complaint
                 this.c(function () {
-                    if (model.isReadOnly()) {
+                    if (
+                        model.isReadOnly() ||
+                        (
+                            model.isChild &&
+                            !model.parent()
+                        )
+                    ) {
                         return "./ReadOnly";
                     }
                 });
@@ -2064,7 +2070,6 @@ function createModel(data, feather) {
         // Validate all extant properties
         keys.forEach(validate);
     });
-
 
     // Add standard check for 'canDelete'
     model.onCanDelete(function () {
