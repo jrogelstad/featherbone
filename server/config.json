@@ -6,36 +6,16 @@
     "logMaxSize": "10m",
     "logZippedArchive": false,
     "logSilent": false,
-    "mode": "dev",
+    "mode": "prod",
     "nodeId": "node1",
-    "npmModules": [{
-        "properties": [{
-            "export": "CronJob",
-            "property": "CronJob"
-        }],
-        "require": "cron"
-    }, {
-        "properties": [{
-            "export": "DownloaderHelper",
-            "property": "DownloaderHelper"
-        }],
-        "require": "node-downloader-helper"
-    }, {
-        "require": "fs"
-    }, {
-        "require": "pdfjs"
-    }, {
-        "require": "shipengine"
-    }, {
-        "require": "table-layout"
-    }],
+    "npmModules": [],
     "passwordLength": 0,
     "pgHost": "127.0.0.1",
-    "pgDatabase": "supply_chain",
+    "pgDatabase": "demo",
     "pgPort": 5432,
     "pgUser": "admin",
     "pgPassword": "password",
     "secret": "Your own session key here",
     "sessionTimeout": 86400000,
-    "shipEngineApiKey": ""
+    "npmModules": []
 }

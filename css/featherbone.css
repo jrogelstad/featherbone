@@ -331,7 +331,6 @@ a.pure-button-selected {
   font-size: 16px;
   padding: 8px;
   border-right: lightgrey thin solid;
-  white-space: nowrap;
 }
 
 .fb-navigator-menu-test {
@@ -340,6 +339,14 @@ a.pure-button-selected {
 
 .fb-navigator-menu-dev {
   background-color: #B7472A;
+}
+
+.fb-navigator-menu-expanded {
+  min-width: 150px;
+}
+
+.fb-navigator-menu-collapsed {
+  max-width: 53px;
 }
 
 .fb-navigator-menu-header-collapsed {
@@ -372,7 +379,6 @@ a.pure-button-selected {
   font-family:sans-serif;
   padding-bottom: 5px;
   padding-top: 4.5px;
-  white-space: nowrap;
 }
 
 .fb-navigator-item-selected {
