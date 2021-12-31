@@ -688,13 +688,15 @@ formats.icon.editor = function (options) {
             type: "text",
             list: options.id + "-list",
             id: options.id,
-            onchange: (e) => prop(e.target.value.replaceAll(" ", "").toSnakeCase()),
+            onchange: (e) => prop(
+                e.target.value.replaceAll(" ", "").toSnakeCase()
+            ),
             onfocus: options.onFocus,
             onblur: options.onBlur,
             value: prop().toName(),
             oncreate: options.onCreate,
             onremove: options.onRemove,
-            readonly: options.readOnly
+            readonly: options.readOnly,
             autocomplete: "off"
         }),
         m("datalist", {
