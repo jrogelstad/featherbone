@@ -688,8 +688,8 @@ workbookPage.viewModel = function (options) {
     */
     vm.onmouseoutactions = function (ev) {
         if (
-            !ev || !ev.toElement || !ev.toElement.id ||
-            ev.toElement.id.indexOf("nav-actions") === -1
+            !ev || !ev.relatedTarget || !ev.relatedTarget.id ||
+            ev.relatedTarget.id.indexOf("nav-actions") === -1
         ) {
             vm.showActions(false);
         }
@@ -708,8 +708,8 @@ workbookPage.viewModel = function (options) {
     */
     vm.onmouseoutmenu = function (ev) {
         if (
-            !ev || !ev.toElement || !ev.toElement.id ||
-            ev.toElement.id.indexOf("nav-menu") === -1
+            !ev || !ev.relatedTarget || !ev.relatedTarget.id ||
+            ev.relatedTarget.id.indexOf("nav-menu") === -1
         ) {
             vm.showMenu(false);
         }
