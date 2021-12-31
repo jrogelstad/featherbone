@@ -43,7 +43,8 @@ const state = f.State.define(function () {
         this.classMenu = function () {
             return (
                 "pure-menu fb-navigator-menu " +
-                navmode()
+                navmode() +
+                "fb-navigator-menu-expanded"
             );
         };
         this.classHeader = "";
@@ -52,7 +53,6 @@ const state = f.State.define(function () {
             "fb-navigator-header-icon " +
             "fb-navigator-header-icon-expanded"
         );
-        this.icon = "chevron_left";
         this.content = function (value) {
             return value;
         };
@@ -67,7 +67,8 @@ const state = f.State.define(function () {
         this.classMenu = function () {
             return (
                 "pure-menu fb-navigator-menu " +
-                navmode()
+                navmode() +
+                "fb-navigator-menu-collapsed"
             );
         };
         this.classHeader = "fb-navigator-menu-header-collapsed";
@@ -75,7 +76,6 @@ const state = f.State.define(function () {
             "material-icons-outlined " +
             "fb-navigator-header-icon"
         );
-        this.icon = "expand_more";
         this.content = function () {
             return undefined;
         };
@@ -194,13 +194,6 @@ navigator.viewModel = function () {
         return state.resolve(state.current()[0]).classMenu();
     };
     /**
-        @method headerIcon
-        @return {String}
-    */
-    vm.headerIcon = function () {
-        return state.resolve(state.current()[0]).icon;
-    };
-    /**
         @method selected
         @param {String} name
         @return {String}
@@ -315,7 +308,7 @@ navigator.component = {
                 m("i", {
                     class: vm.classHeaderIcon(),
                     onclick: vm.toggle
-                }, vm.headerIcon())
+                }, "chevron_left")
             ]),
             m("ul", {
                 class: "pure-menu-list"
