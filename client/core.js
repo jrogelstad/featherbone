@@ -946,6 +946,7 @@ f.catalog = function () {
     @return {Object} View model
 */
 f.createViewModel = function (name, options) {
+
     return catalog.store().viewModels()[name.toCamelCase()](options);
 };
 
@@ -1297,6 +1298,41 @@ f.hashCode = function (s) {
             0
         )
     );
+};
+
+/// given a data: url, exchange it for a blob url which caches the data to the client to be referenced by the blob id
+///
+function toBlobUrl(dataURI){
+    /// https://stackoverflow.com/questions/9388412/data-uri-to-object-url-with-createobjecturl-in-chrome-ff
+    var mime = dataURI.split(',')[0].split(':')[1].split(';')[0];
+    /// TODO: Replace with Buffer.from(dataURI.split(',')[1],"base64"); 
+    var binary = atob(dataURI.split(',')[1]);
+    var array = [];
+    for (var i = 0; i < binary.length; i++) {
+      array.push(binary.charCodeAt(i));
+    }
+    return URL.createObjectURL(new Blob([new Uint8Array(array)], {type: mime}));
+}
+
+f.types.resourceLink = {};
+f.types.resourceLink.tableData = function(obj){
+    let content = 'bunk';
+
+    let mat;
+    let dat = obj.value.data;
+    let ico = dat.icon();
+    let rec = dat.resource();
+    let datReg = /^data:/i;
+    let lbl = dat.label();
+
+    let label = (lbl ? lbl : (ico ? "" : rec));
+    /// SCOTE-TODO: Replace the fixed font-size with appropriate class
+    let icon = (ico ? m("span",{style : 'font-size: 18px;', class : `material-icons`},ico) : "");
+
+    return m("a", {
+        href: (rec.match(datReg) ? toBlobUrl(rec) : rec),
+        target: "_blank"
+    }, icon, label); 
 };
 
 f.types.address = {};
