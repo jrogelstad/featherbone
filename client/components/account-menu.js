@@ -453,7 +453,7 @@ accountMenu.component = {
                         "material-icons " +
                         "fb-menu-list-icon"
                     )
-                },"logout")], "Sign out")
+                }, "logout")], "Sign out")
             ])
         ]);
     }
