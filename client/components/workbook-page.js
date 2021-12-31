@@ -1492,7 +1492,10 @@ workbookPage.component = {
                                     onclick: vm.configureSheet
                                 }, [m("i", {
                                     id: "nav-menu-configure-worksheet-icon",
-                                    class: "material-icons-outlined fb-menu-list-icon"
+                                    class: (
+                                        "material-icons-outlined " +
+                                        "fb-menu-list-icon"
+                                    )
                                 }, "table_chart")], "Sheet"),
                                 m("li", {
                                     id: "nav-menu-configure-workbook",
@@ -1501,7 +1504,10 @@ workbookPage.component = {
                                     onclick: vm.editWorkbookDialog().show
                                 }, [m("i", {
                                     id: "nav-menu-configure-workbook-icon",
-                                    class: "material-icons-outlined  fb-menu-list-icon"
+                                    class: (
+                                        "material-icons-outlined " +
+                                        "fb-menu-list-icon"
+                                    )
                                 }, "backup_table")], "Workbook"),
                                 m("li", {
                                     id: "nav-menu-share",
