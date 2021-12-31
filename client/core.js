@@ -1316,21 +1316,18 @@ function toBlobUrl(dataURI){
 
 f.types.resourceLink = {};
 f.types.resourceLink.tableData = function(obj){
-    let content = 'bunk';
-
     let mat;
     let dat = obj.value.data;
     let ico = dat.icon();
     let rec = dat.resource();
-    let datReg = /^data:/i;
     let lbl = dat.label();
 
     let label = (lbl ? lbl : (ico ? "" : rec));
     /// SCOTE-TODO: Replace the fixed font-size with appropriate class
-    let icon = (ico ? m("span",{style : 'font-size: 18px;', class : `material-icons`},ico) : "");
+    let icon = (ico ? m("span",{style : 'vertical-align:bottom;font-size: 18px;', class : `material-icons`},ico) : "");
 
     return m("a", {
-        href: (rec.match(datReg) ? toBlobUrl(rec) : rec),
+        href: (rec.match(/^data:/i) ? toBlobUrl(rec) : rec),
         target: "_blank"
     }, icon, label); 
 };
