@@ -617,16 +617,43 @@ let gantt = {
             ? val.data.slice()
             : []
         );
+        let plan = [];
+
         ary.forEach(function (i) {
-            if (typeof i.start === "string") {
-                i.start = f.parseDate(i.start);
+            let item = {};
+            Object.keys(i).forEach((k) => item[k] = i[k]);
+            if (typeof item.start === "string") {
+                item.start = f.parseDate(item.start);
             }
             if (typeof i.end === "string") {
-                i.end = f.parseDate(i.end);
+                item.end = f.parseDate(item.end);
             }
+            plan.push(item);
         });
 
-        return ary;
+        return {data: plan};
+    },
+    toType: function (val) {
+        let ary = (
+            (val && val.data)
+            ? val.data
+            : []
+        );
+        let plan = [];
+
+        ary.forEach(function (i) {
+            let item = {};
+            Object.keys(i).forEach((k) => item[k] = i[k]);
+            if (Object.prototype.toString.call(item.start) === "[object Date]") {
+                item.start = item.start.toLocalDate();
+            }
+            if (Object.prototype.toString.call(item.end) === "[object Date]") {
+                item.end = item.end.toLocalDate();
+            }
+            plan.push(item);
+        });
+
+        return {data: plan};
     },
     default: {},
     editor: function (options) {
