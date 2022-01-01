@@ -607,7 +607,6 @@ relationWidget.component = {
                 minWidth: "100px",
                 maxWidth: "100%"
             };
-            buttonClass += " fb-relation-button-cell";
             menuStyle.top = "34px";
             menuStyle.right = "-100px";
             labelClass = "fb-relation-label-cell";
@@ -632,7 +631,17 @@ relationWidget.component = {
                 }, [
                     m("span", {
                         id: "nav-relation-span-" + id,
-                        class: buttonClass
+                        class: buttonClass,
+                        oncreate: function (vnode) {
+                            /* Hack: Firefox refuses to use CSS to set
+                               position = absolute until after dom is
+                               re-rendered by some mouse over activity,
+                               so forcing here.
+                            */                               
+                            document.getElementById(
+                                vnode.dom.id
+                            ).style.position = "absolute";
+                        }
                     }),
                     m("ul", {
                         id: "nav-relation-list-" + id,
