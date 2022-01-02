@@ -89,6 +89,7 @@ const workbook = {
         icon: {
             description: "Menu icon",
             type: "string",
+            format: "icon",
             default: "folder"
         },
         sequence: {

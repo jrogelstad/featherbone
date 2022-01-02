@@ -107,7 +107,7 @@ const home = {
                             toolbarButtonClass +
                             " fb-toolbar-button " +
                             " fb-toolbar-button-right-side" +
-                            " fb-toolbar-button-home " + 
+                            " fb-toolbar-button-home " +
                             (
                                 isSuper
                                 ? ""
@@ -747,7 +747,7 @@ connect().then(function (resp) {
 
     function listen() {
         const wsurl = (
-            wp + window.location.hostname + 
+            wp + window.location.hostname +
             ":" + window.location.port
         );
         const evsubscr = new WebSocket(wsurl);
