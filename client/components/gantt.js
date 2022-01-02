@@ -74,7 +74,7 @@ gantt.component = {
         let id = "gantt" + vm.id();
         let e = document.getElementById(id);
         let chart = vm.chart();
-        let data = vm.data().slice();
+        let data = vm.data().data;
 
         if (!vm.showDetail()) {
             data = data.filter((d) => Boolean(d.type));
