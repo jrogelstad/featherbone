@@ -621,7 +621,9 @@ let gantt = {
 
         ary.forEach(function (i) {
             let item = {};
-            Object.keys(i).forEach((k) => item[k] = i[k]);
+            Object.keys(i).forEach(function (k) {
+                item[k] = i[k];
+            });
             if (typeof item.start === "string") {
                 item.start = f.parseDate(item.start);
             }
@@ -643,8 +645,12 @@ let gantt = {
 
         ary.forEach(function (i) {
             let item = {};
-            Object.keys(i).forEach((k) => item[k] = i[k]);
-            if (Object.prototype.toString.call(item.start) === "[object Date]") {
+            Object.keys(i).forEach(function (k) {
+                item[k] = i[k];
+            });
+            if (
+                Object.prototype.toString.call(item.start) === "[object Date]"
+            ) {
                 item.start = item.start.toLocalDate();
             }
             if (Object.prototype.toString.call(item.end) === "[object Date]") {
@@ -879,7 +885,6 @@ formats.script.editor = function (options) {
 
     opts.oncreate = function () {
         let editor;
-        let lint;
         let state = model.state();
         let e = document.getElementById(options.id);
         let config = {
@@ -898,12 +903,17 @@ formats.script.editor = function (options) {
             },
             autoFocus: false,
             gutters: ["CodeMirror-lint-markers"],
-            lint: true
+            lint: {
+                globals: ["f", "m"],
+                onUpdateLinting: function (annotations) {
+                    // Let model reference lint annoations
+                    model.data.annotations(annotations);
+                    m.redraw();
+                }
+            }
         };
 
         editor = CodeMirror.fromTextArea(e, config);
-        lint = editor.state.lint;
-        lint.options.globals = ["f", "m"];
 
         // Populate on fetch
         function notify() {
@@ -921,11 +931,6 @@ formats.script.editor = function (options) {
         );
 
         editor.on("change", m.redraw);
-        lint.options.onUpdateLinting = function (annotations) {
-            // Let model reference lint annoations
-            model.data.annotations(annotations);
-            m.redraw();
-        };
 
         // Send changed text back to model
         editor.on("blur", function () {
