@@ -617,16 +617,43 @@ let gantt = {
             ? val.data.slice()
             : []
         );
+        let plan = [];
+
         ary.forEach(function (i) {
-            if (typeof i.start === "string") {
-                i.start = f.parseDate(i.start);
+            let item = {};
+            Object.keys(i).forEach((k) => item[k] = i[k]);
+            if (typeof item.start === "string") {
+                item.start = f.parseDate(item.start);
             }
             if (typeof i.end === "string") {
-                i.end = f.parseDate(i.end);
+                item.end = f.parseDate(item.end);
             }
+            plan.push(item);
         });
 
-        return ary;
+        return {data: plan};
+    },
+    toType: function (val) {
+        let ary = (
+            (val && val.data)
+            ? val.data
+            : []
+        );
+        let plan = [];
+
+        ary.forEach(function (i) {
+            let item = {};
+            Object.keys(i).forEach((k) => item[k] = i[k]);
+            if (Object.prototype.toString.call(item.start) === "[object Date]") {
+                item.start = item.start.toLocalDate();
+            }
+            if (Object.prototype.toString.call(item.end) === "[object Date]") {
+                item.end = item.end.toLocalDate();
+            }
+            plan.push(item);
+        });
+
+        return {data: plan};
     },
     default: {},
     editor: function (options) {
@@ -641,7 +668,7 @@ function iconNames() {
     result = result.map(function (icon) {
         return {
             value: icon,
-            label: icon
+            label: icon.toName()
         };
     });
     result.unshift({
@@ -672,7 +699,38 @@ function selectEditor(dataList, options) {
     return buildSelector(obj, opts);
 }
 
-formats.icon.editor = selectEditor.bind(null, iconNames);
+formats.icon.editor = function (options) {
+    let prop = options.prop;
+    let listOptions = iconNames().map(function (icon) {
+        return m("option", icon.label);
+    });
+
+    return m("div", {
+        key: options.key,
+        style: {display: "inline-block"}
+    }, [
+        m("input", {
+            class: "fb-input " + options.class || "",
+            style: options.style,
+            type: "text",
+            list: options.id + "-list",
+            id: options.id,
+            onchange: (e) => prop(
+                e.target.value.replaceAll(" ", "").toSnakeCase()
+            ),
+            onfocus: options.onFocus,
+            onblur: options.onBlur,
+            value: prop().toName(),
+            oncreate: options.onCreate,
+            onremove: options.onRemove,
+            readonly: options.readOnly,
+            autocomplete: "off"
+        }),
+        m("datalist", {
+            id: options.id + "-list"
+        }, listOptions)
+    ]);
+};
 
 formats.icon.tableData = function (obj) {
     if (obj.value) {
