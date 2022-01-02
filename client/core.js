@@ -1316,7 +1316,7 @@ function toBlobUrl(dataURI){
 
 f.types.resourceLink = {};
 f.types.resourceLink.tableData = function(obj){
-    let mat;
+
     let dat = obj.value.data;
     let ico = dat.icon();
     let rec = dat.resource();
