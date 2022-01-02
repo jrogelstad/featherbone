@@ -1323,8 +1323,8 @@ f.types.resourceLink.tableData = function(obj){
     let lbl = dat.label();
 
     let label = (lbl ? lbl : (ico ? "" : rec));
-    /// SCOTE-TODO: Replace the fixed font-size with appropriate class
-    let icon = (ico ? m("span",{style : 'vertical-align:bottom;font-size: 18px;', class : `material-icons`},ico) : "");
+
+    let icon = (ico ? m("span",{class : `fb-menu-list-icon material-icons`},ico) : "");
 
     return m("a", {
         href: (rec.match(/^data:/i) ? toBlobUrl(rec) : rec),
