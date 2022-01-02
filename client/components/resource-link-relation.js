@@ -24,7 +24,7 @@
 const resourceLinkRelation = {};
 
 /**
-    @class ContactRelation
+    @class ResourceLinkRelation
     @extends ViewModels.ResourceLinkRelationWidget
     @constructor
     @namespace ViewModels
@@ -81,10 +81,10 @@ resourceLinkRelation.viewModel = function (options) {
                                 class: (
                                     "material-icons " +
                                     (icon || "") +
-                                    " fb-icon-button"
+                                    " fb-menu-list-icon"
                                 )
                             }, "resource")
-                        ], resource)
+                        ], (label || resource))
                 );
             }
 
@@ -92,11 +92,6 @@ resourceLinkRelation.viewModel = function (options) {
 
         }
         return elements;
-/*
-        return m("ul", {
-            class: "pure-menu-list"
-        }, elements);
-*/
     };
 
     return vm;
@@ -109,7 +104,7 @@ f.catalog().register(
 );
 
 /**
-    @class ContactRelation
+    @class ResourceLinkRelation
     @uses Components.RelationWidget
     @namespace Components
 */
