@@ -637,7 +637,7 @@ relationWidget.component = {
                                position = absolute until after dom is
                                re-rendered by some mouse over activity,
                                so forcing here.
-                            */                               
+                            */
                             document.getElementById(
                                 vnode.dom.id
                             ).style.position = "absolute";
