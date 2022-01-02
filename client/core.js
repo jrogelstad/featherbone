@@ -31,6 +31,7 @@ const m = window.m;
 const f = window.f;
 const console = window.console;
 const CodeMirror = window.CodeMirror;
+const tinymce = window.tinymce;
 const exclusions = [
     "id",
     "isDeleted",
@@ -423,6 +424,10 @@ formats.textArea = {
     default: ""
 };
 formats.script = {
+    type: "string",
+    default: ""
+};
+formats.richText = {
     type: "string",
     default: ""
 };
@@ -945,6 +950,30 @@ formats.script.editor = function (options) {
     return m("textarea", opts);
 };
 
+formats.richText.editor = function (options) {
+    return m("textarea", {
+        id: options.id,
+        key: options.key,
+        oncreate: function (vnode) {
+            console.log("hello world");
+            let e = document.getElementById(vnode.dom.id);
+            tinymce.init({
+                target: e,
+                readonly: Boolean(options.readonly),
+                setup: function (editor) {
+                    editor.on("change", function (e) {
+                        options.prop(e.level.content);
+                    });
+                }
+            });
+        },
+        onremove: function () {
+            tinymce.remove("#" + options.id);
+            console.log("goodbye world");
+        }
+    }, options.prop());
+};
+
 formats.url.editor = function (options) {
     return m(catalog.store().components().urlWidget, options);
 };
@@ -1126,6 +1155,7 @@ f.inputMap = {
     color: "color",
     textArea: undefined,
     script: undefined,
+    richText: undefined,
     money: "number",
     icon: "text"
 };
