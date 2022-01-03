@@ -37,7 +37,7 @@ module.static = f.prop({
         function error(err) {
             dialog.message(err.message);
             dialog.title("Error");
-            dialog.icon("exclamation-triangle");
+            dialog.icon("report_error");
             dialog.buttonCancel().hide();
             dialog.show();
         }
@@ -90,7 +90,7 @@ module.static = f.prop({
         function error(err) {
             dialog.message(err.message);
             dialog.title("Error");
-            dialog.icon("exclamation-triangle");
+            dialog.icon("report_error");
             dialog.buttonCancel().hide();
             dialog.show();
         }
