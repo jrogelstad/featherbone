@@ -959,6 +959,7 @@ formats.richText.editor = function (options) {
             let e = document.getElementById(vnode.dom.id);
             tinymce.init({
                 target: e,
+                height: 500,
                 readonly: Boolean(options.readonly),
                 setup: function (editor) {
                     editor.on("change", function (e) {
