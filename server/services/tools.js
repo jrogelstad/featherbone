@@ -649,7 +649,9 @@
                 let client = db.getClient(obj.client);
                 let sql = (
                     "SELECT auth.role, auth.can_read, auth.can_update," +
-                    "auth.can_delete FROM object, \"$auth\" AS auth " +
+                    "auth.can_delete, " +
+                    "'object_authorization' AS object_type " +
+                    "FROM object, \"$auth\" AS auth " +
                     "WHERE id=$1 AND object._pk=auth.object_pk;"
                 );
 
