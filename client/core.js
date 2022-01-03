@@ -31,6 +31,7 @@ const m = window.m;
 const f = window.f;
 const console = window.console;
 const CodeMirror = window.CodeMirror;
+const tinymce = window.tinymce;
 const exclusions = [
     "id",
     "isDeleted",
@@ -426,6 +427,10 @@ formats.script = {
     type: "string",
     default: ""
 };
+formats.richText = {
+    type: "string",
+    default: ""
+};
 formats.money = {
     type: "object",
     default: () => f.money(),
@@ -621,7 +626,9 @@ let gantt = {
 
         ary.forEach(function (i) {
             let item = {};
-            Object.keys(i).forEach((k) => item[k] = i[k]);
+            Object.keys(i).forEach(function (k) {
+                item[k] = i[k];
+            });
             if (typeof item.start === "string") {
                 item.start = f.parseDate(item.start);
             }
@@ -643,8 +650,12 @@ let gantt = {
 
         ary.forEach(function (i) {
             let item = {};
-            Object.keys(i).forEach((k) => item[k] = i[k]);
-            if (Object.prototype.toString.call(item.start) === "[object Date]") {
+            Object.keys(i).forEach(function (k) {
+                item[k] = i[k];
+            });
+            if (
+                Object.prototype.toString.call(item.start) === "[object Date]"
+            ) {
                 item.start = item.start.toLocalDate();
             }
             if (Object.prototype.toString.call(item.end) === "[object Date]") {
@@ -879,7 +890,6 @@ formats.script.editor = function (options) {
 
     opts.oncreate = function () {
         let editor;
-        let lint;
         let state = model.state();
         let e = document.getElementById(options.id);
         let config = {
@@ -898,12 +908,17 @@ formats.script.editor = function (options) {
             },
             autoFocus: false,
             gutters: ["CodeMirror-lint-markers"],
-            lint: true
+            lint: {
+                globals: ["f", "m"],
+                onUpdateLinting: function (annotations) {
+                    // Let model reference lint annoations
+                    model.data.annotations(annotations);
+                    m.redraw();
+                }
+            }
         };
 
         editor = CodeMirror.fromTextArea(e, config);
-        lint = editor.state.lint;
-        lint.options.globals = ["f", "m"];
 
         // Populate on fetch
         function notify() {
@@ -921,11 +936,6 @@ formats.script.editor = function (options) {
         );
 
         editor.on("change", m.redraw);
-        lint.options.onUpdateLinting = function (annotations) {
-            // Let model reference lint annoations
-            model.data.annotations(annotations);
-            m.redraw();
-        };
 
         // Send changed text back to model
         editor.on("blur", function () {
@@ -938,6 +948,31 @@ formats.script.editor = function (options) {
     };
 
     return m("textarea", opts);
+};
+
+formats.richText.editor = function (options) {
+    return m("textarea", {
+        id: options.id,
+        key: options.key,
+        oncreate: function (vnode) {
+            console.log("hello world");
+            let e = document.getElementById(vnode.dom.id);
+            tinymce.init({
+                target: e,
+                height: 500,
+                readonly: Boolean(options.readonly),
+                setup: function (editor) {
+                    editor.on("change", function (e) {
+                        options.prop(e.level.content);
+                    });
+                }
+            });
+        },
+        onremove: function () {
+            tinymce.remove("#" + options.id);
+            console.log("goodbye world");
+        }
+    }, options.prop());
 };
 
 formats.url.editor = function (options) {
@@ -1122,6 +1157,7 @@ f.inputMap = {
     color: "color",
     textArea: undefined,
     script: undefined,
+    richText: undefined,
     money: "number",
     icon: "text"
 };
