@@ -31,6 +31,7 @@ const m = window.m;
 const f = window.f;
 const console = window.console;
 const CodeMirror = window.CodeMirror;
+const tinymce = window.tinymce;
 const exclusions = [
     "id",
     "isDeleted",
@@ -426,6 +427,10 @@ formats.script = {
     type: "string",
     default: ""
 };
+formats.richText = {
+    type: "string",
+    default: ""
+};
 formats.money = {
     type: "object",
     default: () => f.money(),
@@ -617,16 +622,49 @@ let gantt = {
             ? val.data.slice()
             : []
         );
+        let plan = [];
+
         ary.forEach(function (i) {
-            if (typeof i.start === "string") {
-                i.start = f.parseDate(i.start);
+            let item = {};
+            Object.keys(i).forEach(function (k) {
+                item[k] = i[k];
+            });
+            if (typeof item.start === "string") {
+                item.start = f.parseDate(item.start);
             }
             if (typeof i.end === "string") {
-                i.end = f.parseDate(i.end);
+                item.end = f.parseDate(item.end);
             }
+            plan.push(item);
         });
 
-        return ary;
+        return {data: plan};
+    },
+    toType: function (val) {
+        let ary = (
+            (val && val.data)
+            ? val.data
+            : []
+        );
+        let plan = [];
+
+        ary.forEach(function (i) {
+            let item = {};
+            Object.keys(i).forEach(function (k) {
+                item[k] = i[k];
+            });
+            if (
+                Object.prototype.toString.call(item.start) === "[object Date]"
+            ) {
+                item.start = item.start.toLocalDate();
+            }
+            if (Object.prototype.toString.call(item.end) === "[object Date]") {
+                item.end = item.end.toLocalDate();
+            }
+            plan.push(item);
+        });
+
+        return {data: plan};
     },
     default: {},
     editor: function (options) {
@@ -641,7 +679,7 @@ function iconNames() {
     result = result.map(function (icon) {
         return {
             value: icon,
-            label: icon
+            label: icon.toName()
         };
     });
     result.unshift({
@@ -672,7 +710,38 @@ function selectEditor(dataList, options) {
     return buildSelector(obj, opts);
 }
 
-formats.icon.editor = selectEditor.bind(null, iconNames);
+formats.icon.editor = function (options) {
+    let prop = options.prop;
+    let listOptions = iconNames().map(function (icon) {
+        return m("option", icon.label);
+    });
+
+    return m("div", {
+        key: options.key,
+        style: {display: "inline-block"}
+    }, [
+        m("input", {
+            class: "fb-input " + options.class || "",
+            style: options.style,
+            type: "text",
+            list: options.id + "-list",
+            id: options.id,
+            onchange: (e) => prop(
+                e.target.value.replaceAll(" ", "").toSnakeCase()
+            ),
+            onfocus: options.onFocus,
+            onblur: options.onBlur,
+            value: prop().toName(),
+            oncreate: options.onCreate,
+            onremove: options.onRemove,
+            readonly: options.readOnly,
+            autocomplete: "off"
+        }),
+        m("datalist", {
+            id: options.id + "-list"
+        }, listOptions)
+    ]);
+};
 
 formats.icon.tableData = function (obj) {
     if (obj.value) {
@@ -821,7 +890,6 @@ formats.script.editor = function (options) {
 
     opts.oncreate = function () {
         let editor;
-        let lint;
         let state = model.state();
         let e = document.getElementById(options.id);
         let config = {
@@ -840,12 +908,17 @@ formats.script.editor = function (options) {
             },
             autoFocus: false,
             gutters: ["CodeMirror-lint-markers"],
-            lint: true
+            lint: {
+                globals: ["f", "m"],
+                onUpdateLinting: function (annotations) {
+                    // Let model reference lint annoations
+                    model.data.annotations(annotations);
+                    m.redraw();
+                }
+            }
         };
 
         editor = CodeMirror.fromTextArea(e, config);
-        lint = editor.state.lint;
-        lint.options.globals = ["f", "m"];
 
         // Populate on fetch
         function notify() {
@@ -863,11 +936,6 @@ formats.script.editor = function (options) {
         );
 
         editor.on("change", m.redraw);
-        lint.options.onUpdateLinting = function (annotations) {
-            // Let model reference lint annoations
-            model.data.annotations(annotations);
-            m.redraw();
-        };
 
         // Send changed text back to model
         editor.on("blur", function () {
@@ -880,6 +948,31 @@ formats.script.editor = function (options) {
     };
 
     return m("textarea", opts);
+};
+
+formats.richText.editor = function (options) {
+    return m("textarea", {
+        id: options.id,
+        key: options.key,
+        oncreate: function (vnode) {
+            console.log("hello world");
+            let e = document.getElementById(vnode.dom.id);
+            tinymce.init({
+                target: e,
+                height: 500,
+                readonly: Boolean(options.readonly),
+                setup: function (editor) {
+                    editor.on("change", function (e) {
+                        options.prop(e.level.content);
+                    });
+                }
+            });
+        },
+        onremove: function () {
+            tinymce.remove("#" + options.id);
+            console.log("goodbye world");
+        }
+    }, options.prop());
 };
 
 formats.url.editor = function (options) {
@@ -1064,6 +1157,7 @@ f.inputMap = {
     color: "color",
     textArea: undefined,
     script: undefined,
+    richText: undefined,
     money: "number",
     icon: "text"
 };
@@ -1316,21 +1410,18 @@ function toBlobUrl(dataURI){
 
 f.types.resourceLink = {};
 f.types.resourceLink.tableData = function(obj){
-    let content = 'bunk';
 
-    let mat;
     let dat = obj.value.data;
     let ico = dat.icon();
     let rec = dat.resource();
-    let datReg = /^data:/i;
     let lbl = dat.label();
 
     let label = (lbl ? lbl : (ico ? "" : rec));
-    /// SCOTE-TODO: Replace the fixed font-size with appropriate class
-    let icon = (ico ? m("span",{style : 'font-size: 18px;', class : `material-icons`},ico) : "");
+
+    let icon = (ico ? m("span",{class : `fb-menu-list-icon material-icons`},ico) : "");
 
     return m("a", {
-        href: (rec.match(datReg) ? toBlobUrl(rec) : rec),
+        href: (rec.match(/^data:/i) ? toBlobUrl(rec) : rec),
         target: "_blank"
     }, icon, label); 
 };

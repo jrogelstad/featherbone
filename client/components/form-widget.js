@@ -183,9 +183,9 @@ function buildFieldset(vm, attrs) {
             };
             labelOpts.onmouseout = function (ev) {
                 if (
-                    !ev || !ev.toElement ||
-                    !ev.toElement.id ||
-                    ev.toElement.id.indexOf(
+                    !ev || !ev.relatedTarget ||
+                    !ev.relatedTarget.id ||
+                    ev.relatedTarget.id.indexOf(
                         "nav-relation"
                     ) === -1
                 ) {

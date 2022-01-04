@@ -36,7 +36,6 @@ const editWorkbookConfig = {
         grid: 1
     }, {
         attr: "icon",
-        dataList: f.icons(),
         grid: 1
     }, {
         attr: "sequence",
@@ -689,8 +688,8 @@ workbookPage.viewModel = function (options) {
     */
     vm.onmouseoutactions = function (ev) {
         if (
-            !ev || !ev.toElement || !ev.toElement.id ||
-            ev.toElement.id.indexOf("nav-actions") === -1
+            !ev || !ev.relatedTarget || !ev.relatedTarget.id ||
+            ev.relatedTarget.id.indexOf("nav-actions") === -1
         ) {
             vm.showActions(false);
         }
@@ -709,8 +708,8 @@ workbookPage.viewModel = function (options) {
     */
     vm.onmouseoutmenu = function (ev) {
         if (
-            !ev || !ev.toElement || !ev.toElement.id ||
-            ev.toElement.id.indexOf("nav-menu") === -1
+            !ev || !ev.relatedTarget || !ev.relatedTarget.id ||
+            ev.relatedTarget.id.indexOf("nav-menu") === -1
         ) {
             vm.showMenu(false);
         }
@@ -1493,7 +1492,10 @@ workbookPage.component = {
                                     onclick: vm.configureSheet
                                 }, [m("i", {
                                     id: "nav-menu-configure-worksheet-icon",
-                                    class: "material-icons-outlined fb-menu-list-icon"
+                                    class: (
+                                        "material-icons-outlined " +
+                                        "fb-menu-list-icon"
+                                    )
                                 }, "table_chart")], "Sheet"),
                                 m("li", {
                                     id: "nav-menu-configure-workbook",
@@ -1502,7 +1504,10 @@ workbookPage.component = {
                                     onclick: vm.editWorkbookDialog().show
                                 }, [m("i", {
                                     id: "nav-menu-configure-workbook-icon",
-                                    class: "material-icons-outlined  fb-menu-list-icon"
+                                    class: (
+                                        "material-icons-outlined " +
+                                        "fb-menu-list-icon"
+                                    )
                                 }, "backup_table")], "Workbook"),
                                 m("li", {
                                     id: "nav-menu-share",
