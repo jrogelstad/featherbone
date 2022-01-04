@@ -26,8 +26,52 @@ function resourceLink(data, feather) {
     feather = feather || f.catalog().getFeather("ResourceLink");
     let model = f.createModel(data, feather);
     let d = model.data;
+    
+    /// Expression to extract a fileName portion of a URL, considering hash and parameter
+    /// Based on: https://stackoverflow.com/questions/14473180/regex-to-get-a-filename-from-a-url  
+    let urlExp = /[^/\\&\?#]+\.\w{3,4}(?=([\?&#].*$|$))/;
+    let extExp = /\.(\w{3,4})/;
+
+    let icoMap = {};
+    ["jpg","jpeg","gif","png","bmp"].forEach((i)=>icoMap[i]="image");
+
+    function extractFileName(url){
+      let mat;
+      if(url && (mat = url.match(urlExp)) != null){
+        return mat[0];
+      }
+      return;
+    }
+    function mapIcon(ext){
+      return icoMap[ext] || ext;
+    }
+
+    
+    function suggestIcon(file){
+      if(file){
+        let ext;
+         if((ext = file.match(extExp)) != null){
+          let low = mapIcon(ext[1].toLowerCase());
+          let idx = f.icons().findIndex((v, i)=>{if(v == low) return true;});
+          if(idx >= 0){
+            return low;
+          }
+        }
+      }
+      return;
+    }
 
     function handleLink() {
+      if(d.resource()){
+        let fileName = extractFileName(d.resource());
+        if(!d.label()){
+          d.label(fileName);
+        }
+        if(!d.icon()){
+          let ico = suggestIcon(fileName);
+          d.icon(ico);
+        }
+      }
        d.displayValue(d.label() || d.resource());
     }
 

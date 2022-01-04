@@ -267,7 +267,7 @@ function authModel(data) {
         let payload = {
             method: "POST",
             path: "/do/save-authorization",
-            data: {
+            body: {
                 id: that.objectId(),
                 role: d.role(),
                 actions: {
