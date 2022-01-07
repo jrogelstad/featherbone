@@ -624,43 +624,6 @@
             }
         }
     },
- 
-    {
-        "name": "ResourceLink",
-        "plural": "ResourceLinks",
-        "module": "Core",
-        "authorizations": [],
-        "description": "Fancy URI to internal or external information",
-        "inherits": "Document",
-        "properties": {
-
-            "icon": {
-                "description": "Icon",
-                "type": "string",
-                "format": "icon",
-                "isAlwaysLoad": true
-            },
-            "displayValue": {
-                "description": "Displayed text",
-                "type": "string",
-                "isNaturalKey": true,
-                "isReadOnly": true
-            },
-            "label": {
-                "description": "Displayed text",
-                "type": "string",
-                "isAlwaysLoad": true
-            },
-            "resource": {
-                "description": "URI to the resource",
-                "type": "string",
-                "format": "url",
-                 "isRequired": true,
-                 "isAlwaysLoad": true,
-                "isLabelKey": true
-            }
-        }
-    },
     {
         "name": "UserAccount",
         "plural": "UserAccounts",
