@@ -567,7 +567,7 @@ relationWidget.component = {
         let editMenuClass = "pure-menu-link";
         let newMenuClass = "pure-menu-link";
         let buttonClass = "pure-button fa fa-bars fb-relation-button";
-        let labelClass = "fb-relation-label";
+        let labelClass = vm.labelClass || "fb-relation-label";
         let id = vm.id();
 
         menuStyle = {
