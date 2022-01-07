@@ -1395,21 +1395,26 @@ f.hashCode = function (s) {
 };
 
 f.types.resourceLink = {};
-f.types.resourceLink.tableData = function(obj){
+f.types.resourceLink.tableData = function (obj) {
 
     let dat = obj.value.data;
     let ico = dat.icon();
     let rec = dat.resource();
     let lbl = dat.label();
 
-    let label = (lbl ? lbl : (ico ? "" : rec));
+    let label = (lbl || (
+        ico
+        ? ""
+        : rec
+    ));
 
-    let icon = (ico ? m("span",{class : `fb-menu-list-icon material-icons`},ico) : "");
+    let icon = (
+        ico
+        ? m("span", {class: "fb-menu-list-icon material-icons"}, ico)
+        : ""
+    );
 
-    return m("a", {
-        href: rec,
-        target: "_blank"
-    }, icon, label); 
+    return m("a", {href: rec, target: "_blank"}, icon, label);
 };
 
 f.types.address = {};
