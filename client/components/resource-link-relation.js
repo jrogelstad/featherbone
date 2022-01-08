@@ -20,7 +20,6 @@
 /**
     @module ResourceLinkRelation
 */
-
 const resourceLinkRelation = {};
 
 /**
@@ -69,7 +68,11 @@ resourceLinkRelation.viewModel = function (options) {
                         target: "_blank"
                     }, [
                         m("i", {
-                            class: "material-icons fb-menu-list-icon"
+                            class: (
+                                "material-icons " +
+                                "fb-contact-relation-icon " +
+                                "fb-icon-button"
+                            )
                         }, (icon || "resource")),
                         resource
                     ])
@@ -98,16 +101,8 @@ resourceLinkRelation.component = {
         let list;
         let theForm;
         let options = vnode.attrs;
-        let id = vnode.attrs.form || "k529a1omkxdw";
+        let id = vnode.attrs.form;
         let relations = options.parentViewModel.relations();
-
-        theForm = f.catalog().store().data().forms().find(
-            (row) => id === row.id
-        );
-
-        if (theForm) {
-            theForm = theForm.toJSON();
-        }
 
         list = {
             columns: [{
