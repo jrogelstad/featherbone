@@ -26,58 +26,76 @@ function resourceLink(data, feather) {
     feather = feather || f.catalog().getFeather("ResourceLink");
     let model = f.createModel(data, feather);
     let d = model.data;
-    
-    /// Expression to extract a fileName portion of a URL, considering hash and parameter
-    /// Based on: https://stackoverflow.com/questions/14473180/regex-to-get-a-filename-from-a-url  
+
+    // Expression to extract a fileName portion of a URL,
+    // considering hash and parameter
+    // Based on: https://
+    // stackoverflow.com/questions/14473180/regex-to-get-a-filename-from-a-url
     let urlExp = /[^/\\&\?#]+\.\w{3,4}(?=([\?&#].*$|$))/;
     let extExp = /\.(\w{3,4})/;
-
     let icoMap = {};
-    ["jpg","jpeg","gif","png","bmp"].forEach((i)=>icoMap[i]="image");
+    let exts = ["jpg","jpeg","gif","png","bmp"];
+
+    exts.forEach(function (i) {
+        icoMap[i] = "image";
+    });
 
     function extractFileName(url){
-      let mat;
-      if(url && (mat = url.match(urlExp)) != null){
-        return mat[0];
-      }
-      return;
+        let mat;
+        if (url) {
+            mat = url.match(urlExp);
+            if (mat !== null){
+                return mat[0];
+            }
+        }
+        return;
     }
     function mapIcon(ext){
-      return icoMap[ext] || ext;
+        return icoMap[ext] || ext;
     }
 
-    
     function suggestIcon(file){
-      if(file){
+        let low;
         let ext;
-         if((ext = file.match(extExp)) != null){
-          let low = mapIcon(ext[1].toLowerCase());
-          let idx = f.icons().findIndex((v, i)=>{if(v == low) return true;});
-          if(idx >= 0){
-            return low;
-          }
+        let idx;
+
+        if (file){
+            ext = file.match(extExp);
+            if (ext !== null){
+                low = mapIcon(ext[1].toLowerCase());
+                idx = f.icons().findIndex(function (v, i) {
+                    if (v === low) {
+                        return true;
+                    }
+                });
+                if (idx >= 0) {
+                    return low;
+                }
+            }
         }
-      }
-      return;
+        return;
     }
 
     function handleLink() {
-      if(d.resource()){
-        let fileName = extractFileName(d.resource());
-        if(!d.label()){
-          d.label(fileName);
+        let fileName;
+        let ico;
+
+        if (d.resource()) {
+            fileName = extractFileName(d.resource());
+            if (!d.label()){
+                d.label(fileName);
+            }
+            if (!d.icon()){
+                ico = suggestIcon(fileName);
+                d.icon(ico);
+            }
         }
-        if(!d.icon()){
-          let ico = suggestIcon(fileName);
-          d.icon(ico);
-        }
-      }
-       d.displayValue(d.label() || d.resource());
+        d.displayValue(d.label() || d.resource());
     }
 
     model.onChanged("icon", handleLink);
     model.onChanged("resource", handleLink);
-    model.onChanged("label", handleLink)
+    model.onChanged("label", handleLink);
 
     model.naturalKey = model.data.displayValue;
 
