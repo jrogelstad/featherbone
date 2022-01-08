@@ -1270,7 +1270,19 @@
             "/node_modules/codemirror/mode/javascript",
             "/node_modules/codemirror/mode/css",
             "/node_modules/typeface-raleway/files",
-            "/node_modules/print-js/dist"
+            "/node_modules/print-js/dist",
+            "/node_modules/tinymce",
+            "/node_modules/tinymce/icons/default",
+            "/node_modules/tinymce/skins/ui/oxide",
+            "/node_modules/tinymce/skins/ui/oxide/fonts",
+            "/node_modules/tinymce/skins/ui/oxide-dark",
+            "/node_modules/tinymce/skins/ui/oxide-dark/fonts",
+            "/node_modules/tinymce/skins/content/default",
+            "/node_modules/tinymce/skins/content/dark",
+            "/node_modules/tinymce/skins/content/document",
+            "/node_modules/tinymce/skins/content/writer",
+            "/node_modules/tinymce/themes/silver",
+            "/node_modules/tinymce/themes/mobile"
         ];
         let files = [
             "/api.json",

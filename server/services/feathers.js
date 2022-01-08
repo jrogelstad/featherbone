@@ -1207,33 +1207,46 @@
                             return;
                         }
 
-                        sql = "SELECT owner FROM object WHERE _pk=$1;";
-
+                        sql = (
+                            "SELECT tableoid::regclass::text AS tbl " +
+                            "FROM object WHERE _pk=$1;"
+                        );
                         theClient.query(sql, [objPk], function (err, resp) {
                             if (err) {
                                 reject(err);
                                 return;
                             }
-
-                            if (
-                                resp.rows[0].owner !== theClient.currentUser()
-                            ) {
-                                if (obj.data.isSilentError) {
-                                    done(null, false);
+                            sql = (
+                                "SELECT owner " +
+                                "FROM " + resp.rows[0].tbl +
+                                " WHERE _pk=$1;"
+                            );
+                            theClient.query(sql, [objPk], function (err, resp) {
+                                if (err) {
+                                    reject(err);
                                     return;
                                 }
-                                err = (
-                                    "Must be super user or owner of \"" +
-                                    theId +
-                                    "\" to set authorization."
-                                );
-                                reject(err);
-                                return;
-                            }
 
-                            afterCheckSuperUser();
+                                if (
+                                    resp.rows[0].owner !==
+                                    theClient.currentUser()
+                                ) {
+                                    if (obj.data.isSilentError) {
+                                        done(null, false);
+                                        return;
+                                    }
+                                    err = (
+                                        "Must be super user or owner of \"" +
+                                        theId +
+                                        "\" to set authorization."
+                                    );
+                                    reject(err);
+                                    return;
+                                }
+
+                                afterCheckSuperUser();
+                            });
                         });
-                        return;
                     }).catch(reject);
                 };
 
