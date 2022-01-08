@@ -731,7 +731,11 @@ formats.icon.editor = function (options) {
             ),
             onfocus: options.onFocus,
             onblur: options.onBlur,
-            value: prop().toName(),
+            value: (
+                prop() !== undefined
+                ? prop().toName()
+                : ""
+            ),
             oncreate: options.onCreate,
             onremove: options.onRemove,
             readonly: options.readOnly,
@@ -744,12 +748,13 @@ formats.icon.editor = function (options) {
 };
 
 formats.icon.tableData = function (obj) {
-    if (obj.value) {
+    let val = obj.prop.toJSON();
+    if (val) {
         return m("i", {
             style: {fontSize: "18px", verticalAlign: "bottom"},
             class: "material-icons",
             title: obj.title
-        }, obj.value);
+        }, val);
     }
 };
 
