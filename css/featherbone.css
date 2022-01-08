@@ -615,7 +615,7 @@ a.pure-button-selected {
 .fb-menu-list-icon {
   margin-right: 4px;
   font-size: 18px;
-  vertical-align: bottom;;
+  vertical-align: bottom;
 }
 
 .fb-menu-list-separator {
@@ -634,6 +634,11 @@ a.pure-button-selected {
 
 .fb-relation-label {
   width: 215px;
+}
+.fb-relation-label.truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .fb-relation-label-cell {
