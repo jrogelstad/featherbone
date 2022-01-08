@@ -1039,6 +1039,7 @@ f.catalog = function () {
     @return {Object} View model
 */
 f.createViewModel = function (name, options) {
+
     return catalog.store().viewModels()[name.toCamelCase()](options);
 };
 
@@ -1391,6 +1392,29 @@ f.hashCode = function (s) {
             0
         )
     );
+};
+
+f.types.resourceLink = {};
+f.types.resourceLink.tableData = function (obj) {
+
+    let dat = obj.value.data;
+    let ico = dat.icon();
+    let rec = dat.resource();
+    let lbl = dat.label();
+
+    let label = (lbl || (
+        ico
+        ? ""
+        : rec
+    ));
+
+    let icon = (
+        ico
+        ? m("span", {class: "fb-menu-list-icon material-icons"}, ico)
+        : ""
+    );
+
+    return m("a", {href: rec, target: "_blank"}, icon, label);
 };
 
 f.types.address = {};
