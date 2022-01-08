@@ -172,16 +172,8 @@ contactRelation.component = {
         let list;
         let theForm;
         let options = vnode.attrs;
-        let id = vnode.attrs.form || "6kir5kogekam";
+        let id = vnode.attrs.form;
         let relations = options.parentViewModel.relations();
-
-        theForm = f.catalog().store().data().forms().find(
-            (row) => id === row.id
-        );
-
-        if (theForm) {
-            theForm = theForm.toJSON();
-        }
 
         list = {
             columns: [{
