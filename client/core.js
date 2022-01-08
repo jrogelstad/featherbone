@@ -31,6 +31,7 @@ const m = window.m;
 const f = window.f;
 const console = window.console;
 const CodeMirror = window.CodeMirror;
+const tinymce = window.tinymce;
 const exclusions = [
     "id",
     "isDeleted",
@@ -426,6 +427,10 @@ formats.script = {
     type: "string",
     default: ""
 };
+formats.richText = {
+    type: "string",
+    default: ""
+};
 formats.money = {
     type: "object",
     default: () => f.money(),
@@ -617,16 +622,49 @@ let gantt = {
             ? val.data.slice()
             : []
         );
+        let plan = [];
+
         ary.forEach(function (i) {
-            if (typeof i.start === "string") {
-                i.start = f.parseDate(i.start);
+            let item = {};
+            Object.keys(i).forEach(function (k) {
+                item[k] = i[k];
+            });
+            if (typeof item.start === "string") {
+                item.start = f.parseDate(item.start);
             }
             if (typeof i.end === "string") {
-                i.end = f.parseDate(i.end);
+                item.end = f.parseDate(item.end);
             }
+            plan.push(item);
         });
 
-        return ary;
+        return {data: plan};
+    },
+    toType: function (val) {
+        let ary = (
+            (val && val.data)
+            ? val.data
+            : []
+        );
+        let plan = [];
+
+        ary.forEach(function (i) {
+            let item = {};
+            Object.keys(i).forEach(function (k) {
+                item[k] = i[k];
+            });
+            if (
+                Object.prototype.toString.call(item.start) === "[object Date]"
+            ) {
+                item.start = item.start.toLocalDate();
+            }
+            if (Object.prototype.toString.call(item.end) === "[object Date]") {
+                item.end = item.end.toLocalDate();
+            }
+            plan.push(item);
+        });
+
+        return {data: plan};
     },
     default: {},
     editor: function (options) {
@@ -693,7 +731,11 @@ formats.icon.editor = function (options) {
             ),
             onfocus: options.onFocus,
             onblur: options.onBlur,
-            value: prop().toName(),
+            value: (
+                prop() !== undefined
+                ? prop().toName()
+                : ""
+            ),
             oncreate: options.onCreate,
             onremove: options.onRemove,
             readonly: options.readOnly,
@@ -706,12 +748,13 @@ formats.icon.editor = function (options) {
 };
 
 formats.icon.tableData = function (obj) {
-    if (obj.value) {
+    let val = obj.prop.toJSON();
+    if (val) {
         return m("i", {
             style: {fontSize: "18px", verticalAlign: "bottom"},
             class: "material-icons",
             title: obj.title
-        }, obj.value);
+        }, val);
     }
 };
 
@@ -852,7 +895,6 @@ formats.script.editor = function (options) {
 
     opts.oncreate = function () {
         let editor;
-        let lint;
         let state = model.state();
         let e = document.getElementById(options.id);
         let config = {
@@ -871,12 +913,17 @@ formats.script.editor = function (options) {
             },
             autoFocus: false,
             gutters: ["CodeMirror-lint-markers"],
-            lint: true
+            lint: {
+                globals: ["f", "m"],
+                onUpdateLinting: function (annotations) {
+                    // Let model reference lint annoations
+                    model.data.annotations(annotations);
+                    m.redraw();
+                }
+            }
         };
 
         editor = CodeMirror.fromTextArea(e, config);
-        lint = editor.state.lint;
-        lint.options.globals = ["f", "m"];
 
         // Populate on fetch
         function notify() {
@@ -894,11 +941,6 @@ formats.script.editor = function (options) {
         );
 
         editor.on("change", m.redraw);
-        lint.options.onUpdateLinting = function (annotations) {
-            // Let model reference lint annoations
-            model.data.annotations(annotations);
-            m.redraw();
-        };
 
         // Send changed text back to model
         editor.on("blur", function () {
@@ -911,6 +953,31 @@ formats.script.editor = function (options) {
     };
 
     return m("textarea", opts);
+};
+
+formats.richText.editor = function (options) {
+    return m("textarea", {
+        id: options.id,
+        key: options.key,
+        oncreate: function (vnode) {
+            console.log("hello world");
+            let e = document.getElementById(vnode.dom.id);
+            tinymce.init({
+                target: e,
+                height: 500,
+                readonly: Boolean(options.readonly),
+                setup: function (editor) {
+                    editor.on("change", function (e) {
+                        options.prop(e.level.content);
+                    });
+                }
+            });
+        },
+        onremove: function () {
+            tinymce.remove("#" + options.id);
+            console.log("goodbye world");
+        }
+    }, options.prop());
 };
 
 formats.url.editor = function (options) {
@@ -977,6 +1044,7 @@ f.catalog = function () {
     @return {Object} View model
 */
 f.createViewModel = function (name, options) {
+
     return catalog.store().viewModels()[name.toCamelCase()](options);
 };
 
@@ -1094,6 +1162,7 @@ f.inputMap = {
     color: "color",
     textArea: undefined,
     script: undefined,
+    richText: undefined,
     money: "number",
     icon: "text"
 };
@@ -1328,6 +1397,29 @@ f.hashCode = function (s) {
             0
         )
     );
+};
+
+f.types.resourceLink = {};
+f.types.resourceLink.tableData = function (obj) {
+
+    let dat = obj.value.data;
+    let ico = dat.icon();
+    let rec = dat.resource();
+    let lbl = dat.label();
+
+    let label = (lbl || (
+        ico
+        ? ""
+        : rec
+    ));
+
+    let icon = (
+        ico
+        ? m("span", {class: "fb-menu-list-icon material-icons"}, ico)
+        : ""
+    );
+
+    return m("a", {href: rec, target: "_blank"}, icon, label);
 };
 
 f.types.address = {};

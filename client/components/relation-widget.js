@@ -567,7 +567,7 @@ relationWidget.component = {
         let editMenuClass = "pure-menu-link";
         let newMenuClass = "pure-menu-link";
         let buttonClass = "pure-button fa fa-bars fb-relation-button";
-        let labelClass = "fb-relation-label";
+        let labelClass = vm.labelClass || "fb-relation-label";
         let id = vm.id();
 
         menuStyle = {
@@ -637,7 +637,7 @@ relationWidget.component = {
                                position = absolute until after dom is
                                re-rendered by some mouse over activity,
                                so forcing here.
-                            */                               
+                            */
                             document.getElementById(
                                 vnode.dom.id
                             ).style.position = "absolute";

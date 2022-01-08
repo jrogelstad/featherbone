@@ -1402,7 +1402,8 @@
 
                         if (
                             pf.isNaturalKey &&
-                            updRec[fkey] !== oldRec[fkey]
+                            updRec[fkey] !== oldRec[fkey] &&
+                            !isChild // Children can be reordered
                         ) {
 
                             unique = {
