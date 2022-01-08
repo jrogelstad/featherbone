@@ -42,17 +42,15 @@ const resourceLinkRelation = {};
 */
 resourceLinkRelation.viewModel = function (options) {
     let vm = f.createViewModel("RelationWidget", options);
-
+    vm.labelClass = "fb-relation-label truncate";
     vm.labels = function () {
         let resource;
-        let label;
         let icon;
         let elements = [];
         let parentModel = options.parentViewModel.model();
         let model = parentModel.data[options.parentProperty]();
 
         if (model) {
-
             resource = (
                 model.data.resource
                 ? model.data.resource()
@@ -64,32 +62,19 @@ resourceLinkRelation.viewModel = function (options) {
                 : ""
             );
 
-            label = (
-                model.data.label
-                ? model.data.label()
-                : ""
-            );
-
             if (resource) {
-
                 elements.push(
-                        m("a", {
-                            href: resource,
-                            target: "_blank"
-                        }, [
-                            m("i", {
-                                class: (
-                                    "material-icons " +
-                                    (icon || "") +
-                                    " fb-menu-list-icon"
-                                )
-                            }, "resource")
-                        ], (label || resource))
+                    m("a", {
+                        href: resource,
+                        target: "_blank"
+                    }, [
+                        m("i", {
+                            class: "material-icons fb-menu-list-icon"
+                        }, (icon || "resource")),
+                        resource
+                    ])
                 );
             }
-
-
-
         }
         return elements;
     };
@@ -113,7 +98,7 @@ resourceLinkRelation.component = {
         let list;
         let theForm;
         let options = vnode.attrs;
-        let id = vnode.attrs.form || "scotelinkable";
+        let id = vnode.attrs.form || "k529a1omkxdw";
         let relations = options.parentViewModel.relations();
 
         theForm = f.catalog().store().data().forms().find(
@@ -160,10 +145,9 @@ resourceLinkRelation.component = {
         this.viewModel = relations[options.parentProperty];
     },
 
-   view:f.getComponent("RelationWidget").view,
-    labelProperty:f.prop("displayValue"),
-    valueProperty:f.prop("displayValue")
-    
+    view: f.getComponent("RelationWidget").view,
+    labelProperty: f.prop("displayValue"),
+    valueProperty: f.prop("displayValue")
 };
 
 f.catalog().register(

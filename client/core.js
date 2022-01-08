@@ -1394,36 +1394,27 @@ f.hashCode = function (s) {
     );
 };
 
-/// given a data: url, exchange it for a blob url which caches the data to the client to be referenced by the blob id
-///
-function toBlobUrl(dataURI){
-    /// https://stackoverflow.com/questions/9388412/data-uri-to-object-url-with-createobjecturl-in-chrome-ff
-    var mime = dataURI.split(',')[0].split(':')[1].split(';')[0];
-    /// TODO: Replace with Buffer.from(dataURI.split(',')[1],"base64"); 
-    var binary = atob(dataURI.split(',')[1]);
-    var array = [];
-    for (var i = 0; i < binary.length; i++) {
-      array.push(binary.charCodeAt(i));
-    }
-    return URL.createObjectURL(new Blob([new Uint8Array(array)], {type: mime}));
-}
-
 f.types.resourceLink = {};
-f.types.resourceLink.tableData = function(obj){
+f.types.resourceLink.tableData = function (obj) {
 
     let dat = obj.value.data;
     let ico = dat.icon();
     let rec = dat.resource();
     let lbl = dat.label();
 
-    let label = (lbl ? lbl : (ico ? "" : rec));
+    let label = (lbl || (
+        ico
+        ? ""
+        : rec
+    ));
 
-    let icon = (ico ? m("span",{class : `fb-menu-list-icon material-icons`},ico) : "");
+    let icon = (
+        ico
+        ? m("span", {class: "fb-menu-list-icon material-icons"}, ico)
+        : ""
+    );
 
-    return m("a", {
-        href: (rec.match(/^data:/i) ? toBlobUrl(rec) : rec),
-        target: "_blank"
-    }, icon, label); 
+    return m("a", {href: rec, target: "_blank"}, icon, label);
 };
 
 f.types.address = {};
