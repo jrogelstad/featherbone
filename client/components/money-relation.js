@@ -357,10 +357,10 @@ moneyRelation.viewModel = function (options) {
     };
     /**
         @method showCurrency
-        @param {Boolean} flag
+        @param {Boolean} flag default = false
         @return {Boolean}
     */
-    vm.showCurrency = f.prop(options.showCurrency !== false);
+    vm.showCurrency = f.prop(options.showCurrency === true);
 
     return vm;
 };
