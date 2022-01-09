@@ -48,7 +48,7 @@ function resourceLink(data, feather) {
                 return mat[0];
             }
         }
-        return;
+        return null;
     }
     function mapIcon(ext){
         return icoMap[ext] || ext;
@@ -73,7 +73,7 @@ function resourceLink(data, feather) {
                 }
             }
         }
-        return;
+        return null;
     }
 
     function handleLink() {
