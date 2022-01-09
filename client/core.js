@@ -748,7 +748,11 @@ formats.icon.editor = function (options) {
 };
 
 formats.icon.tableData = function (obj) {
-    let val = obj.prop.toJSON();
+    let val = (
+        obj.prop.toJSON
+        ? obj.prop.toJSON()
+        : obj.prop()
+    );
     if (val) {
         return m("i", {
             style: {fontSize: "18px", verticalAlign: "bottom"},
