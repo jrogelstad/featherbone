@@ -99,9 +99,7 @@ f.catalog().register(
 resourceLinkRelation.component = {
     oninit: function (vnode) {
         let list;
-        let theForm;
         let options = vnode.attrs;
-        let id = vnode.attrs.form;
         let relations = options.parentViewModel.relations();
 
         list = {
@@ -128,7 +126,6 @@ resourceLinkRelation.component = {
                 parentViewModel: options.parentViewModel,
                 parentProperty: options.parentProperty,
                 valueProperty: options.valueProperty || "displayValue",
-                form: theForm,
                 list: options.list || list,
                 filter: options.filter,
                 isCell: options.isCell,
