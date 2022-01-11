@@ -580,7 +580,7 @@ formPage.viewModel = function (options) {
         function error(err) {
             dlg.message(err.message);
             dlg.title("Error");
-            dlg.icon("cancel_presentation");
+            dlg.icon("error");
             dlg.buttonCancel().hide();
             dlg.show();
         }
@@ -634,6 +634,12 @@ formPage.viewModel = function (options) {
         @return {ViewModels.Button}
     */
     vm.buttonAuth = f.prop();
+    /**
+        @method buttonCopy
+        @param {ViewModels.Button} button
+        @return {ViewModels.Button}
+    */
+    vm.buttonCopy = f.prop();
     /**
         @method buttonPdf
         @param {ViewModels.Button} button
@@ -805,7 +811,7 @@ formPage.viewModel = function (options) {
         @return {ViewModels.Dialog}
     */
     vm.sseErrorDialog = f.prop(f.createViewModel("Dialog", {
-        icon: "cancel_presentation",
+        icon: "error",
         title: "Connection Error",
         message: (
             "You have lost connection to the server." +
@@ -920,6 +926,17 @@ formPage.viewModel = function (options) {
         )
     }));
 
+    vm.buttonCopy(f.createViewModel("Button", {
+        onclick: vm.model().copy,
+        icon: "library_add",
+        title: "New copy",
+        class: (
+            toolbarButtonClass +
+            " fb-toolbar-button-right" +
+            " fb-toolbar-button-left-side "
+        )
+    }));
+
     vm.buttonPdf(f.createViewModel("Button", {
         onclick: doPrintPdf,
         icon: "picture_as_pdf",
@@ -927,7 +944,7 @@ formPage.viewModel = function (options) {
         class: (
             toolbarButtonClass +
             " fb-toolbar-button-right" +
-            " fb-toolbar-button-left-side "
+            " fb-toolbar-button-middle-side "
         )
     }));
 
@@ -970,6 +987,8 @@ formPage.viewModel = function (options) {
         }
         return saveTitle();
     };
+    vm.buttonCopy().isDisabled = () => !vm.model().canCopy();
+    vm.buttonPdf().isDisabled = vm.model().canSave;
 
     sseState.resolve("Error").enter(function () {
         vm.sseErrorDialog().show();
@@ -1106,6 +1125,9 @@ formPage.component = {
                     viewModel: vm.buttonPdf()
                 }),
                 m(btn, {
+                    viewModel: vm.buttonCopy()
+                }),
+                m(btn, {
                     viewModel: vm.buttonBack()
                 }),
                 m(btn, {
@@ -1148,4 +1170,3 @@ formPage.component = {
 };
 
 f.catalog().register("components", "formPage", formPage.component);
-
