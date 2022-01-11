@@ -679,7 +679,7 @@ function initApp() {
 
         // View model for sse error trapping
         sseErrorDialogViewModel = viewModels.dialog({
-            icon: "cancel_presentation",
+            icon: "error",
             title: "Connection Error",
             message: (
                 "You have lost connection to the server." +
