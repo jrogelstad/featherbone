@@ -167,7 +167,7 @@ function saveProfile(name, config, dlg) {
             }).then(callback).catch(function (err) {
                 profileInvalid = true;
                 dlg.message(err.message);
-                dlg.icon("cancel_presentation");
+                dlg.icon("error");
                 dlg.buttonCancel().hide();
                 dlg.show();
             });
@@ -862,7 +862,7 @@ workbookPage.viewModel = function (options) {
         @return {ViewModels.Dialog}
     */
     vm.sseErrorDialog = f.prop(f.createViewModel("Dialog", {
-        icon: "cancel_presentation",
+        icon: "error",
         title: "Connection Error",
         message: (
             "You have lost connection to the server. " +

@@ -975,7 +975,7 @@ tableWidget.viewModel = function (options) {
                     "Would you like to download the log?"
                 );
                 dlg.title("Error");
-                dlg.icon("cancel_presentation");
+                dlg.icon("error");
                 dlg.onOk(doDownload.bind(null, target, resp));
                 dlg.show();
             }
@@ -986,7 +986,7 @@ tableWidget.viewModel = function (options) {
             if (err.response !== null) {
                 dlg.message(err.message);
                 dlg.title("Error");
-                dlg.icon("cancel_presentation");
+                dlg.icon("error");
                 dlg.buttonCancel().hide();
                 dlg.show();
             }
@@ -1124,7 +1124,7 @@ tableWidget.viewModel = function (options) {
         function error(err) {
             dlg.message(err.message);
             dlg.title("Error");
-            dlg.icon("cancel_presentation");
+            dlg.icon("error");
             dlg.buttonCancel().hide();
             dlg.show();
         }

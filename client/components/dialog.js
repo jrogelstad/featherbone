@@ -296,6 +296,21 @@ dialog.component = {
         let vm = this.viewModel;
         let ids = vm.ids();
         let header;
+        let icon = vm.icon();
+        let iconClass = "material-icons-outlined fb-dialog-icon";
+        
+        switch (icon)
+        {
+        case "info":
+            iconClass += " fb-info";
+            break;
+        case "error":
+            iconClass += " fb-error";
+            break;
+        case "report_problem":
+            iconClass += " fb-warning";
+            break;
+        }
 
         if (vm.okDisabled()) {
             vm.buttonOk().disable();
@@ -317,8 +332,8 @@ dialog.component = {
                 id: ids.header,
                 class: "fb-header"
             }, [m("i", {
-                class: "material-icons-outlined fb-dialog-icon"
-            }, vm.icon())], vm.title().toName());
+                class: iconClass
+            }, icon)], vm.title().toName());
         }
 
         return m("dialog", {
