@@ -298,9 +298,8 @@ dialog.component = {
         let header;
         let icon = vm.icon();
         let iconClass = "material-icons-outlined fb-dialog-icon";
-        
-        switch (icon)
-        {
+
+        switch (icon) {
         case "info":
             iconClass += " fb-info";
             break;
