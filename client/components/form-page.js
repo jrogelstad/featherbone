@@ -732,7 +732,7 @@ formPage.viewModel = function (options) {
         vm.model().copy();
         instances[vm.model().id()] = vm.model();
         formInstances[vm.model().id()] = inst;
-    }
+    };
     /**
         @method doNew
     */
