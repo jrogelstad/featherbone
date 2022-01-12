@@ -683,7 +683,7 @@ formPage.viewModel = function (options) {
     */
     vm.doApply = function () {
         vm.model().save().then(function () {
-            callReceiver(false);
+            callReceiver();
         });
     };
     /**
@@ -721,6 +721,18 @@ formPage.viewModel = function (options) {
 
         window.history.go(pageIdx * -1);
     };
+    /**
+        @method doCopy
+    */
+    vm.doCopy = function () {
+        let inst = formInstances[vm.model().id()];
+
+        delete instances[vm.model().id()];
+        delete formInstances[vm.model().id()];
+        vm.model().copy();
+        instances[vm.model().id()] = vm.model();
+        formInstances[vm.model().id()] = inst;
+    }
     /**
         @method doNew
     */
@@ -927,7 +939,7 @@ formPage.viewModel = function (options) {
     }));
 
     vm.buttonCopy(f.createViewModel("Button", {
-        onclick: vm.model().copy,
+        onclick: vm.doCopy,
         icon: "library_add",
         title: "New copy",
         class: (

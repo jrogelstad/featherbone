@@ -33,6 +33,25 @@ const store = catalog.store();
 // ..........................................................
 // PRIVATE
 //
+const noCopy = [
+    "created",
+    "createdBy",
+    "updated",
+    "updatedBy",
+    "lock"
+];
+
+function purgeNoCopy(obj) {
+    obj.id = f.createId();
+    noCopy.forEach(function (attr) {
+        delete obj[attr];
+    });
+    Object.keys(obj).forEach(function (key) {
+        if (Array.isArray(obj[key])) {
+            obj[key].forEach((a) => purgeNoCopy(a));
+        }
+    });
+}
 
 function simpleProp(store) {
     return function (...args) {
@@ -365,8 +384,10 @@ function createModel(data, feather) {
     let lastFetched = {};
     let onChange = {};
     let onChanged = {};
+    let onCopy = [];
     let isFrozen = false;
     let naturalKey;
+    let canCreate;
     let canUpdate;
     let canDelete;
     let saveContext;
@@ -466,7 +487,13 @@ function createModel(data, feather) {
         @return {Boolean}
     */
     model.canCopy = function () {
-        return state.resolve(state.current()[0]).canCopy();
+        return (
+            !feather.isReadOnly &&
+            !model.parent() &&
+            Boolean(model.naturalKey(true)) &&
+            Boolean(canCreate) &&
+            state.resolve(state.current()[0]).canCopy()
+        );
     };
 
     /**
@@ -512,9 +539,27 @@ function createModel(data, feather) {
     };
 
     /**
+        Perform an authorization check whether a new model
+        copy of this model can be created. The result of
+        `canCopy` will be based on the response of this query.
+
+        @method checkCreate
+    */
+    model.checkCreate = function () {
+        if (canCreate === undefined) {
+            catalog.isAuthorized({
+                feather: feather.name,
+                action: "canCreate"
+            }).then(function (resp) {
+                canCreate = resp;
+            }).catch(doError);
+        }
+    };
+
+    /**
         Perform an authorization check whether the model
         can be deleted form the server. The result of
-        `canCheck` will be based on the response of this query.
+        `canDelete` will be based on the response of this query.
 
         @method checkDelete
     */
@@ -866,6 +911,19 @@ function createModel(data, feather) {
         }
 
         return this;
+    };
+
+    /**
+        Add an event binding that will be triggered after a copy is executed.
+
+        @method onCopy
+        @param {Function} callback Callback function to call on change
+        @chainable
+        @return {Object}
+    */
+    model.onCopy = function (callback) {
+        onCopy.push(callback);
+        return model;
     };
 
     /**
@@ -1282,14 +1340,17 @@ function createModel(data, feather) {
             : false
         );
 
+        purgeNoCopy(copy);
+
         if (autonum) {
             delete copy[nkey];
         } else {
             copy[nkey] = "Copy of " + copy[nkey];
         }
 
-        doClear();
+        model.clear();
         model.set(copy);
+        onCopy.forEach((callback) => callback());
     }
 
     doClear = function (context) {
@@ -1899,7 +1960,7 @@ function createModel(data, feather) {
                             context: lock
                         });
                     });
-                    this.canCopy = () => Boolean(model.naturalKey(true));
+                    this.canCopy = () => true;
                     this.canDelete = () => true;
                     this.canSave = () => false;
                     this.canUndo = () => false;
@@ -1914,7 +1975,7 @@ function createModel(data, feather) {
                         doThaw();
                     });
                     this.event("copy", doCopy);
-                    this.canCopy = () => Boolean(model.naturalKey(true));
+                    this.canCopy = () => true;
                     this.canDelete = () => false;
                     this.canSave = () => false;
                     this.canUndo = () => false;
@@ -2042,7 +2103,7 @@ function createModel(data, feather) {
             });
             this.event("copy", doCopy);
 
-            this.canCopy = () => Boolean(model.naturalKey(true));
+            this.canCopy = () => true;
             this.canDelete = () => false;
             this.canSave = () => false;
             this.canUndo = () => false;
