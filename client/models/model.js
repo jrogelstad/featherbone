@@ -1336,7 +1336,7 @@ function createModel(data, feather) {
         let copy = f.copy(model.toJSON());
         let autonum = (
             Boolean(nkey)
-            ? Boolean(feather.properties.autonumber)
+            ? Boolean(feather.properties[nkey].autonumber)
             : false
         );
 
