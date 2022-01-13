@@ -1593,6 +1593,7 @@ function createModel(data, feather) {
                 typeof prop.type === "object" &&
                 !prop.type.parentOf &&
                 !prop.type.childOf &&
+                !prop.type.isChild &&
                 bdata[key]
             ) {
                 bdata[key] = {
