@@ -37,7 +37,7 @@ module.static = f.prop({
         function error(err) {
             dialog.message(err.message);
             dialog.title("Error");
-            dialog.icon("report_error");
+            dialog.icon("error");
             dialog.buttonCancel().hide();
             dialog.show();
         }
