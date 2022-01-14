@@ -97,7 +97,8 @@ function resourceLink(data, feather) {
     model.onChanged("resource", handleLink);
     model.onChanged("label", handleLink);
 
-    model.naturalKey = model.data.displayValue;
+    model.naturalKey = () => model.data.displayValue();
+    model.canCopy = () => false;
 
     return model;
 }
