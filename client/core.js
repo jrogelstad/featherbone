@@ -964,7 +964,6 @@ formats.richText.editor = function (options) {
         id: options.id,
         key: options.key,
         oncreate: function (vnode) {
-            console.log("hello world");
             let e = document.getElementById(vnode.dom.id);
             tinymce.init({
                 target: e,
@@ -979,7 +978,6 @@ formats.richText.editor = function (options) {
         },
         onremove: function () {
             tinymce.remove("#" + options.id);
-            console.log("goodbye world");
         }
     }, options.prop());
 };
