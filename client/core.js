@@ -748,7 +748,11 @@ formats.icon.editor = function (options) {
 };
 
 formats.icon.tableData = function (obj) {
-    let val = obj.prop.toJSON();
+    let val = (
+        obj.prop.toJSON
+        ? obj.prop.toJSON()
+        : obj.prop()
+    );
     if (val) {
         return m("i", {
             style: {fontSize: "18px", verticalAlign: "bottom"},
@@ -960,7 +964,6 @@ formats.richText.editor = function (options) {
         id: options.id,
         key: options.key,
         oncreate: function (vnode) {
-            console.log("hello world");
             let e = document.getElementById(vnode.dom.id);
             tinymce.init({
                 target: e,
@@ -975,7 +978,6 @@ formats.richText.editor = function (options) {
         },
         onremove: function () {
             tinymce.remove("#" + options.id);
-            console.log("goodbye world");
         }
     }, options.prop());
 };

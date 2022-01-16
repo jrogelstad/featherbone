@@ -37,7 +37,8 @@ function contact(data, feather) {
     model.onChanged("firstName", handleName);
     model.onChanged("lastName", handleName);
 
-    model.naturalKey = model.data.fullName;
+    model.naturalKey = () => model.data.fullName();
+    model.canCopy = () => false;
 
     return model;
 }
