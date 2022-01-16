@@ -170,9 +170,7 @@ f.catalog().register(
 contactRelation.component = {
     oninit: function (vnode) {
         let list;
-        let theForm;
         let options = vnode.attrs;
-        let id = vnode.attrs.form;
         let relations = options.parentViewModel.relations();
 
         list = {
@@ -203,7 +201,6 @@ contactRelation.component = {
                 parentViewModel: options.parentViewModel,
                 parentProperty: options.parentProperty,
                 valueProperty: options.valueProperty || "fullName",
-                form: theForm,
                 list: options.list || list,
                 filter: options.filter,
                 isCell: options.isCell,

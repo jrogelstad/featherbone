@@ -33,6 +33,25 @@ const store = catalog.store();
 // ..........................................................
 // PRIVATE
 //
+const noCopy = [
+    "created",
+    "createdBy",
+    "updated",
+    "updatedBy",
+    "lock"
+];
+
+function purgeNoCopy(obj) {
+    obj.id = f.createId();
+    noCopy.forEach(function (attr) {
+        delete obj[attr];
+    });
+    Object.keys(obj).forEach(function (key) {
+        if (Array.isArray(obj[key])) {
+            obj[key].forEach((a) => purgeNoCopy(a));
+        }
+    });
+}
 
 function simpleProp(store) {
     return function (...args) {
@@ -365,8 +384,10 @@ function createModel(data, feather) {
     let lastFetched = {};
     let onChange = {};
     let onChanged = {};
+    let onCopy = [];
     let isFrozen = false;
     let naturalKey;
+    let canCreate;
     let canUpdate;
     let canDelete;
     let saveContext;
@@ -460,6 +481,22 @@ function createModel(data, feather) {
     };
 
     /**
+        Check whether model can be copied.
+
+        @method canCopy
+        @return {Boolean}
+    */
+    model.canCopy = function () {
+        return (
+            !feather.isReadOnly &&
+            !model.parent() &&
+            Boolean(model.naturalKey(true)) &&
+            Boolean(canCreate) &&
+            state.resolve(state.current()[0]).canCopy()
+        );
+    };
+
+    /**
         Check whether changes in model can be saved in its
         current state.
 
@@ -502,9 +539,27 @@ function createModel(data, feather) {
     };
 
     /**
+        Perform an authorization check whether a new model
+        copy of this model can be created. The result of
+        `canCopy` will be based on the response of this query.
+
+        @method checkCreate
+    */
+    model.checkCreate = function () {
+        if (canCreate === undefined) {
+            catalog.isAuthorized({
+                feather: feather.name,
+                action: "canCreate"
+            }).then(function (resp) {
+                canCreate = resp;
+            }).catch(doError);
+        }
+    };
+
+    /**
         Perform an authorization check whether the model
         can be deleted form the server. The result of
-        `canCheck` will be based on the response of this query.
+        `canDelete` will be based on the response of this query.
 
         @method checkDelete
     */
@@ -563,12 +618,26 @@ function createModel(data, feather) {
 
     /**
         Send event to clear properties on the object and set it to
-        "/Ready/New" state.
+        `/Ready/New` state.
 
         @method clear
     */
     model.clear = function () {
         state.send("clear");
+    };
+
+    /**
+        Send event to copy data to a new record. It will only work
+        in the `/Ready/Fetched/Clean` or `/Ready/Fetched/ReadyOnly`
+        state on models that have a natural key defined. The natural
+        key will be set to "Copy of " plus the source natural key value.
+        If the model is autonumber the natural key will be blank.
+
+        @method copy
+        @return {Promise}
+    */
+    model.copy = function () {
+        return doSend("copy");
     };
 
     /**
@@ -720,12 +789,14 @@ function createModel(data, feather) {
     model.name = feather.name || "Object";
 
     /**
-        Returns natural key property name.
+        Returns natural key property value. If `flag`
+        is true, returns natural key property name.
 
         @method naturalKey
+        @param {Boolean} [flag] return property name
         @return {String}
     */
-    model.naturalKey = function () {
+    model.naturalKey = function (flag) {
         if (naturalKey === undefined) {
             naturalKey = Object.keys(feather.properties).find(
                 function (key) {
@@ -742,7 +813,11 @@ function createModel(data, feather) {
             return "";
         }
 
-        return model.data[naturalKey]();
+        return (
+            Boolean(flag)
+            ? naturalKey
+            : model.data[naturalKey]()
+        );
     };
 
     /**
@@ -836,6 +911,19 @@ function createModel(data, feather) {
         }
 
         return this;
+    };
+
+    /**
+        Add an event binding that will be triggered after a copy is executed.
+
+        @method onCopy
+        @param {Function} callback Callback function to call on change
+        @chainable
+        @return {Object}
+    */
+    model.onCopy = function (callback) {
+        onCopy.push(callback);
+        return model;
     };
 
     /**
@@ -1243,6 +1331,28 @@ function createModel(data, feather) {
     // PRIVATE
     //
 
+    function doCopy() {
+        let nkey = model.naturalKey(true);
+        let copy = f.copy(model.toJSON());
+        let autonum = (
+            Boolean(nkey)
+            ? Boolean(feather.properties[nkey].autonumber)
+            : false
+        );
+
+        purgeNoCopy(copy);
+
+        if (autonum) {
+            delete copy[nkey];
+        } else {
+            copy[nkey] = "Copy of " + copy[nkey];
+        }
+
+        model.clear();
+        model.set(copy);
+        onCopy.forEach((callback) => callback());
+    }
+
     doClear = function (context) {
         let keys = Object.keys(model.data);
         let values = {};
@@ -1483,6 +1593,7 @@ function createModel(data, feather) {
                 typeof prop.type === "object" &&
                 !prop.type.parentOf &&
                 !prop.type.childOf &&
+                !prop.type.isChild &&
                 bdata[key]
             ) {
                 bdata[key] = {
@@ -1804,6 +1915,7 @@ function createModel(data, feather) {
                 this.event("delete", function () {
                     this.goto("/Deleted");
                 });
+                this.canCopy = () => false;
                 this.canDelete = () => true;
                 this.canSave = model.isValid;
                 this.canUndo = () => false;
@@ -1838,6 +1950,7 @@ function createModel(data, feather) {
                     this.event("changed", function () {
                         this.goto("../Locking");
                     });
+                    this.event("copy", doCopy);
                     this.event("lock", function (lock) {
                         this.goto("../../../Locked", {
                             context: lock
@@ -1848,6 +1961,7 @@ function createModel(data, feather) {
                             context: lock
                         });
                     });
+                    this.canCopy = () => true;
                     this.canDelete = () => true;
                     this.canSave = () => false;
                     this.canUndo = () => false;
@@ -1861,6 +1975,8 @@ function createModel(data, feather) {
                         model.isReadOnly(false);
                         doThaw();
                     });
+                    this.event("copy", doCopy);
+                    this.canCopy = () => true;
                     this.canDelete = () => false;
                     this.canSave = () => false;
                     this.canUndo = () => false;
@@ -1877,6 +1993,7 @@ function createModel(data, feather) {
                     this.event("save", function (context) {
                         saveContext = context;
                     });
+                    this.canCopy = () => false;
                     this.canDelete = () => false;
                     this.canSave = () => false;
                     this.canUndo = () => true;
@@ -1887,6 +2004,7 @@ function createModel(data, feather) {
                     this.event("unlocked", function () {
                         this.goto("../Clean");
                     });
+                    this.canCopy = () => false;
                     this.canDelete = () => false;
                     this.canSave = () => false;
                     this.canUndo = () => false;
@@ -1909,6 +2027,7 @@ function createModel(data, feather) {
                             context: pContext
                         });
                     });
+                    this.canCopy = () => false;
                     this.canDelete = () => false;
                     this.canSave = model.isValid;
                     this.canUndo = () => true;
@@ -1919,6 +2038,7 @@ function createModel(data, feather) {
         this.state("Busy", function () {
             this.state("Fetching", function () {
                 this.enter(doFetch);
+                this.canCopy = () => false;
                 this.canDelete = () => false;
                 this.canSave = () => false;
                 this.canUndo = () => false;
@@ -1932,16 +2052,19 @@ function createModel(data, feather) {
                 });
                 this.state("Posting", function () {
                     this.enter(doPost);
+                    this.canCopy = () => false;
                     this.canDelete = () => false;
                     this.canSave = () => false;
                     this.canUndo = () => false;
                 });
                 this.state("Patching", function () {
                     this.enter(doPatch);
+                    this.canCopy = () => false;
                     this.canDelete = () => false;
                     this.canSave = () => false;
                     this.canUndo = () => false;
                 });
+                this.canCopy = () => false;
                 this.canDelete = () => false;
                 this.canSave = () => false;
                 this.canUndo = () => false;
@@ -1952,6 +2075,7 @@ function createModel(data, feather) {
                 this.event("deleted", function () {
                     this.goto("/Deleted");
                 });
+                this.canCopy = () => false;
                 this.canDelete = () => false;
                 this.canSave = () => false;
                 this.canUndo = () => false;
@@ -1978,7 +2102,9 @@ function createModel(data, feather) {
                 d.lock(null);
                 this.goto("/Ready");
             });
+            this.event("copy", doCopy);
 
+            this.canCopy = () => true;
             this.canDelete = () => false;
             this.canSave = () => false;
             this.canUndo = () => false;
@@ -2001,6 +2127,7 @@ function createModel(data, feather) {
                 doThaw();
                 this.goto("/Ready");
             });
+            this.canCopy = () => false;
             this.canDelete = () => false;
             this.canSave = () => false;
             this.canUndo = () => true;
@@ -2010,6 +2137,7 @@ function createModel(data, feather) {
             this.event("clear", function () {
                 this.goto("/Ready/New");
             });
+            this.canCopy = () => false;
             this.canDelete = () => false;
             this.canSave = () => false;
             this.canUndo = () => false;
@@ -2021,6 +2149,7 @@ function createModel(data, feather) {
             this.event("deleted", function () {
                 this.goto("/Deleted");
             });
+            this.canCopy = () => false;
             this.canDelete = () => false;
             this.canSave = () => false;
             this.canUndo = () => false;

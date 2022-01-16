@@ -41,6 +41,10 @@ function doc(data, feather) {
 
     model.onLoad(handleReadOnly);
 
+    model.onCopy(function () {
+        model.data.owner(f.currentUser());
+    });
+
     return model;
 }
 

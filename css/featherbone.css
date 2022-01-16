@@ -91,6 +91,18 @@ a.pure-button-selected {
   -moz-osx-font-smoothing: grayscale;
 }
 
+.fb-info {
+  color: #0000FF
+}
+
+.fb-warning {
+  color: #FFA500
+}
+
+.fb-error {
+  color: red
+}
+
 .fb-checkbox-readonly {
   background: #eee !important;
 }

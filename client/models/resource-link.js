@@ -48,7 +48,7 @@ function resourceLink(data, feather) {
                 return mat[0];
             }
         }
-        return;
+        return null;
     }
     function mapIcon(ext){
         return icoMap[ext] || ext;
@@ -73,7 +73,7 @@ function resourceLink(data, feather) {
                 }
             }
         }
-        return;
+        return null;
     }
 
     function handleLink() {
@@ -97,7 +97,8 @@ function resourceLink(data, feather) {
     model.onChanged("resource", handleLink);
     model.onChanged("label", handleLink);
 
-    model.naturalKey = model.data.displayValue;
+    model.naturalKey = () => model.data.displayValue();
+    model.canCopy = () => false;
 
     return model;
 }
