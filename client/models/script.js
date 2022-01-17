@@ -67,6 +67,10 @@ function script(data, feather) {
         model.data.name.isReadOnly(true);
     });
 
+    model.onCopy(function () {
+        model.data.name.isReadOnly(false);
+    });
+
     return model;
 }
 
