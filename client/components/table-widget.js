@@ -294,6 +294,11 @@ function createTableDataView(options, col) {
         ? theProp.title()
         : ""
     );
+    let indent = options.indent();
+    let iconStyle;
+    let models;
+    let currIdx;
+    let next;
 
     columnWidth -= 6;
 
@@ -392,18 +397,42 @@ function createTableDataView(options, col) {
         title: otitle
     });
 
-    cell = [
-        m("td", tdOpts, content),
-        // This exists to force exact alignment
-        // with header on all browsers
-        m("td", {
-            key: id + "-spcr",
-            class: "fb-column-spacer",
-            style: {
-                fontSize: zoom
-            }
-        })
-    ];
+    if (indent !== false) {
+        iconStyle = {
+            fontSize: zoom,
+            verticalAlign: "bottom",
+            textIndent: indent + "em"
+        };
+        models = theVm.models();
+        currIdx = models.indexOf(model);
+        next = models[currIdx + 1];
+
+        if (!next || next.data[theVm.indentOn()]() <= indent) {
+            iconStyle.color = "white";
+        }
+        cell = [
+            m("td", tdOpts, [
+                m("i", {
+                    key: id + "-indent",
+                    class: "material-icons",
+                    style: iconStyle
+                }, "expand_more"),
+                m("span", {
+                    key: id + "-content"
+                }, content)
+            ])
+        ];
+    } else {
+        cell = [m("td", tdOpts, content)];
+    }
+
+    // This exists to force exact alignment
+    // with header on all browsers
+    cell.push(m("td", {
+        key: id + "-spcr",
+        class: "fb-column-spacer",
+        style: {fontSize: zoom}
+    }));
 
     options.idx += 1;
 
@@ -579,6 +608,19 @@ function createTableRow(options, pModel) {
     let cellOpts = {};
     let rowClass;
     let style;
+    let indentOn = theVm.indentOn();
+    let theIndent = () => false;
+    let indata;
+
+    if (indentOn) {
+        // If indent, only do it on first column
+        indata = pModel.data[indentOn]();
+        theIndent = function () {
+            let ret = indata;
+            indata = false;
+            return ret;
+        };
+    }
 
     // Build row
     if (isSelected) {
@@ -595,7 +637,8 @@ function createTableRow(options, pModel) {
             model: pModel,
             onclick: onClick,
             vm: theVm,
-            zoom: theZoom
+            zoom: theZoom,
+            indent: theIndent
         }));
 
         rowOpts = {
@@ -922,6 +965,7 @@ function resize(vm, vnode) {
     @param {Array} [options.actions] Actions
     @param {Object|String} options.feather Feather
     @param {Object} options.config Configuration
+    @param {String} [options.indentOn] Attribute for indentation level
     @param {Array} [options.models] Array of models
     @param {String} [options.height] Fixed height. If none automatic
     @param {String} [options.containerId] Container id for automatic resize
@@ -1548,6 +1592,18 @@ tableWidget.viewModel = function (options) {
         @return {String}
     */
     vm.class = f.prop(options.class || "");
+    /**
+        Property with indentation level. If used
+        will generate a tree format. It is expected
+        the values on the property are integers indicating
+        Indentation level on records with a parent child
+        relationship.
+
+        @method class
+        @param {String} property Property name
+        @return {String}
+    */
+    vm.indentOn = f.prop(options.indentOn || "");
     /**
         @method isEditModeEnabled
         @param {Boolean} flag
