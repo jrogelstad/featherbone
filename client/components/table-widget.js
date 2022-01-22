@@ -294,11 +294,9 @@ function createTableDataView(options, col) {
         ? theProp.title()
         : ""
     );
-    let indent = options.indent();
     let iconStyle;
-    let models;
-    let currIdx;
-    let next;
+    let indentOn = theVm.models().indentOn();
+    let icon;
 
     columnWidth -= 6;
 
@@ -397,26 +395,28 @@ function createTableDataView(options, col) {
         title: otitle
     });
 
-    if (indent !== false) {
+    if (indentOn && options.idx === 0) {
         iconStyle = {
-            fontSize: zoom,
-            verticalAlign: "bottom",
-            textIndent: indent + "em"
+            fontSize: "18px",
+            verticalAlign: "text-top",
+            textIndent: options.model.data[indentOn]() + "em"
         };
-        models = theVm.models();
-        currIdx = models.indexOf(model);
-        next = models[currIdx + 1];
-
-        if (!next || next.data[theVm.indentOn()]() <= indent) {
+        if (!options.model.isParent()) {
             iconStyle.color = "white";
         }
+        icon = (
+            options.model.collapsed()
+            ? "chevron_right"
+            : "expand_more"
+        );
         cell = [
             m("td", tdOpts, [
                 m("i", {
-                    key: id + "-indent",
                     class: "material-icons",
+                    key: id + "-indent",
+                    onclick: options.model.toggleCollapse,
                     style: iconStyle
-                }, "expand_more"),
+                }, icon),
                 m("span", {
                     key: id + "-content"
                 }, content)
@@ -608,19 +608,6 @@ function createTableRow(options, pModel) {
     let cellOpts = {};
     let rowClass;
     let style;
-    let indentOn = theVm.indentOn();
-    let theIndent = () => false;
-    let indata;
-
-    if (indentOn) {
-        // If indent, only do it on first column
-        indata = pModel.data[indentOn]();
-        theIndent = function () {
-            let ret = indata;
-            indata = false;
-            return ret;
-        };
-    }
 
     // Build row
     if (isSelected) {
@@ -637,8 +624,7 @@ function createTableRow(options, pModel) {
             model: pModel,
             onclick: onClick,
             vm: theVm,
-            zoom: theZoom,
-            indent: theIndent
+            zoom: theZoom
         }));
 
         rowOpts = {
@@ -801,6 +787,12 @@ function createTableRow(options, pModel) {
             });
         }
     };
+
+    // Hide rows indented under collapsed parent
+    if (pModel.hide && pModel.hide()) {
+        rowOpts.style = rowOpts.style || {};
+        rowOpts.style.display = "none";
+    }
 
     if (data.isDeleted()) {
         row = m("del", {
@@ -965,7 +957,6 @@ function resize(vm, vnode) {
     @param {Array} [options.actions] Actions
     @param {Object|String} options.feather Feather
     @param {Object} options.config Configuration
-    @param {String} [options.indentOn] Attribute for indentation level
     @param {Array} [options.models] Array of models
     @param {String} [options.height] Fixed height. If none automatic
     @param {String} [options.containerId] Container id for automatic resize
@@ -1592,18 +1583,6 @@ tableWidget.viewModel = function (options) {
         @return {String}
     */
     vm.class = f.prop(options.class || "");
-    /**
-        Property with indentation level. If used
-        will generate a tree format. It is expected
-        the values on the property are integers indicating
-        Indentation level on records with a parent child
-        relationship.
-
-        @method class
-        @param {String} property Property name
-        @return {String}
-    */
-    vm.indentOn = f.prop(options.indentOn || "");
     /**
         @method isEditModeEnabled
         @param {Boolean} flag

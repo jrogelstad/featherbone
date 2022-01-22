@@ -76,6 +76,11 @@ function createList(feather) {
         let id = model.id();
         let idx = ary.index();
         let oid = Number(idx[id]);
+        let i;
+        let iParent = false;
+        let row;
+        let indentOn = ary.indentOn();
+        let level;
 
         if (!Number.isNaN(oid)) {
             dirty.remove(ary[oid]);
@@ -94,6 +99,45 @@ function createList(feather) {
         if (model.state().current()[0] === "/Ready/New") {
             dirty.push(model);
             state.send("changed");
+        }
+
+        // Indent support
+        if (indentOn) {
+            // Set previous record as parent if applicable
+            level = model.data[indentOn]();
+            i = ary.indexOf(model);
+            if (i > 0 && level > 0) {
+                while (i > 0 && !iParent) {
+                    i -= 1;
+                    row = ary[i];
+                    if (row.data[indentOn]() < level) {
+                        iParent = row;
+                        iParent.isParent(true);
+                    }
+                }
+            }
+            // Set up current model indent properties
+            model.isParent = f.prop(false);
+            model.parent = f.prop(iParent);
+            model.collapsed = f.prop(false);
+            model.hide = function () {
+                let parent = model.parent();
+
+                if (parent) {
+                    if (parent.collapsed()) {
+                        return true;
+                    } else {
+                        return parent.hide();
+                    }
+                }
+
+                return false;
+            };
+            model.toggleCollapse = function (e) {
+                model.collapsed(!model.collapsed());
+                e.preventDefault();
+                e.stopPropagation();
+            };
         }
 
         // Subscribe to events on new model if applicable
@@ -165,6 +209,18 @@ function createList(feather) {
         @return {Integer}
     */
     ary.defaultLimit = f.prop(LIMIT);
+
+    /**
+        Enables indented tree view. Tree
+        will be indented based on integer
+        value of property name passed. Top
+        level should be zero.
+
+        @method indentOn
+        @param {String} Property Property with indentation level
+        @return {String}
+    */
+    ary.indentOn = f.prop("");
 
     /**
         Model index.
@@ -514,7 +570,27 @@ function createList(feather) {
             state.send(evt, context);
         });
     };
-
+/*
+    toggleCollapse = function (evt, model) {
+        let collapsed = model.collapsed();
+        let idx = ary.indexOf(model);
+        let indentOn = ary.indentOn();
+        let level = model.data[indentOn]();
+        let next;
+        console.log("toggle->", collapsed, idx);
+        idx += 1;
+        next = ary[idx];
+        while (
+            next && next.data[indentOn]() > level
+        ) {
+            next.show(false);
+            idx += 1;
+            next = ary[idx];
+        }
+        evt.preventDefault();
+        evt.stopPropagation();
+    };
+*/
     // Define statechart
     state = State.define(function () {
         this.state("Unitialized", function () {
@@ -596,6 +672,7 @@ function list(feather) {
         ary.showDeleted(options.showDeleted === true);
         ary.subscribe(options.subscribe === true);
         ary.isEditable(options.isEditable !== false);
+        ary.indentOn(options.indentOn || "");
 
         if (options.fetch !== false) {
             ary.fetch(options.filter, options.merge, options.background);
