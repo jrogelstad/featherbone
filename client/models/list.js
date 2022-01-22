@@ -177,6 +177,36 @@ function createList(feather) {
     ary.canFilter = f.prop(true);
 
     /**
+        If indentation enabled, all parent rows collapsed.
+
+        @method collapseAll
+    */
+    ary.collapseAll = function () {
+        if (ary.indentOn()) {
+            ary.forEach(function (model) {
+                if (model.isParent()) {
+                    model.collapsed(true);
+                }
+            });
+        }
+    }
+
+    /**
+        If indentation enabled, all parent rows expanded.
+
+        @method expanedAll
+    */
+    ary.expandAll = function () {
+        if (ary.indentOn()) {
+            ary.forEach(function (model) {
+                if (model.isParent()) {
+                    model.collapsed(false);
+                }
+            });
+        }
+    }
+
+    /**
         Fetch data. Returns a Promise.
 
         @method fetch
