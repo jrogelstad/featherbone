@@ -295,7 +295,11 @@ function createTableDataView(options, col) {
         : ""
     );
     let iconStyle;
-    let indentOn = theVm.models().indentOn();
+    let indentOn = (
+        theVm.models().indentOn
+        ? theVm.models().indentOn()
+        : ""
+    );
     let icon;
 
     columnWidth -= 6;
