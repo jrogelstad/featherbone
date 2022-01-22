@@ -189,7 +189,7 @@ function createList(feather) {
                 }
             });
         }
-    }
+    };
 
     /**
         If indentation enabled, all parent rows expanded.
@@ -204,7 +204,7 @@ function createList(feather) {
                 }
             });
         }
-    }
+    };
 
     /**
         Fetch data. Returns a Promise.
@@ -600,27 +600,7 @@ function createList(feather) {
             state.send(evt, context);
         });
     };
-/*
-    toggleCollapse = function (evt, model) {
-        let collapsed = model.collapsed();
-        let idx = ary.indexOf(model);
-        let indentOn = ary.indentOn();
-        let level = model.data[indentOn]();
-        let next;
-        console.log("toggle->", collapsed, idx);
-        idx += 1;
-        next = ary[idx];
-        while (
-            next && next.data[indentOn]() > level
-        ) {
-            next.show(false);
-            idx += 1;
-            next = ary[idx];
-        }
-        evt.preventDefault();
-        evt.stopPropagation();
-    };
-*/
+
     // Define statechart
     state = State.define(function () {
         this.state("Unitialized", function () {
