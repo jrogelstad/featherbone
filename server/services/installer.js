@@ -216,38 +216,42 @@
                 }
 
                 function saveFeathers(feathers, isSystem) {
-                    let payload;
-                    let data = [];
+                    function callback(resp) {
+                        let payload;
+                        let data = [];
 
-                    installedFeathers = true;
+                        installedFeathers = true;
 
-                    // System feathers don't get to be tables
-                    if (isSystem) {
-                        payload = {
-                            method: "PUT",
-                            name: "saveFeather",
-                            user: pUser,
-                            client: pClient,
-                            data: {
-                                specs: feathers
-                            }
-                        };
+                        // System feathers don't get to be tables
+                        if (isSystem) {
+                            payload = {
+                                method: "PUT",
+                                name: "saveFeather",
+                                user: pUser,
+                                client: pClient,
+                                data: {
+                                    specs: feathers
+                                }
+                            };
 
-                        pDatasource.request(payload, true).then(
-                            processFile
-                        ).catch(rollback);
-                        return;
-                    }
+                            pDatasource.request(payload, true).then(
+                                processFile
+                            ).catch(rollback);
+                            return;
+                        }
 
-                    // Map feather structure to table structure
-                    feathers.forEach(function (feather) {
-                        let keys = Object.keys(feather.properties || {});
-                        let auths = feather.authorizations;
-                        let props = feather.properties;
-                        let overloads = feather.overloads || {};
+                        // Map feather structure to table structure
+                        feathers.forEach(function (feather) {
+                            let keys = Object.keys(feather.properties || {});
+                            let auths = feather.authorizations;
+                            let props = feather.properties;
+                            let overloads = feather.overloads || {};
+                            let existing = resp.find(
+                                (ex) => ex.name === feather.name
+                            ) || {};
+                            let existingId = existing.id;
 
-                        if (auths) {
-                            feather.authorizations = auths.map(function (auth) {
+                            function toFeather(auth) {
                                 return {
                                     role: auth.role,
                                     canCreate: auth.actions.canCreate,
@@ -255,84 +259,99 @@
                                     canUpdate: auth.actions.canUpdate,
                                     canDelete: auth.actions.canDelete
                                 };
+                            }
+
+                            if (auths) {
+                                feather.authorizations = auths.map(toFeather);
+                            }
+
+                            feather.properties = keys.map(function (key) {
+                                let prop = props[key];
+
+                                prop.name = key;
+
+                                return prop;
                             });
-                        }
 
-                        feather.properties = keys.map(function (key) {
-                            let prop = props[key];
+                            keys = Object.keys(feather.overloads || {});
+                            feather.overloads = keys.map(function (key) {
+                                let overload = overloads[key] || {};
+                                let row = {};
 
-                            prop.name = key;
+                                row.name = key;
 
-                            return prop;
+                                if (overload.description !== undefined) {
+                                    row.overloadDescription = true;
+                                    row.description = overload.description;
+                                } else {
+                                    row.overloadDescription = false;
+                                    row.description = "";
+                                }
+
+                                if (overload.alias !== undefined) {
+                                    row.overloadAlias = true;
+                                    row.alias = overload.alias;
+                                } else {
+                                    row.overloadAlias = false;
+                                    row.alias = "";
+                                }
+
+                                if (overload.type !== undefined) {
+                                    row.overloadType = true;
+                                    row.type = overload.type;
+                                } else {
+                                    row.overloadType = false;
+                                    row.type = null;
+                                }
+
+                                if (overload.default !== undefined) {
+                                    row.overloadDefault = true;
+                                    row.default = overload.default;
+                                } else {
+                                    row.overloadDefault = false;
+                                    row.default = null;
+                                }
+
+                                if (overload.dataList !== undefined) {
+                                    row.overloadDataList = true;
+                                    row.dataList = overload.dataList;
+                                } else {
+                                    row.overloadDataList = false;
+                                    row.dataList = null;
+                                }
+
+                                if (overload.autonumber !== undefined) {
+                                    row.overloadAutonumber = true;
+                                    row.autonumber = overload.autonumber;
+                                } else {
+                                    row.overloadAutonumber = false;
+                                    row.autonumber = null;
+                                }
+
+                                return row;
+                            });
+
+                            if (existingId) {
+                                feather.id = existingId;
+                            }
+                            data.push({
+                                name: "Feather",
+                                method: "POST",
+                                id: existingId || feather.id || feather.name,
+                                data: feather
+                            });
                         });
 
-                        keys = Object.keys(feather.overloads || {});
-                        feather.overloads = keys.map(function (key) {
-                            let overload = overloads[key] || {};
-                            let row = {};
+                        runBatch(data);
+                    }
 
-                            row.name = key;
-
-                            if (overload.description !== undefined) {
-                                row.overloadDescription = true;
-                                row.description = overload.description;
-                            } else {
-                                row.overloadDescription = false;
-                                row.description = "";
-                            }
-
-                            if (overload.alias !== undefined) {
-                                row.overloadAlias = true;
-                                row.alias = overload.alias;
-                            } else {
-                                row.overloadAlias = false;
-                                row.alias = "";
-                            }
-
-                            if (overload.type !== undefined) {
-                                row.overloadType = true;
-                                row.type = overload.type;
-                            } else {
-                                row.overloadType = false;
-                                row.type = null;
-                            }
-
-                            if (overload.default !== undefined) {
-                                row.overloadDefault = true;
-                                row.default = overload.default;
-                            } else {
-                                row.overloadDefault = false;
-                                row.default = null;
-                            }
-
-                            if (overload.dataList !== undefined) {
-                                row.overloadDataList = true;
-                                row.dataList = overload.dataList;
-                            } else {
-                                row.overloadDataList = false;
-                                row.dataList = null;
-                            }
-
-                            if (overload.autonumber !== undefined) {
-                                row.overloadAutonumber = true;
-                                row.autonumber = overload.autonumber;
-                            } else {
-                                row.overloadAutonumber = false;
-                                row.autonumber = null;
-                            }
-
-                            return row;
-                        });
-
-                        data.push({
-                            name: "Feather",
-                            method: "POST",
-                            id: feather.id || feather.name,
-                            data: feather
-                        });
-                    });
-
-                    runBatch(data);
+                    pDatasource.request({
+                        method: "GET",
+                        name: "Feather",
+                        user: pUser,
+                        client: pClient,
+                        properties: ["id", "name"]
+                    }, true).then(callback).catch(rollback);
                 }
 
                 function saveService(pName, pModule, pScript) {
