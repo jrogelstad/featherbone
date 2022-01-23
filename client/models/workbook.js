@@ -82,6 +82,10 @@ const workbook = {
             description: "Description",
             type: "string"
         },
+        label: {
+            description: "Menu label",
+            type: "string"
+        },
         module: {
             description: "Module",
             type: "string"
