@@ -170,6 +170,7 @@
         "CREATE TABLE \"$workbook\" (" +
         "name text UNIQUE," +
         "description text," +
+        "label text default '', " +
         "icon text," +
         "launch_config json," +
         "default_config json," +
@@ -500,6 +501,11 @@
             // Create the workbook table
             createWorkbook = function () {
                 sqlCheck("$workbook", function (err, exists) {
+                    let altSql = (
+                        "ALTER TABLE \"$workbook\" " +
+                        "ADD COLUMN IF NOT EXISTS label text default ''; " +
+                        "COMMENT ON COLUMN \"$workbook\".label IS 'Menu label';"
+                    );
                     if (err) {
                         reject(err);
                         return;
@@ -507,9 +513,9 @@
 
                     if (!exists) {
                         obj.client.query(createWorkbookSql, createProfiles);
-                        return;
+                    } else {
+                        obj.client.query(altSql, createProfiles);
                     }
-                    createProfiles();
                 });
             };
 

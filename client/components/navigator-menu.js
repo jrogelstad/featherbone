@@ -251,8 +251,9 @@ navigator.component = {
         let keys;
 
         function items(key) {
-            let name = workbooks[key].data.name();
-            let desc = workbooks[key].data.description();
+            let wd = workbooks[key].data;
+            let label = wd.label() || wd.name();
+            let desc = wd.description();
 
             itemClass = "pure-menu-item fb-navigator-item";
 
@@ -275,7 +276,7 @@ navigator.component = {
                         "fb-navigator-item-icon"
                     )
                 }, workbooks[key].data.icon())
-            ], vm.itemContent(name));
+            ], vm.itemContent(label));
         }
 
         keys = Object.keys(workbooks).sort(function (a, b) {

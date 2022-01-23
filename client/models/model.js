@@ -2163,14 +2163,20 @@ function createModel(data, feather) {
 
         function validate(key) {
             let prop = d[key];
-            let val = prop();
-            let name = prop.alias();
+            let val;
+            let name;
+
+            if (!prop.isRequired()) {
+                return;
+            }
 
             // Validate required property
+            val = prop();
+            name = prop.alias();
             if (
-                prop.isRequired() && (val === null || (
+                val === null || (
                     prop.type === "string" && !val
-                ))
+                )
             ) {
                 throw "\"" + name + "\" is required";
             }

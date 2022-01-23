@@ -1256,6 +1256,7 @@ f.baseCurrency = function (effective) {
     @param {Boolean} [options.subscribe] Subscribe to events
     @param {Boolean} [options.showDeleted] Show deleted
     @param {Boolean} [options.isEditable] Models are editable (default true)
+    @param {Boolean} [options.indentOn] Property defining indentation levels
     @param {Object} [options.filter] Filter
     @return {List}
 */
