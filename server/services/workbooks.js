@@ -143,7 +143,7 @@
                     sql = (
                         "SELECT name, description, module, " +
                         "launch_config AS \"launchConfig\", " +
-                        "icon, sequence, actions, " +
+                        "icon, sequence, actions, label, " +
                         "default_config AS \"defaultConfig\", " +
                         "local_config AS \"localConfig\", " +
                         "to_json(ARRAY( SELECT ROW(role, can_read, " +
@@ -433,7 +433,8 @@
                                         "description=$3, launch_config=$4," +
                                         "default_config=$5," +
                                         "local_config=$6, module=$7, " +
-                                        "icon=$8, sequence=$9, actions=$10 " +
+                                        "icon=$8, sequence=$9, actions=$10, " +
+                                        "label=$11 " +
                                         "WHERE name=$1;"
                                     );
                                     theId = row.id;
@@ -459,7 +460,8 @@
                                         wb.module,
                                         icon,
                                         wb.sequence || row.sequence || 0,
-                                        {} // TODO
+                                        {}, // TODO
+                                        wb.label || row.label
                                     ];
                                     execute();
                                 } else {
@@ -486,12 +488,12 @@
                                             "launch_config, default_config, " +
                                             "local_config, icon, " +
                                             "created_by, updated_by, " +
-                                            "sequence, actions, " +
+                                            "sequence, actions, label, " +
                                             "created, updated, is_deleted) " +
                                             "VALUES (" +
                                             "nextval('object__pk_seq')," +
                                             "$1, $2, $3, $4, $5, $6, $7, $8," +
-                                            "$9, $9, $10, $11," +
+                                            "$9, $9, $10, $11, $12, " +
                                             "now(), now(), false) " +
                                             "RETURNING _pk;"
                                         );
@@ -511,7 +513,8 @@
                                             icon,
                                             theClient.currentUser(),
                                             wb.sequence || 0,
-                                            {} // TODO
+                                            {}, // TODO
+                                            wb.label
                                         ];
 
                                         execute();
