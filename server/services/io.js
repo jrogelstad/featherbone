@@ -601,6 +601,7 @@
                 let sheets = {};
                 let localFeathers = {};
                 let next;
+                let memoize = {};
 
                 try {
                     wb = XLSX.readFile(filename);
@@ -628,71 +629,134 @@
                 }
 
                 function buildRow(feather, row) {
-                    let ret = {};
-                    let props = localFeathers[feather].properties;
-                    let ary;
-                    let id = row.Id;
+                    return new Promise(function (resolve, reject) {
+                        let ret = {};
+                        let props = localFeathers[feather].properties;
+                        let ary;
+                        let id = row.Id;
+                        let requests = [];
 
-                    if (!id) {
-                        reject(
-                            "Id is required for \"" + feather + "\""
-                        );
-                        return;
-                    }
+                        if (!id) {
+                            reject(
+                                "Id is required for \"" + feather + "\""
+                            );
+                            return;
+                        }
 
-                    try {
-                        Object.keys(props).forEach(function (key) {
-                            let value = row[key.toName()];
-                            let pkey = feather.toName() + " Id";
-                            let rel;
-                            let attrs;
+                        function getRelationId(pKey, pValue) {
+                            return new Promise(function (resolve, reject) {
+                                let rel = props[pKey].type.relation;
+                                let relFthr = localFeathers[rel];
+                                let nkey = Object.keys(
+                                    relFthr.properties
+                                ).find(
+                                    (k) => relFthr.properties[k].isNaturalKey
+                                );
 
-                            if (typeof props[key].type === "object") {
-                                // Handle child array
-                                if (
-                                    props[key].type.parentOf &&
-                                    sheets[props[key].type.relation]
-                                ) {
-                                    rel = props[key].type.relation;
-                                    ary = sheets[rel].filter(
-                                        (r) => r[pkey] === id
-                                    );
-                                    ret[key] = ary.map(
-                                        buildRow.bind(null, rel)
-                                    );
-
-                                // Handle child object
-                                } else if (props[key].type.isChild) {
-                                    if (sheets[rel]) {
-                                        rel = props[key].type.relation;
-                                        ret[key] = sheets[rel].find(
-                                            (r) => r.Id === row[key.toName()]
-                                        );
-                                        ret[key] = buildRow(rel, ret[key]);
-                                    }
-
-                                // Regular relation
-                                } else if (value) {
-                                    ret[key] = {id: value};
+                                // No natural key, so assume value is id
+                                if (!nkey) {
+                                    ret[pKey] = {id: pValue};
+                                    resolve();
+                                    return;
                                 }
-                            } else if (props[key].format === "money") {
-                                attrs = value.split(" ");
-                                ret[key] = {
-                                    amount: Number(attrs[0]),
-                                    currency: attrs[1],
-                                    effective: attrs[2],
-                                    baseAmount: Number(attrs[3])
-                                };
-                            } else if (value !== undefined) {
-                                ret[key] = value;
-                            }
-                        });
-                    } catch (e) {
-                        reject(e);
-                        return;
-                    }
 
-                    return ret;
+                                // Check if we already queried for this one
+                                if (memoize[rel] && memoize[rel][pValue]) {
+                                    ret[pKey] = {id: memoize[rel][pValue]};
+                                    resolve();
+                                    return;
+                                }
+
+                                function callback(resp) {
+                                    // If found match, use it
+                                    if (resp.length) {
+                                        ret[pKey] = {id: resp[0].id};
+                                        // Remember to avoid querying again
+                                        if (!memoize[rel]) {
+                                            memoize[rel] = {};
+                                        }
+                                        memoize[rel][pValue] = resp[0].id;
+                                    }
+                                    resolve();
+                                }
+
+                                // Look for record with matching natural key
+                                datasource.request({
+                                    method: "GET",
+                                    name: rel,
+                                    filter: {criteria: [{
+                                        property: nkey,
+                                        value: pValue
+                                    }]},
+                                    user: pClient.currentUser()
+                                }, true).then(callback).catch(reject);
+                            });
+                        }
+
+                        try {
+                            Object.keys(props).forEach(function (key) {
+                                let value = row[key.toName()];
+                                let pkey = feather.toName() + " Id";
+                                let rel;
+                                let attrs;
+
+                                if (value === undefined) {
+                                    return; // No data, skip
+                                }
+
+                                if (typeof props[key].type === "object") {
+                                    // Handle child array
+                                    if (
+                                        props[key].type.parentOf &&
+                                        sheets[props[key].type.relation]
+                                    ) {
+                                        rel = props[key].type.relation;
+                                        ary = sheets[rel].filter(
+                                            (r) => r[pkey] === id
+                                        );
+                                        ret[key] = ary.map(
+                                            buildRow.bind(null, rel)
+                                        );
+
+                                    // Handle child object
+                                    } else if (props[key].type.isChild) {
+                                        if (sheets[rel]) {
+                                            rel = props[key].type.relation;
+                                            ret[key] = sheets[rel].find(
+                                                (r) => r.Id === row[
+                                                    key.toName()
+                                                ]
+                                            );
+                                            ret[key] = buildRow(rel, ret[key]);
+                                        }
+
+                                    // Regular relation
+                                    } else if (value) {
+                                        requests.push(
+                                            getRelationId(key, value)
+                                        );
+                                    }
+                                } else if (props[key].format === "money") {
+                                    attrs = value.split(" ");
+                                    ret[key] = {
+                                        amount: Number(attrs[0]),
+                                        currency: attrs[1],
+                                        effective: attrs[2],
+                                        baseAmount: Number(attrs[3])
+                                    };
+                                } else {
+                                    ret[key] = value;
+                                }
+                            });
+                        } catch (e) {
+                            reject(e);
+                            return;
+                        }
+
+                        Promise.all(requests).then(
+                            resolve.bind(null, ret)
+                        ).catch(reject);
+                    });
                 }
 
                 function writeLog() {
@@ -746,19 +810,24 @@
                         return;
                     }
 
-                    row = sheets[feather].shift();
-                    payload = {
-                        client: pClient,
-                        method: "POST",
-                        name: feather,
-                        id: row.Id,
-                        data: buildRow(feather, row)
-                    };
+                    function addNext(resp) {
+                        payload = {
+                            client: pClient,
+                            data: resp,
+                            id: row.Id,
+                            method: "POST",
+                            name: feather,
+                            user: pClient.currentUser()
+                        };
 
-                    console.log("adding row", row.Id);
-                    datasource.request(payload).then(next).catch(
-                        error.bind(payload)
-                    );
+                        console.log("adding row", row.Id);
+                        datasource.request(payload).then(next).catch(
+                            error.bind(payload)
+                        );
+                    }
+
+                    row = sheets[feather].shift();
+                    buildRow(feather, row).then(addNext).catch(reject);
                 };
 
                 feathers.getFeathers(

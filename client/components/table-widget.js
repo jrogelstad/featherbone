@@ -294,6 +294,13 @@ function createTableDataView(options, col) {
         ? theProp.title()
         : ""
     );
+    let iconStyle;
+    let indentOn = (
+        theVm.models().indentOn
+        ? theVm.models().indentOn()
+        : ""
+    );
+    let icon;
 
     columnWidth -= 6;
 
@@ -392,18 +399,44 @@ function createTableDataView(options, col) {
         title: otitle
     });
 
-    cell = [
-        m("td", tdOpts, content),
-        // This exists to force exact alignment
-        // with header on all browsers
-        m("td", {
-            key: id + "-spcr",
-            class: "fb-column-spacer",
-            style: {
-                fontSize: zoom
-            }
-        })
-    ];
+    if (indentOn && options.idx === 0) {
+        iconStyle = {
+            fontSize: "18px",
+            verticalAlign: "text-top",
+            textIndent: options.model.data[indentOn]() + "em"
+        };
+        if (!options.model.isParent()) {
+            iconStyle.color = "white";
+        }
+        icon = (
+            options.model.collapsed()
+            ? "chevron_right"
+            : "expand_more"
+        );
+        cell = [
+            m("td", tdOpts, [
+                m("i", {
+                    class: "material-icons",
+                    key: id + "-indent",
+                    onclick: options.model.toggleCollapse,
+                    style: iconStyle
+                }, icon),
+                m("span", {
+                    key: id + "-content"
+                }, content)
+            ])
+        ];
+    } else {
+        cell = [m("td", tdOpts, content)];
+    }
+
+    // This exists to force exact alignment
+    // with header on all browsers
+    cell.push(m("td", {
+        key: id + "-spcr",
+        class: "fb-column-spacer",
+        style: {fontSize: zoom}
+    }));
 
     options.idx += 1;
 
@@ -758,6 +791,12 @@ function createTableRow(options, pModel) {
             });
         }
     };
+
+    // Hide rows indented under collapsed parent
+    if (pModel.hide && pModel.hide()) {
+        rowOpts.style = rowOpts.style || {};
+        rowOpts.style.display = "none";
+    }
 
     if (data.isDeleted()) {
         row = m("del", {
