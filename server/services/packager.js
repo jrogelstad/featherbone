@@ -35,7 +35,8 @@
         "createdBy",
         "updated",
         "updatedBy",
-        "objectType"
+        "objectType",
+        "etag"
     ];
     const propTypes = [
         "description",

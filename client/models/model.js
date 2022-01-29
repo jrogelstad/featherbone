@@ -2164,25 +2164,21 @@ function createModel(data, feather) {
         function validate(key) {
             let prop = d[key];
             let val;
-            let name;
-
-            if (!prop.isRequired()) {
-                return;
-            }
+            let name = prop.alias();
 
             // Validate required property
-            val = prop();
-            name = prop.alias();
-            if (
-                val === null || (
+            if (prop.isRequired()) {
+                val = prop();
+                if (val === null || (
                     prop.type === "string" && !val
-                )
-            ) {
-                throw "\"" + name + "\" is required";
+                )) {
+                    throw "\"" + name + "\" is required";
+                }
             }
 
             // Validate min/max
             if (prop.type === "number" || prop.type === "integer") {
+                val = prop();
                 if (val !== null && prop.max && val > prop.max) {
                     throw "Maximum value for \"" + name + "\" is " + prop.max;
                 }
