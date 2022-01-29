@@ -35,6 +35,9 @@ const editWorkbookConfig = {
         attr: "description",
         grid: 1
     }, {
+        attr: "label",
+        grid: 1
+    }, {
         attr: "icon",
         grid: 1
     }, {
