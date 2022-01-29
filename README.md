@@ -10,7 +10,7 @@ A JavaScript based persistence framework for building object relational database
 
 On the first install you will need to pass credentials of a postgres superuser that can create the database and grant permissions to your adminstrative service user defined [here](https://github.com/jrogelstad/featherbone/blob/master/server/config.json).
 
-Clone this repository and from the cloned location:
+Either download and unzip the latest release, or clone this repository and from the destination location:
 
 ```text
 $ npm install
