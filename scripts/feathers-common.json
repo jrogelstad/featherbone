@@ -1093,6 +1093,11 @@
                  "isRequired": true,
                  "isAlwaysLoad": true,
                 "isLabelKey": true
+            },
+            "notes": {
+                "description": "Internal notes",
+                "type": "string",
+                "format": "textArea"
             }
         }
     }

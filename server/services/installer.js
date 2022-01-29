@@ -345,6 +345,11 @@
                         runBatch(data);
                     }
 
+                    if (isSystem) {
+                        callback();
+                        return;
+                    }
+
                     pDatasource.request({
                         method: "GET",
                         name: "Feather",
