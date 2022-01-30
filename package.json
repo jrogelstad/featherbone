@@ -1,6 +1,6 @@
 {
   "name": "featherbone",
-  "version": "0.2.0",
+  "version": "0.5.4",
   "private": true,
   "description": "Framework for building object relational database apps",
   "keywords": [],
@@ -9,7 +9,7 @@
   "main": "server.js",
   "repository": {
     "type": "git",
-    "url": "http://github.com/jrogelstad/featherbone.git"
+    "url": "http://github.com/FeatherboneJS/Featherbone.git"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^5.6.3",
