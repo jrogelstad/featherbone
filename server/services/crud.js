@@ -775,7 +775,7 @@
 
                             // Handle autonumber
                             if (
-                                value === "" &&
+                                !value &&
                                 prop.autonumber
                             ) {
                                 callback = function (err, resp) {
