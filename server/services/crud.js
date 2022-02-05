@@ -596,7 +596,7 @@
                         return false;
                     });
 
-                    if (unique) {
+                    if (unique && !isChild) {
                         tools.getKeys({
                             client: theClient,
                             name: unique.feather,
