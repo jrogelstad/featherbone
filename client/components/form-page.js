@@ -862,42 +862,12 @@ formPage.viewModel = function (options) {
     vm.waitDialog = f.prop(f.createViewModel("Dialog"));
     let wd = vm.waitDialog();
     wd.style().width = "300px";
+    wd.style().height = "300px";
     wd.style().border = "none";
     wd.style().background = "none";
     wd.style().boxShadow = "none";
     wd.content = function () {
-        return m("div", {
-            class: "loadingio-spinner-gear-set-yrekglcu4a"
-        }, [
-            m("div", {
-                class: "ldio-oklsjwv8vv"
-            }, [
-                m("div", [
-                    m("div"),
-                    m("div"),
-                    m("div"),
-                    m("div"),
-                    m("div"),
-                    m("div")
-                ]),
-                m("div", [
-                    m("div"),
-                    m("div"),
-                    m("div"),
-                    m("div"),
-                    m("div"),
-                    m("div")
-                ]),
-                m("div", [
-                    m("div"),
-                    m("div"),
-                    m("div"),
-                    m("div"),
-                    m("div"),
-                    m("div")
-                ])
-            ])
-        ]);
+        return m("div", {class: "lds-large-dual-ring"});
     };
     wd.buttonCancel().hide();
     wd.buttonOk().hide();
