@@ -861,18 +861,43 @@ formPage.viewModel = function (options) {
     */
     vm.waitDialog = f.prop(f.createViewModel("Dialog"));
     let wd = vm.waitDialog();
-    wd.style().width = "100px";
+    wd.style().width = "300px";
     wd.style().border = "none";
     wd.style().background = "none";
     wd.style().boxShadow = "none";
     wd.content = function () {
-        return m("i", {
-            class: "fa fa-spinner fa-spin",
-            style: {
-                fontSize: "60px",
-                textShadow: "1px 1px 1px white"
-            }
-        });
+        return m("div", {
+            class: "loadingio-spinner-gear-set-yrekglcu4a"
+        }, [
+            m("div", {
+                class: "ldio-oklsjwv8vv"
+            }, [
+                m("div", [
+                    m("div"),
+                    m("div"),
+                    m("div"),
+                    m("div"),
+                    m("div"),
+                    m("div")
+                ]),
+                m("div", [
+                    m("div"),
+                    m("div"),
+                    m("div"),
+                    m("div"),
+                    m("div"),
+                    m("div")
+                ]),
+                m("div", [
+                    m("div"),
+                    m("div"),
+                    m("div"),
+                    m("div"),
+                    m("div"),
+                    m("div")
+                ])
+            ])
+        ]);
     };
     wd.buttonCancel().hide();
     wd.buttonOk().hide();
