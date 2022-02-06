@@ -612,6 +612,7 @@ function createTableRow(options, pModel) {
     let cellOpts = {};
     let rowClass;
     let style;
+    let thTitle;
 
     // Build row
     if (isSelected) {
@@ -709,28 +710,32 @@ function createTableRow(options, pModel) {
     };
 
     if (currentState.slice(0, 5) === "/Busy") {
-        thContent = m("i", {
+        thContent = m("div", {
             onclick: onClick,
             title: "Saving",
-            class: "fa fa-spinner fa-spin",
-            style: iconStyle
+            class: "lds-small-dual-ring"
         });
     } else if (currentState === "/Locked") {
         lock = data.lock() || {};
-        thContent = m("i", {
-            onclick: onClick,
-            title: (
-                "User: " + lock.username + "\nSince: " +
-                new Date(lock.created).toLocaleTimeString() +
-                "\nProcess: " + lock.process
-            ),
-            class: (
-                lock.process === "Editing"
-                ? "fa fa-user-lock"
-                : "fa fa-spinner fa-spin"
-            ),
-            style: iconStyle
-        });
+        thTitle: (
+            "User: " + lock.username + "\nSince: " +
+            new Date(lock.created).toLocaleTimeString() +
+            "\nProcess: " + lock.process
+        );
+        if (lock.process === "Editing") {
+            thContent = m("i", {
+                onclick: onClick,
+                title: thTitle,
+                class: "fa fa-user-lock",
+                style: iconStyle
+            });
+        } else {
+            thContent = m("div", {
+                onclick: onClick,
+                title: thTitle,
+                class: "lds-small-dual-ring"
+            });
+        }
     } else if (!pModel.isValid()) {
         thContent = m("i", {
             onclick: onClick,
