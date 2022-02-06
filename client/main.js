@@ -671,7 +671,7 @@ function initApp() {
 
         // View model for adding workbooks.
         addWorkbookViewModel = viewModels.formDialog({
-            icon: "plus",
+            icon: "add",
             title: "Add workbook",
             model: addWorkbookModel(),
             config: addWorkbookConfig
