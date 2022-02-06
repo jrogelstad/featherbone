@@ -358,6 +358,14 @@
                                 return resolveProperty(key, fthr);
                             }
 
+                            if (!fthr.properties[key]) {
+                                throw (
+                                    "Form \"" + form.name +
+                                    "\" references property \"" + key +
+                                    "\" which does not exist on feather \"" +
+                                    fthr.name + "\""
+                                );
+                            }
                             fthr.properties[key].name = key;
                             return fthr.properties[key];
                         }
@@ -587,7 +595,11 @@
                                     item = p.dataList.find(
                                         (i) => i.value === value
                                     );
-                                    value = item.label;
+                                    value = (
+                                        item
+                                        ? item.label
+                                        : "Invalid data list value: " + value
+                                    );
                                 } else if (p.format === "date") {
                                     value = f.parseDate(
                                         value
