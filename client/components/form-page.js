@@ -861,18 +861,13 @@ formPage.viewModel = function (options) {
     */
     vm.waitDialog = f.prop(f.createViewModel("Dialog"));
     let wd = vm.waitDialog();
-    wd.style().width = "100px";
+    wd.style().width = "300px";
+    wd.style().height = "300px";
     wd.style().border = "none";
     wd.style().background = "none";
     wd.style().boxShadow = "none";
     wd.content = function () {
-        return m("i", {
-            class: "fa fa-spinner fa-spin",
-            style: {
-                fontSize: "60px",
-                textShadow: "1px 1px 1px white"
-            }
-        });
+        return m("div", {class: "lds-large-dual-ring"});
     };
     wd.buttonCancel().hide();
     wd.buttonOk().hide();
@@ -1075,6 +1070,8 @@ formPage.component = {
         let dlg = f.getComponent("Dialog");
         let fw = f.getComponent("FormWidget");
         let toolbarClass = "fb-toolbar";
+        let e = "i";
+        let eClass = "lds-small-dual-ring";
 
         switch (f.currentUser().mode) {
         case "test":
@@ -1095,11 +1092,12 @@ formPage.component = {
             switch (fmodel.state().current()[0]) {
             case "/Locked":
                 lock = fmodel.data.lock() || {};
-                icon = (
-                    lock.process === "Editing"
-                    ? "fa fa-user-lock"
-                    : "fa fa-spinner fa-spin"
-                );
+                if (lock.process === "Editing") {
+                    icon = "fa fa-user-lock";
+                } else {
+                    e = "div";
+                    icon = false;
+                }
                 theTitle = (
                     "User: " + lock.username + "\nSince: " +
                     new Date(lock.created).toLocaleTimeString() +
@@ -1122,6 +1120,10 @@ formPage.component = {
                     vm.buttonAuth().enable();
                 }
             }
+        }
+
+        if (icon) {
+            eClass = "fa fa-" + icon + " fb-title-icon";
         }
 
         // Build view
@@ -1156,8 +1158,8 @@ formPage.component = {
                 class: "fb-title",
                 id: "title"
             }, [
-                m("i", {
-                    class: "fa fa-" + icon + " fb-title-icon",
+                m(e, {
+                    class: eClass,
                     title: theTitle
                 }),
                 m("label", vm.title())

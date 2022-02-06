@@ -596,7 +596,7 @@
                         return false;
                     });
 
-                    if (unique) {
+                    if (unique && !isChild) {
                         tools.getKeys({
                             client: theClient,
                             name: unique.feather,
@@ -775,7 +775,7 @@
 
                             // Handle autonumber
                             if (
-                                value === "" &&
+                                !value &&
                                 prop.autonumber
                             ) {
                                 callback = function (err, resp) {
