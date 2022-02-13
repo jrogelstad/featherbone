@@ -39,9 +39,130 @@ const resourceLinkRelation = {};
     @param {Boolean} [options.isCell] Use style for cell in table
     @param {Object} [options.filter] Filter object used for search
 */
+
+function find(sLabel) {
+
+    let payload = {
+        method: "POST",
+        url: "/data/resource-links",
+        body: {
+            filter: {
+                properties: ["id"],
+                limit: 1,
+                showDeleted: false,
+                criteria: [{
+                    property: ["label"],
+                    operator: "=",
+                    value: sLabel
+                }]
+            }
+        }
+    };
+    console.log(payload);
+    return m.request(payload);
+}
+
+function createLink(id, sLabel, sUrl) {
+    let nowIso = new Date().toISOString();
+    let payload = {
+        method: "POST",
+        url: "/data/resource-link",
+        body: {
+            "id": id,
+            "created": nowIso,
+            "createdBy": "",
+            "updated": nowIso,
+            "updatedBy": "",
+            "isDeleted": false,
+            "objectType": "",
+            "owner": f.currentUser().name,
+            "etag": f.createId(),
+            "icon": "article",
+            "displayValue": sLabel,
+            "label": sLabel,
+            "resource": sUrl,
+            "notes": ""
+        }
+    };
+    return m.request(payload);
+}
+
+function linkFiles(vm, files) {
+    let file = files[0];
+    if (!file) {
+        /// Handle invalid read
+        return;
+    }
+    let prop = vm.parentViewModel().model().data[vm.parentProperty()];
+    find(file.name).then(function (aL) {
+        /// No current resource link with this name
+        if (!aL.length) {
+            let formData = new FormData();
+            formData.append("name", file.name);
+            formData.append("overwrite", false);
+            formData.append("dataFile", file);
+            let payload = {
+                method: "POST",
+                url: "/do/upload",
+                body: formData
+            };
+            m.request(payload).then(function (v) {
+                if (v.status === "success") {
+                    let url = location.protocol + "//" + location.hostname
+                    + (
+                        (location.port.length)
+                        ? ":" + location.port
+                        : ""
+                    )
+                    + "/files/upload/"
+                    + file.name;
+                    let fid = f.createId();
+                    createLink(fid, file.name, url).then(function (o) {
+                        if (o === null) {
+                            console.error("Server error");
+                        } else {
+                            prop({
+                                id: fid,
+                                icon: "article",
+                                resource: url,
+                                displayValue: file.name,
+                                label: file.name
+                            });
+                        }
+                    });
+                } else {
+                    console.error("Something went boo-boo");
+                }
+            });
+        } else {
+            /// Handle overwrite case
+            prop(aL[0]);
+        }
+    });
+}
+
 resourceLinkRelation.viewModel = function (options) {
     let vm = f.createViewModel("RelationWidget", options);
     vm.labelClass = "fb-relation-label truncate";
+    vm.placeholder = "Search or → drop file ←";
+    /// only set dragleave to remove any effect
+    vm.onDragLeave = function (evt) {
+        //evt.dataTransfer.dropEffect = "none";
+        evt.preventDefault();
+    };
+    vm.onDragEnter = function (evt) {
+        //evt.dataTransfer.dropEffect = "copy";
+        evt.preventDefault();
+    };
+    vm.onDragOver = function (evt) {
+        //evt.dataTransfer.dropEffect = "copy";
+        evt.preventDefault();
+    };
+    vm.onDrop = function (evt) {
+        evt.preventDefault();
+        linkFiles(vm, evt.dataTransfer.files);
+    };
+
     vm.labels = function () {
         let resource;
         let icon;
