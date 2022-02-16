@@ -432,7 +432,7 @@ relationWidget.viewModel = function (options) {
         @param {Object} viewModel
         @return {Object}
     */
-    vm.parantViewModel = f.prop(options.parentViewModel);
+    vm.parentViewModel = f.prop(options.parentViewModel);
     /**
         @method showMenu
         @param {Boolean} flag
@@ -569,7 +569,6 @@ relationWidget.component = {
         let buttonClass = "pure-button fa fa-bars fb-relation-button";
         let labelClass = vm.labelClass || "fb-relation-label";
         let id = vm.id();
-
         menuStyle = {
             display: (
                 vm.showMenu()
@@ -736,6 +735,11 @@ relationWidget.component = {
                 value: vm.value(),
                 oncreate: vnode.attrs.onCreate,
                 onremove: vnode.attrs.onRemove,
+                placeholder: vm.placeholder,
+                ondrop: vm.onDrop,
+                ondragover: vm.onDragOver,
+                ondragenter: vm.onDragEnter,
+                ondragleave: vm.onDragLeave,
                 readonly: readOnly,
                 autocomplete: "off"
             }),
