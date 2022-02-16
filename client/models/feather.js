@@ -257,6 +257,15 @@ function feather(data, spec) {
         });
     });
 
+    model.onCopy(function () {
+        model.data.name.isReadOnly(false);
+        model.data.plural.isReadOnly(false);
+        model.data.inherits.isReadOnly(false);
+        model.data.properties().forEach(function (p) {
+            p.type.isReadOnly(false);
+        });
+    });
+
     return model;
 }
 
