@@ -1773,6 +1773,8 @@
           * {{#crossLink "Services.Workbooks/saveWorkbook:method"}}
           {{/crossLink}}
         * __POST__
+          * {{#crossLink "Services.Crud/autonumber:method"}}
+          {{/crossLink}}
           * {{#crossLink "Services.Crud/doAggregate:method"}}
           {{/crossLink}}
           * {{#crossLink "Services.Role/changeOwnPassword:method"}}
@@ -2204,6 +2206,7 @@
     that.registerFunction("GET", "isSuperUser", tools.isSuperUser);
     that.registerFunction("GET", "getAuthorizations", tools.getAuthorizations);
     that.registerFunction("PATCH", "patchProfile", profile.patchProfile);
+    that.registerFunction("POST", "autoNumber", crud.autonumber);
     that.registerFunction("POST", "changeOwnPassword", role.changeOwnPassword);
     that.registerFunction("POST", "changeRoleLogin", role.changeRoleLogin);
     that.registerFunction(
