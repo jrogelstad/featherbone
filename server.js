@@ -120,6 +120,11 @@
         fs[mkdirsync](dir);
     }
 
+    dir = "./files/upload";
+    if (!fs[existssync](dir)) {
+        fs[mkdirsync](dir);
+    }
+
     dir = "./files/downloads";
     if (!fs[existssync](dir)) {
         fs[mkdirsync](dir);
@@ -774,6 +779,34 @@
         );
     }
 
+    function doUpload(req, res) {
+        const DIR = "./files/upload/";
+
+        if (Object.keys(req.files).length === 0) {
+            return res.status(400).send("No files were uploaded.");
+        }
+
+        let file = req.files.dataFile;
+        let owrite = file.overwrite;
+        let filePath = DIR + file.name;
+        fs.stat(filePath, function(err, stat){
+            if(stat && !owrite){
+                res.json({"message":"File already exists", "status":"exists"});
+            }
+            else{
+                file.mv(filePath, function (err) {
+                    if (err) {
+                        console.error(err);
+                        return res.status(500).json({
+                            "message":"Failed to persist file",
+                            "status": "failed"
+                        });
+                    }
+                    res.json({"message":"Uploaded file", "status": "success"});
+                });
+            }
+        });
+    }
     function doImport(req, res) {
         let id = f.createId();
         let format = req.params.format;
@@ -893,9 +926,11 @@
         );
     }
 
+
     function doGetFile(req, res) {
-        let url = "." + req.url;
-        let file = req.params.file || "";
+        let url = "." + decodeURI(req.url);
+        let file = req.params.file  || "";
+        console.log(url + "/" + file);
         let suffix = (
             file
             ? file.slice(file.indexOf("."), file.length)
@@ -914,6 +949,10 @@
         case ".map":
         case ".json":
             mimetype = {"Content-Type": "application/json"};
+            break;
+        case ".jpeg":
+        case ".jpg":
+            mimetype = {"Content-Type": "image/jpeg"};
             break;
         case ".png":
             mimetype = {"Content-Type": "image/png"};
@@ -1259,6 +1298,7 @@
     function start() {
         // Define exactly which directories and files are to be served
         let dirs = [
+            "/files/upload",
             "/client",
             "/client/components",
             "/client/models",
@@ -1430,6 +1470,7 @@
         app.post("/do/save-authorization", doSaveAuthorization);
         app.post("/do/export/:format/:feather", doExport);
         app.post("/do/import/:format/:feather", doImport);
+        app.post("/do/upload", doUpload);
         app.post("/do/print-pdf/form/", doPrintPdfForm);
         app.post("/do/send-mail", doSendMail);
         app.post("/do/subscribe/:query", doSubscribe);
