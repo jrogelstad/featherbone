@@ -2020,6 +2020,65 @@
             });
         };
 
+        /**
+            Return next autonumber value for feather.
+
+            @method autonumber
+            @param {Object} payload
+            @param {Client} payload.client
+            @param {Object} payload.data Data
+            @param {String} payload.data.name Feather name
+            @return {Promise} Resolves number string.
+        */
+        crud.autonumber = function (obj) {
+            let prop;
+            let theClient = db.getClient(obj.client);
+
+            return new Promise(function (resolve, reject) {
+                function callback(err, resp) {
+                    let seq = resp.rows[0].seq - 0;
+                    let value;
+
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+
+                    value = prop.autonumber.prefix || "";
+                    value += seq.pad(prop.autonumber.length);
+                    value += prop.autonumber.suffix || "";
+                    resolve(value);
+                }
+
+                function nextVal(feather) {
+                    let attr = Object.keys(
+                        feather.properties
+                    ).find(function (key) {
+                        return feather.properties[key].autonumber;
+                    });
+
+                    if (!attr) {
+                        reject(
+                            "Autonumber property not found on feather " +
+                            obj.data.name
+                        );
+                        return;
+                    }
+                    prop = feather.properties[attr];
+                    theClient.query(
+                        "SELECT nextval($1) AS seq",
+                        [prop.autonumber.sequence],
+                        callback
+                    );
+                }
+
+                feathers.getFeather({
+                    client: theClient,
+                    data: {name: obj.data.name}
+                }).then(nextVal).catch(reject);
+            });
+        };
+
         return crud;
     };
 
