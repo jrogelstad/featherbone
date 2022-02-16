@@ -717,7 +717,7 @@ function createTableRow(options, pModel) {
         });
     } else if (currentState === "/Locked") {
         lock = data.lock() || {};
-        thTitle: (
+        thTitle = (
             "User: " + lock.username + "\nSince: " +
             new Date(lock.created).toLocaleTimeString() +
             "\nProcess: " + lock.process
