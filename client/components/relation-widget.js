@@ -566,7 +566,7 @@ relationWidget.component = {
         let openMenuClass = "pure-menu-link";
         let editMenuClass = "pure-menu-link";
         let newMenuClass = "pure-menu-link";
-        let buttonClass = "pure-button fa fa-bars fb-relation-button";
+        let buttonClass = "pure-button material-icons fb-relation-button";
         let labelClass = vm.labelClass || "fb-relation-label";
         let id = vm.id();
         menuStyle = {
@@ -641,7 +641,7 @@ relationWidget.component = {
                                 vnode.dom.id
                             ).style.position = "absolute";
                         }
-                    }),
+                    }, "menu"),
                     m("ul", {
                         id: "nav-relation-list-" + id,
                         class: "pure-menu-list fb-relation-menu-list",

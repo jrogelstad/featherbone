@@ -414,6 +414,8 @@ a.pure-button-selected {
 }
 .fb-title-icon {
   margin-right: 5px;
+  font-size: 18px;
+  vertical-align: bottom;
 }
 
 .fb-form-workbook {
@@ -444,10 +446,17 @@ a.pure-button-selected {
   width: 10em;
   margin-right: 1em;
   margin-left: 0px;
+  padding: 7.5px;
 }
 
 .fb-form-label-menu-item {
   text-align: left;
+}
+
+.fb-form-label-button-icon {
+  vertical-align: text-bottom;
+  font-size: 18px;
+  margin-right: 4px;
 }
 
 .fb-sheet-configure-content {
@@ -640,8 +649,7 @@ a.pure-button-selected {
 
 .fb-relation-button {
   margin-left: 3px;
-  margin-top: 1px;
-  margin-right: 3px;
+  padding: 6px;
 }
 
 .fb-relation-label {
@@ -747,6 +755,11 @@ a.pure-button-selected {
   overflow-x: auto;
   border-top-style: solid;
   border-top-color: black;
+}
+
+.fb-table-icon {
+  font-size: 120%;
+  vertical-align: bottom;
 }
 
 .fb-toolbar {

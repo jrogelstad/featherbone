@@ -755,8 +755,7 @@ formats.icon.tableData = function (obj) {
     );
     if (val) {
         return m("i", {
-            style: {fontSize: "18px", verticalAlign: "bottom"},
-            class: "material-icons",
+            class: "material-icons fb-table-icon",
             title: obj.title
         }, val);
     }
@@ -1418,7 +1417,7 @@ f.types.resourceLink.tableData = function (obj) {
 
     let icon = (
         ico
-        ? m("span", {class: "fb-menu-list-icon material-icons"}, ico)
+        ? m("span", {class: "material-icons fb-table-icon"}, ico)
         : ""
     );
 
