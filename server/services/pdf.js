@@ -492,7 +492,7 @@
                                 if (inheritedFrom(p.type.relation, "Address")) {
                                     value = rec[attr].street;
                                     if (rec[attr].unit) {
-                                        value += cr + rec[attr].unit();
+                                        value += cr + rec[attr].unit;
                                     }
                                     value += cr + rec[attr].city + ", ";
                                     value += rec[attr].state + " ";
