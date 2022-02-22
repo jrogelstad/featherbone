@@ -556,10 +556,12 @@ formats.color.tableData = function (obj) {
     if (obj.value) {
         return m("i", {
             style: {
-                color: obj.value
+                color: obj.value,
+                fontSize: "16px",
+                verticalAlign: "text-bottom"
             },
-            class: "fa fa-square"
-        });
+            class: "material-icons"
+        }, "square");
     }
 };
 
@@ -1499,9 +1501,14 @@ f.types.boolean.editor = function (options) {
 f.types.boolean.tableData = function (obj) {
     if (obj.value) {
         return m("i", {
+            style: {
+                fontSize: "16px",
+                verticalAlign: "text-bottom",
+                fontWeight: "bold"
+            },
             onclick: obj.onclick,
-            class: "fa fa-check"
-        });
+            class: "material-icons"
+        }, "done");
     }
 };
 
