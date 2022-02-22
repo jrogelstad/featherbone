@@ -23,6 +23,7 @@
 (function (exports) {
     "use strict";
 
+    const fs = require("fs");
     const {Pool} = require("pg");
     const {Config} = require("./config");
     const f = require("../common/core");
@@ -52,13 +53,25 @@
         // Reslove connection string
         function setConfig(resp) {
             return new Promise(function (resolve) {
+
+                let sslCfg;
+                if(resp.ssl){
+                    sslCfg = {
+                        ca: fs.readFileSync(resp.pgSslCA).toString(),
+                        cert: fs.readFileSync(resp.pgSslCert).toString(),
+                        key: fs.readFileSync(resp.pgSslKey).toString(),
+                        rejectUnauthorized: false
+                    };
+                }
+
                 cache = {
                     postgres: {
                         host: resp.pgHost,
                         port: resp.pgPort,
                         database: resp.pgDatabase,
                         user: resp.pgUser,
-                        password: resp.pgPassword
+                        password: resp.pgPassword,
+                        ssl: sslCfg
                     }
                 };
                 resolve(resp);
@@ -92,13 +105,24 @@
                 function doConnect(resp) {
                     return new Promise(function (resolve, reject) {
                         let login;
+                        let sslCfg;
+
+                        if(resp.ssl){
+                            sslCfg = {
+                                ca: fs.readFileSync(resp.pgSslCA).toString(),
+                                cert: fs.readFileSync(resp.pgSslCert).toString(),
+                                key: fs.readFileSync(resp.pgSslKey).toString(),
+                                rejectUnauthorized: false
+                            };
+                        }
 
                         login = new Pool({
                             host: resp.pgHost,
                             database: resp.pgDatabase,
                             user: username,
                             password: pswd,
-                            port: resp.pgPort
+                            port: resp.pgPort,
+                            ssl : sslCfg
                         });
 
                         login.connect(function (err, ignore, done) {
