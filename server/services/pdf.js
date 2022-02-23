@@ -217,6 +217,7 @@
                     data = [data];
                 }
                 let ids;
+                let currId;
                 let requests = [];
                 let rows;
                 let currs;
@@ -888,12 +889,19 @@
                         });
 */
                         // Loop through data to build content
-                        while (rows.length) {
-                            data = rows.shift();
-                            buildSection();
-                            form.tabs.forEach(buildSection);
-                            if (rows.length) {
-                                doc.pageBreak();
+                        function getRow() {
+                            return rows.find((r) => r.id === currId);
+                        }
+
+                        while (ids.length) {
+                            currId = ids.shift();
+                            data = getRow();
+                            if (data) { // In case id not found
+                                buildSection();
+                                form.tabs.forEach(buildSection);
+                                if (ids.length) {
+                                    doc.pageBreak();
+                                }
                             }
                             n = 0;
                         }
