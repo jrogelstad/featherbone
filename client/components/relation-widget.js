@@ -84,6 +84,7 @@ relationWidget.viewModel = function (options) {
     };
     let modelList;
     let configId = f.createId();
+    let blurVal;
 
     function updateValue(prop) {
         let value = prop();
@@ -117,10 +118,32 @@ relationWidget.viewModel = function (options) {
         return filter;
     }
 
+    function blurFetch() {
+        if (
+            blurVal && !modelValue() &&
+            vm.models().state().current()[0] !== "/Busy/Fetching"
+        ) {
+            theFilter.criteria = [{
+                property: "number",
+                operator: "~*",
+                value: "^" + blurVal
+            }];
+            vm.fetch().then(function (resp) {
+                if (resp && resp.length) {
+                    vm.onchange(blurVal);
+                } else {
+                    vm.onchange(null);
+                }
+            });
+        }
+    }
+
     modelList = f.createList(type.relation, {
         background: true,
-        filter: mergeFilter(theFilter)
+        filter: mergeFilter(theFilter),
+        fetch: false
     });
+    modelList.fetch().then(blurFetch);
 
     // Make sure data changes made by biz logic in the model are
     // recognized
@@ -150,7 +173,7 @@ relationWidget.viewModel = function (options) {
         @method fetch
     */
     vm.fetch = function () {
-        vm.models().fetch(mergeFilter(theFilter), false);
+        return vm.models().fetch(mergeFilter(theFilter), false);
     };
     /**
         @method id
@@ -284,6 +307,7 @@ relationWidget.viewModel = function (options) {
             }
         });
     };
+
     /**
         Handler for auto-complete.
         @method formConfig
@@ -294,6 +318,7 @@ relationWidget.viewModel = function (options) {
         let currentValue = false;
         let models = vm.models();
         let regexp = new RegExp("^" + value.replace(/\\/g, "\\\\"), "i");
+        blurVal = "";
 
         function count(counter, model) {
             let mValue = model.data[valueProperty]();
@@ -341,9 +366,9 @@ relationWidget.viewModel = function (options) {
             inputValue(currentValue);
         } else {
             modelValue(null);
-            inputValue(null);
-            delete theFilter.criteria;
-            vm.fetch();
+            inputValue(value);
+            blurVal = value;
+            blurFetch();
         }
     };
     /**
@@ -395,7 +420,7 @@ relationWidget.viewModel = function (options) {
                 operator: "~*",
                 value: "^" + value
             });
-            vm.fetch();
+            vm.fetch().then(blurFetch);
         }
     };
     /**
@@ -454,7 +479,7 @@ relationWidget.viewModel = function (options) {
         let result;
         let value = args[0];
 
-        if (hasFocus) {
+        if (hasFocus || blurVal) {
             if (args.length) {
                 vm.models().reset();
                 result = inputValue(value);
