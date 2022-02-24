@@ -726,9 +726,8 @@ function createTableRow(options, pModel) {
             thContent = m("i", {
                 onclick: onClick,
                 title: thTitle,
-                class: "fa fa-user-lock",
-                style: iconStyle
-            });
+                class: "material-icons-outlined fb-table-icon"
+            }, "lock_clock");
         } else {
             thContent = m("div", {
                 onclick: onClick,
@@ -740,33 +739,28 @@ function createTableRow(options, pModel) {
         thContent = m("i", {
             onclick: onClick,
             title: pModel.lastError(),
-            class: "fa fa-exclamation-triangle",
-            style: iconStyle
-        });
+            class: "material-icons-outlined fb-table-icon fb-warning"
+        }, "report_problem");
     } else if (currentMode !== "/Mode/Edit" && isSelected) {
         thContent = m("i", {
             onclick: theVm.ondblclick.bind(null, pModel),
-            class: "fa fa-folder-open fb-icon-button",
-            style: iconStyle
-        });
+            class: "material-icons-outlined fb-table-icon"
+        }, "file_open");
     } else if (currentState === "/Delete") {
         thContent = m("i", {
             onclick: onClick,
-            class: "fa fa-trash",
-            style: iconStyle
-        });
+            class: "material-icons-outlined fb-table-icon fb-error"
+        }, "delete");
     } else if (currentState === "/Ready/New") {
         thContent = m("i", {
             onclick: onClick,
-            class: "fa fa-plus",
-            style: iconStyle
-        });
+            class: "material-icons fb-table-icon"
+        }, "add");
     } else if (pModel.canUndo()) {
         thContent = m("i", {
             onclick: onClick,
-            class: "fa fa-pencil-alt",
-            style: iconStyle
-        });
+            class: "material-icons-outlined fb-table-icon"
+        }, "edit");
     } else {
         cellOpts = {
             onclick: onClick,

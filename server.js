@@ -930,7 +930,7 @@
     function doGetFile(req, res) {
         let url = "." + decodeURI(req.url);
         let file = req.params.file  || "";
-        console.log(url + "/" + file);
+        //console.log(url + "/" + file);
         let suffix = (
             file
             ? file.slice(file.indexOf("."), file.length)
@@ -1304,7 +1304,6 @@
             "/client/models",
             "/common",
             "/fonts",
-            "/node_modules/@fortawesome/fontawesome-free/webfonts",
             "/node_modules/codemirror/addon/lint",
             "/node_modules/codemirror/lib",
             "/node_modules/codemirror/mode/javascript",
@@ -1340,7 +1339,6 @@
             "/node_modules/qs/dist/qs.js",
             "/node_modules/purecss/build/pure-min.css",
             "/node_modules/purecss/build/grids-responsive-min.css",
-            "/node_modules/@fortawesome/fontawesome-free/css/all.css",
             "/node_modules/dialog-polyfill/dialog-polyfill.css",
             "/node_modules/codemirror/theme/neat.css",
             "/node_modules/typeface-raleway/index.css",
