@@ -556,10 +556,12 @@ formats.color.tableData = function (obj) {
     if (obj.value) {
         return m("i", {
             style: {
-                color: obj.value
+                color: obj.value,
+                fontSize: "16px",
+                verticalAlign: "text-bottom"
             },
-            class: "fa fa-square"
-        });
+            class: "material-icons"
+        }, "square");
     }
 };
 
@@ -755,8 +757,7 @@ formats.icon.tableData = function (obj) {
     );
     if (val) {
         return m("i", {
-            style: {fontSize: "18px", verticalAlign: "bottom"},
-            class: "material-icons",
+            class: "material-icons fb-table-icon",
             title: obj.title
         }, val);
     }
@@ -1418,7 +1419,7 @@ f.types.resourceLink.tableData = function (obj) {
 
     let icon = (
         ico
-        ? m("span", {class: "fb-menu-list-icon material-icons"}, ico)
+        ? m("span", {class: "material-icons fb-table-icon"}, ico)
         : ""
     );
 
@@ -1500,9 +1501,14 @@ f.types.boolean.editor = function (options) {
 f.types.boolean.tableData = function (obj) {
     if (obj.value) {
         return m("i", {
+            style: {
+                fontSize: "16px",
+                verticalAlign: "text-bottom",
+                fontWeight: "bold"
+            },
             onclick: obj.onclick,
-            class: "fa fa-check"
-        });
+            class: "material-icons"
+        }, "done");
     }
 };
 
