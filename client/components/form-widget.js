@@ -255,12 +255,9 @@ function buildFieldset(vm, attrs) {
                         }, "add_circle")], " New")
                     ])
                 ]),
-                m("i", {
-                    class: "fa fa-bars",
-                    style: {
-                        marginRight: "4px"
-                    }
-                })
+                m("div", {
+                    class: "material-icons fb-form-label-button-icon"
+                }, "menu")
             ], item.label || prop.alias() + ":");
         } else {
             label = m("label", labelOpts, (item.label || prop.alias()) + ":");
