@@ -113,16 +113,17 @@ checkbox.component = {
                     for: vm.id(),
                     title: vnode.attrs.title,
                     class: labelClass
-                }, m("i", {
-                    class: "fa fa-check",
+                }, m("div", {
+                    class: "material-icons",
                     style: {
+                        fontWeight: "bold",
                         visibility: (
                             vnode.attrs.value
                             ? "visible"
                             : "hidden"
                         )
                     }
-                }));
+                }, "done"));
             }
         }
 

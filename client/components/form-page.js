@@ -1065,12 +1065,11 @@ formPage.component = {
         let theTitle;
         let vm = this.viewModel;
         let fmodel = vm.model();
-        let icon = "file-alt";
+        let icon = "article";
         let btn = f.getComponent("Button");
         let dlg = f.getComponent("Dialog");
         let fw = f.getComponent("FormWidget");
         let toolbarClass = "fb-toolbar";
-        let e = "i";
         let eClass = "lds-small-dual-ring";
 
         switch (f.currentUser().mode) {
@@ -1093,9 +1092,8 @@ formPage.component = {
             case "/Locked":
                 lock = fmodel.data.lock() || {};
                 if (lock.process === "Editing") {
-                    icon = "fa fa-user-lock";
+                    icon = "lock_clock";
                 } else {
-                    e = "div";
                     icon = false;
                 }
                 theTitle = (
@@ -1105,11 +1103,11 @@ formPage.component = {
                 );
                 break;
             case "/Ready/Fetched/Dirty":
-                icon = "pencil-alt";
+                icon = "edit";
                 theTitle = "Editing record";
                 break;
             case "/Ready/New":
-                icon = "plus";
+                icon = "add";
                 theTitle = "New record";
                 break;
             default:
@@ -1123,7 +1121,7 @@ formPage.component = {
         }
 
         if (icon) {
-            eClass = "fa fa-" + icon + " fb-title-icon";
+            eClass = "material-icons fb-title-icon";
         }
 
         // Build view
@@ -1158,10 +1156,10 @@ formPage.component = {
                 class: "fb-title",
                 id: "title"
             }, [
-                m(e, {
+                m("div", {
                     class: eClass,
                     title: theTitle
-                }),
+                }, icon),
                 m("label", vm.title())
             ]),
             m(dlg, {
