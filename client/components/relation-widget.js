@@ -143,7 +143,7 @@ relationWidget.viewModel = function (options) {
         filter: mergeFilter(theFilter),
         fetch: false
     });
-    modelList.fetch().then(blurFetch);
+    modelList.fetch(mergeFilter(theFilter), false).then(blurFetch);
 
     // Make sure data changes made by biz logic in the model are
     // recognized
