@@ -317,7 +317,7 @@ relationWidget.viewModel = function (options) {
         let currentModel;
         let currentValue = false;
         let models = vm.models();
-        let regexp = new RegExp("^" + value.replace(/\\/g, "\\\\"), "i");
+        let regexp;
         blurVal = "";
 
         function count(counter, model) {
@@ -331,6 +331,7 @@ relationWidget.viewModel = function (options) {
         }
 
         function match(model) {
+            regexp = new RegExp("^" + value.replace(/\\/g, "\\\\"), "i");
             currentValue = model.data[valueProperty]();
 
             if (Array.isArray(currentValue.match(regexp))) {
