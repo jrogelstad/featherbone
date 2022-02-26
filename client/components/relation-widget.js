@@ -345,6 +345,7 @@ relationWidget.viewModel = function (options) {
 
         // If multiple matches, launch search to get one exactly
         if (
+            value !== null &&
             value.length && models.some(match) &&
             models.reduce(count, 0) > 1
         ) {
