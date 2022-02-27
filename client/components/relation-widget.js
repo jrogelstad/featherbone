@@ -143,7 +143,7 @@ relationWidget.viewModel = function (options) {
         filter: mergeFilter(theFilter),
         fetch: false
     });
-    modelList.fetch().then(blurFetch);
+    modelList.fetch(mergeFilter(theFilter), false).then(blurFetch);
 
     // Make sure data changes made by biz logic in the model are
     // recognized
@@ -317,7 +317,7 @@ relationWidget.viewModel = function (options) {
         let currentModel;
         let currentValue = false;
         let models = vm.models();
-        let regexp = new RegExp("^" + value.replace(/\\/g, "\\\\"), "i");
+        let regexp;
         blurVal = "";
 
         function count(counter, model) {
@@ -331,6 +331,7 @@ relationWidget.viewModel = function (options) {
         }
 
         function match(model) {
+            regexp = new RegExp("^" + value.replace(/\\/g, "\\\\"), "i");
             currentValue = model.data[valueProperty]();
 
             if (Array.isArray(currentValue.match(regexp))) {
@@ -344,6 +345,7 @@ relationWidget.viewModel = function (options) {
 
         // If multiple matches, launch search to get one exactly
         if (
+            value !== null &&
             value.length && models.some(match) &&
             models.reduce(count, 0) > 1
         ) {
