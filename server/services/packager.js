@@ -697,7 +697,9 @@
 
                 // Workbooks
                 sql = (
-                    "SELECT * FROM \"$workbook\" WHERE module = $1 " +
+                    "SELECT name, description, icon, launch_config, " +
+                    "default_config, local_config, module, sequence, " +
+                    "actions, label FROM \"$workbook\" WHERE module = $1 " +
                     "AND NOT is_deleted " +
                     "ORDER BY name;"
                 );
