@@ -66,7 +66,7 @@
             let sql = (
                 "SELECT name, version, script, " +
                 "to_json(dependencies) AS dependencies " +
-                "FROM _module;"
+                "FROM _module ORDER BY name;"
             );
 
             function callback(resp) {
@@ -642,7 +642,7 @@
 
                 // Feathers
                 sql = (
-                    "SELECT id, name, description, plural, \"module\", " +
+                    "SELECT name, description, plural, \"module\", " +
                     "\"inherits\", is_system, is_child, " +
                     "is_fetch_on_startup, is_read_only, " +
                     "to_json(properties) AS properties, " +
