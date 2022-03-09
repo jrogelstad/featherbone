@@ -40,6 +40,37 @@
         };
     }
 
+    function sslConfig(props){
+        let sslCfg;
+
+        if(props.ssl){
+            let caCfg;
+            let certCfg;
+            let keyCfg;
+            if(props.pgSslCA){
+                caCfg = fs.readFileSync(
+                    props.pgSslCA
+                ).toString();
+            }
+            if(props.pgSslCert){
+                certCfg = fs.readFileSync(
+                    props.pgSslCert
+                ).toString();
+            }
+            if(props.pgSslKey){
+                keyCfg = fs.readFileSync(props.pgSslKey).toString();
+            }
+            sslCfg = {
+                ca: caCfg,
+                cert: certCfg,
+                key: keyCfg,
+                rejectUnauthorized: false
+            };
+        }
+        return sslCfg;
+    }
+
+
     /**
         Class for managing database connectivity functions.
         @class Database
@@ -54,15 +85,7 @@
         function setConfig(resp) {
             return new Promise(function (resolve) {
 
-                let sslCfg;
-                if(resp.ssl){
-                    sslCfg = {
-                        ca: fs.readFileSync(resp.pgSslCA).toString(),
-                        cert: fs.readFileSync(resp.pgSslCert).toString(),
-                        key: fs.readFileSync(resp.pgSslKey).toString(),
-                        rejectUnauthorized: false
-                    };
-                }
+
 
                 cache = {
                     postgres: {
@@ -71,7 +94,7 @@
                         database: resp.pgDatabase,
                         user: resp.pgUser,
                         password: resp.pgPassword,
-                        ssl: sslCfg
+                        ssl: sslConfig(resp)
                     }
                 };
                 resolve(resp);
@@ -105,24 +128,13 @@
                 function doConnect(resp) {
                     return new Promise(function (resolve, reject) {
                         let login;
-                        let sslCfg;
-
-                        if(resp.ssl){
-                            sslCfg = {
-                                ca: fs.readFileSync(resp.pgSslCA).toString(),
-                                cert: fs.readFileSync(resp.pgSslCert).toString(),
-                                key: fs.readFileSync(resp.pgSslKey).toString(),
-                                rejectUnauthorized: false
-                            };
-                        }
-
                         login = new Pool({
                             host: resp.pgHost,
                             database: resp.pgDatabase,
                             user: username,
                             password: pswd,
                             port: resp.pgPort,
-                            ssl : sslCfg
+                            ssl : sslConfig(resp)
                         });
 
                         login.connect(function (err, ignore, done) {
