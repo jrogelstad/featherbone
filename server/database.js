@@ -64,7 +64,7 @@
                 ca: caCfg,
                 cert: certCfg,
                 key: keyCfg,
-                rejectUnauthorized: false
+                rejectUnauthorized: (props.pgRejectUnauthorized || false)
             };
         }
         return sslCfg;
