@@ -1563,7 +1563,7 @@
                                 /* Handle composite types */
                                 if (typeof prop.type === "object") {
                                     if (type.relation) {
-                                        sql += "integer;";
+                                        sql += "bigint;";
                                         token = tools.relationColumn(
                                             key,
                                             type.relation

@@ -740,7 +740,7 @@ formats.icon.editor = function (options) {
             ),
             oncreate: options.onCreate,
             onremove: options.onRemove,
-            readonly: options.readOnly,
+            readonly: options.readonly,
             autocomplete: "off"
         }),
         m("datalist", {
