@@ -2051,11 +2051,21 @@
                 }
 
                 function nextVal(feather) {
+                    let pname = "properties";
                     let attr = Object.keys(
                         feather.properties
                     ).find(function (key) {
                         return feather.properties[key].autonumber;
                     });
+                    // Check overloads
+                    if (!attr) {
+                        pname = "overloads";
+                        attr = Object.keys(
+                            feather.overloads
+                        ).find(function (key) {
+                            return feather.overloads[key].autonumber;
+                        });
+                    }
 
                     if (!attr) {
                         reject(
@@ -2064,7 +2074,7 @@
                         );
                         return;
                     }
-                    prop = feather.properties[attr];
+                    prop = feather[pname][attr];
                     theClient.query(
                         "SELECT nextval($1) AS seq",
                         [prop.autonumber.sequence],
