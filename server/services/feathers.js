@@ -1824,7 +1824,12 @@
                         Object.keys(overloads).forEach(function (key) {
                             let o = overloads[key];
 
-                            if (o.autonumber) {
+                            if (
+                                o.autonumber &&
+                                (
+                                    !feather || !feather.overloads[key]
+                                )
+                            ) {
                                 autonumber = o.autonumber;
                                 autonumber.key = key;
                             }
@@ -1835,7 +1840,12 @@
                         props = spec.properties;
                         keys = Object.keys(props).filter(function (item) {
                             let prop = props[item];
-                            if (prop.autonumber && !autonumber) {
+                            if (
+                                prop.autonumber && !autonumber &&
+                                (
+                                    !feather || !feather.properties[item]
+                                )
+                            ) {
                                 autonumber = prop.autonumber;
                                 autonumber.key = item;
                             }
