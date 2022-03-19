@@ -256,7 +256,12 @@
                         "SELECT " + sub.toString(",").format(subt) + " FROM %I"
                     );
                     tokens.push(table);
-                    sql += tools.buildWhere(data, params, isSuperUser);
+                    sql += tools.buildWhere(
+                        data,
+                        params,
+                        isSuperUser,
+                        feather.enableRowAuthorization
+                    );
                     sql += ") AS data;";
                     sql = sql.format(tokens);
 
@@ -1125,6 +1130,7 @@
                     sql = sql.format(cols);
 
                     /* Get one result by key */
+                    payload.rowAuth = feather.enableRowAuthorization;
                     if (obj.id) {
                         payload.id = obj.id;
                         tools.getKey(
