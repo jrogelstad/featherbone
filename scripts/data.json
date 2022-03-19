@@ -265,9 +265,14 @@
             "attr": "isReadOnly",
             "grid": 5,
             "unit": 0
+        }, {
+            "attr": "enableRowAuthorization",
+            "grid": 5,
+            "unit": 0
         },
         {
             "attr": "owner",
+            "grid": 0,
             "unit": 1
         }]
     }

@@ -498,6 +498,9 @@ formPage.viewModel = function (options) {
     authorizations.checkUpdate = false;
     let authViewModel = authTable.viewModel({models: authorizations});
     let toolbarButtonClass = "fb-toolbar-button";
+    let isRowAuth = f.catalog().getFeather(
+        theFeather
+    ).enableRowAuthorization;
 
     // Helper function to pass back data to sending model
     function callReceiver() {
@@ -776,28 +779,33 @@ formPage.viewModel = function (options) {
         @param {ViewModels.Dialog} dialog
         @return {ViewModels.Dialog}
     */
-    vm.editAuthDialog = f.prop(f.createViewModel("Dialog", {
-        icon: "key",
-        title: "Edit Authorizations",
-        onOk: function () {
-            let id = vm.model().id();
+    vm.editAuthDialog = f.prop();
+    if (isRowAuth) {
+        vm.editAuthDialog(f.createViewModel("Dialog", {
+            icon: "key",
+            title: "Edit Authorizations",
+            onOk: function () {
+                let id = vm.model().id();
 
-            authorizations.forEach((a) => a.objectId(id));
-            authorizations.save();
-        }
-    }));
-    vm.editAuthDialog().content = function () {
-        return m(authTable.component, {viewModel: authViewModel});
-    };
-    vm.editAuthDialog().style().width = "575px";
-    vm.editAuthDialog().state().resolve("/Display/Showing").enter(function () {
-        authorizations.fetch({
-            criteria: [{
-                property: "id",
-                value: vm.model().id()
-            }]
-        }, false).then(postProcess);
-    });
+                authorizations.forEach((a) => a.objectId(id));
+                authorizations.save();
+            }
+        }));
+        vm.editAuthDialog().content = function () {
+            return m(authTable.component, {viewModel: authViewModel});
+        };
+        vm.editAuthDialog().style().width = "575px";
+        vm.editAuthDialog().state().resolve(
+            "/Display/Showing"
+        ).enter(function () {
+            authorizations.fetch({
+                criteria: [{
+                    property: "id",
+                    value: vm.model().id()
+                }]
+            }, false).then(postProcess);
+        });
+    }
     /**
         @method formWidget
         @param {ViewModels.FormWidget} widget
@@ -810,6 +818,15 @@ formPage.viewModel = function (options) {
         @return {Boolean}
     */
     vm.isNew = f.prop(isNew);
+    /**
+        Row authorization enabled on form based
+        on feather definition.
+
+        @method rowAuthEnabled
+        @param {Boolean} flag
+        @return {Boolean}
+    */
+    vm.rowAuthEnabled = () => isRowAuth;
     /**
         @method model
         @return {Model}
@@ -922,16 +939,18 @@ formPage.viewModel = function (options) {
         class: toolbarButtonClass
     }));
 
-    vm.buttonAuth(f.createViewModel("Button", {
-        onclick: vm.editAuthDialog().show,
-        icon: "key",
-        title: "Edit Authorizations",
-        class: (
-            toolbarButtonClass +
-            " fb-toolbar-button-right" +
-            " fb-toolbar-button-right-side"
-        )
-    }));
+    if (isRowAuth) {
+        vm.buttonAuth(f.createViewModel("Button", {
+            onclick: vm.editAuthDialog().show,
+            icon: "key",
+            title: "Edit Authorizations",
+            class: (
+                toolbarButtonClass +
+                " fb-toolbar-button-right" +
+                " fb-toolbar-button-right-side"
+            )
+        }));
+    }
 
     vm.buttonCopy(f.createViewModel("Button", {
         onclick: vm.doCopy,
@@ -951,7 +970,11 @@ formPage.viewModel = function (options) {
         class: (
             toolbarButtonClass +
             " fb-toolbar-button-right" +
-            " fb-toolbar-button-middle-side "
+            (
+                isRowAuth
+                ? " fb-toolbar-button-middle-side "
+                : " fb-toolbar-button-right-side"
+            )
         )
     }));
 
@@ -1071,6 +1094,8 @@ formPage.component = {
         let fw = f.getComponent("FormWidget");
         let toolbarClass = "fb-toolbar";
         let eClass = "lds-small-dual-ring";
+        let buttonAuthView;
+        let editAuthDialogView;
 
         switch (f.currentUser().mode) {
         case "test":
@@ -1082,7 +1107,9 @@ formPage.component = {
         }
 
         vm.toggleNew();
-        vm.buttonAuth().disable();
+        if (vm.rowAuthEnabled()) {
+            vm.buttonAuth().disable();
+        }
 
         if (fmodel.canUpdate() === false) {
             icon = "lock";
@@ -1112,6 +1139,7 @@ formPage.component = {
                 break;
             default:
                 if (
+                    vm.rowAuthEnabled() &&
                     fmodel.data.owner &&
                     fmodel.data.owner() === f.currentUser().name
                 ) {
@@ -1124,15 +1152,22 @@ formPage.component = {
             eClass = "material-icons fb-title-icon";
         }
 
+        if (vm.rowAuthEnabled()) {
+            buttonAuthView = m(btn, {
+                viewModel: vm.buttonAuth()
+            });
+            editAuthDialogView = m(dlg, {
+                viewModel: vm.editAuthDialog()
+            });
+        }
+
         // Build view
         return m("div", [
             m("div", {
                 id: "toolbar",
                 class: toolbarClass
             }, [
-                m(btn, {
-                    viewModel: vm.buttonAuth()
-                }),
+                buttonAuthView,
                 m(btn, {
                     viewModel: vm.buttonPdf()
                 }),
@@ -1168,9 +1203,7 @@ formPage.component = {
             m(dlg, {
                 viewModel: vm.sseErrorDialog()
             }),
-            m(dlg, {
-                viewModel: vm.editAuthDialog()
-            }),
+            editAuthDialogView,
             m(dlg, {
                 viewModel: vm.waitDialog()
             }),
