@@ -293,7 +293,7 @@ relationWidget.viewModel = function (options) {
     */
     vm.search = function (filter) {
         let searchList = f.copy(options.list);
-        searchList.filter = filter || options.filter || searchList.filter;
+        searchList.filter = filter || theFilter || searchList.filter;
         searchList.filter = mergeFilter(searchList.filter);
 
         f.catalog().register("config", configId, searchList);
