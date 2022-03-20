@@ -84,6 +84,7 @@ relationWidget.viewModel = function (options) {
     };
     let modelList;
     let configId = f.createId();
+    let blurVal;
 
     function updateValue(prop) {
         let value = prop();
@@ -117,10 +118,32 @@ relationWidget.viewModel = function (options) {
         return filter;
     }
 
+    function blurFetch() {
+        if (
+            blurVal && !modelValue() &&
+            vm.models().state().current()[0] !== "/Busy/Fetching"
+        ) {
+            theFilter.criteria = [{
+                property: "number",
+                operator: "~*",
+                value: "^" + blurVal
+            }];
+            vm.fetch().then(function (resp) {
+                if (resp && resp.length) {
+                    vm.onchange(blurVal);
+                } else {
+                    vm.onchange(null);
+                }
+            });
+        }
+    }
+
     modelList = f.createList(type.relation, {
         background: true,
-        filter: mergeFilter(theFilter)
+        filter: mergeFilter(theFilter),
+        fetch: false
     });
+    modelList.fetch(mergeFilter(theFilter), false).then(blurFetch);
 
     // Make sure data changes made by biz logic in the model are
     // recognized
@@ -150,7 +173,7 @@ relationWidget.viewModel = function (options) {
         @method fetch
     */
     vm.fetch = function () {
-        vm.models().fetch(mergeFilter(theFilter), false);
+        return vm.models().fetch(mergeFilter(theFilter), false);
     };
     /**
         @method id
@@ -270,7 +293,7 @@ relationWidget.viewModel = function (options) {
     */
     vm.search = function (filter) {
         let searchList = f.copy(options.list);
-        searchList.filter = filter || options.filter || searchList.filter;
+        searchList.filter = filter || theFilter || searchList.filter;
         searchList.filter = mergeFilter(searchList.filter);
 
         f.catalog().register("config", configId, searchList);
@@ -284,6 +307,7 @@ relationWidget.viewModel = function (options) {
             }
         });
     };
+
     /**
         Handler for auto-complete.
         @method formConfig
@@ -293,7 +317,8 @@ relationWidget.viewModel = function (options) {
         let currentModel;
         let currentValue = false;
         let models = vm.models();
-        let regexp = new RegExp("^" + value.replace(/\\/g, "\\\\"), "i");
+        let regexp;
+        blurVal = "";
 
         function count(counter, model) {
             let mValue = model.data[valueProperty]();
@@ -306,6 +331,7 @@ relationWidget.viewModel = function (options) {
         }
 
         function match(model) {
+            regexp = new RegExp("^" + value.replace(/\\/g, "\\\\"), "i");
             currentValue = model.data[valueProperty]();
 
             if (Array.isArray(currentValue.match(regexp))) {
@@ -319,6 +345,7 @@ relationWidget.viewModel = function (options) {
 
         // If multiple matches, launch search to get one exactly
         if (
+            value !== null &&
             value.length && models.some(match) &&
             models.reduce(count, 0) > 1
         ) {
@@ -341,9 +368,9 @@ relationWidget.viewModel = function (options) {
             inputValue(currentValue);
         } else {
             modelValue(null);
-            inputValue(null);
-            delete theFilter.criteria;
-            vm.fetch();
+            inputValue(value);
+            blurVal = value;
+            blurFetch();
         }
     };
     /**
@@ -395,7 +422,7 @@ relationWidget.viewModel = function (options) {
                 operator: "~*",
                 value: "^" + value
             });
-            vm.fetch();
+            vm.fetch().then(blurFetch);
         }
     };
     /**
@@ -432,7 +459,7 @@ relationWidget.viewModel = function (options) {
         @param {Object} viewModel
         @return {Object}
     */
-    vm.parantViewModel = f.prop(options.parentViewModel);
+    vm.parentViewModel = f.prop(options.parentViewModel);
     /**
         @method showMenu
         @param {Boolean} flag
@@ -454,7 +481,7 @@ relationWidget.viewModel = function (options) {
         let result;
         let value = args[0];
 
-        if (hasFocus) {
+        if (hasFocus || blurVal) {
             if (args.length) {
                 vm.models().reset();
                 result = inputValue(value);
@@ -566,10 +593,9 @@ relationWidget.component = {
         let openMenuClass = "pure-menu-link";
         let editMenuClass = "pure-menu-link";
         let newMenuClass = "pure-menu-link";
-        let buttonClass = "pure-button fa fa-bars fb-relation-button";
+        let buttonClass = "pure-button material-icons fb-relation-button";
         let labelClass = vm.labelClass || "fb-relation-label";
         let id = vm.id();
-
         menuStyle = {
             display: (
                 vm.showMenu()
@@ -642,7 +668,7 @@ relationWidget.component = {
                                 vnode.dom.id
                             ).style.position = "absolute";
                         }
-                    }),
+                    }, "menu"),
                     m("ul", {
                         id: "nav-relation-list-" + id,
                         class: "pure-menu-list fb-relation-menu-list",
@@ -736,6 +762,11 @@ relationWidget.component = {
                 value: vm.value(),
                 oncreate: vnode.attrs.onCreate,
                 onremove: vnode.attrs.onRemove,
+                placeholder: vm.placeholder,
+                ondrop: vm.onDrop,
+                ondragover: vm.onDragOver,
+                ondragenter: vm.onDragEnter,
+                ondragleave: vm.onDragLeave,
                 readonly: readOnly,
                 autocomplete: "off"
             }),

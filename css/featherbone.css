@@ -174,7 +174,10 @@ a.pure-button-selected {
   border-radius: 4px;
   border-color: #ccc;
   box-shadow: inset 0 1px 3px #ddd;
-  padding: 7px;
+  padding-left: 3px;
+  padding-right: 13px;
+  padding-top: 3px;
+  padding-bottom: 1px;
   max-width: 15px;
   min-width: 15px;
   background-color: White;
@@ -374,7 +377,7 @@ a.pure-button-selected {
 	margin-right: 8px;
 	margin-left: 8px;
 	min-width: 18px;
-    vertical-align: bottom;
+    vertical-align: text-bottom;
     font-size: 18px;
 }
 
@@ -414,6 +417,8 @@ a.pure-button-selected {
 }
 .fb-title-icon {
   margin-right: 5px;
+  font-size: 18px;
+  vertical-align: bottom;
 }
 
 .fb-form-workbook {
@@ -444,10 +449,17 @@ a.pure-button-selected {
   width: 10em;
   margin-right: 1em;
   margin-left: 0px;
+  padding: 7.5px;
 }
 
 .fb-form-label-menu-item {
   text-align: left;
+}
+
+.fb-form-label-button-icon {
+  vertical-align: text-bottom;
+  font-size: 18px;
+  margin-right: 4px;
 }
 
 .fb-sheet-configure-content {
@@ -626,8 +638,8 @@ a.pure-button-selected {
 
 .fb-menu-list-icon {
   margin-right: 4px;
-  font-size: 18px;
-  vertical-align: bottom;
+  font-size: 24px;
+  vertical-align: text-bottom;
 }
 
 .fb-menu-list-separator {
@@ -640,8 +652,7 @@ a.pure-button-selected {
 
 .fb-relation-button {
   margin-left: 3px;
-  margin-top: 1px;
-  margin-right: 3px;
+  padding: 6px;
 }
 
 .fb-relation-label {
@@ -747,6 +758,11 @@ a.pure-button-selected {
   overflow-x: auto;
   border-top-style: solid;
   border-top-color: black;
+}
+
+.fb-table-icon {
+  font-size: 120%;
+  vertical-align: bottom;
 }
 
 .fb-toolbar {
@@ -873,3 +889,49 @@ a.pure-button-selected {
   margin-right: 8px;
 }
 
+.lds-small-dual-ring {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-right: 9px;
+}
+
+.lds-small-dual-ring:after {
+  content: " ";
+  display: block;
+  width: 12px;
+  height: 12px;
+  margin-top: 1px;
+  margin-right: 1px;
+  border-radius: 50%;
+  border: 2px solid black;
+  border-color: black transparent black transparent;
+  animation: lds-dual-ring 1.2s linear infinite;
+}
+
+.lds-large-dual-ring {
+  display: inline-block;
+  width: 160px;
+  height: 160px;
+}
+
+.lds-large-dual-ring:after {
+  content: " ";
+  display: block;
+  width: 128px;
+  height: 128px;
+  margin: 8px;
+  border-radius: 50%;
+  border: 12px solid steelblue;
+  border-color: steelblue transparent steelblue transparent;
+  animation: lds-dual-ring 1.2s linear infinite;
+}
+
+@keyframes lds-dual-ring {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}

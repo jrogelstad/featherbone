@@ -217,6 +217,7 @@
                     data = [data];
                 }
                 let ids;
+                let currId;
                 let requests = [];
                 let rows;
                 let currs;
@@ -358,6 +359,14 @@
                                 return resolveProperty(key, fthr);
                             }
 
+                            if (!fthr.properties[key]) {
+                                throw (
+                                    "Form \"" + form.name +
+                                    "\" references property \"" + key +
+                                    "\" which does not exist on feather \"" +
+                                    fthr.name + "\""
+                                );
+                            }
                             fthr.properties[key].name = key;
                             return fthr.properties[key];
                         }
@@ -484,7 +493,7 @@
                                 if (inheritedFrom(p.type.relation, "Address")) {
                                     value = rec[attr].street;
                                     if (rec[attr].unit) {
-                                        value += cr + rec[attr].unit();
+                                        value += cr + rec[attr].unit;
                                     }
                                     value += cr + rec[attr].city + ", ";
                                     value += rec[attr].state + " ";
@@ -587,7 +596,11 @@
                                     item = p.dataList.find(
                                         (i) => i.value === value
                                     );
-                                    value = item.label;
+                                    value = (
+                                        item
+                                        ? item.label
+                                        : "Invalid data list value: " + value
+                                    );
                                 } else if (p.format === "date") {
                                     value = f.parseDate(
                                         value
@@ -876,12 +889,19 @@
                         });
 */
                         // Loop through data to build content
-                        while (rows.length) {
-                            data = rows.shift();
-                            buildSection();
-                            form.tabs.forEach(buildSection);
-                            if (rows.length) {
-                                doc.pageBreak();
+                        function getRow() {
+                            return rows.find((r) => r.id === currId);
+                        }
+
+                        while (ids.length) {
+                            currId = ids.shift();
+                            data = getRow();
+                            if (data) { // In case id not found
+                                buildSection();
+                                form.tabs.forEach(buildSection);
+                                if (ids.length) {
+                                    doc.pageBreak();
+                                }
                             }
                             n = 0;
                         }
