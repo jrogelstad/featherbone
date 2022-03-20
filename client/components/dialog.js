@@ -211,6 +211,7 @@ dialog.viewModel = function (options) {
     }));
     vm.buttonOk().id(vm.ids().buttonOk);
     vm.buttonOk().isPrimary(true);
+    vm.buttonOk().title = vm.okTitle;
 
     vm.buttonCancel(f.createViewModel("Button", {
         onclick: vm.cancel,
@@ -316,7 +317,6 @@ dialog.component = {
         } else {
             vm.buttonOk().enable();
         }
-        vm.buttonOk().title(vm.okTitle());
 
         content = vm.buttons().map(function (buttonItem) {
             return m(f.getComponent("Button"), {
