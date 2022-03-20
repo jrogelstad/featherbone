@@ -1563,7 +1563,7 @@
                                 /* Handle composite types */
                                 if (typeof prop.type === "object") {
                                     if (type.relation) {
-                                        sql += "integer;";
+                                        sql += "bigint;";
                                         token = tools.relationColumn(
                                             key,
                                             type.relation
@@ -1942,10 +1942,8 @@
                         }
 
                         afterPopulateDefaults = function () {
-                            let atoken;
-
                             // Update function based defaults (one by one)
-                            if (fns.length || autonumber) {
+                            if (fns.length) {
                                 tokens = [];
                                 args = [table];
                                 i = 0;
@@ -1955,19 +1953,6 @@
                                     args.push(fn.col);
                                     i += 1;
                                 });
-
-                                if (autonumber) {
-                                    atoken = "%I='";
-                                    atoken += (autonumber.prefix || "");
-                                    atoken += "' || lpad(nextval('";
-                                    atoken += autonumber.sequence;
-                                    atoken += "')::text, ";
-                                    atoken += (autonumber.length || 0);
-                                    atoken += ", '0') || '";
-                                    atoken += (autonumber.suffix || "") + "'";
-                                    tokens.push(atoken);
-                                    args.push(autonumber.key);
-                                }
 
                                 sql = "SELECT _pk FROM %I ORDER BY _pk ";
                                 sql += "OFFSET $1 LIMIT 1;";

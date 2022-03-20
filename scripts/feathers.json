@@ -81,6 +81,12 @@
                 "type": "boolean",
                 "default": false,
                 "isRequired": true
+            },
+            "enableRowAuthorization": {
+                "description": "Enable row level authorization",
+                "type": "boolean",
+                "default": false,
+                "isRequired": true
             }
         }
     },

@@ -612,6 +612,7 @@ function createTableRow(options, pModel) {
     let cellOpts = {};
     let rowClass;
     let style;
+    let thTitle;
 
     // Build row
     if (isSelected) {
@@ -709,59 +710,62 @@ function createTableRow(options, pModel) {
     };
 
     if (currentState.slice(0, 5) === "/Busy") {
-        thContent = m("i", {
+        thContent = m("div", {
             onclick: onClick,
             title: "Saving",
-            class: "fa fa-spinner fa-spin",
-            style: iconStyle
+            class: "lds-small-dual-ring"
         });
     } else if (currentState === "/Locked") {
         lock = data.lock() || {};
-        thContent = m("i", {
-            onclick: onClick,
-            title: (
-                "User: " + lock.username + "\nSince: " +
-                new Date(lock.created).toLocaleTimeString() +
-                "\nProcess: " + lock.process
-            ),
-            class: (
-                lock.process === "Editing"
-                ? "fa fa-user-lock"
-                : "fa fa-spinner fa-spin"
-            ),
-            style: iconStyle
-        });
+        thTitle = (
+            "User: " + lock.username + "\nSince: " +
+            new Date(lock.created).toLocaleTimeString() +
+            "\nProcess: " + lock.process
+        );
+        if (lock.process === "Editing") {
+            thContent = m("i", {
+                onclick: onClick,
+                title: thTitle,
+                class: "material-icons-outlined fb-table-icon"
+            }, "lock_clock");
+        } else {
+            thContent = m("div", {
+                onclick: onClick,
+                title: thTitle,
+                class: "lds-small-dual-ring"
+            });
+        }
     } else if (!pModel.isValid()) {
         thContent = m("i", {
             onclick: onClick,
             title: pModel.lastError(),
-            class: "fa fa-exclamation-triangle",
+            class: "material-icons-outlined fb-table-icon fb-warning",
             style: iconStyle
-        });
+        }, "report_problem");
     } else if (currentMode !== "/Mode/Edit" && isSelected) {
         thContent = m("i", {
             onclick: theVm.ondblclick.bind(null, pModel),
-            class: "fa fa-folder-open fb-icon-button",
+            class: "material-icons-outlined fb-table-icon",
             style: iconStyle
-        });
+        }, "file_open");
     } else if (currentState === "/Delete") {
         thContent = m("i", {
             onclick: onClick,
-            class: "fa fa-trash",
+            class: "material-icons-outlined fb-table-icon fb-error",
             style: iconStyle
-        });
+        }, "delete");
     } else if (currentState === "/Ready/New") {
         thContent = m("i", {
             onclick: onClick,
-            class: "fa fa-plus",
+            class: "material-icons fb-table-icon",
             style: iconStyle
-        });
+        }, "add");
     } else if (pModel.canUndo()) {
         thContent = m("i", {
             onclick: onClick,
-            class: "fa fa-pencil-alt",
+            class: "material-icons-outlined fb-table-icon",
             style: iconStyle
-        });
+        }, "edit");
     } else {
         cellOpts = {
             onclick: onClick,
