@@ -511,7 +511,7 @@ formats.money = {
             )
         };
 
-        return Object.freeze(value);
+        return value;
     }
 };
 formats.enum = {

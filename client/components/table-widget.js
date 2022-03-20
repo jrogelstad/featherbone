@@ -740,31 +740,31 @@ function createTableRow(options, pModel) {
             onclick: onClick,
             title: pModel.lastError(),
             class: "material-icons-outlined fb-table-icon fb-warning",
-            style: iconStyle,
+            style: iconStyle
         }, "report_problem");
     } else if (currentMode !== "/Mode/Edit" && isSelected) {
         thContent = m("i", {
             onclick: theVm.ondblclick.bind(null, pModel),
             class: "material-icons-outlined fb-table-icon",
-            style: iconStyle,
+            style: iconStyle
         }, "file_open");
     } else if (currentState === "/Delete") {
         thContent = m("i", {
             onclick: onClick,
             class: "material-icons-outlined fb-table-icon fb-error",
-            style: iconStyle,
+            style: iconStyle
         }, "delete");
     } else if (currentState === "/Ready/New") {
         thContent = m("i", {
             onclick: onClick,
             class: "material-icons fb-table-icon",
-            style: iconStyle,
+            style: iconStyle
         }, "add");
     } else if (pModel.canUndo()) {
         thContent = m("i", {
             onclick: onClick,
             class: "material-icons-outlined fb-table-icon",
-            style: iconStyle,
+            style: iconStyle
         }, "edit");
     } else {
         cellOpts = {

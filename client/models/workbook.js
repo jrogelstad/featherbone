@@ -155,9 +155,7 @@ const workbookDefaultConifg = {
         },
         form: {
             description: "Form layout",
-            type: {
-                relation: "Form"
-            }
+            type: "string"
         },
         list: {
             description: "List layout",
@@ -270,11 +268,6 @@ function resolveConfig(config) {
     config.forEach(function (sheet) {
         if (!sheet.id) {
             sheet.id = f.createId();
-        }
-        if (typeof sheet.form === "string" && sheet.form.length) {
-            sheet.form = f.catalog().store().data().forms().find(
-                (form) => sheet.form === form.id
-            );
         }
     });
 }
