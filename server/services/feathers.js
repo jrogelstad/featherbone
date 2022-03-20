@@ -1942,8 +1942,6 @@
                         }
 
                         afterPopulateDefaults = function () {
-                            let atoken;
-
                             // Update function based defaults (one by one)
                             if (fns.length) {
                                 tokens = [];
