@@ -90,9 +90,13 @@
             @param {Array} tokens
             @return {String} SQL clause
         */
-        tools.buildAuthSql = function (action, table, tokens) {
+        tools.buildAuthSql = function (action, table, tokens, rowAuth) {
             let actions;
-            let i = 7;
+            let i = (
+                rowAuth
+                ? 7
+                : 4
+            );
             let msg;
             let sql;
 
@@ -134,23 +138,30 @@
                 "    LIMIT 1" +
                 "  ) AS data" +
                 "  WHERE " + action +
-                ") " +
-                "EXCEPT " +
-                "SELECT %I._pk " +
-                "FROM %I " +
-                "WHERE EXISTS ( " +
-                "  SELECT " + action + " FROM (" +
-                "    SELECT " + action +
-                "    FROM \"$auth\", pg_authid" +
-                "    WHERE pg_has_role($1, pg_authid.oid, 'member')" +
-                "      AND \"$auth\".object_pk=%I._pk" +
-                "      AND \"$auth\".role=pg_authid.rolname" +
-                "      AND " + action + " IS NOT NULL " +
-                "    ORDER BY " + action + " DESC" +
-                "    LIMIT 1 " +
-                "  ) AS data " +
-                "WHERE NOT " + action + "))"
+                ") "
             );
+            
+            if (rowAuth) {
+                sql += (
+                    "EXCEPT " +
+                    "SELECT %I._pk " +
+                    "FROM %I " +
+                    "WHERE EXISTS ( " +
+                    "  SELECT " + action + " FROM (" +
+                    "    SELECT " + action +
+                    "    FROM \"$auth\", pg_authid" +
+                    "    WHERE pg_has_role($1, pg_authid.oid, 'member')" +
+                    "      AND \"$auth\".object_pk=%I._pk" +
+                    "      AND \"$auth\".role=pg_authid.rolname" +
+                    "      AND " + action + " IS NOT NULL " +
+                    "    ORDER BY " + action + " DESC" +
+                    "    LIMIT 1 " +
+                    "  ) AS data " +
+                    "WHERE NOT " + action + ")"
+                );
+            }
+            
+            sql += ")";
 
             return sql;
         };
@@ -165,9 +176,10 @@
             @param {Object} payload.client Database client
             @param {Array} [params] Parameters used for the sql query
             @param {Boolean} [flag] Request as super user. Default false.
+            @param {Boolean} [flag] Enforce row authorization. Default false.
             @return {Promise}
         */
-        tools.buildWhere = function (obj, params, isSuperUser) {
+        tools.buildWhere = function (obj, params, isSuperUser, rowAuth) {
             let part;
             let op;
             let err;
@@ -196,7 +208,7 @@
 
             // Add authorization criteria
             if (isSuperUser === false) {
-                sql += tools.buildAuthSql("canRead", table, tokens);
+                sql += tools.buildAuthSql("canRead", table, tokens, rowAuth);
 
                 params.push(obj.client.currentUser());
                 p += 1;
@@ -532,6 +544,7 @@
             @param {Object} Request payload
             @param {Object} payload.id Id to resolve
             @param {Object} payload.client Database client
+            @param {Boolean} [payload.rowAuth] Enable row authorization
             @param {Boolean} [flag] Request as super user. Default false.
             @return {Promise}
         */
@@ -565,17 +578,19 @@
             @param {Object} payload.name Feather name
             @param {Filter} [payload.filter] Filter
             @param {Boolean} [payload.showDeleted] Show deleted records
+            @param {Boolean} [payload.rowAuth] Enable row authorization.
             @param {Object} payload.client Database client
-            @param {Boolean} [flag] Request as super user. Default false.
+            @param {Boolean} [flag] Request as super user. Default true.
             @return {Promise}
         */
         tools.getKeys = function (obj, isSuperUser) {
+            isSuperUser = isSuperUser !== false;
             return new Promise(function (resolve, reject) {
                 let sql = "SELECT _pk FROM %I";
                 let params = [];
 
                 sql = sql.format(["_" + obj.name.toSnakeCase()]);
-                sql += tools.buildWhere(obj, params, isSuperUser);
+                sql += tools.buildWhere(obj, params, isSuperUser, obj.rowAuth);
 
                 function callback(resp) {
                     let keys = resp.rows.map(function (rec) {
