@@ -112,7 +112,13 @@
             return new Promise(function (resolve, reject) {
                 let client = db.getClient(obj.client);
                 client.query("COMMIT;").then(function () {
-                    client.callbacks.forEach((cb) => cb());
+                    let callbacks = client.callbacks.slice();
+                    function next() {
+                        if (callbacks.length) {
+                            callbacks.shift()().then(next).catch(console.log);
+                        }
+                    }
+                    next();
                     resolve();
                 }).catch(reject);
             });
