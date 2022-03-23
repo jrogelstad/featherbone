@@ -454,9 +454,11 @@ function createList(feather) {
         let cfeather = catalog.getFeather(name.toCamelCase(true));
 
         // Undo any edited rows
-        ary.forEach(function (model) {
-            model.undo();
-        });
+        if (!context.merge) {
+            ary.forEach(function (model) {
+                model.undo();
+            });
+        }
 
         if (context.merge === false) {
             isMerge = false;
