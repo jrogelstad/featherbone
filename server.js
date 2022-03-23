@@ -1538,7 +1538,7 @@
                     callback();
                     return;
                 }
- 
+
                 // If record change, fetch new record
                 if (change === "create" || change === "update") {
                     payload = {
