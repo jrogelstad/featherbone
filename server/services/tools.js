@@ -140,7 +140,7 @@
                 "  WHERE " + action +
                 ") "
             );
-            
+
             if (rowAuth) {
                 sql += (
                     "EXCEPT " +
@@ -160,7 +160,7 @@
                     "WHERE NOT " + action + ")"
                 );
             }
-            
+
             sql += ")";
 
             return sql;
