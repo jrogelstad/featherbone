@@ -642,7 +642,8 @@
             "password": {
                 "description": "Password",
                 "type": "string",
-                "format": "password"
+                "format": "password",
+                "default": "createId()"
             },
             "isSuper": {
                 "description": "System adiminstrator flag",
