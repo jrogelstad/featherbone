@@ -789,20 +789,22 @@
         let file = req.files.dataFile;
         let owrite = file.overwrite;
         let filePath = DIR + file.name;
-        fs.stat(filePath, function(err, stat){
-            if(stat && !owrite){
-                res.json({"message":"File already exists", "status":"exists"});
-            }
-            else{
+        fs.stat(filePath, function (ignore, stat) {
+            if (stat && !owrite) {
+                res.json({
+                    message: "File already exists",
+                    status: "exists"
+                });
+            } else {
                 file.mv(filePath, function (err) {
                     if (err) {
                         console.error(err);
                         return res.status(500).json({
-                            "message":"Failed to persist file",
-                            "status": "failed"
+                            message: "Failed to persist file",
+                            status: "failed"
                         });
                     }
-                    res.json({"message":"Uploaded file", "status": "success"});
+                    res.json({message: "Uploaded file", status: "success"});
                 });
             }
         });
@@ -929,7 +931,7 @@
 
     function doGetFile(req, res) {
         let url = "." + decodeURI(req.url);
-        let file = req.params.file  || "";
+        let file = req.params.file || "";
         //console.log(url + "/" + file);
         let suffix = (
             file
@@ -1295,6 +1297,27 @@
         });
     }
 
+    // Listen for changes to catalog, refresh if changed
+    function subscribeToCatalog() {
+        return new Promise(function (resolve, reject) {
+            let eKey = f.createId();
+
+            // Refresh the local copy of the catalog if it changes
+            eventSessions[eKey] = function () {
+                datasource.getCatalog().catch(console.log);
+            };
+            eventSessions[eKey].fetch = false;
+
+            datasource.request({
+                name: "getSettings",
+                method: "GET",
+                user: systemUser,
+                subscription: {id: f.createId(), eventKey: eKey},
+                data: {name: "catalog"}
+            }, true).then(resolve).catch(reject);
+        });
+    }
+
     function start() {
         // Define exactly which directories and files are to be served
         let dirs = [
@@ -1511,6 +1534,11 @@
             }
 
             if (fn) {
+                if (fn.fetch === false) {
+                    callback();
+                    return;
+                }
+
                 // If record change, fetch new record
                 if (change === "create" || change === "update") {
                     payload = {
@@ -1612,5 +1640,9 @@
     // FIRE IT UP
     //
 
-    init().then(subscribeToFeathers).then(start).catch(process.exit);
+    init().then(
+        subscribeToFeathers
+    ).then(
+        subscribeToCatalog
+    ).then(start).catch(process.exit);
 }());
