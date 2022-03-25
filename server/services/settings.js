@@ -18,47 +18,15 @@
 /*jslint node*/
 const settings = {};
 const {Database} = require("../database");
+const {Events} = require("./events");
 const f = require("../../common/core");
 const db = new Database();
+const events = new Events();
 
 settings.data = {};
 /**
     @module Settings
 */
-
-// ..........................................................
-// PRIVATE
-//
-
-/**
-    Check to see if an etag is current.
-    @private
-    @method checkEtag
-    @param {Object} payload
-    @param {String} payload.id Object id
-    @param {String} payload.etag Object etag
-    @param {Object} payload.client Database client
-    @return {Promise}
-*/
-function checkEtag(obj) {
-    return new Promise(function (resolve, reject) {
-        let sql = "SELECT etag FROM %I WHERE id = $1";
-
-        function callback(resp) {
-            let result = false;
-
-            if (resp.rows.length) {
-                result = resp.rows[0].etag === obj.etag;
-            }
-
-            resolve(result);
-        }
-
-        sql = sql.format([obj.name.toSnakeCase()]);
-
-        obj.client.query(sql, [obj.id]).then(callback).catch(reject);
-    });
-}
 
 // ..........................................................
 // PUBLIC
@@ -71,27 +39,21 @@ function checkEtag(obj) {
     @param {Object} payload Request payload
     @param {Object} payload.data Data
     @param {String} payload.data.name Settings name
-    @param {Object} payload.client Database client
     @param {Boolean} payload.data.force Force reload
+    @param {Object} payload.client Database client
+    @param {Object} [payload.subscription] subscribe to changes
     @return {Promise}
 */
 settings.getSettings = function (obj) {
     return new Promise(function (resolve, reject) {
-        let payload;
         let name = obj.data.name;
         let theClient = db.getClient(obj.client);
 
-        function theCallback(ok) {
-            let sql;
-
-            sql = "SELECT id, etag, data FROM \"$settings\"";
-            sql += "WHERE name = $1";
-
-            // If etag checks out, pass back cached
-            if (ok) {
-                resolve(settings.data[name].data);
-                return;
-            }
+        function fetch() {
+            let sql = (
+                "SELECT id, etag, data FROM \"$settings\"" +
+                "WHERE name = $1"
+            );
 
             // If here, need to query for the current settings
             theClient.query(sql, [name]).then(function (resp) {
@@ -111,7 +73,18 @@ settings.getSettings = function (obj) {
                 // Send back the settings if any were found, otherwise
                 // "false"
                 if (settings.data[name]) {
-                    resolve(settings.data[name].data);
+                    // Handle subscription
+                    events.subscribe(
+                        theClient,
+                        obj.subscription,
+                        [rec.id],
+                        "$settings"
+                    ).then(
+                        resolve.bind(null, settings.data[name].data)
+                    ).catch(
+                        reject
+                    );
+
                     return;
                 }
 
@@ -123,23 +96,27 @@ settings.getSettings = function (obj) {
             delete settings.data[name];
         }
 
-        // Check if settings have been changed if we already have them
         if (settings.data[name]) {
-            payload = {
-                name: "$settings",
-                id: settings.data[name].id,
-                etag: settings.data[name].etag,
-                client: theClient,
-                callback: theCallback
-            };
-
-            checkEtag(payload).then(theCallback).catch(reject);
-
+            // Handle subscription
+            if (obj.subscription) {
+                events.subscribe(
+                    theClient,
+                    obj.subscription,
+                    [settings.data[name].id],
+                    "$settings"
+                ).then(
+                    resolve.bind(null, settings.data[name].data)
+                ).catch(
+                    reject
+                );
+                return;
+            }
+            resolve(settings.data[name].data);
             return;
         }
 
         // Request the settings from the database
-        theCallback(false);
+        fetch();
     });
 };
 

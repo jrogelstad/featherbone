@@ -124,7 +124,7 @@ relationWidget.viewModel = function (options) {
             vm.models().state().current()[0] !== "/Busy/Fetching"
         ) {
             theFilter.criteria = [{
-                property: "number",
+                property: valueProperty,
                 operator: "~*",
                 value: "^" + blurVal
             }];

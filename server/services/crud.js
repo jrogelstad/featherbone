@@ -38,6 +38,7 @@
     const formats = tools.formats;
     const f = require("../../common/core");
     const jsonpatch = require("fast-json-patch");
+    const ekey = "_eventkey"; // Lint tyranny
 
     /**
         Return a promise that resolves money object with
@@ -112,7 +113,13 @@
             return new Promise(function (resolve, reject) {
                 let client = db.getClient(obj.client);
                 client.query("COMMIT;").then(function () {
-                    client.callbacks.forEach((cb) => cb());
+                    let callbacks = client.callbacks.slice();
+                    function next() {
+                        if (callbacks.length) {
+                            callbacks.shift()().then(next).catch(console.log);
+                        }
+                    }
+                    next();
                     resolve();
                 }).catch(reject);
             });
@@ -1869,6 +1876,7 @@
             @param {String} id Record id
             @param {String} username
             @param {String} eventKey
+            @param {String} [process] Description of lock reason
             @return {Promise} Resolves to `true` if successful.
         */
         crud.lock = function (client, nodeid, id, username, eventkey, process) {
@@ -1898,7 +1906,10 @@
 
                 function checkLock() {
                     return new Promise(function (resolve, reject) {
-                        let sql = "SELECT lock FROM object WHERE id = $1";
+                        let sql = (
+                            "SELECT to_json(lock) AS lock " +
+                            "FROM object WHERE id = $1"
+                        );
 
                         function callback(resp) {
                             if (!resp.rows.length) {
@@ -1907,7 +1918,10 @@
                                 return;
                             }
 
-                            if (resp.rows[0].lock) {
+                            if (
+                                resp.rows[0].lock &&
+                                resp.rows[0].lock[ekey] !== eventkey
+                            ) {
                                 msg = "Record " + id + " is already locked.";
                                 reject(new Error(msg));
                                 return;

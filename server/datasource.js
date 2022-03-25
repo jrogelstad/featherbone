@@ -455,15 +455,20 @@
         @param {String} id Object id
         @param {String} user User name
         @param {String} eventKey Browser instance event key
+        @param {String} [process] Description of lock reason
+        @param {Object} [client] Client connection
         @return {Promise}
     */
-    that.lock = function (id, username, eventkey, process) {
+    that.lock = function (id, username, eventkey, process, client) {
         return new Promise(function (resolve, reject) {
+            let theClient;
             // Do the work
             function doLock(resp) {
                 return new Promise(function (resolve, reject) {
                     function callback(ok) {
-                        resp.done();
+                        if (resp.done) {
+                            resp.done();
+                        }
                         resolve(ok);
                     }
 
@@ -480,6 +485,12 @@
                         reject
                     );
                 });
+            }
+
+            if (client) {
+                theClient = db.getClient(client);
+                doLock({client: theClient}).then(resolve).catch(reject);
+                return;
             }
 
             Promise.resolve().then(
@@ -504,10 +515,12 @@
         @param {String} [criteria.id] Object id
         @param {String} [criteria.username] User name
         @param {String} [criteria.eventKey] Event key
+        @param {Object} [client] Client connection
         @return {Promise}
     */
-    that.unlock = function (criteria) {
+    that.unlock = function (criteria, client) {
         return new Promise(function (resolve, reject) {
+            let theClient;
             criteria = criteria || {};
             criteria.nodeId = db.nodeId;
 
@@ -515,7 +528,9 @@
             function doUnlock(resp) {
                 return new Promise(function (resolve, reject) {
                     function callback(ids) {
-                        resp.done();
+                        if (resp.done) {
+                            resp.done();
+                        }
                         resolve(ids);
                     }
 
@@ -525,6 +540,12 @@
                         reject
                     );
                 });
+            }
+
+            if (client) {
+                theClient = db.getClient(client);
+                doUnlock({client: theClient}).then(resolve).catch(reject);
+                return;
             }
 
             Promise.resolve().then(
