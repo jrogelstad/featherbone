@@ -74,17 +74,19 @@ settings.getSettings = function (obj) {
                 // "false"
                 if (settings.data[name]) {
                     // Handle subscription
-                    events.subscribe(
-                        theClient,
-                        obj.subscription,
-                        [rec.id],
-                        "$settings"
-                    ).then(
-                        resolve.bind(null, settings.data[name].data)
-                    ).catch(
-                        reject
-                    );
-
+                    if (obj.subscription) {
+                        events.subscribe(
+                            theClient,
+                            obj.subscription,
+                            [rec.id]
+                        ).then(
+                            resolve.bind(null, settings.data[name].data)
+                        ).catch(
+                            reject
+                        );
+                        return;
+                    }
+                    resolve(settings.data[name].data);
                     return;
                 }
 
@@ -102,8 +104,7 @@ settings.getSettings = function (obj) {
                 events.subscribe(
                     theClient,
                     obj.subscription,
-                    [settings.data[name].id],
-                    "$settings"
+                    [settings.data[name].id]
                 ).then(
                     resolve.bind(null, settings.data[name].data)
                 ).catch(
