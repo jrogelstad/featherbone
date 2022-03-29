@@ -30,6 +30,7 @@
     const {CRUD} = require("./crud");
     const {Feathers} = require("./feathers");
     const pdf = require("pdfjs");
+    const {PDFUtil} = require("./pdfUtil");
     const fonts = {
         Barcode39: new pdf.Font(
             fs[readFileSync]("./fonts/LibreBarcode39-Regular.ttf")
@@ -211,7 +212,8 @@
             @param {String} [Filename] Target filename
             @return {Promise} Filename
         */
-        that.printForm = function (vClient, form, data, filename) {
+        that.printForm = function (vClient, form, data, filename, options) {
+
             return new Promise(function (resolve, reject) {
                 if (!Array.isArray(data)) {
                     data = [data];
@@ -333,6 +335,7 @@
                                 creator: vClient.currentUser()
                             }
                         });
+
                         let header;
                         let src = fs[readFileSync]("./files/logo.jpg");
                         let logo = new pdf.Image(src);
@@ -907,7 +910,26 @@
                         }
 
                         doc.pipe(w);
-                        doc.end().then(resolve.bind(null, file)).catch(reject);
+                        doc.end().then(function () {
+                            if (!options || !options.watermark) {
+                                resolve(file);
+                                return file;
+                            }
+                            else {
+                                w.on("close", function(){
+                                    options.watermark.width = doc.width;
+                                    options.watermark.height = doc.height;
+                                    PDFUtil.waterMark(
+                                        path,
+                                        options.watermark.label,
+                                        path,
+                                        options.watermark
+                                    ).then( function () {
+                                        resolve(file)
+                                    });
+                                });
+                            }
+                        }).catch(reject);
                     });
                 }
 
