@@ -789,20 +789,24 @@
         let file = req.files.dataFile;
         let owrite = file.overwrite;
         let filePath = DIR + file.name;
-        fs.stat(filePath, function(err, stat){
-            if(stat && !owrite){
-                res.json({"message":"File already exists", "status":"exists"});
-            }
-            else{
+        fs.stat(filePath, function (err, stat) {
+            if (err) {
+                res.json({"message": "An error occurred uploading the file"});
+            } else if (stat && !owrite) {
+                res.json({
+                    "message": "File already exists",
+                    "status": "exists"
+                });
+            } else {
                 file.mv(filePath, function (err) {
                     if (err) {
                         console.error(err);
                         return res.status(500).json({
-                            "message":"Failed to persist file",
+                            "message": "Failed to persist file",
                             "status": "failed"
                         });
                     }
-                    res.json({"message":"Uploaded file", "status": "success"});
+                    res.json({"message": "Uploaded file", "status": "success"});
                 });
             }
         });
@@ -868,7 +872,8 @@
             req.body.form,
             req.body.id || req.body.ids,
             req.body.filename,
-            req.user.name
+            req.user.name,
+            req.body.options
         ).then(
             respond.bind(res)
         ).catch(
@@ -929,7 +934,7 @@
 
     function doGetFile(req, res) {
         let url = "." + decodeURI(req.url);
-        let file = req.params.file  || "";
+        let file = req.params.file || "";
         //console.log(url + "/" + file);
         let suffix = (
             file
