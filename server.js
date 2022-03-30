@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/*jslint node, this, eval*/
+/*jslint node, this, eval, unordered */
 (function () {
     "use strict";
     require("./common/string.js");
@@ -870,7 +870,8 @@
             req.body.form,
             req.body.id || req.body.ids,
             req.body.filename,
-            req.user.name
+            req.user.name,
+            req.body.options
         ).then(
             respond.bind(res)
         ).catch(
