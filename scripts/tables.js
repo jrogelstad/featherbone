@@ -84,7 +84,13 @@
         "  END LOOP; " +
         "RETURN NEW; " +
         "END; " +
-        "$$ LANGUAGE plpgsql;"
+        "$$ LANGUAGE plpgsql;" +
+        "DROP TRIGGER IF EXISTS \"$settings_update_trigger\" " +
+        "ON \"$settings\"; " +
+        "CREATE TRIGGER \"$settings_update_trigger\" " +
+        "AFTER UPDATE ON \"$settings\" " +
+        "FOR EACH ROW EXECUTE PROCEDURE " +
+        "update_trigger();"
     );
 
     const createSubcriptionSql = (
@@ -402,20 +408,14 @@
                             "   process text" +
                             ");"
                         );
-                        obj.client.query(sql, createEventTrigger);
+                        obj.client.query(sql, createSubscription);
                         return;
                     }
-                    createEventTrigger();
+                    createSubscription();
                 }
 
                 sql = "SELECT * FROM pg_class WHERE relname = $1";
                 sqlCheck("lock", callback, sql);
-            };
-
-            // Create event trigger for notifications
-            createEventTrigger = function () {
-                obj.client.query(createTriggerFuncSql, createSubscription);
-                return;
             };
 
             // Create the subscription table
@@ -562,12 +562,18 @@
                                 "catalog",
                                 JSON.stringify(objectDef)
                             ];
-                            obj.client.query(sql, params, done);
+                            obj.client.query(sql, params, createEventTrigger);
                         });
                         return;
                     }
-                    done();
+                    createEventTrigger();
                 });
+            };
+
+            // Create event trigger for notifications
+            createEventTrigger = function () {
+                obj.client.query(createTriggerFuncSql, done);
+                return;
             };
 
             done = function () {
