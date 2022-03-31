@@ -1,6 +1,6 @@
 /*jslint browser*/
 // This file is the shim layer to connect jslint to CodeMirror editor
-import jslint from "./jslint.js";
+import jslint from "./jslint.mjs";
 
 const CodeMirror = window.CodeMirror;
 
