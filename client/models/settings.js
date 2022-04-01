@@ -174,6 +174,7 @@ function settings(definition) {
         });
     }));
 
+    that.subscribe = () => false; // No subscriptions
     that.state().goto();
 
     return that;
