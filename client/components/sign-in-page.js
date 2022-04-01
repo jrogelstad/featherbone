@@ -26,7 +26,7 @@ signInPage.component = {
     },
 
     view: function () {
-        return m("div", {
+        return m("form", {
             class: "pure-form pure-form-aligned"
         }, [
             m("div", {
@@ -48,6 +48,7 @@ signInPage.component = {
                     class: "fb-sign-in-label"
                 }, "Username"),
                 m("input", {
+                    autocomplete: "on",
                     id: "username"
                 })
             ]),
@@ -62,6 +63,7 @@ signInPage.component = {
                 m("input", {
                     id: "password",
                     type: "password",
+                    autocomplete: "current-password",
                     onkeydown: function (e) {
                         if (e.which === 13) {
                             f.state().send("authenticate");
