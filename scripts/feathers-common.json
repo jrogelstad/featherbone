@@ -918,6 +918,9 @@
                     "value": "W",
                     "label": "Work"
                 }, {
+                    "value": "F",
+                    "label": "Fax"
+                }, {
                     "value": "O",
                     "label": "Other"
                 }]
