@@ -22,8 +22,8 @@ function validator(text, options) {
         output.push({
             message: warning.message,
             severity: "error",
-            from: new CodeMirror.Pos(warning.line, warning.column - 1),
-            to: new CodeMirror.Pos(warning.line, warning.column + 1)
+            from: new CodeMirror.Pos(warning.line - 1, warning.column - 1),
+            to: new CodeMirror.Pos(warning.line - 1, warning.column + 1)
         });
     });
 
