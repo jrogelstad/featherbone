@@ -1,4 +1,4 @@
-/*jslint browser*/
+/*jslint browser, unordered */
 // This file is the shim layer to connect jslint to CodeMirror editor
 import jslint from "./jslint.mjs";
 
