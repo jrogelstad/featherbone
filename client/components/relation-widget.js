@@ -212,7 +212,7 @@ relationWidget.viewModel = function (options) {
     vm.label = function () {
         let model = modelValue();
         return (
-            (labelProperty && model)
+            (labelProperty && model && model.data[labelProperty])
             ? model.data[labelProperty]()
             : ""
         );
