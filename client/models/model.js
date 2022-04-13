@@ -470,7 +470,11 @@ function createModel(data, feather) {
         fn.type = options.type || "string";
         fn.format = options.format;
         fn.isRequired = simpleProp(false);
-        fn.isReadOnly = simpleProp(options.isReadOnly || true);
+        fn.isReadOnly = simpleProp(
+            options.isReadOnly === false
+            ? false
+            : true
+        );
         fn.isToMany = isToMany.bind(null, fn);
         fn.isToOne = isToOne.bind(null, fn);
         fn.style = simpleProp(options.style || "");
