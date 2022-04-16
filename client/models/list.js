@@ -66,8 +66,9 @@ function createList(feather) {
         @method add
         @param {Model} Model
         @param {Boolean} Subscribe flag.
+        @param {Boolean} Add to top of list if new.
     */
-    ary.add = function (model, subscribe) {
+    ary.add = function (model, subscribe, prepend) {
         let mstate;
         let payload;
         let theUrl;
@@ -86,8 +87,16 @@ function createList(feather) {
             dirty.remove(ary[oid]);
             ary.splice(oid, 1, model);
         } else {
-            idx[id] = ary.length;
-            ary.push(model);
+            if (prepend) {
+                Object.keys(idx).forEach(function (k) {
+                    idx[k] += 1;
+                });
+                idx[id] = 0;
+                ary.unshift(model);
+            } else {
+                idx[id] = ary.length;
+                ary.push(model);
+            }
         }
 
         mstate = model.state();
