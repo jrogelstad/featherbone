@@ -77,9 +77,6 @@ relationWidget.viewModel = function (options) {
     );
     let theFilter = {
         criteria: f.copy(criteria),
-        sort: [{
-            property: valueProperty
-        }],
         limit: 10
     };
     let modelList;
@@ -105,7 +102,13 @@ relationWidget.viewModel = function (options) {
         }
 
         if (!filter.sort) {
-            filter.sort = [];
+            if (pFilter.sort && pFilter.sort.length) {
+                filter.sort = pFilter.sort;
+            } else {
+                filter.sort = [{
+                    property: valueProperty
+                }];
+            }
         }
         filter.criteria = filter.criteria.concat(pFilter.criteria);
         filter.sort = (
