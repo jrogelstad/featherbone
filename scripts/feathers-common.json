@@ -148,6 +148,57 @@
         }
     },
     {
+        "name": "FormAction",
+        "plural": "FormActions",
+        "module": "Core",
+        "description": "Form action definitions",
+        "properties": {
+            "parent": {
+                "description": "Parent form",
+                "type": {
+                    "relation": "Form",
+                    "childOf": "actions"
+                }
+            },
+            "name": {
+                "description": "Name",
+                "format": "",
+                "type": "string",
+                "isRequired": true
+            },
+            "title": {
+                "description": "Title",
+                "format": "",
+                "type": "string",
+                "isRequired": true
+            },
+            "icon": {
+                "description": "Icon name",
+                "type": "string",
+                "format": "icon",
+                "isRequired": true
+            },
+            "method": {
+                "description": "Method to execute for action",
+                "type": "string",
+                "format": "",
+                "isRequired": true
+            },
+            "validator": {
+                "description": "Selection validation check",
+                "type": "string",
+                "format": "",
+                "isRequired": false
+            },
+            "hasSeparator": {
+                "description": "Precede action with separator",
+                "type": "boolean",
+                "format": "",
+                "isRequired": true
+            }
+        }
+    },
+    {
         "name": "FormAttr",
         "plural": "FormAttrs",
         "module": "Core",
