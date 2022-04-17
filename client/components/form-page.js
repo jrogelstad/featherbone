@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/*jslint this, browser*/
+/*jslint this browser devel unordered*/
 /*global f, m*/
 /**
     @module FormPage
@@ -624,7 +624,13 @@ formPage.viewModel = function (options) {
     // ..........................................................
     // PUBLIC
     //
-
+    /**
+        Actionsinstantiated as buttons
+        @method formActions
+        @param {Form.FormAction} action
+        @return {Array}
+    */
+    vm.actionButtons = f.prop([]);
     /**
         @method buttonApply
         @param {ViewModels.Button} button
@@ -834,6 +840,16 @@ formPage.viewModel = function (options) {
     vm.model = function () {
         return vm.formWidget().model();
     };
+   /**
+        Returns model in an array for compatibility
+        with list actions.
+
+        @method selections
+        @return {Model}
+    */
+    vm.selections = function () {
+        return [vm.formWidget().model()];
+    };
     /**
         @method buttonEdit
         @param {ViewModels.Dialog} dialog
@@ -916,6 +932,57 @@ formPage.viewModel = function (options) {
     // Memoize our model instance in case we leave and come back while
     // zooming deeper into detail
     instances[vm.model().id()] = vm.model();
+
+    // Add action buttons defined in form
+    let actidx = form.actions.length - 1;
+    let action;
+    let fn = f.catalog().store().models()[options.feather.toCamelCase()];
+    let theClass = toolbarButtonClass + " fb-toolbar-button-right ";
+    let posClass;
+    let btn;
+    let validator = function (check) {
+        return (
+            vm.model().state().current()[0] !== "/Ready/Fetched/Clean" ||
+            !Boolean(check(vm.selections()))
+        );
+    };
+    let onClick = (act) => act(vm);
+
+    while (actidx >= 0) {
+        action = form.actions[actidx];
+        fn = f.catalog().store().models()[options.feather.toCamelCase()];
+        theClass = toolbarButtonClass + " fb-toolbar-button-right ";
+
+        if (form.actions.length > 1) {
+            if (actidx) {
+                if (actidx === form.actions.length - 1) {
+                    posClass = " fb-toolbar-button-right-side ";
+                } else {
+                    posClass = " fb-toolbar-button-middle-side ";
+                }
+            } else {
+                posClass = " fb-toolbar-button-left-side ";
+            }
+        }
+
+        theClass += posClass;
+
+        btn = f.createViewModel("Button", {
+            onclick: onClick.bind(null, fn.static()[action.method]),
+            label: action.name,
+            title: action.title,
+            icon: action.icon,
+            class: theClass
+        });
+        if (Boolean(action.validator)) {
+            btn.isDisabled = validator.bind(
+                null,
+                fn.static()[action.validator]
+            );
+        }
+        vm.actionButtons().push(btn);
+        actidx -= 1;
+    }
 
     // Create button view models
     vm.buttonBack(f.createViewModel("Button", {
@@ -1096,6 +1163,7 @@ formPage.component = {
         let eClass = "lds-small-dual-ring";
         let buttonAuthView;
         let editAuthDialogView;
+        let buttons;
 
         switch (f.currentUser().mode) {
         case "test":
@@ -1161,32 +1229,27 @@ formPage.component = {
             });
         }
 
+        buttons = [
+            buttonAuthView,
+            m(btn, {viewModel: vm.buttonPdf()}),
+            m(btn, {viewModel: vm.buttonCopy()})
+        ];
+        vm.actionButtons().forEach(function (ab) {
+            return buttons.push(m(btn, {viewModel: ab}));
+        });
+        buttons = buttons.concat([
+            m(btn, {viewModel: vm.buttonBack()}),
+            m(btn, {viewModel: vm.buttonApply()}),
+            m(btn, {viewModel: vm.buttonSave()}),
+            m(btn, {viewModel: vm.buttonSaveAndNew()})
+        ]);
+
         // Build view
         return m("div", [
             m("div", {
                 id: "toolbar",
                 class: toolbarClass
-            }, [
-                buttonAuthView,
-                m(btn, {
-                    viewModel: vm.buttonPdf()
-                }),
-                m(btn, {
-                    viewModel: vm.buttonCopy()
-                }),
-                m(btn, {
-                    viewModel: vm.buttonBack()
-                }),
-                m(btn, {
-                    viewModel: vm.buttonApply()
-                }),
-                m(btn, {
-                    viewModel: vm.buttonSave()
-                }),
-                m(btn, {
-                    viewModel: vm.buttonSaveAndNew()
-                })
-            ]),
+            }, buttons),
             m("div", {
                 class: "fb-title",
                 id: "title"
