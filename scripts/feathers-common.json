@@ -164,7 +164,7 @@
                 "description": "Name",
                 "format": "",
                 "type": "string",
-                "isRequired": true
+                "isRequired": false
             },
             "title": {
                 "description": "Title",
@@ -176,7 +176,7 @@
                 "description": "Icon name",
                 "type": "string",
                 "format": "icon",
-                "isRequired": true
+                "isRequired": false
             },
             "method": {
                 "description": "Method to execute for action",
