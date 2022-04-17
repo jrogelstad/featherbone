@@ -120,9 +120,11 @@ const editSheetConfig = {
             width: 165
         }, {
             attr: "method",
+            dataList: "methodList",
             width: 165
         }, {
             attr: "validator",
+            dataList: "methodList",
             width: 165
         }, {
             attr: "hasSeparator",
