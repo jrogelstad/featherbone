@@ -717,7 +717,14 @@ function createModel(data, feather) {
         @type boolean
     */
     model.isModel = true;
+    /**
+        Indicates whether the model is loaded from the
+        database with no edits.
 
+        @method isReadyClean
+        @return {Boolean}
+    */
+    model.isReadyClean = () => state.current()[0] === "/Ready/Fetched/Clean";
     /**
         Indicates whether the model is read only.
 

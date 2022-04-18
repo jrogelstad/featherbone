@@ -970,10 +970,7 @@ formPage.viewModel = function (options) {
     let posClass;
     let btn;
     let validator = function (check) {
-        return (
-            vm.model().state().current()[0] !== "/Ready/Fetched/Clean" ||
-            !Boolean(check(vm.selections()))
-        );
+        return !Boolean(check(vm.selections()));
     };
     let onClick = (act) => act(vm);
 
