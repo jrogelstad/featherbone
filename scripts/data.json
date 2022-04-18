@@ -541,11 +541,6 @@
                 "dataList": "methodList",
                 "label": "",
                 "width": 165
-            }, {
-                "attr": "hasSeparator",
-                "dataList": "",
-                "width": 100,
-                "label": "Separator"
             }]
         }, {
             "attr": "title",
