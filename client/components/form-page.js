@@ -901,7 +901,7 @@ formPage.viewModel = function (options) {
         @return {String}
     */
     vm.title = function () {
-        return options.feather.toName();
+        return form.title || options.feather.toName();
     };
     /**
         @method toggleNew
