@@ -614,6 +614,37 @@ formPage.viewModel = function (options) {
         return m.request(payload).then(openPdf).catch(error);
     }
 
+    function confirmOk() {
+        vm.model().state().send("undo");
+        vm.doBack(true);
+    }
+
+    // Dialog gets modified by actions, so reset after any useage
+    function doResetDialog() {
+        let dlg = vm.confirmDialog();
+
+        dlg.icon("help_outline");
+        dlg.title("Confirm close");
+        dlg.message("You will lose changes you have made. Are you sure?");
+        dlg.buttonOk().show();
+        dlg.buttonCancel().show();
+        dlg.buttonCancel().isPrimary(false);
+        dlg.onOk(confirmOk);
+        dlg.onCancel(undefined);
+        dlg.content = function () {
+            return m("div", {
+                id: dlg.ids().content
+            }, dlg.message());
+        }
+        dlg.buttons([
+            dlg.buttonOk,
+            dlg.buttonCancel
+        ]);
+        dlg.buttonOk().label("&Ok");
+        dlg.buttonCancel().label("&Cancel");
+        dlg.style({width: "450px"});
+    }
+
     // Check if we've already got a model instantiated
     if (options.key && instances[options.key]) {
         fmodel = instances[options.key];
@@ -682,11 +713,9 @@ formPage.viewModel = function (options) {
         icon: "help_outline",
         title: "Confirm close",
         message: ("You will lose changes you have made. Are you sure?"),
-        onOk: function () {
-            vm.model().state().send("undo");
-            vm.doBack(true);
-        }
+        onOk: confirmOk
     }));
+    vm.confirmDialog().state().resolve("/Display/Closed").enter(doResetDialog);
     /**
         @method doApply
     */
@@ -947,21 +976,28 @@ formPage.viewModel = function (options) {
         );
     };
     let onClick = (act) => act(vm);
+    let first = true;
+    let next;
 
     while (actidx >= 0) {
         action = form.actions[actidx];
+        next = form.actions[actidx - 1];
         fn = f.catalog().store().models()[options.feather.toCamelCase()];
         theClass = toolbarButtonClass + " fb-toolbar-button-right ";
+        posClass = "";
 
-        if (form.actions.length > 1) {
-            if (actidx) {
-                if (actidx === form.actions.length - 1) {
-                    posClass = " fb-toolbar-button-right-side ";
-                } else {
-                    posClass = " fb-toolbar-button-middle-side ";
-                }
-            } else {
+        if (
+            form.actions.length > 1 &&
+            !(first && action.hasSeparator)
+        ) {
+            if (first) {
+                posClass = " fb-toolbar-button-right-side ";
+                first = false;
+            } else if (!next || next.hasSeparator) {
                 posClass = " fb-toolbar-button-left-side ";
+                first = true;
+            } else {
+                posClass = " fb-toolbar-button-middle-side ";
             }
         }
 
