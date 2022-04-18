@@ -635,7 +635,7 @@ formPage.viewModel = function (options) {
             return m("div", {
                 id: dlg.ids().content
             }, dlg.message());
-        }
+        };
         dlg.buttons([
             dlg.buttonOk,
             dlg.buttonCancel
@@ -976,30 +976,12 @@ formPage.viewModel = function (options) {
         );
     };
     let onClick = (act) => act(vm);
-    let first = true;
-    let next;
 
     while (actidx >= 0) {
         action = form.actions[actidx];
-        next = form.actions[actidx - 1];
         fn = f.catalog().store().models()[options.feather.toCamelCase()];
         theClass = toolbarButtonClass + " fb-toolbar-button-right ";
         posClass = "";
-
-        if (
-            form.actions.length > 1 &&
-            !(first && action.hasSeparator)
-        ) {
-            if (first) {
-                posClass = " fb-toolbar-button-right-side ";
-                first = false;
-            } else if (!next || next.hasSeparator) {
-                posClass = " fb-toolbar-button-left-side ";
-                first = true;
-            } else {
-                posClass = " fb-toolbar-button-middle-side ";
-            }
-        }
 
         theClass += posClass;
 
