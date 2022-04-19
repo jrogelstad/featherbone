@@ -747,7 +747,8 @@
                         "symbol"
                     ]
                 },
-                "description": "Display unit of mesaure"
+                "description": "Display unit of mesaure",
+                "isAlwaysLoad": true
             }
         }
     },
