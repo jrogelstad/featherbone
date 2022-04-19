@@ -144,8 +144,13 @@ relationWidget.viewModel = function (options) {
     modelList = f.createList(type.relation, {
         background: true,
         filter: mergeFilter(theFilter),
-        fetch: false
+        fetch: false,
+        isEditable: false
     });
+    modelList.properties([valueProperty]);
+    if (labelProperty) {
+        modelList.properties().push(labelProperty);
+    }
     modelList.fetch(mergeFilter(theFilter), false).then(blurFetch);
 
     // Make sure data changes made by biz logic in the model are
