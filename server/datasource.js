@@ -779,7 +779,8 @@
         form,
         data,
         filename,
-        username
+        username,
+        options
     ) {
         return new Promise(function (resolve, reject) {
             // Do the work
@@ -797,7 +798,8 @@
                         resp.client,
                         form,
                         data,
-                        filename
+                        filename,
+                        options
                     ).then(
                         callback
                     ).catch(

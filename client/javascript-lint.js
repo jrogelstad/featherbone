@@ -1,6 +1,6 @@
-/*jslint browser*/
+/*jslint browser, unordered */
 // This file is the shim layer to connect jslint to CodeMirror editor
-import jslint from "./jslint.js";
+import jslint from "./jslint.mjs";
 
 const CodeMirror = window.CodeMirror;
 
@@ -22,8 +22,8 @@ function validator(text, options) {
         output.push({
             message: warning.message,
             severity: "error",
-            from: new CodeMirror.Pos(warning.line, warning.column - 1),
-            to: new CodeMirror.Pos(warning.line, warning.column + 1)
+            from: new CodeMirror.Pos(warning.line - 1, warning.column - 1),
+            to: new CodeMirror.Pos(warning.line - 1, warning.column + 1)
         });
     });
 

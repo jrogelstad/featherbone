@@ -77,9 +77,6 @@ relationWidget.viewModel = function (options) {
     );
     let theFilter = {
         criteria: f.copy(criteria),
-        sort: [{
-            property: valueProperty
-        }],
         limit: 10
     };
     let modelList;
@@ -105,7 +102,13 @@ relationWidget.viewModel = function (options) {
         }
 
         if (!filter.sort) {
-            filter.sort = [];
+            if (pFilter.sort && pFilter.sort.length) {
+                filter.sort = pFilter.sort;
+            } else {
+                filter.sort = [{
+                    property: valueProperty
+                }];
+            }
         }
         filter.criteria = filter.criteria.concat(pFilter.criteria);
         filter.sort = (
@@ -141,8 +144,13 @@ relationWidget.viewModel = function (options) {
     modelList = f.createList(type.relation, {
         background: true,
         filter: mergeFilter(theFilter),
-        fetch: false
+        fetch: false,
+        isEditable: false
     });
+    modelList.properties([valueProperty]);
+    if (labelProperty) {
+        modelList.properties().push(labelProperty);
+    }
     modelList.fetch(mergeFilter(theFilter), false).then(blurFetch);
 
     // Make sure data changes made by biz logic in the model are
@@ -212,7 +220,7 @@ relationWidget.viewModel = function (options) {
     vm.label = function () {
         let model = modelValue();
         return (
-            (labelProperty && model)
+            (labelProperty && model && model.data[labelProperty])
             ? model.data[labelProperty]()
             : ""
         );
