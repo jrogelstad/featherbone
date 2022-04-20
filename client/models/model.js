@@ -470,7 +470,11 @@ function createModel(data, feather) {
         fn.type = options.type || "string";
         fn.format = options.format;
         fn.isRequired = simpleProp(false);
-        fn.isReadOnly = simpleProp(options.isReadOnly || true);
+        fn.isReadOnly = simpleProp(
+            options.isReadOnly === false
+            ? false
+            : true
+        );
         fn.isToMany = isToMany.bind(null, fn);
         fn.isToOne = isToOne.bind(null, fn);
         fn.style = simpleProp(options.style || "");
@@ -713,7 +717,14 @@ function createModel(data, feather) {
         @type boolean
     */
     model.isModel = true;
+    /**
+        Indicates whether the model is loaded from the
+        database with no edits.
 
+        @method isReadyClean
+        @return {Boolean}
+    */
+    model.isReadyClean = () => state.current()[0] === "/Ready/Fetched/Clean";
     /**
         Indicates whether the model is read only.
 

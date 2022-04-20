@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/*jslint browser*/
+/*jslint browser unordered*/
 /*global f*/
 
 /*
@@ -825,23 +825,20 @@ function doHandleForm(obj) {
 
                             if (!isRef) {
                                 cprop = cfeather.properties[col.attr];
-                                if (!cprop) {
-                                    isRef = true; // Calculated prop
-                                }
                             }
 
                             if (
                                 isRef ||
-                                cprop.type !== "object" ||
-                                cprop.format !== "money"
+                                (cprop && cprop.type !== "object") ||
+                                (cprop && cprop.format !== "money")
                             ) {
                                 col.showCurrency = false;
                             }
 
                             if (
                                 isRef ||
-                                cprop.type === "object" ||
-                                cprop.type === "boolean"
+                                (cprop && cprop.type === "object") ||
+                                (cprop && cprop.type === "boolean")
                             ) {
                                 col.dataList = "";
                             }
