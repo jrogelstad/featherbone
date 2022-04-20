@@ -124,6 +124,50 @@ function form(data, feather) {
 
 f.catalog().registerModel("Form", form);
 
+function formAction(data, feather) {
+    let model;
+    feather = feather || f.catalog().getFeather("FormAction");
+    model = f.createModel(data, feather);
+
+    /**
+        Feather static method datalist.
+
+        __Type:__ `Array`
+
+        __Is Calculated__
+
+        __Read Only__
+
+        @property data.methodList
+        @for Models.FormAction
+        @type Property
+    */
+    model.addCalculated({
+        name: "methodList",
+        type: "array",
+        function: function () {
+            let ary = [];
+            let parent = model.parent();
+            let name = parent.data.feather().toCamelCase();
+            let fn;
+
+            if (!name) {
+                return ary;
+            }
+            fn = f.catalog().store().models()[name];
+            ary = Object.keys(fn.static());
+            ary.sort();
+            return ary.map(function (key) {
+                return {label: key, value: key};
+            });
+        }
+    });
+
+    return model;
+}
+
+f.catalog().registerModel("FormAction", formAction);
+
 function formAttr(data, feather) {
     let model;
 

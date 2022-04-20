@@ -821,20 +821,24 @@ const worksheetAction = {
     properties: {
         name: {
             description: "Name",
-            type: "string"
+            type: "string",
+            isRequired: true
         },
         title: {
             description: "Title",
-            type: "string"
+            type: "string",
+            isRequired: true
         },
         icon: {
             description: "Icon name",
             type: "string",
-            format: "icon"
+            format: "icon",
+            isRequired: true
         },
         method: {
             description: "Method to execute for action",
-            type: "string"
+            type: "string",
+            isRequired: true
         },
         validator: {
             description: "Selection validation check",
@@ -842,7 +846,8 @@ const worksheetAction = {
         },
         hasSeparator: {
             description: "Precede action with separator",
-            type: "boolean"
+            type: "boolean",
+            isRequired: true
         }
     }
 };
@@ -927,6 +932,35 @@ function worksheetModel(data) {
 worksheetModel.static = f.prop({});
 worksheetModel.calculated = f.prop({});
 wbModels.worksheet = worksheetModel;
+
+function worksheetActionModel(data) {
+    let model = f.createModel(data, f.catalog().getFeather("WorksheetAction"));
+
+    model.addCalculated({
+        name: "methodList",
+        type: "array",
+        function: function () {
+            let ary = [];
+            let name = model.parent().data.feather().toCamelCase();
+            let fn;
+
+            if (!name) {
+                return ary;
+            }
+            fn = f.catalog().store().models()[name];
+            ary = Object.keys(fn.static());
+            ary.sort();
+            return ary.map(function (key) {
+                return {label: key, value: key};
+            });
+        }
+    });
+
+    return model;
+}
+worksheetActionModel.static = f.prop({});
+worksheetActionModel.calculated = f.prop({});
+wbModels.worksheetAction = worksheetActionModel;
 
 function worksheetColumnModel(data) {
     let model = f.createModel(data, f.catalog().getFeather("WorksheetColumn"));
