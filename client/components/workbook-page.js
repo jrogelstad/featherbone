@@ -120,9 +120,11 @@ const editSheetConfig = {
             width: 165
         }, {
             attr: "method",
+            dataList: "methodList",
             width: 165
         }, {
             attr: "validator",
+            dataList: "methodList",
             width: 165
         }, {
             attr: "hasSeparator",
@@ -506,7 +508,7 @@ workbookPage.viewModel = function (options) {
                 nmodel.state().goto("/Ready/Fetched/Clean");
                 nmodel.checkDelete();
                 nmodel.checkUpdate();
-                vm.tableWidget().models().add(nmodel, true);
+                vm.tableWidget().models().add(nmodel, true, true);
                 m.redraw();
             };
             return;
@@ -928,7 +930,7 @@ workbookPage.viewModel = function (options) {
             let tableModel = vm.tableWidget().selection();
 
             if (!(tableModel && tableModel.id() === model.id())) {
-                vm.tableWidget().models().add(model, true);
+                vm.tableWidget().models().add(model, true, true);
             }
         }
     });
