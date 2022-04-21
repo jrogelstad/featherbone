@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/*jslint node, this*/
+/*jslint node, this, unordered*/
 /**
     @module Tools
 */
@@ -439,6 +439,350 @@
                         }
                         params.push(where.value);
                         part = tools.resolvePath(
+                            where.property,
+                            tokens
+                        ) + " " + op + " $" + p;
+                        p += 1;
+                    }
+                    parts.push(part);
+                });
+
+                if (parts.length) {
+                    sql += " AND " + parts.join(" AND ");
+                }
+            }
+
+
+            // Process sort
+            sql += tools.processSort(sort, tokens);
+
+            if (filter) {
+                // Process offset and limit
+                if (filter.offset) {
+                    sql += " OFFSET $" + p;
+                    p += 1;
+                    params.push(filter.offset);
+                }
+
+                if (filter.limit) {
+                    sql += " LIMIT $" + p;
+                    params.push(filter.limit);
+                }
+            }
+
+            sql = sql.format(tokens);
+
+            return sql;
+        };
+
+        /**
+            Return a sql `WHERE` clause based on filter criteria in payload.
+            @method buildWhere
+            @param {Object} payload Request payload
+            @param {Object} payload.name Feather name
+            @param {Filter} [payload.filter] Filter
+            @param {Boolean} [payload.showDeleted] Show deleted records
+            @param {Object} payload.client Database client
+            @param {Array} [params] Parameters used for the sql query
+            @param {Boolean} [flag] Request as super user. Default false.
+            @param {Boolean} [flag] Enforce row authorization. Default false.
+            @return {Promise}
+        */
+        function hasJoin(w) {
+            return w.property.indexOf(".") !== -1;
+        }
+        function transformObj(where) {
+            if (typeof where.value === "object") {
+                where.property = where.property + ".id";
+                where.value = where.value.id;
+            }
+        }
+        async function buildJoin(feather, crit) {
+            let fthr = feather;
+            let prop = crit.property;
+            let value = crit.value;
+            let rel = await hasJoin();
+            let prefix;
+            let suffix;
+            let join = "";
+            
+            while (prop.indexOf(".") > 0) {
+                prefix = col.slice(0, idx);
+                suffix = col.slice(idx + 1, col.length).toSnakeCase();
+                ret = "(" + tools.resolvePath(prefix, tokens) + ").%I";
+                tokens.push(suffix);
+            }
+            return join;
+        }
+        tools.buildAltWhere = async function (
+            obj,
+            params,
+            isSuperUser,
+            rowAuth
+        ) {
+            let part;
+            let op;
+            let err;
+            let or;
+            let name = obj.name;
+            let filter = obj.filter;
+            let table = name.toSnakeCase();
+            let clause = "NOT is_deleted";
+            let sql = " WHERE ";
+            let tokens = [];
+            let criteria = false;
+            let sort = [];
+            let parts = [];
+            let p = 1;
+            let joins;
+
+            if (obj.showDeleted) {
+                clause = "true";
+            }
+
+            sql += clause;
+
+            if (filter) {
+                criteria = filter.criteria || [];
+                sort = filter.sort || [];
+            }
+
+            // Add authorization criteria
+            if (isSuperUser === false) {
+                sql += tools.buildAuthSql("canRead", table, tokens, rowAuth);
+
+                params.push(obj.client.currentUser());
+                p += 1;
+            }
+
+            // Process filter
+            if (filter) {
+                criteria.forEach(transformObj);
+                // Process joins
+                joins = criteria.filter(hasJoin);
+                while (joins) {
+                    sql += await buildJoin(obj.feather, joins.shift());
+                }
+
+                // Process criteria
+                criteria.forEach(function (where) {
+                    op = where.operator || "=";
+                    let yr;
+                    let mo;
+                    let da;
+                    let dw;
+                    let today;
+                    let d1;
+                    let d2;
+
+                    if (ops.indexOf(op) === -1) {
+                        err = "Unknown operator \"" + op + "\"";
+                        throw err;
+                    }
+
+                    // Escape backslash on regex operations
+                    if (op.indexOf("~") > -1) {
+                        where.value = where.value.replace(/\\/g, "\\\\");
+                    }
+
+                    // Handle date options
+                    if (op === "IS") {
+                        today = f.today();
+                        yr = today.slice(0, 4) - 0;
+                        mo = today.slice(5, 7) - 1;
+                        da = today.slice(8, 10) - 0;
+                        // ISO week starts Monday
+                        dw = f.parseDate(today).getDay() - 1;
+                        if (dw < 0) {
+                            dw = 7;
+                        }
+                        part = tools.resolvePath(
+                            where.property,
+                            tokens
+                        );
+
+                        switch (where.value) {
+                        case "TODAY":
+                            part += "='" + today + "'";
+                            break;
+                        case "BEFORE_TODAY":
+                            part += "<'" + today + "'";
+                            break;
+                        case "ON_OR_BEFORE_TODAY":
+                            part += "<='" + today + "'";
+                            break;
+                        case "ON_OR_AFTER_TODAY":
+                            part += ">='" + today + "'";
+                            break;
+                        case "THIS_WEEK":
+                            d1 = new Date(yr, mo, da - dw);
+                            d2 = new Date(yr, mo, da + 6 - dw);
+                            part += (
+                                " BETWEEN '" + d1.toLocalDate() +
+                                "' AND '" + d2.toLocalDate() + "'"
+                            );
+                            break;
+                        case "ON_OR_BEFORE_THIS_WEEK":
+                            d1 = new Date(yr, mo, da + 6 - dw);
+                            part += (
+                                " <= '" + d1.toLocalDate() + "'"
+                            );
+                            break;
+                        case "ON_OR_AFTER_THIS_WEEK":
+                            d1 = new Date(yr, mo, da - dw);
+                            part += (
+                                " >= '" + d1.toLocalDate() + "'"
+                            );
+                            break;
+                        case "THIS_MONTH":
+                            d1 = new Date(yr, mo, 1);
+                            d2 = new Date(yr, mo + 1, 0);
+                            part += (
+                                " BETWEEN '" + d1.toLocalDate() +
+                                "' AND '" + d2.toLocalDate() + "'"
+                            );
+                            break;
+                        case "ON_OR_BEFORE_THIS_MONTH":
+                            d1 = new Date(yr, mo + 1, 0);
+                            part += (
+                                " <= '" + d1.toLocalDate() + "'"
+                            );
+                            break;
+                        case "ON_OR_AFTER_THIS_MONTH":
+                            d1 = new Date(yr, mo, 1);
+                            part += (
+                                " >= '" + d1.toLocalDate() + "'"
+                            );
+                            break;
+                        case "THIS_YEAR":
+                            part += (
+                                " BETWEEN '" + yr + "-01-01' AND '" +
+                                yr + "-12-31'"
+                            );
+                            break;
+                        case "ON_OR_BEFORE_THIS_YEAR":
+                            part += (
+                                " <= '" + yr + "-12-31'"
+                            );
+                            break;
+                        case "ON_OR_AFTER_THIS_YEAR":
+                            part += (
+                                " >= '" + yr + "-01-01'"
+                            );
+                            break;
+                        case "YESTERDAY":
+                            d1 = new Date(yr, mo, da - 1);
+                            part += (
+                                " = '" + d1.toLocalDate() + "'"
+                            );
+                            break;
+                        case "LAST_WEEK":
+                            d1 = new Date(yr, mo, da - dw - 7);
+                            d2 = new Date(yr, mo, da - dw - 1);
+                            part += (
+                                " BETWEEN '" + d1.toLocalDate() +
+                                "' AND '" + d2.toLocalDate() + "'"
+                            );
+                            break;
+                        case "LAST_MONTH":
+                            d1 = new Date(yr, mo - 1, 1);
+                            d2 = new Date(yr, mo, 0);
+                            part += (
+                                " BETWEEN '" + d1.toLocalDate() +
+                                "' AND '" + d2.toLocalDate() + "'"
+                            );
+                            break;
+                        case "LAST_YEAR":
+                            yr = yr - 1;
+                            part += (
+                                " BETWEEN '" + yr + "-01-01' AND '" +
+                                yr + "-12-31'"
+                            );
+                            break;
+                        case "TOMORROW":
+                            d1 = new Date(yr, mo, da + 1);
+                            part += (
+                                " = '" + d1.toLocalDate() + "'"
+                            );
+                            break;
+                        case "NEXT_WEEK":
+                            d1 = new Date(yr, mo, da - dw + 7);
+                            d2 = new Date(yr, mo, da - dw + 12);
+                            part += (
+                                " BETWEEN '" + d1.toLocalDate() +
+                                "' AND '" + d2.toLocalDate() + "'"
+                            );
+                            break;
+                        case "NEXT_MONTH":
+                            d1 = new Date(yr, mo + 1, 1);
+                            d2 = new Date(yr, mo + 2, 0);
+                            part += (
+                                " BETWEEN '" + d1.toLocalDate() +
+                                "' AND '" + d2.toLocalDate() + "'"
+                            );
+                            break;
+                        case "NEXT_YEAR":
+                            yr = yr + 1;
+                            part += (
+                                " BETWEEN '" + yr + "-01-01' AND '" +
+                                yr + "-12-31'"
+                            );
+                            break;
+                        default:
+                            throw new Error(
+                                "Value " + where.value +
+                                " for date operator 'IS' unknown"
+                            );
+                        }
+
+                    // Value "IN" array ("Andy" IN ["Ann","Andy"])
+                    // Whether "Andy"="Ann" OR "Andy"="Andy"
+                    } else if (op === "IN") {
+                        part = [];
+                        if (where.value.length) {
+                            where.value.forEach(function (val) {
+                                params.push(val);
+                                part.push("$" + p);
+                                p += 1;
+                            });
+                            part = tools.resolvePath(
+                                where.property,
+                                tokens
+                            ) + " IN (" + part.join(",") + ")";
+                        // If no values in array, then no result
+                        } else {
+                            params.push(false);
+                            part.push("$" + p);
+                            p += 1;
+                        }
+
+                    // Property "OR" array compared to value
+                    // (["name","email"]="Andy")
+                    // Whether "name"="Andy" OR "email"="Andy"
+                    } else if (Array.isArray(where.property)) {
+                        or = [];
+                        where.property.forEach(function (prop) {
+                            params.push(where.value);
+                            or.push(tools.resolvePath(
+                                prop,
+                                tokens
+                            ) + " " + op + " $" + p);
+                            p += 1;
+                        });
+                        part = "(" + or.join(" OR ") + ")";
+
+                    // Regular comparison ("name"="Andy")
+                    } else if (
+                        typeof where.value === "object" &&
+                        !where.value.id
+                    ) {
+                        part = tools.resolvePath(
+                            where.property,
+                            tokens
+                        ) + " IS NULL";
+                    } else {
+                        params.push(where.value);
+                        part = tools.resolveJoinPath(
                             where.property,
                             tokens
                         ) + " " + op + " $" + p;
