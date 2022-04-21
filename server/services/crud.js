@@ -254,7 +254,8 @@
                         return;
                     }
 
-                    table = "_" + feather.name.toSnakeCase();
+                    table = feather.name.toSnakeCase();
+                    data.feather = feather;
 
                     sql = (
                         "SELECT to_json((" +
@@ -263,16 +264,18 @@
                         "SELECT " + sub.toString(",").format(subt) + " FROM %I"
                     );
                     tokens.push(table);
-                    sql += tools.buildWhere(
+                    tools.buildAltWhere(
                         data,
                         params,
                         isSuperUser,
                         feather.enableRowAuthorization
-                    );
-                    sql += ") AS data;";
-                    sql = sql.format(tokens);
+                    ).then(function (resp) {;
+                        sql += resp;
+                        sql += ") AS data;";
+                        sql = sql.format(tokens);
 
-                    theClient.query(sql, params).then(callback).catch(reject);
+                        theClient.query(sql, params).then(callback).catch(reject);
+                    });
                 }
 
                 // Validate
