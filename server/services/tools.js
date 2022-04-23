@@ -91,13 +91,20 @@
             @param {Integer} [p] parameter number. Default 1
             @return {String} SQL clause
         */
-        tools.buildAuthSql = function (action, table, tokens, rowAuth, p) {
+        tools.buildAuthSql = function (
+            action,
+            table,
+            tokens,
+            rowAuth,
+            p,
+            prefix
+        ) {
             p = p || 1;
             let actions;
             let i = (
                 rowAuth
-                ? 8
-                : 5
+                ? 7
+                : 4
             );
             let msg;
             let sql;
@@ -114,6 +121,11 @@
                 throw msg;
             }
 
+            if (prefix) {
+                tokens.push(prefix + table);
+            } else {
+                tokens.push(table);
+            }
             while (i) {
                 i -= 1;
                 tokens.push(table);
@@ -152,7 +164,8 @@
                     "  SELECT " + action + " FROM (" +
                     "    SELECT " + action +
                     "    FROM \"$auth\", pg_authid" +
-                    "    WHERE pg_has_role($" + p + ", pg_authid.oid, 'member')" +
+                    "    WHERE pg_has_role($" + p +
+                    ", pg_authid.oid, 'member')" +
                     "      AND \"$auth\".object_pk=%I._pk" +
                     "      AND \"$auth\".role=pg_authid.rolname" +
                     "      AND " + action + " IS NOT NULL " +
@@ -210,7 +223,14 @@
 
             // Add authorization criteria
             if (isSuperUser === false) {
-                sql += tools.buildAuthSql("canRead", table, tokens, rowAuth);
+                sql += tools.buildAuthSql(
+                    "canRead",
+                    table,
+                    tokens,
+                    rowAuth,
+                    1,
+                    "_"
+                );
 
                 params.push(obj.client.currentUser());
                 p += 1;
