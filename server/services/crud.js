@@ -42,7 +42,7 @@
     const ekey = "_eventkey"; // Lint tyranny
 
     function noJoin(w) {
-        return w.property.indexOf(".") === -1;
+        return !w.table && w.property.indexOf(".") === -1;
     }
     function transformObj(where) {
         if (typeof where.value === "object") {
@@ -392,80 +392,118 @@
             let jsort = filter.criteria.find((s) => s.property === prop);
             let oprop = prop;
             let found;
+            let part;
 
             // feather = SalesOrderLine
             // criteria = item.category.type.id
             while (idx !== -1) {
-                // Join
                 fp = fthr.properties[attr];
-                theTable = fp.type.relation.toSnakeCase();
-                fk = "_" + attr.toSnakeCase() + "_" + theTable + "_pk";
-
-                // If not already joined, do join
-                found = joined.find(
-                    (j) => j.table === theTable && j.fkey === fk
-                );
-                if (found) {
-                    theAlias = found.alias;
-                } else {
-                    joins.push(JOINSQL);
-                    theAlias = "t" + tnr;
-                    // Join table
-                    jtokens.push(theTable);
-                    jtokens.push(theAlias);
-                    // Parent table prefix
-                    jtokens.push(fthr.name.toSnakeCase());
-                    // Parent table column (feathbone paradigm)
-                    jtokens.push(fk);
-                    // Join table prefix
-                    jtokens.push(theAlias);
-                    // Keep track of joins already made
-                    joined.push({
-                        table: theTable,
-                        fkey: fk,
-                        alias: theAlias
-                    });
-                    tnr += 1;
-                }
-
-                // Advance next
-                prop = prop.slice(idx + 1, prop.length);
-                idx = prop.indexOf(".");
-                if (idx === -1) { // done joining?
-                    if (where) {
-                        p = appendWhere(
-                            {
-                                property: prop,
-                                op: where.op,
-                                value: where.value
-                            },
-                            joinArrays.parts,
-                            ptokens,
-                            params,
-                            theAlias,
-                            p
-                        );
-                    }
-                    if (whereArys.length) {
-                        whereArys.forEach(function (crit) {
-                            let ary = crit.property;
-                            ary.splice(ary.indexOf(oprop), 1, {
-                                table: theAlias,
-                                property: prop
+                if (fp.format === "money") { // Hard coded type
+                    where.operator = where.operator || "=";
+                    if (where.op === "IN") {
+                        part = [];
+                        if (where.value.length) {
+                            where.value.forEach(function (val) {
+                                params.push(val);
+                                part.push("$" + p);
+                                p += 1;
                             });
+                            part = tools.resolvePath(
+                                where.property,
+                                ptokens
+                            ) + " IN (" + part.join(",") + ")";
+                        // If no values in array, then no result
+                        } else {
+                            params.push(false);
+                            part.push("$" + p);
+                            p += 1;
+                        }
+                    } else {
+                        if (typeof where.value === "object") {
+                            where.property = where.property + ".id";
+                            where.value = where.value.id;
+                        }
+                        params.push(where.value);
+                        part = tools.resolvePath(
+                            where.property,
+                            ptokens
+                        ) + " " + where.operator + " $" + p;
+                        p += 1;
+                    }
+
+                    joinArrays.parts.push(part);
+                    idx = -1;
+                } else {
+                    // Join
+                    theTable = fp.type.relation.toSnakeCase();
+                    fk = "_" + attr.toSnakeCase() + "_" + theTable + "_pk";
+
+                    // If not already joined, do join
+                    found = joined.find(
+                        (j) => j.table === theTable && j.fkey === fk
+                    );
+                    if (found) {
+                        theAlias = found.alias;
+                    } else {
+                        joins.push(JOINSQL);
+                        theAlias = "t" + tnr;
+                        // Join table
+                        jtokens.push(theTable);
+                        jtokens.push(theAlias);
+                        // Parent table prefix
+                        jtokens.push(fthr.name.toSnakeCase());
+                        // Parent table column (feathbone paradigm)
+                        jtokens.push(fk);
+                        // Join table prefix
+                        jtokens.push(theAlias);
+                        // Keep track of joins already made
+                        joined.push({
+                            table: theTable,
+                            fkey: fk,
+                            alias: theAlias
+                        });
+                        tnr += 1;
+                    }
+
+                    // Advance next
+                    prop = prop.slice(idx + 1, prop.length);
+                    idx = prop.indexOf(".");
+                    if (idx === -1) { // done joining?
+                        if (where) {
+                            p = appendWhere(
+                                {
+                                    property: prop,
+                                    operator: where.operator,
+                                    value: where.value
+                                },
+                                joinArrays.parts,
+                                ptokens,
+                                params,
+                                theAlias,
+                                p
+                            );
+                        }
+                        if (whereArys.length) {
+                            whereArys.forEach(function (crit) {
+                                let ary = crit.property;
+                                ary.splice(ary.indexOf(oprop), 1, {
+                                    table: theAlias,
+                                    property: prop
+                                });
+                            });
+                        }
+                        if (jsort) {
+                            jsort.property = prop;
+                            jsort.table = theAlias;
+                        }
+                    } else {
+                    // Next join
+                        attr = prop.slice(0, idx);
+                        fthr = await tools.getFeather({
+                            client: obj.client,
+                            data: {name: fp.relation}
                         });
                     }
-                    if (jsort) {
-                        jsort.property = prop;
-                        jsort.table = theAlias;
-                    }
-                } else {
-                // Next join
-                    attr = prop.slice(0, idx);
-                    fthr = await tools.getFeather({
-                        client: obj.client,
-                        data: {name: fp.relation}
-                    });
                 }
             }
         }
@@ -792,6 +830,7 @@
             sql += ") AS data;";
             sql = sql.format(tokens);
 
+            //console.log(sql, params);
             agg = await theClient.query(sql, params);
             return tools.sanitize(agg.rows[0]);
         };
