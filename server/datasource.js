@@ -1053,11 +1053,7 @@
     */
     that.request = function (obj, isSuperUser) {
         return new Promise(function (resolve, reject) {
-            isSuperUser = (
-                isSuperUser === undefined
-                ? false
-                : isSuperUser
-            );
+            isSuperUser = Boolean(isSuperUser);
 
             let theClient;
             let done;
