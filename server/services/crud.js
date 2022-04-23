@@ -1598,222 +1598,184 @@
             @param {Boolean} [isSuperUser] Request as super user. Default false.
             @return {Promise} Resolves to object or array.
         */
-        crud.doSelect = function (obj, ignore, isSuperUser) {
-            return new Promise(function (resolve, reject) {
-                let sql;
-                let table;
-                let keys;
-                let payload;
-                let afterGetFeather;
-                let afterGetKey;
-                let afterGetKeys;
-                let mapKeys;
-                let tokens = [];
-                let cols = [];
-                let theClient = db.getClient(obj.client);
+        crud.doSelect = async function (obj, ignore, isSuperUser) {
+            let sql;
+            let table;
+            let key;
+            let keys;
+            let tokens = [];
+            let cols = [];
+            let theClient = db.getClient(obj.client);
+            let feather;
+            let attrs = [];
+            let fp;
+            let result;
+            let payload = {
+                name: obj.name,
+                client: theClient,
+                showDeleted: obj.showDeleted
+            };
+            let gkeys;
 
-                payload = {
-                    name: obj.name,
-                    client: theClient,
-                    showDeleted: obj.showDeleted
-                };
+            function mapKeys(row) {
+                let rkeys;
+                let ret = {};
+                let i = 0;
 
-                afterGetFeather = function (feather) {
-                    let attrs = [];
-                    let fp = feather.properties;
-
-                    if (!feather.name) {
-                        reject("Feather \"" + obj.name + "\" not found.");
-                        return;
-                    }
-
-                    table = "_" + feather.name.toSnakeCase();
-
-                    // Strip dot notation. Just fetch whole relation
-                    if (obj.properties) {
-                        obj.properties = obj.properties.map(function (p) {
-                            let i = p.indexOf(".");
-                            let ret = p;
-
-                            if (i !== -1) {
-                                ret = p.slice(0, i);
-                                if (attrs.indexOf(ret) !== -1) {
-                                    ret = undefined;
-                                }
-                                attrs.push(ret);
-                            }
-                            attrs.push(ret);
-                            return ret;
-                        }).filter(function (p) {
-                            return p !== undefined;
-                        });
-                    }
-
-                    keys = obj.properties || Object.keys(
-                        fp
-                    ).filter(function (key) {
-                        return (
-                            typeof fp[key].type !== "object" ||
-                            fp[key].type.childOf === undefined ||
-                            (
-                                fp[key].type.childOf &&
-                                fp[key].type.properties &&
-                                fp[key].type.properties.length
-                            )
-                        );
+                if (typeof row.result === "object") {
+                    rkeys = Object.keys(row.result);
+                    rkeys.forEach(function (key) {
+                        ret[keys[i]] = row.result[key];
+                        i += 1;
                     });
 
-                    keys.forEach(function (key) {
-                        tokens.push("%I");
-                        cols.push(key.toSnakeCase());
-                    });
+                    // If only one attribute returned
+                } else {
+                    ret[keys[0]] = row.result;
+                }
 
-                    cols.push(table);
-                    sql = (
-                        "SELECT to_json((" + tokens.toString(",") +
-                        ")) AS result FROM %I"
-                    );
-                    sql = sql.format(cols);
+                return ret;
+            };
 
-                    /* Get one result by key */
-                    payload.rowAuth = feather.enableRowAuthorization;
-                    if (obj.id) {
-                        payload.id = obj.id;
-                        tools.getKey(
-                            payload,
-                            isSuperUser
-                        ).then(afterGetKey).catch(reject);
-
-                        /* Get a filtered result */
-                    } else {
-                        payload.filter = obj.filter;
-                        tools.getKeys(
-                            payload,
-                            isSuperUser
-                        ).then(afterGetKeys).catch(reject);
-                    }
-                };
-
-                afterGetKey = function (key) {
-                    if (key === undefined) {
-                        resolve(undefined);
-                        return;
-                    }
-
-                    sql += " WHERE _pk = $1";
-
-                    theClient.query(sql, [key], function (err, resp) {
-                        let result;
-
-                        if (err) {
-                            reject(err);
-                            return;
-                        }
-
-                        result = mapKeys(resp.rows[0]);
-                        if (obj.sanitize !== false) {
-                            result = tools.sanitize(result);
-                        }
-
-                        resolve(result);
-                    });
-                };
-
-                afterGetKeys = function (keys) {
-                    let result;
-                    let feathername;
-                    let sort = (
-                        obj.filter
-                        ? obj.filter.sort || []
-                        : []
-                    );
-                    let i = 0;
-
-                    if (keys.length) {
-                        tokens = [];
-
-                        while (keys[i]) {
-                            i += 1;
-                            tokens.push("$" + i);
-                        }
-
-                        sql += " WHERE _pk IN (";
-                        sql += tokens.toString(",") + ")";
-
-                        tokens = [];
-                        sql += tools.processSort(sort, tokens);
-                        sql = sql.format(tokens);
-
-                        theClient.query(sql, keys, function (err, resp) {
-                            if (err) {
-                                reject(err);
-                                return;
-                            }
-
-                            result = tools.sanitize(resp.rows.map(mapKeys));
-
-                            function ids(item) {
-                                return item.id;
-                            }
-
-                            if (
-                                !obj.filter || (
-                                    !obj.filter.criteria &&
-                                    !obj.filter.limit
-                                )
-                            ) {
-                                feathername = obj.name;
-                            }
-
-                            // Handle subscription
-                            events.subscribe(
-                                theClient,
-                                obj.subscription,
-                                result.map(ids),
-                                feathername
-                            ).then(
-                                function () {
-                                    resolve(result);
-                                }
-                            ).catch(
-                                reject
-                            );
-                        });
-                    } else {
-                        resolve([]);
-                    }
-                };
-
-                mapKeys = function (row) {
-                    let rkeys;
-                    let result = row.result;
-                    let ret = {};
-                    let i = 0;
-
-                    if (typeof result === "object") {
-                        rkeys = Object.keys(result);
-                        rkeys.forEach(function (key) {
-                            ret[keys[i]] = result[key];
-                            i += 1;
-                        });
-
-                        // If only one attribute returned
-                    } else {
-                        ret[keys[0]] = result;
-                    }
-
-                    return ret;
-                };
-
-                // Kick off query by getting feather, the rest falls through
-                // callbacks
-                feathers.getFeather({
-                    client: theClient,
-                    data: {
-                        name: obj.name
-                    }
-                }).then(afterGetFeather).catch(reject);
+            // Kick off query by getting feather, the rest falls through
+            // callbacks
+            feather = await feathers.getFeather({
+                client: theClient,
+                data: {name: obj.name}
             });
+
+            fp = feather.properties;
+
+            if (!feather.name) {
+                throw new Error("Feather \"" + obj.name + "\" not found.");
+            }
+
+            table = "_" + feather.name.toSnakeCase();
+
+            // Strip dot notation. Just fetch whole relation
+            if (obj.properties) {
+                obj.properties = obj.properties.map(function (p) {
+                    let i = p.indexOf(".");
+                    let ret = p;
+
+                    if (i !== -1) {
+                        ret = p.slice(0, i);
+                        if (attrs.indexOf(ret) !== -1) {
+                            ret = undefined;
+                        }
+                        attrs.push(ret);
+                    }
+                    attrs.push(ret);
+                    return ret;
+                }).filter(function (p) {
+                    return p !== undefined;
+                });
+            }
+
+            keys = obj.properties || Object.keys(
+                fp
+            ).filter(function (key) {
+                return (
+                    typeof fp[key].type !== "object" ||
+                    fp[key].type.childOf === undefined ||
+                    (
+                        fp[key].type.childOf &&
+                        fp[key].type.properties &&
+                        fp[key].type.properties.length
+                    )
+                );
+            });
+
+            keys.forEach(function (key) {
+                tokens.push("%I");
+                cols.push(key.toSnakeCase());
+            });
+
+            cols.push(table);
+            sql = (
+                "SELECT to_json((" + tokens.toString(",") +
+                ")) AS result FROM %I"
+            );
+            sql = sql.format(cols);
+
+            /* Get one result by key */
+            payload.rowAuth = feather.enableRowAuthorization;
+            if (obj.id) {
+                payload.id = obj.id;
+                key = await tools.getKey(
+                    payload,
+                    isSuperUser
+                );
+
+                if (key === undefined) {
+                    return undefined;
+                }
+
+                sql += " WHERE _pk = $1";
+
+                result = await theClient.query(sql, [key]);
+                result = mapKeys(result.rows[0]);
+                if (obj.sanitize !== false) {
+                    result = tools.sanitize(result);
+                }
+
+                return result;
+
+                /* Get a filtered result */
+            } else {
+                payload.filter = obj.filter;
+                gkeys = await tools.getKeys(
+                    payload,
+                    isSuperUser
+                );
+
+                let feathername;
+                let sort = (
+                    obj.filter
+                    ? obj.filter.sort || []
+                    : []
+                );
+                let i = 0;
+
+                if (gkeys.length) {
+                    tokens = [];
+
+                    while (gkeys[i]) {
+                        i += 1;
+                        tokens.push("$" + i);
+                    }
+
+                    sql += " WHERE _pk IN (";
+                    sql += tokens.toString(",") + ")";
+
+                    tokens = [];
+                    sql += tools.processSort(sort, tokens);
+                    sql = sql.format(tokens);
+                    result = await theClient.query(sql, gkeys);
+                    result = tools.sanitize(result.rows.map(mapKeys));
+
+                    if (
+                        !obj.filter || (
+                            !obj.filter.criteria &&
+                            !obj.filter.limit
+                        )
+                    ) {
+                        feathername = obj.name;
+                    }
+
+                    // Handle subscription
+                    await events.subscribe(
+                        theClient,
+                        obj.subscription,
+                        result.map((item) => item.id),
+                        feathername
+                    );
+
+                    return result;
+                } else {
+                    return [];
+                }
+            }
         };
 
         /**
