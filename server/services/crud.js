@@ -680,97 +680,85 @@
             @param {Boolean} [isSuperUser] Request as super user. Default false.
             @return {Promise} Resolves to object.
         */
-        crud.doAggregate = function (obj, ignore, isSuperUser) {
-            return new Promise(function (resolve, reject) {
-                let sql;
-                let table;
-                let tokens = [];
-                let theClient = db.getClient(obj.client);
-                let methods = ["SUM", "COUNT", "AVG", "MIN", "MAX"];
-                let params = [];
-                let sub = [];
-                let subt = [];
-                let data = {
-                    name: obj.data.name,
-                    filter: obj.data.filter,
-                    client: obj.client
-                };
+        crud.doAggregate = async function (obj, ignore, isSuperUser) {
+            let sql;
+            let table;
+            let tokens = [];
+            let theClient = db.getClient(obj.client);
+            let methods = ["SUM", "COUNT", "AVG", "MIN", "MAX"];
+            let params = [];
+            let sub = [];
+            let subt = [];
+            let data = {
+                name: obj.data.name,
+                filter: obj.data.filter,
+                client: obj.client
+            };
+            let feather;
+            let agg;
 
-                function toCols(agg) {
-                    let attr = agg.property;
-                    let prop = tools.resolvePath(agg.property, tokens);
-                    let ret = agg.method.toUpperCase() + "(" + prop + ")";
-                    let idx = attr.indexOf(".");
-                    let comp;
+            function toCols(agg) {
+                let attr = agg.property;
+                let prop = tools.resolvePath(agg.property, tokens);
+                let ret = agg.method.toUpperCase() + "(" + prop + ")";
+                let idx = attr.indexOf(".");
+                let comp;
 
-                    if (idx === -1) {
-                        subt.push(attr.toSnakeCase());
-                    } else {
-                        comp = attr.slice(0, idx).toSnakeCase();
-                        if (subt.indexOf(comp) !== -1) {
-                            return ret; // Column already included;
-                        }
-                        subt.push(attr.slice(0, idx).toSnakeCase());
+                if (idx === -1) {
+                    subt.push(attr.toSnakeCase());
+                } else {
+                    comp = attr.slice(0, idx).toSnakeCase();
+                    if (subt.indexOf(comp) !== -1) {
+                        return ret; // Column already included;
                     }
-                    sub.push("%I");
-                    return ret;
+                    subt.push(attr.slice(0, idx).toSnakeCase());
                 }
+                sub.push("%I");
+                return ret;
+            }
 
-                function afterGetFeather(feather) {
-                    if (!feather.name) {
-                        reject("Feather \"" + obj.name + "\" not found.");
-                        return;
-                    }
-
-                    table = feather.name.toSnakeCase();
-                    data.feather = feather;
-
-                    sql = (
-                        "SELECT to_json((" +
-                        obj.data.aggregations.map(toCols).toString(",") +
-                        ")) AS result FROM (" +
-                        "SELECT " + sub.toString(",").format(subt) + " FROM %I"
+            // Validate
+            obj.data.aggregations.forEach(function (agg) {
+                if (methods.indexOf(agg.method) === -1) {
+                    throw (
+                        "Aggregation method " + agg.method +
+                        " is unsupported"
                     );
-                    tokens.push(table);
-                    buildWhere(
-                        data,
-                        params,
-                        isSuperUser,
-                        feather.enableRowAuthorization
-                    ).then(async function (resp) {
-                        let res;
-                        sql += resp;
-                        sql += ") AS data;";
-                        sql = sql.format(tokens);
-
-                        try {
-                            res = await theClient.query(sql, params);
-                            resolve(tools.sanitize(res.rows[0]));
-                        } catch (e) {
-                            reject(e);
-                        }
-                    }).catch(reject);
                 }
-
-                // Validate
-                obj.data.aggregations.forEach(function (agg) {
-                    if (methods.indexOf(agg.method) === -1) {
-                        throw (
-                            "Aggregation method " + agg.method +
-                            " is unsupported"
-                        );
-                    }
-                });
-
-                // Kick off query by getting feather, the rest falls through
-                // callbacks
-                feathers.getFeather({
-                    client: theClient,
-                    data: {
-                        name: obj.data.name
-                    }
-                }).then(afterGetFeather).catch(reject);
             });
+
+            // Kick off query by getting feather, the rest falls through
+            // callbacks
+            feather = await feathers.getFeather({
+                client: theClient,
+                data: {name: obj.data.name}
+            });
+
+            if (!feather.name) {
+                throw "Feather \"" + obj.name + "\" not found.";
+            }
+
+            table = feather.name.toSnakeCase();
+            data.feather = feather;
+
+            sql = (
+                "SELECT to_json((" +
+                obj.data.aggregations.map(toCols).toString(",") +
+                ")) AS result FROM (" +
+                "SELECT " + sub.toString(",").format(subt) + " FROM %I"
+            );
+            tokens.push(table);
+            sql += await buildWhere(
+                data,
+                params,
+                isSuperUser,
+                feather.enableRowAuthorization
+            );
+            sql += ") AS data;";
+            sql = sql.format(tokens);
+
+            agg = await theClient.query(sql, params);
+            return tools.sanitize(agg.rows[0]);
         };
 
         /**
