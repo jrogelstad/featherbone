@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/*jslint node, for, devel*/
+/*jslint node, for, devel, unordered*/
 /**
     Create, read, update and delete methods for persisting data to the
     database.
@@ -37,8 +37,480 @@
     const tools = new Tools();
     const formats = tools.formats;
     const f = require("../../common/core");
+    const ops = Object.keys(f.operators);
     const jsonpatch = require("fast-json-patch");
     const ekey = "_eventkey"; // Lint tyranny
+
+    const JOINSQL = "JOIN %I ON (%I.%I=%I._pk)";
+
+    function noJoin(w) {
+        return w.property.indexOf(".") === -1;
+    }
+    function transformObj(where) {
+        if (typeof where.value === "object") {
+            where.property = where.property + ".id";
+            where.value = where.value.id;
+        }
+    }
+
+    function appendWhere(where, parts, tokens, params, table, p) {
+        let op = where.operator || "=";
+        let yr;
+        let mo;
+        let da;
+        let dw;
+        let today;
+        let d1;
+        let d2;
+        let part;
+        let or;
+
+        function preparePart(prop) {
+            prop = prop || where.property;
+            if (prop === "objectType") {
+                tokens.push(table);
+                return "to_camel_case(%I.tableoid::regclass::text)";
+            }
+
+            tokens.push(table);
+            tokens.push(prop.toSnakeCase());
+            return "%I.%I";
+        }
+
+        if (ops.indexOf(op) === -1) {
+            throw new Error("Unknown operator \"" + op + "\"");
+        }
+
+        // Escape backslash on regex operations
+        if (op.indexOf("~") > -1) {
+            where.value = where.value.replace(/\\/g, "\\\\");
+        }
+
+        // Handle date options
+        if (op === "IS") {
+            today = f.today();
+            yr = today.slice(0, 4) - 0;
+            mo = today.slice(5, 7) - 1;
+            da = today.slice(8, 10) - 0;
+            // ISO week starts Monday
+            dw = f.parseDate(today).getDay() - 1;
+            if (dw < 0) {
+                dw = 7;
+            }
+
+            part = preparePart();
+
+            switch (where.value) {
+            case "TODAY":
+                part += "='" + today + "'";
+                break;
+            case "BEFORE_TODAY":
+                part += "<'" + today + "'";
+                break;
+            case "ON_OR_BEFORE_TODAY":
+                part += "<='" + today + "'";
+                break;
+            case "ON_OR_AFTER_TODAY":
+                part += ">='" + today + "'";
+                break;
+            case "THIS_WEEK":
+                d1 = new Date(yr, mo, da - dw);
+                d2 = new Date(yr, mo, da + 6 - dw);
+                part += (
+                    " BETWEEN '" + d1.toLocalDate() +
+                    "' AND '" + d2.toLocalDate() + "'"
+                );
+                break;
+            case "ON_OR_BEFORE_THIS_WEEK":
+                d1 = new Date(yr, mo, da + 6 - dw);
+                part += (
+                    " <= '" + d1.toLocalDate() + "'"
+                );
+                break;
+            case "ON_OR_AFTER_THIS_WEEK":
+                d1 = new Date(yr, mo, da - dw);
+                part += (
+                    " >= '" + d1.toLocalDate() + "'"
+                );
+                break;
+            case "THIS_MONTH":
+                d1 = new Date(yr, mo, 1);
+                d2 = new Date(yr, mo + 1, 0);
+                part += (
+                    " BETWEEN '" + d1.toLocalDate() +
+                    "' AND '" + d2.toLocalDate() + "'"
+                );
+                break;
+            case "ON_OR_BEFORE_THIS_MONTH":
+                d1 = new Date(yr, mo + 1, 0);
+                part += (
+                    " <= '" + d1.toLocalDate() + "'"
+                );
+                break;
+            case "ON_OR_AFTER_THIS_MONTH":
+                d1 = new Date(yr, mo, 1);
+                part += (
+                    " >= '" + d1.toLocalDate() + "'"
+                );
+                break;
+            case "THIS_YEAR":
+                part += (
+                    " BETWEEN '" + yr + "-01-01' AND '" +
+                    yr + "-12-31'"
+                );
+                break;
+            case "ON_OR_BEFORE_THIS_YEAR":
+                part += (
+                    " <= '" + yr + "-12-31'"
+                );
+                break;
+            case "ON_OR_AFTER_THIS_YEAR":
+                part += (
+                    " >= '" + yr + "-01-01'"
+                );
+                break;
+            case "YESTERDAY":
+                d1 = new Date(yr, mo, da - 1);
+                part += (
+                    " = '" + d1.toLocalDate() + "'"
+                );
+                break;
+            case "LAST_WEEK":
+                d1 = new Date(yr, mo, da - dw - 7);
+                d2 = new Date(yr, mo, da - dw - 1);
+                part += (
+                    " BETWEEN '" + d1.toLocalDate() +
+                    "' AND '" + d2.toLocalDate() + "'"
+                );
+                break;
+            case "LAST_MONTH":
+                d1 = new Date(yr, mo - 1, 1);
+                d2 = new Date(yr, mo, 0);
+                part += (
+                    " BETWEEN '" + d1.toLocalDate() +
+                    "' AND '" + d2.toLocalDate() + "'"
+                );
+                break;
+            case "LAST_YEAR":
+                yr = yr - 1;
+                part += (
+                    " BETWEEN '" + yr + "-01-01' AND '" +
+                    yr + "-12-31'"
+                );
+                break;
+            case "TOMORROW":
+                d1 = new Date(yr, mo, da + 1);
+                part += (
+                    " = '" + d1.toLocalDate() + "'"
+                );
+                break;
+            case "NEXT_WEEK":
+                d1 = new Date(yr, mo, da - dw + 7);
+                d2 = new Date(yr, mo, da - dw + 12);
+                part += (
+                    " BETWEEN '" + d1.toLocalDate() +
+                    "' AND '" + d2.toLocalDate() + "'"
+                );
+                break;
+            case "NEXT_MONTH":
+                d1 = new Date(yr, mo + 1, 1);
+                d2 = new Date(yr, mo + 2, 0);
+                part += (
+                    " BETWEEN '" + d1.toLocalDate() +
+                    "' AND '" + d2.toLocalDate() + "'"
+                );
+                break;
+            case "NEXT_YEAR":
+                yr = yr + 1;
+                part += (
+                    " BETWEEN '" + yr + "-01-01' AND '" +
+                    yr + "-12-31'"
+                );
+                break;
+            default:
+                throw new Error(
+                    "Value " + where.value +
+                    " for date operator 'IS' unknown"
+                );
+            }
+
+        // Value "IN" array ("Andy" IN ["Ann","Andy"])
+        // Whether "Andy"="Ann" OR "Andy"="Andy"
+        } else if (op === "IN") {
+            part = [];
+            if (where.value.length) {
+                where.value.forEach(function (val) {
+                    params.push(val);
+                    part.push("$" + p);
+                    p += 1;
+                });
+                part = preparePart() + " IN (" + part.join(",") + ")";
+            // If no values in array, then no result
+            } else {
+                params.push(false);
+                part.push("$" + p);
+                p += 1;
+            }
+
+        // Property "OR" array compared to value
+        // (["name","email"]="Andy")
+        // Whether "name"="Andy" OR "email"="Andy"
+        } else if (Array.isArray(where.property)) {
+            or = [];
+            where.property.forEach(function (prop) {
+                params.push(where.value);
+                or.push(preparePart(prop) + " " + op + " $" + p);
+                p += 1;
+            });
+            part = "(" + or.join(" OR ") + ")";
+
+        // Regular comparison ("name"="Andy")
+        } else if (
+            typeof where.value === "object" &&
+            !where.value.id
+        ) {
+            part = preparePart() + " IS NULL";
+        } else {
+            part = preparePart() + op + "$" + p;
+            params.push(where.value);
+            p += 1;
+        }
+
+        parts.push(part);
+
+        return p;
+    }
+
+    async function buildJoin(
+        client,
+        feather,
+        filter,
+        prop,
+        params,
+        arys,
+        p
+    ) {
+        let jtokens = arys.joinTokens;
+        let ptokens = arys.partTokens;
+        let joins = arys.joins;
+        let parts = arys.parts;
+        let fthr = feather;
+        let idx = prop.indexOf(".");
+        let attr = prop.slice(0, idx);
+        let table;
+        let fp;
+        let where = filter.criteria.find((c) => c.property === prop);
+        let sort = filter.criteria.find((s) => s.property === prop);
+
+        // feather = SalesOrderLine
+        // criteria = item.category.type.id
+        while (idx !== -1) {
+            // Join
+            joins.push(JOINSQL);
+            fp = fthr.properties[attr];
+            table = fp.type.relation.toSnakeCase();
+            // Join table
+            jtokens.push(table);
+            // Parent table prefix
+            jtokens.push(fthr.name.toSnakeCase());
+            // Parent table column (feathbone paradigm)
+            jtokens.push("_" + attr.toSnakeCase() + "_" + table + "_pk");
+            // Join table prefix
+            jtokens.push(table);
+
+            // Advance next
+            prop = prop.slice(idx + 1, prop.length);
+            idx = prop.indexOf(".");
+            if (idx === -1) { // done joining?
+                if (where) {
+                    p = appendWhere(
+                        {
+                            property: prop,
+                            op: where.op,
+                            value: where.value
+                        },
+                        parts,
+                        ptokens,
+                        params,
+                        table,
+                        p
+                    );
+                }
+                if (sort) {
+                    sort.property = prop;
+                    sort.table = table;
+                }
+            } else {
+            // Next join
+                attr = prop.slice(0, idx);
+                fthr = await tools.getFeather({
+                    client,
+                    data: {name: fp.relation}
+                });
+            }
+        }
+
+        return p;
+    }
+
+    function processSort(sort, tokens, table) {
+        let order;
+        let clause = "";
+        let i = 0;
+        let parts = [];
+
+        // Always sort on primary key as final tie breaker
+        sort.push({property: tools.PKCOL});
+
+        while (sort[i]) {
+            order = sort[i].order || "ASC";
+            order = order.toUpperCase();
+            if (order !== "ASC" && order !== "DESC") {
+                throw "Unknown operator \"" + order + "\"";
+            }
+            tokens.push(sort.table || table);
+            tokens.push(sort[i].property);
+            parts.push("%I.%I " + order);
+            i += 1;
+        }
+
+        if (parts.length) {
+            clause = " ORDER BY " + parts.join(",");
+        }
+
+        return clause;
+    }
+
+    /**
+        Return a sql `WHERE` clause based on filter criteria in payload.
+        @private
+        @method buildWhere
+        @param {Object} payload Request payload
+        @param {Object} payload.name Feather name
+        @param {Filter} [payload.filter] Filter
+        @param {Boolean} [payload.showDeleted] Show deleted records
+        @param {Object} payload.client Database client
+        @param {Array} [params] Parameters used for the sql query
+        @param {Boolean} [flag] Request as super user. Default false.
+        @param {Boolean} [flag] Enforce row authorization. Default false.
+        @return {Promise}
+    */
+    async function buildWhere(
+        obj,
+        params,
+        isSuperUser,
+        rowAuth
+    ) {
+        let name = obj.name;
+        let filter = obj.filter;
+        let table = name.toSnakeCase();
+        let clause = "NOT %I.is_deleted";
+        let sql = " WHERE ";
+        let tokens = [table];
+        let criteria = false;
+        let sort = [];
+        let parts = [];
+        let p = 1;
+        let joinArrays = {
+            joinTokens: [],
+            partTokens: [],
+            joins: [],
+            parts: []
+        };
+        let propsWithDot = [];
+
+        function appendDotProp(inp) {
+            if (
+                inp.property.indexOf(".") !== -1 &&
+                propsWithDot.indexOf(inp.property) === -1
+            ) {
+                propsWithDot.push(inp.property);
+            }
+        }
+
+        if (obj.showDeleted) {
+            clause = "true";
+            tokens = [];
+        }
+
+        sql += clause;
+
+        if (filter) {
+            filter.criteria = filter.criteria || [];
+            filter.sort = filter.sort || [];
+            criteria = filter.criteria;
+            sort = filter.sort;
+            criteria.forEach(transformObj);
+
+            filter.criteria.forEach(appendDotProp);
+            sort.forEach(appendDotProp);
+
+            // Process joins
+            // joins = criteria.filter(hasJoin);
+            if (propsWithDot.length) {
+                if (tokens.length) {
+                    joinArrays.partTokens.push(table);
+                }
+                joinArrays.parts.push(clause);
+                while (propsWithDot.length) {
+                    p = await buildJoin(
+                        obj.client,
+                        obj.feather,
+                        filter,
+                        propsWithDot.shift(),
+                        params,
+                        joinArrays,
+                        p
+                    );
+                }
+                tokens = joinArrays.joinTokens;
+                tokens = tokens.concat(joinArrays.partTokens);
+                sql = (
+                    " " + joinArrays.joins.join(" ") +
+                    " WHERE " +
+                    joinArrays.parts.join(" AND ")
+                );
+            }
+
+            // Process non join criteria
+            criteria.filter(noJoin).forEach(function (where) {
+                p = appendWhere(where, parts, tokens, params, table, p);
+            });
+
+            if (parts.length) {
+                sql += " AND " + parts.join(" AND ");
+            }
+        }
+
+        // Add authorization criteria
+        if (isSuperUser === false) {
+            sql += tools.buildAuthSql("canRead", table, tokens, rowAuth, p);
+
+            params.push(obj.client.currentUser());
+            p += 1;
+        }
+
+        // Process sort
+        sql += processSort(sort, tokens, table);
+
+        if (filter) {
+            // Process offset and limit
+            if (filter.offset) {
+                sql += " OFFSET $" + p;
+                p += 1;
+                params.push(filter.offset);
+            }
+
+            if (filter.limit) {
+                sql += " LIMIT $" + p;
+                params.push(filter.limit);
+            }
+        }
+
+        sql = sql.format(tokens);
+
+        return sql;
+    }
 
     /**
         Return a promise that resolves money object with
@@ -244,10 +716,6 @@
                     return ret;
                 }
 
-                function callback(resp) {
-                    resolve(tools.sanitize(resp.rows[0]));
-                }
-
                 function afterGetFeather(feather) {
                     if (!feather.name) {
                         reject("Feather \"" + obj.name + "\" not found.");
@@ -264,18 +732,24 @@
                         "SELECT " + sub.toString(",").format(subt) + " FROM %I"
                     );
                     tokens.push(table);
-                    tools.buildAltWhere(
+                    buildWhere(
                         data,
                         params,
                         isSuperUser,
                         feather.enableRowAuthorization
-                    ).then(function (resp) {;
+                    ).then(async function (resp) {
+                        let res;
                         sql += resp;
                         sql += ") AS data;";
                         sql = sql.format(tokens);
 
-                        theClient.query(sql, params).then(callback).catch(reject);
-                    });
+                        try {
+                            res = await theClient.query(sql, params);
+                            resolve(tools.sanitize(res.rows[0]));
+                        } catch (e) {
+                            reject(e);
+                        }
+                    }).catch(reject);
                 }
 
                 // Validate
