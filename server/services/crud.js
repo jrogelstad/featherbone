@@ -41,8 +41,6 @@
     const jsonpatch = require("fast-json-patch");
     const ekey = "_eventkey"; // Lint tyranny
 
-    const JOINSQL = "JOIN %I ON (%I.%I=%I._pk)";
-
     function noJoin(w) {
         return w.property.indexOf(".") === -1;
     }
@@ -288,91 +286,6 @@
         return p;
     }
 
-    async function buildJoin(
-        client,
-        feather,
-        filter,
-        prop,
-        params,
-        arys,
-        p
-    ) {
-        let jtokens = arys.joinTokens;
-        let ptokens = arys.partTokens;
-        let joins = arys.joins;
-        let parts = arys.parts;
-        let fthr = feather;
-        let idx = prop.indexOf(".");
-        let attr = prop.slice(0, idx);
-        let theTable;
-        let fp;
-        let where = filter.criteria.find((c) => c.property === prop);
-        let whereArys = filter.criteria.filter(
-            (c) => Array.isArray(c.property) && c.property.indexOf(prop) !== -1
-        );
-        let sort = filter.criteria.find((s) => s.property === prop);
-        let oprop = prop;
-
-        // feather = SalesOrderLine
-        // criteria = item.category.type.id
-        while (idx !== -1) {
-            // Join
-            joins.push(JOINSQL);
-            fp = fthr.properties[attr];
-            theTable = fp.type.relation.toSnakeCase();
-            // Join table
-            jtokens.push(theTable);
-            // Parent table prefix
-            jtokens.push(fthr.name.toSnakeCase());
-            // Parent table column (feathbone paradigm)
-            jtokens.push("_" + attr.toSnakeCase() + "_" + theTable + "_pk");
-            // Join table prefix
-            jtokens.push(theTable);
-
-            // Advance next
-            prop = prop.slice(idx + 1, prop.length);
-            idx = prop.indexOf(".");
-            if (idx === -1) { // done joining?
-                if (where) {
-                    p = appendWhere(
-                        {
-                            property: prop,
-                            op: where.op,
-                            value: where.value
-                        },
-                        parts,
-                        ptokens,
-                        params,
-                        theTable,
-                        p
-                    );
-                }
-                if (whereArys.length) {
-                    whereArys.forEach(function (crit) {
-                        let ary = crit.property;
-                        ary.splice(ary.indexOf(oprop), 1, {
-                            table: theTable,
-                            property: prop
-                        });
-                    });
-                }
-                if (sort) {
-                    sort.property = prop;
-                    sort.table = theTable;
-                }
-            } else {
-            // Next join
-                attr = prop.slice(0, idx);
-                fthr = await tools.getFeather({
-                    client,
-                    data: {name: fp.relation}
-                });
-            }
-        }
-
-        return p;
-    }
-
     function processSort(sort, tokens, table) {
         let order;
         let clause = "";
@@ -415,6 +328,7 @@
         @param {Boolean} [flag] Enforce row authorization. Default false.
         @return {Promise}
     */
+    const JOINSQL = "JOIN %I %I ON (%I.%I=%I._pk)";
     async function buildWhere(
         obj,
         params,
@@ -438,6 +352,8 @@
             parts: []
         };
         let propsWithDot = [];
+        let joined = [];
+        let tnr = 1;
 
         function appendDotProp(str) {
             if (
@@ -453,6 +369,105 @@
                 return;
             }
             appendDotProp(inp.property);
+        }
+
+        async function buildJoin(prop) {
+            let jtokens = joinArrays.joinTokens;
+            let ptokens = joinArrays.partTokens;
+            let joins = joinArrays.joins;
+            let fthr = obj.feather;
+            let idx = prop.indexOf(".");
+            let attr = prop.slice(0, idx);
+            let theTable;
+            let theAlias;
+            let fp;
+            let fk;
+            let where = filter.criteria.find((c) => c.property === prop);
+            let whereArys = filter.criteria.filter(
+                (c) => (
+                    Array.isArray(c.property) &&
+                    c.property.indexOf(prop) !== -1
+                )
+            );
+            let jsort = filter.criteria.find((s) => s.property === prop);
+            let oprop = prop;
+            let found;
+
+            // feather = SalesOrderLine
+            // criteria = item.category.type.id
+            while (idx !== -1) {
+                // Join
+                fp = fthr.properties[attr];
+                theTable = fp.type.relation.toSnakeCase();
+                fk = "_" + attr.toSnakeCase() + "_" + theTable + "_pk";
+
+                // If not already joined, do join
+                found = joined.find(
+                    (j) => j.table === theTable && j.fkey === fk
+                );
+                if (found) {
+                    theAlias = found.alias;
+                } else {
+                    joins.push(JOINSQL);
+                    theAlias = "t" + tnr;
+                    // Join table
+                    jtokens.push(theTable);
+                    jtokens.push(theAlias);
+                    // Parent table prefix
+                    jtokens.push(fthr.name.toSnakeCase());
+                    // Parent table column (feathbone paradigm)
+                    jtokens.push(fk);
+                    // Join table prefix
+                    jtokens.push(theAlias);
+                    // Keep track of joins already made
+                    joined.push({
+                        table: theTable,
+                        fkey: fk,
+                        alias: theAlias
+                    });
+                    tnr += 1;
+                }
+
+                // Advance next
+                prop = prop.slice(idx + 1, prop.length);
+                idx = prop.indexOf(".");
+                if (idx === -1) { // done joining?
+                    if (where) {
+                        p = appendWhere(
+                            {
+                                property: prop,
+                                op: where.op,
+                                value: where.value
+                            },
+                            joinArrays.parts,
+                            ptokens,
+                            params,
+                            theAlias,
+                            p
+                        );
+                    }
+                    if (whereArys.length) {
+                        whereArys.forEach(function (crit) {
+                            let ary = crit.property;
+                            ary.splice(ary.indexOf(oprop), 1, {
+                                table: theAlias,
+                                property: prop
+                            });
+                        });
+                    }
+                    if (jsort) {
+                        jsort.property = prop;
+                        jsort.table = theAlias;
+                    }
+                } else {
+                // Next join
+                    attr = prop.slice(0, idx);
+                    fthr = await tools.getFeather({
+                        client: obj.client,
+                        data: {name: fp.relation}
+                    });
+                }
+            }
         }
 
         if (obj.showDeleted) {
@@ -480,15 +495,7 @@
                 }
                 joinArrays.parts.push(clause);
                 while (propsWithDot.length) {
-                    p = await buildJoin(
-                        obj.client,
-                        obj.feather,
-                        filter,
-                        propsWithDot.shift(),
-                        params,
-                        joinArrays,
-                        p
-                    );
+                    await buildJoin(propsWithDot.shift());
                 }
                 tokens = joinArrays.joinTokens;
                 tokens = tokens.concat(joinArrays.partTokens);
@@ -772,8 +779,9 @@
                 "SELECT to_json((" +
                 obj.data.aggregations.map(toCols).toString(",") +
                 ")) AS result FROM (" +
-                "SELECT " + sub.toString(",").format(subt) + " FROM %I"
+                "SELECT %I." + sub.toString(",").format(subt) + " FROM %I"
             );
+            tokens.push(table);
             tokens.push(table);
             sql += await buildWhere(
                 data,
@@ -784,7 +792,6 @@
             sql += ") AS data;";
             sql = sql.format(tokens);
 
-            console.log(sql, params);
             agg = await theClient.query(sql, params);
             return tools.sanitize(agg.rows[0]);
         };

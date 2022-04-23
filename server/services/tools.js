@@ -96,8 +96,8 @@
             let actions;
             let i = (
                 rowAuth
-                ? 7
-                : 4
+                ? 8
+                : 5
             );
             let msg;
             let sql;
@@ -122,7 +122,7 @@
             action = action.toSnakeCase();
 
             sql = (
-                " AND _pk IN (" +
+                " AND %I._pk IN (" +
                 "SELECT %I._pk " +
                 "FROM %I " +
                 "  JOIN \"$feather\" " +
