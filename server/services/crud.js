@@ -65,14 +65,15 @@
         let part;
         let or;
 
-        function preparePart(prop) {
+        function preparePart(prop, tbl) {
             prop = prop || where.property;
+            tbl = tbl || table;
             if (prop === "objectType") {
-                tokens.push(table);
+                tokens.push(tbl);
                 return "to_camel_case(%I.tableoid::regclass::text)";
             }
 
-            tokens.push(table);
+            tokens.push(tbl);
             tokens.push(prop.toSnakeCase());
             return "%I.%I";
         }
@@ -258,10 +259,16 @@
         } else if (Array.isArray(where.property)) {
             or = [];
             where.property.forEach(function (prop) {
-                params.push(where.value);
-                or.push(preparePart(prop) + " " + op + " $" + p);
-                p += 1;
+                if (typeof prop === "object") { // required join
+                    or.push(
+                        preparePart(prop.property, prop.table) + op + "$" + p
+                    );
+                    return;
+                }
+                or.push(preparePart(prop) + op + "$" + p);
             });
+            params.push(where.value);
+            p += 1;
             part = "(" + or.join(" OR ") + ")";
 
         // Regular comparison ("name"="Andy")
@@ -297,10 +304,14 @@
         let fthr = feather;
         let idx = prop.indexOf(".");
         let attr = prop.slice(0, idx);
-        let table;
+        let theTable;
         let fp;
         let where = filter.criteria.find((c) => c.property === prop);
+        let whereArys = filter.criteria.filter(
+            (c) => Array.isArray(c.property) && c.property.indexOf(prop) !== -1
+        );
         let sort = filter.criteria.find((s) => s.property === prop);
+        let oprop = prop;
 
         // feather = SalesOrderLine
         // criteria = item.category.type.id
@@ -308,15 +319,15 @@
             // Join
             joins.push(JOINSQL);
             fp = fthr.properties[attr];
-            table = fp.type.relation.toSnakeCase();
+            theTable = fp.type.relation.toSnakeCase();
             // Join table
-            jtokens.push(table);
+            jtokens.push(theTable);
             // Parent table prefix
             jtokens.push(fthr.name.toSnakeCase());
             // Parent table column (feathbone paradigm)
-            jtokens.push("_" + attr.toSnakeCase() + "_" + table + "_pk");
+            jtokens.push("_" + attr.toSnakeCase() + "_" + theTable + "_pk");
             // Join table prefix
-            jtokens.push(table);
+            jtokens.push(theTable);
 
             // Advance next
             prop = prop.slice(idx + 1, prop.length);
@@ -332,13 +343,22 @@
                         parts,
                         ptokens,
                         params,
-                        table,
+                        theTable,
                         p
                     );
                 }
+                if (whereArys.length) {
+                    whereArys.forEach(function (crit) {
+                        let ary = crit.property;
+                        ary.splice(ary.indexOf(oprop), 1, {
+                            table: theTable,
+                            property: prop
+                        });
+                    });
+                }
                 if (sort) {
                     sort.property = prop;
-                    sort.table = table;
+                    sort.table = theTable;
                 }
             } else {
             // Next join
@@ -419,13 +439,20 @@
         };
         let propsWithDot = [];
 
-        function appendDotProp(inp) {
+        function appendDotProp(str) {
             if (
-                inp.property.indexOf(".") !== -1 &&
-                propsWithDot.indexOf(inp.property) === -1
+                str.indexOf(".") !== -1 &&
+                propsWithDot.indexOf(str) === -1
             ) {
-                propsWithDot.push(inp.property);
+                propsWithDot.push(str);
             }
+        }
+        function processDotProp(inp) {
+            if (Array.isArray(inp.property)) {
+                inp.property.forEach(appendDotProp);
+                return;
+            }
+            appendDotProp(inp.property);
         }
 
         if (obj.showDeleted) {
@@ -442,8 +469,8 @@
             sort = filter.sort;
             criteria.forEach(transformObj);
 
-            filter.criteria.forEach(appendDotProp);
-            sort.forEach(appendDotProp);
+            filter.criteria.forEach(processDotProp);
+            sort.forEach(processDotProp);
 
             // Process joins
             // joins = criteria.filter(hasJoin);
@@ -757,6 +784,7 @@
             sql += ") AS data;";
             sql = sql.format(tokens);
 
+            console.log(sql, params);
             agg = await theClient.query(sql, params);
             return tools.sanitize(agg.rows[0]);
         };
