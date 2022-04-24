@@ -301,7 +301,7 @@
             if (order !== "ASC" && order !== "DESC") {
                 throw "Unknown operator \"" + order + "\"";
             }
-            tokens.push(sort.table || table);
+            tokens.push(sort[i].table || table);
             tokens.push(sort[i].property);
             parts.push("%I.%I " + order);
             i += 1;
@@ -389,13 +389,11 @@
                     c.property.indexOf(prop) !== -1
                 )
             );
-            let jsort = filter.criteria.find((s) => s.property === prop);
+            let jsort = filter.sort.find((s) => s.property === prop);
             let oprop = prop;
             let found;
             let part;
 
-            // feather = SalesOrderLine
-            // criteria = item.category.type.id
             while (idx !== -1) {
                 fp = fthr.properties[attr];
                 if (fp.format === "money") { // Hard coded type
@@ -516,6 +514,7 @@
         sql += clause;
 
         if (filter) {
+            filter = f.copy(filter); // Leave original alone
             filter.criteria = filter.criteria || [];
             filter.sort = filter.sort || [];
             criteria = filter.criteria;
@@ -1635,7 +1634,7 @@
                 }
 
                 return ret;
-            };
+            }
 
             // Kick off query by getting feather, the rest falls through
             // callbacks
@@ -1650,6 +1649,7 @@
                 throw new Error("Feather \"" + obj.name + "\" not found.");
             }
 
+            payload.feather = feather;
             table = "_" + feather.name.toSnakeCase();
 
             // Strip dot notation. Just fetch whole relation
@@ -1724,10 +1724,28 @@
                 /* Get a filtered result */
             } else {
                 payload.filter = obj.filter;
-                gkeys = await tools.getKeys(
+
+                // begin get keys
+                isSuperUser = isSuperUser !== false;
+                let gksql = "SELECT %I._pk FROM %I";
+                let gtbl = obj.name.toSnakeCase();
+                let gkresp;
+                let params = [];
+
+                gksql = gksql.format([gtbl, gtbl]);
+                gksql += await buildWhere(
                     payload,
-                    isSuperUser
+                    params,
+                    isSuperUser,
+                    feather.enableRowAuthorization
                 );
+                try {
+                    gkresp = await theClient.query(gksql, params);
+                    gkeys = gkresp.rows.map((rec) => rec[tools.PKCOL]);
+                } catch (e) {
+                    throw e;
+                }
+                // end get keys
 
                 let feathername;
                 let sort = (
@@ -1772,9 +1790,9 @@
                     );
 
                     return result;
-                } else {
-                    return [];
                 }
+
+                return [];
             }
         };
 
