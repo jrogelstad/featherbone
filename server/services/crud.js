@@ -302,7 +302,7 @@
                 throw "Unknown operator \"" + order + "\"";
             }
             tokens.push(sort[i].table || table);
-            tokens.push(sort[i].property);
+            tokens.push(sort[i].property.toSnakeCase());
             parts.push("%I.%I " + order);
             i += 1;
         }
@@ -354,6 +354,7 @@
         let propsWithDot = [];
         let joined = [];
         let tnr = 1;
+        let i = 0;
 
         function appendDotProp(str) {
             if (
@@ -363,12 +364,61 @@
                 propsWithDot.push(str);
             }
         }
-        function processDotProp(inp) {
-            if (Array.isArray(inp.property)) {
-                inp.property.forEach(appendDotProp);
+
+        /*
+        If the last attribute on a sort with dot notation
+        is a composite type, then tack on first relation
+        property on dot notation. This mimics behavior
+        postgres has in native queries sorting on composite
+        types.
+
+        i.e. Sort on "item.site" where site is an object
+        and "code" is the first property on the site relation
+        would be converted to "item.site.code."
+
+        The `buildJoin` function takes care of the rest.
+        */
+        async function preProcessSort(item) {
+            let prop = item.property;
+            let idx = 0;
+            let attr;
+            let fthr = obj.feather;
+            let fp;
+
+            while (idx !== -1) {
+                idx = prop.indexOf(".");
+                if (idx !== -1) {
+                    attr = prop.slice(0, idx);
+                    fp = fthr.properties[attr];
+                    prop = prop.slice(idx + 1, prop.length);
+                    fthr = await tools.getFeather({
+                        client: obj.client,
+                        data: {name: fp.type.relation}
+                    });
+                } else {
+                    fp = fthr.properties[prop];
+                    if (typeof fp.type === "object") {
+                        if (
+                            Array.isArray(fp.type.properties) &&
+                            fp.type.properties[0]
+                        ) {
+                            item.property += "." + fp.type.properties[0];
+                        } else {
+                            throw (
+                                "No properties defined on relation" + attr
+                            );
+                        }
+                    }
+                }
+            }
+        }
+
+        function processDotProp(item) {
+            if (Array.isArray(item.property)) {
+                item.property.forEach(appendDotProp);
                 return;
             }
-            appendDotProp(inp.property);
+            appendDotProp(item.property);
         }
 
         async function buildJoin(prop) {
@@ -499,7 +549,7 @@
                         attr = prop.slice(0, idx);
                         fthr = await tools.getFeather({
                             client: obj.client,
-                            data: {name: fp.relation}
+                            data: {name: fp.type.relation}
                         });
                     }
                 }
@@ -522,6 +572,10 @@
             criteria.forEach(transformObj);
 
             filter.criteria.forEach(processDotProp);
+            while (i < sort.length) {
+                await preProcessSort(sort[i]);
+                i += 1;
+            }
             sort.forEach(processDotProp);
 
             // Process joins
