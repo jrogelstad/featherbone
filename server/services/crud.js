@@ -45,7 +45,10 @@
         return !w.table && w.property.indexOf(".") === -1;
     }
     function transformObj(where) {
-        if (typeof where.value === "object") {
+        if (
+            typeof where.value === "object" &&
+            !Array.isArray(where.value)
+        ) {
             where.property = where.property + ".id";
             where.value = where.value.id;
         }
