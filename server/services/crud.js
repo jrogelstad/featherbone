@@ -331,7 +331,7 @@
         @param {Boolean} [flag] Enforce row authorization. Default false.
         @return {Promise}
     */
-    const JOINSQL = "JOIN %I %I ON (%I.%I=%I._pk)";
+    const JOINSQL = "LEFT JOIN %I %I ON (%I.%I=%I._pk)";
     async function buildWhere(
         obj,
         params,
@@ -1814,6 +1814,7 @@
                 tokens = [];
                 sql += tools.processSort(sort, tokens);
                 sql = sql.format(tokens);
+                console.log(sql, params);
                 result = await theClient.query(sql, params);
                 result = tools.sanitize(result.rows.map(mapKeys));
 
