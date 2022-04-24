@@ -963,6 +963,7 @@ formPage.viewModel = function (options) {
     instances[vm.model().id()] = vm.model();
 
     // Add action buttons defined in form
+    form.actions = form.actions || [];
     let actidx = form.actions.length - 1;
     let action;
     let fn = f.catalog().store().models()[options.feather.toCamelCase()];
