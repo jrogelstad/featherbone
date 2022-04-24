@@ -1814,7 +1814,7 @@
                 tokens = [];
                 sql += tools.processSort(sort, tokens);
                 sql = sql.format(tokens);
-                console.log(sql, params);
+                //console.log(sql, params);
                 result = await theClient.query(sql, params);
                 result = tools.sanitize(result.rows.map(mapKeys));
 
