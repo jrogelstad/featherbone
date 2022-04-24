@@ -443,6 +443,7 @@
             let oprop = prop;
             let found;
             let part;
+            let jTable;
 
             while (idx !== -1) {
                 fp = fthr.properties[attr];
@@ -493,13 +494,18 @@
                     if (found) {
                         theAlias = found.alias;
                     } else {
+                        jTable = fthr.name.toSnakeCase();
+                        found = joined.find((j) => j.table === jTable);
+                        if (found) {
+                            jTable = found.alias;
+                        }
                         joins.push(JOINSQL);
                         theAlias = "t" + tnr;
                         // Join table
                         jtokens.push(theTable);
                         jtokens.push(theAlias);
                         // Parent table prefix
-                        jtokens.push(fthr.name.toSnakeCase());
+                        jtokens.push(jTable);
                         // Parent table column (feathbone paradigm)
                         jtokens.push(fk);
                         // Join table prefix
@@ -545,7 +551,7 @@
                             jsort.table = theAlias;
                         }
                     } else {
-                    // Next join
+                        // Next join
                         attr = prop.slice(0, idx);
                         fthr = await feathers.getFeather({
                             client: obj.client,
