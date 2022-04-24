@@ -1614,7 +1614,6 @@
                 client: theClient,
                 showDeleted: obj.showDeleted
             };
-            let gkeys;
 
             function mapKeys(row) {
                 let rkeys;
@@ -1636,8 +1635,7 @@
                 return ret;
             }
 
-            // Kick off query by getting feather, the rest falls through
-            // callbacks
+            // Kick off query by getting feather
             feather = await feathers.getFeather({
                 client: theClient,
                 data: {name: obj.name}
@@ -1725,27 +1723,19 @@
             } else {
                 payload.filter = obj.filter;
 
-                // begin get keys
                 isSuperUser = isSuperUser !== false;
+                // Subselect to get primary keys (gk)
                 let gksql = "SELECT %I._pk FROM %I";
-                let gtbl = obj.name.toSnakeCase();
-                let gkresp;
+                let gktbl = obj.name.toSnakeCase();
                 let params = [];
 
-                gksql = gksql.format([gtbl, gtbl]);
+                gksql = gksql.format([gktbl, gktbl]);
                 gksql += await buildWhere(
                     payload,
                     params,
                     isSuperUser,
                     feather.enableRowAuthorization
                 );
-                try {
-                    gkresp = await theClient.query(gksql, params);
-                    gkeys = gkresp.rows.map((rec) => rec[tools.PKCOL]);
-                } catch (e) {
-                    throw e;
-                }
-                // end get keys
 
                 let feathername;
                 let sort = (
@@ -1753,46 +1743,35 @@
                     ? obj.filter.sort || []
                     : []
                 );
-                let i = 0;
 
-                if (gkeys.length) {
-                    tokens = [];
+                sql += " WHERE _pk IN (";
+                sql += gksql;
+                sql += ")";
 
-                    while (gkeys[i]) {
-                        i += 1;
-                        tokens.push("$" + i);
-                    }
+                tokens = [];
+                sql += tools.processSort(sort, tokens);
+                sql = sql.format(tokens);
+                result = await theClient.query(sql, params);
+                result = tools.sanitize(result.rows.map(mapKeys));
 
-                    sql += " WHERE _pk IN (";
-                    sql += tokens.toString(",") + ")";
-
-                    tokens = [];
-                    sql += tools.processSort(sort, tokens);
-                    sql = sql.format(tokens);
-                    result = await theClient.query(sql, gkeys);
-                    result = tools.sanitize(result.rows.map(mapKeys));
-
-                    if (
-                        !obj.filter || (
-                            !obj.filter.criteria &&
-                            !obj.filter.limit
-                        )
-                    ) {
-                        feathername = obj.name;
-                    }
-
-                    // Handle subscription
-                    await events.subscribe(
-                        theClient,
-                        obj.subscription,
-                        result.map((item) => item.id),
-                        feathername
-                    );
-
-                    return result;
+                if (
+                    !obj.filter || (
+                        !obj.filter.criteria &&
+                        !obj.filter.limit
+                    )
+                ) {
+                    feathername = obj.name;
                 }
 
-                return [];
+                // Handle subscription
+                await events.subscribe(
+                    theClient,
+                    obj.subscription,
+                    result.map((item) => item.id),
+                    feathername
+                );
+
+                return result;
             }
         };
 
