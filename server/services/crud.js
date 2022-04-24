@@ -391,7 +391,7 @@
                     attr = prop.slice(0, idx);
                     fp = fthr.properties[attr];
                     prop = prop.slice(idx + 1, prop.length);
-                    fthr = await tools.getFeather({
+                    fthr = await feathers.getFeather({
                         client: obj.client,
                         data: {name: fp.type.relation}
                     });
@@ -547,7 +547,7 @@
                     } else {
                     // Next join
                         attr = prop.slice(0, idx);
-                        fthr = await tools.getFeather({
+                        fthr = await feathers.getFeather({
                             client: obj.client,
                             data: {name: fp.type.relation}
                         });
