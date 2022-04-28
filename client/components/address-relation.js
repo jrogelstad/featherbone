@@ -75,13 +75,22 @@ addressRelation.viewModel = function (options) {
             return content;
         }
 
-        if (d.unit()) {
+        if (d.name && d.name()) {
+             content = d.name() + cr + content;
+        }
+        if (d.unit && d.unit()) {
             content += cr + d.unit();
         }
 
-        content += cr + d.city() + ", ";
-        content += d.state() + " " + d.postalCode();
-        content += cr + d.country();
+        if (d.city) {
+            content += cr + d.city() + ", ";
+        }
+        if (d.state) {
+            content += d.state() + " " + d.postalCode();
+        }
+        if (d.country) {
+            content += cr + d.country();
+        }
 
         return content;
     };
@@ -187,6 +196,8 @@ addressRelation.viewModel = function (options) {
             attrs: [{
                 attr: "type"
             }, {
+                attr: "name"
+            }, {
                 attr: "street"
             }, {
                 attr: "unit"
@@ -262,7 +273,8 @@ addressRelation.component = {
             class: "fb-input",
             value: vm.content(vm.isCell()),
             readonly: readOnly,
-            rows: 4
+            rows: 6,
+            style: {whiteSpace: "nowrap"}
         };
 
         if (vm.isCell()) {
