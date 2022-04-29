@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/*jslint this, browser*/
+/*jslint this, browser, unordered*/
 /*global f, m*/
 /**
     @module AddressRelation
@@ -76,7 +76,7 @@ addressRelation.viewModel = function (options) {
         }
 
         if (d.name && d.name()) {
-             content = d.name() + cr + content;
+            content = d.name() + cr + content;
         }
         if (d.unit && d.unit()) {
             content += cr + d.unit();
@@ -274,8 +274,9 @@ addressRelation.component = {
             value: vm.content(vm.isCell()),
             readonly: readOnly,
             rows: 6,
-            style: {whiteSpace: "nowrap"}
+            style: {whiteSpace: "pre"}
         };
+        let dlg;
 
         if (vm.isCell()) {
             options.rows = 1;
@@ -288,6 +289,9 @@ addressRelation.component = {
             options.title = "Click or Enter key to edit";
             options.onkeydown = vm.onkeydown;
             options.onclick = vm.doEdit;
+            dlg = m(f.getComponent("FormDialog"), {
+                viewModel: vm.addressDialog()
+            });
         }
 
         theStyle.display = theStyle.display || "inline-block";
@@ -296,9 +300,7 @@ addressRelation.component = {
         ret = m("div", {
             style: theStyle
         }, [
-            m(f.getComponent("FormDialog"), {
-                viewModel: vm.addressDialog()
-            }),
+            dlg,
             m("textarea", options)
         ]);
 
