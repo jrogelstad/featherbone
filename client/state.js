@@ -1,4 +1,4 @@
-    // Acknowledgement:
+// Acknowledgement:
 // Original codebase from https://github.com/burrows/statechart.js
 // Commit: 1e834e167bea4709034056703652b7d802d74979
 // License: MIT
