@@ -131,7 +131,7 @@
 					}],
 					"filter": {
 						"sort": [{
-							"property": "module.name",
+							"property": "module",
 							"order": "ASC"
 						}, {
 							"property": "name",

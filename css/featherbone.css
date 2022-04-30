@@ -798,7 +798,7 @@ a.pure-button-selected {
 .fb-toolbar-button-clear {
   background: none;
   background-image: none !important;
-  box-shadow: none;
+  box-shadow: none !important;
   color: grey;
   font-size: 6px;
   margin-left: -45px;
