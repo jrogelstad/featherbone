@@ -501,6 +501,11 @@
                     "label": "Other"
                 }]
             },
+            "name": {
+                "description": "Street",
+                "type": "string",
+                "isRequired": false
+            },
             "street": {
                 "description": "Street",
                 "type": "string",
@@ -588,6 +593,9 @@
                 }, {
                     "value": "W",
                     "label": "Work"
+                }, {
+                    "value": "F",
+                    "label": "Fax"
                 }, {
                     "value": "O",
                     "label": "Other"

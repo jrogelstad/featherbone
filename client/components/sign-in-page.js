@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2021  John Rogelstad
+    Copyright (C) 2022  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/*jslint this, browser*/
+/*jslint this, browser, unordered*/
 /*global f, m*/
 
 const signInPage = {};
@@ -26,7 +26,7 @@ signInPage.component = {
     },
 
     view: function () {
-        return m("div", {
+        return m("form", {
             class: "pure-form pure-form-aligned"
         }, [
             m("div", {
@@ -48,6 +48,7 @@ signInPage.component = {
                     class: "fb-sign-in-label"
                 }, "Username"),
                 m("input", {
+                    autocomplete: "on",
                     id: "username"
                 })
             ]),
@@ -62,6 +63,7 @@ signInPage.component = {
                 m("input", {
                     id: "password",
                     type: "password",
+                    autocomplete: "current-password",
                     onkeydown: function (e) {
                         if (e.which === 13) {
                             f.state().send("authenticate");

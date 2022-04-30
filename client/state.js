@@ -1,10 +1,10 @@
-    // Acknowledgement:
+// Acknowledgement:
 // Original codebase from https://github.com/burrows/statechart.js
 // Commit: 1e834e167bea4709034056703652b7d802d74979
 // License: MIT
 // Alterations: Convert to ES6 module and lint
 
-/*jslint for, this, browser*/
+/*jslint for, this, browser, unordered*/
 /*global console*/
 /**
     @module State
