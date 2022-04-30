@@ -63,11 +63,21 @@ settings.getSettings = function (obj) {
                 if (resp.rows.length) {
                     rec = resp.rows[0];
                     if (!settings.data[name]) {
-                        settings.data[name] = {};
+                        settings.data[name] = {data: {}};
                     }
                     settings.data[name].id = rec.id;
                     settings.data[name].etag = rec.etag;
-                    settings.data[name].data = rec.data;
+                    // Careful not to break pre-existing pointer
+                    // First clear old properties
+                    Object.keys(
+                        settings.data[name].data
+                    ).forEach(function (key) {
+                        delete settings.data[name].data[key];
+                    });
+                    // Populate new properties
+                    Object.keys(rec.data).forEach(function (key) {
+                        settings.data[name].data[key] = rec.data[key];
+                    });
                 }
 
                 // Send back the settings if any were found, otherwise
@@ -95,7 +105,8 @@ settings.getSettings = function (obj) {
         }
 
         if (obj.data.force) {
-            delete settings.data[name];
+            fetch();
+            return;
         }
 
         if (settings.data[name]) {
