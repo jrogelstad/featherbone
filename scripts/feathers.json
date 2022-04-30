@@ -501,6 +501,11 @@
                     "label": "Other"
                 }]
             },
+            "name": {
+                "description": "Street",
+                "type": "string",
+                "isRequired": false
+            },
             "street": {
                 "description": "Street",
                 "type": "string",
