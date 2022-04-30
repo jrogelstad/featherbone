@@ -498,6 +498,9 @@
 
                                 if (inheritedFrom(p.type.relation, "Address")) {
                                     value = rec[attr].street;
+                                    if (rec[attr].name) {
+                                        value = rec[attr].name + cr + value;
+                                    }
                                     if (rec[attr].unit) {
                                         value += cr + rec[attr].unit;
                                     }
