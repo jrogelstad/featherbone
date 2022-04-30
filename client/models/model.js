@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2021  John Rogelstad
+    Copyright (C) 2022  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/*jslint this, browser*/
+/*jslint this, browser, unordered*/
 /**
     @module Model
 */
@@ -470,7 +470,7 @@ function createModel(data, feather) {
         fn.type = options.type || "string";
         fn.format = options.format;
         fn.isRequired = simpleProp(false);
-        fn.isReadOnly = simpleProp(options.isReadOnly || true);
+        fn.isReadOnly = simpleProp(options.isReadOnly !== false);
         fn.isToMany = isToMany.bind(null, fn);
         fn.isToOne = isToOne.bind(null, fn);
         fn.style = simpleProp(options.style || "");
@@ -713,7 +713,14 @@ function createModel(data, feather) {
         @type boolean
     */
     model.isModel = true;
+    /**
+        Indicates whether the model is loaded from the
+        database with no edits.
 
+        @method isReadyClean
+        @return {Boolean}
+    */
+    model.isReadyClean = () => state.current()[0] === "/Ready/Fetched/Clean";
     /**
         Indicates whether the model is read only.
 
