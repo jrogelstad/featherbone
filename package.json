@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "adm-zip": "^0.4.13",
+    "axios": "^0.27.2",
     "big.js": "^5.2.2",
     "body-parser": "^1.18.2",
     "canvas": "^2.9.1",

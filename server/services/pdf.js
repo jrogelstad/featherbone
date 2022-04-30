@@ -33,6 +33,7 @@
     const {PDFDocument} = require("pdf-lib");
     const {createCanvas} = require("canvas");
     const defTextLabel = "Confidential";
+    const axios = require("axios");
 
     const fonts = {
         Barcode39: new pdf.Font(
@@ -228,6 +229,7 @@
                 let currs;
                 let localFeathers = {};
                 let dir = "./files/downloads/";
+                let attachments = [];
 
                 function getForm() {
                     return new Promise(function (resolve, reject) {
@@ -509,6 +511,21 @@
                                         font: ovrFont,
                                         fontSize: style.fontSize
                                     });
+                                    return;
+                                }
+
+                                if (inheritedFrom(
+                                    p.type.relation,
+                                    "ResourceLink"
+                                )) {
+                                    let figure = "Figure "
+                                    + (attachments.length + 1);
+                                    attachments.push({
+                                        attachmentLabel: figure,
+                                        label: rec[attr].label,
+                                        source: rec[attr].resource
+                                    });
+                                    row.cell(figure);
                                     return;
                                 }
 
@@ -911,27 +928,34 @@
                             }
                             n = 0;
                         }
-
-                        doc.pipe(w);
-                        doc.end().then(function () {
-                            if (!options || !options.watermark) {
-                                resolve(file);
-                                return file;
+                        new Promise(function (resAtt) {
+                            if (!attachments.length) {
+                                resAtt();
+                            } else {
+                                addAttachments(doc, attachments).then(resAtt);
                             }
-                            w.on("close", function () {
-                                options.watermark.width = doc.width;
-                                options.watermark.height = doc.height;
-                                waterMarkPdf(
-                                    path,
-                                    options.watermark.label,
-                                    path,
-                                    options.watermark
-                                ).then(function () {
-                                    resolve(file);
-                                });
-                            });
 
-                        }).catch(reject);
+                        }).then(function () {
+                            doc.pipe(w);
+                            doc.end().then(function () {
+                                if (!options || !options.watermark) {
+                                    resolve(file);
+                                    return file;
+                                }
+                                w.on("close", function () {
+                                    options.watermark.width = doc.width;
+                                    options.watermark.height = doc.height;
+                                    waterMarkPdf(
+                                        path,
+                                        options.watermark.label,
+                                        path,
+                                        options.watermark
+                                    ).then(function () {
+                                        resolve(file);
+                                    });
+                                });
+                            }).catch(reject);
+                        });
                     });
                 }
 
@@ -952,6 +976,37 @@
 
         return that;
     };
+
+    function addAttachments(doc, attachments) {
+        let instance = axios.create();
+        let aP = [];
+        attachments.forEach(function (attach) {
+            doc.pageBreak();
+            let table = doc.table({widths: [200, 0]});
+            let row = table.row();
+            let req = instance.get(
+                attach.source,
+                {responseType: "arraybuffer"}
+            );
+            aP.push(req.then(function (resp) {
+                let src = Buffer.from(resp.data, "binary");
+                row.cell().text({
+                    fontSize: 16
+                }).add(attach.label);
+
+                if (attach.source.match(/(jpg|jpeg|png)$/)) {
+                    let logo = new pdf.Image(src);
+                    row.cell().image(logo);
+                } else if (attach.source.match(/(\.pdf)$/)) {
+                    let doc2 = new pdf.ExternalDocument(src);
+                    doc.addPagesOf(doc2);
+                } else {
+                    console.error("Don't know what to do: " + attach.source);
+                }
+            }));
+        });
+        return Promise.all(aP);
+    }
 
     function setHypWidth(cfg) {
         cfg.hypWidth = parseInt(
