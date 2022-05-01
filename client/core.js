@@ -2281,5 +2281,7 @@ f.state = function () {
     @return {State}
 */
 f.State = State;
+f.TABLE_MIN_HEIGHT = 200;
+f.TABLE_COLUMN_WIDTH_DEFAULT = 150;
 
 export default Object.freeze(f);

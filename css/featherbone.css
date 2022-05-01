@@ -741,6 +741,8 @@ a.pure-button-selected {
   width: 100%;
   overflow: auto;
   background-color: white;
+  border-left: solid #cbcbcb thin;
+  border-right: solid #cbcbcb thin;
 }
 
 .fb-table-body-with-footer {
