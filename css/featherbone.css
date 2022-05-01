@@ -24,6 +24,7 @@ a.pure-button-selected {
 }
 
 .CodeMirror {
+  height: auto !important;
   border: 1px solid #eee;
 }
 
