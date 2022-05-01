@@ -80,6 +80,20 @@ function buildButtons(vm) {
 }
 
 function buildFieldset(vm, attrs) {
+    let childTableItems = [];
+    // Make child tables fixed if there's more than
+    // one as autosize is wonkey otherwise
+    attrs.forEach(function (item) {
+        let prop = vm.model().data[item.attr];
+        if (prop && prop.isToMany()) {
+            childTableItems.push(item);
+        }
+    });
+    if (childTableItems.length > 1) {
+        childTableItems.forEach(function (item) {
+            item.height = f.TABLE_MIN_HEIGHT + "px";
+        });
+    }
     return attrs.map(function (item) {
         let result;
         let labelOpts;
@@ -93,9 +107,7 @@ function buildFieldset(vm, attrs) {
         }
         let theDataList = item.dataList || prop.dataList;
         let value = prop();
-        let theOptions = {
-            height: item.height
-        };
+        let theOptions = {height: item.height};
         let menuButtons = vm.menuButtons();
         let relation = vm.relations()[theKey];
 

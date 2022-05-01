@@ -30,7 +30,7 @@ let widthWithScroll;
 */
 const tableWidget = {};
 const outer = document.createElement("div");
-const COL_WIDTH_DEFAULT = "150";
+const COL_WIDTH_DEFAULT = f.TABLE_COLUMN_WIDTH_DEFAULT + "";
 const LIMIT = 20;
 const ROW_COUNT = 2;
 const FETCH_MAX = 3;
@@ -948,8 +948,8 @@ function resize(vm, vnode) {
         yPosition = f.getElementPosition(e.offsetParent).y;
         height = window.innerHeight - yPosition - 82;
 
-        if (height < 150) {
-            height = 150;
+        if (height < f.TABLE_MIN_HEIGHT) {
+            height = f.TABLE_MIN_HEIGHT;
         }
 
         e.style.height = height + "px";
