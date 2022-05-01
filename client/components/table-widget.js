@@ -30,7 +30,7 @@ let widthWithScroll;
 */
 const tableWidget = {};
 const outer = document.createElement("div");
-const COL_WIDTH_DEFAULT = f.TABLE_COLUMN_WIDTH_DEFAULT + "";
+const COL_WIDTH_DEFAULT = String(f.TABLE_COLUMN_WIDTH_DEFAULT);
 const LIMIT = 20;
 const ROW_COUNT = 2;
 const FETCH_MAX = 3;
