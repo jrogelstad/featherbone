@@ -22,6 +22,8 @@
 */
 
 const formWidget = {};
+const HORIZONTAL_TABS = "H";
+const VERTICAL_SECTIONS = "V";
 
 function buildButtons(vm) {
     let ret;
@@ -89,7 +91,11 @@ function buildFieldset(vm, attrs) {
             childTableItems.push(item);
         }
     });
-    if (childTableItems.length > 1) {
+
+    if (
+        childTableItems.length > 1 ||
+        vm.config().orientation === VERTICAL_SECTIONS
+    ) {
         childTableItems.forEach(function (item) {
             item.height = f.TABLE_MIN_HEIGHT + "px";
         });
@@ -343,6 +349,16 @@ function buildGrid(grid, idx) {
     let units;
     let vm = this;
     let className = "fb-tabbed-panes fb-tabbed-panes-form";
+    let header;
+
+    if (vm.config().orientation === HORIZONTAL_TABS) {
+        header = buildButtons(vm);
+    } else if (idx) {
+        header = m("div", {
+            style: {padding: ".5em 1em", display: "inline-block"},
+            class: "fb-group-tab fb-group-tab-form fb-group-tab-active"
+        }, vm.config().tabs[idx - 1].name);
+    }
 
     units = grid.map(function (unit) {
         return buildUnit(vm, unit, grid.length);
@@ -354,14 +370,17 @@ function buildGrid(grid, idx) {
         }, units);
     }
 
-    if (idx !== vm.selectedTab()) {
+    if (
+        vm.config().orientation === HORIZONTAL_TABS &&
+        idx !== vm.selectedTab()
+    ) {
         className += " fb-tabbed-panes-hidden";
     }
 
     return m("div", {
         class: className
     }, [
-        buildButtons(vm),
+        header,
         m("div", {
             class: "pure-g fb-tabbed-pane"
         }, units)
@@ -444,7 +463,6 @@ formWidget.viewModel = function (options) {
         @return {String}
     */
     vm.outsideElementIds = f.prop(options.outsideElementIds || []);
-
     /**
         Places to store relation content between redraws
         @method relations
