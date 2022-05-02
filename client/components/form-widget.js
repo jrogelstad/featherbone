@@ -350,8 +350,9 @@ function buildGrid(grid, idx) {
     let vm = this;
     let className = "fb-tabbed-panes fb-tabbed-panes-form";
     let header;
+    let orient = vm.config().orientation || HORIZONTAL_TABS
 
-    if (vm.config().orientation === HORIZONTAL_TABS) {
+    if (orient === HORIZONTAL_TABS) {
         header = buildButtons(vm);
     } else if (idx) {
         header = m("div", {
@@ -371,7 +372,7 @@ function buildGrid(grid, idx) {
     }
 
     if (
-        vm.config().orientation === HORIZONTAL_TABS &&
+        orient === HORIZONTAL_TABS &&
         idx !== vm.selectedTab()
     ) {
         className += " fb-tabbed-panes-hidden";
