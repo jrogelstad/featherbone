@@ -966,15 +966,31 @@ formats.richText.editor = function (options) {
         key: options.key,
         oncreate: function (vnode) {
             let e = document.getElementById(vnode.dom.id);
+            let prop = options.prop;
+
             tinymce.init({
                 target: e,
                 height: 500,
-                readonly: Boolean(options.readonly),
                 setup: function (editor) {
                     editor.on("change", function (e) {
-                        options.prop(e.level.content);
+                        prop(e.level.content);
                     });
                 }
+            }).then(function (editors) {
+                let editor = editors[0];
+
+                editor.mode.set(
+                    prop.state().current()[0] === "/Disabled"
+                    ? "readonly"
+                    : "design"
+                );
+                // Update editor when readonly state of readonly changes
+                prop.state().substateMap.Disabled.enter(function () {
+                    editor.mode.set("readonly");
+                });
+                prop.state().substateMap.Disabled.exit(function () {
+                    editor.mode.set("design");
+                });
             });
         },
         onremove: function () {
