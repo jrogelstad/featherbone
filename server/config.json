@@ -20,8 +20,6 @@
     "pgSslCert": "./server/ssl/server.crt",
     "secret": "Your own session key here",
     "sessionTimeout": 86400000,
-    "features": {
-        "fileUpload": true
-    },
+    "fileUpload": true,
     "npmModules": []
 }

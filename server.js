@@ -97,9 +97,7 @@
     let eventSessions = {};
     let eventKeys = {};
     let sessions = {};
-    let features = {
-        fileUpload: false
-    };
+    let fileUpload = false;
     let port;
     let mode;
     let settings = datasource.settings();
@@ -269,9 +267,7 @@
                         systemUser = resp.pgUser;
                         mode = resp.mode || "prod";
                         port = process.env.PORT || resp.clientPort || 80;
-                        features.fileUpload = (
-                            resp.features && resp.features.fileUpload
-                        );
+                        fileUpload = Boolean(resp.fileUpload);
                         resolve();
                     });
                 });
@@ -786,7 +782,7 @@
 
     function doUpload(req, res) {
         const DIR = "./files/upload/";
-        if (!features.fileUpload) {
+        if (!fileUpload) {
             return res.status(400).send("File uploads not allowed.");
         }
         if (Object.keys(req.files).length === 0) {
@@ -1357,7 +1353,7 @@
             "/node_modules/tinymce/themes/mobile"
         ];
 
-        if (features.fileUpload) {
+        if (fileUpload) {
             dirs.push("/files/upload");
         }
 
