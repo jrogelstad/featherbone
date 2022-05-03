@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2021  John Rogelstad
+    Copyright (C) 2022  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/*jslint node, this*/
+/*jslint node, this, unordered*/
 /**
     Import and export
     @module IO
@@ -119,7 +119,7 @@
             });
         }
 
-        function writeWorkbook(
+        async function writeWorkbook(
             filename,
             data,
             format,
@@ -127,261 +127,178 @@
             feather,
             props
         ) {
-            return new Promise(function (resolve, reject) {
-                let wb = XLSX.utils.book_new();
-                let sheets = {};
-                let localFeathers = {};
-                let keys;
-                let key;
-                let ws;
+            let wb = XLSX.utils.book_new();
+            let sheets = {};
+            let localFeathers = {};
+            let keys;
+            let key;
+            let ws;
 
-                function doRename(data, tmp, partial, key) {
-                    if (
-                        !partial && (
-                            key === "objectType" ||
-                            key === "isDeleted" ||
-                            key === "lock"
-                        )
-                    ) {
-                        tmp[key] = data[key];
-                    } else {
-                        tmp[key.toName()] = data[key];
-                    }
+            function doRename(data, tmp, partial, key) {
+                if (
+                    !partial && (
+                        key === "objectType" ||
+                        key === "isDeleted" ||
+                        key === "lock"
+                    )
+                ) {
+                    tmp[key] = data[key];
+                } else {
+                    tmp[key.toName()] = data[key];
+                }
+            }
+
+            function naturalKey(rel, value) {
+                let fthr = localFeathers[rel];
+                let kys = Object.keys(fthr.properties);
+                let attr = kys.find(function (key) {
+                    return fthr.properties[key].isNaturalKey;
+                });
+                return value[attr];
+            }
+
+            function resolveProperty(key, fthr) {
+                let idx = key.indexOf(".");
+                let attr;
+                let rel;
+
+                if (idx !== -1) {
+                    attr = key.slice(0, idx);
+                    rel = fthr.properties[attr].type.relation;
+                    fthr = localFeathers[rel];
+                    key = key.slice(idx + 1, key.length);
+                    return resolveProperty(key, fthr);
                 }
 
-                function toSheets(d, rename, feather) {
-                    let cfeather = localFeathers[feather];
-                    let name = feather;
-                    let tmp;
-                    let c = 0;
+                return fthr.properties[key];
+            }
 
-                    if (d.length) {
-                        d.forEach(function (row) {
-                            let pkey = feather + " Id";
-                            let pval = row.id;
-                            let rel;
-                            let prop;
+            function resolveValue(key, o) {
+                let idx = key.indexOf(".");
+                let attr;
 
-                            Object.keys(row).forEach(function (key) {
-                                let n;
+                if (!o) {
+                    return null;
+                }
 
-                                prop = cfeather.properties[
-                                    key.replace(" ", "").toCamelCase()
-                                ];
+                if (idx !== -1) {
+                    attr = key.slice(0, idx);
+                    key = key.slice(idx + 1, key.length);
+                    o = o[attr];
+                    return resolveValue(key, o);
+                }
 
-                                if (
-                                    prop &&
-                                    typeof prop.type === "object" &&
-                                    prop.type.parentOf
-                                ) {
+                return o[key];
+            }
+
+            function toSheets(d, rename, feather, vprops) {
+                let cfeather = localFeathers[feather];
+                let name = feather;
+                let tmp;
+                let c = 0;
+                let cprops = vprops || Object.keys(cfeather.properties);
+
+                if (d.length) {
+                    d.forEach(function (row) {
+                        let pkey = feather + " Id";
+                        let pval = row.id;
+                        let rel;
+                        let prop;
+
+                        cprops.forEach(function (key) {
+                            prop = resolveProperty(key, cfeather);
+                            let value = resolveValue(key, row);
+                            let n;
+
+                            if (key.indexOf(".") !== -1) {
+                                key = key.replace(/\./g, "_").toCamelCase(true);
+                            }
+
+                            if (
+                                prop &&
+                                typeof prop.type === "object"
+                            ) {
+                                if (prop.type.parentOf) {
                                     // Add parent key in
                                     rel = prop.type.relation.toCamelCase(true);
                                     n = 0;
                                     row[key] = row[key] || [];
+                                    toSheets(row[key], false, rel);
                                     row[key].forEach(function (r) {
                                         tmp = {};
                                         tmp[pkey] = pval;
                                         Object.keys(r).forEach(
-                                            doRename.bind(null, r)
+                                            doRename.bind(null, r, tmp, false)
                                         );
                                         row[key][n] = tmp;
                                         n += 1;
                                     });
-                                    toSheets(row[key], false, rel);
                                     delete row[key];
-                                } else if (
-                                    prop && (
-                                        typeof prop.type === "object" ||
-                                        prop.type === "object"
-                                    )
-                                ) {
-                                    if (prop.type.isChild) {
-                                        rel = prop.type.relation.toCamelCase(
-                                            true
-                                        );
-
-                                        if (
-                                            row[key] !== null &&
-                                            row[key] !== undefined
-                                        ) {
-                                            tmp = {};
-                                            tmp.objectType = rel;
-                                            Object.keys(row[key]).forEach(
-                                                doRename.bind(null, row[key])
-                                            );
-                                            toSheets([tmp], false, rel);
-                                            row[key] = row[key].id;
-                                        }
-                                    } else if (prop.format === "money") {
-                                        if (row[key].effective) {
-                                            row[key] = (
-                                                row[key].amount + " " +
-                                                row[key].currency + " " +
-                                                row[key].effective + " " +
-                                                row[key].baseAmount
-                                            );
-                                        } else {
-                                            row[key] = (
-                                                row[key].amount + " " +
-                                                row[key].currency
-                                            );
-                                        }
-                                    } else if (row[key] && row[key].id) {
-                                        row[key] = row[key].id;
-                                    }
-                                }
-                            });
-
-                            if (rename !== false) {
-                                tmp = {};
-                                Object.keys(row).forEach(
-                                    doRename.bind(null, row, tmp, false)
-                                );
-                                d[c] = tmp;
-                                c += 1;
-                            }
-                        });
-
-                        if (!sheets[name]) {
-                            sheets[name] = d;
-                        } else {
-                            sheets[name] = sheets[name].concat(d);
-                        }
-                    }
-                }
-
-                function toSheetsPartial(d, feather) {
-                    let cfeather = localFeathers[feather];
-                    let name = feather;
-                    let tmp;
-                    let c = 0;
-
-                    function naturalKey(rel, value) {
-                        let fthr = localFeathers[rel];
-                        let kys = Object.keys(fthr.properties);
-                        let attr = kys.find(function (key) {
-                            return fthr.properties[key].isNaturalKey;
-                        });
-                        return value[attr];
-                    }
-
-                    function resolveProperty(key, fthr) {
-                        let idx = key.indexOf(".");
-                        let attr;
-                        let rel;
-
-                        if (idx !== -1) {
-                            attr = key.slice(0, idx);
-                            rel = fthr.properties[attr].type.relation;
-                            fthr = localFeathers[rel];
-                            key = key.slice(idx + 1, key.length);
-                            return resolveProperty(key, fthr);
-                        }
-
-                        return fthr.properties[key];
-                    }
-
-                    function resolveValue(key, o) {
-                        let idx = key.indexOf(".");
-                        let attr;
-
-                        if (!o) {
-                            return null;
-                        }
-
-                        if (idx !== -1) {
-                            attr = key.slice(0, idx);
-                            key = key.slice(idx + 1, key.length);
-                            o = o[attr];
-                            return resolveValue(key, o);
-                        }
-
-                        return o[key];
-                    }
-
-                    if (d.length) {
-                        d.forEach(function (row) {
-                            let nrow = {};
-
-                            props.forEach(function (key) {
-                                let prop = resolveProperty(key, cfeather);
-                                let value = resolveValue(key, row);
-
-                                if (key.indexOf(".") !== -1) {
-                                    key = key.replace(/\./g, "_").toCamelCase(true);
-                                }
-
-                                if (
-                                    prop.type === "object" &&
-                                    prop.format === "money"
-                                ) {
-                                    nrow[key] = (
-                                        value
-                                        ? value.amount
-                                        : 0
-                                    );
-                                } else if (
-                                    typeof prop.type === "object"
-                                ) {
+                                } else {
                                     if (value) {
-                                        nrow[key] = naturalKey(
+                                        row[key] = naturalKey(
                                             prop.type.relation,
                                             value
                                         );
                                     }
-                                } else {
-                                    nrow[key] = value;
                                 }
-                            });
+                            } else if (
+                                prop.type === "object" &&
+                                prop.format === "money"
+                            ) {
+                                row[key] = (
+                                    value
+                                    ? value.amount
+                                    : 0
+                                );
+                            } else {
+                                row[key] = value;
+                            }
+                        });
 
+                        if (rename !== false) {
                             tmp = {};
-                            Object.keys(nrow).forEach(
-                                doRename.bind(null, nrow, tmp, true)
+                            Object.keys(row).forEach(
+                                doRename.bind(null, row, tmp, false)
                             );
                             d[c] = tmp;
                             c += 1;
-                        });
-
-                        if (!sheets[name]) {
-                            sheets[name] = d;
-                        } else {
-                            sheets[name] = sheets[name].concat(d);
                         }
-                    }
-                }
+                    });
 
-                function callback() {
-                    if (props) {
-                        toSheetsPartial(data, feather);
+                    if (sheets[name]) {
+                        sheets[name] = sheets[name].concat(d);
                     } else {
-                        toSheets(data, true, feather);
+                        sheets[name] = d;
                     }
-
-                    // Add worksheets in reverse order
-                    keys = Object.keys(sheets);
-                    while (keys.length) {
-                        key = keys.pop();
-                        sheets[key].forEach(tidy);
-                        ws = XLSX.utils.json_to_sheet(sheets[key]);
-                        XLSX.utils.book_append_sheet(wb, ws, key);
-                    }
-
-                    try {
-                        XLSX.writeFile(wb, filename, {bookType: format});
-                    } catch (e) {
-                        reject(e);
-                        return;
-                    }
-
-                    resolve();
                 }
+            }
 
-                feathers.getFeathers(
-                    client,
-                    feather,
-                    localFeathers
-                ).then(callback).catch(reject);
-            });
+            await feathers.getFeathers(
+                client,
+                feather,
+                localFeathers
+            );
+
+            toSheets(data, true, feather, props);
+           /*
+            if (props) {
+                toSheetsPartial(data, feather);
+            } else {
+                toSheets(data, true, feather);
+            }
+            */
+
+            // Add worksheets in reverse order
+            keys = Object.keys(sheets);
+            while (keys.length) {
+                key = keys.pop();
+                sheets[key].forEach(tidy);
+                ws = XLSX.utils.json_to_sheet(sheets[key]);
+                XLSX.utils.book_append_sheet(wb, ws, key);
+            }
+
+            XLSX.writeFile(wb, filename, {bookType: format});
         }
 
         /**
