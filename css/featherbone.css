@@ -784,7 +784,7 @@ a.pure-button-selected {
 .fb-toolbar-button {
   background-color: white;
   color: royalblue;
-  box-shadow: 0 2px 5px 0 rgb(0 0 0 / 10%), 0 0px 1px 0 rgb(0 0 0 / 10%);
+  box-shadow: 0 2px 5px 0 rgb(0 0 0 / 10%), 0 0px 1px 0 rgb(0 0 0 / 10%) !important;
   border-radius: 6px;
   margin-left: 4px;
   margin-bottom: 4px;
@@ -798,7 +798,7 @@ a.pure-button-selected {
 .fb-toolbar-button-clear {
   background: none;
   background-image: none !important;
-  box-shadow: none;
+  box-shadow: none !important;
   color: grey;
   font-size: 6px;
   margin-left: -45px;

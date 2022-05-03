@@ -36,6 +36,7 @@
         "updated",
         "updatedBy",
         "objectType",
+        "owner",
         "etag"
     ];
     const propTypes = [

@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2021  John Rogelstad
+    Copyright (C) 2022  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/*jslint this, browser*/
+/*jslint this, browser, unordered*/
 /**
     @module List
 */
@@ -66,8 +66,9 @@ function createList(feather) {
         @method add
         @param {Model} Model
         @param {Boolean} Subscribe flag.
+        @param {Boolean} Add to top of list if new.
     */
-    ary.add = function (model, subscribe) {
+    ary.add = function (model, subscribe, prepend) {
         let mstate;
         let payload;
         let theUrl;
@@ -86,8 +87,16 @@ function createList(feather) {
             dirty.remove(ary[oid]);
             ary.splice(oid, 1, model);
         } else {
-            idx[id] = ary.length;
-            ary.push(model);
+            if (prepend) {
+                Object.keys(idx).forEach(function (k) {
+                    idx[k] += 1;
+                });
+                idx[id] = 0;
+                ary.unshift(model);
+            } else {
+                idx[id] = ary.length;
+                ary.push(model);
+            }
         }
 
         mstate = model.state();

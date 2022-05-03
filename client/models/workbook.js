@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2021  John Rogelstad
+    Copyright (C) 2022  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/*jslint this, browser*/
+/*jslint this, browser, unordered*/
 /*global f*/
 
 const Qs = window.Qs;
@@ -821,20 +821,24 @@ const worksheetAction = {
     properties: {
         name: {
             description: "Name",
-            type: "string"
+            type: "string",
+            isRequired: true
         },
         title: {
             description: "Title",
-            type: "string"
+            type: "string",
+            isRequired: true
         },
         icon: {
             description: "Icon name",
             type: "string",
-            format: "icon"
+            format: "icon",
+            isRequired: true
         },
         method: {
             description: "Method to execute for action",
-            type: "string"
+            type: "string",
+            isRequired: true
         },
         validator: {
             description: "Selection validation check",
@@ -842,7 +846,8 @@ const worksheetAction = {
         },
         hasSeparator: {
             description: "Precede action with separator",
-            type: "boolean"
+            type: "boolean",
+            isRequired: true
         }
     }
 };
@@ -927,6 +932,35 @@ function worksheetModel(data) {
 worksheetModel.static = f.prop({});
 worksheetModel.calculated = f.prop({});
 wbModels.worksheet = worksheetModel;
+
+function worksheetActionModel(data) {
+    let model = f.createModel(data, f.catalog().getFeather("WorksheetAction"));
+
+    model.addCalculated({
+        name: "methodList",
+        type: "array",
+        function: function () {
+            let ary = [];
+            let name = model.parent().data.feather().toCamelCase();
+            let fn;
+
+            if (!name) {
+                return ary;
+            }
+            fn = f.catalog().store().models()[name];
+            ary = Object.keys(fn.static());
+            ary.sort();
+            return ary.map(function (key) {
+                return {label: key, value: key};
+            });
+        }
+    });
+
+    return model;
+}
+worksheetActionModel.static = f.prop({});
+worksheetActionModel.calculated = f.prop({});
+wbModels.worksheetAction = worksheetActionModel;
 
 function worksheetColumnModel(data) {
     let model = f.createModel(data, f.catalog().getFeather("WorksheetColumn"));

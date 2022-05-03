@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2021  John Rogelstad
+    Copyright (C) 2022  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/*jslint this, browser*/
+/*jslint this, browser, unordered, devel*/
 /*global f, jsonpatch, m*/
 /**
    @module WorkbookPage
@@ -120,9 +120,11 @@ const editSheetConfig = {
             width: 165
         }, {
             attr: "method",
+            dataList: "methodList",
             width: 165
         }, {
             attr: "validator",
+            dataList: "methodList",
             width: 165
         }, {
             attr: "hasSeparator",
@@ -506,7 +508,7 @@ workbookPage.viewModel = function (options) {
                 nmodel.state().goto("/Ready/Fetched/Clean");
                 nmodel.checkDelete();
                 nmodel.checkUpdate();
-                vm.tableWidget().models().add(nmodel, true);
+                vm.tableWidget().models().add(nmodel, true, true);
                 m.redraw();
             };
             return;
@@ -928,7 +930,7 @@ workbookPage.viewModel = function (options) {
             let tableModel = vm.tableWidget().selection();
 
             if (!(tableModel && tableModel.id() === model.id())) {
-                vm.tableWidget().models().add(model, true);
+                vm.tableWidget().models().add(model, true, true);
             }
         }
     });

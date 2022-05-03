@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/*jslint node, for, devel*/
+/*jslint node, for, devel, unordered*/
 /**
     Create, read, update and delete methods for persisting data to the
     database.
@@ -37,7 +37,614 @@
     const tools = new Tools();
     const formats = tools.formats;
     const f = require("../../common/core");
+    const ops = Object.keys(f.operators);
     const jsonpatch = require("fast-json-patch");
+    const ekey = "_eventkey"; // Lint tyranny
+
+    function noJoin(w) {
+        return !w.table && w.property.indexOf(".") === -1;
+    }
+    function transformObj(where) {
+        if (
+            typeof where.value === "object" &&
+            !Array.isArray(where.value)
+        ) {
+            where.property = where.property + ".id";
+            where.value = where.value.id;
+        }
+    }
+
+    function appendWhere(where, parts, tokens, params, table, p) {
+        let op = where.operator || "=";
+        let yr;
+        let mo;
+        let da;
+        let dw;
+        let today;
+        let d1;
+        let d2;
+        let part;
+        let or;
+
+        function preparePart(prop, tbl) {
+            prop = prop || where.property;
+            tbl = tbl || table;
+            if (prop === "objectType") {
+                tokens.push(tbl);
+                return "to_camel_case(%I.tableoid::regclass::text)";
+            }
+
+            tokens.push(tbl);
+            tokens.push(prop.toSnakeCase());
+            return "%I.%I";
+        }
+
+        if (ops.indexOf(op) === -1) {
+            throw new Error("Unknown operator \"" + op + "\"");
+        }
+
+        // Escape backslash on regex operations
+        if (op.indexOf("~") > -1) {
+            where.value = where.value.replace(/\\/g, "\\\\");
+        }
+
+        // Handle date options
+        if (op === "IS") {
+            today = f.today();
+            yr = today.slice(0, 4) - 0;
+            mo = today.slice(5, 7) - 1;
+            da = today.slice(8, 10) - 0;
+            // ISO week starts Monday
+            dw = f.parseDate(today).getDay() - 1;
+            if (dw < 0) {
+                dw = 7;
+            }
+
+            part = preparePart();
+
+            switch (where.value) {
+            case "TODAY":
+                part += "='" + today + "'";
+                break;
+            case "BEFORE_TODAY":
+                part += "<'" + today + "'";
+                break;
+            case "ON_OR_BEFORE_TODAY":
+                part += "<='" + today + "'";
+                break;
+            case "ON_OR_AFTER_TODAY":
+                part += ">='" + today + "'";
+                break;
+            case "THIS_WEEK":
+                d1 = new Date(yr, mo, da - dw);
+                d2 = new Date(yr, mo, da + 6 - dw);
+                part += (
+                    " BETWEEN '" + d1.toLocalDate() +
+                    "' AND '" + d2.toLocalDate() + "'"
+                );
+                break;
+            case "ON_OR_BEFORE_THIS_WEEK":
+                d1 = new Date(yr, mo, da + 6 - dw);
+                part += (
+                    " <= '" + d1.toLocalDate() + "'"
+                );
+                break;
+            case "ON_OR_AFTER_THIS_WEEK":
+                d1 = new Date(yr, mo, da - dw);
+                part += (
+                    " >= '" + d1.toLocalDate() + "'"
+                );
+                break;
+            case "THIS_MONTH":
+                d1 = new Date(yr, mo, 1);
+                d2 = new Date(yr, mo + 1, 0);
+                part += (
+                    " BETWEEN '" + d1.toLocalDate() +
+                    "' AND '" + d2.toLocalDate() + "'"
+                );
+                break;
+            case "ON_OR_BEFORE_THIS_MONTH":
+                d1 = new Date(yr, mo + 1, 0);
+                part += (
+                    " <= '" + d1.toLocalDate() + "'"
+                );
+                break;
+            case "ON_OR_AFTER_THIS_MONTH":
+                d1 = new Date(yr, mo, 1);
+                part += (
+                    " >= '" + d1.toLocalDate() + "'"
+                );
+                break;
+            case "THIS_YEAR":
+                part += (
+                    " BETWEEN '" + yr + "-01-01' AND '" +
+                    yr + "-12-31'"
+                );
+                break;
+            case "ON_OR_BEFORE_THIS_YEAR":
+                part += (
+                    " <= '" + yr + "-12-31'"
+                );
+                break;
+            case "ON_OR_AFTER_THIS_YEAR":
+                part += (
+                    " >= '" + yr + "-01-01'"
+                );
+                break;
+            case "YESTERDAY":
+                d1 = new Date(yr, mo, da - 1);
+                part += (
+                    " = '" + d1.toLocalDate() + "'"
+                );
+                break;
+            case "LAST_WEEK":
+                d1 = new Date(yr, mo, da - dw - 7);
+                d2 = new Date(yr, mo, da - dw - 1);
+                part += (
+                    " BETWEEN '" + d1.toLocalDate() +
+                    "' AND '" + d2.toLocalDate() + "'"
+                );
+                break;
+            case "LAST_MONTH":
+                d1 = new Date(yr, mo - 1, 1);
+                d2 = new Date(yr, mo, 0);
+                part += (
+                    " BETWEEN '" + d1.toLocalDate() +
+                    "' AND '" + d2.toLocalDate() + "'"
+                );
+                break;
+            case "LAST_YEAR":
+                yr = yr - 1;
+                part += (
+                    " BETWEEN '" + yr + "-01-01' AND '" +
+                    yr + "-12-31'"
+                );
+                break;
+            case "TOMORROW":
+                d1 = new Date(yr, mo, da + 1);
+                part += (
+                    " = '" + d1.toLocalDate() + "'"
+                );
+                break;
+            case "NEXT_WEEK":
+                d1 = new Date(yr, mo, da - dw + 7);
+                d2 = new Date(yr, mo, da - dw + 12);
+                part += (
+                    " BETWEEN '" + d1.toLocalDate() +
+                    "' AND '" + d2.toLocalDate() + "'"
+                );
+                break;
+            case "NEXT_MONTH":
+                d1 = new Date(yr, mo + 1, 1);
+                d2 = new Date(yr, mo + 2, 0);
+                part += (
+                    " BETWEEN '" + d1.toLocalDate() +
+                    "' AND '" + d2.toLocalDate() + "'"
+                );
+                break;
+            case "NEXT_YEAR":
+                yr = yr + 1;
+                part += (
+                    " BETWEEN '" + yr + "-01-01' AND '" +
+                    yr + "-12-31'"
+                );
+                break;
+            default:
+                throw new Error(
+                    "Value " + where.value +
+                    " for date operator 'IS' unknown"
+                );
+            }
+
+        // Value "IN" array ("Andy" IN ["Ann","Andy"])
+        // Whether "Andy"="Ann" OR "Andy"="Andy"
+        } else if (op === "IN") {
+            part = [];
+            if (where.value.length) {
+                where.value.forEach(function (val) {
+                    params.push(val);
+                    part.push("$" + p);
+                    p += 1;
+                });
+                part = preparePart() + " IN (" + part.join(",") + ")";
+            // If no values in array, then no result
+            } else {
+                params.push(false);
+                part.push("$" + p);
+                p += 1;
+            }
+
+        // Property "OR" array compared to value
+        // (["name","email"]="Andy")
+        // Whether "name"="Andy" OR "email"="Andy"
+        } else if (Array.isArray(where.property)) {
+            or = [];
+            where.property.forEach(function (prop) {
+                if (typeof prop === "object") { // required join
+                    or.push(
+                        preparePart(prop.property, prop.table) + op + "$" + p
+                    );
+                    return;
+                }
+                or.push(preparePart(prop) + op + "$" + p);
+            });
+            params.push(where.value);
+            p += 1;
+            part = "(" + or.join(" OR ") + ")";
+
+        // Regular comparison ("name"="Andy")
+        } else if (
+            typeof where.value === "object" &&
+            !where.value.id
+        ) {
+            part = preparePart() + " IS NULL";
+        } else {
+            part = preparePart() + op + "$" + p;
+            params.push(where.value);
+            p += 1;
+        }
+
+        parts.push(part);
+
+        return p;
+    }
+
+    function processSort(sort, tokens, table) {
+        let order;
+        let clause = "";
+        let i = 0;
+        let parts = [];
+
+        // Always sort on primary key as final tie breaker
+        sort.push({property: tools.PKCOL});
+
+        while (sort[i]) {
+            order = sort[i].order || "ASC";
+            order = order.toUpperCase();
+            if (order !== "ASC" && order !== "DESC") {
+                throw "Unknown operator \"" + order + "\"";
+            }
+            tokens.push(sort[i].table || table);
+            tokens.push(sort[i].property.toSnakeCase());
+            parts.push("%I.%I " + order);
+            i += 1;
+        }
+
+        if (parts.length) {
+            clause = " ORDER BY " + parts.join(",");
+        }
+
+        return clause;
+    }
+
+    /**
+        Return a sql `WHERE` clause based on filter criteria in payload.
+        @private
+        @method buildWhere
+        @param {Object} payload Request payload
+        @param {Object} payload.name Feather name
+        @param {Filter} [payload.filter] Filter
+        @param {Boolean} [payload.showDeleted] Show deleted records
+        @param {Object} payload.client Database client
+        @param {Array} [params] Parameters used for the sql query
+        @param {Boolean} [flag] Request as super user. Default false.
+        @param {Boolean} [flag] Enforce row authorization. Default false.
+        @return {Promise}
+    */
+    const JOINSQL = "LEFT JOIN %I %I ON (%I.%I=%I._pk)";
+    async function buildWhere(
+        obj,
+        params,
+        isSuperUser,
+        rowAuth
+    ) {
+        let name = obj.name;
+        let filter = obj.filter;
+        let table = name.toSnakeCase();
+        let clause = "NOT %I.is_deleted";
+        let sql = " WHERE ";
+        let tokens = [table];
+        let criteria = false;
+        let sort = [];
+        let parts = [];
+        let p = 1;
+        let joinArrays = {
+            joinTokens: [],
+            partTokens: [],
+            joins: [],
+            parts: []
+        };
+        let propsWithDot = [];
+        let joined = [];
+        let tnr = 1;
+        let i = 0;
+
+        function appendDotProp(str) {
+            if (
+                str.indexOf(".") !== -1 &&
+                propsWithDot.indexOf(str) === -1
+            ) {
+                propsWithDot.push(str);
+            }
+        }
+
+        /*
+        If the last attribute on a sort with dot notation
+        is a composite type, then tack on first relation
+        property on dot notation. This mimics behavior
+        postgres has in native queries sorting on composite
+        types.
+
+        i.e. Sort on "item.site" where site is an object
+        and "code" is the first property on the site relation
+        would be converted to "item.site.code."
+
+        The `buildJoin` function takes care of the rest.
+        */
+        async function preProcessSort(item) {
+            let prop = item.property;
+            let idx = 0;
+            let attr;
+            let fthr = obj.feather;
+            let fp;
+
+            while (idx !== -1) {
+                idx = prop.indexOf(".");
+                if (idx !== -1) {
+                    attr = prop.slice(0, idx);
+                    fp = fthr.properties[attr];
+                    prop = prop.slice(idx + 1, prop.length);
+                    fthr = await feathers.getFeather({
+                        client: obj.client,
+                        data: {name: fp.type.relation}
+                    });
+                } else {
+                    fp = fthr.properties[prop];
+                    if (typeof fp.type === "object") {
+                        if (
+                            Array.isArray(fp.type.properties) &&
+                            fp.type.properties[0]
+                        ) {
+                            item.property += "." + fp.type.properties[0];
+                        } else {
+                            throw (
+                                "No properties defined on relation" + attr
+                            );
+                        }
+                    }
+                }
+            }
+        }
+
+        function processDotProp(item) {
+            if (Array.isArray(item.property)) {
+                item.property.forEach(appendDotProp);
+                return;
+            }
+            appendDotProp(item.property);
+        }
+
+        async function buildJoin(prop) {
+            let jtokens = joinArrays.joinTokens;
+            let ptokens = joinArrays.partTokens;
+            let joins = joinArrays.joins;
+            let fthr = obj.feather;
+            let idx = prop.indexOf(".");
+            let attr = prop.slice(0, idx);
+            let theTable;
+            let theAlias;
+            let fp;
+            let fk;
+            let where = filter.criteria.find((c) => c.property === prop);
+            let whereArys = filter.criteria.filter(
+                (c) => (
+                    Array.isArray(c.property) &&
+                    c.property.indexOf(prop) !== -1
+                )
+            );
+            let jsort = filter.sort.find((s) => s.property === prop);
+            let oprop = prop;
+            let found;
+            let part;
+            let jTable;
+
+            while (idx !== -1) {
+                fp = fthr.properties[attr];
+                if (fp.format === "money") { // Hard coded type
+                    where.operator = where.operator || "=";
+                    if (where.op === "IN") {
+                        part = [];
+                        if (where.value.length) {
+                            where.value.forEach(function (val) {
+                                params.push(val);
+                                part.push("$" + p);
+                                p += 1;
+                            });
+                            part = tools.resolvePath(
+                                where.property,
+                                ptokens
+                            ) + " IN (" + part.join(",") + ")";
+                        // If no values in array, then no result
+                        } else {
+                            params.push(false);
+                            part.push("$" + p);
+                            p += 1;
+                        }
+                    } else {
+                        if (typeof where.value === "object") {
+                            where.property = where.property + ".id";
+                            where.value = where.value.id;
+                        }
+                        params.push(where.value);
+                        part = tools.resolvePath(
+                            where.property,
+                            ptokens
+                        ) + " " + where.operator + " $" + p;
+                        p += 1;
+                    }
+
+                    joinArrays.parts.push(part);
+                    idx = -1;
+                } else {
+                    // Join
+                    theTable = fp.type.relation.toSnakeCase();
+                    fk = "_" + attr.toSnakeCase() + "_" + theTable + "_pk";
+
+                    // If not already joined, do join
+                    found = joined.find(
+                        (j) => j.table === theTable && j.fkey === fk
+                    );
+                    if (found) {
+                        theAlias = found.alias;
+                    } else {
+                        jTable = fthr.name.toSnakeCase();
+                        found = joined.find((j) => j.table === jTable);
+                        if (found) {
+                            jTable = found.alias;
+                        }
+                        joins.push(JOINSQL);
+                        theAlias = "t" + tnr;
+                        // Join table
+                        jtokens.push(theTable);
+                        jtokens.push(theAlias);
+                        // Parent table prefix
+                        jtokens.push(jTable);
+                        // Parent table column (feathbone paradigm)
+                        jtokens.push(fk);
+                        // Join table prefix
+                        jtokens.push(theAlias);
+                        // Keep track of joins already made
+                        joined.push({
+                            table: theTable,
+                            fkey: fk,
+                            alias: theAlias
+                        });
+                        tnr += 1;
+                    }
+
+                    // Advance next
+                    prop = prop.slice(idx + 1, prop.length);
+                    idx = prop.indexOf(".");
+                    if (idx === -1) { // done joining?
+                        if (where) {
+                            p = appendWhere(
+                                {
+                                    property: prop,
+                                    operator: where.operator,
+                                    value: where.value
+                                },
+                                joinArrays.parts,
+                                ptokens,
+                                params,
+                                theAlias,
+                                p
+                            );
+                        }
+                        if (whereArys.length) {
+                            whereArys.forEach(function (crit) {
+                                let ary = crit.property;
+                                ary.splice(ary.indexOf(oprop), 1, {
+                                    table: theAlias,
+                                    property: prop
+                                });
+                            });
+                        }
+                        if (jsort) {
+                            jsort.property = prop;
+                            jsort.table = theAlias;
+                        }
+                    } else {
+                        // Next join
+                        attr = prop.slice(0, idx);
+                        fthr = await feathers.getFeather({
+                            client: obj.client,
+                            data: {name: fp.type.relation}
+                        });
+                    }
+                }
+            }
+        }
+
+        if (obj.showDeleted) {
+            clause = "true";
+            tokens = [];
+        }
+
+        sql += clause;
+
+        if (filter) {
+            filter = f.copy(filter); // Leave original alone
+            filter.criteria = filter.criteria || [];
+            filter.sort = filter.sort || [];
+            criteria = filter.criteria;
+            sort = filter.sort;
+            criteria.forEach(transformObj);
+
+            filter.criteria.forEach(processDotProp);
+            while (i < sort.length) {
+                await preProcessSort(sort[i]);
+                i += 1;
+            }
+            sort.forEach(processDotProp);
+
+            // Process joins
+            // joins = criteria.filter(hasJoin);
+            if (propsWithDot.length) {
+                if (tokens.length) {
+                    joinArrays.partTokens.push(table);
+                }
+                joinArrays.parts.push(clause);
+                while (propsWithDot.length) {
+                    await buildJoin(propsWithDot.shift());
+                }
+                tokens = joinArrays.joinTokens;
+                tokens = tokens.concat(joinArrays.partTokens);
+                sql = (
+                    " " + joinArrays.joins.join(" ") +
+                    " WHERE " +
+                    joinArrays.parts.join(" AND ")
+                );
+            }
+
+            // Process non join criteria
+            criteria.filter(noJoin).forEach(function (where) {
+                p = appendWhere(where, parts, tokens, params, table, p);
+            });
+
+            if (parts.length) {
+                sql += " AND " + parts.join(" AND ");
+            }
+        }
+
+        // Add authorization criteria
+        if (isSuperUser === false) {
+            sql += tools.buildAuthSql("canRead", table, tokens, rowAuth, p);
+
+            params.push(obj.client.currentUser());
+            p += 1;
+        }
+
+        // Process sort
+        sql += processSort(sort, tokens, table);
+
+        if (filter) {
+            // Process offset and limit
+            if (filter.offset) {
+                sql += " OFFSET $" + p;
+                p += 1;
+                params.push(filter.offset);
+            }
+
+            if (filter.limit) {
+                sql += " LIMIT $" + p;
+                params.push(filter.limit);
+            }
+        }
+
+        sql = sql.format(tokens);
+
+        return sql;
+    }
 
     /**
         Return a promise that resolves money object with
@@ -112,7 +719,13 @@
             return new Promise(function (resolve, reject) {
                 let client = db.getClient(obj.client);
                 client.query("COMMIT;").then(function () {
-                    client.callbacks.forEach((cb) => cb());
+                    let callbacks = client.callbacks.slice();
+                    function next() {
+                        if (callbacks.length) {
+                            callbacks.shift()().then(next).catch(console.log);
+                        }
+                    }
+                    next();
                     resolve();
                 }).catch(reject);
             });
@@ -201,92 +814,87 @@
             @param {Boolean} [isSuperUser] Request as super user. Default false.
             @return {Promise} Resolves to object.
         */
-        crud.doAggregate = function (obj, ignore, isSuperUser) {
-            return new Promise(function (resolve, reject) {
-                let sql;
-                let table;
-                let tokens = [];
-                let theClient = db.getClient(obj.client);
-                let methods = ["SUM", "COUNT", "AVG", "MIN", "MAX"];
-                let params = [];
-                let sub = [];
-                let subt = [];
-                let data = {
-                    name: obj.data.name,
-                    filter: obj.data.filter,
-                    client: obj.client
-                };
+        crud.doAggregate = async function (obj, ignore, isSuperUser) {
+            let sql;
+            let table;
+            let tokens = [];
+            let theClient = db.getClient(obj.client);
+            let methods = ["SUM", "COUNT", "AVG", "MIN", "MAX"];
+            let params = [];
+            let sub = [];
+            let subt = [];
+            let data = {
+                name: obj.data.name,
+                filter: obj.data.filter,
+                client: obj.client
+            };
+            let feather;
+            let agg;
 
-                function toCols(agg) {
-                    let attr = agg.property;
-                    let prop = tools.resolvePath(agg.property, tokens);
-                    let ret = agg.method.toUpperCase() + "(" + prop + ")";
-                    let idx = attr.indexOf(".");
-                    let comp;
+            function toCols(agg) {
+                let attr = agg.property;
+                let prop = tools.resolvePath(agg.property, tokens);
+                let ret = agg.method.toUpperCase() + "(" + prop + ")";
+                let idx = attr.indexOf(".");
+                let comp;
 
-                    if (idx === -1) {
-                        subt.push(attr.toSnakeCase());
-                    } else {
-                        comp = attr.slice(0, idx).toSnakeCase();
-                        if (subt.indexOf(comp) !== -1) {
-                            return ret; // Column already included;
-                        }
-                        subt.push(attr.slice(0, idx).toSnakeCase());
+                if (idx === -1) {
+                    subt.push(attr.toSnakeCase());
+                } else {
+                    comp = attr.slice(0, idx).toSnakeCase();
+                    if (subt.indexOf(comp) !== -1) {
+                        return ret; // Column already included;
                     }
-                    sub.push("%I");
-                    return ret;
+                    subt.push(attr.slice(0, idx).toSnakeCase());
                 }
+                sub.push("%I");
+                return ret;
+            }
 
-                function callback(resp) {
-                    resolve(tools.sanitize(resp.rows[0]));
-                }
-
-                function afterGetFeather(feather) {
-                    if (!feather.name) {
-                        reject("Feather \"" + obj.name + "\" not found.");
-                        return;
-                    }
-
-                    table = "_" + feather.name.toSnakeCase();
-
-                    sql = (
-                        "SELECT to_json((" +
-                        obj.data.aggregations.map(toCols).toString(",") +
-                        ")) AS result FROM (" +
-                        "SELECT " + sub.toString(",").format(subt) + " FROM %I"
+            // Validate
+            obj.data.aggregations.forEach(function (agg) {
+                if (methods.indexOf(agg.method) === -1) {
+                    throw (
+                        "Aggregation method " + agg.method +
+                        " is unsupported"
                     );
-                    tokens.push(table);
-                    sql += tools.buildWhere(
-                        data,
-                        params,
-                        isSuperUser,
-                        feather.enableRowAuthorization
-                    );
-                    sql += ") AS data;";
-                    sql = sql.format(tokens);
-
-                    theClient.query(sql, params).then(callback).catch(reject);
                 }
-
-                // Validate
-                obj.data.aggregations.forEach(function (agg) {
-                    if (methods.indexOf(agg.method) === -1) {
-                        throw (
-                            "Aggregation method " + agg.method +
-                            " is unsupported"
-                        );
-                    }
-                });
-
-                // Kick off query by getting feather, the rest falls through
-                // callbacks
-                feathers.getFeather({
-                    client: theClient,
-                    data: {
-                        name: obj.data.name
-                    }
-                }).then(afterGetFeather).catch(reject);
             });
+
+            // Kick off query by getting feather, the rest falls through
+            // callbacks
+            feather = await feathers.getFeather({
+                client: theClient,
+                data: {name: obj.data.name}
+            });
+
+            if (!feather.name) {
+                throw "Feather \"" + obj.name + "\" not found.";
+            }
+
+            table = feather.name.toSnakeCase();
+            data.feather = feather;
+
+            sql = (
+                "SELECT to_json((" +
+                obj.data.aggregations.map(toCols).toString(",") +
+                ")) AS result FROM (" +
+                "SELECT %I." + sub.toString(",").format(subt) + " FROM %I"
+            );
+            tokens.push(table);
+            tokens.push(table);
+            sql += await buildWhere(
+                data,
+                params,
+                isSuperUser,
+                feather.enableRowAuthorization
+            );
+            sql += ") AS data;";
+            sql = sql.format(tokens);
+
+            //console.log(sql, params);
+            agg = await theClient.query(sql, params);
+            return tools.sanitize(agg.rows[0]);
         };
 
         /**
@@ -1052,222 +1660,183 @@
             @param {Boolean} [isSuperUser] Request as super user. Default false.
             @return {Promise} Resolves to object or array.
         */
-        crud.doSelect = function (obj, ignore, isSuperUser) {
-            return new Promise(function (resolve, reject) {
-                let sql;
-                let table;
-                let keys;
-                let payload;
-                let afterGetFeather;
-                let afterGetKey;
-                let afterGetKeys;
-                let mapKeys;
-                let tokens = [];
-                let cols = [];
-                let theClient = db.getClient(obj.client);
+        crud.doSelect = async function (obj, ignore, isSuperUser) {
+            let sql;
+            let table;
+            let key;
+            let keys;
+            let tokens = [];
+            let cols = [];
+            let theClient = db.getClient(obj.client);
+            let feather;
+            let attrs = [];
+            let fp;
+            let result;
+            let payload = {
+                name: obj.name,
+                client: theClient,
+                showDeleted: obj.showDeleted
+            };
 
-                payload = {
-                    name: obj.name,
-                    client: theClient,
-                    showDeleted: obj.showDeleted
-                };
+            function mapKeys(row) {
+                let rkeys;
+                let ret = {};
+                let i = 0;
 
-                afterGetFeather = function (feather) {
-                    let attrs = [];
-                    let fp = feather.properties;
-
-                    if (!feather.name) {
-                        reject("Feather \"" + obj.name + "\" not found.");
-                        return;
-                    }
-
-                    table = "_" + feather.name.toSnakeCase();
-
-                    // Strip dot notation. Just fetch whole relation
-                    if (obj.properties) {
-                        obj.properties = obj.properties.map(function (p) {
-                            let i = p.indexOf(".");
-                            let ret = p;
-
-                            if (i !== -1) {
-                                ret = p.slice(0, i);
-                                if (attrs.indexOf(ret) !== -1) {
-                                    ret = undefined;
-                                }
-                                attrs.push(ret);
-                            }
-                            attrs.push(ret);
-                            return ret;
-                        }).filter(function (p) {
-                            return p !== undefined;
-                        });
-                    }
-
-                    keys = obj.properties || Object.keys(
-                        fp
-                    ).filter(function (key) {
-                        return (
-                            typeof fp[key].type !== "object" ||
-                            fp[key].type.childOf === undefined ||
-                            (
-                                fp[key].type.childOf &&
-                                fp[key].type.properties &&
-                                fp[key].type.properties.length
-                            )
-                        );
+                if (typeof row.result === "object") {
+                    rkeys = Object.keys(row.result);
+                    rkeys.forEach(function (key) {
+                        ret[keys[i]] = row.result[key];
+                        i += 1;
                     });
 
-                    keys.forEach(function (key) {
-                        tokens.push("%I");
-                        cols.push(key.toSnakeCase());
-                    });
+                    // If only one attribute returned
+                } else {
+                    ret[keys[0]] = row.result;
+                }
 
-                    cols.push(table);
-                    sql = (
-                        "SELECT to_json((" + tokens.toString(",") +
-                        ")) AS result FROM %I"
-                    );
-                    sql = sql.format(cols);
+                return ret;
+            }
 
-                    /* Get one result by key */
-                    payload.rowAuth = feather.enableRowAuthorization;
-                    if (obj.id) {
-                        payload.id = obj.id;
-                        tools.getKey(
-                            payload,
-                            isSuperUser
-                        ).then(afterGetKey).catch(reject);
-
-                        /* Get a filtered result */
-                    } else {
-                        payload.filter = obj.filter;
-                        tools.getKeys(
-                            payload,
-                            isSuperUser
-                        ).then(afterGetKeys).catch(reject);
-                    }
-                };
-
-                afterGetKey = function (key) {
-                    if (key === undefined) {
-                        resolve(undefined);
-                        return;
-                    }
-
-                    sql += " WHERE _pk = $1";
-
-                    theClient.query(sql, [key], function (err, resp) {
-                        let result;
-
-                        if (err) {
-                            reject(err);
-                            return;
-                        }
-
-                        result = mapKeys(resp.rows[0]);
-                        if (obj.sanitize !== false) {
-                            result = tools.sanitize(result);
-                        }
-
-                        resolve(result);
-                    });
-                };
-
-                afterGetKeys = function (keys) {
-                    let result;
-                    let feathername;
-                    let sort = (
-                        obj.filter
-                        ? obj.filter.sort || []
-                        : []
-                    );
-                    let i = 0;
-
-                    if (keys.length) {
-                        tokens = [];
-
-                        while (keys[i]) {
-                            i += 1;
-                            tokens.push("$" + i);
-                        }
-
-                        sql += " WHERE _pk IN (";
-                        sql += tokens.toString(",") + ")";
-
-                        tokens = [];
-                        sql += tools.processSort(sort, tokens);
-                        sql = sql.format(tokens);
-
-                        theClient.query(sql, keys, function (err, resp) {
-                            if (err) {
-                                reject(err);
-                                return;
-                            }
-
-                            result = tools.sanitize(resp.rows.map(mapKeys));
-
-                            function ids(item) {
-                                return item.id;
-                            }
-
-                            if (
-                                !obj.filter || (
-                                    !obj.filter.criteria &&
-                                    !obj.filter.limit
-                                )
-                            ) {
-                                feathername = obj.name;
-                            }
-
-                            // Handle subscription
-                            events.subscribe(
-                                theClient,
-                                obj.subscription,
-                                result.map(ids),
-                                feathername
-                            ).then(
-                                function () {
-                                    resolve(result);
-                                }
-                            ).catch(
-                                reject
-                            );
-                        });
-                    } else {
-                        resolve([]);
-                    }
-                };
-
-                mapKeys = function (row) {
-                    let rkeys;
-                    let result = row.result;
-                    let ret = {};
-                    let i = 0;
-
-                    if (typeof result === "object") {
-                        rkeys = Object.keys(result);
-                        rkeys.forEach(function (key) {
-                            ret[keys[i]] = result[key];
-                            i += 1;
-                        });
-
-                        // If only one attribute returned
-                    } else {
-                        ret[keys[0]] = result;
-                    }
-
-                    return ret;
-                };
-
-                // Kick off query by getting feather, the rest falls through
-                // callbacks
-                feathers.getFeather({
-                    client: theClient,
-                    data: {
-                        name: obj.name
-                    }
-                }).then(afterGetFeather).catch(reject);
+            // Kick off query by getting feather
+            feather = await feathers.getFeather({
+                client: theClient,
+                data: {name: obj.name}
             });
+
+            fp = feather.properties;
+
+            if (!feather.name) {
+                throw new Error("Feather \"" + obj.name + "\" not found.");
+            }
+
+            payload.feather = feather;
+            table = "_" + feather.name.toSnakeCase();
+
+            // Strip dot notation. Just fetch whole relation
+            if (obj.properties) {
+                obj.properties = obj.properties.map(function (p) {
+                    let i = p.indexOf(".");
+                    let ret = p;
+
+                    if (i !== -1) {
+                        ret = p.slice(0, i);
+                        if (attrs.indexOf(ret) !== -1) {
+                            ret = undefined;
+                        }
+                        attrs.push(ret);
+                    }
+                    attrs.push(ret);
+                    return ret;
+                }).filter(function (p) {
+                    return p !== undefined;
+                });
+            }
+
+            keys = obj.properties || Object.keys(
+                fp
+            ).filter(function (key) {
+                return (
+                    typeof fp[key].type !== "object" ||
+                    fp[key].type.childOf === undefined ||
+                    (
+                        fp[key].type.childOf &&
+                        fp[key].type.properties &&
+                        fp[key].type.properties.length
+                    )
+                );
+            });
+
+            keys.forEach(function (key) {
+                tokens.push("%I");
+                cols.push(key.toSnakeCase());
+            });
+
+            cols.push(table);
+            sql = (
+                "SELECT to_json((" + tokens.toString(",") +
+                ")) AS result FROM %I"
+            );
+            sql = sql.format(cols);
+
+            /* Get one result by key */
+            payload.rowAuth = feather.enableRowAuthorization;
+            if (obj.id) {
+                payload.id = obj.id;
+                key = await tools.getKey(
+                    payload,
+                    isSuperUser
+                );
+
+                if (key === undefined) {
+                    return undefined;
+                }
+
+                sql += " WHERE _pk = $1";
+
+                result = await theClient.query(sql, [key]);
+                result = mapKeys(result.rows[0]);
+                if (obj.sanitize !== false) {
+                    result = tools.sanitize(result);
+                }
+
+                return result;
+
+                /* Get a filtered result */
+            } else {
+                payload.filter = obj.filter;
+
+                isSuperUser = isSuperUser !== false;
+                // Subselect to get primary keys (gk)
+                let gksql = "SELECT %I._pk FROM %I";
+                let gktbl = obj.name.toSnakeCase();
+                let params = [];
+
+                gksql = gksql.format([gktbl, gktbl]);
+                gksql += await buildWhere(
+                    payload,
+                    params,
+                    isSuperUser,
+                    feather.enableRowAuthorization
+                );
+
+                let feathername;
+                let sort = (
+                    obj.filter
+                    ? obj.filter.sort || []
+                    : []
+                );
+
+                sql += " WHERE _pk IN (";
+                sql += gksql;
+                sql += ")";
+
+                tokens = [];
+                sql += tools.processSort(sort, tokens);
+                sql = sql.format(tokens);
+                //console.log(sql, params);
+                result = await theClient.query(sql, params);
+                result = tools.sanitize(result.rows.map(mapKeys));
+
+                if (
+                    !obj.filter || (
+                        !obj.filter.criteria &&
+                        !obj.filter.limit
+                    )
+                ) {
+                    feathername = obj.name;
+                }
+
+                // Handle subscription
+                await events.subscribe(
+                    theClient,
+                    obj.subscription,
+                    result.map((item) => item.id),
+                    feathername
+                );
+
+                return result;
+            }
         };
 
         /**
@@ -1869,6 +2438,7 @@
             @param {String} id Record id
             @param {String} username
             @param {String} eventKey
+            @param {String} [process] Description of lock reason
             @return {Promise} Resolves to `true` if successful.
         */
         crud.lock = function (client, nodeid, id, username, eventkey, process) {
@@ -1898,7 +2468,10 @@
 
                 function checkLock() {
                     return new Promise(function (resolve, reject) {
-                        let sql = "SELECT lock FROM object WHERE id = $1";
+                        let sql = (
+                            "SELECT to_json(lock) AS lock " +
+                            "FROM object WHERE id = $1"
+                        );
 
                         function callback(resp) {
                             if (!resp.rows.length) {
@@ -1907,7 +2480,10 @@
                                 return;
                             }
 
-                            if (resp.rows[0].lock) {
+                            if (
+                                resp.rows[0].lock &&
+                                resp.rows[0].lock[ekey] !== eventkey
+                            ) {
                                 msg = "Record " + id + " is already locked.";
                                 reject(new Error(msg));
                                 return;
