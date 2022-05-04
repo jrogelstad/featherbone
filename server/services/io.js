@@ -223,16 +223,17 @@
                                     rel = prop.type.relation.toCamelCase(true);
                                     n = 0;
                                     row[key] = row[key] || [];
-                                    toSheets(row[key], false, rel);
                                     row[key].forEach(function (r) {
                                         tmp = {};
                                         tmp[pkey] = pval;
-                                        Object.keys(r).forEach(
-                                            doRename.bind(null, r, tmp, false)
-                                        );
+                                        // This shuffle makes sure pkey is first
+                                        Object.keys(r).forEach(function (key) {
+                                            tmp[key] = r[key];
+                                        });
                                         row[key][n] = tmp;
                                         n += 1;
                                     });
+                                    toSheets(row[key], true, rel);
                                     delete row[key];
                                 } else {
                                     if (value) {
@@ -266,10 +267,12 @@
                         }
                     });
 
-                    if (sheets[name]) {
-                        sheets[name] = sheets[name].concat(d);
-                    } else {
+                    if (!sheets[name]) {
                         sheets[name] = d;
+                    } else {
+                        d.forEach(function (row) {
+                            sheets[name].push(row);
+                        });
                     }
                 }
             }
@@ -281,13 +284,6 @@
             );
 
             toSheets(data, true, feather, props);
-           /*
-            if (props) {
-                toSheetsPartial(data, feather);
-            } else {
-                toSheets(data, true, feather);
-            }
-            */
 
             // Add worksheets in reverse order
             keys = Object.keys(sheets);
