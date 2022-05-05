@@ -259,9 +259,7 @@
                                         row[key] !== null &&
                                         row[key] !== undefined
                                     ) {
-                                        tmp = {};
-                                        tmp.objectType = rel;
-                                        toSheets([tmp], true, rel);
+                                        toSheets([row[key]], true, rel);
                                         row[key] = row[key].id;
                                     }
                                 } else {
