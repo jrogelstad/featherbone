@@ -43,6 +43,23 @@
         });
     }
 
+    async function getBaseCurr(datasource, vClient) {
+        let curr = await datasource.request({
+            method: "GET",
+            name: "Currency",
+            user: vClient.currentUser(),
+            properties: ["id", "code"],
+            filter: {criteria: [{
+                property: "isBase",
+                value: true
+            }], limit: 1}
+        });
+        if (!curr.length) {
+            throw "No base currency found";
+        }
+        return curr[0].code;
+    }
+
     /**
         @class Exporter
         @constructor
@@ -235,6 +252,18 @@
                                     });
                                     toSheets(row[key], true, rel);
                                     delete row[key];
+                                } else if (prop.type.isChild) {
+                                    rel = prop.type.relation.toCamelCase(true);
+
+                                    if (
+                                        row[key] !== null &&
+                                        row[key] !== undefined
+                                    ) {
+                                        tmp = {};
+                                        tmp.objectType = rel;
+                                        toSheets([tmp], true, rel);
+                                        row[key] = row[key].id;
+                                    }
                                 } else {
                                     if (value) {
                                         row[key] = naturalKey(
@@ -507,254 +536,225 @@
             @param {String} Source file
             @return {Array} Error log
         */
-        that.xlsx = function (datasource, pClient, feather, filename) {
-            return new Promise(function (resolve, reject) {
-                let log = [];
-                let wb;
-                let sheets = {};
-                let localFeathers = {};
-                let next;
-                let memoize = {};
+        that.xlsx = async function (datasource, pClient, feather, filename) {
+            let log = [];
+            let wb = XLSX.readFile(filename);
+            let sheets = {};
+            let localFeathers = {};
+            let memoize = {};
+            let curr = await getBaseCurr(datasource, pClient);
 
-                try {
-                    wb = XLSX.readFile(filename);
-                } catch (e) {
-                    reject(e);
-                    return;
+            wb.SheetNames.forEach(function (name) {
+                sheets[name] = XLSX.utils.sheet_to_json(
+                    wb.Sheets[name]
+                );
+            });
+
+            async function buildRow(feather, row) {
+                let ret = {};
+                let props = localFeathers[feather].properties;
+                let ary;
+                let id = row.Id;
+
+                if (!id) {
+                    throw (
+                        "Id is required for \"" + feather + "\""
+                    );
                 }
 
-                wb.SheetNames.forEach(function (name) {
-                    sheets[name] = XLSX.utils.sheet_to_json(
-                        wb.Sheets[name]
+                async function getRelationId(pKey, pValue) {
+                    let rel = props[pKey].type.relation;
+                    let relFthr = localFeathers[rel];
+                    let nkey = Object.keys(
+                        relFthr.properties
+                    ).find(
+                        (k) => relFthr.properties[k].isNaturalKey
                     );
-                });
+                    let resp;
 
-                function error(err) {
+                    // No natural key, so assume value is id
+                    if (!nkey) {
+                        ret[pKey] = {id: pValue};
+                        return;
+                    }
+
+                    // Check if we already queried for this one
+                    if (memoize[rel] && memoize[rel][pValue]) {
+                        ret[pKey] = {id: memoize[rel][pValue]};
+                        return;
+                    }
+
+                    // Look for record with matching natural key
+                    resp = await datasource.request({
+                        method: "GET",
+                        name: rel,
+                        filter: {criteria: [{
+                            property: nkey,
+                            value: pValue
+                        }]},
+                        user: pClient.currentUser()
+                    }, true);
+
+                    // If found match, use it
+                    if (resp.length) {
+                        ret[pKey] = {id: resp[0].id};
+                        // Remember to avoid querying again
+                        if (!memoize[rel]) {
+                            memoize[rel] = {};
+                        }
+                        memoize[rel][pValue] = resp[0].id;
+                    }
+                }
+
+                let keys = Object.keys(props);
+                let i = 0;
+                let value;
+                let pkey;
+                let rel;
+                let attrs;
+                let key;
+                let cary;
+                let c;
+                let item;
+
+                while (i < keys.length) {
+                    key = keys[i];
+                    value = row[key.toName()];
+                    pkey = feather.toName() + " Id";
+                    i += 1;
+
+                    // Handle child array
+                    if (
+                        props[key].type.parentOf &&
+                        sheets[props[key].type.relation]
+                    ) {
+                        rel = props[key].type.relation;
+                        ary = sheets[rel].filter(
+                            (r) => r[pkey] === id
+                        );
+                        cary = [];
+                        c = 0;
+                        while (c < ary.length) {
+                            item = ary[c];
+                            cary.push(await buildRow(rel, item));
+                            c += 1;
+                        }
+                        ret[key] = cary;
+
+                    // Handle child object
+                    } else if (props[key].type.isChild) {
+                        if (sheets[rel]) {
+                            rel = props[key].type.relation;
+                            ret[key] = sheets[rel].find(
+                                (r) => r.Id === row[
+                                    key.toName()
+                                ]
+                            );
+                            ret[key] = await buildRow(rel, ret[key]);
+                        }
+                    } else if (value !== undefined) {
+                        if (
+                            typeof props[key].type === "object" &&
+                            value
+                        ) {
+                            await getRelationId(key, value);
+                        } else if (props[key].format === "money") {
+                            value = String(value);
+                            attrs = value.split(" ");
+                            ret[key] = {
+                                amount: Number(attrs[0]),
+                                currency: attrs[1] || curr,
+                                effective: attrs[2],
+                                baseAmount: (
+                                    attrs[3] !== undefined
+                                    ? Number(attrs[3])
+                                    : undefined
+                                )
+                            };
+                        } else {
+                            ret[key] = value;
+                        }
+                    }
+                }
+
+                return ret;
+            }
+
+            async function writeLog() {
+                let logname;
+
+                if (log.length) {
+                    logname = (
+                        "./files/downloads/" +
+                        f.createId() + ".json"
+                    );
+                    await fs.appendFile(
+                        logname,
+                        JSON.stringify(log, null, 4)
+                    );
+
+                    await fs.unlink(filename);
+                    return logname;
+                }
+
+                await fs.unlink(filename);
+            }
+
+            async function post(payload) {
+                try {
+                    await datasource.request(payload);
+                } catch (err) {
                     log.push({
-                        feather: this.name,
-                        id: this.id,
+                        feather: payload.feather,
+                        id: payload.id,
                         error: {
                             message: err.message,
                             statusCode: err.statusCode
                         }
                     });
-                    next();
                 }
+            }
 
-                function buildRow(feather, row) {
-                    return new Promise(function (resolve, reject) {
-                        let ret = {};
-                        let props = localFeathers[feather].properties;
-                        let ary;
-                        let id = row.Id;
-                        let requests = [];
+            let row;
+            let n = 0;
+            let theData;
 
-                        if (!id) {
-                            reject(
-                                "Id is required for \"" + feather + "\""
-                            );
-                            return;
-                        }
+            if (!sheets[feather]) {
+                throw (
+                    "Expected sheet " +
+                    feather + "not present in workbook"
+                );
+            }
 
-                        function getRelationId(pKey, pValue) {
-                            return new Promise(function (resolve, reject) {
-                                let rel = props[pKey].type.relation;
-                                let relFthr = localFeathers[rel];
-                                let nkey = Object.keys(
-                                    relFthr.properties
-                                ).find(
-                                    (k) => relFthr.properties[k].isNaturalKey
-                                );
-
-                                // No natural key, so assume value is id
-                                if (!nkey) {
-                                    ret[pKey] = {id: pValue};
-                                    resolve();
-                                    return;
-                                }
-
-                                // Check if we already queried for this one
-                                if (memoize[rel] && memoize[rel][pValue]) {
-                                    ret[pKey] = {id: memoize[rel][pValue]};
-                                    resolve();
-                                    return;
-                                }
-
-                                function callback(resp) {
-                                    // If found match, use it
-                                    if (resp.length) {
-                                        ret[pKey] = {id: resp[0].id};
-                                        // Remember to avoid querying again
-                                        if (!memoize[rel]) {
-                                            memoize[rel] = {};
-                                        }
-                                        memoize[rel][pValue] = resp[0].id;
-                                    }
-                                    resolve();
-                                }
-
-                                // Look for record with matching natural key
-                                datasource.request({
-                                    method: "GET",
-                                    name: rel,
-                                    filter: {criteria: [{
-                                        property: nkey,
-                                        value: pValue
-                                    }]},
-                                    user: pClient.currentUser()
-                                }, true).then(callback).catch(reject);
-                            });
-                        }
-
-                        try {
-                            Object.keys(props).forEach(function (key) {
-                                let value = row[key.toName()];
-                                let pkey = feather.toName() + " Id";
-                                let rel;
-                                let attrs;
-
-                                if (value === undefined) {
-                                    return; // No data, skip
-                                }
-
-                                if (typeof props[key].type === "object") {
-                                    // Handle child array
-                                    if (
-                                        props[key].type.parentOf &&
-                                        sheets[props[key].type.relation]
-                                    ) {
-                                        rel = props[key].type.relation;
-                                        ary = sheets[rel].filter(
-                                            (r) => r[pkey] === id
-                                        );
-                                        ret[key] = ary.map(
-                                            buildRow.bind(null, rel)
-                                        );
-
-                                    // Handle child object
-                                    } else if (props[key].type.isChild) {
-                                        if (sheets[rel]) {
-                                            rel = props[key].type.relation;
-                                            ret[key] = sheets[rel].find(
-                                                (r) => r.Id === row[
-                                                    key.toName()
-                                                ]
-                                            );
-                                            ret[key] = buildRow(rel, ret[key]);
-                                        }
-
-                                    // Regular relation
-                                    } else if (value) {
-                                        requests.push(
-                                            getRelationId(key, value)
-                                        );
-                                    }
-                                } else if (props[key].format === "money") {
-                                    attrs = value.split(" ");
-                                    ret[key] = {
-                                        amount: Number(attrs[0]),
-                                        currency: attrs[1],
-                                        effective: attrs[2],
-                                        baseAmount: Number(attrs[3])
-                                    };
-                                } else {
-                                    ret[key] = value;
-                                }
-                            });
-                        } catch (e) {
-                            reject(e);
-                            return;
-                        }
-
-                        Promise.all(requests).then(
-                            resolve.bind(null, ret)
-                        ).catch(reject);
-                    });
-                }
-
-                function writeLog() {
-                    return new Promise(function (resolve) {
-                        let logname;
-
-                        if (log.length) {
-                            logname = (
-                                "./files/downloads/" +
-                                f.createId() + ".json"
-                            );
-                            fs.appendFile(
-                                logname,
-                                JSON.stringify(log, null, 4),
-                                function (err) {
-                                    if (err) {
-                                        reject(err);
-                                        return;
-                                    }
-
-                                    fs.unlink(filename, function () {
-                                        resolve(logname);
-                                    });
-                                }
-                            );
-                            return;
-                        }
-
-                        fs.unlink(filename, resolve);
-                    });
-                }
-
-                function callback() {
-                    if (!sheets[feather]) {
-                        reject(
-                            "Expected sheet " +
-                            feather + "not present in workbook"
-                        );
-                        return;
-                    }
-
-                    next();
-                }
-
-                next = function () {
-                    let row;
-                    let payload;
-
-                    if (!sheets[feather].length) {
-                        commit(pClient).then(writeLog).then(resolve);
-                        return;
-                    }
-
-                    function addNext(resp) {
-                        payload = {
-                            client: pClient,
-                            data: resp,
-                            id: row.Id,
-                            method: "POST",
-                            name: feather,
-                            user: pClient.currentUser()
-                        };
-
-                        console.log("adding row", row.Id);
-                        datasource.request(payload).then(next).catch(
-                            error.bind(payload)
-                        );
-                    }
-
-                    row = sheets[feather].shift();
-                    buildRow(feather, row).then(addNext).catch(reject);
-                };
-
-                feathers.getFeathers(
+            try {
+                await feathers.getFeathers(
                     pClient,
                     feather,
                     localFeathers
-                ).then(callback).catch(function (err) {
-                    rollback(pClient).then(function () {
-                        fs.unlink.bind(filename, function () {
-                            reject(err);
-                        });
+                );
+
+                while (n < sheets[feather].length) {
+                    row = sheets[feather][n];
+                    theData = await buildRow(feather, row);
+
+                    console.log("adding row", row.Id);
+                    await post({
+                        client: pClient,
+                        data: theData,
+                        id: row.Id,
+                        method: "POST",
+                        name: feather,
+                        user: pClient.currentUser()
                     });
-                });
-            });
+                    n += 1;
+                }
+
+                await commit(pClient);
+                await writeLog();
+            } catch (ignore) {
+                await rollback(pClient);
+                await fs.unlink.bind(filename);
+            }
         };
 
         /**
