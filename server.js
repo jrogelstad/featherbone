@@ -1305,7 +1305,7 @@
         let sid = f.createId();
         let eKey = f.createId();
 
-        // Refresh the local copy of the catalog if it changes
+        // Reregister routes if something changes
         eventSessions[eKey] = async function () {
             routes = await datasource.getRoutes();
             routes.forEach(registerRoute);

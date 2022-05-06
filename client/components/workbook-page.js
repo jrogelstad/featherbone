@@ -379,6 +379,7 @@ workbookPage.viewModel = function (options) {
             } else {
                 vm.buttonEdit().disable();
             }
+            vm.tableWidget().isEditModeEnabled(data.isEditModeEnabled);
 
             vm.saveProfile();
         };
