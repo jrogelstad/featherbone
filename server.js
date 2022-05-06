@@ -290,6 +290,32 @@
         }
     }
 
+    function postify(req, res) {
+        let payload = {
+            method: "POST",
+            name: this,
+            user: req.user.name,
+            data: req.body
+        };
+
+        logger.info(payload);
+        datasource.request(
+            payload
+        ).then(
+            respond.bind(res)
+        ).catch(
+            error.bind(res)
+        );
+    }
+
+    function registerRoute(route) {
+        let fullPath = "/" + route.module.toSpinalCase() + route.path;
+        let doPostRequest = postify.bind(route.function);
+
+        logger.info("Registering module route: " + fullPath);
+        app.post(fullPath, doPostRequest);
+    }
+
     function doRequest(req, res) {
         let payload = {
             name: resolveName(req.url),
@@ -1274,6 +1300,25 @@
         }, true);
     }
 
+    // Listen for changes to routes, refresh if changed
+    async function subscribeToRoutes() {
+        let sid = f.createId();
+        let eKey = f.createId();
+
+        // Refresh the local copy of the catalog if it changes
+        eventSessions[eKey] = async function () {
+            routes = await datasource.getRoutes();
+            routes.forEach(registerRoute);
+        };
+
+        await datasource.request({
+            name: "Route",
+            method: "GET",
+            user: systemUser,
+            subscription: {id: sid, eventKey: eKey}
+        }, true);
+    }
+
     function start() {
         // Define exactly which directories and files are to be served
         let dirs = [
@@ -1558,31 +1603,7 @@
         datasource.listen(receiver).then(handleEvents).catch(console.error);
 
         // REGISTER MODULE ROUTES
-        function postify(req, res) {
-            let payload = {
-                method: "POST",
-                name: this,
-                user: req.user.name,
-                data: req.body
-            };
-
-            logger.info(payload);
-            datasource.request(
-                payload
-            ).then(
-                respond.bind(res)
-            ).catch(
-                error.bind(res)
-            );
-        }
-
-        routes.forEach(function (route) {
-            let fullPath = "/" + route.module.toSpinalCase() + route.path;
-            let doPostRequest = postify.bind(route.function);
-
-            logger.info("Registering module route: " + fullPath);
-            app.post(fullPath, doPostRequest);
-        });
+        routes.forEach(registerRoute);
 
         // START THE SERVER
         // ====================================================================
@@ -1604,5 +1625,7 @@
         subscribeToFeathers
     ).then(
         subscribeToCatalog
+    ).then(
+        subscribeToRoutes
     ).then(start).catch(process.exit);
 }());
