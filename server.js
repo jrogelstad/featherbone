@@ -184,6 +184,9 @@
         }
         logger.error(err.message);
         this.status(err.statusCode).json(err.message);
+        datasource.getCatalog().catch(function (e) {
+            console.log(e);
+        });
     }
 
     function init() {
@@ -1301,6 +1304,27 @@
         });
     }
 
+    // Listen for changes to catalog, refresh if changed
+    function subscribeToCatalog() {
+        return new Promise(function (resolve, reject) {
+            let eKey = f.createId();
+
+            // Refresh the local copy of the catalog if it changes
+            eventSessions[eKey] = function () {
+                datasource.getCatalog().catch(console.log);
+            };
+            eventSessions[eKey].fetch = false;
+
+            datasource.request({
+                name: "getSettings",
+                method: "GET",
+                user: systemUser,
+                subscription: {id: f.createId(), eventKey: eKey},
+                data: {name: "catalog"}
+            }, true).then(resolve).catch(reject);
+        });
+    }
+
     function start() {
         // Define exactly which directories and files are to be served
         let dirs = [
@@ -1629,5 +1653,7 @@
 
     init().then(
         subscribeToFeathers
+    ).then(
+        subscribeToCatalog
     ).then(start).catch(process.exit);
 }());
