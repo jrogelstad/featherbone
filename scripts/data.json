@@ -386,7 +386,7 @@
         "tabs": [{
             "name": "Attributes"
         }, {
-            "name": "Tabs"
+            "name": "Grids"
         }, {
             "name": "Actions"
         }, {
@@ -449,6 +449,14 @@
             "showLabel": true,
             "unit": 1,
             "dataList": "properties"
+        }, {
+            "attr": "orientation",
+            "columns": [],
+            "grid": 2,
+            "label": "",
+            "showLabel": true,
+            "unit": 0,
+            "dataList": ""
         }, {
             "attr": "attrs",
             "dataList": "",
