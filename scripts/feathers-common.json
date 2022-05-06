@@ -125,6 +125,18 @@
             "showLabelKey": {
                 "description": "When printing include label key on child table rows",
                 "type": "boolean"
+            },
+            "orientation": {
+                "description": "Grid (tab) orientation",
+                "type": "string",
+                "default": "H",
+                "dataList": [{
+                    "value": "H",
+                    "label": "Horizontal Tabs"
+                }, {
+                    "value": "V",
+                    "label": "Vertical Sections"
+                }]
             }
         }
     },

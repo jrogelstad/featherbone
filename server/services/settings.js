@@ -75,7 +75,7 @@ settings.getSettings = function (obj) {
                         delete settings.data[name].data[key];
                     });
                     // Populate new properties
-                    Object.keys(rec.data).forEach(function (key) {
+                    Object.keys(rec.data || []).forEach(function (key) {
                         settings.data[name].data[key] = rec.data[key];
                     });
                 }
