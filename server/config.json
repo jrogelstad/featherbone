@@ -8,7 +8,6 @@
     "logSilent": false,
     "mode": "prod",
     "nodeId": "node1",
-    "npmModules": [],
     "passwordLength": 0,
     "pgHost": "127.0.0.1",
     "pgDatabase": "demo",
@@ -21,5 +20,6 @@
     "pgSslCert": "./server/ssl/server.crt",
     "secret": "Your own session key here",
     "sessionTimeout": 86400000,
+    "fileUpload": true,
     "npmModules": []
 }

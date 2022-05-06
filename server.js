@@ -97,6 +97,7 @@
     let eventSessions = {};
     let eventKeys = {};
     let sessions = {};
+    let fileUpload = false;
     let port;
     let mode;
     let settings = datasource.settings();
@@ -263,7 +264,7 @@
                         systemUser = resp.pgUser;
                         mode = resp.mode || "prod";
                         port = process.env.PORT || resp.clientPort || 80;
-
+                        fileUpload = Boolean(resp.fileUpload);
                         resolve();
                     });
                 });
@@ -778,7 +779,9 @@
 
     function doUpload(req, res) {
         const DIR = "./files/upload/";
-
+        if (!fileUpload) {
+            return res.status(400).send("File uploads not allowed.");
+        }
         if (Object.keys(req.files).length === 0) {
             return res.status(400).send("No files were uploaded.");
         }
@@ -939,6 +942,9 @@
         let mimetype;
 
         switch (suffix) {
+        case ".pdf":
+            mimetype = {"Content-Type": "application/pdf"};
+            break;
         case ".mjs":
         case ".js":
             mimetype = {"Content-Type": "application/javascript"};
@@ -1298,7 +1304,6 @@
     function start() {
         // Define exactly which directories and files are to be served
         let dirs = [
-            "/files/upload",
             "/client",
             "/client/components",
             "/client/models",
@@ -1323,6 +1328,11 @@
             "/node_modules/tinymce/themes/silver",
             "/node_modules/tinymce/themes/mobile"
         ];
+
+        if (fileUpload) {
+            dirs.push("/files/upload");
+        }
+
         let files = [
             "/api.json",
             "/index.html",
