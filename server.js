@@ -189,119 +189,70 @@
         });
     }
 
-    function init() {
-        return new Promise(function (resolve, reject) {
-            function configLogger() {
-                return new Promise(function (resolve) {
-                    config.read().then(function (resp) {
-                        let log = {
-                            level: resp.logLevel,
-                            zippedArchive: resp.logZippedArchive,
-                            maxSize: resp.logMaxSize,
-                            maxFiles: resp.logMaxFiles,
-                            silent: resp.logSilent
-                        };
-                        let fmt = winston.format.combine(
-                            winston.format.timestamp(),
-                            winston.format.json()
-                        );
+    async function init() {
+        try {
+            // Configure logger
+            let resp = await config.read();
+            let log = {
+                level: resp.logLevel,
+                zippedArchive: resp.logZippedArchive,
+                maxSize: resp.logMaxSize,
+                maxFiles: resp.logMaxFiles,
+                silent: resp.logSilent
+            };
+            let fmt = winston.format.combine(
+                winston.format.timestamp(),
+                winston.format.json()
+            );
 
-                        logger = winston.createLogger({
-                            format: fmt,
-                            level: loglevel || log.level || "info",
-                            transports: [],
-                            silent: Boolean(log.silent)
-                        });
-
-                        if (consolelog) {
-                            logger.add(new winston.transports.Console({
-                                format: winston.format.prettyPrint()
-                            }));
-                        }
-
-                        logger.add(
-                            new(winston.transports.DailyRotateFile)({
-                                format: fmt,
-                                filename: "./logs/featherbone-%DATE%.log",
-                                datePattern: "YYYY-MM-DD-HH",
-                                zippedArchive: Boolean(log.zippedArchive),
-                                maxSize: log.maxSize || "20m",
-                                maxFiles: log.maxFiles || "7d"
-                            })
-                        );
-
-                        logger.info("Featherbone server starting");
-                        resolve();
-                    });
-                });
-            }
-
-            function getRoutes() {
-                return new Promise(function (resolve, reject) {
-                    datasource.getRoutes().then(
-                        function (data) {
-                            routes = data;
-                            resolve();
-                        }
-                    ).catch(
-                        reject
-                    );
-                });
-            }
-
-            function setPool(pool) {
-                return new Promise(function (resolve) {
-                    pgPool = pool;
-                    resolve();
-                });
-            }
-
-            function getConfig() {
-                return new Promise(function (resolve) {
-                    config.read().then(function (resp) {
-                        debug = Boolean(resp.debug);
-
-                        // Default 1 day.
-                        sessionTimeout = resp.sessionTimeout || 86400000;
-                        thesecret = resp.secret;
-                        systemUser = resp.pgUser;
-                        mode = resp.mode || "prod";
-                        port = process.env.PORT || resp.clientPort || 80;
-                        fileUpload = Boolean(resp.fileUpload);
-                        resolve();
-                    });
-                });
-            }
-
-            // Execute
-            Promise.resolve().then(
-                configLogger
-            ).then(
-                datasource.getCatalog
-            ).then(
-                getRoutes
-            ).then(
-                datasource.unsubscribe
-            ).then(
-                datasource.unlock
-            ).then(
-                datasource.getPool
-            ).then(
-                setPool
-            ).then(
-                getConfig
-            ).then(
-                datasource.loadNpmModules
-            ).then(
-                datasource.loadServices
-            ).then(
-                resolve
-            ).catch(function (err) {
-                logger.error(err.message);
-                console.log(err);
-                reject(err);
+            logger = winston.createLogger({
+                format: fmt,
+                level: loglevel || log.level || "info",
+                transports: [],
+                silent: Boolean(log.silent)
             });
-        });
+
+            if (consolelog) {
+                logger.add(new winston.transports.Console({
+                    format: winston.format.prettyPrint()
+                }));
+            }
+
+            logger.add(
+                new(winston.transports.DailyRotateFile)({
+                    format: fmt,
+                    filename: "./logs/featherbone-%DATE%.log",
+                    datePattern: "YYYY-MM-DD-HH",
+                    zippedArchive: Boolean(log.zippedArchive),
+                    maxSize: log.maxSize || "20m",
+                    maxFiles: log.maxFiles || "7d"
+                })
+            );
+
+            logger.info("Featherbone server starting");
+
+            // Other config
+            debug = Boolean(resp.debug);
+
+            // Default 1 day.
+            sessionTimeout = resp.sessionTimeout || 86400000;
+            thesecret = resp.secret;
+            systemUser = resp.pgUser;
+            mode = resp.mode || "prod";
+            port = process.env.PORT || resp.clientPort || 80;
+            fileUpload = Boolean(resp.fileUpload);
+
+            await datasource.getCatalog();
+            routes = await datasource.getRoutes();
+            await datasource.unsubscribe();
+            await datasource.unlock();
+            pgPool = await datasource.getPool();
+            await datasource.loadNpmModules();
+            await datasource.loadServices();
+        } catch (err) {
+            logger.error(err.message);
+            console.log(err);
+        }
     }
 
     function resolveName(apiPath) {
