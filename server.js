@@ -1256,24 +1256,22 @@
     }
 
     // Listen for changes to catalog, refresh if changed
-    function subscribeToCatalog() {
-        return new Promise(function (resolve, reject) {
-            let eKey = f.createId();
+    async function subscribeToCatalog() {
+        let eKey = f.createId();
 
-            // Refresh the local copy of the catalog if it changes
-            eventSessions[eKey] = function () {
-                datasource.getCatalog().catch(console.log);
-            };
-            eventSessions[eKey].fetch = false;
+        // Refresh the local copy of the catalog if it changes
+        eventSessions[eKey] = function () {
+            datasource.getCatalog().catch(console.log);
+        };
+        eventSessions[eKey].fetch = false;
 
-            datasource.request({
-                name: "getSettings",
-                method: "GET",
-                user: systemUser,
-                subscription: {id: f.createId(), eventKey: eKey},
-                data: {name: "catalog"}
-            }, true).then(resolve).catch(reject);
-        });
+        await datasource.request({
+            name: "getSettings",
+            method: "GET",
+            user: systemUser,
+            subscription: {id: f.createId(), eventKey: eKey},
+            data: {name: "catalog"}
+        }, true);
     }
 
     function start() {
