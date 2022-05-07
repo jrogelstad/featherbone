@@ -446,6 +446,38 @@
         }
     },
     {
+        "name": "ModuleNpm",
+        "module": "Core",
+        "description": "npm package dependencies",
+        "properties": {
+            "module": {
+                "description": "Parent module",
+                "type": {
+                    "relation": "Module",
+                    "childOf": "npm"
+                }
+            },
+            "package": {
+                "description": "npm package name",
+                "type": "string",
+                "isRequired": true
+            },
+            "version": {
+                "description": "npm package version",
+                "type": "string",
+                "isRequired": false
+            },
+            "property": {
+                "description": "Property name on featherbone global variable `f`",
+                "type": "string"
+            },
+            "export": {
+                "description": "Specific class to use if applicable",
+                "type": "string"
+            }
+        }
+    },
+    {
         "name": "DataService",
         "plural": "DataServices",
         "module": "Core",
