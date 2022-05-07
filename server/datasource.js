@@ -2068,12 +2068,13 @@
         @method loadModules
         @return {Promise}
     */
-    that.loadNpmModules = async function () {
+    that.loadNpmModules = async function (pUser, pClient) {
         let conf = await config.read();
         let mods = await that.request({
             method: "GET",
             name: "Module",
-            user: conf.pgUser,
+            user: pUser || conf.pgUser,
+            client: pClient,
             properties: ["id", "npm"]
         }, true);
 
