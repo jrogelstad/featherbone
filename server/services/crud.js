@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2021  John Rogelstad
+    Copyright (C) 2022  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -1768,13 +1768,14 @@
                     isSuperUser
                 );
 
+                // Either unauthorized, or bad id
                 if (key === undefined) {
                     return undefined;
                 }
 
-                sql += " WHERE _pk = $1";
+                sql += " WHERE id = $1";
 
-                result = await theClient.query(sql, [key]);
+                result = await theClient.query(sql, [obj.id]);
                 result = mapKeys(result.rows[0]);
                 if (obj.sanitize !== false) {
                     result = tools.sanitize(result);
