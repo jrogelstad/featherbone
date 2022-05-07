@@ -171,7 +171,7 @@
                 property: r.property,
                 export: r.export
             };
-        }),
+        });
         manifest.files.push({
             type: "module",
             path: "module.js"
