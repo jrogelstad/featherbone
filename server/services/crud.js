@@ -1656,6 +1656,7 @@
             @param {Object} [payload.subscription] subscribe to events on
             results
             @param {Boolean} [payload.sanitize] sanitize result. Default true
+            @param {Boolean} [payload.isForUpdate] Apply an update lock
             @param {Boolean} [isChild] Request as child. Default false.
             @param {Boolean} [isSuperUser] Request as super user. Default false.
             @return {Promise} Resolves to object or array.
@@ -1775,6 +1776,10 @@
 
                 sql += " WHERE id = $1";
 
+                if (obj.isForUpdate) {
+                    sql += " FOR UPDATE";
+                }
+
                 result = await theClient.query(sql, [obj.id]);
                 result = mapKeys(result.rows[0]);
                 if (obj.sanitize !== false) {
@@ -1815,6 +1820,11 @@
                 tokens = [];
                 sql += tools.processSort(sort, tokens);
                 sql = sql.format(tokens);
+
+                if (obj.isForUpdate) {
+                    sql += " FOR UPDATE";
+                }
+
                 //console.log(sql, params);
                 result = await theClient.query(sql, params);
                 result = tools.sanitize(result.rows.map(mapKeys));
