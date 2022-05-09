@@ -323,6 +323,9 @@ workbookPage.viewModel = function (options) {
         @method configureSheet
     */
     vm.configureSheet = function (e) {
+        if (!vm.workbook().canUpdate()) {
+            return;
+        }
         let dlg = vm.sheetConfigureDialog();
         let sheet = vm.sheet(e.sheetId);
         let data = {
@@ -740,6 +743,9 @@ workbookPage.viewModel = function (options) {
         @method saveProfile
     */
     vm.saveProfile = function () {
+        if (!vm.workbook().canUpdate()) {
+            return;
+        }
         saveProfile(
             workbook.data.name(),
             vm.config(),
@@ -765,6 +771,10 @@ workbookPage.viewModel = function (options) {
             workbook.data.localConfig(d);
             workbook.save();
         };
+
+        if (!vm.workbook().canUpdate()) {
+            return;
+        }
 
         confirmDialog.message(
             "Are you sure you want to share your workbook " +
@@ -1285,6 +1295,13 @@ workbookPage.component = {
         let menu = f.getComponent("AccountMenu");
         let toolbarClass = "fb-toolbar";
         let menuButtonClass = "fb-menu-button";
+        let menuAuthLinkClass = (
+            "pure-menu-link " + (
+                vm.workbook().canUpdate()
+                ? ""
+                : " pure-menu-disabled"
+            )
+        );
 
         if (vm.tableWidget().selections().some((s) => s.canDelete())) {
             vm.buttonDelete().enable();
@@ -1493,7 +1510,7 @@ workbookPage.component = {
                             }, [
                                 m("li", {
                                     id: "nav-menu-configure-worksheet",
-                                    class: "pure-menu-link",
+                                    class: menuAuthLinkClass,
                                     title: "Configure current worksheet",
                                     onclick: vm.configureSheet
                                 }, [m("i", {
@@ -1505,9 +1522,13 @@ workbookPage.component = {
                                 }, "table_chart")], "Sheet"),
                                 m("li", {
                                     id: "nav-menu-configure-workbook",
-                                    class: "pure-menu-link",
+                                    class: menuAuthLinkClass,
                                     title: "Configure current workbook",
-                                    onclick: vm.editWorkbookDialog().show
+                                    onclick: (
+                                        vm.workbook().canUpdate()
+                                        ? vm.editWorkbookDialog().show
+                                        : undefined
+                                    )
                                 }, [m("i", {
                                     id: "nav-menu-configure-workbook-icon",
                                     class: (
@@ -1517,13 +1538,7 @@ workbookPage.component = {
                                 }, "backup_table")], "Workbook"),
                                 m("li", {
                                     id: "nav-menu-share",
-                                    class: (
-                                        "pure-menu-link " + (
-                                            vm.workbook().canUpdate()
-                                            ? ""
-                                            : " pure-menu-disabled"
-                                        )
-                                    ),
+                                    class: menuAuthLinkClass,
                                     title: "Share workbook configuration",
                                     onclick: vm.share
                                 }, [m("i", {
@@ -1538,7 +1553,7 @@ workbookPage.component = {
                                     class: "pure-menu-link",
                                     title: (
                                         "Revert workbook configuration " +
-                                        "to original state"
+                                        "to default state"
                                     ),
                                     onclick: vm.revert
                                 }, [m("i", {
