@@ -313,10 +313,9 @@ tableDialog.viewModel = function (options) {
             } else if (
                 prop.type === "object" || (
                     isObject && (
-                        prop.type.childOf ||
+                        (norel && prop.type.childOf) ||
                         prop.type.parentOf ||
-                        prop.type.isChild ||
-                        norel
+                        prop.type.isChild
                     )
                 )
             ) {
