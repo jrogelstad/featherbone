@@ -1035,6 +1035,7 @@
                         if (!options || !options.annotate) {
                             let doc2 = new pdf.ExternalDocument(src);
                             doc.addPagesOf(doc2);
+                            res();
                         } else {
                             annotatePDF(
                                 src,
