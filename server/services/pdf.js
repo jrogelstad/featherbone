@@ -31,7 +31,7 @@
     const {Feathers} = require("./feathers");
     const pdf = require("pdfjs");
     const {degrees, rgb, StandardFonts, PDFDocument} = require("pdf-lib");
-    const {createCanvas} = require("canvas");
+    const {registerFont, createCanvas} = require("canvas");
     const defTextLabel = "Confidential";
     const http = require("http");
     const https = require("https");
@@ -231,6 +231,7 @@
                 let dir = "./files/downloads/";
                 let attachments = [];
                 let annotation;
+
                 if (options && options.annotation) {
                     annotation = options.annotation;
                 }
@@ -1364,6 +1365,8 @@
     function waterMark(cfg) {
         return new Promise(function (res, rej) {
             let cvs = createCanvas(cfg.width, cfg.height);
+            registerFont("./fonts/Helvetica.otf", {family: "Helvetica"});
+
             let ctx = cvs.getContext("2d");
 
             let useFontSize = computeFontSizeToWidth(cfg, ctx);
@@ -1535,6 +1538,24 @@
         }
         return outBytes;
     }
+
+    exports.annotate = async function (bytes, options) {
+        if (!options) {
+            return bytes;
+        }
+        if (options.annotation && options.annotation.annotate) {
+            bytes = await annotatePDF(bytes, options.annotation);
+        }
+        if (options.watermark) {
+            bytes = await waterMarkPdf(
+                bytes,
+                options.watermark.label || "Confidential",
+                null,
+                options.watermark
+            );
+        }
+        return bytes;
+    };
 
 }(exports));
 
