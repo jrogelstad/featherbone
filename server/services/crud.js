@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2021  John Rogelstad
+    Copyright (C) 2022  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -1656,6 +1656,7 @@
             @param {Object} [payload.subscription] subscribe to events on
             results
             @param {Boolean} [payload.sanitize] sanitize result. Default true
+            @param {Boolean} [payload.isForUpdate] Apply an update lock
             @param {Boolean} [isChild] Request as child. Default false.
             @param {Boolean} [isSuperUser] Request as super user. Default false.
             @return {Promise} Resolves to object or array.
@@ -1768,13 +1769,18 @@
                     isSuperUser
                 );
 
+                // Either unauthorized, or bad id
                 if (key === undefined) {
                     return undefined;
                 }
 
-                sql += " WHERE _pk = $1";
+                sql += " WHERE id = $1";
 
-                result = await theClient.query(sql, [key]);
+                if (obj.isForUpdate) {
+                    sql += " FOR UPDATE";
+                }
+
+                result = await theClient.query(sql, [obj.id]);
                 result = mapKeys(result.rows[0]);
                 if (obj.sanitize !== false) {
                     result = tools.sanitize(result);
@@ -1814,6 +1820,11 @@
                 tokens = [];
                 sql += tools.processSort(sort, tokens);
                 sql = sql.format(tokens);
+
+                if (obj.isForUpdate) {
+                    sql += " FOR UPDATE";
+                }
+
                 //console.log(sql, params);
                 result = await theClient.query(sql, params);
                 result = tools.sanitize(result.rows.map(mapKeys));
