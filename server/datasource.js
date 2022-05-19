@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2021  John Rogelstad
+    Copyright (C) 2022  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/*jslint node, this, eval*/
+/*jslint node, this, eval, unordered*/
 /**
     @module Datasource
 */
@@ -779,7 +779,8 @@
         form,
         data,
         filename,
-        username
+        username,
+        options
     ) {
         return new Promise(function (resolve, reject) {
             // Do the work
@@ -797,7 +798,8 @@
                         resp.client,
                         form,
                         data,
-                        filename
+                        filename,
+                        options
                     ).then(
                         callback
                     ).catch(
@@ -1051,11 +1053,7 @@
     */
     that.request = function (obj, isSuperUser) {
         return new Promise(function (resolve, reject) {
-            isSuperUser = (
-                isSuperUser === undefined
-                ? false
-                : isSuperUser
-            );
+            isSuperUser = Boolean(isSuperUser);
 
             let theClient;
             let done;
@@ -2064,32 +2062,33 @@
     };
 
     /**
-        Load all npm modules defined in configuration into memory.
+        Append all npm dependencies defined in modules
+        on to `f` global variable.
 
         @method loadModules
         @return {Promise}
     */
-    that.loadNpmModules = function () {
-        return new Promise(function (resolve) {
-            config.read().then(function (resp) {
-                let mods = resp.npmModules || [];
+    that.loadNpmModules = async function (pUser, pClient) {
+        let conf = await config.read();
+        let mods = await that.request({
+            method: "GET",
+            name: "Module",
+            user: pUser || conf.pgUser,
+            client: pClient,
+            properties: ["id", "npm"]
+        }, true);
 
-                // Add npm modules specified
-                mods.forEach(function (mod) {
-                    let name;
-                    if (mod.properties) {
-                        mod.properties.forEach(function (p) {
-                            f[p.property.toCamelCase(true)] = require(
-                                mod.require
-                            )[p.export];
-                        });
-                        return;
-                    }
+        // Instantiate npm packages listed on modules
+        mods.forEach(function (mod) {
+            mod.npm.forEach(function (pkg) {
+                let pname = pkg.property || pkg.export || pkg.package;
+                pname = pname.toCamelCase(true);
 
-                    name = mod.require;
-                    f[name.toCamelCase(true)] = require(mod.require);
-                });
-                resolve();
+                if (pkg.export) {
+                    f[pname] = require(pkg.package)[pkg.export];
+                    return;
+                }
+                f[pname] = require(pkg.package);
             });
         });
     };

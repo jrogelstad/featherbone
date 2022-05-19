@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/*jslint node, this, for, devel*/
+/*jslint node, this, for, devel, unordered */
 
 /**
     PDF file generator.
@@ -30,6 +30,12 @@
     const {CRUD} = require("./crud");
     const {Feathers} = require("./feathers");
     const pdf = require("pdfjs");
+    const {degrees, rgb, StandardFonts, PDFDocument} = require("pdf-lib");
+    const {registerFont, createCanvas} = require("canvas");
+    const defTextLabel = "Confidential";
+    const http = require("http");
+    const https = require("https");
+
     const fonts = {
         Barcode39: new pdf.Font(
             fs[readFileSync]("./fonts/LibreBarcode39-Regular.ttf")
@@ -211,7 +217,7 @@
             @param {String} [Filename] Target filename
             @return {Promise} Filename
         */
-        that.printForm = function (vClient, form, data, filename) {
+        that.printForm = function (vClient, form, data, filename, options) {
             return new Promise(function (resolve, reject) {
                 if (!Array.isArray(data)) {
                     data = [data];
@@ -223,6 +229,12 @@
                 let currs;
                 let localFeathers = {};
                 let dir = "./files/downloads/";
+                let attachments = [];
+                let annotation;
+
+                if (options && options.annotation) {
+                    annotation = options.annotation;
+                }
 
                 function getForm() {
                     return new Promise(function (resolve, reject) {
@@ -333,6 +345,7 @@
                                 creator: vClient.currentUser()
                             }
                         });
+
                         let header;
                         let src = fs[readFileSync]("./files/logo.jpg");
                         let logo = new pdf.Image(src);
@@ -492,6 +505,9 @@
 
                                 if (inheritedFrom(p.type.relation, "Address")) {
                                     value = rec[attr].street;
+                                    if (rec[attr].name) {
+                                        value = rec[attr].name + cr + value;
+                                    }
                                     if (rec[attr].unit) {
                                         value += cr + rec[attr].unit;
                                     }
@@ -503,6 +519,21 @@
                                         font: ovrFont,
                                         fontSize: style.fontSize
                                     });
+                                    return;
+                                }
+
+                                if (inheritedFrom(
+                                    p.type.relation,
+                                    "ResourceLink"
+                                )) {
+                                    let figure = "Figure "
+                                    + (attachments.length + 1);
+                                    attachments.push({
+                                        attachmentLabel: figure,
+                                        label: rec[attr].label,
+                                        source: rec[attr].resource
+                                    });
+                                    row.cell(figure);
                                     return;
                                 }
 
@@ -662,6 +693,7 @@
                             let feather = localFeathers[obj.feather];
                             let attr = obj.attribute;
                             let p = resolveProperty(attr.attr, feather);
+
                             let tr;
                             let maxWidth = doc.width.minus(
                                 doc.paddingLeft
@@ -897,6 +929,15 @@
                             currId = ids.shift();
                             data = getRow();
                             if (data) { // In case id not found
+                                if (
+                                    annotation
+                                    &&
+                                    data[annotation.dataSource]
+                                ) {
+                                    annotation.dataIn = data[
+                                        annotation.dataSource
+                                    ];
+                                }
                                 buildSection();
                                 form.tabs.forEach(buildSection);
                                 if (ids.length) {
@@ -905,9 +946,38 @@
                             }
                             n = 0;
                         }
+                        new Promise(function (resAtt) {
+                            if (!attachments.length) {
+                                resAtt();
+                            } else {
+                                addAttachments(
+                                    doc,
+                                    attachments,
+                                    annotation
+                                ).then(resAtt);
+                            }
 
-                        doc.pipe(w);
-                        doc.end().then(resolve.bind(null, file)).catch(reject);
+                        }).then(function () {
+                            doc.pipe(w);
+                            doc.end().then(function () {
+                                if (!options || !options.watermark) {
+                                    resolve(file);
+                                    return file;
+                                }
+                                w.on("close", function () {
+                                    options.watermark.width = doc.width;
+                                    options.watermark.height = doc.height;
+                                    waterMarkPdf(
+                                        path,
+                                        options.watermark.label,
+                                        path,
+                                        options.watermark
+                                    ).then(function () {
+                                        resolve(file);
+                                    });
+                                });
+                            }).catch(reject);
+                        });
                     });
                 }
 
@@ -927,6 +997,596 @@
         };
 
         return that;
+    };
+
+    function fetchUrlBytes(url) {
+        return new Promise(function (res2) {
+            let svc = http;
+            if (url.match(/^https/gi)) {
+                svc = https;
+            }
+            svc.get(url, function (res) {
+                let data = [];
+                res.on("data", function (chunk) {
+                    data.push(chunk);
+                }).on("end", function () {
+                    let buffer = Buffer.concat(data);
+                    res2(buffer);
+                });
+            });
+        });
+    }
+
+    function addAttachments(doc, attachments, options) {
+        let aP = [];
+        attachments.forEach(function (attach) {
+            let prom = new Promise(function (res, rej) {
+                fetchUrlBytes(attach.source).then(function (src) {
+                    if (attach.source.match(/(jpg|jpeg|png)$/i)) {
+                        doc.pageBreak();
+                        let table = doc.table({widths: [200, 0]});
+                        let row = table.row();
+                        row.cell().text({
+                            fontSize: 16
+                        }).add(attach.label);
+                        let imgSrc = new pdf.Image(src);
+                        row.cell().image(imgSrc);
+                        res();
+                    } else if (attach.source.match(/(\.pdf)$/i)) {
+                        if (!options || !options.annotate) {
+                            let doc2 = new pdf.ExternalDocument(src);
+                            doc.addPagesOf(doc2);
+                            res();
+                        } else {
+                            annotatePDF(
+                                src,
+                                options
+                            ).then(function (src2) {
+                                let doc3 = new pdf.ExternalDocument(src2);
+                                doc.addPagesOf(doc3);
+                                res();
+                            });
+                        }
+                    } else {
+                        rej("Error: " + attach.source);
+                    }
+                });
+            });
+            aP.push(prom);
+        });
+        return Promise.all(aP);
+    }
+
+    /// Derived from:
+    /// https://github.com/Hopding/pdf-lib/issues/65#issuecomment-468064410
+    function compensateRotation(page, x, y, size) {
+        let scale = 1;
+        let pageSize = page.getSize();
+        let rotation = page.getRotation().angle;
+        let rads = toRadians(rotation);
+        let draw = {
+            x: null,
+            y: null
+        };
+        let coords = {
+            x: (x / scale),
+            y: (y / scale)
+        };
+        if (rotation === 90 || rotation === 270) {
+            coords.y = pageSize.width - ((y + size) / scale);
+        } else if (rotation === 180) {
+            coords.y = pageSize.height - ((y + size) / scale);
+        }
+        let sinRad = Math.sin(rads);
+        let cosRad = Math.cos(rads);
+
+        let sinX = coords.x * sinRad;
+        let sinY = coords.y * sinRad;
+        let cosX = coords.x * cosRad;
+        let cosY = coords.y * cosRad;
+
+        if (rotation === 90) {
+            draw.x = cosX - sinY + pageSize.width;
+            draw.y = sinX + cosY;
+        } else if (rotation === 180) {
+            draw.x = cosX - sinY + pageSize.width;
+            draw.y = sinX + cosY + pageSize.height;
+        } else if (rotation === 270) {
+            draw.x = cosX - sinY;
+            draw.y = sinX + cosY + pageSize.height;
+        } else {
+            draw.x = coords.x;
+            draw.y = coords.y;
+        }
+        return draw;
+    }
+    function lineOpts(page, x1, y1, x2, y2) {
+
+        let compStart = compensateRotation(page, x1, y1, 1);
+        let compEnd = compensateRotation(page, x2, y2, 1);
+        return {
+            thickness: 1,
+            color: rgb(0, 0, 0),
+            start: {
+                x: compStart.x,
+                y: compStart.y
+            },
+            end: {
+                x: compEnd.x,
+                y: compEnd.y
+            }
+        };
+    }
+
+    function drawText(page, text, fontFamily, fontSize, x, y) {
+
+        let compStart = compensateRotation(page, x, y, fontSize);
+        page.moveTo(compStart.x, compStart.y);
+        page.drawText(text, {
+            font: fontFamily,
+            size: fontSize,
+            rotate: degrees(page.getRotation().angle)
+        });
+    }
+
+    function rotationModifier(page) {
+        let rotDeg = page.getRotation().angle;
+        return (
+            (rotDeg === 90 || rotDeg === 270)
+            ? -1
+            : 1
+        );
+    }
+
+    function psuedoCell(
+        page,
+        rowNumber,
+        cellLeft,
+        header,
+        data,
+        opts,
+        altStyle
+    ) {
+        let rowTop = page.getSize().height - (
+            opts.top + (
+                rowNumber * opts.rowHeight * rotationModifier(page)
+            )
+        );
+        let rowBottom = rowTop + opts.rowHeight;
+        let fontStyle = (
+            (altStyle)
+            ? opts.fontBold
+            : opts.font
+        );
+        drawText(
+            page,
+            data,
+            fontStyle,
+            opts.fontSize,
+            opts.left + cellLeft + 1,
+            rowTop + 2
+        );
+
+        let rightPos = opts.left + cellLeft + header.width;
+        page.drawLine(
+            lineOpts(page, rightPos, rowTop, rightPos, rowBottom)
+        );
+    }
+    function psuedoRow(page, rowNumber, rowData, opts, altStyle) {
+        let rowTop = page.getSize().height - (
+            opts.top + (
+                rowNumber * opts.rowHeight * rotationModifier(page)
+            )
+        );
+        let rowBottom = rowTop + opts.rowHeight;
+
+        page.drawLine(
+            lineOpts(page, opts.left, rowTop, opts.left + opts.width, rowTop)
+        );
+        page.drawLine(
+            lineOpts(
+                page,
+                opts.left,
+                rowBottom,
+                opts.left + opts.width,
+                rowBottom
+            )
+        );
+        page.drawLine(
+            lineOpts(page, opts.left, rowTop, opts.left, rowBottom)
+        );
+        let cellLeft = 0;
+        opts.fields.forEach(function (head, i) {
+            let data;
+            if (!rowData.length) {
+                data = head.label;
+            } else if (!rowData[i]) {
+                data = "";
+            } else {
+                data = rowData[i];
+            }
+            psuedoCell(page, rowNumber, cellLeft, head, data, opts, altStyle);
+            cellLeft += head.width;
+        });
+
+    }
+    function psuedoTable(page, rows, opts) {
+        page.resetPosition();
+
+        if (opts.header) {
+            psuedoRow(page, 0, [], opts, true);
+        }
+
+        rows.forEach(function (row, i) {
+            psuedoRow(page, i + 1, row, opts, false);
+        });
+
+        let top = page.getSize().height - opts.top;
+
+        page.drawLine(
+            lineOpts(page, opts.left, top, opts.left + opts.width, top)
+        );
+    }
+
+    async function annotatePDF(bytes, opts) {
+
+        opts.padding = opts.padding || 1;
+        opts.borderWidth = opts.borderWidth || 1;
+
+        let pdfDoc = await PDFDocument.load(bytes);
+        let pages = pdfDoc.getPages();
+
+        let page = pages[0];
+        if (!page) {
+            console.error("No page found in PDF bytestream");
+            return;
+        }
+
+        if (opts.dataIn && opts.fieldSource) {
+            opts.data = [];
+            opts.dataIn.forEach(function (dat) {
+                let rowData = [];
+                opts.fieldSource.forEach(function (attr) {
+                    let attrs = attr.split(".");
+                    let dv1 = dat[attrs[0]];
+                    if (attrs.length > 1) {
+                        dv1 = dv1[attrs[1]];
+                    }
+                    if (dv1 === undefined || dv1 === null) {
+                        dv1 = "";
+                    }
+                    rowData.push(dv1.toString());
+                });
+                opts.data.push(rowData);
+            });
+        }
+
+        let rowWidth = opts.fields.reduce(function (sum, curr) {
+            return (
+                (
+                    (typeof sum === "number")
+                    ? sum
+                    : sum.width
+                )
+                + curr.width
+            );
+        });
+
+        let font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+        let fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+        let textHeight = parseInt(font.heightAtSize(opts.fontSize));
+        let rowHeight = textHeight + (opts.padding * 2) + opts.borderWidth;
+        let totalHeight = rowHeight * (opts.data.length + 1);
+
+        if (opts.fitText) {
+            opts.data.forEach(function (dat) {
+                opts.fields.forEach(function (f, i) {
+                    let maxWid = f.width - opts.padding * 2;
+                    if (dat && dat[i]) {
+                        let txt = dat[i];
+                        let wid = parseInt(
+                            font.widthOfTextAtSize(txt, opts.fontSize)
+                        );
+                        let suff = "…";
+                        while (wid > maxWid) {
+                            txt = txt.slice(0, txt.length - 2);
+                            wid = parseInt(
+                                font.widthOfTextAtSize(
+                                    txt + suff,
+                                    opts.fontSize
+                                )
+                            );
+                        }
+                        if (txt.length !== dat[i].length) {
+                            dat[i] = txt + suff;
+                        }
+                    }
+                });
+            });
+        }
+
+        opts.width = rowWidth;
+        opts.top -= (totalHeight * rotationModifier(page));
+        opts.font = font;
+        opts.fontBold = fontBold;
+        opts.rowHeight = rowHeight;
+
+        psuedoTable(page, opts.data, opts);
+
+        let outBytes = await pdfDoc.save();
+        return outBytes;
+    }
+
+
+    function setHypWidth(cfg) {
+        cfg.hypWidth = parseInt(
+            Math.sqrt(
+                (cfg.width * cfg.width)
+                + (cfg.height * cfg.height)
+            )
+        );
+    }
+
+    function newPdfConfig() {
+        let cfg = {
+            adoptPageDimensions: false,
+            width: 595.296,
+            height: 841.896,
+            textAlign: "center",
+            fillText: false,
+            strokeText: true,
+            fontColor: "#CFCFCF",
+            fontStroke: "#000000",
+            fontFamily: "Arial",
+            fontStyle: "bold",
+            fontSize: 98,
+            maxTextPercent: 0.8,
+            imageScale: 0.8,
+            transparency: 0.25,
+            canvasExportType: "image/png",
+            leftAdjustment: 0.15,
+            topAdjustment: 0.9,
+            debugOutput: true
+        };
+        cfg.textLabel = defTextLabel;
+        setHypWidth(cfg);
+        return cfg;
+    }
+
+    function computeFontSizeToWidth(cfg, ctx) {
+        let useFontSize = parseInt(cfg.fontSize);
+        ctx.font = [
+            cfg.fontStyle,
+            useFontSize + "pt",
+            cfg.fontFamily
+        ].join(" ");
+
+        let txtWidth = ctx.measureText(cfg.textLabel).width;
+        let txtRatio = (txtWidth / cfg.hypWidth);
+
+        while (txtRatio < cfg.maxTextPercent) {
+            useFontSize += 1;
+            ctx.font = [
+                cfg.fontStyle,
+                useFontSize + "pt",
+                cfg.fontFamily
+            ].join(" ");
+            txtWidth = ctx.measureText(cfg.textLabel).width;
+            txtRatio = (txtWidth / cfg.hypWidth);
+        }
+        return useFontSize;
+    }
+
+    function toRadians(degrees) {
+        return (degrees * Math.PI / 180);
+    }
+    function toDegrees(radians) {
+        return (radians / Math.PI * 180);
+    }
+    function applyCosine(a, b, c) {
+        let angle = (
+            Math.pow(a, 2) + Math.pow(b, 2) - Math.pow(c, 2)
+        ) / (2 * a * b);
+        if (angle >= -1 && angle <= 0.99) {
+            return toDegrees(Math.acos(angle));
+        } else {
+            return 0;
+        }
+    }
+
+    function waterMark(cfg) {
+        return new Promise(function (res, rej) {
+            let cvs = createCanvas(cfg.width, cfg.height);
+            registerFont("./fonts/Helvetica.otf", {family: "Helvetica"});
+
+            let ctx = cvs.getContext("2d");
+
+            let useFontSize = computeFontSizeToWidth(cfg, ctx);
+            let triangle = {
+                A: Math.round(
+                    applyCosine(cfg.height, cfg.hypWidth, cfg.width)
+                ),
+                B: Math.round(
+                    applyCosine(cfg.hypWidth, cfg.width, cfg.height)
+                ),
+                C: Math.round(
+                    applyCosine(cfg.width, cfg.height, cfg.hypWidth)
+                )
+            };
+            let angle = triangle.B;
+
+            ctx.textAlign = cfg.textAlign;
+            ctx.fillStyle = cfg.fontColor;
+            ctx.strokeStyle = cfg.fontStroke;
+            ctx.font = [
+                cfg.fontStyle,
+                useFontSize + "pt",
+                cfg.fontFamily
+            ].join(" ");
+            let metric = ctx.measureText(cfg.textLabel);
+            let textWidth = metric.width;
+            let textHeight = metric.actualBoundingBoxAscent;
+            textHeight += metric.actualBoundingBoxDescent;
+
+            let left = (cfg.width * cfg.leftAdjustment);
+            let top = (cfg.height * cfg.topAdjustment);
+            ctx.save();
+            ctx.translate(left, top + textHeight / 2);
+            ctx.rotate(toRadians(-1 * angle));
+            ctx.globalAlpha = cfg.transparency;
+            if (cfg.strokeText) {
+                ctx.strokeText(cfg.textLabel, textWidth / 2, 0);
+            }
+            if (cfg.fillText) {
+                ctx.fillText(cfg.textLabel, textWidth / 2, 0);
+            }
+            if (!cfg.debugOutput) {
+                res(cvs);
+            } else {
+                let buff = cvs.toBuffer(cfg.canvasExportType);
+                fs.writeFile("./debug.png", buff, function (err) {
+                    if (err) {
+                        rej(err);
+                    } else {
+                        res(cvs);
+                    }
+                });
+            }
+        });
+    }
+
+    async function waterMarkPage(cfg, pdfDoc, page, cvs) {
+        let w = page.getWidth();
+        let h = page.getHeight();
+        if (!cvs || (
+            cfg.adoptPageDimensions && (w !== cfg.width || h !== cfg.height)
+        )) {
+            cfg.width = w;
+            cfg.height = h;
+            setHypWidth(cfg);
+            cvs = await waterMark(cfg);
+        }
+
+        let arrayBuff = cvs.toBuffer(cfg.canvasExportType);
+        let pngBuff = Buffer.alloc(arrayBuff.length);
+        pngBuff.fill(new Uint8Array(arrayBuff));
+        const pngImage = await pdfDoc.embedPng(pngBuff);
+
+        /// There is a margin on the image
+        /// It is currently scaled down by 20% and on the x-axis
+        ///
+        const pngDims = pngImage.scale(cfg.imageScale);
+
+        let px = 0;
+        let py = page.getHeight() - (page.getHeight() * cfg.maxTextPercent);
+        page.drawImage(pngImage, {
+            x: px,
+            y: py,
+            width: pngDims.width,
+            height: pngDims.height
+        });
+    }
+    async function savePdf(path, bytes) {
+        return await new Promise(function (res, rej) {
+            fs.writeFile(path, bytes, function (err) {
+                if (err) {
+                    rej(err);
+                } else {
+                    res();
+                }
+            });
+        });
+    }
+    async function waterMarkPdf(bytes, label, outPath, options) {
+        let cfg = newPdfConfig();
+        cfg.textLabel = label || defTextLabel;
+        if (options) {
+            if (options.width && options.height) {
+                cfg.width = options.width;
+                cfg.height = options.height;
+                setHypWidth(cfg);
+            }
+
+            if (options.minimumSize) {
+                cfg.fontSize = options.minimumSize;
+            }
+            if (options.leftAdjustment) {
+                cfg.leftAdjustment = options.leftAdjustment;
+            }
+            if (options.topAdjustment) {
+                cfg.topAdjustment = options.topAdjustment;
+            }
+            if (typeof options.opacity === "number") {
+                cfg.transparency = options.opacity;
+            }
+            if (typeof options.strokeText === "boolean") {
+                cfg.strokeText = options.strokeText;
+            }
+            if (typeof options.fillText === "boolean") {
+                cfg.fillText = options.fillText;
+            }
+            if (options.fillColor) {
+                cfg.fontColor = options.fillColor;
+            }
+            if (options.strokeColor) {
+                cfg.fontStroke = options.strokeColor;
+            }
+            if (options.fontFamily) {
+                cfg.fontFamily = options.fontFamily;
+            }
+        }
+        if (!options || !(
+            options.width && options.height
+        )) {
+            cfg.adoptPageDimensions = true;
+        }
+
+        let cvs;
+        if (!cfg.adoptPageDimensions) {
+            cvs = await waterMark(cfg);
+        }
+        if (typeof bytes === "string") {
+            bytes = await new Promise(function (res, rej) {
+                fs.readFile(bytes, function (err, resp) {
+                    if (err) {
+                        rej(resp);
+                    } else {
+                        res(resp);
+                    }
+                });
+            });
+        }
+        let pdfDoc = await PDFDocument.load(bytes);
+
+        let pages = pdfDoc.getPages();
+        let i;
+        for (i = 0; i < pages.length; i += 1) {
+            await waterMarkPage(cfg, pdfDoc, pages[i], cvs);
+        }
+
+        let outBytes = await pdfDoc.save();
+        if (outPath) {
+            await savePdf(outPath, outBytes);
+        }
+        return outBytes;
+    }
+
+    exports.annotate = async function (bytes, options) {
+        if (!options) {
+            return bytes;
+        }
+        if (options.annotation && options.annotation.annotate) {
+            bytes = await annotatePDF(bytes, options.annotation);
+        }
+        if (options.watermark) {
+            bytes = await waterMarkPdf(
+                bytes,
+                options.watermark.label || "Confidential",
+                null,
+                options.watermark
+            );
+        }
+        return bytes;
     };
 
 }(exports));

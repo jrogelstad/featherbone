@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2021  John Rogelstad
+    Copyright (C) 2022  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/*jslint this, browser*/
+/*jslint this browser devel unordered*/
 /*global f, m*/
 /**
     @module FormPage
@@ -614,6 +614,37 @@ formPage.viewModel = function (options) {
         return m.request(payload).then(openPdf).catch(error);
     }
 
+    function confirmOk() {
+        vm.model().state().send("undo");
+        vm.doBack(true);
+    }
+
+    // Dialog gets modified by actions, so reset after any useage
+    function doResetDialog() {
+        let dlg = vm.confirmDialog();
+
+        dlg.icon("help_outline");
+        dlg.title("Confirm close");
+        dlg.message("You will lose changes you have made. Are you sure?");
+        dlg.buttonOk().show();
+        dlg.buttonCancel().show();
+        dlg.buttonCancel().isPrimary(false);
+        dlg.onOk(confirmOk);
+        dlg.onCancel(undefined);
+        dlg.content = function () {
+            return m("div", {
+                id: dlg.ids().content
+            }, dlg.message());
+        };
+        dlg.buttons([
+            dlg.buttonOk,
+            dlg.buttonCancel
+        ]);
+        dlg.buttonOk().label("&Ok");
+        dlg.buttonCancel().label("&Cancel");
+        dlg.style({width: "450px"});
+    }
+
     // Check if we've already got a model instantiated
     if (options.key && instances[options.key]) {
         fmodel = instances[options.key];
@@ -624,7 +655,13 @@ formPage.viewModel = function (options) {
     // ..........................................................
     // PUBLIC
     //
-
+    /**
+        Actionsinstantiated as buttons
+        @method formActions
+        @param {Form.FormAction} action
+        @return {Array}
+    */
+    vm.actionButtons = f.prop([]);
     /**
         @method buttonApply
         @param {ViewModels.Button} button
@@ -676,11 +713,9 @@ formPage.viewModel = function (options) {
         icon: "help_outline",
         title: "Confirm close",
         message: ("You will lose changes you have made. Are you sure?"),
-        onOk: function () {
-            vm.model().state().send("undo");
-            vm.doBack(true);
-        }
+        onOk: confirmOk
     }));
+    vm.confirmDialog().state().resolve("/Display/Closed").enter(doResetDialog);
     /**
         @method doApply
     */
@@ -728,13 +763,26 @@ formPage.viewModel = function (options) {
         @method doCopy
     */
     vm.doCopy = function () {
-        let inst = formInstances[vm.model().id()];
+        let id = vm.model().id();
+        let inst = formInstances[id];
 
-        delete instances[vm.model().id()];
-        delete formInstances[vm.model().id()];
+        delete instances[id];
+        delete formInstances[id];
         vm.model().copy();
-        instances[vm.model().id()] = vm.model();
-        formInstances[vm.model().id()] = inst;
+        id = vm.model().id();
+        instances[id] = vm.model();
+        formInstances[id] = inst;
+        m.route.set("/edit/:feather/:key", {
+            feather: options.feather,
+            key: id
+        }, {
+            state: {
+                form: options.form,
+                index: pageIdx + 1,
+                create: false,
+                receiver: options.receiver
+            }
+        });
     };
     /**
         @method doNew
@@ -834,6 +882,16 @@ formPage.viewModel = function (options) {
     vm.model = function () {
         return vm.formWidget().model();
     };
+   /**
+        Returns model in an array for compatibility
+        with list actions.
+
+        @method selections
+        @return {Model}
+    */
+    vm.selections = function () {
+        return [vm.formWidget().model()];
+    };
     /**
         @method buttonEdit
         @param {ViewModels.Dialog} dialog
@@ -856,7 +914,7 @@ formPage.viewModel = function (options) {
         @return {String}
     */
     vm.title = function () {
-        return options.feather.toName();
+        return form.title || options.feather.toName();
     };
     /**
         @method toggleNew
@@ -916,6 +974,44 @@ formPage.viewModel = function (options) {
     // Memoize our model instance in case we leave and come back while
     // zooming deeper into detail
     instances[vm.model().id()] = vm.model();
+
+    // Add action buttons defined in form
+    form.actions = form.actions || [];
+    let actidx = form.actions.length - 1;
+    let action;
+    let fn = f.catalog().store().models()[options.feather.toCamelCase()];
+    let theClass = toolbarButtonClass + " fb-toolbar-button-right ";
+    let posClass;
+    let btn;
+    let validator = function (check) {
+        return !Boolean(check(vm.selections()));
+    };
+    let onClick = (act) => act(vm);
+
+    while (actidx >= 0) {
+        action = form.actions[actidx];
+        fn = f.catalog().store().models()[options.feather.toCamelCase()];
+        theClass = toolbarButtonClass + " fb-toolbar-button-right ";
+        posClass = "";
+
+        theClass += posClass;
+
+        btn = f.createViewModel("Button", {
+            onclick: onClick.bind(null, fn.static()[action.method]),
+            label: action.name,
+            title: action.title,
+            icon: action.icon,
+            class: theClass
+        });
+        if (Boolean(action.validator)) {
+            btn.isDisabled = validator.bind(
+                null,
+                fn.static()[action.validator]
+            );
+        }
+        vm.actionButtons().push(btn);
+        actidx -= 1;
+    }
 
     // Create button view models
     vm.buttonBack(f.createViewModel("Button", {
@@ -1096,6 +1192,7 @@ formPage.component = {
         let eClass = "lds-small-dual-ring";
         let buttonAuthView;
         let editAuthDialogView;
+        let buttons;
 
         switch (f.currentUser().mode) {
         case "test":
@@ -1161,32 +1258,27 @@ formPage.component = {
             });
         }
 
+        buttons = [
+            buttonAuthView,
+            m(btn, {viewModel: vm.buttonPdf()}),
+            m(btn, {viewModel: vm.buttonCopy()})
+        ];
+        vm.actionButtons().forEach(function (ab) {
+            return buttons.push(m(btn, {viewModel: ab}));
+        });
+        buttons = buttons.concat([
+            m(btn, {viewModel: vm.buttonBack()}),
+            m(btn, {viewModel: vm.buttonApply()}),
+            m(btn, {viewModel: vm.buttonSave()}),
+            m(btn, {viewModel: vm.buttonSaveAndNew()})
+        ]);
+
         // Build view
         return m("div", [
             m("div", {
                 id: "toolbar",
                 class: toolbarClass
-            }, [
-                buttonAuthView,
-                m(btn, {
-                    viewModel: vm.buttonPdf()
-                }),
-                m(btn, {
-                    viewModel: vm.buttonCopy()
-                }),
-                m(btn, {
-                    viewModel: vm.buttonBack()
-                }),
-                m(btn, {
-                    viewModel: vm.buttonApply()
-                }),
-                m(btn, {
-                    viewModel: vm.buttonSave()
-                }),
-                m(btn, {
-                    viewModel: vm.buttonSaveAndNew()
-                })
-            ]),
+            }, buttons),
             m("div", {
                 class: "fb-title",
                 id: "title"
