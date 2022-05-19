@@ -11,6 +11,8 @@
             "name": "Client Script"
         }, {
             "name": "Dependencies"
+        }, {
+            "name": "Node Packages"
         }],
         "attrs": [{
             "attr": "name"
@@ -25,8 +27,22 @@
             "attr": "dependencies",
             "showLabel": false,
             "grid": 2,
-            "columns": [{
+            "columns": [
+            {
                 "attr": "module"
+            }]
+        }, {
+            "attr": "npm",
+            "showLabel": false,
+            "grid": 3,
+            "columns": [{
+                "attr": "package"
+            }, {
+                "attr": "version"
+            }, {
+                "attr": "property"
+            }, {
+                "attr": "export"
             }]
         }]
     }
@@ -386,7 +402,9 @@
         "tabs": [{
             "name": "Attributes"
         }, {
-            "name": "Tabs"
+            "name": "Grids"
+        }, {
+            "name": "Actions"
         }, {
             "name": "Print"
         }, {
@@ -394,101 +412,223 @@
         }],
         "attrs": [{
             "attr": "name",
+            "columns": [],
+            "dataList": "",
             "grid": 0,
+            "label": "",
+            "showLabel": true,
             "unit": 0
         }, {
             "attr": "description",
+            "columns": [],
+            "dataList": "",
             "grid": 0,
-            "unit": 0
-        }, {
-            "attr": "title",
-            "grid": 3,
+            "label": "",
+            "showLabel": true,
             "unit": 0
         }, {
             "attr": "isActive",
+            "columns": [],
+            "dataList": "",
             "grid": 0,
+            "showLabel": true,
+            "unit": 0
+        }, {
+            "attr": "isDefault",
+            "columns": [],
+            "dataList": "",
+            "grid": 0,
+            "label": "",
+            "showLabel": true,
             "unit": 0
         }, {
             "attr": "module",
+            "columns": [],
             "dataList": "modules",
             "grid": 0,
+            "label": "",
+            "showLabel": true,
             "unit": 1
         }, {
             "attr": "feather",
+            "columns": [],
             "dataList": "feathers",
             "grid": 0,
+            "label": "",
+            "showLabel": true,
             "unit": 1
         }, {
             "attr": "focus",
+            "columns": [],
             "grid": 0,
+            "label": "",
+            "showLabel": true,
             "unit": 1,
             "dataList": "properties"
         }, {
+            "attr": "orientation",
+            "columns": [],
+            "grid": 2,
+            "label": "",
+            "showLabel": true,
+            "unit": 0,
+            "dataList": ""
+        }, {
             "attr": "attrs",
+            "dataList": "",
             "grid": 1,
+            "label": "",
             "unit": 0,
             "showLabel": false,
             "columns": [{
                 "attr": "attr",
                 "label": "Attribute",
-                "dataList": "properties"
+                "dataList": "properties",
+                "width": 0
             }, {
                 "attr": "grid",
+                "dataList": "",
+                "label": "",
                 "width": 50
             }, {
                 "attr": "unit",
+                "dataList": "",
+                "label": "",
                 "width": 50
             }, {
                 "attr": "showLabel",
+                "dataList": "",
+                "label": "",
                 "width": 100
             }, {
-                "attr": "label"
+                "attr": "label",
+                "dataList": "",
+                "label": "",
+                "width": 0
             }, {
-                "attr": "dataList"
+                "attr": "dataList",
+                "dataList": "",
+                "label": "",
+                "width": 0
             }, {
-                "attr": "relationWidget"
+                "attr": "relationWidget",
+                "dataList": "",
+                "label": "",
+                "width": 0
             }, {
-                "attr": "disableCurrency"
+                "attr": "disableCurrency",
+                "dataList": "",
+                "label": "",
+                "width": 0
             }]
         }, {
             "attr": "tabs",
+            "dataList": "",
             "grid": 2,
+            "label": "",
             "unit": 0,
             "showLabel": false,
             "columns": [{
-                "attr": "name"
+                "attr": "name",
+                "label": "",
+                "dataList": "",
+                "width": 0
             }]
         }, {
-            "attr": "paperSize",
+            "attr": "actions",
+            "dataList": "",
             "grid": 3,
+            "label": "",
+            "unit": 0,
+            "showLabel": false,
+            "columns": [{
+                "attr": "name",
+                "dataList": "",
+                "width": 165
+            }, {
+                "attr": "title",
+                "dataList": "",
+                "label": "",
+                "width": 165
+            }, {
+                "attr": "icon",
+                "dataList": "",
+                "label": "",
+                "width": 165
+            }, {
+                "attr": "method",
+                "dataList": "methodList",
+                "label": "",
+                "width": 165
+            }, {
+                "attr": "validator",
+                "dataList": "methodList",
+                "label": "",
+                "width": 165
+            }]
+        }, {
+            "attr": "title",
+            "columns": [],
+            "dataList": "",
+            "grid": 4,
+            "label": "",
+            "showLabel": true,
+            "unit": 0
+        }, {
+            "attr": "paperSize",
+            "columns": [],
+            "dataList": "",
+            "grid": 4,
+            "label": "",
+            "showLabel": true,
             "unit": 0
         }, {
             "attr": "font",
-            "grid": 3,
+            "columns": [],
+            "dataList": "",
+            "grid": 4,
+            "label": "",
+            "showLabel": true,
             "unit": 0
         }, {
             "attr": "showLabelKey",
-            "grid": 3,
+            "dataList": "",
+            "columns": [],
+            "grid": 4,
+            "label": "",
+            "showLabel": true,
             "unit": 0
         }, {
             "attr": "created",
-            "grid": 4,
+            "columns": [],
+            "dataList": "",
+            "grid": 5,
+            "label": "",
+            "showLabel": true,
             "unit": 0
         }, {
             "attr": "createdBy",
-            "grid": 4,
+            "columns": [],
+            "dataList": "",
+            "grid": 5,
+            "label": "",
+            "showLabel": true,
             "unit": 0
         }, {
             "attr": "updated",
-            "grid": 4,
+            "columns": [],
+            "dataList": "",
+            "grid": 5,
+            "label": "",
+            "showLabel": true,
             "unit": 0
         }, {
             "attr": "updatedBy",
-            "grid": 4,
-            "unit": 0
-        }, {
-            "attr": "isDefault",
-            "grid": 0,
+            "columns": [],
+            "dataList": "",
+            "grid": 5,
+            "label": "", 
+            "showLabel": true,
             "unit": 0
         }]
     }

@@ -1,6 +1,7 @@
 {
     "clientPort": 80,
     "debug": true,
+    "fileUpload": true,
     "logLevel": "info",
     "logMaxFiles": "7d",
     "logMaxSize": "10m",
@@ -8,18 +9,16 @@
     "logSilent": false,
     "mode": "prod",
     "nodeId": "node1",
-    "npmModules": [],
     "passwordLength": 0,
     "pgHost": "127.0.0.1",
     "pgDatabase": "demo",
     "pgPort": 5432,
     "pgUser": "admin",
     "pgPassword": "password",
-    "ssl": false,
     "pgSslCA": "./server/ssl/root.crt",
     "pgSslKey": "./server/ssl/server.key",
     "pgSslCert": "./server/ssl/server.crt",
     "secret": "Your own session key here",
     "sessionTimeout": 86400000,
-    "npmModules": []
+    "ssl": false
 }
