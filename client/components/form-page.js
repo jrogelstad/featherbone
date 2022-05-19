@@ -763,13 +763,26 @@ formPage.viewModel = function (options) {
         @method doCopy
     */
     vm.doCopy = function () {
-        let inst = formInstances[vm.model().id()];
+        let id = vm.model().id();
+        let inst = formInstances[id];
 
-        delete instances[vm.model().id()];
-        delete formInstances[vm.model().id()];
+        delete instances[id];
+        delete formInstances[id];
         vm.model().copy();
-        instances[vm.model().id()] = vm.model();
-        formInstances[vm.model().id()] = inst;
+        id = vm.model().id();
+        instances[id] = vm.model();
+        formInstances[id] = inst;
+        m.route.set("/edit/:feather/:key", {
+            feather: options.feather,
+            key: id
+        }, {
+            state: {
+                form: options.form,
+                index: pageIdx + 1,
+                create: false,
+                receiver: options.receiver
+            }
+        });
     };
     /**
         @method doNew

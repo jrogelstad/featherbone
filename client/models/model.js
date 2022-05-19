@@ -922,6 +922,9 @@ function createModel(data, feather) {
 
     /**
         Add an event binding that will be triggered after a copy is executed.
+        Use this function to reset or caclulate properties on the new copy.
+        The callback passes in an object with an original copy of the data
+        in case it is needed as a reference to update the copy.
 
         @method onCopy
         @param {Function} callback Callback function to call on change
@@ -1341,6 +1344,7 @@ function createModel(data, feather) {
     function doCopy() {
         let nkey = model.naturalKey(true);
         let copy = f.copy(model.toJSON());
+        let orig = f.copy(copy);
         let autonum = (
             Boolean(nkey)
             ? Boolean(feather.properties[nkey].autonumber)
@@ -1357,7 +1361,7 @@ function createModel(data, feather) {
 
         model.clear();
         model.set(copy);
-        onCopy.forEach((callback) => callback());
+        onCopy.forEach((callback) => callback(orig));
     }
 
     doClear = function (context) {
