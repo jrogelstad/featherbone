@@ -82,6 +82,13 @@ relationWidget.viewModel = function (options) {
     let modelList;
     let configId = f.createId();
     let blurVal;
+    let theProps = options.list.columns.map((l) => l.attr);
+    if (theProps.indexOf(labelProperty) === -1) {
+        theProps.unshift(labelProperty);
+    }
+    if (theProps.indexOf(valueProperty) === -1) {
+        theProps.unshift(valueProperty);
+    }
 
     function updateValue(prop) {
         let value = prop();
@@ -147,10 +154,7 @@ relationWidget.viewModel = function (options) {
         fetch: false,
         isEditable: false
     });
-    modelList.properties([valueProperty]);
-    if (labelProperty) {
-        modelList.properties().push(labelProperty);
-    }
+    modelList.properties();
     modelList.fetch(mergeFilter(theFilter), false).then(blurFetch);
 
     // Make sure data changes made by biz logic in the model are
