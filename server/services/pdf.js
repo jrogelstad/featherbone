@@ -31,7 +31,7 @@
     const {Feathers} = require("./feathers");
     const pdf = require("pdfjs");
     const {degrees, rgb, StandardFonts, PDFDocument} = require("pdf-lib");
-    const {createCanvas} = require("canvas");
+    const {registerFont, createCanvas} = require("canvas");
     const defTextLabel = "Confidential";
     const http = require("http");
     const https = require("https");
@@ -231,6 +231,7 @@
                 let dir = "./files/downloads/";
                 let attachments = [];
                 let annotation;
+
                 if (options && options.annotation) {
                     annotation = options.annotation;
                 }
@@ -1228,6 +1229,10 @@
     }
 
     async function annotatePDF(bytes, opts) {
+
+        opts.padding = opts.padding || 1;
+        opts.borderWidth = opts.borderWidth || 1;
+
         let pdfDoc = await PDFDocument.load(bytes);
         let pages = pdfDoc.getPages();
 
@@ -1255,6 +1260,7 @@
                 opts.data.push(rowData);
             });
         }
+
         let rowWidth = opts.fields.reduce(function (sum, curr) {
             return (
                 (
@@ -1269,11 +1275,38 @@
         let font = await pdfDoc.embedFont(StandardFonts.Helvetica);
         let fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
         let textHeight = parseInt(font.heightAtSize(opts.fontSize));
-        let rowHeight = textHeight + 3;
+        let rowHeight = textHeight + (opts.padding * 2) + opts.borderWidth;
         let totalHeight = rowHeight * (opts.data.length + 1);
-        //console.log(totalHeight + )
+
+        if (opts.fitText) {
+            opts.data.forEach(function (dat) {
+                opts.fields.forEach(function (f, i) {
+                    let maxWid = f.width - opts.padding * 2;
+                    if (dat && dat[i]) {
+                        let txt = dat[i];
+                        let wid = parseInt(
+                            font.widthOfTextAtSize(txt, opts.fontSize)
+                        );
+                        let suff = "…";
+                        while (wid > maxWid) {
+                            txt = txt.slice(0, txt.length - 2);
+                            wid = parseInt(
+                                font.widthOfTextAtSize(
+                                    txt + suff,
+                                    opts.fontSize
+                                )
+                            );
+                        }
+                        if (txt.length !== dat[i].length) {
+                            dat[i] = txt + suff;
+                        }
+                    }
+                });
+            });
+        }
+
         opts.width = rowWidth;
-        opts.top -= totalHeight;
+        opts.top -= (totalHeight * rotationModifier(page));
         opts.font = font;
         opts.fontBold = fontBold;
         opts.rowHeight = rowHeight;
@@ -1364,6 +1397,8 @@
     function waterMark(cfg) {
         return new Promise(function (res, rej) {
             let cvs = createCanvas(cfg.width, cfg.height);
+            registerFont("./fonts/Helvetica.otf", {family: "Helvetica"});
+
             let ctx = cvs.getContext("2d");
 
             let useFontSize = computeFontSizeToWidth(cfg, ctx);
@@ -1535,6 +1570,24 @@
         }
         return outBytes;
     }
+
+    exports.annotate = async function (bytes, options) {
+        if (!options) {
+            return bytes;
+        }
+        if (options.annotation && options.annotation.annotate) {
+            bytes = await annotatePDF(bytes, options.annotation);
+        }
+        if (options.watermark) {
+            bytes = await waterMarkPdf(
+                bytes,
+                options.watermark.label || "Confidential",
+                null,
+                options.watermark
+            );
+        }
+        return bytes;
+    };
 
 }(exports));
 
