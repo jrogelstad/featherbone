@@ -184,121 +184,75 @@
         }
         logger.error(err.message);
         this.status(err.statusCode).json(err.message);
+        datasource.getCatalog().catch(function (e) {
+            console.log(e);
+        });
     }
 
-    function init() {
-        return new Promise(function (resolve, reject) {
-            function configLogger() {
-                return new Promise(function (resolve) {
-                    config.read().then(function (resp) {
-                        let log = {
-                            level: resp.logLevel,
-                            zippedArchive: resp.logZippedArchive,
-                            maxSize: resp.logMaxSize,
-                            maxFiles: resp.logMaxFiles,
-                            silent: resp.logSilent
-                        };
-                        let fmt = winston.format.combine(
-                            winston.format.timestamp(),
-                            winston.format.json()
-                        );
+    async function init() {
+        try {
+            // Configure logger
+            let resp = await config.read();
+            let log = {
+                level: resp.logLevel,
+                zippedArchive: resp.logZippedArchive,
+                maxSize: resp.logMaxSize,
+                maxFiles: resp.logMaxFiles,
+                silent: resp.logSilent
+            };
+            let fmt = winston.format.combine(
+                winston.format.timestamp(),
+                winston.format.json()
+            );
 
-                        logger = winston.createLogger({
-                            format: fmt,
-                            level: loglevel || log.level || "info",
-                            transports: [],
-                            silent: Boolean(log.silent)
-                        });
-
-                        if (consolelog) {
-                            logger.add(new winston.transports.Console({
-                                format: winston.format.prettyPrint()
-                            }));
-                        }
-
-                        logger.add(
-                            new(winston.transports.DailyRotateFile)({
-                                format: fmt,
-                                filename: "./logs/featherbone-%DATE%.log",
-                                datePattern: "YYYY-MM-DD-HH",
-                                zippedArchive: Boolean(log.zippedArchive),
-                                maxSize: log.maxSize || "20m",
-                                maxFiles: log.maxFiles || "7d"
-                            })
-                        );
-
-                        logger.info("Featherbone server starting");
-                        resolve();
-                    });
-                });
-            }
-
-            function getRoutes() {
-                return new Promise(function (resolve, reject) {
-                    datasource.getRoutes().then(
-                        function (data) {
-                            routes = data;
-                            resolve();
-                        }
-                    ).catch(
-                        reject
-                    );
-                });
-            }
-
-            function setPool(pool) {
-                return new Promise(function (resolve) {
-                    pgPool = pool;
-                    resolve();
-                });
-            }
-
-            function getConfig() {
-                return new Promise(function (resolve) {
-                    config.read().then(function (resp) {
-                        debug = Boolean(resp.debug);
-
-                        // Default 1 day.
-                        sessionTimeout = resp.sessionTimeout || 86400000;
-                        thesecret = resp.secret;
-                        systemUser = resp.pgUser;
-                        mode = resp.mode || "prod";
-                        port = process.env.PORT || resp.clientPort || 80;
-                        fileUpload = Boolean(resp.fileUpload);
-                        resolve();
-                    });
-                });
-            }
-
-            // Execute
-            Promise.resolve().then(
-                configLogger
-            ).then(
-                datasource.getCatalog
-            ).then(
-                getRoutes
-            ).then(
-                datasource.unsubscribe
-            ).then(
-                datasource.unlock
-            ).then(
-                datasource.getPool
-            ).then(
-                setPool
-            ).then(
-                getConfig
-            ).then(
-                datasource.loadNpmModules
-            ).then(
-                datasource.loadServices
-            ).then(
-                resolve
-            ).catch(function (err) {
-                logger.error(err.message);
-                console.log(err);
-                reject(err);
+            logger = winston.createLogger({
+                format: fmt,
+                level: loglevel || log.level || "info",
+                transports: [],
+                silent: Boolean(log.silent)
             });
-        });
+
+            if (consolelog) {
+                logger.add(new winston.transports.Console({
+                    format: winston.format.prettyPrint()
+                }));
+            }
+
+            logger.add(
+                new(winston.transports.DailyRotateFile)({
+                    format: fmt,
+                    filename: "./logs/featherbone-%DATE%.log",
+                    datePattern: "YYYY-MM-DD-HH",
+                    zippedArchive: Boolean(log.zippedArchive),
+                    maxSize: log.maxSize || "20m",
+                    maxFiles: log.maxFiles || "7d"
+                })
+            );
+
+            logger.info("Featherbone server starting");
+
+            // Other config
+            debug = Boolean(resp.debug);
+
+            // Default 1 day.
+            sessionTimeout = resp.sessionTimeout || 86400000;
+            thesecret = resp.secret;
+            systemUser = resp.pgUser;
+            mode = resp.mode || "prod";
+            port = process.env.PORT || resp.clientPort || 80;
+            fileUpload = Boolean(resp.fileUpload);
+
+            await datasource.getCatalog();
+            routes = await datasource.getRoutes();
+            await datasource.unsubscribe();
+            await datasource.unlock();
+            pgPool = await datasource.getPool();
+            await datasource.loadNpmModules();
+            await datasource.loadServices();
+        } catch (err) {
+            logger.error(err.message);
+            console.log(err);
+        }
     }
 
     function resolveName(apiPath) {
@@ -334,6 +288,32 @@
 
             return;
         }
+    }
+
+    function postify(req, res) {
+        let payload = {
+            method: "POST",
+            name: this,
+            user: req.user.name,
+            data: req.body
+        };
+
+        logger.info(payload);
+        datasource.request(
+            payload
+        ).then(
+            respond.bind(res)
+        ).catch(
+            error.bind(res)
+        );
+    }
+
+    function registerRoute(route) {
+        let fullPath = "/" + route.module.toSpinalCase() + route.path;
+        let doPostRequest = postify.bind(route.function);
+
+        logger.info("Registering module route: " + fullPath);
+        app.post(fullPath, doPostRequest);
     }
 
     function doRequest(req, res) {
@@ -1301,6 +1281,44 @@
         });
     }
 
+    // Listen for changes to catalog, refresh if changed
+    async function subscribeToCatalog() {
+        let eKey = f.createId();
+
+        // Refresh the local copy of the catalog if it changes
+        eventSessions[eKey] = function () {
+            datasource.getCatalog().catch(console.log);
+        };
+        eventSessions[eKey].fetch = false;
+
+        await datasource.request({
+            name: "getSettings",
+            method: "GET",
+            user: systemUser,
+            subscription: {id: f.createId(), eventKey: eKey},
+            data: {name: "catalog"}
+        }, true);
+    }
+
+    // Listen for changes to routes, refresh if changed
+    async function subscribeToRoutes() {
+        let sid = f.createId();
+        let eKey = f.createId();
+
+        // Reregister routes if something changes
+        eventSessions[eKey] = async function () {
+            routes = await datasource.getRoutes();
+            routes.forEach(registerRoute);
+        };
+
+        await datasource.request({
+            name: "Route",
+            method: "GET",
+            user: systemUser,
+            subscription: {id: sid, eventKey: eKey}
+        }, true);
+    }
+
     function start() {
         // Define exactly which directories and files are to be served
         let dirs = [
@@ -1585,31 +1603,7 @@
         datasource.listen(receiver).then(handleEvents).catch(console.error);
 
         // REGISTER MODULE ROUTES
-        function postify(req, res) {
-            let payload = {
-                method: "POST",
-                name: this,
-                user: req.user.name,
-                data: req.body
-            };
-
-            logger.info(payload);
-            datasource.request(
-                payload
-            ).then(
-                respond.bind(res)
-            ).catch(
-                error.bind(res)
-            );
-        }
-
-        routes.forEach(function (route) {
-            let fullPath = "/" + route.module.toSpinalCase() + route.path;
-            let doPostRequest = postify.bind(route.function);
-
-            logger.info("Registering module route: " + fullPath);
-            app.post(fullPath, doPostRequest);
-        });
+        routes.forEach(registerRoute);
 
         // START THE SERVER
         // ====================================================================
@@ -1629,5 +1623,9 @@
 
     init().then(
         subscribeToFeathers
+    ).then(
+        subscribeToCatalog
+    ).then(
+        subscribeToRoutes
     ).then(start).catch(process.exit);
 }());

@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2021  John Rogelstad
+    Copyright (C) 2022  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/*jslint node*/
+/*jslint node unordered*/
 /**
     @module Packager
 */
@@ -66,7 +66,8 @@
             let theOne;
             let sql = (
                 "SELECT name, version, script, " +
-                "to_json(dependencies) AS dependencies " +
+                "to_json(dependencies) AS dependencies, " +
+                "to_json(npm) as npm " +
                 "FROM _module ORDER BY name;"
             );
 
@@ -163,6 +164,14 @@
         manifest.module = content.name;
         manifest.version = content.version;
         manifest.dependencies = content.dependencies;
+        manifest.npm = content.npm.map(function (r) {
+            return {
+                package: r.package,
+                version: r.version,
+                property: r.property,
+                export: r.export
+            };
+        });
         manifest.files.push({
             type: "module",
             path: "module.js"

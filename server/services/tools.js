@@ -1,6 +1,6 @@
-    /*
+/*
     Framework for building object relational database apps
-    Copyright (C) 2021  John Rogelstad
+    Copyright (C) 2022  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -88,6 +88,7 @@
             `canDelete`
             @param {String} table
             @param {Array} tokens
+            @param {Boolean} [rowAuth] check row authorization
             @param {Integer} [p] parameter number. Default 1
             @return {String} SQL clause
         */
