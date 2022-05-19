@@ -1983,11 +1983,7 @@ f.processEvent = function (obj) {
         });
 
         if (instance) {
-            if (ary.showDeleted()) {
-                instance.data.isDeleted(true);
-            } else {
-                ary.remove(instance);
-            }
+            ary.remove(instance);
         }
         break;
     case "lock":

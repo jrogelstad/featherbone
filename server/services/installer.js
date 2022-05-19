@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2021  John Rogelstad
+    Copyright (C) 2022  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/*jslint node*/
+/*jslint node unordered*/
 /**
     @module Installer
 */
@@ -159,7 +159,13 @@
                     );
                 }
 
-                function saveModule(pName, pScript, pVersion, pDependencies) {
+                function saveModule(
+                    pName,
+                    pScript,
+                    pVersion,
+                    pDependencies,
+                    pNpm
+                ) {
                     function callback(modules) {
                         pDependencies = pDependencies || [];
                         let found = modules.find((r) => r.name === pName);
@@ -199,7 +205,8 @@
                                 version: pVersion,
                                 owner: pUser,
                                 script: pScript,
-                                dependencies: deps
+                                dependencies: deps,
+                                npm: pNpm
                             }
                         };
 
@@ -463,6 +470,7 @@
                             file.dependencies = (
                                 file.dependencies || manifest.dependencies
                             );
+                            file.npm = file.npm || subman.npm || manifest.npm;
                             manifest.files.splice(n, 0, file);
                             n += 1;
                         });
@@ -509,15 +517,23 @@
                     let dependencies;
                     let content;
                     let name;
+                    let npm;
 
                     function complete() {
                         isInstalling = false;
                         // Some services won't initialize while installing
                         // so do it again now to make sure they're started
-                        pDatasource.loadServices(
+                        console.log("Applying npm packages...");
+                        pDatasource.loadNpmModules(
                             pUser,
                             pClient
                         ).then(function () {
+                            console.log("Reloading data services...");
+                            return pDatasource.loadServices(
+                                pUser,
+                                pClient
+                            );
+                        }).then(function () {
                             console.log("Installation completed!");
                             resolve();
                         });
@@ -570,6 +586,7 @@
                     module = file.module || manifest.module;
                     version = file.version || manifest.version;
                     dependencies = file.dependencies || manifest.dependencies;
+                    npm = file.npm || manifest.npm;
 
                     fs.readFile(filepath, "utf8", function (err, data) {
                         if (err) {
@@ -594,7 +611,8 @@
                                     module,
                                     content,
                                     version,
-                                    dependencies
+                                    dependencies,
+                                    npm
                                 );
                                 break;
                             case "service":

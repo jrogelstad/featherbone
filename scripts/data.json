@@ -11,6 +11,8 @@
             "name": "Client Script"
         }, {
             "name": "Dependencies"
+        }, {
+            "name": "Node Packages"
         }],
         "attrs": [{
             "attr": "name"
@@ -25,8 +27,22 @@
             "attr": "dependencies",
             "showLabel": false,
             "grid": 2,
-            "columns": [{
+            "columns": [
+            {
                 "attr": "module"
+            }]
+        }, {
+            "attr": "npm",
+            "showLabel": false,
+            "grid": 3,
+            "columns": [{
+                "attr": "package"
+            }, {
+                "attr": "version"
+            }, {
+                "attr": "property"
+            }, {
+                "attr": "export"
             }]
         }]
     }
