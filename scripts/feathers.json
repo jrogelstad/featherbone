@@ -339,6 +339,51 @@
         }
     },
     {
+        "name": "FormAttrAction",
+        "plural": "FormAttrActions",
+        "module": "Core",
+        "description": "Form attribute actions for child objects",
+        "properties": {
+            "parent": {
+                "description": "Parent attribute",
+                "type": {
+                    "relation": "FormAttr",
+                    "childOf": "actions"
+                }
+            },
+            "name": {
+                "description": "Name",
+                "format": "",
+                "type": "string",
+                "isRequired": false
+            },
+            "title": {
+                "description": "Title",
+                "format": "",
+                "type": "string",
+                "isRequired": true
+            },
+            "icon": {
+                "description": "Icon name",
+                "type": "string",
+                "format": "icon",
+                "isRequired": false
+            },
+            "method": {
+                "description": "Method to execute for action",
+                "type": "string",
+                "format": "",
+                "isRequired": true
+            },
+            "validator": {
+                "description": "Selection validation check",
+                "type": "string",
+                "format": "",
+                "isRequired": false
+            }
+        }
+    },
+    {
         "name": "FormAttrColumn",
         "plural": "FormAttrColumns",
         "module": "Core",
