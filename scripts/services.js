@@ -1334,7 +1334,6 @@ function createUserAccount(obj) {
                 password: obj.newRec.password,
                 isInherits: false
             };
-            obj.newRec.password = "";
             resolve();
         }
         f.datasource.config().then(callback).catch(reject);

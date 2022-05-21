@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2021  John Rogelstad
+    Copyright (C) 2022  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/*jslint node*/
+/*jslint node unordered*/
 (function (exports) {
     "use strict";
     const fs = require("fs");
@@ -35,15 +35,26 @@
                         console.error(err);
                         return reject(err);
                     }
+                    data = JSON.parse(data);
 
                     // Environment values over-ride file if they exist
                     Object.keys(data).forEach(function (key) {
                         if (process.env[key] !== undefined) {
-                            data[key] = process.env[key];
+                            if (process.env[key] === "True") {
+                                data[key] = true;
+                            } else if (process.env[key] === "False") {
+                                data[key] = false;
+                            } else if (
+                                !Number.isNaN(Number(process.env[key]))
+                            ) {
+                                data[key] = Number(process.env[key]);
+                            } else {
+                                data[key] = process.env[key];
+                            }
                         }
                     });
 
-                    resolve(JSON.parse(data));
+                    resolve(data);
                 });
             });
         };

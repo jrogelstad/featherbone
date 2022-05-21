@@ -20,5 +20,10 @@
     "pgSslCert": "./server/ssl/server.crt",
     "secret": "Your own session key here",
     "sessionTimeout": 86400000,
+    "smtpAuthPass": "mailacountpassword",
+    "smtpAuthUser": "user@yourdomain.com",
+    "smtpHost": "smtp.yourdomain.com",
+    "smtpSecure": true,
+    "smtpPort": 465,
     "ssl": false
 }
