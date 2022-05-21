@@ -12,7 +12,7 @@
     "url": "http://github.com/FeatherboneJS/Featherbone.git"
   },
   "dependencies": {
-    "adm-zip": "^0.4.13",
+    "adm-zip": "^0.5.9",
     "big.js": "^5.2.2",
     "body-parser": "^1.18.2",
     "canvas": "^2.9.1",
