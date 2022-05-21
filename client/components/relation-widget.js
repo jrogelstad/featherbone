@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2021  John Rogelstad
+    Copyright (C) 2022  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/*jslint this, browser*/
+/*jslint this, browser, unordered, devel*/
 /*global f, m*/
 /**
     @module RelationWidget
@@ -77,14 +77,18 @@ relationWidget.viewModel = function (options) {
     );
     let theFilter = {
         criteria: f.copy(criteria),
-        sort: [{
-            property: valueProperty
-        }],
         limit: 10
     };
     let modelList;
     let configId = f.createId();
     let blurVal;
+    let theProps = options.list.columns.map((l) => l.attr);
+    if (theProps.indexOf(labelProperty) === -1) {
+        theProps.unshift(labelProperty);
+    }
+    if (theProps.indexOf(valueProperty) === -1) {
+        theProps.unshift(valueProperty);
+    }
 
     function updateValue(prop) {
         let value = prop();
@@ -105,7 +109,13 @@ relationWidget.viewModel = function (options) {
         }
 
         if (!filter.sort) {
-            filter.sort = [];
+            if (pFilter.sort && pFilter.sort.length) {
+                filter.sort = pFilter.sort;
+            } else {
+                filter.sort = [{
+                    property: valueProperty
+                }];
+            }
         }
         filter.criteria = filter.criteria.concat(pFilter.criteria);
         filter.sort = (
@@ -124,7 +134,7 @@ relationWidget.viewModel = function (options) {
             vm.models().state().current()[0] !== "/Busy/Fetching"
         ) {
             theFilter.criteria = [{
-                property: "number",
+                property: valueProperty,
                 operator: "~*",
                 value: "^" + blurVal
             }];
@@ -141,8 +151,10 @@ relationWidget.viewModel = function (options) {
     modelList = f.createList(type.relation, {
         background: true,
         filter: mergeFilter(theFilter),
-        fetch: false
+        fetch: false,
+        isEditable: false
     });
+    modelList.properties();
     modelList.fetch(mergeFilter(theFilter), false).then(blurFetch);
 
     // Make sure data changes made by biz logic in the model are
@@ -212,7 +224,7 @@ relationWidget.viewModel = function (options) {
     vm.label = function () {
         let model = modelValue();
         return (
-            (labelProperty && model)
+            (labelProperty && model && model.data[labelProperty])
             ? model.data[labelProperty]()
             : ""
         );

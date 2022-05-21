@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2021  John Rogelstad
+    Copyright (C) 2022  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/*jslint this, for, browser*/
+/*jslint this, for, browser, unordered*/
 /*global f, m*/
 /**
     @module TableWidget
@@ -30,7 +30,7 @@ let widthWithScroll;
 */
 const tableWidget = {};
 const outer = document.createElement("div");
-const COL_WIDTH_DEFAULT = "150";
+const COL_WIDTH_DEFAULT = String(f.TABLE_COLUMN_WIDTH_DEFAULT);
 const LIMIT = 20;
 const ROW_COUNT = 2;
 const FETCH_MAX = 3;
@@ -948,8 +948,8 @@ function resize(vm, vnode) {
         yPosition = f.getElementPosition(e.offsetParent).y;
         height = window.innerHeight - yPosition - 82;
 
-        if (height < 150) {
-            height = 150;
+        if (height < f.TABLE_MIN_HEIGHT) {
+            height = f.TABLE_MIN_HEIGHT;
         }
 
         e.style.height = height + "px";

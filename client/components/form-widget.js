@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2021  John Rogelstad
+    Copyright (C) 2022  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,13 +15,15 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/*jslint this, browser*/
+/*jslint this browser unordered*/
 /*global f, m*/
 /**
     @module FormWidget
 */
 
 const formWidget = {};
+const HORIZONTAL_TABS = "H";
+const VERTICAL_SECTIONS = "V";
 
 function buildButtons(vm) {
     let ret;
@@ -80,6 +82,24 @@ function buildButtons(vm) {
 }
 
 function buildFieldset(vm, attrs) {
+    let childTableItems = [];
+    // Make child tables fixed if there's more than
+    // one as autosize is wonkey otherwise
+    attrs.forEach(function (item) {
+        let prop = vm.model().data[item.attr];
+        if (prop && prop.isToMany()) {
+            childTableItems.push(item);
+        }
+    });
+
+    if (
+        childTableItems.length > 1 ||
+        vm.config().orientation === VERTICAL_SECTIONS
+    ) {
+        childTableItems.forEach(function (item) {
+            item.height = f.TABLE_MIN_HEIGHT + "px";
+        });
+    }
     return attrs.map(function (item) {
         let result;
         let labelOpts;
@@ -93,9 +113,7 @@ function buildFieldset(vm, attrs) {
         }
         let theDataList = item.dataList || prop.dataList;
         let value = prop();
-        let theOptions = {
-            height: item.height
-        };
+        let theOptions = {height: item.height};
         let menuButtons = vm.menuButtons();
         let relation = vm.relations()[theKey];
 
@@ -331,6 +349,17 @@ function buildGrid(grid, idx) {
     let units;
     let vm = this;
     let className = "fb-tabbed-panes fb-tabbed-panes-form";
+    let header;
+    let orient = vm.config().orientation || HORIZONTAL_TABS
+
+    if (orient === HORIZONTAL_TABS) {
+        header = buildButtons(vm);
+    } else if (idx) {
+        header = m("div", {
+            style: {padding: ".5em 1em", display: "inline-block"},
+            class: "fb-group-tab fb-group-tab-form fb-group-tab-active"
+        }, vm.config().tabs[idx - 1].name);
+    }
 
     units = grid.map(function (unit) {
         return buildUnit(vm, unit, grid.length);
@@ -342,14 +371,17 @@ function buildGrid(grid, idx) {
         }, units);
     }
 
-    if (idx !== vm.selectedTab()) {
+    if (
+        orient === HORIZONTAL_TABS &&
+        idx !== vm.selectedTab()
+    ) {
         className += " fb-tabbed-panes-hidden";
     }
 
     return m("div", {
         class: className
     }, [
-        buildButtons(vm),
+        header,
         m("div", {
             class: "pure-g fb-tabbed-pane"
         }, units)
@@ -432,7 +464,6 @@ formWidget.viewModel = function (options) {
         @return {String}
     */
     vm.outsideElementIds = f.prop(options.outsideElementIds || []);
-
     /**
         Places to store relation content between redraws
         @method relations

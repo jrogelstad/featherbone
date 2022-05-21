@@ -1,6 +1,6 @@
 /*
     Framework for building object relational database apps
-    Copyright (C) 2021  John Rogelstad
+    Copyright (C) 2022  John Rogelstad
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as published by
@@ -15,7 +15,7 @@
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/*jslint browser*/
+/*jslint browser unordered*/
 /*global f*/
 /**
     @module Core
@@ -123,6 +123,50 @@ function form(data, feather) {
 }
 
 f.catalog().registerModel("Form", form);
+
+function formAction(data, feather) {
+    let model;
+    feather = feather || f.catalog().getFeather("FormAction");
+    model = f.createModel(data, feather);
+
+    /**
+        Feather static method datalist.
+
+        __Type:__ `Array`
+
+        __Is Calculated__
+
+        __Read Only__
+
+        @property data.methodList
+        @for Models.FormAction
+        @type Property
+    */
+    model.addCalculated({
+        name: "methodList",
+        type: "array",
+        function: function () {
+            let ary = [];
+            let parent = model.parent();
+            let name = parent.data.feather().toCamelCase();
+            let fn;
+
+            if (!name) {
+                return ary;
+            }
+            fn = f.catalog().store().models()[name];
+            ary = Object.keys(fn.static());
+            ary.sort();
+            return ary.map(function (key) {
+                return {label: key, value: key};
+            });
+        }
+    });
+
+    return model;
+}
+
+f.catalog().registerModel("FormAction", formAction);
 
 function formAttr(data, feather) {
     let model;
