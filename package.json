@@ -32,13 +32,13 @@
     "pg": "^8.7.3",
     "pg-format": "^1.0.4",
     "print-js": "^1.6.0",
-    "purecss": "^1.0.0",
-    "qs": "^6.6.0",
+    "purecss": "^2.1.0",
+    "qs": "^6.10.3",
     "tinymce": "^5.10.2",
     "typeface-raleway": "0.0.54",
-    "winston": "^3.3.3",
-    "winston-daily-rotate-file": "^4.4.2",
-    "ws": "^7.5.0",
-    "xlsx": "^0.17.0"
+    "winston": "^3.7.2",
+    "winston-daily-rotate-file": "^4.6.1",
+    "ws": "^8.6.0",
+    "xlsx": "^0.18.5"
   }
 }
